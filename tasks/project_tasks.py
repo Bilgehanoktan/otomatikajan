@@ -76,7 +76,8 @@ def run_project_task(
     logger.info(f"🚀 Worker görevi devraldı: {job_id or db_project_id} — {title}")
 
     async def _execute_task():
-        from core.orchestrator import orchestrator
+        from core.agi.orchestrator import agi_orchestrator
+        from core.agi.schemas import SourceType
         from db.session import AsyncSessionLocal
         from db.repository import ProjectRepository
 
@@ -95,16 +96,26 @@ def run_project_task(
             await ProjectRepository.mark_started(db, p.id)
             await db.commit()
 
-        # 2. Asıl işi Orchestrator'a devret
-        return await orchestrator.run_project(
-            title, description,
-            project_id=db_project_id,
-            workflow_template=workflow_template,
-            quality_profile=quality_profile,
-            acceptance_criteria=acceptance_criteria,
-            execution_context=execution_context,
-            db_subtask_map=db_subtask_map
+        # 2. Asıl işi AGI Orchestrator'a devret
+        source_val = p.source.value if hasattr(p.source, "value") else str(p.source)
+        try:
+            agi_source = SourceType(source_val)
+        except ValueError:
+            agi_source = SourceType.TASK_REQUEST
+
+        episode = await agi_orchestrator.run(
+            raw_input={"title": title, "description": description, "context": execution_context},
+            source=agi_source
         )
+        
+        # Backward compatibility for the worker return value
+        # Orchestrator object'e benzer bir yapı dönüyoruz (report ve subtasks)
+        class LegacyOrchResult:
+            def __init__(self, ep):
+                self.report = ep.final_output
+                self.subtasks = ep.actions # ActionRecord -> Subtask mock
+        
+        return LegacyOrchResult(episode)
 
     try:
         # Asenkron akışı çalıştır

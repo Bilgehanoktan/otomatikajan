@@ -64,7 +64,7 @@ class TaskUpdateRequest(BaseModel):
 
 
 # ── Yardımcı: project -> dict ───────────────────────────────
-def _project_to_dict(p, subtasks=None, logs=None) -> dict:
+def _project_to_dict(p, subtasks=None, logs=None, agi_metadata=None) -> dict:
     result = {
         "id":            str(p.id),
         "title":         p.title,
@@ -92,7 +92,8 @@ def _project_to_dict(p, subtasks=None, logs=None) -> dict:
         "quality_profile":   getattr(p, "quality_profile", "standard"),
         "acceptance_criteria": getattr(p, "acceptance_criteria", []),
         "review_required":   getattr(p, "review_required", False),
-        "execution_context": getattr(p, "execution_context", {})
+        "execution_context": getattr(p, "execution_context", {}),
+        "agi_metadata": agi_metadata
     }
     if subtasks is not None:
         result["subtasks"] = [

@@ -90,7 +90,9 @@ class DBLogHandler(logging.Handler):
 
             async def _write():
                 try:
+                    # 1. DB Log (Relational)
                     async with AsyncSessionLocal() as db:
+                        from db.repository import EventLogRepository
                         await EventLogRepository.write(
                             db,
                             event_type=f"log.{record.levelname.lower()}",
@@ -101,6 +103,16 @@ class DBLogHandler(logging.Handler):
                             payload={"logger": record.name, "trace_id": get_trace_id()},
                         )
                         await db.commit()
+                    
+                    # 2. Vector Log (Faz 12.2: Log Aggregation to RAG)
+                    try:
+                        from memory.watchdog import watchdog
+                        agent_id = getattr(record, "agent_id", "system")
+                        severity = "warning" if record.levelno == logging.WARNING else "critical"
+                        phase = getattr(record, "phase", "log")
+                        await watchdog.log_event(agent_id, severity, phase, record.getMessage())
+                    except Exception:
+                        pass
                 except Exception:
                     pass
 

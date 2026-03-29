@@ -40,11 +40,13 @@ async def test_routing_logic_to_deerflow():
     mock_job = MagicMock()
     mock_job.id = "job-id"
 
-    with patch('db.session.AsyncSessionLocal') as mock_session_class, \
-         patch('db.repository.ProjectRepository', autospec=True) as mock_repo, \
-         patch('db.repository.TaskLogRepository', autospec=True) as mock_log_repo, \
-         patch('core.job_queue.job_queue.enqueue', new_callable=AsyncMock) as mock_enqueue, \
-         patch('core.events.event_bus.emit', new_callable=AsyncMock) as mock_emit:
+    with patch('api.task_write_router.AsyncSessionLocal') as mock_session_class, \
+         patch('api.task_write_router.ProjectRepository', autospec=True) as mock_repo, \
+         patch('api.task_write_router.TaskLogRepository', autospec=True) as mock_log_repo, \
+         patch('api.task_write_router.job_queue.enqueue', new_callable=AsyncMock) as mock_enqueue, \
+         patch('api.task_write_router.event_bus.emit', new_callable=AsyncMock) as mock_emit, \
+         patch('api.task_write_router.task_router.route_task', new_callable=AsyncMock) as mock_route, \
+         patch('api.task_write_router.skill_router.suggest', return_value=["test_skill"]) as mock_suggest:
         
         # Setup session mock
         mock_session = mock_session_class.return_value

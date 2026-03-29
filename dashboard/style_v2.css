@@ -1518,3 +1518,48 @@ input:focus, select:focus, textarea:focus {
   70% { box-shadow: 0 0 0 6px rgba(249, 115, 22, 0); }
   100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); }
 }
+
+/* ════════════════════════════════════════════════════════ */
+/* AGI MISSION CONTROL STYLES */
+/* ════════════════════════════════════════════════════════ */
+.agi-mission-control {
+  background: linear-gradient(135deg, rgba(14,165,233,0.08) 0%, rgba(139,92,246,0.08) 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(14, 165, 233, 0.25);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 0 20px rgba(14, 165, 233, 0.05);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.agi-mission-control:hover {
+  border-color: rgba(14, 165, 233, 0.5);
+  box-shadow: 0 12px 48px rgba(14, 165, 233, 0.15), inset 0 0 30px rgba(14, 165, 233, 0.1);
+  transform: translateY(-2px);
+}
+
+.agi-card-mini {
+  background: rgba(0, 0, 0, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  transition: all 0.3s ease;
+}
+
+.agi-card-mini:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-3px);
+}
+
+@keyframes scan-agi {
+  0% { transform: translateY(-100%); opacity: 0; }
+  50% { opacity: 0.5; }
+  100% { transform: translateY(100%); opacity: 0; }
+}
+
+.agi-mission-control::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 100%;
+  background: linear-gradient(transparent, rgba(14, 165, 233, 0.1), transparent);
+  pointer-events: none;
+  animation: scan-agi 4s infinite linear;
+}

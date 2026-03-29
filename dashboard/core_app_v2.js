@@ -615,6 +615,42 @@ async function openTaskDetail(id) {
         <div class="meta-item"><div class="meta-label" style="font-size:9px;color:var(--cyan);text-transform:uppercase;letter-spacing:0.05em;">KALİTE PROFİLİ</div><div class="meta-value" style="font-size:12px;text-transform:capitalize;">${t.quality_profile || 'standard'}</div></div>
       </div>
 
+      <!-- AGI MISSION CONTROL: BİLİŞSEL ÇEKİRDEK VERİLERİ -->
+      ${t.agi_metadata ? `
+      <div class="agi-mission-control" style="margin-bottom:32px; padding:20px; background:linear-gradient(135deg, rgba(14,165,233,0.05) 0%, rgba(139,92,246,0.05) 100%); border:1px solid rgba(14,165,233,0.2); border-radius:16px; box-shadow:0 8px 32px rgba(0,0,0,0.2); position:relative; overflow:hidden;">
+        <div style="position:absolute; top:0; right:0; width:100px; height:100px; background:radial-gradient(circle, rgba(14,165,233,0.1) 0%, transparent 70%); pointer-events:none;"></div>
+        
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
+          <div>
+            <div style="font-size:10px; font-weight:800; color:var(--accent); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:4px;">Bilişsel Çekirdek (Cognitive Core)</div>
+            <h3 style="font-size:18px; font-weight:800; color:#fff; margin:0;">Misyon Analizi</h3>
+          </div>
+          <div style="text-align:right;">
+             <div style="font-size:10px; color:var(--muted); margin-bottom:4px;">Reality Score</div>
+             <div style="font-size:24px; font-weight:900; color:${t.agi_metadata.verification?.reality_score >= 0.8 ? 'var(--green)' : 'var(--yellow)'}; font-family:var(--header-font);">
+               ${((t.agi_metadata.verification?.reality_score || 0) * 100).toFixed(0)}%
+             </div>
+          </div>
+        </div>
+
+        <div class="agi-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+          <div class="agi-card-mini" style="background:rgba(0,0,0,0.2); padding:12px; border-radius:10px; border-left:3px solid var(--accent);">
+            <div style="font-size:9px; color:var(--muted); margin-bottom:4px;">PROBLEM ÇERÇEVESİ</div>
+            <div style="font-size:12px; color:var(--text); font-weight:600;">${t.agi_metadata.frame?.objective || 'Tanımlanmadı'}</div>
+            <div style="font-size:10px; color:var(--muted); margin-top:4px;">Risk Seviyesi: <span style="color:${t.agi_metadata.frame?.risk_level === 'critical' ? 'var(--red)' : 'var(--yellow)'}">${t.agi_metadata.frame?.risk_level || 'N/A'}</span></div>
+          </div>
+          <div class="agi-card-mini" style="background:rgba(0,0,0,0.2); padding:12px; border-radius:10px; border-left:3px solid var(--purple);">
+            <div style="font-size:9px; color:var(--muted); margin-bottom:4px;">DENETİM ÖZETİ</div>
+            <div style="font-size:11px; color:var(--text2); line-height:1.4;">${t.agi_metadata.verification?.summary || 'Denetim raporu bekleniyor...'}</div>
+          </div>
+        </div>
+
+        <div style="margin-top:16px; padding:10px; background:rgba(255,255,255,0.02); border-radius:8px; font-family:var(--mono); font-size:10px; color:var(--muted);">
+          <span style="color:var(--accent);">[LEARNING]</span> Episode ID: ${t.agi_metadata.episode_id || 'N/A'} | Strateji: ${t.agi_metadata.plan?.strategy_id || 'Otonom'}
+        </div>
+      </div>
+      ` : ''}
+
       ${t.error_detail ? `<div style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);border-radius:12px;padding:16px;margin-bottom:24px;font-family:var(--mono);font-size:13px;color:var(--red);"><div style="font-weight:800;margin-bottom:4px;">❌ HATA DETAYI</div>${t.error_detail}</div>` : ''}
       
       ${reportHtml ? `

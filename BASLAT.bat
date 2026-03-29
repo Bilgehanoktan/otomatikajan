@@ -3,6 +3,7 @@ setlocal disabledelayedexpansion
 chcp 65001 >nul
 title AI Yazilim Sirketi - Baslat (v4.0.0-RC1.4)
 
+
 echo ----------------------------------------------------
 echo    AI Yazılım Şirketi (DeerFlow) - Başlatılıyor
 echo    Sürüm: 4.0.0-RC1.4

@@ -78,7 +78,7 @@ async def create_task(req: TaskCreateRequest, current_user=Depends(get_current_u
             db_project_id = str(pid)
             
             await TaskLogRepository.write(
-                db, pid, TaskState.CREATED.value,
+                db, pid, TaskState.PENDING.value,
                 f"Dashboard üzerinden oluşturuldu | Öncelik: {req.priority}",
                 agent_id=str(current_user.id) if current_user else "dashboard",
                 payload={"source": req.source, "priority": req.priority},
@@ -154,6 +154,18 @@ async def create_task(req: TaskCreateRequest, current_user=Depends(get_current_u
         )
         suggested_skills = skill_router.suggest(skill_req)
         logger.info(f"Task {db_project_id} için önerilen skill'ler: {suggested_skills}")
+        
+        # ── Suggested Skill'leri Context'e Yaz (Faz 12.2) ──
+        if suggested_skills:
+            try:
+                # p.execution_context bir JSONB, dict olarak alıp güncelleyelim
+                ctx = dict(p.execution_context or {})
+                ctx["suggested_skills"] = suggested_skills
+                await ProjectRepository.update_fields(db, pid, execution_context=ctx)
+                logger.debug(f"Task {db_project_id} context güncellendi (suggested_skills).")
+                await db.commit()
+            except Exception as ctx_err:
+                logger.warning(f"Skill context yazımı başarısız (atlandı): {ctx_err}")
 
         job = await job_queue.enqueue(
             task_name,

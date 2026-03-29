@@ -25,8 +25,18 @@ async def list_tasks(
         from sqlalchemy import select, func
         from db.models import Project
         async with AsyncSessionLocal() as db:
-            # SRE: Status is expected to be uppercase in DB
-            db_status = status.upper() if status else None
+            # ── Faz 12.1A: Compatibility Shim ───────────────
+            status_map = {
+                "done": "COMPLETED",
+                "failed": "ERROR",
+                "success": "COMPLETED",
+                "waiting": "PENDING",
+                "active": "RUNNING",
+                "todo": "PENDING"
+            }
+            status_val = status.lower() if status else None
+            db_status = status_map.get(status_val, status_val.upper() if status_val else None)
+
             projects = await ProjectRepository.list_recent(
                 db, limit=limit, offset=offset, status=db_status,
                 source=source, priority=priority, search=search,
@@ -155,7 +165,22 @@ async def get_task(task_id: str, current_user=Depends(get_current_user)):
             subtasks = await SubTaskRepository.get_by_project(db, p.id)
             logs     = await TaskLogRepository.get_by_project(db, p.id, limit=100)
 
-        return _project_to_dict(p, subtasks=subtasks, logs=logs)
+            # --- AGI Entegrasyonu (Gelişmiş Episode Verisi) ---
+            from db.models import Memory
+            from sqlalchemy import select
+            agi_metadata = None
+            # Project ID ile eşleşen en son episode kaydını al
+            agi_q = select(Memory).where(
+                Memory.project_id == str(p.id),
+                Memory.category == "episode_record"
+            ).order_by(Memory.created_at.desc()).limit(1)
+            
+            agi_res = await db.execute(agi_q)
+            agi_mem = agi_res.scalar_one_or_none()
+            if agi_mem:
+                agi_metadata = agi_mem.metadata_
+
+        return _project_to_dict(p, subtasks=subtasks, logs=logs, agi_metadata=agi_metadata)
 
     except HTTPException:
         raise
