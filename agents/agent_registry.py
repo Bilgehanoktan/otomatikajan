@@ -1,0 +1,324 @@
+"""
+8 Uzman Yazılım Geliştirme Ajanı
+Her ajan kendi rolü, sistem istemi ve uzmanlık alanıyla tanımlanmıştır.
+"""
+
+from dataclasses import dataclass
+from typing import Any
+
+
+from agents.base import BaseAgent
+from schemas import SubtaskOutput, AgentStatus, Artifact, ArtifactType
+from typing import Dict, Any, Optional
+from datetime import datetime, timezone
+import logging
+import traceback
+
+_log = logging.getLogger("agent_registry")
+
+class Agent(BaseAgent):
+    def __init__(self, id: str, name: str, role: str, system_prompt: str, emoji: str = "🤖"):
+        # Not: Registry'deki ajanlar başlangıçta orchestrator (self.llm) almazlar.
+        # Orchestrator (core.orchestrator) bunları kullanırken execute/solve sırasında llc'yi geçer.
+        self.id = id
+        self.name = name
+        self.role_name = role  # BaseAgent.role ile çakışmaması için
+        self._system_prompt = system_prompt
+        self.emoji = emoji
+        self.llm: Any = None  # Geçici olarak None
+
+    @property
+    def role(self) -> str:
+        return self.id
+
+    @property
+    def system_prompt(self) -> str:
+        return self._system_prompt
+
+    async def solve(self, prompt: str, orchestrator: Any, context: str = "") -> Any:
+        # Eski solve arayüzü (Backward Compatibility)
+        self.llm = orchestrator
+        full_prompt = prompt
+        if context:
+            full_prompt = f"### ÖNCEKİ ÇIKTILAR (BAĞLAM):\n{context}\n\n### YENİ GÖREV:\n{prompt}"
+        
+        return await self.llm.complete_task(
+            agent_role=self.id,
+            prompt=full_prompt,
+            system_prompt=self.system_prompt
+        )
+
+    async def execute(self, task_id: str, subtask_id: str, context: Dict[str, Any], project_id: str | None = None) -> SubtaskOutput:
+        """
+        Canonical Faz 12 Ajan Yürütme Motoru.
+        Orchestrator tarafından çağrılır.
+        """
+        start_time = datetime.now(timezone.utc)
+        requirements = context.get("requirements", "")
+        shared_context = context.get("shared_context", "")
+        
+        user_prompt = f"Gereksinimler: {requirements}"
+        if shared_context:
+            user_prompt += f"\n\nBağlam (Önceki Çıktılar):\n{shared_context}"
+
+        try:
+            if not self.llm:
+                raise ValueError(f"Agent {self.id} için LLM orchestrator atanmamış.")
+
+            llm_response = await self.llm.complete_task(
+                agent_role=self.id,
+                prompt=user_prompt,
+                system_prompt=self.system_prompt,
+                task_id=task_id,
+                project_id=project_id
+            )
+
+            # Çıktıyı parse et (Deneysel ama proaktif: AgentOutput şemasına zorlar)
+            from quality.output_schema import output_parser
+            parsed = output_parser.parse(self.id, llm_response.content)
+
+            return SubtaskOutput(
+                task_id=task_id,
+                subtask_id=subtask_id,
+                agent_id=self.id,
+                provider=llm_response.provider,
+                model=llm_response.model_name,
+                input_tokens=llm_response.input_tokens,
+                output_tokens=llm_response.output_tokens,
+                cost_usd=llm_response.cost_usd,
+                latency_s=llm_response.latency_s,
+                status=AgentStatus.SUCCESS,
+                summary=parsed.summary,
+                raw_output=llm_response.content,
+                artifacts=[], # TODO: Parsed deliverables'dan Artifact'ler üretilebilir
+                started_at=start_time,
+                completed_at=datetime.now(timezone.utc)
+            )
+
+        except Exception as e:
+            # LLM veya Parse hatasında görevin ana akışı çökertmesini engeller
+            return SubtaskOutput(
+                task_id=task_id,
+                subtask_id=subtask_id,
+                agent_id=self.id,
+                provider="unknown",
+                model="unknown",
+                status=AgentStatus.FAILED,
+                summary=f"Hata: {str(e)}",
+                raw_output="",
+                started_at=start_time,
+                completed_at=datetime.now(timezone.utc),
+                error={
+                    "error_type": type(e).__name__,
+                    "message": f"Ajan yürütme başarısız: {str(e)}",
+                    "traceback": traceback.format_exc(),
+                    "is_recoverable": True
+                }
+            )
+
+
+
+# ── Temiz Kod Sözleşmesi — tüm ajanlara eklenir ──────────
+_CLEAN_CODE_CONTRACT = """
+════════════ TEMİZ KOD SÖZLEŞMESİ ════════════
+Ürettiğin her kod bu kurallara UYMAK ZORUNDADIR:
+
+ZORUNLU:
+• Type annotation ekle (def foo(x: int) -> str)
+• Docstring yaz (bir satır yeter, ama yaz)
+• Hata yönetimi: bare except yasak -> except ValueError as e: kullan
+• logging modülünü kullan, print() YASAK
+• Sabit/secret hardcode etme -> os.getenv() kullan
+• Fonksiyon max 30 satır; büyükse parçala (SRP)
+• İsimler açıklayıcı: x, tmp, data2 YASAK
+
+YASAK:
+• eval() / exec() -> güvenlik açığı
+• global değişken -> parametre/bağımlılık geç
+• Yorum olarak "TODO / FIXME / HACK" bırakma -> bitir
+• Magic number -> sabit tanımla (MAX_RETRY = 3)
+• Duplicate kod -> fonksiyon/sınıfa çıkar (DRY)
+• SELECT * -> sütunları listele
+• SQL string concat -> parametre binding kullan
+
+GÜVENLİK VE BÜTÜNLÜK PROTOKOLÜ (ASLA ESNETİLEMEZ):
+• KRİTİK DOSYALARI SİLME/DEĞİŞTİRME: .env, main.py, baslat.bat, core/safety_gate.py, db/models.py gibi dosyalar dokunulmazdır.
+• Tehlikeli komut (rm -rf, drop table vb.) çalıştırmadan önce mutlaka 'system_controller' veya kullanıcı onayı iste.
+• Dosya silme operasyonları yerine her zaman '.bak' veya '.old' uzantısıyla yedekleme yap.
+• Herhangi bir dosyayı DEKLEMEK (Overwrite) yerine, birleştirme (merge) veya güvenli düzenleme yöntemlerini tercih et.
+════════════════════════════════════════════════
+"""
+
+
+def build_agents() -> dict[str, Agent]:
+    agents_list = [
+        Agent(
+            id="architect",
+            name="Mimar Ajan",
+            emoji="🏛️",
+            role="Yazılım Mimarı",
+            system_prompt="""Sen kıdemli bir yazılım mimarısın.
+Sistem tasarımı, mimari desenler (microservices, event-driven, CQRS, hexagonal),
+teknoloji seçimi ve ölçeklenebilirlik konularında somut kararlar verirsin.
+Yanıtlarında her zaman gerekçe sun; "iyi olur" değil "çünkü X sorunu çözer" de.
+Tasarım kararlarını ADR (Architecture Decision Record) formatında belgele.
+""" + _CLEAN_CODE_CONTRACT,
+        ),
+        Agent(
+            id="backend_dev",
+            name="Backend Geliştirici",
+            emoji="⚙️",
+            role="Python/FastAPI Backend Uzmanı",
+            system_prompt="""Sen kıdemli bir Python backend geliştiricisisin.
+FastAPI, SQLAlchemy (async), asyncio, Redis, Celery uzmansın.
+Kod üretirken:
+- Her endpoint için Pydantic şeması tanımla
+- Repository pattern kullan, iş mantığını router'dan ayır
+- Async/await eksiksiz kullan (sync I/O yasak)
+- Her public fonksiyona tip annotation + docstring ekle
+- HTTPException yerine domain exception tanımla, handler'da yakala
+""" + _CLEAN_CODE_CONTRACT,
+        ),
+        Agent(
+            id="frontend_dev",
+            name="Frontend Geliştirici",
+            emoji="🎨",
+            role="React/TypeScript UI Uzmanı",
+            system_prompt="""Sen kıdemli bir frontend geliştiricisisin.
+React 18, TypeScript 5, Tailwind CSS, Zustand/React Query uzmansın.
+Kod üretirken:
+- Her component için Props interface tanımla (any yasak)
+- Custom hook'lara iş mantığını çıkar (useXxx)
+- useEffect dependency array'i eksiksiz doldur
+- API hata durumlarını her zaman ele al
+- Erişilebilirlik: aria-label, role, keyboard nav ekle
+""" + _CLEAN_CODE_CONTRACT,
+        ),
+        Agent(
+            id="qa_engineer",
+            name="QA Mühendisi",
+            emoji="🧪",
+            role="Test ve Kalite Güvencesi Uzmanı",
+            system_prompt="""Sen deneyimli bir QA mühendisisin.
+pytest, pytest-asyncio, httpx, Playwright uzmansın.
+Test üretirken:
+- AAA pattern: Arrange / Act / Assert
+- Her test tek bir davranışı test eder
+- Happy path + edge case + hata durumu yaz
+- Mock'ları gerçekçi tut; aşırı mock iş mantığını gizler
+- Test ismi: test_should_<davranış>_when_<koşul>
+- %80+ satır coverage hedefle
+""" + _CLEAN_CODE_CONTRACT,
+        ),
+        Agent(
+            id="devops",
+            name="DevOps Mühendisi",
+            emoji="🚀",
+            role="CI/CD ve Altyapı Uzmanı",
+            system_prompt="""Sen deneyimli bir DevOps mühendisisin.
+Docker, Kubernetes, GitHub Actions, Terraform, Prometheus/Grafana uzmansın.
+Üretirken:
+- Dockerfile: multi-stage build, non-root user, .dockerignore
+- docker-compose: healthcheck, restart policy, volume mount
+- CI pipeline: lint -> test -> build -> scan -> deploy sırası
+- Secret'ları env variable veya vault ile yönet, config'e yazma
+- Her servis için readiness/liveness probe ekle
+""" + _CLEAN_CODE_CONTRACT,
+        ),
+        Agent(
+            id="security",
+            name="Güvenlik Uzmanı",
+            emoji="🔒",
+            role="Uygulama Güvenliği Uzmanı",
+            system_prompt="""Sen uygulama güvenliği uzmanısın.
+OWASP Top 10, SAST/DAST araçları, güvenli kod geliştirme uzmansın.
+Her bulguda:
+- Açık: ne, nerede, neden tehlikeli
+- CVSS skoru tahmini (Low/Medium/High/Critical)
+- Somut kod düzeltmesi (yanlış -> doğru örnek)
+- Kısa vadeli fix + uzun vadeli önlem
+Güvenlik kodu üretirken: input sanitization, output encoding, parametre binding kullan.
+""" + _CLEAN_CODE_CONTRACT,
+        ),
+        Agent(
+            id="data_eng",
+            name="Veri Mühendisi",
+            emoji="🗄️",
+            role="Veritabanı ve Veri Mühendisliği Uzmanı",
+            system_prompt="""Sen deneyimli bir veri mühendisisin.
+PostgreSQL, Redis, Alembic migration, SQLAlchemy ORM uzmansın.
+Üretirken:
+- Her tablo için index stratejisini belirt
+- N+1 query'yi önlemek için eager loading kullan
+- Migration'ları geri alınabilir yaz (up + down)
+- Büyük veri setleri için pagination/cursor kullan
+- Transaction sınırlarını açıkça belirle
+""" + _CLEAN_CODE_CONTRACT,
+        ),
+        Agent(
+            id="tech_writer",
+            name="Teknik Yazar",
+            emoji="📝",
+            role="Teknik Dokümantasyon Uzmanı",
+            system_prompt="""Sen deneyimli bir teknik yazarsın.
+OpenAPI/Swagger, README, ADR, geliştirici rehberleri uzmansın.
+Yazarken:
+- Her endpoint için: açıklama, parametreler, yanıt örnekleri, hata kodları
+- README: kurulum (3 adımda çalışır hale getir), API referans, örnek kullanım
+- Kod örnekleri gerçekten çalışır olsun, kopyala-yapıştır test et
+- Teknik jargonu açıkla; ilk defa okuyan anlasın
+""" + _CLEAN_CODE_CONTRACT,
+        ),
+        Agent(
+            id="visual_auditor",
+            name="Görsel Denetçi",
+            emoji="👁️",
+            role="UX/UI ve Görsel Standart Uzmanı",
+            system_prompt="""Sen kıdemli bir UX/UI denetçisisin.
+Sana gönderilen ekran görüntülerini (screenshots) şu açılardan analiz edersin:
+- Görsel Tutarlılık: Renkler, fontlar ve boşluklar (spacing) belirlenen temaya (Mission Control) uygun mu?
+- Erişilebilirlik: Kontrast oranları, buton boyutları ve okunabilirlik nasıl?
+- Kullanıcı Deneyimi (UX): Bilgi hiyerarşisi doğru mu? Kritik veriler hemen fark ediliyor mu?
+- Teknik Hatalar: Kayan öğeler, taşan metinler veya yüklenememiş ikonlar var mı?
+- Öneri: İyileştirme bekleyen yerleri 'Improvement' olarak sun.
+""" + _CLEAN_CODE_CONTRACT,
+        ),
+        Agent(
+            id="strategist",
+            name="Stratejist Ajan",
+            emoji="🧠",
+            role="Pazar Zekası ve Strateji Uzmanı",
+            system_prompt="""Sen kıdemli bir teknoloji stratejistisin.
+Pazar trendlerini, rakip analizlerini ve yeni çıkan teknolojileri takip edersin.
+Görevin:
+- Arama sonuçlarını analiz ederek güncel 'teknoloji radarı' oluşturmak.
+- Diğer uzman ajanların ( architect, backend_dev vb.) çalışma prensiplerini günün şartlarına göre optimize etmek.
+- Sistem için uzun vadeli yol haritası önerileri sunmak.
+Yanıtlarında 'Trendler', 'Analiz' ve 'Stratejik Aksiyonlar' başlıklarını kullan.
+""" + _CLEAN_CODE_CONTRACT,
+        ),
+        Agent(
+            id="system_controller",
+            name="Sistem Denetçisi",
+            emoji="⚖️",
+            role="Maliyet ve Mimari Denetçi",
+            system_prompt="""Sen sistemin genel denetçisisin.
+Görevin:
+- Üretilen mimari kararların maliyet etkinliğini kontrol etmek.
+- Ajanlar arası veri sözleşmelerine (contracts) uyulup uyulmadığını denetlemek.
+- Güvenlik ve performans standartlarından ödün verilmediğinden emin olmak.
+- Eğer bir risk görürsen, 'Critical' veya 'High' olarak işaretle ve düzeltme öner.
+""" + _CLEAN_CODE_CONTRACT,
+        ),
+    ]
+    
+    from config import AGENT_COUNT
+    count = int(AGENT_COUNT) if AGENT_COUNT is not None else len(agents_list)
+    active_agents = agents_list[:count]
+    
+    # Faz 12 Hardening: architect her zaman yüklenmeli (Kritik bağımlılık)
+    if not any(a.id == "architect" for a in active_agents):
+        active_agents.append(agents_list[0]) # architect her zaman ilk sırada varsayılıyor
+        
+    _log.info(f"Registry: {len(active_agents)} ajan yuklendi.")
+    return {a.id: a for a in active_agents}

@@ -1,0 +1,295 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.0.2, pluggy-1.6.0 -- C:\Python314\python.exe
+cachedir: .pytest_cache
+rootdir: E:\ai_company_faz12.1
+configfile: pytest.ini (WARNING: ignoring pytest config in pyproject.toml!)
+plugins: anyio-4.12.1, langsmith-0.7.14, asyncio-1.3.0, cov-7.0.0, mock-3.15.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 1 item
+
+tests/test_deerflow_routing_contract.py::test_deerflow_routing_assignment FAILED [100%]
+
+================================== FAILURES ===================================
+______________________ test_deerflow_routing_assignment _______________________
+
+req = TaskCreateRequest(title='DeerFlow Contract Test', description='Testing routing contract', priority='medium', source='manual', assigned_agent='deerflow', tags=[], deadline=None, notes='', context='')
+current_user = <MagicMock id='1882736882560'>
+
+    @router.post("", summary="Yeni g÷rev olu■tur", status_code=201)
+    async def create_task(req: TaskCreateRequest, current_user=Depends(get_current_user)):
+        db_project_id = ""
+    
+        # A²klamaya context ekle
+        full_description = req.description
+        if req.context:
+            full_description += f"\n\n--- Ek Ba­lam ---\n{req.context}"
+    
+        try:
+            from db.session import AsyncSessionLocal
+            from db.repository import ProjectRepository, TaskLogRepository
+    
+            async with AsyncSessionLocal() as db:
+                # 1. State: CREATED (G÷rev API'den al²nd² ve DB'ye yaz²l²yor)
+                p = await ProjectRepository.create(
+                    db,
+                    title=req.title,
+                    description=full_description,
+                    job_id="pending_celery_id", # Geici, Celery'den al²nca g³ncellenecek
+                    source=req.source,
+                    priority=req.priority,
+                    tags=req.tags,
+                    deadline=req.deadline,
+                    assigned_agent=req.assigned_agent,
+                    notes=req.notes,
+                    status=ProjectStatus.PENDING.value # V2 Durum Makinesi
+                )
+    
+                await TaskLogRepository.write(
+                    db, p.id, TaskState.CREATED.value,
+                    f"Dashboard ³zerinden olu■turuldu | Íncelik: {req.priority}",
+                    agent_id=str(current_user.id) if current_user else "dashboard",
+                    payload={"source": req.source, "priority": req.priority},
+                )
+                await db.commit()
+                db_project_id = str(p.id)
+                project_dict = _project_to_dict(p)
+    
+        except Exception as e:
+            logger.error(f"G÷rev DB kayd² ba■ar²s²z: {e}")
+            raise HTTPException(status_code=500, detail=f"Veritaban² hatas²: {str(e)}")
+    
+        # 2. Kuyru­a G÷nder (QUEUED Faz²) ù Canonical JobQueue Standard²
+        try:
+            from core.job_queue import job_queue
+            from db.session import AsyncSessionLocal
+            from db.repository import ProjectRepository as _PR
+            import uuid as _uuid
+    
+            user_id_str = str(current_user.id) if current_user else "system"
+    
+            # job_queue hem Celery'yi hem de in-memory'yi ■effaf y÷netir
+            task_name = "run_project"
+            tags = req.tags or []
+    
+            if req.assigned_agent == "deerflow" or "deerflow" in tags or req.source == "research":
+                task_name = "deerflow_run"
+                logger.info(f"Routing task {db_project_id} to DeerFlow Bridge (task_name={task_name})")
+    
+            job = await job_queue.enqueue(
+                task_name,
+                db_project_id=db_project_id,
+                title=req.title,
+                description=full_description,
+                user_id=user_id_str
+            )
+    
+            async with AsyncSessionLocal() as db:
+                # `update_fields` only allows updating whitelisted fields
+                # ('title', 'description', 'priority', 'tags', 'deadline',
+                #  'assigned_agent', 'notes', 'status').  ``job_id`` is not part
+                # of this whitelist, so calling update_fields with job_id has no
+                # effect.  Instead, update job_id using the dedicated setter and
+                # then update the status separately.  This prevents the task's
+                # job_id from remaining "pending_celery_id".
+>               pid = _uuid.UUID(db_project_id)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+api\task_write_router.py:100: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <[AttributeError("'uuid.UUID' object has no attribute 'int'") raised in repr()] UUID object at 0x1b65bf97290>
+hex = 'testprojectid', bytes = None, bytes_le = None, fields = None, int = None
+version = None
+
+    def __init__(self, hex=None, bytes=None, bytes_le=None, fields=None,
+                       int=None, version=None,
+                       *, is_safe=SafeUUID.unknown):
+        r"""Create a UUID from either a string of 32 hexadecimal digits,
+        a string of 16 bytes as the 'bytes' argument, a string of 16 bytes
+        in little-endian order as the 'bytes_le' argument, a tuple of six
+        integers (32-bit time_low, 16-bit time_mid, 16-bit time_hi_version,
+        8-bit clock_seq_hi_variant, 8-bit clock_seq_low, 48-bit node) as
+        the 'fields' argument, or a single 128-bit integer as the 'int'
+        argument.  When a string of hex digits is given, curly braces,
+        hyphens, and a URN prefix are all optional.  For example, these
+        expressions all yield the same UUID:
+    
+        UUID('{12345678-1234-5678-1234-567812345678}')
+        UUID('12345678123456781234567812345678')
+        UUID('urn:uuid:12345678-1234-5678-1234-567812345678')
+        UUID(bytes='\x12\x34\x56\x78'*4)
+        UUID(bytes_le='\x78\x56\x34\x12\x34\x12\x78\x56' +
+                      '\x12\x34\x56\x78\x12\x34\x56\x78')
+        UUID(fields=(0x12345678, 0x1234, 0x5678, 0x12, 0x34, 0x567812345678))
+        UUID(int=0x12345678123456781234567812345678)
+    
+        Exactly one of 'hex', 'bytes', 'bytes_le', 'fields', or 'int' must
+        be given.  The 'version' argument is optional; if given, the resulting
+        UUID will have its variant and version set according to RFC 4122,
+        overriding the given 'hex', 'bytes', 'bytes_le', 'fields', or 'int'.
+    
+        is_safe is an enum exposed as an attribute on the instance.  It
+        indicates whether the UUID has been generated in a way that is safe
+        for multiprocessing applications, via uuid_generate_time_safe(3).
+        """
+    
+        if [hex, bytes, bytes_le, fields, int].count(None) != 4:
+            raise TypeError('one of the hex, bytes, bytes_le, fields, '
+                            'or int arguments must be given')
+        if int is not None:
+            pass
+        elif hex is not None:
+            hex = hex.replace('urn:', '').replace('uuid:', '')
+            hex = hex.strip('{}').replace('-', '')
+            if len(hex) != 32:
+>               raise ValueError('badly formed hexadecimal UUID string')
+E               ValueError: badly formed hexadecimal UUID string
+
+C:\Python314\Lib\uuid.py:219: ValueError
+
+During handling of the above exception, another exception occurred:
+
+    @pytest.mark.asyncio
+    async def test_deerflow_routing_assignment():
+        """Verify that assigned_agent='deerflow' routes to deerflow_run."""
+        mock_user = MagicMock()
+        mock_user.id = "test-user"
+    
+        mock_project = MagicMock()
+        mock_project.id = "test-project-id"
+    
+        req = TaskCreateRequest(
+            title="DeerFlow Contract Test",
+            description="Testing routing contract",
+            assigned_agent="deerflow"
+        )
+    
+        with patch('db.session.AsyncSessionLocal') as mock_session_class, \
+             patch('db.repository.ProjectRepository.create', new_callable=AsyncMock) as mock_create, \
+             patch('core.job_queue.job_queue.enqueue', new_callable=AsyncMock) as mock_enqueue, \
+             patch('core.events.event_bus.emit', new_callable=AsyncMock), \
+             patch('db.repository.TaskLogRepository.write', new_callable=AsyncMock):
+    
+            mock_create.return_value = mock_project
+            mock_enqueue.return_value = MagicMock(id="job-123")
+    
+>           await create_task(req, current_user=mock_user)
+
+tests\test_deerflow_routing_contract.py:30: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+req = TaskCreateRequest(title='DeerFlow Contract Test', description='Testing routing contract', priority='medium', source='manual', assigned_agent='deerflow', tags=[], deadline=None, notes='', context='')
+current_user = <MagicMock id='1882736882560'>
+
+    @router.post("", summary="Yeni g÷rev olu■tur", status_code=201)
+    async def create_task(req: TaskCreateRequest, current_user=Depends(get_current_user)):
+        db_project_id = ""
+    
+        # A²klamaya context ekle
+        full_description = req.description
+        if req.context:
+            full_description += f"\n\n--- Ek Ba­lam ---\n{req.context}"
+    
+        try:
+            from db.session import AsyncSessionLocal
+            from db.repository import ProjectRepository, TaskLogRepository
+    
+            async with AsyncSessionLocal() as db:
+                # 1. State: CREATED (G÷rev API'den al²nd² ve DB'ye yaz²l²yor)
+                p = await ProjectRepository.create(
+                    db,
+                    title=req.title,
+                    description=full_description,
+                    job_id="pending_celery_id", # Geici, Celery'den al²nca g³ncellenecek
+                    source=req.source,
+                    priority=req.priority,
+                    tags=req.tags,
+                    deadline=req.deadline,
+                    assigned_agent=req.assigned_agent,
+                    notes=req.notes,
+                    status=ProjectStatus.PENDING.value # V2 Durum Makinesi
+                )
+    
+                await TaskLogRepository.write(
+                    db, p.id, TaskState.CREATED.value,
+                    f"Dashboard ³zerinden olu■turuldu | Íncelik: {req.priority}",
+                    agent_id=str(current_user.id) if current_user else "dashboard",
+                    payload={"source": req.source, "priority": req.priority},
+                )
+                await db.commit()
+                db_project_id = str(p.id)
+                project_dict = _project_to_dict(p)
+    
+        except Exception as e:
+            logger.error(f"G÷rev DB kayd² ba■ar²s²z: {e}")
+            raise HTTPException(status_code=500, detail=f"Veritaban² hatas²: {str(e)}")
+    
+        # 2. Kuyru­a G÷nder (QUEUED Faz²) ù Canonical JobQueue Standard²
+        try:
+            from core.job_queue import job_queue
+            from db.session import AsyncSessionLocal
+            from db.repository import ProjectRepository as _PR
+            import uuid as _uuid
+    
+            user_id_str = str(current_user.id) if current_user else "system"
+    
+            # job_queue hem Celery'yi hem de in-memory'yi ■effaf y÷netir
+            task_name = "run_project"
+            tags = req.tags or []
+    
+            if req.assigned_agent == "deerflow" or "deerflow" in tags or req.source == "research":
+                task_name = "deerflow_run"
+                logger.info(f"Routing task {db_project_id} to DeerFlow Bridge (task_name={task_name})")
+    
+            job = await job_queue.enqueue(
+                task_name,
+                db_project_id=db_project_id,
+                title=req.title,
+                description=full_description,
+                user_id=user_id_str
+            )
+    
+            async with AsyncSessionLocal() as db:
+                # `update_fields` only allows updating whitelisted fields
+                # ('title', 'description', 'priority', 'tags', 'deadline',
+                #  'assigned_agent', 'notes', 'status').  ``job_id`` is not part
+                # of this whitelist, so calling update_fields with job_id has no
+                # effect.  Instead, update job_id using the dedicated setter and
+                # then update the status separately.  This prevents the task's
+                # job_id from remaining "pending_celery_id".
+                pid = _uuid.UUID(db_project_id)
+                await _PR.set_job_id(db, pid, job.id)
+                await _PR.update_fields(db, pid, status=TaskState.QUEUED.value)
+                await TaskLogRepository.write(
+                    db, pid, TaskState.QUEUED.value,
+                    f"G÷rev kuyru­a aktar²ld² | ¦■ ID: {job.id}",
+                    agent_id="orchestrator"
+                )
+                await db.commit()
+            project_dict["job_id"] = job.id
+            project_dict["status"] = TaskState.QUEUED.value
+    
+        except Exception as e:
+            logger.error(f"Celery Job Queue hatas²: {e}")
+>           raise HTTPException(status_code=500, detail="G÷rev kuyru­a al²namad², ancak DB'ye kaydedildi.")
+E           fastapi.exceptions.HTTPException: 500: G÷rev kuyru­a al²namad², ancak DB'ye kaydedildi.
+
+api\task_write_router.py:114: HTTPException
+---------------------------- Captured stdout call -----------------------------
+{"ts": "2026-03-24T18:35:08.634305+00:00", "level": "INFO", "logger": "api.tasks.write", "trace_id": "no-trace", "message": "Routing task test-project-id to DeerFlow Bridge (task_name=deerflow_run)", "name": "api.tasks.write", "levelname": "INFO", "lineno": 82, "funcName": "create_task", "taskName": "Task-1"}
+{"ts": "2026-03-24T18:35:08.634607+00:00", "level": "ERROR", "logger": "api.tasks.write", "trace_id": "no-trace", "message": "Celery Job Queue hatas²: badly formed hexadecimal UUID string", "name": "api.tasks.write", "levelname": "ERROR", "lineno": 113, "funcName": "create_task", "taskName": "Task-1"}
+============================== warnings summary ===============================
+api\_task_shared.py:23
+  E:\ai_company_faz12.1\api\_task_shared.py:23: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class TaskCreateRequest(BaseModel):
+
+tests/test_deerflow_routing_contract.py::test_deerflow_routing_assignment
+  E:\ai_company_faz12.1\db\repository.py:365: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+    db.add(log)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_deerflow_routing_contract.py::test_deerflow_routing_assignment
+======================== 1 failed, 2 warnings in 1.45s ========================

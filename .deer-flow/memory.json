@@ -1,0 +1,58 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2026-03-25T21:12:31.570136Z",
+  "user": {
+    "workContext": {
+      "summary": "",
+      "updatedAt": ""
+    },
+    "personalContext": {
+      "summary": "Turkish language capability",
+      "updatedAt": "2026-03-25T21:12:31.569235Z"
+    },
+    "topOfMind": {
+      "summary": "Exploring model capabilities, analyzing tasks such as Araştırmak and Analyzing",
+      "updatedAt": "2026-03-25T21:12:31.569235Z"
+    }
+  },
+  "history": {
+    "recentMonths": {
+      "summary": "Engaged in conversations about model capabilities and task analysis",
+      "updatedAt": "2026-03-25T21:12:31.569235Z"
+    },
+    "earlierContext": {
+      "summary": "",
+      "updatedAt": ""
+    },
+    "longTermBackground": {
+      "summary": "",
+      "updatedAt": ""
+    }
+  },
+  "facts": [
+    {
+      "id": "fact_ebffd87c",
+      "content": "Turkish language capability",
+      "category": "context",
+      "confidence": 0.9,
+      "createdAt": "2026-03-25T21:12:31.569235Z",
+      "source": "verify-model-test"
+    },
+    {
+      "id": "fact_868eccd9",
+      "content": "Interest in model capabilities",
+      "category": "knowledge",
+      "confidence": 0.8,
+      "createdAt": "2026-03-25T21:12:31.569235Z",
+      "source": "verify-model-test"
+    },
+    {
+      "id": "fact_a61b6613",
+      "content": "Task analysis tasks including Araştırmak and Analyzing",
+      "category": "behavior",
+      "confidence": 0.8,
+      "createdAt": "2026-03-25T21:12:31.569235Z",
+      "source": "verify-model-test"
+    }
+  ]
+}

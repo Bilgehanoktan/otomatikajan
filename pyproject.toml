@@ -1,0 +1,110 @@
+[build-system]
+requires      = ["setuptools==69", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name        = "ai-yazilim-sirketi"
+version     = "4.0.0-RC1.4"
+description = "8 AI Ajan ile Otonom Yazılım Geliştirme Sistemi"
+requires-python = ">=3.12"
+readme      = "README.md"
+license     = { text = "MIT" }
+keywords    = ["ai", "fastapi", "llm", "autonomous", "agents"]
+
+dependencies = [
+    "fastapi==0.110.0",
+    "uvicorn[standard]==0.29.0",
+    "gunicorn==22.0.0",
+    "httpx==0.27.0",
+    "pydantic==2.6.0",
+    "pydantic[email]==2.6.0",
+    "sqlalchemy[asyncio]==2.0.29",
+    "asyncpg==0.29.0",
+    "pgvector==0.2.5",
+    "alembic==1.13.1",
+    "bcrypt==4.1.2",
+    "pyjwt==2.8.0",
+    "celery[redis]==5.3.6",
+    "redis==5.0.3",
+    "numpy==1.26.0",
+    "python-dotenv==1.0.0",
+    "python-multipart==0.0.9",
+    "psutil==5.9.0",
+    "nest_asyncio==1.6.0",
+    "python-telegram-bot==21.10",
+    "google-generativeai==0.8.0",
+    "PyGithub==2.3.0",
+    "playwright==1.42.0",
+    "python-frontmatter==1.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.1.0",
+    "pytest-asyncio==0.23.6",
+    "pytest-mock==3.14.0",
+    "pytest-cov==5.0.0",
+    "ruff==0.4.0",
+    "mypy==1.10.0",
+    "bandit[toml]==1.7.8",
+    "pip-audit==2.7.3",
+]
+
+# ── Ruff (linter + formatter, flake8+black birleşimi) ─────
+[tool.ruff]
+target-version = "py312"
+line-length    = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "S"]
+ignore = [
+    "S101",  # assert kullanımına izin ver (test)
+    "S603",  # subprocess — kontrollü kullanım
+    "B008",  # FastAPI Depends() çağrısı
+    "N999",  # Türkçe modül isimleri
+    "E501",  # satır uzunluğu — ruff format yönetiyor
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*"     = ["S", "B"]     # test dosyalarında güvenlik uyarıları atla
+"alembic/*"   = ["E402"]
+
+[tool.ruff.format]
+quote-style            = "double"
+indent-style           = "space"
+skip-magic-trailing-comma = false
+
+# ── Bandit (güvenlik tarayıcısı) ──────────────────────────
+[tool.bandit]
+targets   = ["main.py", "api", "auth", "core", "llm", "db"]
+skips     = ["B101", "B601"]  # assert, shell=False
+
+# ── MyPy ─────────────────────────────────────────────────
+[tool.mypy]
+python_version         = "3.12"
+ignore_missing_imports = true
+warn_return_any        = false
+disallow_untyped_defs  = false   # aşamalı tip ekleme
+
+# ── Pytest ───────────────────────────────────────────────
+[tool.pytest.ini_options]
+asyncio_mode    = "auto"
+testpaths       = ["tests"]
+python_files    = ["test_*.py"]
+python_classes  = ["Test*"]
+python_functions= ["test_*"]
+filterwarnings  = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+addopts = "--tb=short -q"
+
+# ── Coverage ─────────────────────────────────────────────
+[tool.coverage.run]
+source   = [".", "api", "auth", "core", "llm", "quality", "memory", "heal"]
+omit     = ["tests/*", "alembic/*", "tasks/*"]
+
+[tool.coverage.report]
+skip_empty = true
+show_missing = true
+fail_under   = 60

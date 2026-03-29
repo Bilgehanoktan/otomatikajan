@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Otonom AI Şirketi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#080c10;--surface:#0e1318;--border:#1a2230;--accent:#00e5ff;--accent2:#7c3aed;--green:#10b981;--yellow:#f59e0b;--red:#ef4444;--orange:#f97316;--text:#e2e8f0;--muted:#64748b;--card:#0f1923;--mono:'JetBrains Mono',monospace;--sans:'Syne',sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans)}
+.app{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:220px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column}
+.sidebar-logo{padding:24px 20px 16px;border-bottom:1px solid var(--border)}
+.sidebar-logo h1{font-size:13px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--accent);font-family:var(--mono)}
+.sidebar-logo p{font-size:10px;color:var(--muted);margin-top:4px;font-family:var(--mono)}
+.nav{flex:1;padding:12px 8px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);transition:all .15s;margin-bottom:2px;border:1px solid transparent}
+.nav-item:hover{background:rgba(0,229,255,.05);color:var(--text)}
+.nav-item.active{background:rgba(0,229,255,.08);color:var(--accent);border-color:rgba(0,229,255,.15)}
+.nav-item .icon{font-size:14px;width:18px;text-align:center}
+.nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:2px 5px;border-radius:10px;font-family:var(--mono);min-width:16px;text-align:center}
+.sidebar-footer{padding:12px 16px;border-top:1px solid var(--border);font-family:var(--mono);font-size:10px;color:var(--muted)}
+.status-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:6px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.topbar{height:52px;flex-shrink:0;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;background:var(--surface)}
+.topbar-title{font-size:14px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.topbar-sub{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.topbar-actions{margin-left:auto;display:flex;gap:8px}
+.btn{padding:6px 14px;border-radius:5px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;border:1px solid;font-family:var(--sans);transition:all .15s}
+.btn-primary{background:var(--accent);color:#000;border-color:var(--accent)}
+.btn-primary:hover{background:#00bcd4}
+.btn-ghost{background:transparent;color:var(--text);border-color:var(--border)}
+.btn-ghost:hover{background:rgba(255,255,255,.05)}
+.btn-danger{background:transparent;color:var(--red);border-color:var(--red)}
+.btn-sm{padding:4px 10px;font-size:10px}
+.content{flex:1;overflow-y:auto;padding:24px}
+.page{display:none}.page.active{display:block}
+.card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:20px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-title{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-family:var(--mono)}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:24px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px 18px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px}
+.stat-card.cyan::before{background:var(--accent)}.stat-card.green::before{background:var(--green)}.stat-card.yellow::before{background:var(--yellow)}.stat-card.red::before{background:var(--red)}.stat-card.orange::before{background:var(--orange)}.stat-card.purple::before{background:var(--accent2)}
+.stat-label{font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);font-family:var(--mono)}
+.stat-value{font-size:28px;font-weight:800;margin-top:6px;font-family:var(--mono);line-height:1}
+.stat-card.cyan .stat-value{color:var(--accent)}.stat-card.green .stat-value{color:var(--green)}.stat-card.yellow .stat-value{color:var(--yellow)}.stat-card.red .stat-value{color:var(--red)}.stat-card.orange .stat-value{color:var(--orange)}.stat-card.purple .stat-value{color:var(--accent2)}
+.stat-sub{font-size:10px;color:var(--muted);margin-top:4px;font-family:var(--mono)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:8px 12px;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);font-family:var(--mono)}
+td{padding:10px 12px;border-bottom:1px solid rgba(26,34,48,.6);font-family:var(--mono);font-size:11px;vertical-align:middle}
+tr:hover td{background:rgba(255,255,255,.02)}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;font-family:var(--mono)}
+.badge-pending{background:rgba(245,158,11,.15);color:var(--yellow)}.badge-running{background:rgba(0,229,255,.12);color:var(--accent)}.badge-done{background:rgba(16,185,129,.15);color:var(--green)}.badge-failed{background:rgba(239,68,68,.15);color:var(--red)}.badge-cancelled{background:rgba(100,116,139,.15);color:var(--muted)}.badge-critical{background:rgba(239,68,68,.2);color:var(--red)}.badge-high{background:rgba(249,115,22,.15);color:var(--orange)}.badge-medium{background:rgba(245,158,11,.12);color:var(--yellow)}.badge-low{background:rgba(100,116,139,.12);color:var(--muted)}
+.progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s}
+.service-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:600;font-family:var(--mono);border:1px solid}
+.service-pill.online{border-color:rgba(16,185,129,.3);color:var(--green);background:rgba(16,185,129,.07)}.service-pill.offline{border-color:rgba(239,68,68,.3);color:var(--red);background:rgba(239,68,68,.07)}.service-pill.warn{border-color:rgba(245,158,11,.3);color:var(--yellow);background:rgba(245,158,11,.07)}
+.service-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+.activity-item{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid rgba(26,34,48,.5);font-size:11px}
+.activity-item:last-child{border-bottom:none}
+.activity-time{color:var(--muted);font-family:var(--mono);flex-shrink:0;width:55px}
+.activity-dot{flex-shrink:0;width:6px;height:6px;border-radius:50%;margin-top:4px}
+.activity-dot.info{background:var(--accent)}.activity-dot.warning{background:var(--yellow)}.activity-dot.critical{background:var(--red)}.activity-dot.resolved{background:var(--green)}
+.activity-msg{flex:1;color:var(--text)}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;z-index:1000;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:28px;width:560px;max-height:85vh;overflow-y:auto;position:relative}
+.modal h2{font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:20px;color:var(--accent);font-family:var(--mono)}
+.modal-close{position:absolute;top:16px;right:16px;background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px}
+.modal-close:hover{color:var(--text)}
+.form-row{margin-bottom:14px}
+.form-row label{display:block;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;font-family:var(--mono)}
+.form-row input,.form-row textarea,.form-row select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:8px 12px;color:var(--text);font-size:12px;font-family:var(--mono);outline:none;transition:border-color .15s}
+.form-row input:focus,.form-row textarea:focus,.form-row select:focus{border-color:var(--accent)}
+.form-row textarea{resize:vertical;min-height:80px}
+.form-row select option{background:var(--surface)}
+.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.log-entry{padding:6px 10px;font-family:var(--mono);font-size:11px;border-left:2px solid;margin-bottom:4px;border-radius:0 4px 4px 0;background:rgba(0,0,0,.2)}
+.log-entry.info{border-color:var(--accent)}.log-entry.warning{border-color:var(--yellow)}.log-entry.error{border-color:var(--red)}.log-entry.critical{border-color:var(--red);background:rgba(239,68,68,.05)}
+.log-time{color:var(--muted);margin-right:8px}
+.agent-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.agent-card{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center}
+.agent-emoji{font-size:28px;margin-bottom:8px}
+.agent-name{font-size:11px;font-weight:700;font-family:var(--mono)}
+.agent-state{font-size:9px;color:var(--muted);margin-top:4px;text-transform:uppercase}
+.tg-commands{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tg-cmd{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 14px;font-family:var(--mono);font-size:11px}
+.tg-cmd-name{color:var(--accent);font-weight:700}
+.tg-cmd-desc{color:var(--muted);font-size:10px;margin-top:3px}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.loading{text-align:center;padding:40px;color:var(--muted);font-family:var(--mono);font-size:12px}
+#toast{position:fixed;bottom:24px;right:24px;z-index:9999;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 18px;font-family:var(--mono);font-size:12px;transform:translateY(80px);opacity:0;transition:all .3s;max-width:320px}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.success{border-color:var(--green);color:var(--green)}
+#toast.error{border-color:var(--red);color:var(--red)}
+.task-meta-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.meta-label{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-family:var(--mono)}
+.meta-value{font-size:12px;font-family:var(--mono);margin-top:3px}
+.subtask-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:6px;background:rgba(0,0,0,.2);margin-bottom:6px}
+.subtask-agent{font-family:var(--mono);font-size:11px;font-weight:600;width:120px}
+.subtask-bar{flex:1}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><h1>AI Corp</h1><p>Otonom Yazılım Şirketi</p></div>
+    <nav class="nav">
+      <div class="nav-item active" onclick="showPage('dashboard')"><span class="icon">⬛</span> Dashboard</div>
+      <div class="nav-item" onclick="showPage('tasks')"><span class="icon">📁</span> Görevler<span class="nav-badge" id="badge-pending">0</span></div>
+      <div class="nav-item" onclick="showPage('agents')"><span class="icon">🤖</span> Ajanlar</div>
+      <div class="nav-item" onclick="showPage('queue')"><span class="icon">🔄</span> Kuyruk</div>
+      <div class="nav-item" onclick="showPage('monitoring')"><span class="icon">📈</span> Monitoring</div>
+      <div class="nav-item" onclick="showPage('telegram')"><span class="icon">✈️</span> Telegram</div>
+      <div class="nav-item" onclick="showPage('codegen')"><span class="icon">⚡</span> Kod Üret</div>
+      <div class="nav-item" onclick="showPage('logs')"><span class="icon">📝</span> Loglar</div>
+    </nav>
+    <div class="sidebar-footer"><div id="user-info" style="margin-bottom:8px;display:none;"><div style="font-size:11px;color:var(--accent);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" id="user-email"></div><button onclick="logout()" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:10px;padding:3px 8px;border-radius:4px;cursor:pointer;font-family:var(--mono);width:100%;">Çıkış Yap</button></div><div><span class="status-dot"></span>Sistem Aktif</div><div id="sidebar-uptime" style="margin-top:4px;">—</div></div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div><div class="topbar-title" id="page-title">Dashboard</div><div class="topbar-sub" id="page-sub">—</div></div>
+      <div class="topbar-actions">
+        <button class="btn btn-ghost btn-sm" onclick="refreshAll()">↻ Yenile</button>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-create')">+ Görev</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div class="stats-grid">
+          <div class="stat-card cyan"><div class="stat-label">Toplam</div><div class="stat-value" id="s-total">—</div><div class="stat-sub">görev</div></div>
+          <div class="stat-card yellow"><div class="stat-label">Bekleyen</div><div class="stat-value" id="s-pending">—</div></div>
+          <div class="stat-card orange"><div class="stat-label">Çalışan</div><div class="stat-value" id="s-running">—</div></div>
+          <div class="stat-card green"><div class="stat-label">Tamamlanan</div><div class="stat-value" id="s-done">—</div></div>
+          <div class="stat-card red"><div class="stat-label">Hatalı</div><div class="stat-value" id="s-failed">—</div></div>
+          <div class="stat-card purple"><div class="stat-label">Başarı %</div><div class="stat-value" id="s-rate">—</div></div>
+        </div>
+        <div class="grid-2" style="margin-bottom:16px;">
+          <div class="card">
+            <div class="card-header"><span class="card-title">Servis Durumu</span><span id="health-score-label" style="font-family:var(--mono);font-size:12px;color:var(--accent);">—</span></div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;" id="service-pills"><div class="loading">Yükleniyor…</div></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Kuyruk Durumu</span></div>
+            <div id="queue-summary" style="font-family:var(--mono);font-size:12px;"><div class="loading">Yükleniyor…</div></div>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><span class="card-title">Son Aktiviteler</span><span style="font-size:10px;color:var(--muted);font-family:var(--mono);">Canlı</span></div>
+            <div id="activity-feed"><div class="loading">Bağlanıyor…</div></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Son Görevler</span><span style="cursor:pointer;font-size:11px;color:var(--muted);" onclick="showPage('tasks')">Tümü →</span></div>
+            <div id="recent-tasks"><div class="loading">Yükleniyor…</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TASKS -->
+      <div class="page" id="page-tasks">
+        <div class="card" style="margin-bottom:16px;">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <input type="text" id="task-search" placeholder="Görev ara…" style="flex:1;min-width:180px;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:7px 12px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;" oninput="loadTasks()">
+            <select id="task-filter-status" onchange="loadTasks()" style="background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:7px 12px;color:var(--text);font-family:var(--mono);font-size:11px;outline:none;">
+              <option value="">Tüm Durumlar</option><option value="pending">Bekleyen</option><option value="running">Çalışan</option><option value="done">Tamamlanan</option><option value="failed">Hatalı</option><option value="cancelled">İptal</option>
+            </select>
+            <select id="task-filter-priority" onchange="loadTasks()" style="background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:7px 12px;color:var(--text);font-family:var(--mono);font-size:11px;outline:none;">
+              <option value="">Tüm Öncelikler</option><option value="critical">Kritik</option><option value="high">Yüksek</option><option value="medium">Orta</option><option value="low">Düşük</option>
+            </select>
+            <select id="task-filter-source" onchange="loadTasks()" style="background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:7px 12px;color:var(--text);font-family:var(--mono);font-size:11px;outline:none;">
+              <option value="">Tüm Kaynaklar</option><option value="manual">Manuel</option><option value="api">API</option><option value="telegram">Telegram</option>
+            </select>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Görev Listesi</span><span id="task-count" style="font-family:var(--mono);font-size:11px;color:var(--muted);">0 görev</span></div>
+          <div class="table-wrap" id="task-table"><div class="loading">Yükleniyor…</div></div>
+        </div>
+      </div>
+
+      <!-- AGENTS -->
+      <div class="page" id="page-agents">
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-header"><span class="card-title">Sistem Sağlık Skoru</span><span id="system-score" style="font-family:var(--mono);font-size:18px;color:var(--accent);">—</span></div>
+          <div class="agent-grid" id="agent-cards"><div class="loading">Yükleniyor…</div></div>
+        </div>
+        <div class="card"><div class="card-header"><span class="card-title">İyileştirme Olayları</span></div><div id="heal-events"><div class="loading">Yükleniyor…</div></div></div>
+      </div>
+
+      <!-- QUEUE -->
+      <div class="page" id="page-queue">
+        <div class="stats-grid" style="grid-template-columns:repeat(5,1fr);" id="queue-stats"><div class="loading">Yükleniyor…</div></div>
+        <div class="card"><div class="card-header"><span class="card-title">Aktif ve Son İşler</span></div><div class="table-wrap" id="queue-jobs"><div class="loading">Yükleniyor…</div></div></div>
+      </div>
+
+      <!-- MONITORING -->
+      <div class="page" id="page-monitoring">
+        <div class="stats-grid" id="monitoring-stats"><div class="loading">Yükleniyor…</div></div>
+        <div class="grid-2" style="margin-bottom:16px;">
+          <div class="card"><div class="card-header"><span class="card-title">Endpoint Trafiği</span></div><div class="table-wrap" id="endpoint-stats"><div class="loading">Yükleniyor…</div></div></div>
+          <div class="card"><div class="card-header"><span class="card-title">LLM Provider</span></div><div id="llm-stats"><div class="loading">Yükleniyor…</div></div></div>
+        </div>
+        <div class="card"><div class="card-header"><span class="card-title">Sistem Kaynakları</span></div><div id="system-resources"><div class="loading">Yükleniyor…</div></div></div>
+      </div>
+
+      <!-- TELEGRAM -->
+      <div class="page" id="page-telegram">
+        <div class="grid-2" style="margin-bottom:16px;">
+          <div class="card">
+            <div class="card-header"><span class="card-title">Bot Bilgisi</span></div>
+            <div id="telegram-info"><div class="loading">Yükleniyor…</div></div>
+            <div style="margin-top:16px;display:flex;gap:8px;">
+              <button class="btn btn-ghost btn-sm" onclick="registerCommands()">Komutları Kaydet</button>
+              <button class="btn btn-ghost btn-sm" onclick="setupWebhook()">Webhook Kur</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Desteklenen Komutlar</span></div>
+            <div class="tg-commands">
+              <div class="tg-cmd"><div class="tg-cmd-name">/status</div><div class="tg-cmd-desc">Sistem durumu</div></div>
+              <div class="tg-cmd"><div class="tg-cmd-name">/tasks</div><div class="tg-cmd-desc">Son görevler</div></div>
+              <div class="tg-cmd"><div class="tg-cmd-name">/task &lt;id&gt;</div><div class="tg-cmd-desc">Görev detayı</div></div>
+              <div class="tg-cmd"><div class="tg-cmd-name">/newtask</div><div class="tg-cmd-desc">Yeni görev oluştur</div></div>
+              <div class="tg-cmd"><div class="tg-cmd-name">/agents</div><div class="tg-cmd-desc">Ajan durumu</div></div>
+              <div class="tg-cmd"><div class="tg-cmd-name">/logs</div><div class="tg-cmd-desc">Son loglar</div></div>
+              <div class="tg-cmd"><div class="tg-cmd-name">/errors</div><div class="tg-cmd-desc">Son hatalar</div></div>
+              <div class="tg-cmd"><div class="tg-cmd-name">/queue</div><div class="tg-cmd-desc">Kuyruk durumu</div></div>
+              <div class="tg-cmd"><div class="tg-cmd-name">/metrics</div><div class="tg-cmd-desc">Performans</div></div>
+              <div class="tg-cmd"><div class="tg-cmd-name">/authorize</div><div class="tg-cmd-desc">Admin: yetkilendir</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="card"><div class="card-header"><span class="card-title">Telegram Kullanıcıları</span></div><div class="table-wrap" id="telegram-users"><div class="loading">Yükleniyor…</div></div></div>
+      </div>
+
+      <!-- LOGS -->
+      <!-- ══ KOD ÜRETİM SAYFASI ══ -->
+      <div class="page" id="page-codegen">
+        <div style="display:grid;grid-template-columns:420px 1fr;gap:16px;align-items:start;">
+
+          <!-- Sol: Form -->
+          <div>
+            <div class="card">
+              <div class="card-header"><span class="card-title">⚡ Kod Üretimi</span>
+                <span style="font-size:10px;color:var(--muted);font-family:var(--mono);">8 ajan paralel</span>
+              </div>
+              <div style="padding:0 0 16px;">
+                <div class="form-row" style="padding:0 16px 12px;">
+                  <label>Proje Başlığı *</label>
+                  <input type="text" id="cg-title" placeholder="Örn: Blog REST API" style="width:100%;box-sizing:border-box;">
+                </div>
+                <div class="form-row" style="padding:0 16px 12px;">
+                  <label>Açıklama *</label>
+                  <textarea id="cg-desc" rows="3" placeholder="Ne üretilmeli? Teknoloji, özellik, kısıtlar…" style="width:100%;box-sizing:border-box;resize:vertical;"></textarea>
+                </div>
+                <div class="form-row" style="padding:0 16px 12px;">
+                  <label>Proje Şablonu</label>
+                  <select id="cg-template" style="width:100%;box-sizing:border-box;">
+                    <option value="custom">🔧 Özel (ajanlara bırak)</option>
+                    <option value="fastapi_rest">🐍 FastAPI REST API</option>
+                    <option value="react_spa">⚛️  React SPA (TypeScript)</option>
+                    <option value="fullstack">🔗 Full-Stack (FastAPI + React)</option>
+                    <option value="data_pipeline">🗄️  Veri Pipeline (ETL)</option>
+                    <option value="cli_tool">🖥️  CLI Aracı</option>
+                  </select>
+                </div>
+                <div style="padding:0 16px 4px;display:flex;align-items:center;gap:8px;">
+                  <input type="checkbox" id="cg-review" checked style="margin:0;">
+                  <label for="cg-review" style="font-size:11px;color:var(--muted);cursor:pointer;">Code Review Ajan (9. ajan) çalıştır</label>
+                </div>
+                <div style="padding:12px 16px 0;">
+                  <button class="btn btn-primary" onclick="startCodeGen()" id="cg-btn" style="width:100%;">
+                    ⚡ Kod Üretimini Başlat
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Şablon bilgisi -->
+            <div class="card" style="margin-top:0;">
+              <div class="card-header"><span class="card-title">📋 Şablon Detayları</span></div>
+              <div id="cg-template-info" style="padding:12px 16px;font-size:11px;color:var(--muted);font-family:var(--mono);line-height:1.7;">
+                Şablon seçin…
+              </div>
+            </div>
+          </div>
+
+          <!-- Sağ: Sonuçlar -->
+          <div>
+            <!-- Aktif üretim durumu -->
+            <div class="card" id="cg-progress-card" style="display:none;">
+              <div class="card-header">
+                <span class="card-title">🔄 Üretim Sürüyor</span>
+                <span id="cg-progress-agents" style="font-size:10px;color:var(--accent);font-family:var(--mono);"></span>
+              </div>
+              <div id="cg-progress-log" style="padding:12px 16px;font-family:var(--mono);font-size:11px;max-height:180px;overflow-y:auto;line-height:1.8;"></div>
+            </div>
+
+            <!-- Sonuç -->
+            <div id="cg-result-card" style="display:none;">
+              <div class="card">
+                <div class="card-header">
+                  <span class="card-title">✅ Üretim Tamamlandı</span>
+                  <button class="btn btn-primary btn-sm" onclick="downloadCodeZip()" id="cg-dl-btn">⬇ ZIP İndir</button>
+                </div>
+                <div style="padding:12px 16px;">
+                  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;">
+                    <div style="background:var(--surface-2);border-radius:6px;padding:10px;text-align:center;">
+                      <div style="font-size:20px;font-weight:700;color:var(--accent);font-family:var(--mono);" id="cg-stat-files">0</div>
+                      <div style="font-size:10px;color:var(--muted);margin-top:2px;">Dosya</div>
+                    </div>
+                    <div style="background:var(--surface-2);border-radius:6px;padding:10px;text-align:center;">
+                      <div style="font-size:20px;font-weight:700;color:var(--green);font-family:var(--mono);" id="cg-stat-lines">0</div>
+                      <div style="font-size:10px;color:var(--muted);margin-top:2px;">Satır</div>
+                    </div>
+                    <div style="background:var(--surface-2);border-radius:6px;padding:10px;text-align:center;">
+                      <div style="font-size:20px;font-weight:700;color:var(--yellow);font-family:var(--mono);" id="cg-stat-quality">—</div>
+                      <div style="font-size:10px;color:var(--muted);margin-top:2px;">Kalite</div>
+                    </div>
+                    <div style="background:var(--surface-2);border-radius:6px;padding:10px;text-align:center;">
+                      <div style="font-size:20px;font-weight:700;color:var(--text);font-family:var(--mono);" id="cg-stat-langs">—</div>
+                      <div style="font-size:10px;color:var(--muted);margin-top:2px;">Dil</div>
+                    </div>
+                  </div>
+
+                  <!-- Dosya listesi -->
+                  <div id="cg-file-list" style="max-height:320px;overflow-y:auto;"></div>
+                </div>
+              </div>
+
+              <!-- Code Review -->
+              <div class="card" id="cg-review-card" style="display:none;">
+                <div class="card-header"><span class="card-title">🔍 Code Review Raporu</span>
+                  <span id="cg-review-score" style="font-size:12px;font-family:var(--mono);color:var(--green);"></span>
+                </div>
+                <div id="cg-review-content" style="padding:12px 16px;font-size:12px;line-height:1.7;white-space:pre-wrap;max-height:300px;overflow-y:auto;color:var(--muted);"></div>
+              </div>
+            </div>
+
+            <!-- Kod Görüntüleyici Modal -->
+            <div id="cg-viewer-card" style="display:none;">
+              <div class="card">
+                <div class="card-header">
+                  <span class="card-title" id="cg-viewer-title">—</span>
+                  <div style="display:flex;gap:6px;">
+                    <span id="cg-viewer-lang" style="font-size:10px;font-family:var(--mono);color:var(--accent);padding:2px 8px;border:1px solid var(--accent);border-radius:4px;"></span>
+                    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cg-viewer-card').style.display='none'">✕</button>
+                  </div>
+                </div>
+                <div style="position:relative;">
+                  <pre id="cg-viewer-code" style="margin:0;padding:16px;overflow-x:auto;font-size:11px;line-height:1.6;max-height:500px;overflow-y:auto;background:var(--bg);border-radius:0 0 8px 8px;color:var(--text);tab-size:2;"></pre>
+                  <button onclick="copyViewerCode()" style="position:absolute;top:8px;right:8px;background:var(--surface);border:1px solid var(--border);color:var(--muted);font-size:10px;padding:3px 8px;border-radius:4px;cursor:pointer;font-family:var(--mono);">Kopyala</button>
+                </div>
+                <!-- Lint uyarıları -->
+                <div id="cg-viewer-issues" style="padding:0 16px 12px;display:none;"></div>
+              </div>
+            </div>
+
+            <!-- Geçmiş üretimler -->
+            <div class="card">
+              <div class="card-header"><span class="card-title">📂 Geçmiş Üretimler</span>
+                <button class="btn btn-ghost btn-sm" onclick="loadCodeHistory()">↻ Yenile</button>
+              </div>
+              <div id="cg-history" style="padding:12px 16px;font-size:11px;color:var(--muted);">Yükleniyor…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="page" id="page-logs">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Canlı Log Akışı</span><div style="display:flex;gap:6px;align-items:center;"><span id="ws-status" style="font-size:10px;color:var(--muted);font-family:var(--mono);">bağlanıyor…</span><button class="btn btn-ghost btn-sm" onclick="document.getElementById('log-feed').innerHTML=''">Temizle</button></div></div>
+          <div id="log-feed" style="max-height:600px;overflow-y:auto;"><div class="loading">WebSocket bağlantısı kuruluyor…</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CREATE TASK MODAL -->
+<div class="modal-overlay" id="modal-create">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-create')">✕</button>
+    <h2>Yeni Görev Oluştur</h2>
+    <div class="form-row"><label>Görev Başlığı *</label><input type="text" id="f-title" placeholder="Örn: Auth servisi kur"></div>
+    <div class="form-row"><label>Açıklama</label><textarea id="f-desc" placeholder="Görev detayları…"></textarea></div>
+    <div class="form-grid-2">
+      <div class="form-row"><label>Öncelik</label><select id="f-priority"><option value="medium">Orta</option><option value="high">Yüksek</option><option value="critical">Kritik</option><option value="low">Düşük</option></select></div>
+      <div class="form-row"><label>Atanacak Ajan</label><select id="f-agent"><option value="">Otomatik</option><option value="architect">🏛️ Architect</option><option value="backend_dev">⚙️ Backend Dev</option><option value="frontend_dev">🎨 Frontend Dev</option><option value="qa_engineer">🧪 QA Engineer</option><option value="devops">🚀 DevOps</option><option value="security">🔒 Security</option><option value="data_eng">🗄️ Data Eng</option><option value="tech_writer">📝 Tech Writer</option></select></div>
+    </div>
+    <div class="form-grid-2">
+      <div class="form-row"><label>Deadline</label><input type="datetime-local" id="f-deadline"></div>
+      <div class="form-row"><label>Etiketler (virgülle)</label><input type="text" id="f-tags" placeholder="auth, backend"></div>
+    </div>
+    <div class="form-row"><label>Ek Bağlam / Prompt</label><textarea id="f-context" style="min-height:60px;" placeholder="LLM için ek yönlendirme (opsiyonel)"></textarea></div>
+    <div class="form-row"><label>Notlar</label><input type="text" id="f-notes" placeholder="Yönetici notu"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
+      <button class="btn btn-ghost" onclick="closeModal('modal-create')">İptal</button>
+      <button class="btn btn-primary" onclick="submitCreateTask()">Görevi Oluştur →</button>
+    </div>
+  </div>
+</div>
+
+<!-- TASK DETAIL MODAL -->
+<div class="modal-overlay" id="modal-detail">
+  <div class="modal" style="width:700px;"><button class="modal-close" onclick="closeModal('modal-detail')">✕</button><div id="modal-detail-content"><div class="loading">Yükleniyor…</div></div></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const API='/api/v1';
+let wsConn=null;
+
+function showPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const labels={dashboard:'Dashboard',tasks:'Görevler',agents:'Ajanlar',queue:'Kuyruk',monitoring:'Monitoring',telegram:'Telegram',codegen:'Kod Üret',logs:'Loglar'};
+  document.querySelectorAll('.nav-item').forEach(n=>{
+    const txt=n.textContent.trim().replace(/\s+/g,' ').split(' ').slice(1).join(' ').trim();
+    if(txt===labels[name]||n.textContent.includes(labels[name]))n.classList.add('active');
+  });
+  if(name==='codegen'){loadCodeHistory();loadTemplateInfo();}
+
+  document.getElementById('page-title').textContent=labels[name]||name;
+  document.getElementById('page-sub').textContent='Son güncelleme: '+new Date().toLocaleTimeString('tr-TR');
+  if(name==='tasks')loadTasks();
+  if(name==='agents')loadAgents();
+  if(name==='queue')loadQueue();
+  if(name==='monitoring')loadMonitoring();
+  if(name==='telegram')loadTelegram();
+  if(name==='logs')initWS();
+}
+
+function openModal(id){document.getElementById(id).classList.add('open')}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+
+function toast(msg,type='success'){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.className='show '+type;
+  setTimeout(()=>{el.className=''},3000);
+}
+
+// ── Auth State ────────────────────────────────────────────
+const AUTH = {
+  token: sessionStorage.getItem('ai_token') || '',
+  email: sessionStorage.getItem('ai_email') || '',
+  save(t,e){ this.token=t; this.email=e; sessionStorage.setItem('ai_token',t); sessionStorage.setItem('ai_email',e); },
+  clear(){ this.token=''; this.email=''; sessionStorage.removeItem('ai_token'); sessionStorage.removeItem('ai_email'); }
+};
+
+function authHeaders(extra={}){
+  const h = {'Content-Type':'application/json',...extra};
+  if(AUTH.token) h['Authorization']='Bearer '+AUTH.token;
+  return h;
+}
+
+async function api(path,opts={}){
+  const merged={...opts,headers:authHeaders(opts.headers||{})};
+  const r=await fetch(API+path,merged);
+  if(r.status===401){ showLogin(); throw new Error('Oturum sona erdi'); }
+  if(!r.ok)throw new Error('HTTP '+r.status+': '+await r.text());
+  return r.json();
+}
+
+async function doLogin(){
+  const email=document.getElementById('login-email').value.trim();
+  const pass=document.getElementById('login-pass').value;
+  const errEl=document.getElementById('login-error');
+  errEl.style.display='none';
+  try{
+    const r=await fetch(API+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})});
+    if(!r.ok){ const t=await r.text(); throw new Error(t); }
+    const data=await r.json();
+    AUTH.save(data.access_token,email);
+    document.getElementById('modal-login').classList.remove('open');
+    document.getElementById('user-info').style.display='block';
+    document.getElementById('user-email').textContent=email;
+    showPage('dashboard');
+    loadDashboard();
+    toast('Giriş başarılı ✓');
+  }catch(e){
+    errEl.textContent='Hata: '+(e.message||e);
+    errEl.style.display='block';
+  }
+}
+
+function logout(){
+  AUTH.clear();
+  document.getElementById('user-info').style.display='none';
+  showLogin();
+}
+
+function showLogin(){
+  document.getElementById('modal-login').classList.add('open');
+}
+
+function checkAuth(){
+  if(!AUTH.token){ showLogin(); return false; }
+  document.getElementById('user-info').style.display='block';
+  document.getElementById('user-email').textContent=AUTH.email;
+  return true;
+}
+
+// ── Dashboard
+async function loadDashboard(){
+  try{
+    const s=await api('/tasks/stats/summary');
+    document.getElementById('s-total').textContent=s.total??'—';
+    document.getElementById('s-pending').textContent=s.pending??'—';
+    document.getElementById('s-running').textContent=s.running??'—';
+    document.getElementById('s-done').textContent=s.done??'—';
+    document.getElementById('s-failed').textContent=s.failed??'—';
+    document.getElementById('s-rate').textContent=(s.success_rate??0)+'%';
+    document.getElementById('badge-pending').textContent=s.pending??0;
+  }catch(e){}
+  try{
+    const ov=await api('/monitoring/overview');
+    const svc=ov.services||{};
+    document.getElementById('service-pills').innerHTML=Object.entries(svc).map(([n,i])=>{
+      const st=i.status==='online'?'online':i.status==='offline'?'offline':'warn';
+      return`<span class="service-pill ${st}"><span class="service-dot"></span>${n}</span>`;
+    }).join('')||'<span style="color:var(--muted);font-size:11px;">Yok</span>';
+    const hs=ov.agents?.system_score;
+    if(hs!=null){const p=hs<=1?Math.round(hs*100):Math.round(hs);document.getElementById('health-score-label').textContent=p+'%';}
+    const q=ov.queue||{};
+    document.getElementById('queue-summary').innerHTML=['queue_size','running','done','failed','total'].map(k=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted);">${{queue_size:'Bekleyen',running:'Çalışan',done:'Tamamlanan',failed:'Hatalı',total:'Toplam'}[k]}</span><span>${q[k]??0}</span></div>`).join('');
+    if(ov.metrics?.uptime_hms)document.getElementById('sidebar-uptime').textContent=ov.metrics.uptime_hms;
+  }catch(e){}
+  try{
+    const d=await api('/tasks?limit=8');
+    const tasks=d.tasks||[];
+    document.getElementById('recent-tasks').innerHTML=tasks.length?tasks.map(t=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(26,34,48,.5);cursor:pointer;" onclick="openTaskDetail('${t.id}')"><span class="badge badge-${t.status}" style="width:60px;text-align:center;">${t.status}</span><span style="flex:1;font-size:11px;font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.title}</span><span class="badge badge-${t.priority}">${t.priority}</span></div>`).join(''):'<div style="color:var(--muted);font-size:11px;padding:12px 0;">Henüz görev yok</div>';
+  }catch(e){}
+}
+
+// ── Tasks
+async function loadTasks(){
+  try{
+    const p=new URLSearchParams({limit:100});
+    const st=document.getElementById('task-filter-status')?.value;
+    const pr=document.getElementById('task-filter-priority')?.value;
+    const so=document.getElementById('task-filter-source')?.value;
+    const se=document.getElementById('task-search')?.value;
+    if(st)p.append('status',st);if(pr)p.append('priority',pr);if(so)p.append('source',so);if(se)p.append('search',se);
+    const data=await api('/tasks?'+p);
+    const tasks=data.tasks||[];
+    document.getElementById('task-count').textContent=(data.total??tasks.length)+' görev';
+    if(!tasks.length){document.getElementById('task-table').innerHTML='<div class="loading">Görev bulunamadı</div>';return;}
+    document.getElementById('task-table').innerHTML=`<table><thead><tr><th>ID</th><th>Başlık</th><th>Durum</th><th>Öncelik</th><th>Kaynak</th><th>İlerleme</th><th>Tarih</th><th>İşlem</th></tr></thead><tbody>${tasks.map(t=>`<tr><td style="color:var(--muted);">${t.id.substring(0,8)}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;" onclick="openTaskDetail('${t.id}')" title="${t.title}">${t.title}</td><td><span class="badge badge-${t.status}">${t.status}</span></td><td><span class="badge badge-${t.priority}">${t.priority}</span></td><td style="color:var(--muted);">${t.source}</td><td style="min-width:80px;"><div class="progress-bar"><div class="progress-fill" style="width:${t.progress_pct||0}%"></div></div><span style="font-size:9px;color:var(--muted);">${t.progress_pct||0}%</span></td><td style="color:var(--muted);">${t.created_at?new Date(t.created_at).toLocaleDateString('tr-TR'):'—'}</td><td><div style="display:flex;gap:4px;">${t.status==='failed'?`<button class="btn btn-ghost btn-sm" style="color:var(--green);" onclick="retryTask('${t.id}')">↻</button>`:''} ${['pending','running'].includes(t.status)?`<button class="btn btn-ghost btn-sm" style="color:var(--yellow);" onclick="cancelTask('${t.id}')">■</button>`:''}<button class="btn btn-ghost btn-sm" onclick="copyTask('${t.id}')">⧉</button></div></td></tr>`).join('')}</tbody></table>`;
+  }catch(e){document.getElementById('task-table').innerHTML=`<div class="loading" style="color:var(--red);">Hata: ${e.message}</div>`;}
+}
+
+function agentEmoji(id){return{architect:'🏛️',backend_dev:'⚙️',frontend_dev:'🎨',qa_engineer:'🧪',devops:'🚀',security:'🔒',data_eng:'🗄️',tech_writer:'📝'}[id]||'🤖';}
+
+async function openTaskDetail(id){
+  openModal('modal-detail');
+  document.getElementById('modal-detail-content').innerHTML='<div class="loading">Yükleniyor…</div>';
+  try{
+    const t=await api('/tasks/'+id);
+    const subtasks=t.subtasks||[];const logs=t.logs||[];
+    const doneS=subtasks.filter(s=>s.status==='done').length;
+    document.getElementById('modal-detail-content').innerHTML=`
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px;"><span class="badge badge-${t.status}">${t.status}</span><span class="badge badge-${t.priority}">${t.priority}</span><span style="font-size:10px;color:var(--muted);font-family:var(--mono);">${t.source}</span></div>
+      <h2 style="font-size:16px;font-weight:700;margin:8px 0 16px;color:var(--text);font-family:var(--sans);">${t.title}</h2>
+      <div class="task-meta-grid">
+        <div class="meta-item"><div class="meta-label">ID</div><div class="meta-value" style="color:var(--muted);">${t.id.substring(0,16)}</div></div>
+        <div class="meta-item"><div class="meta-label">İlerleme</div><div class="meta-value">${t.progress_pct||0}%</div></div>
+        <div class="meta-item"><div class="meta-label">Maliyet</div><div class="meta-value" style="color:var(--green);">$${(t.total_cost||0).toFixed(4)}</div></div>
+        <div class="meta-item"><div class="meta-label">Oluşturulma</div><div class="meta-value" style="color:var(--muted);">${t.created_at?new Date(t.created_at).toLocaleString('tr-TR'):'—'}</div></div>
+        <div class="meta-item"><div class="meta-label">Başlangıç</div><div class="meta-value" style="color:var(--muted);">${t.started_at?new Date(t.started_at).toLocaleString('tr-TR'):'—'}</div></div>
+        <div class="meta-item"><div class="meta-label">Bitiş</div><div class="meta-value" style="color:var(--muted);">${t.completed_at?new Date(t.completed_at).toLocaleString('tr-TR'):'—'}</div></div>
+      </div>
+      ${t.error_detail?`<div style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);border-radius:6px;padding:10px 14px;margin-bottom:16px;font-family:var(--mono);font-size:11px;color:var(--red);">❗ ${t.error_detail}</div>`:''}
+      ${subtasks.length?`<div style="margin-bottom:16px;"><div class="card-title" style="margin-bottom:10px;">Alt Görevler (${doneS}/${subtasks.length})</div>${subtasks.map(s=>`<div class="subtask-row"><span style="font-size:16px;">${agentEmoji(s.agent_id)}</span><span class="subtask-agent">${s.agent_id}</span><div class="subtask-bar"><div class="progress-bar"><div class="progress-fill" style="width:${s.status==='done'?100:s.status==='running'?50:0}%;background:${s.status==='done'?'var(--green)':s.status==='failed'?'var(--red)':'var(--accent)'}"></div></div></div><span class="badge badge-${s.status}" style="margin-left:8px;">${s.status}</span></div>`).join('')}</div>`:''}
+      ${logs.length?`<div><div class="card-title" style="margin-bottom:10px;">Log Geçmişi</div>${logs.slice(0,10).map(l=>`<div class="log-entry ${l.level}"><span class="log-time">${l.created_at?new Date(l.created_at).toLocaleTimeString('tr-TR'):''}</span><span style="color:var(--muted);margin-right:6px;">[${l.event}]</span>${l.message}</div>`).join('')}</div>`:''}
+      <div style="display:flex;gap:8px;margin-top:20px;flex-wrap:wrap;">
+        ${t.status==='failed'?`<button class="btn btn-ghost btn-sm" style="color:var(--green);" onclick="retryTask('${t.id}');closeModal('modal-detail')">↻ Tekrar Dene</button>`:''}
+        ${['pending','running'].includes(t.status)?`<button class="btn btn-ghost btn-sm" style="color:var(--yellow);" onclick="cancelTask('${t.id}');closeModal('modal-detail')">■ İptal Et</button>`:''}
+        <button class="btn btn-ghost btn-sm" onclick="copyTask('${t.id}')">⧉ Kopyala</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteTask('${t.id}')">🗑 Sil</button>
+      </div>`;
+  }catch(e){document.getElementById('modal-detail-content').innerHTML=`<div style="color:var(--red);">Hata: ${e.message}</div>`;}
+}
+
+async function submitCreateTask(){
+  const title=document.getElementById('f-title').value.trim();
+  if(!title)return toast('Başlık gerekli','error');
+  const tags=document.getElementById('f-tags').value.split(',').map(t=>t.trim()).filter(Boolean);
+  const payload={title,description:document.getElementById('f-desc').value.trim(),priority:document.getElementById('f-priority').value,assigned_agent:document.getElementById('f-agent').value,tags,notes:document.getElementById('f-notes').value.trim(),context:document.getElementById('f-context').value.trim(),source:'manual'};
+  const dl=document.getElementById('f-deadline').value;
+  if(dl)payload.deadline=new Date(dl).toISOString();
+  try{
+    await api('/tasks',{method:'POST',body:JSON.stringify(payload)});
+    toast('Görev oluşturuldu ✓');closeModal('modal-create');
+    document.getElementById('f-title').value='';document.getElementById('f-desc').value='';
+    loadTasks();loadDashboard();
+  }catch(e){toast('Hata: '+e.message,'error');}
+}
+
+async function retryTask(id){try{await api('/tasks/'+id+'/retry',{method:'POST'});toast('↻ Yeniden başlatıldı');loadTasks();loadDashboard();}catch(e){toast('Hata: '+e.message,'error');}}
+async function cancelTask(id){if(!confirm('İptal edilsin mi?'))return;try{await api('/tasks/'+id+'/cancel',{method:'POST',body:JSON.stringify({cancelled_by:'dashboard'})});toast('İptal edildi');loadTasks();loadDashboard();}catch(e){toast('Hata: '+e.message,'error');}}
+async function deleteTask(id){if(!confirm('Silinsin mi?'))return;try{await api('/tasks/'+id,{method:'DELETE'});toast('Silindi');closeModal('modal-detail');loadTasks();loadDashboard();}catch(e){toast('Hata: '+e.message,'error');}}
+async function copyTask(id){try{const r=await api('/tasks/'+id+'/copy',{method:'POST',body:'{}'});toast('Kopyalandı → '+r.new_id?.substring(0,8));loadTasks();}catch(e){toast('Hata: '+e.message,'error');}}
+
+// ── Agents
+async function loadAgents(){
+  try{
+    const d=await api('/monitoring/agents');
+    const agents=d.agents||{};
+    document.getElementById('system-score').textContent=d.system_score!=null?Math.round(d.system_score*100)+'%':'—';
+    const ec={architect:'🏛️',backend_dev:'⚙️',frontend_dev:'🎨',qa_engineer:'🧪',devops:'🚀',security:'🔒',data_eng:'🗄️',tech_writer:'📝'};
+    const sc={healthy:'var(--green)',degraded:'var(--yellow)',recovering:'var(--accent)',critical:'var(--red)',backup:'var(--orange)'};
+    document.getElementById('agent-cards').innerHTML=Object.entries(agents).map(([id,a])=>`<div class="agent-card"><div class="agent-emoji">${ec[id]||'🤖'}</div><div class="agent-name">${id.replace(/_/g,' ')}</div><div class="agent-state" style="color:${sc[a.state]||'var(--muted)'};">${a.state||'healthy'}</div><div style="margin-top:8px;"><div class="progress-bar"><div class="progress-fill" style="width:${Math.round((a.health_score||1)*100)}%;background:${sc[a.state]||'var(--accent)'}"></div></div><div style="display:flex;justify-content:space-between;margin-top:4px;font-family:var(--mono);font-size:9px;color:var(--muted);"><span>✅${a.success||0}</span><span>${Math.round((a.health_score||1)*100)}%</span><span>❌${a.failure||0}</span></div></div></div>`).join('')||'<div class="loading">Ajan yok</div>';
+    const events=d.recent_events||[];
+    document.getElementById('heal-events').innerHTML=events.length?events.slice(0,15).map(e=>`<div class="activity-item"><span class="activity-time">${e.timestamp?new Date(e.timestamp).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}):'—'}</span><span class="activity-dot ${e.severity||'info'}"></span><span class="activity-msg">${e.message||e.type||''}</span></div>`).join(''):'<div style="color:var(--muted);font-size:11px;padding:12px 0;">Olay yok</div>';
+  }catch(e){document.getElementById('agent-cards').innerHTML=`<div class="loading" style="color:var(--red);">${e.message}</div>`;}
+}
+
+// ── Queue
+async function loadQueue(){
+  try{
+    const d=await api('/monitoring/queue');
+    document.getElementById('queue-stats').innerHTML=[['total','Toplam','cyan'],['queue_size','Bekleyen','yellow'],['running','Çalışan','orange'],['done','Tamamlanan','green'],['failed','Hatalı','red']].map(([k,l,c])=>`<div class="stat-card ${c}"><div class="stat-label">${l}</div><div class="stat-value">${d[k]??0}</div></div>`).join('');
+    const jobs=d.recent_jobs||[];
+    document.getElementById('queue-jobs').innerHTML=jobs.length?`<table><thead><tr><th>ID</th><th>Başlık</th><th>Durum</th><th>Deneme</th><th>Başlangıç</th><th>Bitiş</th></tr></thead><tbody>${jobs.map(j=>`<tr><td style="color:var(--muted);">${j.id}</td><td>${j.title||j.type}</td><td><span class="badge badge-${j.status}">${j.status}</span></td><td style="color:var(--muted);">${j.attempts}</td><td style="color:var(--muted);">${j.started_at?new Date(j.started_at).toLocaleTimeString('tr-TR'):'—'}</td><td style="color:var(--muted);">${j.completed_at?new Date(j.completed_at).toLocaleTimeString('tr-TR'):'—'}</td></tr>`).join('')}</tbody></table>`:'<div class="loading">Kuyrukta iş yok</div>';
+  }catch(e){document.getElementById('queue-stats').innerHTML=`<div class="loading" style="color:var(--red);">${e.message}</div>`;}
+}
+
+// ── Monitoring
+async function loadMonitoring(){
+  try{
+    const a=await api('/monitoring/api/stats?hours=24');
+    document.getElementById('monitoring-stats').innerHTML=`<div class="stat-card cyan"><div class="stat-label">Toplam İstek</div><div class="stat-value">${a.total_requests||0}</div><div class="stat-sub">Son 24s</div></div><div class="stat-card red"><div class="stat-label">Toplam Hata</div><div class="stat-value">${a.total_errors||0}</div></div><div class="stat-card yellow"><div class="stat-label">Hata Oranı</div><div class="stat-value">${a.error_rate_pct||0}%</div></div><div class="stat-card green"><div class="stat-label">Ort. Yanıt</div><div class="stat-value">${a.avg_response_ms||0}</div><div class="stat-sub">ms</div></div>`;
+    const ep=a.endpoints||[];
+    document.getElementById('endpoint-stats').innerHTML=ep.length?`<table><thead><tr><th>Endpoint</th><th>Metod</th><th>İstek</th><th>Hata</th><th>ms</th></tr></thead><tbody>${ep.slice(0,15).map(e=>`<tr><td style="font-size:10px;">${e.endpoint}</td><td style="color:var(--muted);">${e.method}</td><td>${e.total}</td><td style="color:${e.errors>0?'var(--red)':'var(--muted)'};">${e.errors}</td><td style="color:${e.avg_ms>1000?'var(--red)':e.avg_ms>500?'var(--yellow)':'var(--green)'};">${e.avg_ms}</td></tr>`).join('')}</tbody></table>`:'<div style="color:var(--muted);font-size:11px;padding:12px;">API metrik verisi yok (DB gerekli)</div>';
+  }catch(e){document.getElementById('monitoring-stats').innerHTML=`<div class="loading" style="color:var(--red);">${e.message}</div>`;}
+  try{
+    const l=await api('/monitoring/llm');
+    const pr=l.providers||{};
+    document.getElementById('llm-stats').innerHTML=`<div style="margin-bottom:12px;font-family:var(--mono);font-size:11px;"><div style="display:flex;justify-content:space-between;padding:4px 0;"><span style="color:var(--muted);">Toplam Çağrı</span><span>${l.total_llm_calls||0}</span></div><div style="display:flex;justify-content:space-between;padding:4px 0;"><span style="color:var(--muted);">Başarı</span><span style="color:var(--green);">${l.llm_success_rate||0}%</span></div><div style="display:flex;justify-content:space-between;padding:4px 0;"><span style="color:var(--muted);">Maliyet</span><span style="color:var(--yellow);">$${(l.total_cost_usd||0).toFixed(4)}</span></div></div>${Object.entries(pr).map(([n,p])=>`<div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:8px;"><div style="font-weight:700;font-family:var(--mono);font-size:11px;margin-bottom:6px;">${n}</div><div class="progress-bar"><div class="progress-fill" style="width:${p.success_rate||0}%;background:var(--green)"></div></div><div style="display:flex;justify-content:space-between;font-size:10px;font-family:var(--mono);color:var(--muted);margin-top:4px;"><span>${p.total||0} çağrı</span><span>${p.success_rate||0}% başarı</span><span>avg ${(p.latency||0).toFixed(2)}s</span></div></div>`).join('')}`;
+  }catch(e){}
+  try{
+    const s=await api('/monitoring/system');
+    document.getElementById('system-resources').innerHTML=s.available?`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;"><div><div class="card-title" style="margin-bottom:8px;">CPU</div><div class="progress-bar"><div class="progress-fill" style="width:${s.cpu_pct}%;background:${s.cpu_pct>80?'var(--red)':s.cpu_pct>60?'var(--yellow)':'var(--green)'}"></div></div><div style="font-family:var(--mono);font-size:20px;font-weight:700;margin-top:6px;color:var(--accent);">${s.cpu_pct}%</div></div><div><div class="card-title" style="margin-bottom:8px;">RAM</div><div class="progress-bar"><div class="progress-fill" style="width:${s.ram_pct}%;background:${s.ram_pct>85?'var(--red)':s.ram_pct>70?'var(--yellow)':'var(--green)'}"></div></div><div style="font-family:var(--mono);font-size:20px;font-weight:700;margin-top:6px;color:var(--accent);">${s.ram_used_gb}/${s.ram_total_gb}GB</div></div><div><div class="card-title" style="margin-bottom:8px;">Disk</div><div class="progress-bar"><div class="progress-fill" style="width:${s.disk_pct}%;background:${s.disk_pct>90?'var(--red)':s.disk_pct>75?'var(--yellow)':'var(--green)'}"></div></div><div style="font-family:var(--mono);font-size:20px;font-weight:700;margin-top:6px;color:var(--accent);">${s.disk_pct}%</div></div></div>`:'<div style="color:var(--muted);font-size:11px;font-family:var(--mono);">psutil kurulu değil: pip install psutil</div>';
+  }catch(e){}
+}
+
+// ── Telegram
+async function loadTelegram(){
+  try{
+    const info=await api('/telegram/info');
+    document.getElementById('telegram-info').innerHTML=info.configured?`<div style="font-family:var(--mono);font-size:12px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><span class="service-pill online"><span class="service-dot"></span>Bağlı</span>${info.bot?`<span>@${info.bot.username}</span>`:''}</div><div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);"><span style="color:var(--muted);">Yetkili Kullanıcı</span><span>${info.allowed_count}</span></div><div style="display:flex;justify-content:space-between;padding:4px 0;"><span style="color:var(--muted);">Webhook</span><span>${info.webhook?.url?'✅ Aktif':'⚠️ Kurulmamış'}</span></div></div>`:`<div style="font-family:var(--mono);font-size:12px;"><span class="service-pill offline"><span class="service-dot"></span>Yapılandırılmamış</span><div style="margin-top:12px;color:var(--muted);font-size:11px;line-height:1.6;">1. @BotFather'dan token alın<br>2. TELEGRAM_BOT_TOKEN= ayarlayın<br>3. TELEGRAM_ALLOWED_IDS=123456 ekleyin</div></div>`;
+    const users=await api('/telegram/users');
+    document.getElementById('telegram-users').innerHTML=users.length?`<table><thead><tr><th>Telegram ID</th><th>Kullanıcı</th><th>Ad</th><th>Durum</th><th>Komut</th><th>İşlem</th></tr></thead><tbody>${users.map(u=>`<tr><td style="color:var(--muted);">${u.telegram_id}</td><td>${u.username?'@'+u.username:'—'}</td><td>${u.full_name||'—'}</td><td>${u.is_authorized?'<span class="badge badge-done">Yetkili</span>':'<span class="badge badge-failed">Yetkisiz</span>'}${u.is_admin?'<span class="badge" style="background:rgba(124,58,237,.15);color:var(--accent2);margin-left:4px;">Admin</span>':''}</td><td style="color:var(--muted);">${u.command_count}</td><td>${!u.is_authorized?`<button class="btn btn-ghost btn-sm" style="color:var(--green);" onclick="authorizeUser('${u.telegram_id}')">✓ Yetkilendir</button>`:''}</td></tr>`).join('')}</tbody></table>`:'<div style="color:var(--muted);font-size:11px;padding:16px;">Henüz kullanıcı yok</div>';
+  }catch(e){document.getElementById('telegram-info').innerHTML=`<div style="color:var(--red);font-size:11px;">${e.message}</div>`;}
+}
+
+async function authorizeUser(tid){try{await api('/telegram/users/'+tid+'/authorize',{method:'POST',body:'{}'});toast('Yetkilendirildi ✓');loadTelegram();}catch(e){toast('Hata: '+e.message,'error');}}
+async function registerCommands(){try{const r=await api('/telegram/register-commands',{method:'POST',body:'{}'});toast(r.ok?'Komutlar kaydedildi ✓':'Kayıt başarısız');}catch(e){toast('Hata: '+e.message,'error');}}
+async function setupWebhook(){const url=prompt('Webhook URL:');if(!url)return;try{const r=await api('/telegram/setup',{method:'POST',body:JSON.stringify({url})});toast(r.ok?'Webhook kuruldu ✓':'Hata');}catch(e){toast('Hata: '+e.message,'error');}}
+
+// ── WebSocket / Logs
+function initWS(){
+  if(wsConn&&wsConn.readyState===1)return;
+  const proto=location.protocol==='https:'?'wss':'ws';
+  wsConn=new WebSocket(`${proto}://${location.host}/ws/logs`);
+  wsConn.onopen=()=>{document.getElementById('ws-status').textContent='● Bağlı';document.getElementById('ws-status').style.color='var(--green)';};
+  wsConn.onclose=()=>{document.getElementById('ws-status').textContent='○ Kesildi';document.getElementById('ws-status').style.color='var(--red)';setTimeout(initWS,3000);};
+  wsConn.onmessage=(e)=>{try{const d=JSON.parse(e.data);addLog(d);updateFeed(d);}catch{}};
+}
+
+function addLog(evt){
+  const feed=document.getElementById('log-feed');
+  if(feed.querySelector('.loading'))feed.innerHTML='';
+  const level=evt.severity||'info';
+  const time=evt.timestamp?new Date(evt.timestamp).toLocaleTimeString('tr-TR'):'';
+  const msg=evt.message||evt.event||JSON.stringify(evt);
+  const div=document.createElement('div');
+  div.className=`log-entry ${level}`;
+  div.innerHTML=`<span class="log-time">${time}</span><span style="color:var(--muted);margin-right:6px;">[${evt.event||evt.type||'evt'}]</span>${msg}`;
+  feed.insertBefore(div,feed.firstChild);
+  while(feed.children.length>200)feed.removeChild(feed.lastChild);
+}
+
+function updateFeed(evt){
+  const feed=document.getElementById('activity-feed');
+  if(!feed)return;
+  if(feed.querySelector('.loading'))feed.innerHTML='';
+  const level=evt.severity||'info';
+  const time=evt.timestamp?new Date(evt.timestamp).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}):'';
+  const msg=evt.message||evt.event||'';
+  const div=document.createElement('div');
+  div.className='activity-item';
+  div.innerHTML=`<span class="activity-time">${time}</span><span class="activity-dot ${level}"></span><span class="activity-msg">${msg.substring(0,80)}</span>`;
+  feed.insertBefore(div,feed.firstChild);
+  while(feed.children.length>20)feed.removeChild(feed.lastChild);
+}
+
+async function refreshAll(){
+  document.getElementById('page-sub').textContent='Son güncelleme: '+new Date().toLocaleTimeString('tr-TR');
+  await loadDashboard();
+  const active=document.querySelector('.page.active')?.id?.replace('page-','');
+  if(active==='tasks')await loadTasks();
+  if(active==='agents')await loadAgents();
+  if(active==='queue')await loadQueue();
+  if(active==='monitoring')await loadMonitoring();
+  if(active==='telegram')await loadTelegram();
+}
+
+window.addEventListener('DOMContentLoaded',async()=>{
+  if(checkAuth()){
+    showPage('dashboard');
+    await loadDashboard();
+    initWS();
+  }else{
+    document.getElementById('modal-login').classList.add('open');
+  }
+  setInterval(async()=>{
+    if(!AUTH.token) return;
+    const a=document.querySelector('.page.active')?.id;
+    if(a==='page-dashboard')await loadDashboard();
+  },30000);
+});
+
+// ═══════════════════════════════════════════════════
+// KOD ÜRETİM FONKSİYONLARI
+// ═══════════════════════════════════════════════════
+const TEMPLATES={
+  custom:        {desc:'Ajanlara serbest bırak — uygun dosyaları kendileri belirler',agents:'8 ajan',files:'Dinamik'},
+  fastapi_rest:  {desc:'FastAPI REST API: router, model, repository, test, docker-compose',agents:'6 ajan',files:'8 dosya'},
+  react_spa:     {desc:'React + TypeScript SPA: component, hook, store, test, package.json',agents:'4 ajan',files:'8 dosya'},
+  fullstack:     {desc:'Full-Stack: FastAPI backend + React frontend + docker-compose',agents:'6 ajan',files:'8 dosya'},
+  data_pipeline: {desc:'ETL Pipeline: extract, transform, load, validate + SQL şema',agents:'4 ajan',files:'7 dosya'},
+  cli_tool:      {desc:'Python CLI aracı: argparse, config, utils, testler',agents:'3 ajan',files:'6 dosya'},
+};
+
+let cgCurrentId=null;
+
+function loadTemplateInfo(){
+  const t=document.getElementById('cg-template')?.value||'custom';
+  const info=TEMPLATES[t]||{desc:'—',agents:'—',files:'—'};
+  const el=document.getElementById('cg-template-info');
+  if(el) el.innerHTML=
+    `Açıklama: ${info.desc}\nAjanlar: ${info.agents}\nTahmini dosya: ${info.files}`;
+  document.getElementById('cg-template')?.addEventListener('change',loadTemplateInfo);
+}
+
+document.getElementById('cg-template')?.addEventListener('change',loadTemplateInfo);
+
+function appendProgress(msg,color='var(--muted)'){
+  const el=document.getElementById('cg-progress-log');
+  if(!el)return;
+  const ts=new Date().toLocaleTimeString('tr',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  el.innerHTML+=`<div style="color:${color}"><span style="color:var(--border)">[${ts}]</span> ${msg}</div>`;
+  el.scrollTop=el.scrollHeight;
+}
+
+async function startCodeGen(){
+  const title=document.getElementById('cg-title')?.value?.trim();
+  const desc =document.getElementById('cg-desc')?.value?.trim();
+  if(!title||!desc){showToast('Başlık ve açıklama zorunlu','error');return;}
+
+  const template=document.getElementById('cg-template')?.value||'custom';
+  const review  =document.getElementById('cg-review')?.checked??true;
+
+  // UI: başlat
+  document.getElementById('cg-btn').disabled=true;
+  document.getElementById('cg-btn').textContent='⏳ Üretiliyor…';
+  document.getElementById('cg-progress-card').style.display='block';
+  document.getElementById('cg-result-card').style.display='none';
+  document.getElementById('cg-viewer-card').style.display='none';
+  document.getElementById('cg-progress-log').innerHTML='';
+  appendProgress(`"${title}" projesi başlatılıyor — şablon: ${template}`,'var(--accent)');
+  appendProgress('8 ajan paralel çalışıyor…');
+
+  // WS üzerinden progress dinle
+  const progressHandler=(msg)=>{
+    try{
+      const d=typeof msg==='string'?JSON.parse(msg):msg;
+      if(d.event==='code.agent_start') appendProgress(`🔄 ${d.agent_id} kod üretiyor…`,'var(--yellow)');
+      if(d.event==='code.agent_done')  appendProgress(`✅ ${d.agent_id}: ${d.file_count||0} dosya`,'var(--green)');
+      if(d.event==='code.completed')   appendProgress(`🎉 Tamamlandı — ${d.file_count} dosya, ${d.total_lines} satır`,'var(--accent)');
+    }catch(e){}
+  };
+  if(wsConn) wsConn._cgHandler=progressHandler;
+
+  try{
+    const r=await fetch(`${API}/code/generate`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${AUTH.token}`},
+      body:JSON.stringify({title,description:desc,template,run_review:review}),
+    });
+    if(!r.ok){const e=await r.json();throw new Error(e.detail||r.statusText);}
+    const data=await r.json();
+    cgCurrentId=data.project_id;
+    renderCodeResult(data);
+    loadCodeHistory();
+    showToast(`${data.file_count} dosya üretildi ✅`);
+  }catch(e){
+    appendProgress(`❌ Hata: ${e.message}`,'var(--red)');
+    showToast('Üretim başarısız: '+e.message,'error');
+  }finally{
+    document.getElementById('cg-btn').disabled=false;
+    document.getElementById('cg-btn').textContent='⚡ Kod Üretimini Başlat';
+  }
+}
+
+function renderCodeResult(data){
+  document.getElementById('cg-progress-card').style.display='none';
+  document.getElementById('cg-result-card').style.display='block';
+  document.getElementById('cg-stat-files').textContent=data.file_count||0;
+  document.getElementById('cg-stat-lines').textContent=(data.total_lines||0).toLocaleString();
+  const q=data.quality_score;
+  const qEl=document.getElementById('cg-stat-quality');
+  qEl.textContent=q?Math.round(q*100)+'%':'—';
+  qEl.style.color=q>=0.8?'var(--green)':q>=0.6?'var(--yellow)':'var(--red)';
+  document.getElementById('cg-stat-langs').textContent=(data.languages||[]).join(', ')||'—';
+
+  // Dosya listesi
+  const fl=document.getElementById('cg-file-list');
+  fl.innerHTML=(data.files||[]).map(f=>{
+    const lintBadge=f.lint_count>0
+      ?`<span style="background:var(--yellow);color:#000;font-size:9px;padding:1px 5px;border-radius:10px;margin-left:6px;">${f.lint_count} uyarı</span>`:'';
+    const ok=f.syntax_ok
+      ?`<span style="color:var(--green);font-size:10px;">✓</span>`
+      :`<span style="color:var(--red);font-size:10px;">✗</span>`;
+    const langColor={python:'var(--accent)',typescript:'#3178c6',sql:'var(--yellow)',yaml:'var(--muted)',markdown:'var(--text)',json:'var(--green)'}[f.language]||'var(--muted)';
+    return `<div style="display:flex;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);gap:8px;cursor:pointer;" onclick="viewCodeFile('${data.project_id}','${f.path.replace(/'/g,"\\'")}','${f.language}')">
+      ${ok}
+      <span style="font-family:var(--mono);font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.path}</span>
+      ${lintBadge}
+      <span style="font-size:10px;color:${langColor};font-family:var(--mono);white-space:nowrap;">${f.language}</span>
+      <span style="font-size:10px;color:var(--muted);font-family:var(--mono);white-space:nowrap;">${f.lines}L</span>
+    </div>`;
+  }).join('');
+
+  // Code review
+  if(data.review_summary){
+    document.getElementById('cg-review-card').style.display='block';
+    document.getElementById('cg-review-content').textContent=data.review_summary;
+    if(data.quality_score)
+      document.getElementById('cg-review-score').textContent=Math.round(data.quality_score*100)+'%';
+  }
+}
+
+async function viewCodeFile(projectId, filePath, lang){
+  try{
+    const r=await fetch(`${API}/code/${projectId}/file?path=${encodeURIComponent(filePath)}`,{
+      headers:{'Authorization':`Bearer ${AUTH.token}`}
+    });
+    if(!r.ok)throw new Error(r.statusText);
+    const d=await r.json();
+
+    document.getElementById('cg-viewer-card').style.display='block';
+    document.getElementById('cg-viewer-title').textContent=d.path;
+    document.getElementById('cg-viewer-lang').textContent=d.language;
+    // Basit syntax highlight (sadece renkli string)
+    const escaped=d.content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    document.getElementById('cg-viewer-code').innerHTML=escaped;
+    document.getElementById('cg-viewer-code').scrollTop=0;
+
+    // Lint uyarıları
+    const issuesEl=document.getElementById('cg-viewer-issues');
+    if(d.lint_issues&&d.lint_issues.length){
+      issuesEl.style.display='block';
+      issuesEl.innerHTML='<div style="font-size:10px;color:var(--yellow);font-family:var(--mono);">⚠️ Lint: '
+        +d.lint_issues.slice(0,5).map(i=>`<div style="margin-top:3px;padding-left:12px;">${i}</div>`).join('')+'</div>';
+    }else{
+      issuesEl.style.display='none';
+    }
+    document.getElementById('cg-viewer-card').scrollIntoView({behavior:'smooth'});
+  }catch(e){showToast('Dosya yüklenemedi','error');}
+}
+
+function copyViewerCode(){
+  const code=document.getElementById('cg-viewer-code')?.textContent||'';
+  navigator.clipboard.writeText(code).then(()=>showToast('Kopyalandı ✓'));
+}
+
+async function downloadCodeZip(){
+  if(!cgCurrentId){showToast('Önce bir üretim yapın','error');return;}
+  try{
+    const r=await fetch(`${API}/code/${cgCurrentId}/download`,{
+      headers:{'Authorization':`Bearer ${AUTH.token}`}
+    });
+    if(!r.ok)throw new Error(r.statusText);
+    const blob=await r.blob();
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download=`kod_${cgCurrentId}.zip`; a.click();
+    URL.revokeObjectURL(url);
+    showToast('ZIP indiriliyor…');
+  }catch(e){showToast('İndirme hatası: '+e.message,'error');}
+}
+
+async function loadCodeHistory(){
+  const el=document.getElementById('cg-history');
+  if(!el||!AUTH.token)return;
+  try{
+    const r=await fetch(`${API}/code/results`,{headers:{'Authorization':`Bearer ${AUTH.token}`}});
+    if(!r.ok)throw new Error();
+    const list=await r.json();
+    if(!list.length){el.innerHTML='<span style="color:var(--muted);">Henüz üretim yok.</span>';return;}
+    el.innerHTML=list.slice(0,8).map(p=>{
+      const q=p.quality?Math.round(p.quality*100)+'%':'—';
+      const qc=p.quality>=0.8?'var(--green)':p.quality>=0.6?'var(--yellow)':'var(--red)';
+      const langs=(p.languages||[]).join(', ')||'—';
+      return `<div style="display:flex;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);gap:8px;cursor:pointer;"
+        onclick="loadHistoryItem('${p.project_id}')">
+        <span style="font-family:var(--mono);font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.title}</span>
+        <span style="font-size:10px;color:var(--muted);font-family:var(--mono);">${p.files}F/${p.lines}L</span>
+        <span style="font-size:10px;color:${qc};font-family:var(--mono);">${q}</span>
+        <span style="font-size:10px;color:var(--muted);">${langs}</span>
+      </div>`;
+    }).join('');
+  }catch(e){el.innerHTML='<span style="color:var(--red);">Yüklenemedi</span>';}
+}
+
+async function loadHistoryItem(projectId){
+  try{
+    const r=await fetch(`${API}/code/${projectId}`,{headers:{'Authorization':`Bearer ${AUTH.token}`}});
+    if(!r.ok)throw new Error();
+    const data=await r.json();
+    cgCurrentId=projectId;
+    renderCodeResult(data);
+    document.getElementById('cg-result-card').scrollIntoView({behavior:'smooth'});
+  }catch(e){showToast('Yüklenemedi','error');}
+}
+
+</script>
+
+<div id="modal-login" class="modal-overlay" style="z-index:1000;">
+  <div class="modal" style="max-width:360px;width:100%;">
+    <div class="modal-header"><span>🔐 Giriş</span></div>
+    <div style="padding:20px;">
+      <div id="login-error" style="color:var(--red);font-size:12px;margin-bottom:12px;display:none;font-family:var(--mono);"></div>
+      <div style="margin-bottom:12px;"><label style="font-size:11px;color:var(--muted);font-family:var(--mono);">E-POSTA</label><input id="login-email" type="email" placeholder="admin@example.com" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px;border-radius:6px;margin-top:4px;font-family:var(--mono);font-size:13px;" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div style="margin-bottom:16px;"><label style="font-size:11px;color:var(--muted);font-family:var(--mono);">PAROLA</label><input id="login-pass" type="password" placeholder="••••••••" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px;border-radius:6px;margin-top:4px;font-family:var(--mono);font-size:13px;" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button onclick="doLogin()" class="btn btn-primary" style="width:100%;">Giriş Yap</button>
+      <div style="margin-top:12px;font-size:10px;color:var(--muted);font-family:var(--mono);text-align:center;">İlk kullanımda: <code>POST /api/v1/auth/register</code></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

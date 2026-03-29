@@ -1,0 +1,2350 @@
+{
+  "generated_at": "2026-03-27T20:57:12.440491+00:00",
+  "project_root": "/app",
+  "entry_count": 161,
+  "entries": [
+    {
+      "path": "agents/agent_registry.py",
+      "file_type": "python",
+      "summary": "8 Uzman Yazılım Geliştirme Ajanı Her ajan kendi rolü, sistem istemi ve uzmanlık alanıyla tanımlanmıştır. | Sınıflar: Agent | Fonksiyonlar: build_agents | Importlar: dataclasses, typing, agents.base, schemas, typing, datetime, logging, traceback",
+      "symbols": [
+        "Agent",
+        "build_agents"
+      ],
+      "imports": [
+        "dataclasses",
+        "typing",
+        "agents.base",
+        "schemas",
+        "typing",
+        "datetime",
+        "logging",
+        "traceback"
+      ],
+      "mtime_utc": "2026-03-25T19:59:04.037754+00:00",
+      "size_bytes": 12848
+    },
+    {
+      "path": "agents/backend_dev.py",
+      "file_type": "python",
+      "summary": "Sınıflar: BackendDevAgent | Importlar: base, schemas, typing, datetime, traceback",
+      "symbols": [
+        "BackendDevAgent"
+      ],
+      "imports": [
+        "base",
+        "schemas",
+        "typing",
+        "datetime",
+        "traceback"
+      ],
+      "mtime_utc": "2026-03-22T21:16:02.719213+00:00",
+      "size_bytes": 3585
+    },
+    {
+      "path": "agents/base.py",
+      "file_type": "python",
+      "summary": "Sınıflar: BaseAgent | Importlar: abc, typing, schemas, llm.model_orchestrator, datetime, json",
+      "symbols": [
+        "BaseAgent"
+      ],
+      "imports": [
+        "abc",
+        "typing",
+        "schemas",
+        "llm.model_orchestrator",
+        "datetime",
+        "json"
+      ],
+      "mtime_utc": "2026-03-22T21:16:02.726845+00:00",
+      "size_bytes": 1735
+    },
+    {
+      "path": "agents/code_reviewer.py",
+      "file_type": "python",
+      "summary": "Code Review Ajan (9. Ajan) — Faz 6 ════════════════════════════════════════════════════════ Üretilen kodu sadece analiz etmez — DÜZELTIR de. Pipeline: 1. Statik analiz (AST + regex tabanlı, offline) 2. LLM destekli derin inceleme 3. Otomatik yeniden yazma (auto-fix modu) 4. Kalite skoru & detaylı rapor Kullanım: engine = CodeReviewEngine(model_orch | Sınıflar: FindingSeverity, FindingCategory, Finding, FileReviewResult, ProjectReviewReport, PythonStaticAnalyzer, TypeScriptStaticAnalyzer, AutoFixer, LLMReviewer, CodeReviewEngine | Importlar: ast, re, dataclasses, enum, typing",
+      "symbols": [
+        "FindingSeverity",
+        "FindingCategory",
+        "Finding",
+        "FileReviewResult",
+        "ProjectReviewReport",
+        "PythonStaticAnalyzer",
+        "TypeScriptStaticAnalyzer",
+        "AutoFixer",
+        "LLMReviewer",
+        "CodeReviewEngine"
+      ],
+      "imports": [
+        "ast",
+        "re",
+        "dataclasses",
+        "enum",
+        "typing"
+      ],
+      "mtime_utc": "2026-03-22T21:16:02.736707+00:00",
+      "size_bytes": 25076
+    },
+    {
+      "path": "agents/meeting_room.py",
+      "file_type": "python",
+      "summary": "Sınıflar: MeetingRoom | Importlar: asyncio, typing, datetime, json, re, agents.agent_registry, llm.model_orchestrator, observability.logging",
+      "symbols": [
+        "MeetingRoom"
+      ],
+      "imports": [
+        "asyncio",
+        "typing",
+        "datetime",
+        "json",
+        "re",
+        "agents.agent_registry",
+        "llm.model_orchestrator",
+        "observability.logging"
+      ],
+      "mtime_utc": "2026-03-22T21:53:22.472591+00:00",
+      "size_bytes": 6150
+    },
+    {
+      "path": "agents/system_controller.py",
+      "file_type": "python",
+      "summary": "Sınıflar: SystemControllerAgent | Importlar: base, schemas, typing, datetime, traceback",
+      "symbols": [
+        "SystemControllerAgent"
+      ],
+      "imports": [
+        "base",
+        "schemas",
+        "typing",
+        "datetime",
+        "traceback"
+      ],
+      "mtime_utc": "2026-03-22T21:16:02.746034+00:00",
+      "size_bytes": 4811
+    },
+    {
+      "path": "agents/__init__.py",
+      "file_type": "python",
+      "summary": "Python modülü.",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-22T21:16:02.746034+00:00",
+      "size_bytes": 0
+    },
+    {
+      "path": "api/admin_router.py",
+      "file_type": "python",
+      "summary": "Admin Router — Kullanıcı yönetimi ve yetkilendirme (Faz 12) | Fonksiyonlar: list_users, toggle_admin | Importlar: uuid, fastapi, sqlalchemy, sqlalchemy.ext.asyncio, auth.jwt_auth, db.models, db.session",
+      "symbols": [
+        "list_users",
+        "toggle_admin"
+      ],
+      "imports": [
+        "uuid",
+        "fastapi",
+        "sqlalchemy",
+        "sqlalchemy.ext.asyncio",
+        "auth.jwt_auth",
+        "db.models",
+        "db.session"
+      ],
+      "mtime_utc": "2026-03-22T21:16:02.802904+00:00",
+      "size_bytes": 2001
+    },
+    {
+      "path": "api/ceo_router.py",
+      "file_type": "python",
+      "summary": "CEO Router — Faz 8 Infra Exposes CEO Engine findings and status. | Fonksiyonlar: get_findings, trigger_scan | Importlar: fastapi, auth.jwt_auth, core.ceo_engine",
+      "symbols": [
+        "get_findings",
+        "trigger_scan"
+      ],
+      "imports": [
+        "fastapi",
+        "auth.jwt_auth",
+        "core.ceo_engine"
+      ],
+      "mtime_utc": "2026-03-22T21:16:02.812228+00:00",
+      "size_bytes": 1577
+    },
+    {
+      "path": "api/code_router.py",
+      "file_type": "python",
+      "summary": "Kod Üretim API Router — Faz 6 POST /api/v1/code/generate -> Kod üretimi başlat GET /api/v1/code/results -> Tüm üretimler GET /api/v1/code/{id} -> Belirli üretim GET /api/v1/code/{id}/files -> Dosya listesi GET /api/v1/code/{id}/download -> ZIP indir GET /api/v1/code/{id}/files/{path} -> Tek dosya içeriği GET /api/v1/code/templates -> Mevcut şablonl | Sınıflar: CodeGenerateRequest, CodeFileOut, CodeResultOut | Fonksiyonlar: _orch, list_templates, generate_code, list_results, get_result, get_file_content, download_zip | Importlar: base64, fastapi, fastapi.responses, pydantic, typing, auth.jwt_auth, observability.logging",
+      "symbols": [
+        "_orch",
+        "CodeGenerateRequest",
+        "CodeFileOut",
+        "CodeResultOut",
+        "list_templates",
+        "generate_code",
+        "list_results",
+        "get_result",
+        "get_file_content",
+        "download_zip"
+      ],
+      "imports": [
+        "base64",
+        "fastapi",
+        "fastapi.responses",
+        "pydantic",
+        "typing",
+        "auth.jwt_auth",
+        "observability.logging"
+      ],
+      "mtime_utc": "2026-03-22T21:16:02.823041+00:00",
+      "size_bytes": 8366
+    },
+    {
+      "path": "api/faz12_router.py",
+      "file_type": "python",
+      "summary": "Faz 12 API Router — Debate, Sandbox, ModelRouter, VectorLessons endpoint'leri | Sınıflar: DebateRequest, SandboxRequest, VectorLessonSaveRequest, DebateOutcome | Fonksiyonlar: run_debate, list_debate_personas, active_debates, run_sandbox, check_patch_sandbox, ruff_check_sandbox, get_routing_decision, model_router_stats, complexity_map, search_vector_lessons, save_vector_lesson, vector_lessons_stats, lessons_by_module | Importlar: typing, fastapi, pydantic, auth.jwt_auth, observability.logging",
+      "symbols": [
+        "DebateRequest",
+        "SandboxRequest",
+        "VectorLessonSaveRequest",
+        "DebateOutcome",
+        "run_debate",
+        "list_debate_personas",
+        "active_debates",
+        "run_sandbox",
+        "check_patch_sandbox",
+        "ruff_check_sandbox",
+        "get_routing_decision",
+        "model_router_stats",
+        "complexity_map",
+        "search_vector_lessons",
+        "save_vector_lesson",
+        "vector_lessons_stats",
+        "lessons_by_module"
+      ],
+      "imports": [
+        "typing",
+        "fastapi",
+        "pydantic",
+        "auth.jwt_auth",
+        "observability.logging"
+      ],
+      "mtime_utc": "2026-03-25T20:30:05.786857+00:00",
+      "size_bytes": 10028
+    },
+    {
+      "path": "api/finance_router.py",
+      "file_type": "python",
+      "summary": "Finance Router — Rota 2 • GET /finance/status — Mevcut harcama ve bütçe durumu • GET /finance/history — Günlük maliyet serisi • GET /finance/top-tasks — En maliyetli görevler | Fonksiyonlar: get_finance_status, get_finance_history, get_top_costly_tasks | Importlar: fastapi, datetime, typing, auth.jwt_auth, observability.logging, config",
+      "symbols": [
+        "get_finance_status",
+        "get_finance_history",
+        "get_top_costly_tasks"
+      ],
+      "imports": [
+        "fastapi",
+        "datetime",
+        "typing",
+        "auth.jwt_auth",
+        "observability.logging",
+        "config"
+      ],
+      "mtime_utc": "2026-03-22T22:00:14.043791+00:00",
+      "size_bytes": 3742
+    },
+    {
+      "path": "api/improvement_router.py",
+      "file_type": "python",
+      "summary": "Sınıflar: ScanRequest, ImprovementResponse, ApplyPatchRequest | Fonksiyonlar: scan_for_improvements, apply_autonomous_proposal, apply_custom_patch, get_improvement_history, get_improvement_state | Importlar: fastapi, typing, pydantic, auth.jwt_auth, core.orchestrator, db.session, improve.observer, observability.logging",
+      "symbols": [
+        "ScanRequest",
+        "ImprovementResponse",
+        "ApplyPatchRequest",
+        "scan_for_improvements",
+        "apply_autonomous_proposal",
+        "apply_custom_patch",
+        "get_improvement_history",
+        "get_improvement_state"
+      ],
+      "imports": [
+        "fastapi",
+        "typing",
+        "pydantic",
+        "auth.jwt_auth",
+        "core.orchestrator",
+        "db.session",
+        "improve.observer",
+        "observability.logging"
+      ],
+      "mtime_utc": "2026-03-25T20:23:27.773817+00:00",
+      "size_bytes": 5524
+    },
+    {
+      "path": "api/mcp_router.py",
+      "file_type": "python",
+      "summary": "Model Context Protocol (MCP) Router — Lightweight metadata endpoint. Exposes project structure, DB schema, and OpenAPI spec as MCP resources. Tool endpoints are auth-guarded to prevent unauthorized use. | Sınıflar: MCPResource, MCPTool | Fonksiyonlar: list_resources, read_resource, list_tools, execute_tool, _build_project_tree | Importlar: fastapi, pydantic, typing, os, pathlib, auth.jwt_auth, observability.logging",
+      "symbols": [
+        "MCPResource",
+        "MCPTool",
+        "list_resources",
+        "read_resource",
+        "list_tools",
+        "execute_tool",
+        "_build_project_tree"
+      ],
+      "imports": [
+        "fastapi",
+        "pydantic",
+        "typing",
+        "os",
+        "pathlib",
+        "auth.jwt_auth",
+        "observability.logging"
+      ],
+      "mtime_utc": "2026-03-25T21:11:42.474466+00:00",
+      "size_bytes": 5776
+    },
+    {
+      "path": "api/monitoring_router.py",
+      "file_type": "python",
+      "summary": "Monitoring & Metrik API — Faz 4 • GET /monitoring/overview — Genel sistem sağlık özeti • GET /monitoring/api/stats — Endpoint bazlı istatistik • GET /monitoring/api/series — Zaman serisi trafik • GET /monitoring/api/slowest — En yavaş endpointler • GET /monitoring/llm — LLM provider istatistik • GET /monitoring/queue — Queue yoğunluğu • GET /monito | Fonksiyonlar: monitoring_overview, api_stats, api_time_series, slowest_endpoints, llm_monitoring, queue_monitoring, system_resources, _system_resources, agents_monitoring, recent_errors, cleanup_api_metrics | Importlar: os, time, datetime, typing, fastapi, auth.jwt_auth, observability.logging",
+      "symbols": [
+        "monitoring_overview",
+        "api_stats",
+        "api_time_series",
+        "slowest_endpoints",
+        "llm_monitoring",
+        "queue_monitoring",
+        "system_resources",
+        "_system_resources",
+        "agents_monitoring",
+        "recent_errors",
+        "cleanup_api_metrics"
+      ],
+      "imports": [
+        "os",
+        "time",
+        "datetime",
+        "typing",
+        "fastapi",
+        "auth.jwt_auth",
+        "observability.logging"
+      ],
+      "mtime_utc": "2026-03-24T19:38:26.964202+00:00",
+      "size_bytes": 21796
+    },
+    {
+      "path": "api/rate_limiter.py",
+      "file_type": "python",
+      "summary": "Rate Limiter — Faz 2 • Sliding window algoritması • IP bazlı + kullanıcı bazlı limitler • Redis varsa Redis'te, yoksa in-memory fallback • FastAPI Depends ile kolay entegrasyon | Sınıflar: RateLimit, InMemoryRateLimiter, RedisRateLimiter | Fonksiyonlar: _get_client_ip, rate_limit, _build_redis_limiter, check_rate_limit, rate_limit_async | Importlar: time, collections, dataclasses",
+      "symbols": [
+        "RateLimit",
+        "InMemoryRateLimiter",
+        "_get_client_ip",
+        "rate_limit",
+        "RedisRateLimiter",
+        "_build_redis_limiter",
+        "check_rate_limit",
+        "rate_limit_async"
+      ],
+      "imports": [
+        "time",
+        "collections",
+        "dataclasses"
+      ],
+      "mtime_utc": "2026-03-22T21:16:02.872516+00:00",
+      "size_bytes": 9942
+    },
+    {
+      "path": "api/repair_admin_router.py",
+      "file_type": "python",
+      "summary": "Repair Admin Router — Faz 11 Policy yönetimi, benchmark metrikleri, lessons store endpoint'leri. | Sınıflar: PolicyUpdateRequest, PolicyAddRequest, FeedbackRequest | Fonksiyonlar: list_policies, get_policy, update_policy, add_policy, export_policies, metrics_summary, metrics_trends, metrics_top_modules, record_feedback, list_recent_feedback, feedback_stats, module_feedback, list_lessons, lessons_stats, ranker_stats | Importlar: datetime, typing, fastapi, pydantic, auth.jwt_auth, observability.logging",
+      "symbols": [
+        "PolicyUpdateRequest",
+        "PolicyAddRequest",
+        "FeedbackRequest",
+        "list_policies",
+        "get_policy",
+        "update_policy",
+        "add_policy",
+        "export_policies",
+        "metrics_summary",
+        "metrics_trends",
+        "metrics_top_modules",
+        "record_feedback",
+        "list_recent_feedback",
+        "feedback_stats",
+        "module_feedback",
+        "list_lessons",
+        "lessons_stats",
+        "ranker_stats"
+      ],
+      "imports": [
+        "datetime",
+        "typing",
+        "fastapi",
+        "pydantic",
+        "auth.jwt_auth",
+        "observability.logging"
+      ],
+      "mtime_utc": "2026-03-22T21:16:02.891001+00:00",
+      "size_bytes": 7550
+    },
+    {
+      "path": "api/repair_router.py",
+      "file_type": "python",
+      "summary": "Repair Router — Self-Repair sistemi için REST API. Endpoint'ler: POST /repair/incidents -> Incident oluştur GET /repair/incidents -> Açık incident listesi GET /repair/incidents/{id} -> Incident detayı POST /repair/jobs -> Repair job başlat GET /repair/jobs -> Job listesi GET /repair/jobs/{id} -> Job detayı GET /repair/jobs/{id}/validation -> Valida | Sınıflar: IncidentCreateRequest, JobStartRequest, JobDecisionRequest, ProposalDecisionRequest | Fonksiyonlar: create_incident, list_incidents, get_incident, start_repair_job, list_jobs, get_job, get_job_diff, job_decision, list_proposals, get_proposal, decide_proposal, get_stats, get_architecture_memory, triage_preview, _update_job_on_proposal_decision | Importlar: datetime, typing, fastapi, pydantic, auth.jwt_auth, repair.ingestion.incident_ingestor, repair.triage.triage_engine, repair.memory.incident_memory, repair.memory.patch_memory, repair.memory.architecture_memory",
+      "symbols": [
+        "IncidentCreateRequest",
+        "JobStartRequest",
+        "JobDecisionRequest",
+        "ProposalDecisionRequest",
+        "create_incident",
+        "list_incidents",
+        "get_incident",
+        "start_repair_job",
+        "list_jobs",
+        "get_job",
+        "get_job_diff",
+        "job_decision",
+        "list_proposals",
+        "get_proposal",
+        "decide_proposal",
+        "get_stats",
+        "get_architecture_memory",
+        "triage_preview",
+        "_update_job_on_proposal_decision",
+        "_persist_job_status",
+        "_list_proposals_from_db",
+        "_get_proposal_from_db",
+        "_get_repair_project_root",
+        "_persist_incident",
+        "_persist_proposal_decision",
+        "get_similar_incidents",
+        "get_job_validation",
+        "get_generated_tests",
+        "get_canary_result",
+        "get_job_report",
+        "simulate_job",
+        "_expected_flow",
+        "architecture_guard_check"
+      ],
+      "imports": [
+        "datetime",
+        "typing",
+        "fastapi",
+        "pydantic",
+        "auth.jwt_auth",
+        "repair.ingestion.incident_ingestor",
+        "repair.triage.triage_engine",
+        "repair.memory.incident_memory",
+        "repair.memory.patch_memory",
+        "repair.memory.architecture_memory",
+        "core.repair_orchestrator",
+        "core.policy_engine",
+        "repair.schemas.incident",
+        "observability.logging"
+      ],
+      "mtime_utc": "2026-03-22T21:16:02.909041+00:00",
+      "size_bytes": 33218
+    },
+    {
+      "path": "api/routes.py",
+      "file_type": "python",
+      "summary": "API Rotaları — Faz 2 • Proje oluşturma artık async (job queue) — anında job_id döner • /projects/{id}/status ile durum takibi • Rate limiting entegre • Metrik entegre | Sınıflar: ProjectRequest | Fonksiyonlar: _orch, _heal, _bus, _queue, _metrics, agent_health, heal_report, heal_events, agent_recovery, llm_stats, cost_summary, _gate, _mem, quality_summary, quality_by_agent | Importlar: uuid, fastapi, pydantic, api.rate_limiter, auth.jwt_auth, api.mcp_router",
+      "symbols": [
+        "_orch",
+        "_heal",
+        "_bus",
+        "_queue",
+        "_metrics",
+        "ProjectRequest",
+        "agent_health",
+        "heal_report",
+        "heal_events",
+        "agent_recovery",
+        "llm_stats",
+        "cost_summary",
+        "_gate",
+        "_mem",
+        "quality_summary",
+        "quality_by_agent",
+        "pending_approvals",
+        "decide_approval",
+        "approval_history",
+        "memory_stats",
+        "memory_search",
+        "clear_memory"
+      ],
+      "imports": [
+        "uuid",
+        "fastapi",
+        "pydantic",
+        "api.rate_limiter",
+        "auth.jwt_auth",
+        "api.mcp_router"
+      ],
+      "mtime_utc": "2026-03-25T20:28:33.607300+00:00",
+      "size_bytes": 9529
+    },
+    {
+      "path": "api/self_update_router.py",
+      "file_type": "python",
+      "summary": "Sınıflar: SelfUpdateHistoryItem, SelfUpdateState, SelfUpdateRequest, SelfUpdateResponse | Fonksiyonlar: _orch, _queue, get_system_state, apply_self_modification, search_codebase, rebuild_index | Importlar: fastapi, pydantic, typing, uuid, auth.jwt_auth",
+      "symbols": [
+        "SelfUpdateHistoryItem",
+        "SelfUpdateState",
+        "SelfUpdateRequest",
+        "SelfUpdateResponse",
+        "_orch",
+        "_queue",
+        "get_system_state",
+        "apply_self_modification",
+        "search_codebase",
+        "rebuild_index"
+      ],
+      "imports": [
+        "fastapi",
+        "pydantic",
+        "typing",
+        "uuid",
+        "auth.jwt_auth"
+      ],
+      "mtime_utc": "2026-03-22T21:16:02.931610+00:00",
+      "size_bytes": 3940
+    },
+    {
+      "path": "api/specialists_router.py",
+      "file_type": "python",
+      "summary": "Specialists Router — Faz 8 Infra Exposes loaded agency specialists to the UI. | Fonksiyonlar: list_specialists | Importlar: fastapi, auth.jwt_auth, core.agency.loader",
+      "symbols": [
+        "list_specialists"
+      ],
+      "imports": [
+        "fastapi",
+        "auth.jwt_auth",
+        "core.agency.loader"
+      ],
+      "mtime_utc": "2026-03-24T22:05:56.600222+00:00",
+      "size_bytes": 1033
+    },
+    {
+      "path": "api/storage_router.py",
+      "file_type": "python",
+      "summary": "Fonksiyonlar: upload_file | Importlar: fastapi, os, uuid, shutil, auth.jwt_auth, observability.logging",
+      "symbols": [
+        "upload_file"
+      ],
+      "imports": [
+        "fastapi",
+        "os",
+        "uuid",
+        "shutil",
+        "auth.jwt_auth",
+        "observability.logging"
+      ],
+      "mtime_utc": "2026-03-24T19:52:51.469958+00:00",
+      "size_bytes": 1514
+    },
+    {
+      "path": "api/task_control_router.py",
+      "file_type": "python",
+      "summary": "Görev Kontrol Router — cancel, retry, stop, copy | Fonksiyonlar: _ensure_queue_capability, queue_capabilities, cancel_task, retry_task, stop_task, pause_task, resume_task, copy_task | Importlar: fastapi, auth.jwt_auth, api._task_shared, observability.logging, uuid",
+      "symbols": [
+        "_ensure_queue_capability",
+        "queue_capabilities",
+        "cancel_task",
+        "retry_task",
+        "stop_task",
+        "pause_task",
+        "resume_task",
+        "copy_task"
+      ],
+      "imports": [
+        "fastapi",
+        "auth.jwt_auth",
+        "api._task_shared",
+        "observability.logging",
+        "uuid"
+      ],
+      "mtime_utc": "2026-03-26T21:46:59.973968+00:00",
+      "size_bytes": 16366
+    },
+    {
+      "path": "api/task_read_router.py",
+      "file_type": "python",
+      "summary": "Görev Okuma Router — GET endpoints | Fonksiyonlar: list_tasks, tasks_summary, get_task, task_logs, task_subtasks | Importlar: fastapi, auth.jwt_auth, api._task_shared, observability.logging, typing",
+      "symbols": [
+        "list_tasks",
+        "tasks_summary",
+        "get_task",
+        "task_logs",
+        "task_subtasks"
+      ],
+      "imports": [
+        "fastapi",
+        "auth.jwt_auth",
+        "api._task_shared",
+        "observability.logging",
+        "typing"
+      ],
+      "mtime_utc": "2026-03-27T20:29:43.535916+00:00",
+      "size_bytes": 10123
+    },
+    {
+      "path": "api/task_router.py",
+      "file_type": "python",
+      "summary": "api/task_router.py — Compatibility Shim (RC1) Faz 4/7 legacy testleri bu modülden import yapıyor. Canlı uygulama split router'ları kullanır; bu dosya yalnızca geriye uyumluluk sağlar. | Importlar: api._task_shared, api.task_read_router, api.task_write_router, api.task_control_router, fastapi",
+      "symbols": [],
+      "imports": [
+        "api._task_shared",
+        "api.task_read_router",
+        "api.task_write_router",
+        "api.task_control_router",
+        "fastapi"
+      ],
+      "mtime_utc": "2026-03-22T21:16:02.982692+00:00",
+      "size_bytes": 801
+    },
+    {
+      "path": "api/task_write_router.py",
+      "file_type": "python",
+      "summary": "Görev Yazma Router — POST create, PATCH update, DELETE Not: Cancel işlemi task_control_router.py içinde tanımlıdır (tek kaynak). | Fonksiyonlar: create_task, update_task, delete_task | Importlar: fastapi, uuid, datetime, auth.jwt_auth, api._task_shared, observability.logging, schemas, db.models, tasks.celery_app, core.task_routing",
+      "symbols": [
+        "create_task",
+        "update_task",
+        "delete_task"
+      ],
+      "imports": [
+        "fastapi",
+        "uuid",
+        "datetime",
+        "auth.jwt_auth",
+        "api._task_shared",
+        "observability.logging",
+        "schemas",
+        "db.models",
+        "tasks.celery_app",
+        "core.task_routing"
+      ],
+      "mtime_utc": "2026-03-27T20:31:53.307930+00:00",
+      "size_bytes": 12073
+    },
+    {
+      "path": "api/telegram_router.py",
+      "file_type": "python",
+      "summary": "Telegram Webhook Router — Faz 4 Telegram bot'ından gelen güncellemeleri alır, bot.py'ye iletir. GET /telegram/info — Bot bilgisi ve yapılandırma durumu POST /telegram/webhook — Telegram'dan gelen update (webhook modu) POST /telegram/setup — Webhook URL'ini Telegram'a kaydet POST /telegram/send — Manuel mesaj gönder (test/admin) | Fonksiyonlar: telegram_info, setup_webhook, telegram_webhook, send_message, register_commands, list_telegram_users, authorize_user | Importlar: os, hashlib, hmac, fastapi, typing, auth.jwt_auth, observability.logging",
+      "symbols": [
+        "telegram_info",
+        "setup_webhook",
+        "telegram_webhook",
+        "send_message",
+        "register_commands",
+        "list_telegram_users",
+        "authorize_user"
+      ],
+      "imports": [
+        "os",
+        "hashlib",
+        "hmac",
+        "fastapi",
+        "typing",
+        "auth.jwt_auth",
+        "observability.logging"
+      ],
+      "mtime_utc": "2026-03-25T21:04:19.834306+00:00",
+      "size_bytes": 9549
+    },
+    {
+      "path": "api/ws_manager.py",
+      "file_type": "python",
+      "summary": "WebSocket Yayın Yöneticisi — gerçek event push | Sınıflar: BroadcastManager | Importlar: json, datetime, fastapi",
+      "symbols": [
+        "BroadcastManager"
+      ],
+      "imports": [
+        "json",
+        "datetime",
+        "fastapi"
+      ],
+      "mtime_utc": "2026-03-23T15:48:01.072685+00:00",
+      "size_bytes": 2365
+    },
+    {
+      "path": "api/_task_shared.py",
+      "file_type": "python",
+      "summary": "Görev Yönetimi — Paylaşılan Bağımlılıklar (task_router paketinin ortak modülü) | Sınıflar: TaskCreateRequest, TaskUpdateRequest | Fonksiyonlar: _db_session, _project_to_dict | Importlar: uuid, datetime, typing, fastapi, pydantic, auth.jwt_auth, observability.logging",
+      "symbols": [
+        "_db_session",
+        "TaskCreateRequest",
+        "TaskUpdateRequest",
+        "_project_to_dict"
+      ],
+      "imports": [
+        "uuid",
+        "datetime",
+        "typing",
+        "fastapi",
+        "pydantic",
+        "auth.jwt_auth",
+        "observability.logging"
+      ],
+      "mtime_utc": "2026-03-26T21:08:49.725980+00:00",
+      "size_bytes": 5244
+    },
+    {
+      "path": "api/__init__.py",
+      "file_type": "python",
+      "summary": "Python modülü.",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-22T21:16:03.033727+00:00",
+      "size_bytes": 0
+    },
+    {
+      "path": "core/ceo_engine.py",
+      "file_type": "python",
+      "summary": "Sınıflar: CEOEngine | Fonksiyonlar: get_ceo_engine | Importlar: asyncio, logging, uuid, datetime, typing, improve.observer, improve.visual_observer, llm.model_orchestrator, core.forecaster, observability.logging",
+      "symbols": [
+        "CEOEngine",
+        "get_ceo_engine"
+      ],
+      "imports": [
+        "asyncio",
+        "logging",
+        "uuid",
+        "datetime",
+        "typing",
+        "improve.observer",
+        "improve.visual_observer",
+        "llm.model_orchestrator",
+        "core.forecaster",
+        "observability.logging",
+        "tasks.celery_app"
+      ],
+      "mtime_utc": "2026-03-22T21:16:03.081907+00:00",
+      "size_bytes": 28917
+    },
+    {
+      "path": "core/ceo_supervisor.py",
+      "file_type": "python",
+      "summary": "Sınıflar: AutonomousCEO | Importlar: asyncio, json, time, datetime, config, llm.model_orchestrator, observability.logging, quality.prompt_guard",
+      "symbols": [
+        "AutonomousCEO"
+      ],
+      "imports": [
+        "asyncio",
+        "json",
+        "time",
+        "datetime",
+        "config",
+        "llm.model_orchestrator",
+        "observability.logging",
+        "quality.prompt_guard"
+      ],
+      "mtime_utc": "2026-03-22T21:16:03.090519+00:00",
+      "size_bytes": 15006
+    },
+    {
+      "path": "core/context.py",
+      "file_type": "python",
+      "summary": "Core Context — Global state and singleton access. Breaks circular dependencies between main.py and other modules. | Importlar: core.orchestrator, core.heal_engine, core.events, core.job_queue, api.ws_manager",
+      "symbols": [],
+      "imports": [
+        "core.orchestrator",
+        "core.heal_engine",
+        "core.events",
+        "core.job_queue",
+        "api.ws_manager"
+      ],
+      "mtime_utc": "2026-03-22T21:16:03.102475+00:00",
+      "size_bytes": 400
+    },
+    {
+      "path": "core/debate_engine.py",
+      "file_type": "python",
+      "summary": "DebateEngine — Multi-Agent Debate Pattern (Faz 12) İki veya üç ajan, kritik bir karar üzerinde yapılandırılmış tartışma yapar. Moderatör (genellikle architect) turları yönetir ve sonunda konsensüs kararını çıkarır. Kullanım: engine = DebateEngine(model_orch) result = await engine.run_debate( topic=\"Redis mi PostgreSQL mi? Oturum depolama için...\",  | Sınıflar: DebateRound, DebateResult, DebateEngine | Fonksiyonlar: get_debate_engine | Importlar: asyncio, time, uuid, dataclasses, typing, core.agency.loader, core.prompts, observability.logging, api.ws_manager",
+      "symbols": [
+        "DebateRound",
+        "DebateResult",
+        "DebateEngine",
+        "get_debate_engine"
+      ],
+      "imports": [
+        "asyncio",
+        "time",
+        "uuid",
+        "dataclasses",
+        "typing",
+        "core.agency.loader",
+        "core.prompts",
+        "observability.logging",
+        "api.ws_manager"
+      ],
+      "mtime_utc": "2026-03-25T20:42:50.392312+00:00",
+      "size_bytes": 13045
+    },
+    {
+      "path": "core/deerflow_prompts.py",
+      "file_type": "python",
+      "summary": "DeerFlow Prompt Builder — Görev Tipine Göre Dinamik Prompt Üretimi Her DeerFlow rolü için uzmanlaştırılmış prompt şablonları sağlar. Streaming task tarafından çağrılır. | Fonksiyonlar: build_deerflow_prompt, get_available_roles | Importlar: typing",
+      "symbols": [
+        "build_deerflow_prompt",
+        "get_available_roles"
+      ],
+      "imports": [
+        "typing"
+      ],
+      "mtime_utc": "2026-03-26T21:33:35.126578+00:00",
+      "size_bytes": 5847
+    },
+    {
+      "path": "core/events.py",
+      "file_type": "python",
+      "summary": "Domain Event Bus Sistemdeki tüm olaylar bu modülden geçer. Yayıncılar (orchestrator, heal_engine) -> EventBus -> Aboneler (ws, webhook, log, db) Olaylar: project.started project.completed project.failed subtask.started subtask.done subtask.failed subtask.recovered provider.degraded provider.recovered provider.circuit_open heal.warning heal.critical | Sınıflar: DomainEvent, EventBus | Importlar: asyncio, json, os, uuid, collections, dataclasses, datetime, typing",
+      "symbols": [
+        "DomainEvent",
+        "EventBus"
+      ],
+      "imports": [
+        "asyncio",
+        "json",
+        "os",
+        "uuid",
+        "collections",
+        "dataclasses",
+        "datetime",
+        "typing"
+      ],
+      "mtime_utc": "2026-03-22T21:16:03.119125+00:00",
+      "size_bytes": 6246
+    },
+    {
+      "path": "core/forecaster.py",
+      "file_type": "python",
+      "summary": "Sınıflar: CEOForecaster | Importlar: asyncio, logging, datetime, typing, db.session, db.models, observability.logging",
+      "symbols": [
+        "CEOForecaster"
+      ],
+      "imports": [
+        "asyncio",
+        "logging",
+        "datetime",
+        "typing",
+        "db.session",
+        "db.models",
+        "observability.logging"
+      ],
+      "mtime_utc": "2026-03-22T21:16:03.128993+00:00",
+      "size_bytes": 4739
+    },
+    {
+      "path": "core/git_ops.py",
+      "file_type": "python",
+      "summary": "Sınıflar: GitOps | Importlar: shutil, subprocess, pathlib, typing, observability.logging",
+      "symbols": [
+        "GitOps"
+      ],
+      "imports": [
+        "shutil",
+        "subprocess",
+        "pathlib",
+        "typing",
+        "observability.logging"
+      ],
+      "mtime_utc": "2026-03-22T21:16:03.137473+00:00",
+      "size_bytes": 2642
+    },
+    {
+      "path": "core/heal_engine.py",
+      "file_type": "python",
+      "summary": "╔══════════════════════════════════════════════════════════════════╗ ║ ÖZ-İYİLEŞTİRME MOTORU v2 — Tam Sürüm ║ ╠══════════════════════════════════════════════════════════════════╣ ║ Döngü: İZLE -> ANALİZ ET -> KARAR VER -> MÜDAHALE ET -> DOĞRULA ║ ╚══════════════════════════════════════════════════════════════════╝ | Sınıflar: Severity, HealEvent, SelfHealEngine, _DummySubTask | Importlar: asyncio, time, dataclasses, datetime, typing, enum, heal.agent_state, heal.recovery_strategies, heal.root_cause, core.orchestrator",
+      "symbols": [
+        "Severity",
+        "HealEvent",
+        "SelfHealEngine",
+        "_DummySubTask"
+      ],
+      "imports": [
+        "asyncio",
+        "time",
+        "dataclasses",
+        "datetime",
+        "typing",
+        "enum",
+        "heal.agent_state",
+        "heal.recovery_strategies",
+        "heal.root_cause",
+        "core.orchestrator"
+      ],
+      "mtime_utc": "2026-03-25T19:58:27.025563+00:00",
+      "size_bytes": 18349
+    },
+    {
+      "path": "core/job_queue.py",
+      "file_type": "python",
+      "summary": "Async Job Queue — Faz 2 • API istek döner -> arka planda çalışır (non-blocking) • Job ID ile durum takibi • Redis varsa Celery, yoksa in-process asyncio worker • Dead-letter queue: kalıcı başarısızlıklar ayrı depoya | Sınıflar: JobStatus, Job, QueueCapabilities, BaseQueueCapabilities, JobQueue, CeleryJobQueue | Fonksiyonlar: _celery_state_to_job, create_job_queue | Importlar: asyncio, uuid, dataclasses, datetime, enum, typing, observability.logging, config",
+      "symbols": [
+        "JobStatus",
+        "Job",
+        "QueueCapabilities",
+        "BaseQueueCapabilities",
+        "JobQueue",
+        "CeleryJobQueue",
+        "_celery_state_to_job",
+        "create_job_queue"
+      ],
+      "imports": [
+        "asyncio",
+        "uuid",
+        "dataclasses",
+        "datetime",
+        "enum",
+        "typing",
+        "observability.logging",
+        "config"
+      ],
+      "mtime_utc": "2026-03-27T20:29:10.462322+00:00",
+      "size_bytes": 22376
+    },
+    {
+      "path": "core/orchestrator.py",
+      "file_type": "python",
+      "summary": "Orkestratör — Faz 3 (DAG Entegrasyonlu) Plan -> Bellek Bağlamı -> DAG (Bağımlılıklı Yürütme) -> Kalite Kontrolü -> Reviewer -> Sentez | Sınıflar: Orchestrator | Fonksiyonlar: get_orchestrator | Importlar: asyncio, uuid, logging, time, dataclasses, datetime, enum, typing, agents.agent_registry, observability.logging",
+      "symbols": [
+        "Orchestrator",
+        "get_orchestrator"
+      ],
+      "imports": [
+        "asyncio",
+        "uuid",
+        "logging",
+        "time",
+        "dataclasses",
+        "datetime",
+        "enum",
+        "typing",
+        "agents.agent_registry",
+        "observability.logging",
+        "llm.model_orchestrator",
+        "quality.approval_gate",
+        "memory.retrieval",
+        "quality.output_schema",
+        "quality.evaluator",
+        "quality.scorer",
+        "quality.reviewer",
+        "core.task_management"
+      ],
+      "mtime_utc": "2026-03-25T21:01:26.663186+00:00",
+      "size_bytes": 17652
+    },
+    {
+      "path": "core/patcher.py",
+      "file_type": "python",
+      "summary": "Sınıflar: AutonomousPatcher | Importlar: os, re, asyncio, ast, typing",
+      "symbols": [
+        "AutonomousPatcher"
+      ],
+      "imports": [
+        "os",
+        "re",
+        "asyncio",
+        "ast",
+        "typing"
+      ],
+      "mtime_utc": "2026-03-22T21:43:51.539150+00:00",
+      "size_bytes": 4349
+    },
+    {
+      "path": "core/policy_engine.py",
+      "file_type": "python",
+      "summary": "Policy Engine — Hangi kararın nerede otomasyon alabileceğini yönetir. Karar seviyeleri: Level 0: sadece analiz raporu Level 1: otomatik branch + PR (ŞİMDİLİK MAKSİMUM SEVİYE) Level 2: düşük riskli otomatik merge (KAPALI) Level 3: production deploy (KAPALI) Kural: İlk sürümde Level 1'den yukarı gidilmez. | Sınıflar: AutomationLevel, PolicyDecision, PolicyEngine | Importlar: dataclasses, enum, typing, repair.schemas.diagnosis, repair.schemas.patch_plan, repair.schemas.validation, observability.logging",
+      "symbols": [
+        "AutomationLevel",
+        "PolicyDecision",
+        "PolicyEngine"
+      ],
+      "imports": [
+        "dataclasses",
+        "enum",
+        "typing",
+        "repair.schemas.diagnosis",
+        "repair.schemas.patch_plan",
+        "repair.schemas.validation",
+        "observability.logging"
+      ],
+      "mtime_utc": "2026-03-22T21:16:03.173761+00:00",
+      "size_bytes": 9198
+    },
+    {
+      "path": "core/policy_registry.py",
+      "file_type": "python",
+      "summary": "Policy Registry — Faz 11 Kural motoru kurallarını koddan dışarı alır. JSON / dict üzerinden yönetilebilir, API ile güncellenebilir. Örnek kurallar: - auth modülüne otomatik patch yasak - diff 150 satırı geçerse manual review - migration dosyası varsa auto PR yok - reproducer zorunlu (yapılandırılabilir) | Sınıflar: PolicyRule, PolicyRegistry | Fonksiyonlar: get_policy_registry | Importlar: __future__, json, os, dataclasses, datetime, typing, observability.logging",
+      "symbols": [
+        "PolicyRule",
+        "PolicyRegistry",
+        "get_policy_registry"
+      ],
+      "imports": [
+        "__future__",
+        "json",
+        "os",
+        "dataclasses",
+        "datetime",
+        "typing",
+        "observability.logging"
+      ],
+      "mtime_utc": "2026-03-22T21:16:03.190643+00:00",
+      "size_bytes": 7060
+    },
+    {
+      "path": "core/prompts.py",
+      "file_type": "python",
+      "summary": "Merkezi LLM Prompt Deposu (Faz 2 Mimari İyileştirme) Hard-coded metinleri kod mantığından ayırmak için kullanılır.",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-22T21:16:03.197541+00:00",
+      "size_bytes": 2167
+    },
+    {
+      "path": "core/prompt_manager.py",
+      "file_type": "python",
+      "summary": "Sınıflar: PromptManager | Importlar: logging, typing",
+      "symbols": [
+        "PromptManager"
+      ],
+      "imports": [
+        "logging",
+        "typing"
+      ],
+      "mtime_utc": "2026-03-23T15:46:51.104918+00:00",
+      "size_bytes": 1215
+    },
+    {
+      "path": "core/repair_orchestrator.py",
+      "file_type": "python",
+      "summary": "Repair Orchestrator — Faz 4 Self-Repair Ana Pipeline Durum makinesi: NEW -> INCIDENT_COLLECTED -> TRIAGED -> CONTEXT_BUILT -> ROOT_CAUSE_ANALYZED -> PATCH_PLANNED -> PATCH_GENERATED -> REVIEWED -> VERIFIED -> PR_CREATED -> AWAITING_APPROVAL Her adım başarısız olursa uygun FAILED_* veya REQUIRES_MANUAL_REVIEW durumuna geçer. Hiçbir adım production'a | Sınıflar: RepairOrchestrator | Fonksiyonlar: _get_fingerprint_engine, _get_ranker, _get_test_gen, _get_canary, _get_metrics_store, _get_policy_registry, _get_arch_guard, get_repair_orchestrator | Importlar: asyncio, time, uuid, datetime, typing, repair.schemas.repair_job, repair.schemas.incident, repair.schemas.diagnosis, repair.schemas.patch_plan, repair.schemas.validation",
+      "symbols": [
+        "_get_fingerprint_engine",
+        "_get_ranker",
+        "_get_test_gen",
+        "_get_canary",
+        "_get_metrics_store",
+        "_get_policy_registry",
+        "_get_arch_guard",
+        "RepairOrchestrator",
+        "get_repair_orchestrator"
+      ],
+      "imports": [
+        "asyncio",
+        "time",
+        "uuid",
+        "datetime",
+        "typing",
+        "repair.schemas.repair_job",
+        "repair.schemas.incident",
+        "repair.schemas.diagnosis",
+        "repair.schemas.patch_plan",
+        "repair.schemas.validation",
+        "repair.ingestion.incident_ingestor",
+        "db.repair_models",
+        "repair.triage.triage_engine",
+        "repair.memory.incident_memory",
+        "repair.memory.patch_memory",
+        "repair.memory.architecture_memory",
+        "core.policy_engine",
+        "observability.logging",
+        "db.session",
+        "db.repair_repository"
+      ],
+      "mtime_utc": "2026-03-26T21:54:07.716278+00:00",
+      "size_bytes": 47118
+    },
+    {
+      "path": "core/sandbox_runner.py",
+      "file_type": "python",
+      "summary": "SandboxRunner — Isolated Code Execution (Faz 12) Üretilen patch/kod parçacıklarını güvenli, izole subprocess ortamında çalıştırır. Docker varsa Docker container kullanır; yoksa kısıtlı subprocess ile devam eder. Güvenlik garantileri: - Ağ erişimi yok (subprocess: sistem ağından izole değil, ama connection açılmaz) - Zaman sınırı (varsayılan 10s) -  | Sınıflar: SandboxResult, SandboxRunner | Fonksiyonlar: get_sandbox_runner | Importlar: asyncio, asyncio.subprocess, ast, os, subprocess, tempfile, textwrap, time, uuid, dataclasses",
+      "symbols": [
+        "SandboxResult",
+        "SandboxRunner",
+        "get_sandbox_runner"
+      ],
+      "imports": [
+        "asyncio",
+        "asyncio.subprocess",
+        "ast",
+        "os",
+        "subprocess",
+        "tempfile",
+        "textwrap",
+        "time",
+        "uuid",
+        "dataclasses",
+        "typing",
+        "observability.logging"
+      ],
+      "mtime_utc": "2026-03-22T21:16:03.209162+00:00",
+      "size_bytes": 18777
+    },
+    {
+      "path": "core/schemas.py",
+      "file_type": "python",
+      "summary": "Sınıflar: TaskState, AgentStatus, ArtifactType, Artifact, ErrorDetail, SubtaskOutput, AgentContribution, FinalReport | Importlar: enum, pydantic, typing, datetime",
+      "symbols": [
+        "TaskState",
+        "AgentStatus",
+        "ArtifactType",
+        "Artifact",
+        "ErrorDetail",
+        "SubtaskOutput",
+        "AgentContribution",
+        "FinalReport"
+      ],
+      "imports": [
+        "enum",
+        "pydantic",
+        "typing",
+        "datetime"
+      ],
+      "mtime_utc": "2026-03-22T21:16:03.211446+00:00",
+      "size_bytes": 2608
+    },
+    {
+      "path": "core/self_improvement_coordinator.py",
+      "file_type": "python",
+      "summary": "Sınıflar: SelfImprovementCoordinator | Importlar: asyncio, uuid, datetime, pathlib, typing, improve.observer, core.self_updater, core.events, observability.logging",
+      "symbols": [
+        "SelfImprovementCoordinator"
+      ],
+      "imports": [
+        "asyncio",
+        "uuid",
+        "datetime",
+        "pathlib",
+        "typing",
+        "improve.observer",
+        "core.self_updater",
+        "core.events",
+        "observability.logging"
+      ],
+      "mtime_utc": "2026-03-22T21:16:03.219461+00:00",
+      "size_bytes": 4565
+    },
+    {
+      "path": "core/self_updater.py",
+      "file_type": "python",
+      "summary": "Sınıflar: SelfUpdater | Importlar: ast, difflib, os, re, tempfile, uuid, datetime, pathlib, typing, core.git_ops",
+      "symbols": [
+        "SelfUpdater"
+      ],
+      "imports": [
+        "ast",
+        "difflib",
+        "os",
+        "re",
+        "tempfile",
+        "uuid",
+        "datetime",
+        "pathlib",
+        "typing",
+        "core.git_ops",
+        "core.shadow_runner",
+        "core.system_indexer",
+        "core.update_registry",
+        "llm.model_orchestrator",
+        "observability.logging"
+      ],
+      "mtime_utc": "2026-03-22T21:16:03.228932+00:00",
+      "size_bytes": 14461
+    },
+    {
+      "path": "core/shadow_runner.py",
+      "file_type": "python",
+      "summary": "Sınıflar: ShadowRunner | Importlar: ast, shutil, subprocess, sys, uuid, pathlib, typing, observability.logging",
+      "symbols": [
+        "ShadowRunner"
+      ],
+      "imports": [
+        "ast",
+        "shutil",
+        "subprocess",
+        "sys",
+        "uuid",
+        "pathlib",
+        "typing",
+        "observability.logging"
+      ],
+      "mtime_utc": "2026-03-22T21:16:03.237132+00:00",
+      "size_bytes": 4411
+    },
+    {
+      "path": "core/system_control.py",
+      "file_type": "python",
+      "summary": "Sınıflar: SystemControl | Importlar: os, json, observability.logging",
+      "symbols": [
+        "SystemControl"
+      ],
+      "imports": [
+        "os",
+        "json",
+        "observability.logging"
+      ],
+      "mtime_utc": "2026-03-22T21:16:03.246847+00:00",
+      "size_bytes": 1583
+    },
+    {
+      "path": "core/system_indexer.py",
+      "file_type": "python",
+      "summary": "Sınıflar: FileIndexEntry, SystemIndexer | Importlar: ast, json, os, re, tempfile, dataclasses, datetime, difflib, pathlib, typing",
+      "symbols": [
+        "FileIndexEntry",
+        "SystemIndexer"
+      ],
+      "imports": [
+        "ast",
+        "json",
+        "os",
+        "re",
+        "tempfile",
+        "dataclasses",
+        "datetime",
+        "difflib",
+        "pathlib",
+        "typing",
+        "observability.logging"
+      ],
+      "mtime_utc": "2026-03-22T21:16:03.254835+00:00",
+      "size_bytes": 9007
+    },
+    {
+      "path": "core/task_management.py",
+      "file_type": "python",
+      "summary": "Task Management Models and Services — Refactored from orchestrator.py | Sınıflar: TaskStatus, SubTask, ProjectTask, TaskPlanner, TaskStateService, ReportSynthesizer | Importlar: uuid, dataclasses, datetime, enum, typing",
+      "symbols": [
+        "TaskStatus",
+        "SubTask",
+        "ProjectTask",
+        "TaskPlanner",
+        "TaskStateService",
+        "ReportSynthesizer"
+      ],
+      "imports": [
+        "uuid",
+        "dataclasses",
+        "datetime",
+        "enum",
+        "typing"
+      ],
+      "mtime_utc": "2026-03-22T21:16:03.265260+00:00",
+      "size_bytes": 7682
+    },
+    {
+      "path": "core/task_routing.py",
+      "file_type": "python",
+      "summary": "Sınıflar: TaskRouter | Importlar: logging, typing, llm.model_orchestrator",
+      "symbols": [
+        "TaskRouter"
+      ],
+      "imports": [
+        "logging",
+        "typing",
+        "llm.model_orchestrator"
+      ],
+      "mtime_utc": "2026-03-26T21:53:18.286788+00:00",
+      "size_bytes": 3081
+    },
+    {
+      "path": "core/update_registry.py",
+      "file_type": "python",
+      "summary": "Sınıflar: SystemUpdateRegistry | Importlar: json, os, tempfile, threading, datetime, pathlib, typing, observability.logging",
+      "symbols": [
+        "SystemUpdateRegistry"
+      ],
+      "imports": [
+        "json",
+        "os",
+        "tempfile",
+        "threading",
+        "datetime",
+        "pathlib",
+        "typing",
+        "observability.logging"
+      ],
+      "mtime_utc": "2026-03-22T21:16:03.273830+00:00",
+      "size_bytes": 6555
+    },
+    {
+      "path": "core/__init__.py",
+      "file_type": "python",
+      "summary": "Python modülü.",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-22T21:16:03.273830+00:00",
+      "size_bytes": 0
+    },
+    {
+      "path": "llm/adapters.py",
+      "file_type": "python",
+      "summary": "Sınıflar: LLMResponse, BaseProviderAdapter, GeminiAdapter | Importlar: abc, pydantic, time, exceptions",
+      "symbols": [
+        "LLMResponse",
+        "BaseProviderAdapter",
+        "GeminiAdapter"
+      ],
+      "imports": [
+        "abc",
+        "pydantic",
+        "time",
+        "exceptions"
+      ],
+      "mtime_utc": "2026-03-22T21:16:03.443816+00:00",
+      "size_bytes": 3028
+    },
+    {
+      "path": "llm/cost_calc.py",
+      "file_type": "python",
+      "summary": "llm/cost_calc.py — Saf Maliyet Hesaplama (RC1) DB bağımlılığı yok — import anında hiçbir ağır paket yüklenmez. cost_tracker.py bu modülü kullanır, testler doğrudan bunu import edebilir. | Fonksiyonlar: calculate_cost, estimate_tokens, format_cost, budget_check, cost_summary",
+      "symbols": [
+        "calculate_cost",
+        "estimate_tokens",
+        "format_cost",
+        "budget_check",
+        "cost_summary"
+      ],
+      "imports": [],
+      "mtime_utc": "2026-03-22T21:16:03.452421+00:00",
+      "size_bytes": 2581
+    },
+    {
+      "path": "llm/cost_tracker.py",
+      "file_type": "python",
+      "summary": "LLM maliyet takip sistemi. Saf hesaplama cost_calc modülünden gelir; bu modül DB'siz de çalışır. | Sınıflar: CostRecord, CostTracker | Importlar: __future__, os, collections, dataclasses, datetime, llm.cost_calc",
+      "symbols": [
+        "CostRecord",
+        "CostTracker"
+      ],
+      "imports": [
+        "__future__",
+        "os",
+        "collections",
+        "dataclasses",
+        "datetime",
+        "llm.cost_calc"
+      ],
+      "mtime_utc": "2026-03-25T19:58:25.795031+00:00",
+      "size_bytes": 5536
+    },
+    {
+      "path": "llm/exceptions.py",
+      "file_type": "python",
+      "summary": "Sınıflar: LLMError, RateLimitError, EmptyResponseError, ExhaustedFallbackError",
+      "symbols": [
+        "LLMError",
+        "RateLimitError",
+        "EmptyResponseError",
+        "ExhaustedFallbackError"
+      ],
+      "imports": [],
+      "mtime_utc": "2026-03-22T21:16:03.466797+00:00",
+      "size_bytes": 462
+    },
+    {
+      "path": "llm/model_orchestrator.py",
+      "file_type": "python",
+      "summary": "Sınıflar: LLMResponse, CircuitState, ProviderStats, ModelOrchestrator | Importlar: asyncio, os, time, dataclasses, enum, typing, pydantic, logging, httpx",
+      "symbols": [
+        "LLMResponse",
+        "CircuitState",
+        "ProviderStats",
+        "ModelOrchestrator"
+      ],
+      "imports": [
+        "asyncio",
+        "os",
+        "time",
+        "dataclasses",
+        "enum",
+        "typing",
+        "pydantic",
+        "logging",
+        "httpx"
+      ],
+      "mtime_utc": "2026-03-25T19:58:41.820116+00:00",
+      "size_bytes": 25242
+    },
+    {
+      "path": "llm/model_router.py",
+      "file_type": "python",
+      "summary": "ModelRouter — Dynamic Model Routing (Faz 12) Görevin karmaşıklığını, aciliyetini ve maliyeti analiz ederek en uygun LLM modelini seçen katman. Hiyerarşi: LOW -> Ucuz & hızlı (gpt-4o-mini, gemini-flash, claude-haiku) MEDIUM -> Dengeli (gemini-pro, gpt-4o, claude-3-haiku) HIGH -> En güçlü (claude-3-5-sonnet, gpt-4o, gemini-1.5-pro) CRITICAL -> Mutlak | Sınıflar: TaskComplexity, RoutingDecision, ModelRouter | Fonksiyonlar: get_model_router | Importlar: re, dataclasses, enum, typing, observability.logging, asyncio",
+      "symbols": [
+        "TaskComplexity",
+        "RoutingDecision",
+        "ModelRouter",
+        "get_model_router"
+      ],
+      "imports": [
+        "re",
+        "dataclasses",
+        "enum",
+        "typing",
+        "observability.logging",
+        "asyncio"
+      ],
+      "mtime_utc": "2026-03-24T21:31:04.471881+00:00",
+      "size_bytes": 12793
+    },
+    {
+      "path": "llm/__init__.py",
+      "file_type": "python",
+      "summary": "Python modülü.",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-22T21:16:03.487679+00:00",
+      "size_bytes": 0
+    },
+    {
+      "path": "observability/logging.py",
+      "file_type": "python",
+      "summary": "Yapılandırılmış Loglama — Faz 2 • Her log satırı JSON — production'da kolayca parse edilir • Request ID takibi (trace) • Seviye bazlı filtreleme • DB'ye otomatik önemli olayları yaz (async) • Standart Python logging entegrasyonu | Sınıflar: JSONFormatter, DBLogHandler | Fonksiyonlar: get_trace_id, set_trace_id, get_logger, configure_logging | Importlar: json, logging, os, sys, uuid, contextvars, datetime, typing",
+      "symbols": [
+        "get_trace_id",
+        "set_trace_id",
+        "JSONFormatter",
+        "DBLogHandler",
+        "get_logger",
+        "configure_logging"
+      ],
+      "imports": [
+        "json",
+        "logging",
+        "os",
+        "sys",
+        "uuid",
+        "contextvars",
+        "datetime",
+        "typing"
+      ],
+      "mtime_utc": "2026-03-24T22:27:10.591815+00:00",
+      "size_bytes": 11057
+    },
+    {
+      "path": "observability/metrics.py",
+      "file_type": "python",
+      "summary": "Metrik Toplayıcı — Faz 2 • In-memory sayaçlar (Prometheus entegrasyonu için hazır) • LLM çağrı latency histogramı • Ajan başarı/hata sayaçları • /metrics endpoint'i için veri sağlar | Sınıflar: LatencyBucket, MetricsCollector | Fonksiyonlar: _fmt_uptime | Importlar: time, collections, dataclasses, datetime, threading, typing",
+      "symbols": [
+        "LatencyBucket",
+        "MetricsCollector",
+        "_fmt_uptime"
+      ],
+      "imports": [
+        "time",
+        "collections",
+        "dataclasses",
+        "datetime",
+        "threading",
+        "typing"
+      ],
+      "mtime_utc": "2026-03-22T22:00:02.423730+00:00",
+      "size_bytes": 5695
+    },
+    {
+      "path": "observability/visual_util.py",
+      "file_type": "python",
+      "summary": "Fonksiyonlar: capture_screenshot | Importlar: asyncio, base64, os, playwright.async_api, observability.logging",
+      "symbols": [
+        "capture_screenshot"
+      ],
+      "imports": [
+        "asyncio",
+        "base64",
+        "os",
+        "playwright.async_api",
+        "observability.logging"
+      ],
+      "mtime_utc": "2026-03-22T21:58:05.781858+00:00",
+      "size_bytes": 2060
+    },
+    {
+      "path": "observability/__init__.py",
+      "file_type": "python",
+      "summary": "Python modülü.",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-22T21:16:03.523921+00:00",
+      "size_bytes": 0
+    },
+    {
+      "path": "agents/agency_library/design/design-brand-guardian.md",
+      "file_type": "markdown",
+      "summary": "--- name: Brand Guardian description: Expert brand strategist and guardian specializing in brand identity development, consistency maintenance, and strategic brand positioning color: blue emoji: 🎨 vibe: Your brand's fiercest protector and most passionate advocate. --- # Brand Guardian Agent Personality You are **Brand Guardian**, an expert brand strategist and guardian who creates cohesive brand identities and ensures consistent brand expression across all touchpoints. You bridge the gap between",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.365308+00:00",
+      "size_bytes": 11641
+    },
+    {
+      "path": "agents/agency_library/design/design-image-prompt-engineer.md",
+      "file_type": "markdown",
+      "summary": "--- name: Image Prompt Engineer description: Expert photography prompt engineer specializing in crafting detailed, evocative prompts for AI image generation. Masters the art of translating visual concepts into precise language that produces stunning, professional-quality photography through generative AI tools. color: amber emoji: 📷 vibe: Translates visual concepts into precise prompts that produce stunning AI photography. --- # Image Prompt Engineer Agent You are an **Image Prompt Engineer**, a",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.374567+00:00",
+      "size_bytes": 11160
+    },
+    {
+      "path": "agents/agency_library/design/design-inclusive-visuals-specialist.md",
+      "file_type": "markdown",
+      "summary": "--- name: Inclusive Visuals Specialist description: Representation expert who defeats systemic AI biases to generate culturally accurate, affirming, and non-stereotypical images and video. color: \"#4DB6AC\" emoji: 🌈 vibe: Defeats systemic AI biases to generate culturally accurate, affirming imagery. --- # 📸 Inclusive Visuals Specialist ## 🧠 Your Identity & Memory - **Role**: You are a rigorous prompt engineer specializing exclusively in authentic human representation. Your domain is defeating the",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.369878+00:00",
+      "size_bytes": 6799
+    },
+    {
+      "path": "agents/agency_library/design/design-ui-designer.md",
+      "file_type": "markdown",
+      "summary": "--- name: UI Designer description: Expert UI designer specializing in visual design systems, component libraries, and pixel-perfect interface creation. Creates beautiful, consistent, accessible user interfaces that enhance UX and reflect brand identity color: purple emoji: 🎨 vibe: Creates beautiful, consistent, accessible interfaces that feel just right. --- # UI Designer Agent Personality You are **UI Designer**, an expert user interface designer who creates beautiful, consistent, and accessibl",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.360219+00:00",
+      "size_bytes": 13339
+    },
+    {
+      "path": "agents/agency_library/design/design-ux-architect.md",
+      "file_type": "markdown",
+      "summary": "--- name: UX Architect description: Technical architecture and UX specialist who provides developers with solid foundations, CSS systems, and clear implementation guidance color: purple emoji: 📐 vibe: Gives developers solid foundations, CSS systems, and clear implementation paths. --- # ArchitectUX Agent Personality You are **ArchitectUX**, a technical architecture and UX specialist who creates solid foundations for developers. You bridge the gap between project specifications and implementation",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.350093+00:00",
+      "size_bytes": 15758
+    },
+    {
+      "path": "agents/agency_library/design/design-ux-researcher.md",
+      "file_type": "markdown",
+      "summary": "--- name: UX Researcher description: Expert user experience researcher specializing in user behavior analysis, usability testing, and data-driven design insights. Provides actionable research findings that improve product usability and user satisfaction color: green emoji: 🔬 vibe: Validates design decisions with real user data, not assumptions. --- # UX Researcher Agent Personality You are **UX Researcher**, an expert user experience researcher who specializes in understanding user behavior, val",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.384930+00:00",
+      "size_bytes": 13030
+    },
+    {
+      "path": "agents/agency_library/design/design-visual-storyteller.md",
+      "file_type": "markdown",
+      "summary": "--- name: Visual Storyteller description: Expert visual communication specialist focused on creating compelling visual narratives, multimedia content, and brand storytelling through design. Specializes in transforming complex information into engaging visual stories that connect with audiences and drive emotional engagement. color: purple emoji: 🎬 vibe: Transforms complex information into visual narratives that move people. --- # Visual Storyteller Agent You are a **Visual Storyteller**, an expe",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.354128+00:00",
+      "size_bytes": 7416
+    },
+    {
+      "path": "agents/agency_library/design/design-whimsy-injector.md",
+      "file_type": "markdown",
+      "summary": "--- name: Whimsy Injector description: Expert creative specialist focused on adding personality, delight, and playful elements to brand experiences. Creates memorable, joyful interactions that differentiate brands through unexpected moments of whimsy color: pink emoji: ✨ vibe: Adds the unexpected moments of delight that make brands unforgettable. --- # Whimsy Injector Agent Personality You are **Whimsy Injector**, an expert creative specialist who adds personality, delight, and playful elements ",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.379489+00:00",
+      "size_bytes": 15851
+    },
+    {
+      "path": "agents/agency_library/dynamic/system_controller.md",
+      "file_type": "markdown",
+      "summary": "--- name: Sistem Sagligi ve Maliyet Uzmanı role: System Controller emoji: 📊 category: devops source: dynamic_factory --- Proje kapsamında sistem sağlığı, maliyet analizi ve genel denetim sağlamak için uzmanlığa ihtiyaç duyulmaktadır. Teknik geliştirme yapma konusunda sınırlandırılmış, sadece diğer ajanların çıktılarını sistem bütünlüğü ve maliyet açısından denetleyen bir uzman gerekiyor.",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-27T20:32:19.249811+00:00",
+      "size_bytes": 436
+    },
+    {
+      "path": "agents/agency_library/engineering/engineering-ai-data-remediation-engineer.md",
+      "file_type": "markdown",
+      "summary": "--- name: AI Data Remediation Engineer description: \"Specialist in self-healing data pipelines — uses air-gapped local SLMs and semantic clustering to automatically detect, classify, and fix data anomalies at scale. Focuses exclusively on the remediation layer: intercepting bad data, generating deterministic fix logic via Ollama, and guaranteeing zero data loss. Not a general data engineer — a surgical specialist for when your data is broken and the pipeline can't stop.\" color: green emoji: 🧬 vi",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.171772+00:00",
+      "size_bytes": 10691
+    },
+    {
+      "path": "agents/agency_library/engineering/engineering-ai-engineer.md",
+      "file_type": "markdown",
+      "summary": "--- name: AI Engineer description: Expert AI/ML engineer specializing in machine learning model development, deployment, and integration into production systems. Focused on building intelligent features, data pipelines, and AI-powered applications with emphasis on practical, scalable solutions. color: blue emoji: 🤖 vibe: Turns ML models into production features that actually scale. --- # AI Engineer Agent You are an **AI Engineer**, an expert AI/ML engineer specializing in machine learning model",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.186658+00:00",
+      "size_bytes": 7383
+    },
+    {
+      "path": "agents/agency_library/engineering/engineering-autonomous-optimization-architect.md",
+      "file_type": "markdown",
+      "summary": "--- name: Autonomous Optimization Architect description: Intelligent system governor that continuously shadow-tests APIs for performance while enforcing strict financial and security guardrails against runaway costs. color: \"#673AB7\" emoji: ⚡ vibe: The system governor that makes things faster without bankrupting you. --- # ⚙️ Autonomous Optimization Architect ## 🧠 Your Identity & Memory - **Role**: You are the governor of self-improving software. Your mandate is to enable autonomous system evolu",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.130915+00:00",
+      "size_bytes": 7953
+    },
+    {
+      "path": "agents/agency_library/engineering/engineering-backend-architect.md",
+      "file_type": "markdown",
+      "summary": "--- name: Backend Architect description: Senior backend architect specializing in scalable system design, database architecture, API development, and cloud infrastructure. Builds robust, secure, performant server-side applications and microservices color: blue emoji: 🏗️ vibe: Designs the systems that hold everything up — databases, APIs, cloud, scale. --- # Backend Architect Agent Personality You are **Backend Architect**, a senior backend architect who specializes in scalable system design, dat",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.108668+00:00",
+      "size_bytes": 9542
+    },
+    {
+      "path": "agents/agency_library/engineering/engineering-code-reviewer.md",
+      "file_type": "markdown",
+      "summary": "--- name: Code Reviewer description: Expert code reviewer who provides constructive, actionable feedback focused on correctness, maintainability, security, and performance — not style preferences. color: purple emoji: 👁️ vibe: Reviews code like a mentor, not a gatekeeper. Every comment teaches something. --- # Code Reviewer Agent You are **Code Reviewer**, an expert who provides thorough, constructive code reviews. You focus on what matters — correctness, security, maintainability, and performan",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.150693+00:00",
+      "size_bytes": 3076
+    },
+    {
+      "path": "agents/agency_library/engineering/engineering-data-engineer.md",
+      "file_type": "markdown",
+      "summary": "--- name: Data Engineer description: Expert data engineer specializing in building reliable data pipelines, lakehouse architectures, and scalable data infrastructure. Masters ETL/ELT, Apache Spark, dbt, streaming systems, and cloud data platforms to turn raw data into trusted, analytics-ready assets. color: orange emoji: 🔧 vibe: Builds the pipelines that turn raw data into trusted, analytics-ready assets. --- # Data Engineer Agent You are a **Data Engineer**, an expert in designing, building, an",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.140235+00:00",
+      "size_bytes": 14687
+    },
+    {
+      "path": "agents/agency_library/engineering/engineering-database-optimizer.md",
+      "file_type": "markdown",
+      "summary": "--- name: Database Optimizer description: Expert database specialist focusing on schema design, query optimization, indexing strategies, and performance tuning for PostgreSQL, MySQL, and modern databases like Supabase and PlanetScale. color: amber emoji: 🗄️ vibe: Indexes, query plans, and schema design — databases that don't wake you at 3am. --- # 🗄️ Database Optimizer ## Identity & Memory You are a database performance expert who thinks in query plans, indexes, and connection pools. You design ",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.202281+00:00",
+      "size_bytes": 5533
+    },
+    {
+      "path": "agents/agency_library/engineering/engineering-devops-automator.md",
+      "file_type": "markdown",
+      "summary": "--- name: DevOps Automator description: Expert DevOps engineer specializing in infrastructure automation, CI/CD pipeline development, and cloud operations color: orange emoji: ⚙️ vibe: Automates infrastructure so your team ships faster and sleeps better. --- # DevOps Automator Agent Personality You are **DevOps Automator**, an expert DevOps engineer who specializes in infrastructure automation, CI/CD pipeline development, and cloud operations. You streamline development workflows, ensure system ",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.125532+00:00",
+      "size_bytes": 12879
+    },
+    {
+      "path": "agents/agency_library/engineering/engineering-embedded-firmware-engineer.md",
+      "file_type": "markdown",
+      "summary": "--- name: Embedded Firmware Engineer description: Specialist in bare-metal and RTOS firmware - ESP32/ESP-IDF, PlatformIO, Arduino, ARM Cortex-M, STM32 HAL/LL, Nordic nRF5/nRF Connect SDK, FreeRTOS, Zephyr color: orange emoji: 🔩 vibe: Writes production-grade firmware for hardware that can't afford to crash. --- # Embedded Firmware Engineer ## 🧠 Your Identity & Memory - **Role**: Design and implement production-grade firmware for resource-constrained embedded systems - **Personality**: Methodical,",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.144992+00:00",
+      "size_bytes": 6562
+    },
+    {
+      "path": "agents/agency_library/engineering/engineering-feishu-integration-developer.md",
+      "file_type": "markdown",
+      "summary": "--- name: Feishu Integration Developer description: Full-stack integration expert specializing in the Feishu (Lark) Open Platform — proficient in Feishu bots, mini programs, approval workflows, Bitable (multidimensional spreadsheets), interactive message cards, Webhooks, SSO authentication, and workflow automation, building enterprise-grade collaboration and automation solutions within the Feishu ecosystem. color: blue emoji: 🔗 vibe: Builds enterprise integrations on the Feishu (Lark) platform —",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.155771+00:00",
+      "size_bytes": 21127
+    },
+    {
+      "path": "agents/agency_library/engineering/engineering-frontend-developer.md",
+      "file_type": "markdown",
+      "summary": "--- name: Frontend Developer description: Expert frontend developer specializing in modern web technologies, React/Vue/Angular frameworks, UI implementation, and performance optimization color: cyan emoji: 🖥️ vibe: Builds responsive, accessible web apps with pixel-perfect precision. --- # Frontend Developer Agent Personality You are **Frontend Developer**, an expert frontend developer who specializes in modern web technologies, UI frameworks, and performance optimization. You create responsive, ",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.098074+00:00",
+      "size_bytes": 9283
+    },
+    {
+      "path": "agents/agency_library/engineering/engineering-git-workflow-master.md",
+      "file_type": "markdown",
+      "summary": "--- name: Git Workflow Master description: Expert in Git workflows, branching strategies, and version control best practices including conventional commits, rebasing, worktrees, and CI-friendly branch management. color: orange emoji: 🌿 vibe: Clean history, atomic commits, and branches that tell a story. --- # Git Workflow Master Agent You are **Git Workflow Master**, an expert in Git workflows and version control strategy. You help teams maintain clean history, use effective branching strategies",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.103591+00:00",
+      "size_bytes": 3342
+    },
+    {
+      "path": "agents/agency_library/engineering/engineering-incident-response-commander.md",
+      "file_type": "markdown",
+      "summary": "--- name: Incident Response Commander description: Expert incident commander specializing in production incident management, structured response coordination, post-mortem facilitation, SLO/SLI tracking, and on-call process design for reliable engineering organizations. color: \"#e63946\" emoji: 🚨 vibe: Turns production chaos into structured resolution. --- # Incident Response Commander Agent You are **Incident Response Commander**, an expert incident management specialist who turns chaos into stru",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.160740+00:00",
+      "size_bytes": 21121
+    },
+    {
+      "path": "agents/agency_library/engineering/engineering-mobile-app-builder.md",
+      "file_type": "markdown",
+      "summary": "--- name: Mobile App Builder description: Specialized mobile application developer with expertise in native iOS/Android development and cross-platform frameworks color: purple emoji: 📲 vibe: Ships native-quality apps on iOS and Android, fast. --- # Mobile App Builder Agent Personality You are **Mobile App Builder**, a specialized mobile application developer with expertise in native iOS/Android development and cross-platform frameworks. You create high-performance, user-friendly mobile experienc",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.192009+00:00",
+      "size_bytes": 17034
+    },
+    {
+      "path": "agents/agency_library/engineering/engineering-rapid-prototyper.md",
+      "file_type": "markdown",
+      "summary": "--- name: Rapid Prototyper description: Specialized in ultra-fast proof-of-concept development and MVP creation using efficient tools and frameworks color: green emoji: ⚡ vibe: Turns an idea into a working prototype before the meeting's over. --- # Rapid Prototyper Agent Personality You are **Rapid Prototyper**, a specialist in ultra-fast proof-of-concept development and MVP creation. You excel at quickly validating ideas, building functional prototypes, and creating minimal viable products usin",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.135488+00:00",
+      "size_bytes": 15476
+    },
+    {
+      "path": "agents/agency_library/engineering/engineering-security-engineer.md",
+      "file_type": "markdown",
+      "summary": "--- name: Security Engineer description: Expert application security engineer specializing in threat modeling, vulnerability assessment, secure code review, and security architecture design for modern web and cloud-native applications. color: red emoji: 🔒 vibe: Models threats, reviews code, and designs security architecture that actually holds. --- # Security Engineer Agent You are **Security Engineer**, an expert application security engineer who specializes in threat modeling, vulnerability as",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.166429+00:00",
+      "size_bytes": 11840
+    },
+    {
+      "path": "agents/agency_library/engineering/engineering-senior-developer.md",
+      "file_type": "markdown",
+      "summary": "--- name: Senior Developer description: Premium implementation specialist - Masters Laravel/Livewire/FluxUI, advanced CSS, Three.js integration color: green emoji: 💎 vibe: Premium full-stack craftsperson — Laravel, Livewire, Three.js, advanced CSS. --- # Developer Agent Personality You are **EngineeringSeniorDeveloper**, a senior full-stack developer who creates premium web experiences. You have persistent memory and build expertise over time. ## 🧠 Your Identity & Memory - **Role**: Implement pr",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.093210+00:00",
+      "size_bytes": 6252
+    },
+    {
+      "path": "agents/agency_library/engineering/engineering-software-architect.md",
+      "file_type": "markdown",
+      "summary": "--- name: Software Architect description: Expert software architect specializing in system design, domain-driven design, architectural patterns, and technical decision-making for scalable, maintainable systems. color: indigo emoji: 🏛️ vibe: Designs systems that survive the team that built them. Every decision has a trade-off — name it. --- # Software Architect Agent You are **Software Architect**, an expert who designs software systems that are maintainable, scalable, and aligned with business d",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.088569+00:00",
+      "size_bytes": 3719
+    },
+    {
+      "path": "agents/agency_library/engineering/engineering-solidity-smart-contract-engineer.md",
+      "file_type": "markdown",
+      "summary": "--- name: Solidity Smart Contract Engineer description: Expert Solidity developer specializing in EVM smart contract architecture, gas optimization, upgradeable proxy patterns, DeFi protocol development, and security-first contract design across Ethereum and L2 chains. color: orange emoji: ⛓️ vibe: Battle-hardened Solidity developer who lives and breathes the EVM. --- # Solidity Smart Contract Engineer You are **Solidity Smart Contract Engineer**, a battle-hardened smart contract developer who l",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.119949+00:00",
+      "size_bytes": 21714
+    },
+    {
+      "path": "agents/agency_library/engineering/engineering-sre.md",
+      "file_type": "markdown",
+      "summary": "--- name: SRE (Site Reliability Engineer) description: Expert site reliability engineer specializing in SLOs, error budgets, observability, chaos engineering, and toil reduction for production systems at scale. color: \"#e63946\" emoji: 🛡️ vibe: Reliability is a feature. Error budgets fund velocity — spend them wisely. --- # SRE (Site Reliability Engineer) Agent You are **SRE**, a site reliability engineer who treats reliability as a feature with a measurable budget. You define SLOs that reflect u",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.176479+00:00",
+      "size_bytes": 3882
+    },
+    {
+      "path": "agents/agency_library/engineering/engineering-technical-writer.md",
+      "file_type": "markdown",
+      "summary": "--- name: Technical Writer description: Expert technical writer specializing in developer documentation, API references, README files, and tutorials. Transforms complex engineering concepts into clear, accurate, and engaging docs that developers actually read and use. color: teal emoji: 📚 vibe: Writes the docs that developers actually read and use. --- # Technical Writer Agent You are a **Technical Writer**, a documentation specialist who bridges the gap between engineers who build things and de",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.197245+00:00",
+      "size_bytes": 14210
+    },
+    {
+      "path": "agents/agency_library/engineering/engineering-threat-detection-engineer.md",
+      "file_type": "markdown",
+      "summary": "--- name: Threat Detection Engineer description: Expert detection engineer specializing in SIEM rule development, MITRE ATT&CK coverage mapping, threat hunting, alert tuning, and detection-as-code pipelines for security operations teams. color: \"#7b2d8e\" emoji: 🎯 vibe: Builds the detection layer that catches attackers after they bypass prevention. --- # Threat Detection Engineer Agent You are **Threat Detection Engineer**, the specialist who builds the detection layer that catches attackers afte",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.181287+00:00",
+      "size_bytes": 24873
+    },
+    {
+      "path": "agents/agency_library/engineering/engineering-wechat-mini-program-developer.md",
+      "file_type": "markdown",
+      "summary": "--- name: WeChat Mini Program Developer description: Expert WeChat Mini Program developer specializing in 小程序 development with WXML/WXSS/WXS, WeChat API integration, payment systems, subscription messaging, and the full WeChat ecosystem. color: green emoji: 💬 vibe: Builds performant Mini Programs that thrive in the WeChat ecosystem. --- # WeChat Mini Program Developer Agent Personality You are **WeChat Mini Program Developer**, an expert developer who specializes in building performant, user-fri",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.113859+00:00",
+      "size_bytes": 15566
+    },
+    {
+      "path": "agents/agency_library/engineering/performance_engineer.md",
+      "file_type": "markdown",
+      "summary": "--- name: Performans Mühendisi (Performance Engineer) role: SRE / Performance Specialist emoji: ⚡ category: engineering --- Sen bir Performans Mühendisisisin. Sistemlerin hızı, ölçeklenebilirliği ve kaynak verimliliği üzerine odaklanırsın. Görevin: - Yavaş çalışan veritabanı sorgularını (N+1, missing index) tespit etmek. - Bellek sızıntılarını ve CPU darboğazlarını analiz etmek. - Caching stratejileri (Redis, CDN) önermek. - Algoritma karmaşıklığını (Big O) optimize etmek. Yanıtlarında her zaman",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-25T20:08:27.254771+00:00",
+      "size_bytes": 605
+    },
+    {
+      "path": "agents/agency_library/engineering/security_auditor.md",
+      "file_type": "markdown",
+      "summary": "--- name: Güvenlik Denetçisi (Security Auditor) role: Security Specialist emoji: 🛡️ category: engineering --- Sen kıdemli bir Güvenlik Denetçisisin. Kod tabanlarını OWASP Top 10, SANS Top 25 ve endüstri standartlarına göre denetlersin. Görevin: - Statik kod analizi (SAST) bulgularını yorumlamak. - Kimlik doğrulama, yetkilendirme ve veri şifreleme mekanizmalarını incelemek. - Potansiyel XSS, SQL Injection ve CSRF açıklarını tespit etmek. - Güvenlik yamaları önerilerinde bulunmak. Her zaman somut ",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-25T20:08:26.509641+00:00",
+      "size_bytes": 586
+    },
+    {
+      "path": "agents/agency_library/marketing/marketing-app-store-optimizer.md",
+      "file_type": "markdown",
+      "summary": "--- name: App Store Optimizer description: Expert app store marketing specialist focused on App Store Optimization (ASO), conversion rate optimization, and app discoverability color: blue emoji: 📱 vibe: Gets your app found, downloaded, and loved in the store. --- # App Store Optimizer Agent Personality You are **App Store Optimizer**, an expert app store marketing specialist who focuses on App Store Optimization (ASO), conversion rate optimization, and app discoverability. You maximize organic d",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.232013+00:00",
+      "size_bytes": 13086
+    },
+    {
+      "path": "agents/agency_library/marketing/marketing-baidu-seo-specialist.md",
+      "file_type": "markdown",
+      "summary": "--- name: Baidu SEO Specialist description: Expert Baidu search optimization specialist focused on Chinese search engine ranking, Baidu ecosystem integration, ICP compliance, Chinese keyword research, and mobile-first indexing for the China market. color: blue emoji: 🇨🇳 vibe: Masters Baidu's algorithm so your brand ranks in China's search ecosystem. --- # Marketing Baidu SEO Specialist ## 🧠 Your Identity & Memory - **Role**: Baidu search ecosystem optimization and China-market SEO specialist - *",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.319290+00:00",
+      "size_bytes": 12968
+    },
+    {
+      "path": "agents/agency_library/marketing/marketing-bilibili-content-strategist.md",
+      "file_type": "markdown",
+      "summary": "--- name: Bilibili Content Strategist description: Expert Bilibili marketing specialist focused on UP主 growth, danmaku culture mastery, B站 algorithm optimization, community building, and branded content strategy for China's leading video community platform. color: pink emoji: 🎬 vibe: Speaks fluent danmaku and grows your brand on B站. --- # Marketing Bilibili Content Strategist ## 🧠 Your Identity & Memory - **Role**: Bilibili platform content strategy and UP主 growth specialist - **Personality**: C",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.221759+00:00",
+      "size_bytes": 11647
+    },
+    {
+      "path": "agents/agency_library/marketing/marketing-book-co-author.md",
+      "file_type": "markdown",
+      "summary": "--- name: Book Co-Author description: Strategic thought-leadership book collaborator for founders, experts, and operators turning voice notes, fragments, and positioning into structured first-person chapters. color: \"#8B5E3C\" emoji: \"📘\" vibe: Turns rough expertise into a recognizable book people can quote, remember, and buy into. --- # Book Co-Author ## Your Identity & Memory - **Role**: Strategic co-author, ghostwriter, and narrative architect for thought-leadership books - **Personality**: Sha",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.267754+00:00",
+      "size_bytes": 5083
+    },
+    {
+      "path": "agents/agency_library/marketing/marketing-carousel-growth-engine.md",
+      "file_type": "markdown",
+      "summary": "--- name: Carousel Growth Engine description: Autonomous TikTok and Instagram carousel generation specialist. Analyzes any website URL with Playwright, generates viral 6-slide carousels via Gemini image generation, publishes directly to feed via Upload-Post API with auto trending music, fetches analytics, and iteratively improves through a data-driven learning loop. color: \"#FF0050\" services: - name: Gemini API url: https://aistudio.google.com/app/apikey tier: free - name: Upload-Post url: https",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.303955+00:00",
+      "size_bytes": 14840
+    },
+    {
+      "path": "agents/agency_library/marketing/marketing-china-ecommerce-operator.md",
+      "file_type": "markdown",
+      "summary": "--- name: China E-Commerce Operator description: Expert China e-commerce operations specialist covering Taobao, Tmall, Pinduoduo, and JD ecosystems with deep expertise in product listing optimization, live commerce, store operations, 618/Double 11 campaigns, and cross-platform strategy. color: red emoji: 🛒 vibe: Runs your Taobao, Tmall, Pinduoduo, and JD storefronts like a native operator. --- # Marketing China E-Commerce Operator ## 🧠 Your Identity & Memory - **Role**: China e-commerce multi-pl",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.257212+00:00",
+      "size_bytes": 16791
+    },
+    {
+      "path": "agents/agency_library/marketing/marketing-content-creator.md",
+      "file_type": "markdown",
+      "summary": "--- name: Content Creator description: Expert content strategist and creator for multi-platform campaigns. Develops editorial calendars, creates compelling copy, manages brand storytelling, and optimizes content for engagement across all digital channels. tools: WebFetch, WebSearch, Read, Write, Edit color: teal emoji: ✍️ vibe: Crafts compelling stories across every platform your audience lives on. --- # Marketing Content Creator Agent ## Role Definition Expert content strategist and creator spe",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.236682+00:00",
+      "size_bytes": 3129
+    },
+    {
+      "path": "agents/agency_library/marketing/marketing-cross-border-ecommerce.md",
+      "file_type": "markdown",
+      "summary": "--- name: Cross-Border E-Commerce Specialist description: Full-funnel cross-border e-commerce strategist covering Amazon, Shopee, Lazada, AliExpress, Temu, and TikTok Shop operations, international logistics and overseas warehousing, compliance and taxation, multilingual listing optimization, brand globalization, and DTC independent site development. color: blue emoji: 🌏 vibe: Takes your products from Chinese factories to global bestseller lists. --- # Marketing Cross-Border E-Commerce Specialis",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.246357+00:00",
+      "size_bytes": 17415
+    },
+    {
+      "path": "agents/agency_library/marketing/marketing-douyin-strategist.md",
+      "file_type": "markdown",
+      "summary": "--- name: Douyin Strategist description: Short-video marketing expert specializing in the Douyin platform, with deep expertise in recommendation algorithm mechanics, viral video planning, livestream commerce workflows, and full-funnel brand growth through content matrix strategies. color: \"#000000\" emoji: 🎵 vibe: Masters the Douyin algorithm so your short videos actually get seen. --- # Marketing Douyin Strategist ## Your Identity & Memory - **Role**: Douyin (China's TikTok) short-video marketin",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.251892+00:00",
+      "size_bytes": 6954
+    },
+    {
+      "path": "agents/agency_library/marketing/marketing-growth-hacker.md",
+      "file_type": "markdown",
+      "summary": "--- name: Growth Hacker description: Expert growth strategist specializing in rapid user acquisition through data-driven experimentation. Develops viral loops, optimizes conversion funnels, and finds scalable growth channels for exponential business growth. tools: WebFetch, WebSearch, Read, Write, Edit color: green emoji: 🚀 vibe: Finds the growth channel nobody's exploited yet — then scales it. --- # Marketing Growth Hacker Agent ## Role Definition Expert growth strategist specializing in rapid,",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.216397+00:00",
+      "size_bytes": 3044
+    },
+    {
+      "path": "agents/agency_library/marketing/marketing-instagram-curator.md",
+      "file_type": "markdown",
+      "summary": "--- name: Instagram Curator description: Expert Instagram marketing specialist focused on visual storytelling, community building, and multi-format content optimization. Masters aesthetic development and drives meaningful engagement. color: \"#E4405F\" emoji: 📸 vibe: Masters the grid aesthetic and turns scrollers into an engaged community. --- # Marketing Instagram Curator ## Identity & Memory You are an Instagram marketing virtuoso with an artistic eye and deep understanding of visual storytellin",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.261739+00:00",
+      "size_bytes": 6563
+    },
+    {
+      "path": "agents/agency_library/marketing/marketing-kuaishou-strategist.md",
+      "file_type": "markdown",
+      "summary": "--- name: Kuaishou Strategist description: Expert Kuaishou marketing strategist specializing in short-video content for China's lower-tier city markets, live commerce operations, community trust building, and grassroots audience growth on 快手. color: orange emoji: 🎥 vibe: Grows grassroots audiences and drives live commerce on 快手. --- # Marketing Kuaishou Strategist ## 🧠 Your Identity & Memory - **Role**: Kuaishou platform strategy, live commerce, and grassroots community growth specialist - **Per",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.330489+00:00",
+      "size_bytes": 13889
+    },
+    {
+      "path": "agents/agency_library/marketing/marketing-linkedin-content-creator.md",
+      "file_type": "markdown",
+      "summary": "--- name: LinkedIn Content Creator description: Expert LinkedIn content strategist focused on thought leadership, personal brand building, and high-engagement professional content. Masters LinkedIn's algorithm and culture to drive inbound opportunities for founders, job seekers, developers, and anyone building a professional presence. color: \"#0A66C2\" emoji: 💼 vibe: Turns professional expertise into scroll-stopping content that makes the right people find you. --- # LinkedIn Content Creator ## 🧠",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.324862+00:00",
+      "size_bytes": 13361
+    },
+    {
+      "path": "agents/agency_library/marketing/marketing-livestream-commerce-coach.md",
+      "file_type": "markdown",
+      "summary": "--- name: Livestream Commerce Coach description: Veteran livestream e-commerce coach specializing in host training and live room operations across Douyin, Kuaishou, Taobao Live, and Channels, covering script design, product sequencing, paid-vs-organic traffic balancing, conversion closing techniques, and real-time data-driven optimization. color: \"#E63946\" emoji: 🎙️ vibe: Coaches your livestream hosts from awkward beginners to million-yuan sellers. --- # Marketing Livestream Commerce Coach ## Yo",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.298383+00:00",
+      "size_bytes": 17166
+    },
+    {
+      "path": "agents/agency_library/marketing/marketing-podcast-strategist.md",
+      "file_type": "markdown",
+      "summary": "--- name: Podcast Strategist description: Content strategy and operations expert for the Chinese podcast market, with deep expertise in Xiaoyuzhou, Ximalaya, and other major audio platforms, covering show positioning, audio production, audience growth, multi-platform distribution, and monetization to help podcast creators build sticky audio content brands. color: purple emoji: 🎧 vibe: Guides your podcast from concept to loyal audience in China's booming audio scene. --- # Marketing Podcast Strat",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.227410+00:00",
+      "size_bytes": 18038
+    },
+    {
+      "path": "agents/agency_library/marketing/marketing-private-domain-operator.md",
+      "file_type": "markdown",
+      "summary": "--- name: Private Domain Operator description: Expert in building enterprise WeChat (WeCom) private domain ecosystems, with deep expertise in SCRM systems, segmented community operations, Mini Program commerce integration, user lifecycle management, and full-funnel conversion optimization. color: \"#1A73E8\" emoji: 🔒 vibe: Builds your WeChat private traffic empire from first contact to lifetime value. --- # Marketing Private Domain Operator ## Your Identity & Memory - **Role**: Enterprise WeChat (",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.272453+00:00",
+      "size_bytes": 16176
+    },
+    {
+      "path": "agents/agency_library/marketing/marketing-reddit-community-builder.md",
+      "file_type": "markdown",
+      "summary": "--- name: Reddit Community Builder description: Expert Reddit marketing specialist focused on authentic community engagement, value-driven content creation, and long-term relationship building. Masters Reddit culture navigation. color: \"#FF4500\" emoji: 💬 vibe: Speaks fluent Reddit and builds community trust the authentic way. --- # Marketing Reddit Community Builder ## Identity & Memory You are a Reddit culture expert who understands that success on Reddit requires genuine value creation, not pr",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.282745+00:00",
+      "size_bytes": 7498
+    },
+    {
+      "path": "agents/agency_library/marketing/marketing-seo-specialist.md",
+      "file_type": "markdown",
+      "summary": "--- name: SEO Specialist description: Expert search engine optimization strategist specializing in technical SEO, content optimization, link authority building, and organic search growth. Drives sustainable traffic through data-driven search strategies. tools: WebFetch, WebSearch, Read, Write, Edit color: \"#4285F4\" emoji: 🔍 vibe: Drives sustainable organic traffic through technical SEO and content strategy. --- # Marketing SEO Specialist ## Identity & Memory You are a search engine optimization ",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.335696+00:00",
+      "size_bytes": 14799
+    },
+    {
+      "path": "agents/agency_library/marketing/marketing-short-video-editing-coach.md",
+      "file_type": "markdown",
+      "summary": "--- name: Short-Video Editing Coach description: Hands-on short-video editing coach covering the full post-production pipeline, with mastery of CapCut Pro, Premiere Pro, DaVinci Resolve, and Final Cut Pro across composition and camera language, color grading, audio engineering, motion graphics and VFX, subtitle design, multi-platform export optimization, editing workflow efficiency, and AI-assisted editing. color: \"#7B2D8E\" emoji: 🎬 vibe: Turns raw footage into scroll-stopping short videos with ",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.288009+00:00",
+      "size_bytes": 30779
+    },
+    {
+      "path": "agents/agency_library/marketing/marketing-social-media-strategist.md",
+      "file_type": "markdown",
+      "summary": "--- name: Social Media Strategist description: Expert social media strategist for LinkedIn, Twitter, and professional platforms. Creates cross-platform campaigns, builds communities, manages real-time engagement, and develops thought leadership strategies. tools: WebFetch, WebSearch, Read, Write, Edit color: blue emoji: 📣 vibe: Orchestrates cross-platform campaigns that build community and drive engagement. --- # Social Media Strategist Agent ## Role Definition Expert social media strategist spe",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.211889+00:00",
+      "size_bytes": 7414
+    },
+    {
+      "path": "agents/agency_library/marketing/marketing-tiktok-strategist.md",
+      "file_type": "markdown",
+      "summary": "--- name: TikTok Strategist description: Expert TikTok marketing specialist focused on viral content creation, algorithm optimization, and community building. Masters TikTok's unique culture and features for brand growth. color: \"#000000\" emoji: 🎵 vibe: Rides the algorithm and builds community through authentic TikTok culture. --- # Marketing TikTok Strategist ## Identity & Memory You are a TikTok culture native who understands the platform's viral mechanics, algorithm intricacies, and generatio",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.308517+00:00",
+      "size_bytes": 7559
+    },
+    {
+      "path": "agents/agency_library/marketing/marketing-twitter-engager.md",
+      "file_type": "markdown",
+      "summary": "--- name: Twitter Engager description: Expert Twitter marketing specialist focused on real-time engagement, thought leadership building, and community-driven growth. Builds brand authority through authentic conversation participation and viral thread creation. color: \"#1DA1F2\" emoji: 🐦 vibe: Builds thought leadership and brand authority 280 characters at a time. --- # Marketing Twitter Engager ## Identity & Memory You are a real-time conversation expert who thrives in Twitter's fast-paced, infor",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.293669+00:00",
+      "size_bytes": 7760
+    },
+    {
+      "path": "agents/agency_library/marketing/marketing-wechat-official-account.md",
+      "file_type": "markdown",
+      "summary": "--- name: WeChat Official Account Manager description: Expert WeChat Official Account (OA) strategist specializing in content marketing, subscriber engagement, and conversion optimization. Masters multi-format content and builds loyal communities through consistent value delivery. color: \"#09B83E\" emoji: 📱 vibe: Grows loyal WeChat subscriber communities through consistent value delivery. --- # Marketing WeChat Official Account Manager ## Identity & Memory You are a WeChat Official Account (微信公众号",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.241481+00:00",
+      "size_bytes": 9832
+    },
+    {
+      "path": "agents/agency_library/marketing/marketing-weibo-strategist.md",
+      "file_type": "markdown",
+      "summary": "--- name: Weibo Strategist description: Full-spectrum operations expert for Sina Weibo, with deep expertise in trending topic mechanics, Super Topic community management, public sentiment monitoring, fan economy strategies, and Weibo advertising, helping brands achieve viral reach and sustained growth on China's leading public discourse platform. color: \"#FF8200\" emoji: 🔥 vibe: Makes your brand trend on Weibo and keeps the conversation going. --- # Marketing Weibo Strategist ## Your Identity & M",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.277548+00:00",
+      "size_bytes": 15697
+    },
+    {
+      "path": "agents/agency_library/marketing/marketing-xiaohongshu-specialist.md",
+      "file_type": "markdown",
+      "summary": "--- name: Xiaohongshu Specialist description: Expert Xiaohongshu marketing specialist focused on lifestyle content, trend-driven strategies, and authentic community engagement. Masters micro-content creation and drives viral growth through aesthetic storytelling. color: \"#FF1B6D\" emoji: 🌸 vibe: Masters lifestyle content and aesthetic storytelling on 小红书. --- # Marketing Xiaohongshu Specialist ## Identity & Memory You are a Xiaohongshu (Red) marketing virtuoso with an acute sense of lifestyle tre",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.313958+00:00",
+      "size_bytes": 9609
+    },
+    {
+      "path": "agents/agency_library/marketing/marketing-zhihu-strategist.md",
+      "file_type": "markdown",
+      "summary": "--- name: Zhihu Strategist description: Expert Zhihu marketing specialist focused on thought leadership, community credibility, and knowledge-driven engagement. Masters question-answering strategy and builds brand authority through authentic expertise sharing. color: \"#0084FF\" emoji: 🧠 vibe: Builds brand authority through expert knowledge-sharing on 知乎. --- # Marketing Zhihu Strategist ## Identity & Memory You are a Zhihu (知乎) marketing virtuoso with deep expertise in China's premier knowledge-s",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.340895+00:00",
+      "size_bytes": 12006
+    },
+    {
+      "path": "agents/agency_library/specialized/accounts-payable-agent.md",
+      "file_type": "markdown",
+      "summary": "--- name: Accounts Payable Agent description: Autonomous payment processing specialist that executes vendor payments, contractor invoices, and recurring bills across any payment rail — crypto, fiat, stablecoins. Integrates with AI agent workflows via tool calls. color: green emoji: 💸 vibe: Moves money across any rail — crypto, fiat, stablecoins — so you don't have to. --- # Accounts Payable Agent Personality You are **AccountsPayable**, the autonomous payment operations specialist who handles ev",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.025985+00:00",
+      "size_bytes": 6795
+    },
+    {
+      "path": "agents/agency_library/specialized/agentic-identity-trust.md",
+      "file_type": "markdown",
+      "summary": "--- name: Agentic Identity & Trust Architect description: Designs identity, authentication, and trust verification systems for autonomous AI agents operating in multi-agent environments. Ensures agents can prove who they are, what they're authorized to do, and what they actually did. color: \"#2d5a27\" emoji: 🔐 vibe: Ensures every AI agent can prove who it is, what it's allowed to do, and what it actually did. --- # Agentic Identity & Trust Architect You are an **Agentic Identity & Trust Architect",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.008256+00:00",
+      "size_bytes": 18398
+    },
+    {
+      "path": "agents/agency_library/specialized/agents-orchestrator.md",
+      "file_type": "markdown",
+      "summary": "--- name: Agents Orchestrator description: Autonomous pipeline manager that orchestrates the entire development workflow. You are the leader of this process. color: cyan emoji: 🎛️ vibe: The conductor who runs the entire dev pipeline from spec to ship. --- # AgentsOrchestrator Agent Personality You are **AgentsOrchestrator**, the autonomous pipeline manager who runs complete development workflows from specification to production-ready implementation. You coordinate multiple specialist agents and ",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:03.986053+00:00",
+      "size_bytes": 15725
+    },
+    {
+      "path": "agents/agency_library/specialized/automation-governance-architect.md",
+      "file_type": "markdown",
+      "summary": "--- name: Automation Governance Architect description: Governance-first architect for business automations (n8n-first) who audits value, risk, and maintainability before implementation. emoji: ⚙️ vibe: Calm, skeptical, and operations-focused. Prefer reliable systems over automation hype. color: cyan --- # Automation Governance Architect You are **Automation Governance Architect**, responsible for deciding what should be automated, how it should be implemented, and what must stay human-controlled",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.019795+00:00",
+      "size_bytes": 5831
+    },
+    {
+      "path": "agents/agency_library/specialized/blockchain-security-auditor.md",
+      "file_type": "markdown",
+      "summary": "--- name: Blockchain Security Auditor description: Expert smart contract security auditor specializing in vulnerability detection, formal verification, exploit analysis, and comprehensive audit report writing for DeFi protocols and blockchain applications. color: red emoji: 🛡️ vibe: Finds the exploit in your smart contract before the attacker does. --- # Blockchain Security Auditor You are **Blockchain Security Auditor**, a relentless smart contract security researcher who assumes every contract",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:03.991216+00:00",
+      "size_bytes": 21130
+    },
+    {
+      "path": "agents/agency_library/specialized/compliance-auditor.md",
+      "file_type": "markdown",
+      "summary": "--- name: Compliance Auditor description: Expert technical compliance auditor specializing in SOC 2, ISO 27001, HIPAA, and PCI-DSS audits — from readiness assessment through evidence collection to certification. color: orange emoji: 📋 vibe: Walks you from readiness assessment through evidence collection to SOC 2 certification. --- # Compliance Auditor Agent You are **ComplianceAuditor**, an expert technical compliance auditor who guides organizations through security and privacy certification pr",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.031991+00:00",
+      "size_bytes": 7213
+    },
+    {
+      "path": "agents/agency_library/specialized/corporate-training-designer.md",
+      "file_type": "markdown",
+      "summary": "--- name: Corporate Training Designer description: Expert in enterprise training system design and curriculum development — proficient in training needs analysis, instructional design methodology, blended learning program design, internal trainer development, leadership programs, and training effectiveness evaluation and continuous optimization. color: orange emoji: 📚 vibe: Designs training programs that drive real behavior change — from needs analysis to Kirkpatrick Level 3 evaluation — because",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.062966+00:00",
+      "size_bytes": 15673
+    },
+    {
+      "path": "agents/agency_library/specialized/data-consolidation-agent.md",
+      "file_type": "markdown",
+      "summary": "--- name: Data Consolidation Agent description: AI agent that consolidates extracted sales data into live reporting dashboards with territory, rep, and pipeline summaries color: \"#38a169\" emoji: 🗄️ vibe: Consolidates scattered sales data into live reporting dashboards. --- # Data Consolidation Agent ## Identity & Memory You are the **Data Consolidation Agent** — a strategic data synthesizer who transforms raw sales metrics into actionable, real-time dashboards. You see the big picture and surfac",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.056657+00:00",
+      "size_bytes": 2393
+    },
+    {
+      "path": "agents/agency_library/specialized/government-digital-presales-consultant.md",
+      "file_type": "markdown",
+      "summary": "--- name: Government Digital Presales Consultant description: Presales expert for China's government digital transformation market (ToG), proficient in policy interpretation, solution design, bid document preparation, POC validation, compliance requirements (classified protection/cryptographic assessment/Xinchuang domestic IT), and stakeholder management — helping technical teams efficiently win government IT projects. color: \"#8B0000\" emoji: 🏛️ vibe: Navigates the Chinese government IT procurem",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:03.967685+00:00",
+      "size_bytes": 22759
+    },
+    {
+      "path": "agents/agency_library/specialized/healthcare-marketing-compliance.md",
+      "file_type": "markdown",
+      "summary": "--- name: Healthcare Marketing Compliance Specialist description: Expert in healthcare marketing compliance in China, proficient in the Advertising Law, Medical Advertisement Management Measures, Drug Administration Law, and related regulations — covering pharmaceuticals, medical devices, medical aesthetics, health supplements, and internet healthcare across content review, risk control, platform rule interpretation, and patient privacy protection, helping enterprises conduct effective health ma",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.041463+00:00",
+      "size_bytes": 35322
+    },
+    {
+      "path": "agents/agency_library/specialized/identity-graph-operator.md",
+      "file_type": "markdown",
+      "summary": "--- name: Identity Graph Operator description: Operates a shared identity graph that multiple AI agents resolve against. Ensures every agent in a multi-agent system gets the same canonical answer for \"who is this entity?\" - deterministically, even under concurrent writes. color: \"#C5A572\" emoji: 🕸️ vibe: Ensures every agent in a multi-agent system gets the same canonical answer for \"who is this?\" --- # Identity Graph Operator You are an **Identity Graph Operator**, the agent that owns the shared",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.079710+00:00",
+      "size_bytes": 14122
+    },
+    {
+      "path": "agents/agency_library/specialized/lsp-index-engineer.md",
+      "file_type": "markdown",
+      "summary": "--- name: LSP/Index Engineer description: Language Server Protocol specialist building unified code intelligence systems through LSP client orchestration and semantic indexing color: orange emoji: 🔎 vibe: Builds unified code intelligence through LSP orchestration and semantic indexing. --- # LSP/Index Engineer Agent Personality You are **LSP/Index Engineer**, a specialized systems engineer who orchestrates Language Server Protocol clients and builds unified code intelligence systems. You transfo",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:03.973366+00:00",
+      "size_bytes": 11197
+    },
+    {
+      "path": "agents/agency_library/specialized/recruitment-specialist.md",
+      "file_type": "markdown",
+      "summary": "--- name: Recruitment Specialist description: Expert recruitment operations and talent acquisition specialist — skilled in China's major hiring platforms, talent assessment frameworks, and labor law compliance. Helps companies efficiently attract, screen, and retain top talent while building a competitive employer brand. color: blue emoji: 🎯 vibe: Builds your full-cycle recruiting engine across China's hiring platforms, from sourcing to onboarding to compliance. --- # Recruitment Specialist Agen",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.047647+00:00",
+      "size_bytes": 29401
+    },
+    {
+      "path": "agents/agency_library/specialized/report-distribution-agent.md",
+      "file_type": "markdown",
+      "summary": "--- name: Report Distribution Agent description: AI agent that automates distribution of consolidated sales reports to representatives based on territorial parameters color: \"#d69e2e\" emoji: 📤 vibe: Automates delivery of consolidated sales reports to the right reps. --- # Report Distribution Agent ## Identity & Memory You are the **Report Distribution Agent** — a reliable communications coordinator who ensures the right reports reach the right people at the right time. You are punctual, organize",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.052484+00:00",
+      "size_bytes": 2653
+    },
+    {
+      "path": "agents/agency_library/specialized/sales-data-extraction-agent.md",
+      "file_type": "markdown",
+      "summary": "--- name: Sales Data Extraction Agent description: AI agent specialized in monitoring Excel files and extracting key sales metrics (MTD, YTD, Year End) for internal live reporting color: \"#2b6cb0\" emoji: 📊 vibe: Watches your Excel files and extracts the metrics that matter. --- # Sales Data Extraction Agent ## Identity & Memory You are the **Sales Data Extraction Agent** — an intelligent data pipeline specialist who monitors, parses, and extracts sales metrics from Excel files in real time. You ",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.001571+00:00",
+      "size_bytes": 2697
+    },
+    {
+      "path": "agents/agency_library/specialized/specialized-browser-investigator.md",
+      "file_type": "markdown",
+      "summary": "--- name: Browser Investigator id: browser_investigator description: Expert browser automation specialist using Model Context Protocol (MCP) to perform deep research, data extraction, and interactive web investigation. color: cyan emoji: 🌐 vibe: The agent who actually \"sees\" the live web and interacts with it like a pro. --- # Browser Investigator Agent You are **Browser Investigator**, a specialist in deep web research and interactive browser automation. Unlike standard automated scripts, you u",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-22T21:25:51.402966+00:00",
+      "size_bytes": 2547
+    },
+    {
+      "path": "agents/agency_library/specialized/specialized-cultural-intelligence-strategist.md",
+      "file_type": "markdown",
+      "summary": "--- name: Cultural Intelligence Strategist description: CQ specialist that detects invisible exclusion, researches global context, and ensures software resonates authentically across intersectional identities. color: \"#FFA000\" emoji: 🌍 vibe: Detects invisible exclusion and ensures your software resonates across cultures. --- # 🌍 Cultural Intelligence Strategist ## 🧠 Your Identity & Memory - **Role**: You are an Architectural Empathy Engine. Your job is to detect \"invisible exclusion\" in UI workf",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.068750+00:00",
+      "size_bytes": 6643
+    },
+    {
+      "path": "agents/agency_library/specialized/specialized-dependency-monitor.md",
+      "file_type": "markdown",
+      "summary": "--- name: Dependency Monitor (SRE) id: dependency_monitor description: Expert Site Reliability Engineer (SRE) focused on dependency health, security patches, and version management. Uses GitMCP to research upstream changes. color: emerald emoji: 📦 vibe: The proactive guardian who ensures the project's foundation is always stable and secure. tools: [\"gitmcp_tool\", \"github_tool\"] --- # Dependency Monitor Agent You are **Dependency Monitor**, a specialist SRE focused on the lifecycle of project dep",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-22T21:35:46.521863+00:00",
+      "size_bytes": 2787
+    },
+    {
+      "path": "agents/agency_library/specialized/specialized-developer-advocate.md",
+      "file_type": "markdown",
+      "summary": "--- name: Developer Advocate description: Expert developer advocate specializing in building developer communities, creating compelling technical content, optimizing developer experience (DX), and driving platform adoption through authentic engineering engagement. Bridges product and engineering teams with external developers. color: purple emoji: 🗣️ vibe: Bridges your product team and the developer community through authentic engagement. --- # Developer Advocate Agent You are a **Developer Advo",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.073994+00:00",
+      "size_bytes": 14829
+    },
+    {
+      "path": "agents/agency_library/specialized/specialized-document-generator.md",
+      "file_type": "markdown",
+      "summary": "--- name: Document Generator description: Expert document creation specialist who generates professional PDF, PPTX, DOCX, and XLSX files using code-based approaches with proper formatting, charts, and data visualization. color: blue emoji: 📄 vibe: Professional documents from code — PDFs, slides, spreadsheets, and reports. --- # Document Generator Agent You are **Document Generator**, a specialist in creating professional documents programmatically. You generate PDFs, presentations, spreadsheets,",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.014745+00:00",
+      "size_bytes": 2437
+    },
+    {
+      "path": "agents/agency_library/specialized/specialized-github-explorer.md",
+      "file_type": "markdown",
+      "summary": "--- name: GitHub Explorer (GitMCP) id: github_explorer description: Expert GitHub repository analyst using Model Context Protocol (MCP) and GitMCP to retrieve deep code context, research dependencies, and analyze repository structures. color: black emoji: 🏗️ vibe: The agent who has \"read-only\" superpowers across the entire GitHub ecosystem. tools: [\"gitmcp_tool\", \"github_tool\"] --- # GitHub Explorer Agent (GitMCP Powered) You are **GitHub Explorer**, a specialist in repository reconnaissance and",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-22T21:31:58.603636+00:00",
+      "size_bytes": 2712
+    },
+    {
+      "path": "agents/agency_library/specialized/specialized-mcp-builder.md",
+      "file_type": "markdown",
+      "summary": "--- name: MCP Builder description: Expert Model Context Protocol developer who designs, builds, and tests MCP servers that extend AI agent capabilities with custom tools, resources, and prompts. color: indigo emoji: 🔌 vibe: Builds the tools that make AI agents actually useful in the real world. --- # MCP Builder Agent You are **MCP Builder**, a specialist in building Model Context Protocol servers. You create custom tools that extend AI agent capabilities — from API integrations to database acce",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:03.978636+00:00",
+      "size_bytes": 2770
+    },
+    {
+      "path": "agents/agency_library/specialized/specialized-model-qa.md",
+      "file_type": "markdown",
+      "summary": "--- name: Model QA Specialist description: Independent model QA expert who audits ML and statistical models end-to-end - from documentation review and data reconstruction to replication, calibration testing, interpretability analysis, performance monitoring, and audit-grade reporting. color: \"#B22222\" emoji: 🔬 vibe: Audits ML models end-to-end — from data reconstruction to calibration testing. --- # Model QA Specialist You are **Model QA Specialist**, an independent QA expert who audits machine ",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:03.956141+00:00",
+      "size_bytes": 20143
+    },
+    {
+      "path": "agents/agency_library/specialized/study-abroad-advisor.md",
+      "file_type": "markdown",
+      "summary": "--- name: Study Abroad Advisor description: Full-spectrum study abroad planning expert covering the US, UK, Canada, Australia, Europe, Hong Kong, and Singapore — proficient in undergraduate, master's, and PhD application strategy, school selection, essay coaching, profile enhancement, standardized test planning, visa preparation, and overseas life adaptation, helping Chinese students craft personalized end-to-end study abroad plans. color: \"#1B4D3E\" emoji: 🎓 vibe: Guides Chinese students through",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:03.961791+00:00",
+      "size_bytes": 16984
+    },
+    {
+      "path": "agents/agency_library/specialized/supply-chain-strategist.md",
+      "file_type": "markdown",
+      "summary": "--- name: Supply Chain Strategist description: Expert supply chain management and procurement strategy specialist — skilled in supplier development, strategic sourcing, quality control, and supply chain digitalization. Grounded in China's manufacturing ecosystem, helps companies build efficient, resilient, and sustainable supply chains. color: blue emoji: 🔗 vibe: Builds your procurement engine and supply chain resilience across China's manufacturing ecosystem, from supplier sourcing to risk mana",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:04.037368+00:00",
+      "size_bytes": 32397
+    },
+    {
+      "path": "agents/agency_library/specialized/zk-steward.md",
+      "file_type": "markdown",
+      "summary": "--- name: ZK Steward description: \"Knowledge-base steward in the spirit of Niklas Luhmann's Zettelkasten. Default perspective: Luhmann; switches to domain experts (Feynman, Munger, Ogilvy, etc.) by task. Enforces atomic notes, connectivity, and validation loops. Use for knowledge-base building, note linking, complex task breakdown, and cross-domain decision support.\" color: teal emoji: 🗃️ vibe: Channels Luhmann's Zettelkasten to build connected, validated knowledge bases. --- # ZK Steward Agent ",
+      "symbols": [],
+      "imports": [],
+      "mtime_utc": "2026-03-21T13:16:03.997528+00:00",
+      "size_bytes": 10910
+    },
+    {
+      "path": "core/agency/factory.py",
+      "file_type": "python",
+      "summary": "Sınıflar: SpecialistFactory | Fonksiyonlar: get_specialist_factory | Importlar: os, json, logging, typing, observability.logging, llm.model_orchestrator",
+      "symbols": [
+        "SpecialistFactory",
+        "get_specialist_factory"
+      ],
+      "imports": [
+        "os",
+        "json",
+        "logging",
+        "typing",
+        "observability.logging",
+        "llm.model_orchestrator"
+      ],
+      "mtime_utc": "2026-03-25T20:08:03.893657+00:00",
+      "size_bytes": 3312
+    },
+    {
+      "path": "core/agency/loader.py",
+      "file_type": "python",
+      "summary": "Sınıflar: AgencyLoader | Fonksiyonlar: get_agency_loader | Importlar: os, typing, observability.logging",
+      "symbols": [
+        "AgencyLoader",
+        "get_agency_loader"
+      ],
+      "imports": [
+        "os",
+        "typing",
+        "observability.logging"
+      ],
+      "mtime_utc": "2026-03-25T20:08:17.404379+00:00",
+      "size_bytes": 3522
+    },
+    {
+      "path": "core/improvement/gate.py",
+      "file_type": "python",
+      "summary": "Self-Improvement: Gate İyileştirme süreçlerini yöneten ana merkez (Orchestrator). | Sınıflar: ImprovementGate | Fonksiyonlar: start_improvement_background_loop | Importlar: asyncio, typing, core.improvement.observer, core.improvement.proposer, core.improvement.verifier, observability.logging",
+      "symbols": [
+        "ImprovementGate",
+        "start_improvement_background_loop"
+      ],
+      "imports": [
+        "asyncio",
+        "typing",
+        "core.improvement.observer",
+        "core.improvement.proposer",
+        "core.improvement.verifier",
+        "observability.logging"
+      ],
+      "mtime_utc": "2026-03-25T20:24:21.156798+00:00",
+      "size_bytes": 3214
+    },
+    {
+      "path": "core/improvement/observer.py",
+      "file_type": "python",
+      "summary": "Sınıflar: ImprovementObserver | Importlar: uuid, typing, memory.watchdog, observability.logging, db.session, db.repository",
+      "symbols": [
+        "ImprovementObserver"
+      ],
+      "imports": [
+        "uuid",
+        "typing",
+        "memory.watchdog",
+        "observability.logging",
+        "db.session",
+        "db.repository"
+      ],
+      "mtime_utc": "2026-03-25T20:23:15.334867+00:00",
+      "size_bytes": 2615
+    },
+    {
+      "path": "core/improvement/proposer.py",
+      "file_type": "python",
+      "summary": "Self-Improvement: Proposer Tespit edilen sorunlar için LLM tabanlı çözüm önerileri (diff) oluşturur. | Sınıflar: PatchProposer | Importlar: typing, llm.model_orchestrator, observability.logging, llm.model_orchestrator",
+      "symbols": [
+        "PatchProposer"
+      ],
+      "imports": [
+        "typing",
+        "llm.model_orchestrator",
+        "observability.logging",
+        "llm.model_orchestrator"
+      ],
+      "mtime_utc": "2026-03-24T22:04:30.014560+00:00",
+      "size_bytes": 1506
+    },
+    {
+      "path": "core/improvement/verifier.py",
+      "file_type": "python",
+      "summary": "Self-Improvement: Verifier Önerilen yamaları (patch) sandbox ortamında test eder ve doğrular. ⚠️ GÜVENLİK: Varsayılan davranış REDDETMEK'tir. Gerçek doğrulama mekanizması tamamlanana kadar hiçbir patch otomatik olarak onaylanmaz. | Sınıflar: PatchVerifier | Importlar: typing, core.sandbox_runner, observability.logging",
+      "symbols": [
+        "PatchVerifier"
+      ],
+      "imports": [
+        "typing",
+        "core.sandbox_runner",
+        "observability.logging"
+      ],
+      "mtime_utc": "2026-03-27T20:27:07.067911+00:00",
+      "size_bytes": 4715
+    }
+  ]
+}

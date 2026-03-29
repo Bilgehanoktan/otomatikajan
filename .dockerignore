@@ -1,0 +1,22 @@
+.git
+.github
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.db
+.pytest_cache
+.vscode
+tmp
+*.zip
+*.tar
+*.gz
+tests/
+# alembic/versions/ (Faz 12: Migrationlar imaja dahil edilmeli)
+*.log
+.env
+.env.local
+vendor/deer-flow/.[!.]*
+node_modules/
