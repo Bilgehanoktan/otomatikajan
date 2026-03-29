@@ -45,20 +45,74 @@ class MemoryStore:
         project_id: str | None = None,
         importance: float = 0.5,
         metadata: dict | None = None,
+        tags: list | None = None,
     ) -> 'Memory':
         from db.models import Memory
-        # embedding = await get_embedding(body) # DB'de kolon yok, şimdilik devre dışı
         mem = Memory(
             agent_id=agent_id,
-            project_id=project_id,
+            project_id=str(project_id) if project_id else None,
             body=body,
             category=category,
             importance=importance,
             metadata_=metadata or {},
+            tags=tags or []
         )
         db.add(mem)
         await db.flush()
         return mem
+
+    # --- Katman 7: Memory and Learning Layer Core ---
+
+    async def save_episode(self, db: 'AsyncSession', episode_data: dict) -> 'Memory':
+        """Bir görevin tam yaşam döngüsünü (Episode) kaydeder."""
+        body = f"Episode: {episode_data.get('title', 'Unknown')}\nResult: {episode_data.get('status')}"
+        return await self.save(
+            db=db,
+            agent_id="system",
+            body=body,
+            category="episode_record",
+            project_id=episode_data.get("project_id"),
+            metadata=episode_data
+        )
+
+    async def save_skill(self, db: 'AsyncSession', skill_data: dict) -> 'Memory':
+        """Tekrar kullanılabilir bir yeteneği (Skill) kaydeder."""
+        body = f"Skill: {skill_data.get('name')}\nDescription: {skill_data.get('description')}"
+        return await self.save(
+            db=db,
+            agent_id="system",
+            body=body,
+            category="skill_artifact",
+            metadata=skill_data,
+            tags=["skill"]
+        )
+
+    async def save_policy(self, db: 'AsyncSession', policy_data: dict) -> 'Memory':
+        """Sistem politikasını (Policy) günceller veya önerir."""
+        body = f"Policy Update: {policy_data.get('title')}\nReason: {policy_data.get('reason')}"
+        return await self.save(
+            db=db,
+            agent_id="system",
+            body=body,
+            category="policy_proposal",
+            metadata=policy_data,
+            tags=["policy"]
+        )
+
+    async def memory_write_gate(self, db: 'AsyncSession', data: Any, category: str) -> bool:
+        """
+        AGI Gate: Belleğe yazma izni verir.
+        Koşullar:
+        - Başarılı doğrulama (Verification)
+        - Önem puanı eşiği
+        - Çelişki kontrolü (Opsiyonel)
+        """
+        importance = getattr(data, 'importance', 0.5)
+        if importance < 0.3:
+            return False
+            
+        # Gelecekte buraya LLM tabanlı 'değerleme' eklenebilir
+        return True
 
     async def save_playbook(
         self,
@@ -107,8 +161,9 @@ class MemoryStore:
         scored: list[tuple[Any, float, float]] = []
         for mem in results:
             vec_score = 0.0
-            if q_emb and getattr(mem, 'embedding', None) is not None:
-                vec_score = float(_cosine_sim(q_emb, mem.embedding))
+            mem_embedding = getattr(mem, 'embedding', None)
+            if q_emb is not None and mem_embedding is not None:
+                vec_score = float(_cosine_sim(q_emb, mem_embedding))
             kw_score = 1.0 if any(w.lower() in mem.body.lower() for w in query.split() if len(w) > 3) else 0.0
             combined = 0.7 * vec_score + 0.3 * kw_score
             freshness = _freshness(mem.created_at)
