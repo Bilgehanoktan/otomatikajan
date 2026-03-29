@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from auth.jwt_auth import get_current_user, require_admin
 from core.orchestrator import orchestrator
 from db.session import AsyncSessionLocal
-from core.improvement_v1.observer import ImprovementObserver
+from improve.observer import ImprovementObserver
 from observability.logging import get_logger
 
 router = APIRouter(prefix="/improvements", tags=["Self-Improvement"])
@@ -42,7 +42,7 @@ async def scan_for_improvements(background_tasks: BackgroundTasks, current_user=
             
             # Eski observer'ı fallback olarak çalıştır ama patch üretmeyi dene
             async with AsyncSessionLocal() as db:
-                from core.improvement_v1.observer import ImprovementObserver as OldObserver
+                from improve.observer import ImprovementObserver as OldObserver
                 observer = OldObserver(db)
                 old_ops = await observer.scan()
                 return [
@@ -96,7 +96,7 @@ async def apply_autonomous_proposal(
         # Old/UUID/Deterministic Format fallback
         # we need to find the issue in OldObserver and convert it to a proposal
         async with AsyncSessionLocal() as db:
-            from core.improvement_v1.observer import ImprovementObserver as OldObserver
+            from improve.observer import ImprovementObserver as OldObserver
             observer = OldObserver(db)
             old_ops = await observer.scan()
             found = next((o for o in old_ops if str(getattr(o, "id", "")) == proposal_id), None)

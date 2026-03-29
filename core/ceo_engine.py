@@ -20,8 +20,8 @@ try:
     from db.models import ImprovementOpportunity, CEOSuggestedTask, CEODecision, Project, CEOPerformanceLog
 except ImportError:
     pass
-from core.improvement_v1.observer import ImprovementObserver
-from core.improvement_v1.visual_observer import VisualUXObserver
+from improve.observer import ImprovementObserver
+from improve.visual_observer import VisualUXObserver
 from llm.model_orchestrator import ModelOrchestrator
 from core.forecaster import CEOForecaster
 from observability.logging import get_logger
