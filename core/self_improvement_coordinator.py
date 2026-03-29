@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
 
-from improve.observer import ImprovementObserver, ImprovementOpportunity
+from core.improvement_v1.observer import ImprovementObserver, ImprovementOpportunity
 from core.self_updater import SelfUpdater
 from core.events import event_bus
 from observability.logging import get_logger

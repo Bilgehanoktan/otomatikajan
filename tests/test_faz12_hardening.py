@@ -3,6 +3,7 @@ import asyncio
 from datetime import datetime, timedelta, timezone
 from fastapi.testclient import TestClient
 from unittest.mock import patch
+from auth.jwt_auth import _make_token
 
 from main import app
 from core.job_queue import JobQueue, Job, JobStatus
@@ -41,7 +42,9 @@ def test_websocket_ping_pong():
     tarafından sessizce koparılmasını engelleyen Keep-Alive (Ping/Pong) mekanizmasını doğrular.
     """
     client = TestClient(app)
-    with client.websocket_connect("/ws/logs") as websocket:
+    # FAZ 12.1 Security: Generate a valid test token
+    token = _make_token({"sub": "test_user", "type": "access", "roles": ["admin"]}, timedelta(minutes=15))
+    with client.websocket_connect(f"/ws/logs?token={token}") as websocket:
         websocket.send_text("ping")
         # Skip potential initial recent logs from event_bus
         for _ in range(25): # max 20 logs + 1 pong
