@@ -28,7 +28,7 @@ class ProactiveAgent:
             try:
                 async with session_scope() as db:
                     # --- BÜTÜNLEŞİK BİLİNÇ DÖNGÜSÜ (UNIFIED MIND CYCLE) [Katman 27] ---
-                    from core.agi.consciousness.integrated_orchestrator import integrated_orchestrator
+                    from .consciousness.integrated_orchestrator import integrated_orchestrator
                     _log.info("Bütünleşik AGI Zihin Döngüsü (Unified Mind Cycle) başlatılıyor...")
                     await integrated_orchestrator.run_mind_cycle(db)
                     # -------------------------------------------------------------------

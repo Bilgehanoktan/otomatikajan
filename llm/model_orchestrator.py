@@ -284,6 +284,17 @@ class ModelOrchestrator:
         except Exception as e:
             logger.warning(f"Prompt patch hatası: {e}")
 
+        # ── THEORY OF MIND (EMPATHY ENGINE) [Katman 30] ──
+        try:
+            from core.agi.cognitive.theory_of_mind import theory_of_mind
+            from core.agi.adaptation.empathy_tuner import empathy_tuner
+            # Model the user's state from the current prompt
+            theory_of_mind.analyze_interaction(prompt)
+            # Apply psychological empathy patch
+            system_prompt = empathy_tuner.patch_system_prompt(system_prompt)
+        except Exception as e:
+            logger.warning(f"Empathy Tuner (ToM) hatası: {e}")
+
         # Ajanın rolüne göre fallback zincirini al
         base_providers = ROUTING_POLICY.get(agent_role, ROUTING_POLICY["general"])
         # LOAD BALANCING & HEALTH SORTING (Faz 12.1 Hardening):

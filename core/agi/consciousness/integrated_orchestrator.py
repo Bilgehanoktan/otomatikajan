@@ -16,13 +16,17 @@ class IntegratedOrchestrator:
         """
         _log.info("--- Bütünleşik AGI Zihin Döngüsü (Unified Mind Cycle) Başlatılıyor ---")
         
-        # 0. Duygusal Çekirdek (Affective Core) [Katman 29]
+        # 0. Duygusal Çekirdek (Affective Core) [Katman 29] & Theory of Mind [Katman 30]
         try:
             from core.agi.consciousness.affective_core import affective_core
+            from core.agi.cognitive.theory_of_mind import theory_of_mind
+            
             # Basit simülasyon: her döngüde hafif curiosity artışı (idle gibi)
             affective_core.adjust_state("idle", magnitude=0.01)
             mood = affective_core.get_current_mood()
-            global_workspace.broadcast("AffectiveCore", f"Current Mood: {mood}", importance=1.0)
+            user_mood = theory_of_mind.get_inferred_state()
+            
+            global_workspace.broadcast("AffectiveCore", f"AGI Mood: {mood} | USER Mood: {user_mood}", importance=1.0)
         except Exception: pass
         
         # 1. Duyusal Veri Analizi (Sensory/Nervous System)
