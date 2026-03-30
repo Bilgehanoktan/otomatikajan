@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from db.models import (
     Project, SubTask, LLMCostLog, DomainEventLog,
     TaskLog, ApiMetric, TelegramUser, TelegramCommandLog,
-    ProjectStatus,
+    ProjectStatus, SkillExecutionLog,
 )
 
 
@@ -714,3 +714,47 @@ class ImprovementRepository:
             .where(ImprovementOpportunity.id == opp_id)
             .values(status="resolved")
         )
+
+
+# ════════════════════════════════════════════════════════
+# Skill Execution Log Repository (Faz 13)
+# ════════════════════════════════════════════════════════
+class SkillLogRepository:
+
+    @staticmethod
+    async def write(
+        db: AsyncSession,
+        project_id: uuid.UUID,
+        skill_id: str,
+        agent_id: str = "system",
+        success: bool = True,
+        summary: str = "",
+        data: dict | None = None,
+        duration_s: float = 0.0,
+    ) -> SkillExecutionLog:
+        log = SkillExecutionLog(
+            project_id=project_id,
+            skill_id=skill_id,
+            agent_id=agent_id,
+            success=success,
+            summary=summary,
+            data=data or {},
+            duration_s=duration_s,
+        )
+        db.add(log)
+        await db.flush()
+        return log
+
+    @staticmethod
+    async def get_by_project(
+        db: AsyncSession,
+        project_id: uuid.UUID,
+        limit: int = 100,
+    ) -> list[SkillExecutionLog]:
+        result = await db.execute(
+            select(SkillExecutionLog)
+            .where(SkillExecutionLog.project_id == project_id)
+            .order_by(SkillExecutionLog.created_at.asc())
+            .limit(limit)
+        )
+        return list(result.scalars().all())

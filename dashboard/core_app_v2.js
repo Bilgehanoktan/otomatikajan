@@ -8,6 +8,20 @@ let CAPS = {
   supports_resume: false
 };
 
+// Unified UI Status Labels (Phase 12.1)
+const STATUS_LABELS = {
+  'pending': 'Bekliyor',
+  'queued': 'Kuyrukta',
+  'running': 'Çalışıyor',
+  'pending_approval': 'Onay Bekliyor',
+  'completed': 'Tamamlandı',
+  'partial_complete': 'Kısmi Başarı',
+  'error': 'Hatalı',
+  'failed': 'Hatalı',
+  'cancelled': 'İptal Edildi',
+  'paused': 'Duraklatıldı'
+};
+
 /**
  * DASHBOARD HONESTY & STABILITY GUARDS
  * Prevents "Silent Errors" and "False Positives" due to missing DOM elements.
@@ -400,9 +414,14 @@ async function loadDashboard() {
   try {
     const ov = await api('/monitoring/overview');
     const svc = ov.services || {};
+    const opt = ov.optional_services || {};
+    
+    // Merge optional services with standard ones for unified display
+    const allSvc = { ...svc, ...Object.fromEntries(Object.entries(opt).map(([k, v]) => [k, { status: v }])) };
+    
     const pillsEl = document.getElementById('service-pills');
     if (pillsEl) {
-      pillsEl.innerHTML = Object.entries(svc).map(([n, i]) => {
+      pillsEl.innerHTML = Object.entries(allSvc).map(([n, i]) => {
         const st = i.status === 'online' ? 'online' : (i.status === 'not_configured' ? 'neutral' : (i.status === 'offline' ? 'offline' : 'warn'));
         const label = i.status === 'not_configured' ? n + ' (N/A)' : n;
         return `<span class="service-pill ${st}" title="${i.error || ''}"><span class="service-dot"></span>${label}</span>`;
@@ -454,13 +473,15 @@ async function loadDashboard() {
     const tasks = d.tasks || [];
     const recentEl = document.getElementById('recent-tasks');
     if (recentEl) {
-      recentEl.innerHTML = tasks.length ? tasks.map(t => `
+      recentEl.innerHTML = tasks.length ? tasks.map(t => {
+        const label = STATUS_LABELS[t.status] || t.status;
+        return `
         <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(26,34,48,.5);cursor:pointer;" onclick="openTaskDetail('${t.id}')">
-          <span class="badge badge-${t.status}" style="width:60px;text-align:center;">${t.status}</span>
+          <span class="badge badge-${t.status}" style="width:75px;text-align:center;">${label}</span>
           <span style="flex:1;font-size:11px;font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.title}</span>
           <span class="badge badge-${t.priority}">${t.priority}</span>
-        </div>
-      `).join('') : '<div style="color:var(--muted);font-size:11px;padding:12px 0;">Henüz görev yok</div>';
+        </div>`;
+      }).join('') : '<div style="color:var(--muted);font-size:11px;padding:12px 0;">Henüz görev yok</div>';
     }
   } catch (e) { }
 
@@ -542,18 +563,7 @@ async function loadTasks() {
     const tasks = data.tasks || [];
     document.getElementById('task-count').textContent = (data.total ?? tasks.length) + ' görev';
     if (!tasks.length) { document.getElementById('task-table').innerHTML = '<div class="loading">Görev bulunamadı</div>'; return; }
-    const statusLabels = {
-      'pending': 'Bekliyor',
-      'queued': 'Kuyrukta',
-      'running': 'Çalışıyor',
-      'pending_approval': 'Onay Bekliyor',
-      'completed': 'Tamamlandı',
-      'partial_complete': 'Kısmi Başarı',
-      'error': 'Hatalı',
-      'cancelled': 'İptal Edildi',
-      'paused': 'Duraklatıldı'
-    };
-    document.getElementById('task-table').innerHTML = `<table><thead><tr><th>ID</th><th>Başlık</th><th>Durum</th><th>Öncelik</th><th>Kaynak</th><th>İlerleme</th><th>Tarih</th><th>İşlem</th></tr></thead><tbody>${tasks.map(t => `<tr onclick="openTaskDetail('${t.id}')" style="cursor:pointer;"><td style="color:var(--muted);">${t.id.substring(0, 8)}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${t.title}">${t.title}</td><td><span class="badge badge-${t.status}">${statusLabels[t.status] || t.status}</span></td><td><span class="badge badge-${t.priority}">${t.priority}</span></td><td style="color:var(--muted);">${t.source}</td><td style="min-width:80px;"><div class="progress-bar"><div class="progress-fill" style="width:${t.progress_pct || 0}%"></div></div><span style="font-size:9px;color:var(--muted);">${t.progress_pct || 0}%</span></td><td style="color:var(--muted);">${t.created_at ? new Date(t.created_at).toLocaleDateString('tr-TR') : '—'}</td><td onclick="event.stopPropagation();"><div style="display:flex;gap:4px;">
+    document.getElementById('task-table').innerHTML = `<table><thead><tr><th>ID</th><th>Başlık</th><th>Durum</th><th>Öncelik</th><th>Kaynak</th><th>İlerleme</th><th>Tarih</th><th>İşlem</th></tr></thead><tbody>${tasks.map(t => `<tr onclick="openTaskDetail('${t.id}')" style="cursor:pointer;"><td style="color:var(--muted);">${t.id.substring(0, 8)}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${t.title}">${t.title}</td><td><span class="badge badge-${t.status}">${STATUS_LABELS[t.status] || t.status}</span></td><td><span class="badge badge-${t.priority}">${t.priority}</span></td><td style="color:var(--muted);">${t.source}</td><td style="min-width:80px;"><div class="progress-bar"><div class="progress-fill" style="width:${t.progress_pct || 0}%"></div></div><span style="font-size:9px;color:var(--muted);">${t.progress_pct || 0}%</span></td><td style="color:var(--muted);">${t.created_at ? new Date(t.created_at).toLocaleDateString('tr-TR') : '—'}</td><td onclick="event.stopPropagation();"><div style="display:flex;gap:4px;">
       ${t.status === 'error' ? `<button type="button" class="btn btn-ghost btn-sm" style="color:var(--green);" onclick="retryTask('${t.id}')" title="Yeniden Dene">↻</button>` : ''}
       ${(t.status === 'running' && CAPS.supports_pause) ? `<button type="button" class="btn btn-ghost btn-sm" style="color:var(--yellow);" onclick="pauseTask('${t.id}')" title="Duraklat">⏸</button>` : ''}
       ${(t.status === 'paused' && CAPS.supports_resume) ? `<button type="button" class="btn btn-ghost btn-sm" style="color:var(--green);" onclick="resumeTask('${t.id}')" title="Devam Ettir">▶</button>` : ''}
@@ -737,17 +747,23 @@ async function openTaskDetail(id) {
           scBox.innerHTML = '<div style="color:var(--muted);font-size:11px;text-align:center;padding:10px 0;">Bu görevde özel bir beceri kullanılmadı.</div>';
        } else {
           scBox.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px;">' + sLogs.map(sl => `
-             <div style="background:rgba(0,0,0,0.2);border-radius:8px;padding:12px;border-left:3px solid ${sl.success ? 'var(--green)' : 'var(--red)'};">
+             <div style="background:rgba(0,0,0,0.2);border-radius:8px;padding:12px;border-left:3px solid ${sl.success ? 'var(--green)' : 'var(--red)'}; cursor:pointer;" onclick="const d = this.querySelector('.skill-detail-json'); d.style.display = d.style.display === 'none' ? 'block' : 'none';">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                    <div style="display:flex;align-items:center;gap:8px;">
                       <span style="font-size:12px;font-weight:700;color:var(--text);font-family:var(--mono);">${sl.skill_id.toUpperCase().replace('_', ' ')}</span>
                       <span style="font-size:10px;color:var(--muted);">${sl.agent_id ? '(' + sl.agent_id + ')' : ''}</span>
                    </div>
-                   <div style="font-size:10px;font-family:var(--mono);color:var(--muted);">
+                   <div style="font-size:10px;font-family:var(--mono);color:var(--muted);display:flex;align-items:center;gap:6px;">
                       ${sl.duration_s ? sl.duration_s.toFixed(2) + 's' : ''}
+                      <span style="font-size:8px; opacity:0.5;">▼</span>
                    </div>
                 </div>
                 <div style="font-size:11px;color:${sl.success ? 'var(--text2)' : 'var(--red)'};line-height:1.5;">${sl.summary}</div>
+                <div class="skill-detail-json" style="display:none; margin-top:10px; padding:10px; background:#020617; border-radius:6px; font-family:var(--mono); font-size:10px; overflow-x:auto; border:1px solid var(--border);">
+                   <div style="color:var(--accent); margin-bottom:4px; font-weight:800; border-bottom:1px solid rgba(14,165,233,0.1); padding-bottom:2px;">TRACE DATA</div>
+                   <pre style="color:#94a3b8; margin:0;">${sl.data ? JSON.stringify(sl.data, null, 2) : 'No data payload'}</pre>
+                   ${sl.errors ? `<div style="color:var(--red); margin-top:8px; border-top:1px solid rgba(239,68,68,0.1); padding-top:4px;"><b>ERRORS:</b><pre style="margin:0; white-space:pre-wrap;">${sl.errors}</pre></div>` : ''}
+                </div>
              </div>
           `).join('') + '</div>';
        }

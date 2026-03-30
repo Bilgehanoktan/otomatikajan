@@ -74,8 +74,8 @@ def mock_api(page: Page):
         # 3. Dashboard Stats
         if "/api/v1/tasks/stats/summary" in url:
             return route.fulfill(status=200, content_type="application/json", body=json.dumps({
-                "total": 42, "pending": 5, "running": 2, "completed": 30,
-                "partial_complete": 3, "error": 2, "cost": 12.50, "is_fallback": False
+                "total": 50, "pending": 5, "queued": 5, "running": 5, "pending_approval": 5, 
+                "completed": 20, "partial_complete": 3, "error": 4, "paused": 3, "cost": 15.75, "is_fallback": False
             }))
         
         # 4. Monitoring Overview
@@ -99,30 +99,41 @@ def mock_api(page: Page):
         # 6. Budget/Finance Status
         if "/api/v1/finance/status" in url:
             return route.fulfill(status=200, content_type="application/json", body=json.dumps({
-                "spent_formatted": "$12.50", "budget_formatted": "$1,000.00", "remaining_formatted": "$987.50",
-                "pct_used": 1.25, "threshold_warning": False, "over_budget": False
+                "spent_formatted": "$15.75", "budget_formatted": "$1,000.00", "remaining_formatted": "$984.25",
+                "pct_used": 1.575, "threshold_warning": False, "over_budget": False
             }))
 
-        # 7.1 Single Task Detail (for error verification) - MUST BE BEFORE TASKS LIST
-        if "/api/v1/tasks/" in url and "stats" not in url:
-             # Extract ID from end of URL
+        # 7.1 Single Task Detail (e.g., /api/v1/tasks/task-123)
+        if re.search(r"/api/v1/tasks/[^?&/]+$", url):
              tid = url.split("/")[-1].split("?")[0]
+             status = "completed"
+             if tid == "task-err": status = "error"
+             elif tid == "task-agi": status = "pending_approval"
+             
              return route.fulfill(status=200, content_type="application/json", body=json.dumps({
-                "id": tid, "title": "Physical E2E Test Task" if tid == "task-err" else f"Detail for {tid}", 
-                "status": "error" if tid == "task-err" else "completed", "priority": "medium", "source": "manual", "progress_pct": 0, 
+                "id": tid, "title": "Physical E2E Test Task" if tid == "task-err" else ( "AGI Cognitive Core Mission" if tid == "task-agi" else f"Detail for {tid}"), 
+                "status": status, "priority": "high" if tid == "task-agi" else "medium", "source": "api" if tid == "task-agi" else "manual", "progress_pct": 0, 
                 "error_detail": "Görev zaman aşımına uğradı (Reaper tarafından temizlendi)." if tid == "task-err" else None, 
                 "created_at": "2026-03-29T11:27:04Z", "total_cost": 0.0, "workflow_template": "default", "quality_profile": "standard",
+                "agi_metadata": {
+                    "episode_id": "EP-77X-BETA",
+                    "frame": {"objective": "Sistem mimarisini otonom olarak optimize et", "risk_level": "critical"},
+                    "plan": {"strategy_id": "ST-DYNAMIC-DAG"},
+                    "verification": {"reality_score": 0.92, "summary": "Bilişsel çekirdek verileri doğrulandı. Stratejik uyum %92."}
+                } if tid == "task-agi" else None,
                 "logs": [], "subtasks": []
             }))
 
-        # 7. Tasks List
-        if "/api/v1/tasks" in url and "stats" not in url:
+        # 7.2 Tasks List (e.g., /api/v1/tasks or /api/v1/tasks?limit=5)
+        if re.search(r"/api/v1/tasks(\?.*)?$", url):
             return route.fulfill(status=200, content_type="application/json", body=json.dumps({
                 "tasks": [
                     {"id": "task-1", "title": "Mock Görev 1", "status": "completed", "priority": "high", "source": "manual", "progress_pct": 100},
                     {"id": "task-err", "title": "Physical E2E Test Task", "status": "error", "priority": "medium", "source": "manual", "progress_pct": 0, "error_detail": "Görev zaman aşımına uğradı (Reaper tarafından temizlendi)."},
+                    {"id": "task-agi", "title": "AGI Cognitive Core Mission", "status": "pending_approval", "priority": "high", "source": "api", "progress_pct": 15},
+                    {"id": "task-q", "title": "Queued Task", "status": "queued", "priority": "low", "source": "system", "progress_pct": 0},
                 ],
-                "total": 2
+                "total": 4
             }))
 
         # 8. Health Checks

@@ -22,6 +22,11 @@ class DashboardPage:
         self.task_title_input = page.locator("#f-title")
         self.task_desc_input = page.locator("#f-desc")
         self.submit_task_btn = page.locator("#btn-submit-task")
+        
+        # AGI Mission Control
+        self.agi_container = page.locator(".agi-mission-control")
+        self.agi_reality_score = page.locator("text=Reality Score").locator("..").locator("div").last
+        self.agi_episode_info = page.locator("text=Episode ID")
 
     def navigate(self):
         """Dashboard sayfasına gider."""

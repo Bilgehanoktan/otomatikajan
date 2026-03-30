@@ -645,3 +645,6 @@ class ModelOrchestrator:
             }
             for p in self.providers.values()
         ]
+
+# --- Singleton ---
+model_orchestrator = ModelOrchestrator()

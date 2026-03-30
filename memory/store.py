@@ -131,6 +131,19 @@ class MemoryStore:
             importance=0.9,
             metadata={"source": "feedback_record", "module": module}
         )
+    async def get_recent(
+        self,
+        db: 'AsyncSession',
+        category: str | None = None,
+        limit: int = 10
+    ) -> list['Memory']:
+        """En son kaydedilen N adet bellek kaydını getirir."""
+        from sqlalchemy import select
+        from db.models import Memory
+        stmt = select(Memory).order_by(Memory.created_at.desc()).limit(limit)
+        if category:
+            stmt = stmt.where(Memory.category == category)
+        return (await db.execute(stmt)).scalars().all()
 
     async def search(
         self,
@@ -138,6 +151,7 @@ class MemoryStore:
         query: str,
         agent_id: str | None = None,
         category: str | None = None,
+        project_id: str | None = None,
         top_k: int = 10,
         mmr_lambda: float = 0.7,
         token_budget: int = 2000,
@@ -152,6 +166,8 @@ class MemoryStore:
             stmt = stmt.where(Memory.agent_id == agent_id)
         if category:
             stmt = stmt.where(Memory.category == category)
+        if project_id:
+            stmt = stmt.where(Memory.project_id == str(project_id))
         stmt = stmt.where((Memory.expires_at == None) | (Memory.expires_at > datetime.now(timezone.utc)))
 
         results = (await db.execute(stmt)).scalars().all()

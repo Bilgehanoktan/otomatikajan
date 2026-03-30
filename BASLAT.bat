@@ -48,10 +48,16 @@ if %errorlevel% neq 0 (
 echo [*] Servislerin hazir olmasi bekleniyor (10s)...
 timeout /t 10 /nobreak >nul
 
-:: 5. Telegram Watchdog
-if exist "scripts\telegram_watchdog.py" (
-    echo [4/4] Telegram Watchdog baslatiliyor...
-    start "Telegram Watchdog" cmd /k "python scripts\telegram_watchdog.py"
+:: 5. Telegram Watchdog (Artık Docker Compose içinde otomotiv çalışıyor)
+:: if exist "scripts\telegram_watchdog.py" (
+::     echo [4/4] Telegram Watchdog baslatiliyor...
+::     start "Telegram Watchdog" cmd /k "python scripts\telegram_watchdog.py"
+:: )
+
+:: 6. Git Oto-Commit (Sessiz Mod)
+if exist "SILENT_GIT_COMMIT.vbs" (
+    echo [4/4] Git Oto-Commit servisi (Arka Plan) baslatiliyor...
+    start wscript.exe "SILENT_GIT_COMMIT.vbs"
 )
 
 echo.

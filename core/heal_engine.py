@@ -64,6 +64,11 @@ class SelfHealEngine:
         self._active_recoveries: set[str]      = set()
         self._recovery_history: dict[str, list[RecoveryResult]] = {}
 
+        # ── Faz 14 Stability Calibration ───────────────────
+        self._last_latency_ewma = 5.0   # Başlangıç iyimserliği
+        self._last_mem_ewma     = 300.0 # Başlangıç iyimserliği
+        self._alpha             = 0.25  # Yumuşatma katsayısı (0-1)
+
         # ── Test uyumluluğu için public alias'lar ─────────
         # engine.log      -> _events listesi (HealEvent nesneleri)
         # engine.suppressed -> throttle set'i (birden fazla tetiklenmeyi engeller)
@@ -307,7 +312,7 @@ class SelfHealEngine:
             pass
 
     def system_health_score(self) -> float:
-        """Faz 12 Hardening: Ağırlıklı, Latency ve Resource Aware Sağlık Skoru."""
+        """Faz 14 Stability Calibration: EWMA tabanlı, False-Positive korumalı Sağlık Skoru."""
         h = self.orch.get_health()
         if not h:
             return 1.0
@@ -324,25 +329,35 @@ class SelfHealEngine:
 
         base_score = weighted_score_sum / total_weight if total_weight > 0 else 1.0
 
-        # 2. Latency Penalty: Ortalama gecikme 20sn üzerindeyse skor düşer
+        # 2. Latency Penalty: EWMA (Exponentially Weighted Moving Average)
         latency_penalty = 0.0
         valid_latencies = [s.avg_latency for s in self._snaps.values() if hasattr(s, "avg_latency") and s.avg_latency > 0]
+        
+        current_avg_latency = self._last_latency_ewma
         if valid_latencies:
-            avg_system_latency = sum(valid_latencies) / len(valid_latencies)
-            if avg_system_latency > 20.0:
-                # 20sn'den sonra her 10sn için -0.1 ceza
-                latency_penalty = min(0.4, (avg_system_latency - 20.0) / 100.0)
+            current_avg_latency = sum(valid_latencies) / len(valid_latencies)
+        
+        # Yumuşatma (EWMA): Anlık sıçramaları filtrele
+        self._last_latency_ewma = (self._alpha * current_avg_latency) + ((1 - self._alpha) * self._last_latency_ewma)
+        
+        if self._last_latency_ewma > 20.0:
+            # 20sn'den sonra her 10sn için -0.1 ceza
+            latency_penalty = min(0.3, (self._last_latency_ewma - 20.0) / 100.0)
 
-        # 3. Bellek (RAM) Multiplier
+        # 3. Bellek (RAM) Multiplier: EWMA tabanlı
         mem_multiplier = 1.0
         try:
             import psutil
             import os
-            # Use safe memory inspection
             p = psutil.Process(os.getpid())
             mem_mb = p.memory_info().rss / 1024 / 1024
-            if mem_mb > 750: # 750MB üstünde baskı başlar
-                mem_multiplier = max(0.4, 1.0 - ((mem_mb - 750) / 1500))
+            
+            # Yumuşatma (EWMA): GC anlarındaki sıçramaları filtrele
+            self._last_mem_ewma = (self._alpha * mem_mb) + ((1 - self._alpha) * self._last_mem_ewma)
+            
+            # Faz 12.1 Hardening: Çıtayı 1200MB'a yükseltiyoruz (Büyük modeller/bağlamlar için)
+            if self._last_mem_ewma > 1200: 
+                mem_multiplier = max(0.5, 1.0 - ((self._last_mem_ewma - 1200) / 2000))
         except Exception:
             pass
 

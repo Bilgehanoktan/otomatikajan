@@ -1,10 +1,12 @@
-# Changelog
-## 1.9.9 (DeerFlow 4.0.0-RC1.4) - 2026-03-29
+## 1.9.10 (DeerFlow 4.0.0-RC1.4 - Stable-Background) - 2026-03-30
 
-### GStack Integration Polish
-- **Core Integration**: Anthropic Claude-3.5-Sonnet (v3) API anahtarı sisteme güvenli bir şekilde entegre edildi. 
-- **Start-up Modernization**: `baslat.bat` süreci optimize edildi, Docker build aşamasındaki `.env` bağımlılık hataları giderildi.
-- **Environment Hydration**: Eksik olan DeerFlow Bridge yapılandırmaları ve güvenlik (JWT/Admin) anahtarları otomatik olarak oluşturuldu.
+### Background/Service Mode Implementation
+- **Daemonization**: Telegram botu ve Watchdog mekanizması Docker Compose ekosistemine (`telegram-bot`) taşınarak arka planda kesintisiz çalışma desteği sağlandı.
+- **Silent Automation**: Git Oto-Commit servisi Windows host üzerinde görünmez (VBS) modda çalışacak şekilde yapılandırıldı.
+- **Resilience Hardening**: Docker sağlık kontrolleri (Healthcheck) servis türlerine göre optimize edildi (Bot ve Worker'lar için gereksiz web kontrolleri temizlendi).
+- **Startup Sync**: `BASLAT.bat` ve `DURDUR.bat` dosyaları tüm "hayalet" süreçleri yönetecek şekilde modernize edildi.
+
+## 1.9.9 (DeerFlow 4.0.0-RC1.4) - 2026-03-29
 
 ## 1.9.8 (DeerFlow 4.0.0-RC1.3) - 2026-03-29
 

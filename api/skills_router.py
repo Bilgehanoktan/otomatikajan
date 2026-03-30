@@ -39,6 +39,8 @@ async def get_skill_logs(project_id: str | None = None, current_user=Depends(get
                 "skill_id": log.skill_id,
                 "success": log.success,
                 "summary": log.summary,
+                "data": log.data,
+                "errors": log.errors,
                 "duration_s": log.duration_s,
                 "created_at": log.created_at.isoformat() if log.created_at else None
             } for log in logs

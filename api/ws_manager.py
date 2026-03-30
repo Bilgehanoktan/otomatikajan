@@ -78,6 +78,18 @@ class BroadcastManager:
             **extra
         })
 
+    async def broadcast_skill_trace(self, job_id: str, skill_id: str, success: bool, summary: str, **extra):
+        """Beceri çalıştırma izini canlı yayınla."""
+        await self.broadcast({
+            "event": "skill_trace",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "job_id": str(job_id),
+            "skill_id": skill_id,
+            "success": success,
+            "summary": summary,
+            **extra
+        })
+
     @property
     def client_count(self) -> int:
         return len(self._clients)

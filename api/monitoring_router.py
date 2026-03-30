@@ -14,6 +14,7 @@ Monitoring & Metrik API — Faz 4
 
 import os
 import time
+import psutil
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 
@@ -169,7 +170,29 @@ async def monitoring_overview(current_user=Depends(get_current_user)):
     except Exception:
         pass
 
+    # ── Sentinel: Opsiyonel Servis Takibi (Faz 14.1) ──────
+    result["optional_services"] = {
+        "telegram_bot": _check_os_process("telegram_app/main.py"),
+        "watchdog":     _check_os_process("memory/watchdog.py"),
+        "scheduler":    _check_os_process("scripts/scheduler.py")
+    }
+
     return result
+
+
+def _check_os_process(script_name: str) -> str:
+    """Belirli bir scriptin çalışıp çalışmadığını psutil ile kontrol eder."""
+    try:
+        for proc in psutil.process_iter(['cmdline']):
+            try:
+                cmd = proc.info.get('cmdline')
+                if cmd and any(script_name in part for part in cmd):
+                    return "online"
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+    except Exception:
+        pass
+    return "offline"
 
 
 # ════════════════════════════════════════════════════════

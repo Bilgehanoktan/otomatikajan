@@ -270,3 +270,48 @@ async def task_subtasks(task_id: str, current_user=Depends(get_current_user)):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ════════════════════════════════════════════════════════
+# TRACEABILITY (Faz 13)
+# ════════════════════════════════════════════════════════
+@router.get("/{task_id}/skill-traces", summary="Beceri çalıştırılma izleri (Trace)")
+async def task_skill_traces(
+    task_id: str,
+    limit: int = Query(100, ge=1, le=500),
+    current_user=Depends(get_current_user)
+):
+    """Her beceri yürütme adımının detaylı kaydını döndürür."""
+    try:
+        import uuid as _uuid
+        from db.session import AsyncSessionLocal
+        from db.repository import ProjectRepository, SkillLogRepository
+
+        async with AsyncSessionLocal() as db:
+            try:
+                pid = _uuid.UUID(task_id)
+            except ValueError:
+                p = await ProjectRepository.get_by_job_id(db, task_id)
+                if not p:
+                    raise HTTPException(status_code=404, detail="Görev bulunamadı")
+                pid = p.id
+
+            logs = await SkillLogRepository.get_by_project(db, pid, limit=limit)
+
+        return [
+            {
+                "id":         str(l.id),
+                "skill_id":   l.skill_id,
+                "agent_id":   l.agent_id,
+                "success":    l.success,
+                "summary":    l.summary,
+                "data":       l.data,
+                "duration_s": round(l.duration_s, 3),
+                "created_at": l.created_at.isoformat() if l.created_at else None,
+            }
+            for l in logs
+        ]
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

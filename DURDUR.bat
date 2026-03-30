@@ -7,11 +7,14 @@ cd /d "%~dp0"
 echo [1/2] Proje durduruluyor ve siliniyor...
 docker compose down
 
-echo [2/2] Tum ghost containerlar temizleniyor...
+echo [2/3] Tum ghost containerlar temizleniyor...
 for /f "tokens=*" %%i in ('docker ps -aq 2^>nul') do (
     docker stop %%i >nul 2>&1
     docker rm -f %%i >nul 2>&1
 )
+
+echo [3/3] Git Oto-Commit servisi durduruluyor...
+taskkill /F /FI "WINDOWTITLE eq AI_COMPANY_GIT_AUTO_COMMIT*" /T >nul 2>&1
 
 echo SISTEM DURDURULDU VE TEMIZLENDI.
 pause

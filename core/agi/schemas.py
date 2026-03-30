@@ -83,6 +83,14 @@ class PlanStep:
     verification_point: Optional[str] = None
 
 @dataclass
+class PlanProposal:
+    """Tartışma (Debate) sürecindeki ham plan önerisi."""
+    agent_id: str
+    content: str
+    confidence: float = 1.0
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+@dataclass
 class ExecutionPlan:
     """Operasyonel çekirdek için adım adım plan."""
     plan_id: str = field(default_factory=lambda: str(uuid.uuid4()))
@@ -129,6 +137,21 @@ class VerificationReport:
 # --- Katman 7: Memory and Learning Layer ---
 
 @dataclass
+class CausalLink:
+    """İki olay arasındaki nedensellik bağı."""
+    cause_id: str
+    effect_id: str
+    relationship_type: str # triggers, prevents, enables, causes_failure
+    confidence: float = 0.8
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+@dataclass
+class CausalGraph:
+    """Bir bölüm içindeki veya bölümler arası nedensel ağ."""
+    links: List[CausalLink] = field(default_factory=list)
+    nodes_metadata: Dict[str, Any] = field(default_factory=dict)
+
+@dataclass
 class EpisodeRecord:
     """Görevin tam yaşam döngüsü kaydı."""
     episode_id: str = field(default_factory=lambda: str(uuid.uuid4()))
@@ -139,6 +162,7 @@ class EpisodeRecord:
     actions: List[ActionRecord] = field(default_factory=list)
     verification: Optional[VerificationReport] = None
     final_output: Any = None
+    causal_graph: Optional[CausalGraph] = None # Phase 12.5
     lessons_learned: List[str] = field(default_factory=list)
     skill_candidates: List[str] = field(default_factory=list)
     policy_candidates: List[str] = field(default_factory=list)

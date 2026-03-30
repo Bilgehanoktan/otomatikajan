@@ -127,7 +127,7 @@ services:
         --loglevel=info
         --hostname=deerflow-worker@%h
     healthcheck:
-      test: [ "CMD-SHELL", "celery -A tasks.celery_app inspect ping -d deerflow-worker@$HOSTNAME || exit 1" ]
+      test: [ "CMD-SHELL", "celery -A tasks.celery_app inspect ping || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -206,6 +206,29 @@ services:
         limits:
           memory: 1536M
           cpus: '1.0'
+
+  # ── Telegram Bot (Watchdog Dahil) ─────────────────────────
+  telegram-bot:
+    build:
+      context: .
+      target: production-slim
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/ai_company
+      REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
+      PYTHONPATH: /app
+    command: python scripts/telegram_watchdog.py
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      disable: true
+    volumes:
+      - .:/app
 
 
 volumes:

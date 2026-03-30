@@ -16,6 +16,9 @@ import traceback
 
 _log = logging.getLogger("agent_registry")
 
+def get_clean_code_contract():
+    return _CLEAN_CODE_CONTRACT
+
 class Agent(BaseAgent):
     def __init__(self, id: str, name: str, role: str, system_prompt: str, emoji: str = "🤖"):
         # Not: Registry'deki ajanlar başlangıçta orchestrator (self.llm) almazlar.
@@ -321,4 +324,74 @@ Görevin:
         active_agents.append(agents_list[0]) # architect her zaman ilk sırada varsayılıyor
         
     _log.info(f"Registry: {len(active_agents)} ajan yuklendi.")
+    
+    # --- Katman 14: Dynamic Prompt Support (Phase 17.0) ---
+    import os
+    import json
+    dynamic_prompts_path = os.path.join(os.path.dirname(__file__), "dynamic_prompts.json")
+    if os.path.exists(dynamic_prompts_path):
+        try:
+            with open(dynamic_prompts_path, "r", encoding="utf-8") as f:
+                dynamic_prompts = json.load(f)
+                for aid, new_prompt in dynamic_prompts.items():
+                    for agent in active_agents:
+                        if agent.id == aid:
+                            agent._system_prompt = new_prompt + _CLEAN_CODE_CONTRACT
+                            _log.info(f"Ajan Promptu Dinamik Olarak Güncellendi: {aid}")
+        except Exception as e:
+            _log.error(f"Dinamik prompt yukleme hatasi: {e}")
+
     return {a.id: a for a in active_agents}
+
+def discover_and_build_specialists(project_root: Optional[str] = None) -> dict[str, Agent]:
+    """
+    ECC 2.0 Skill Discovery entegrasyonu.
+    .agent/skills/ klasöründeki her beceriyi bir 'Specialist' ajana dönüştürür.
+    """
+    from core.agi.skill_discovery import skill_discovery
+    if project_root:
+        from core.agi.skill_discovery import SkillDiscovery
+        discovery = SkillDiscovery(project_root)
+    else:
+        discovery = skill_discovery
+
+    skills = discovery.discover()
+    specialists = {}
+
+    for skill_id, meta in skills.items():
+        # Her skill için bir Agent wrapper'ı oluştur
+        specialists[skill_id] = Agent(
+            id=skill_id,
+            name=f"{meta.get('name', skill_id)} Specialist",
+            emoji="🛠️",
+            role=meta.get('description', 'Specialized task executor'),
+            system_prompt=f"""Sen {meta.get('name')} konusunda uzmanlaşmış bir ajansın.
+Prensipler: {meta.get('description')}
+Görevin: Uzmanlık alanına giren işleri ECC standartlarına ve temiz kod prensiplerine göre yerine getirmek.
+""" + _CLEAN_CODE_CONTRACT
+        )
+
+    # --- Katman 11: Dynamic Agent Support (Phase 14.0) ---
+    import os
+    import json
+    dynamic_path = os.path.join(os.path.dirname(__file__), "dynamic_agents.json")
+    if os.path.exists(dynamic_path):
+        try:
+            with open(dynamic_path, "r", encoding="utf-8") as f:
+                dynamic_agents = json.load(f)
+                for agent_data in dynamic_agents:
+                    aid = agent_data.get("id")
+                    if aid and aid not in specialists:
+                        specialists[aid] = Agent(
+                            id=aid,
+                            name=agent_data.get("name", f"{aid} Specialist"),
+                            emoji=agent_data.get("emoji", "🤖"),
+                            role=agent_data.get("role", "Dynamic Specialist"),
+                            system_prompt=agent_data.get("system_prompt", "") + _CLEAN_CODE_CONTRACT
+                        )
+            _log.info(f"Registry: {len(dynamic_agents)} dinamik ajan yuklendi.")
+        except Exception as e:
+            _log.error(f"Dinamik ajan yukleme hatasi: {e}")
+    
+    _log.info(f"Discovery: {len(specialists)} toplam uzman beceri ve dinamik ajan keşfedildi.")
+    return specialists
