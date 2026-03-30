@@ -56,3 +56,11 @@
 | Onarım görevleri (Apply) DB'ye hatasız yazılıyor | ✅ |
 | Alembic migrasyonu (0008) uygulandı | ✅ |
 | Model fallback (429 handling) stabil çalışıyor | ✅ |
+
+### Phase 18 — Metacognitive Policy Evolution (Faz 12.1 Evolution)
+- **Metacognitive Layer**: `PolicyEvolutionEngine` ve `GoalSynthesizer` ile sistemin kendi kurallarını ve stratejik hedeflerini otonom olarak iyileştirmesi sağlandı.
+- **Dynamic Policy Engine**: `PolicyEngine` artık JSON tabanlı dinamik eşikler (`thresholds`) ve `AutomationLevel` (PR bazlı otonomi) ile çalışıyor.
+- **Hierarchical Cognition**: `NexusOrchestrator` ve `NeuralCoreOrchestrator` ile hiyerarşik zihinsel işleme modeline geçildi.
+- **Motor Subsystem & Execution**: `MotorSubsystem`, `QuantumExecutor` ve `EvolutionaryArchitect` ile operasyonel çekirdek sertleştirildi.
+- **AuditGate Hardening**: Gelişen risk eşikleri ve politika motoruyla tam uyumlu, otonom onayı yöneten güvenlik katmanı (`AuditGate`) güncellendi.
+- **Verification**: `verify_phase_18.py` ile tüm bilişsel nodların (Policy, Goal, Audit) stabil olduğu doğrulandı.

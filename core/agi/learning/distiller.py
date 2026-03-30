@@ -42,8 +42,7 @@ class SkillDistiller:
             response = await self.model_orch.complete_task(
                 agent_role="strategist",
                 prompt=prompt,
-                system_prompt=system_prompt,
-                task_id=episode.episode_id
+                system_prompt=system_prompt
             )
             
             skill_data = self._parse_json(response.content)

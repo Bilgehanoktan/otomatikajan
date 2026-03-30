@@ -15,6 +15,14 @@ class NervousSystem:
     """
     def __init__(self):
         self.process = psutil.Process(os.getpid())
+        # Bilişsel metrikler (Faz 13.3)
+        self.cognitive_metrics = {
+            "success_rate": 1.0,
+            "total_tasks": 0,
+            "successful_tasks": 0,
+            "tool_reliability": {},
+            "correction_count": 0
+        }
 
     async def pulse(self, db: AsyncSession) -> Dict[str, Any]:
         """
@@ -32,7 +40,8 @@ class NervousSystem:
                 "cpu_percent": cpu_usage,
                 "memory_rss_mb": mem_info.rss / 1024 / 1024,
                 "timestamp": time.time(),
-                "status": "healthy" if cpu_usage < 80 else "stressed"
+                "status": "healthy" if cpu_usage < 80 else "stressed",
+                "cognitive": self.cognitive_metrics
             }
             
             # 3. Belleğe Kaydet (Sensory)
@@ -56,6 +65,23 @@ class NervousSystem:
     def check_stress(self, metrics: Dict[str, Any]) -> bool:
         """Sistemin 'Stres' altında olup olmadığını değerlendirir."""
         return metrics.get("status") == "stressed"
+
+    def log_cognitive_event(self, event_type: str, success: bool, detail: str = ""):
+        """
+        Bilişsel bir olayı kaydeder ve metrikleri günceller.
+        """
+        self.cognitive_metrics["total_tasks"] += 1
+        if success:
+            self.cognitive_metrics["successful_tasks"] += 1
+        
+        # Başarı oranını güncelle
+        if self.cognitive_metrics["total_tasks"] > 0:
+            self.cognitive_metrics["success_rate"] = self.cognitive_metrics["successful_tasks"] / self.cognitive_metrics["total_tasks"]
+        
+        if "correction" in event_type.lower():
+            self.cognitive_metrics["correction_count"] += 1
+            
+        _log.debug(f"Bilişsel Olay: {event_type} | Başarı: {success} | Detay: {detail}")
 
 # --- Singleton ---
 nervous_system = NervousSystem()

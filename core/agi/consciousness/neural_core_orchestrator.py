@@ -3,24 +3,25 @@ from typing import List, Dict, Any, Optional
 from observability.logging import get_logger
 from core.agi.consciousness.global_workspace import global_workspace
 
-_log = get_logger("agi_integrated_orchestrator")
+_log = get_logger("agi_neural_core")
 
-class IntegratedOrchestrator:
+class NeuralCoreOrchestrator:
     """
-    Operational Core (Katman 27): Integrated Orchestrator.
-    Tüm proaktif alt sistemleri tek bir 'Bütünsellik' içinde yönetir.
+    Consciousness Layer (Katman 27): Neural Core Orchestrator.
+    Tüm proaktif alt sistemleri tek bir 'Sinirsel Çekirdek' (Neural Core) içinde yönetir.
     """
     async def run_mind_cycle(self, db_session: Any):
         """
         Tam bir AGI Zihin Döngüsü (Full Mind Cycle) gerçekleştirir.
         """
-        _log.info("--- Bütünleşik AGI Zihin Döngüsü (Unified Mind Cycle) Başlatılıyor ---")
+        _log.info("--- Sinirsel Çekirdek Zihin Döngüsü (Neural Core Cycle) Başlatılıyor ---")
+        # Merkezi Yürütücü (Central Executive) kontrolünde otonom evrim.
         
         # 0. Duygusal Çekirdek (Affective Core) [Katman 29] & Theory of Mind [Katman 30] & Bilinçaltı (Subconscious) [Katman 31]
         try:
             from core.agi.consciousness.affective_core import affective_core
             from core.agi.cognitive.theory_of_mind import theory_of_mind
-            from core.agi.cognitive.subconscious_processor import subconscious_processor
+            from core.agi.cognitive.latency_mind_processor import latency_mind_processor
             
             # Basit simülasyon: her döngüde hafif curiosity artışı (idle gibi)
             affective_core.adjust_state("idle", magnitude=0.01)
@@ -29,13 +30,13 @@ class IntegratedOrchestrator:
             
             global_workspace.broadcast("AffectiveCore", f"AGI Mood: {mood} | USER Mood: {user_mood}", importance=1.0)
             
-            # Bilinçaltını (Subconscious) Tetikle
+            # Gecikmeli Zihin İşlemcisini (Latency Mind) Tetikle
             st = affective_core.state
             if st.get("curiosity", 0) > 0.6 and st.get("urgency", 1) < 0.5:
-                subconscious_processor.spawn_dream_thread()
+                latency_mind_processor.spawn_dream_thread()
             
         except Exception as e:
-            _log.warning(f"Affective/Subconscious tetikleme hatası: {e}")
+            _log.warning(f"Affective/LatencyMind tetikleme hatası: {e}")
         
         # 1. Duyusal Veri Analizi (Sensory/Nervous System)
         try:
@@ -85,6 +86,7 @@ class IntegratedOrchestrator:
             from db.models import ProjectStatus
             import uuid
             
+            # Motor ve Karar birimleri için misyon hazırlığı (Faz 14.3)
             for mission in missions:
                 if "raw_proposal" not in mission:
                     continue
@@ -155,8 +157,16 @@ class IntegratedOrchestrator:
         except Exception as e:
             _log.error(f"Dreamer consolidation hatası: {e}")
 
-        _log.info("--- Bütünleşik Bilinç Döngüsü Tamamlandı ---")
+        # 8. Öz-Evrim ve Kod Düzenleme (Evolutionary Architect) [Katman 32]
+        try:
+            from core.agi.operational.evolutionary_architect import evolutionary_architect
+            await evolutionary_architect.propose_evolution()
+            global_workspace.broadcast("SelfEvolution", "Autonomous code improvements analyzed and proposed.", importance=1.0)
+        except Exception as e:
+            _log.error(f"Öz-Evrim döngü hatası: {e}")
+
+        _log.info("--- Sinirsel Çekirdek Zihin Döngüsü Tamamlandı ---")
 
 # Singleton
-integrated_orchestrator = IntegratedOrchestrator()
+neural_core_orchestrator = NeuralCoreOrchestrator()
 

@@ -11,7 +11,7 @@ async def verify_agi_consciousness():
     
     try:
         from core.agi.consciousness.global_workspace import global_workspace
-        from core.agi.consciousness.integrated_orchestrator import integrated_orchestrator
+        from core.agi.consciousness.neural_core_orchestrator import neural_core_orchestrator
         
         print("[OK] AGI 30.0 components imported successfully.")
         
@@ -25,10 +25,10 @@ async def verify_agi_consciousness():
         else:
             print("[ERROR] Global Workspace failed to record thought.")
 
-        # 2. Test Integrated Orchestrator
+        # 2. Test Neural Core Orchestrator
         mock_db = MagicMock()
-        print("[INFO] Integrated Orchestrator: Running full Mind Cycle...")
-        await integrated_orchestrator.run_mind_cycle(mock_db)
+        print("[INFO] Neural Core Orchestrator: Running full Mind Cycle...")
+        await neural_core_orchestrator.run_mind_cycle(mock_db)
         
         print("[OK] Integrated Orchestrator: Unified Mind Cycle executed successfully.")
         

@@ -621,6 +621,6 @@ _ceo_engine = None
 def get_ceo_engine() -> CEOEngine:
     global _ceo_engine
     if _ceo_engine is None:
-        from core.orchestrator import orchestrator
+        from core.agi.cognitive.nexus_orchestrator import nexus_orchestrator as orchestrator
         _ceo_engine = CEOEngine(orchestrator.model_orch)
     return _ceo_engine

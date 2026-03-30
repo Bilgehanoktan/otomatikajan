@@ -4,25 +4,30 @@ from typing import List, Dict, Any, Optional
 from observability.logging import get_logger
 from llm.model_orchestrator import ModelOrchestrator
 from core.agi.schemas import ProblemFrame, ContextPackage, ExecutionPlan, PlanStep, RiskLevel
+from core.agi.prompt_blueprints import build_planner_execution_contract
 
-_log = get_logger("agi_planner")
+_log = get_logger("agi_decision_matrix")
 
-class CognitivePlanner:
+class DecisionMatrix:
     """
-    Bilişsel Çekirdek - Planlama Katmanı.
-    ProblemFrame ve ContextPackage'dan 'ExecutionPlan' üretir.
+    Bilişsel Çekirdek - Karar Mekanizması (Decision Matrix).
+    Algılanan 'ProblemFrame' ve mevcut 'ContextPackage' bilgilerini kullanarak 
+    en uygun eylem dizisini (ExecutionPlan) belirler.
+    Bu birim, sistemin stratejik planlama ve niyet (intent) gerçekleştirme merkezidir.
     """
     def __init__(self, model_orch: ModelOrchestrator):
         self.model_orch = model_orch
 
-    async def create_plan(self, frame: ProblemFrame, context: ContextPackage) -> ExecutionPlan:
-        _log.info(f"Planlanıyor: {frame.objective}")
+    async def decide(self, frame: ProblemFrame, context: ContextPackage) -> ExecutionPlan:
+        """
+        Mevcut çerçeve ve bağlam ışığında bir eylem planına karar ver.
+        """
+        _log.info(f"Karar veriliyor: {frame.objective}")
 
-        prompt = self._build_planner_prompt(frame, context)
+        prompt = self._build_decision_prompt(frame, context)
         try:
-            response = await self.model_orch.generate(
-                prompt,
-                task_id=f"plan_{frame.objective[:20]}",
+            response = await self.model_orch.complete(
+                [{"role": "user", "content": prompt}],
                 preferred_agent="architect"
             )
             
@@ -50,7 +55,7 @@ class CognitivePlanner:
                 estimated_risk=RiskLevel(plan_data.get("estimated_risk", frame.risk_level.value))
             )
         except Exception as e:
-            _log.error(f"Planlama hatası: {e}")
+            _log.error(f"Karar verme/Planlama hatası: {e}")
             # Fallback plan (Direct action)
             return ExecutionPlan(
                 goal=frame.objective,
@@ -58,36 +63,9 @@ class CognitivePlanner:
                 estimated_risk=frame.risk_level
             )
 
-    def _build_planner_prompt(self, frame: ProblemFrame, context: ContextPackage) -> str:
-        return f"""
-        Aşağıdaki ProblemFrame ve Bağlamı temel alarak adım adım bir 'ExecutionPlan' (DAG tabanlı) oluştur.
-        
-        Hedef: {frame.objective}
-        Risk Seviyesi: {frame.risk_level.value}
-        Kısıtlamalar: {frame.constraints}
-        Bağlam: {context.working_context}
-        İlgili Yetenekler (Skills): {context.relevant_skills}
-        
-        Yanıtı SADECE aşağıdaki JSON formatında ver:
-        {{
-            "steps": [
-                {{
-                    "step_id": "S1",
-                    "agent_id": "architect|backend_dev|...",
-                    "action": "Açıklama",
-                    "params": {{}},
-                    "dependencies": [],
-                    "verification_point": "Doğrulama kriteri"
-                }}
-            ],
-            "tool_requirements": ["shell", "read", "test", ...],
-            "required_context_refs": ["memory_id_1", ...],
-            "fallback_paths": {{"S1": "R1"}},
-            "rollback_conditions": ["şart 1"],
-            "confidence_estimate": 0.0-1.0 float,
-            "estimated_risk": "low|medium|high|critical"
-        }}
-        """
+    def _build_decision_prompt(self, frame: ProblemFrame, context: ContextPackage) -> str:
+        # Planner blueprint'ini 'Decision Matrix' perspektifinden kullan
+        return build_planner_execution_contract(frame, context)
 
     def _parse_json_from_response(self, text: str) -> Dict[str, Any]:
         match = re.search(r'\{.*\}', text, re.DOTALL)

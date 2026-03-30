@@ -28,7 +28,8 @@ class Severity(str, Enum):
     ACTION   = "action"
 
 if TYPE_CHECKING:
-    from core.orchestrator import Orchestrator, SubTask
+    from core.agi.cognitive.nexus_orchestrator import NexusOrchestrator
+    from core.task_management import SubTask
 
 
 @dataclass
@@ -56,7 +57,7 @@ class SelfHealEngine:
     CRITICAL_THRESHOLD = SCORE_THRESHOLDS["degraded"]
     DEAD_THRESHOLD     = SCORE_THRESHOLDS["critical"]
 
-    def __init__(self, orchestrator: "Orchestrator"):
+    def __init__(self, orchestrator: "NexusOrchestrator"):
         self.orch     = orchestrator
         self.rca      = RootCauseAnalyzer()
         self._snaps:  dict[str, AgentSnapshot] = {}
@@ -432,5 +433,5 @@ class _DummySubTask:
         self.attempts = 0
 
 # --- Singleton ---
-from core.orchestrator import orchestrator
-heal_engine = SelfHealEngine(orchestrator)
+from core.agi.cognitive.nexus_orchestrator import nexus_orchestrator
+heal_engine = SelfHealEngine(nexus_orchestrator)

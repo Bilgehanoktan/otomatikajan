@@ -59,6 +59,13 @@ class ProblemFrame:
     expected_output_type: str = "report"
     priority: int = 5
     ambiguity_score: float = 0.0
+    
+    # --- Hiyerarşik Yapı (Phase 17) ---
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    parent_id: Optional[str] = None
+    sub_tasks: List['ProblemFrame'] = field(default_factory=list)
+    status: str = "pending" # pending, in_progress, completed, failed
+    dependencies: List[str] = field(default_factory=list) # IDs of tasks that must finish first
 
 # --- Katman 3: Cognitive Planning Layer ---
 

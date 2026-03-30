@@ -58,7 +58,7 @@ class ImprovementGate:
 
     async def _report_improvement(self, proposal: Dict, auto: bool = False):
         """İyileştirme sonucunu kullanıcıya raporlar (WS üzerinden)."""
-        from core.orchestrator import orchestrator
+        from core.agi.cognitive.nexus_orchestrator import nexus_orchestrator as orchestrator
         msg = f"{'OTONOM ' if auto else ''}İyileştirme Uygulandı: {proposal['issue']['reason']}"
         if orchestrator.ws_manager:
             await orchestrator.ws_manager.broadcast({
@@ -75,7 +75,7 @@ class ImprovementGate:
 
     async def apply_proposal(self, proposal: Dict):
         """Onaylanan yamayı sisteme uygular."""
-        from core.orchestrator import orchestrator
+        from core.agi.cognitive.nexus_orchestrator import nexus_orchestrator as orchestrator
         if not orchestrator.self_updater:
             logger.error("Self-Updater modülü bulunamadı, yama uygulanamıyor.")
             return

@@ -27,10 +27,10 @@ class ProactiveAgent:
         while self.is_running:
             try:
                 async with session_scope() as db:
-                    # --- BÜTÜNLEŞİK BİLİNÇ DÖNGÜSÜ (UNIFIED MIND CYCLE) [Katman 27] ---
-                    from .consciousness.integrated_orchestrator import integrated_orchestrator
-                    _log.info("Bütünleşik AGI Zihin Döngüsü (Unified Mind Cycle) başlatılıyor...")
-                    await integrated_orchestrator.run_mind_cycle(db)
+                    # --- SİNİRSEL ÇEKİRDEK ZİHİN DÖNGÜSÜ (NEURAL CORE CYCLE) [Katman 27] ---
+                    from .consciousness.neural_core_orchestrator import neural_core_orchestrator
+                    _log.info("Sinirsel Çekirdek Zihin Döngüsü (Neural Core Cycle) başlatılıyor...")
+                    await neural_core_orchestrator.run_mind_cycle(db)
                     # -------------------------------------------------------------------
                     
                 # 5. Bekle

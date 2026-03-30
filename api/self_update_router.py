@@ -37,7 +37,7 @@ class SelfUpdateResponse(BaseModel):
 
 # ─── Dependency ───────────────────────────────────────────
 def _orch():
-    from core.orchestrator import orchestrator
+    from core.agi.cognitive.nexus_orchestrator import nexus_orchestrator as orchestrator
     return orchestrator
 
 def _queue():

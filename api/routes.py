@@ -63,7 +63,7 @@ async def system_health():
 
 # ── Lazy bağımlılıklar ────────────────────────────────────
 def _orch():
-    from core.orchestrator import orchestrator
+    from core.agi.cognitive.nexus_orchestrator import nexus_orchestrator as orchestrator
     return orchestrator
 
 def _heal():

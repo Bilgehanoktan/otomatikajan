@@ -36,8 +36,7 @@ class SimulationEngine:
             response = await self.model_orch.complete_task(
                 agent_role="architect",
                 prompt=prompt,
-                system_prompt=system_prompt,
-                task_id=plan.plan_id
+                system_prompt=system_prompt
             )
             
             # Yanıtı analiz et (Basit metin analizi veya yapısal JSON)

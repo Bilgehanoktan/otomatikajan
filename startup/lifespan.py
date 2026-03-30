@@ -17,7 +17,7 @@ from typing import Any
 from fastapi import FastAPI
 
 from config import APP_ENV as _ENV
-from core.orchestrator import orchestrator
+from core.agi.cognitive.nexus_orchestrator import nexus_orchestrator as orchestrator
 from core.heal_engine import heal_engine
 from core.events import event_bus
 from core.job_queue import job_queue
@@ -75,7 +75,7 @@ def register_event_listeners():
 # ─── Watchdog Loop'ları ───────────────────────────────────
 async def ceo_watchdog_loop():
     from core.ceo_engine import CEOEngine
-    from core.orchestrator import orchestrator as _orch
+    from core.agi.cognitive.nexus_orchestrator import nexus_orchestrator as _orch
     ceo = CEOEngine(_orch.model_orch)
 
     while True:
@@ -93,7 +93,7 @@ async def ceo_watchdog_loop():
 
 async def system_controller_watchdog_loop():
     """Faz 12: Sistem sağlığını ve maliyetlerini denetleyen loop."""
-    from core.orchestrator import orchestrator as _orch
+    from core.agi.cognitive.nexus_orchestrator import nexus_orchestrator as _orch
 
     agent = _orch._agents.get("system_controller")
     if not agent:
@@ -227,6 +227,9 @@ async def system_watchdog_supervisor():
     """Arka plandaki tüm kritik denetleyicilerin hayatta kalmasını sağlar."""
     from core.improvement.gate import start_improvement_background_loop
 
+    from core.agi.cognitive.policy_evolution import start_policy_evolution_loop
+    from core.agi.cognitive.goal_synthesizer import start_goal_synthesis_loop
+
     tasks: dict[str, Any] = {
         "ceo_watchdog": ceo_watchdog_loop,
         "sys_ctrl_watchdog": system_controller_watchdog_loop,
@@ -234,6 +237,8 @@ async def system_watchdog_supervisor():
         "memory_leak_monitor": memory_leak_watchdog_loop,
         "improvement_loop": start_improvement_background_loop,
         "reaper_watchdog": reaper_watchdog_loop,
+        "policy_evolution": start_policy_evolution_loop,
+        "goal_synthesis": start_goal_synthesis_loop,
     }
     running_tasks: dict[str, asyncio.Task] = {}
 
@@ -316,7 +321,14 @@ async def lifespan(app: FastAPI):
 
     # 3. Job queue workers
     if getattr(job_queue, "supports_registration", False):
-        job_queue.register("run_project", orchestrator.run_project)
+        # Nexus için coordinate_goal'u task_write/job_queue beklediği run_project formatına bağla
+        async def _run_project_wrapper(**payload):
+            title = payload.get("title", "Unnamed Goal")
+            description = payload.get("description", "")
+            project_id = payload.get("db_project_id", "")
+            return await orchestrator.coordinate_goal(title, description, project_id)
+
+        job_queue.register("run_project", _run_project_wrapper)
         # Faz 12.1 Hydration
         if hasattr(job_queue, "hydrate_from_db"):
             await job_queue.hydrate_from_db()

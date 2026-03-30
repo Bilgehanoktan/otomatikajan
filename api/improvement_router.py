@@ -3,7 +3,7 @@ from typing import List, Optional, Any
 from pydantic import BaseModel
 
 from auth.jwt_auth import get_current_user, require_admin
-from core.orchestrator import orchestrator
+from core.context import orchestrator
 from db.session import AsyncSessionLocal
 from core.improvement_v1.observer import ImprovementObserver
 from observability.logging import get_logger

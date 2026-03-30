@@ -6,6 +6,7 @@ Ağır bağımlılıklar yalnızca gerçekten gerektiğinde yüklenir.
 """
 from __future__ import annotations
 
+import hashlib
 import os
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
@@ -25,14 +26,20 @@ async def get_embedding(text_: str) -> list[float] | None:
     if not api_key:
         return None
     import httpx
-    async with httpx.AsyncClient(timeout=15) as client:
-        resp = await client.post(
-            'https://api.openai.com/v1/embeddings',
-            headers={'Authorization': f'Bearer {api_key}'},
-            json={'model': 'text-embedding-3-small', 'input': text_},
-        )
-        resp.raise_for_status()
-        return resp.json()['data'][0]['embedding']
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.post(
+                'https://api.openai.com/v1/embeddings',
+                headers={'Authorization': f'Bearer {api_key}'},
+                json={'model': 'text-embedding-3-small', 'input': text_},
+            )
+            resp.raise_for_status()
+            return resp.json()['data'][0]['embedding']
+    except Exception as e:
+        from observability.logging import get_logger
+        _log = get_logger("memory_store")
+        _log.warning(f"Embedding API hatas (Sessizce atlanyor): {e}")
+        return None
 
 
 class MemoryStore:
@@ -65,14 +72,21 @@ class MemoryStore:
 
     async def save_episode(self, db: 'AsyncSession', episode_data: dict) -> 'Memory':
         """Bir görevin tam yaşam döngüsünü (Episode) kaydeder."""
-        body = f"Episode: {episode_data.get('title', 'Unknown')}\nResult: {episode_data.get('status')}"
+        metadata = dict(episode_data)
+        metadata.setdefault(
+            "signature",
+            hashlib.sha256(
+                f"episode|{metadata.get('project_id', '')}|{metadata.get('title', '')}|{metadata.get('status', '')}|{str(metadata.get('final_output', ''))[:300]}".encode('utf-8', errors='ignore')
+            ).hexdigest(),
+        )
+        body = f"Episode: {metadata.get('title', 'Unknown')}\nResult: {metadata.get('status')}"
         return await self.save(
             db=db,
             agent_id="system",
             body=body,
             category="episode_record",
-            project_id=episode_data.get("project_id"),
-            metadata=episode_data
+            project_id=metadata.get("project_id"),
+            metadata=metadata
         )
 
     async def save_skill(self, db: 'AsyncSession', skill_data: dict) -> 'Memory':
@@ -102,17 +116,59 @@ class MemoryStore:
     async def memory_write_gate(self, db: 'AsyncSession', data: Any, category: str) -> bool:
         """
         AGI Gate: Belleğe yazma izni verir.
-        Koşullar:
-        - Başarılı doğrulama (Verification)
-        - Önem puanı eşiği
-        - Çelişki kontrolü (Opsiyonel)
+
+        İlkeler:
+        - Hafıza append-only kalira; veri silmek yerine yeni özet/işaretleyici eklenir.
+        - Düşük değerli gürültü filtrelenir.
+        - Aynı episode'un tekrar tekrar yazılması mümkün olduğunca engellenir.
         """
-        importance = getattr(data, 'importance', 0.5)
+        importance = float(getattr(data, 'importance', 0.5) or 0.0)
         if importance < 0.3:
             return False
-            
-        # Gelecekte buraya LLM tabanlı 'değerleme' eklenebilir
+
+        verification = getattr(data, 'verification', None)
+        if category == 'episode_record' and verification is not None:
+            has_signal = bool(getattr(verification, 'result_status', False) or getattr(data, 'lessons_learned', []))
+            if not has_signal:
+                return False
+
+        signature = self._build_memory_signature(data, category)
+        if signature and db is not None:
+            try:
+                from sqlalchemy import select
+                from db.models import Memory
+
+                stmt = (
+                    select(Memory)
+                    .where(Memory.category == category)
+                    .where(Memory.metadata_["signature"].astext == signature)
+                    .limit(1)
+                )
+                existing = (await db.execute(stmt)).scalar_one_or_none()
+                if existing is not None:
+                    return False
+            except Exception:
+                # DB/JSON operatörü her ortamda hazır olmayabilir; gate'i bozmayalım.
+                pass
+
         return True
+
+
+    def _build_memory_signature(self, data: Any, category: str) -> str:
+        """Aynı episode/skill/policy için kaba bir tekrar imzası üretir."""
+        if category == 'episode_record':
+            frame = getattr(data, 'problem_frame', None)
+            verification = getattr(data, 'verification', None)
+            seed = "|".join([
+                category,
+                getattr(frame, 'objective', '') or '',
+                getattr(frame, 'task_type', None).value if getattr(frame, 'task_type', None) else '',
+                str(getattr(verification, 'result_status', '')),
+                str(getattr(data, 'final_output', ''))[:300],
+            ])
+        else:
+            seed = f"{category}|{str(data)[:500]}"
+        return hashlib.sha256(seed.encode('utf-8', errors='ignore')).hexdigest()
 
     async def save_playbook(
         self,

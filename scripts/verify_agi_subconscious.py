@@ -1,48 +1,55 @@
 import asyncio
-import os
 import sys
-import time
+import os
+from sqlalchemy import select, func
+from db.session import AsyncSessionLocal
+from db.models import Memory, Project
+from observability.logging import get_logger
 
-# Proje köke python path ekle
-sys.path.append(os.getcwd())
+_log = get_logger("agi_subconscious_audit")
 
-async def verify_agi_subconscious():
-    print("--- AGI 34.0 Verification ---")
+async def audit_subconscious():
+    """
+    Sistemin 'bilinçaltı' metriklerini (hafıza, politika, nedensellik) denetler.
+    """
+    _log.info("--- AGI BİLİNÇALTI DENETİMİ BAŞLATILIYOR ---")
     
-    try:
-        from core.agi.consciousness.affective_core import affective_core
-        from core.agi.cognitive.theory_of_mind import theory_of_mind
-        from core.agi.consciousness.integrated_orchestrator import IntegratedOrchestrator
+    async with AsyncSessionLocal() as db:
+        # 1. Hafıza İstatistikleri
+        memory_count = await db.scalar(select(func.count()).select_from(Memory))
+        _log.info(f"Toplam Hafıza Kaydı (Episodes/Memories): {memory_count}")
         
-        print("[OK] AGI 34.0 components imported successfully.")
+        # 2. Episode Dağılımı (Kategori Bazlı)
+        categories = await db.execute(
+            select(Memory.category, func.count()).group_by(Memory.category)
+        )
+        _log.info("Kategori Dağılımı:")
+        for cat, cnt in categories:
+            _log.info(f"  - {cat}: {cnt}")
         
-        # Otonom bilinci çağır
-        orchestrator = IntegratedOrchestrator()
+        # 3. Politika (Policy) Durumu
+        policies = await db.scalar(
+            select(func.count()).select_from(Memory).where(Memory.category == "policy")
+        )
+        _log.info(f"Aktif/Önerilen Politikalar: {policies}")
         
-        # 1. Simulate Idle/Curious Mood
-        print("[INFO] Simulating idle/curious mood (High Curiosity, Low Urgency)...")
-        affective_core.state["curiosity"] = 0.9
-        affective_core.state["urgency"] = 0.2
+        # 4. Nedensellik (Causal) Bağlantıları
+        all_memories = await db.execute(select(Memory))
+        causal_count = 0
+        for m in all_memories.scalars():
+            if m.metadata_ and "failure_diagnostics" in m.metadata_:
+                causal_count += 1
+        _log.info(f"Nedensel Analiz İçeren Kayıt Sayısı: {causal_count}")
         
-        # Tetikle `run_mind_cycle` - Asenkron bekleyiş olmadan dönmeli
-        print("[INFO] Running 1st Unified Mind Cycle...")
-        start_t = time.time()
-        from unittest.mock import MagicMock
-        await orchestrator.run_mind_cycle(MagicMock())
-        end_t = time.time()
-        
-        print(f"[OK] Mind Cycle completed in: {end_t - start_t:.3f} seconds.")
-        if (end_t - start_t) < 1.0:
-            print("[OK] Subconscious Dream Thread was successfully spawned in the background (Non-blocking).")
-            
-        print("[INFO] Waiting for Subconscious Thread to finish its dream (2.5 seconds)...")
-        await asyncio.sleep(2.5) # Rüyayı izle
-        print("[OK] Subconscious processing finished gracefully.")
-        
-    except Exception as e:
-        print(f"[ERROR] Verification failed: {e}")
-        import traceback
-        traceback.print_exc()
+        # 5. Proje Bütünlüğü
+        projects = await db.scalar(select(func.count()).select_from(Project))
+        _log.info(f"Toplam Takip Edilen Proje: {projects}")
+
+    _log.info("--- DENETİM TAMAMLANDI ---")
 
 if __name__ == "__main__":
-    asyncio.run(verify_agi_subconscious())
+    try:
+        asyncio.run(audit_subconscious())
+    except Exception as e:
+        _log.error(f"Denetim sırasında kritik hata: {e}")
+        sys.exit(1)

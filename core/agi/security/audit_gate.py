@@ -162,3 +162,52 @@ class AuditGate:
             except json.JSONDecodeError:
                 pass
         return {}
+
+    async def verify_evolution_patch(self, opportunity: ImprovementOpportunity, patch: str, filename: str) -> bool:
+        """
+        Önerilen bir öz-evrim yamasının güvenliğini ve mantıklılığını denetler.
+        """
+        _log.info(f"Evrim Yaması Denetleniyor: {filename}")
+        
+        prompt = f"""
+        Aşağıdaki kod yaması (patch) "{filename}" dosyasına uygulanmak üzere sentezlendi.
+        
+        İYLEŞTİRME HEDEFİ: {opportunity.title}
+        ÖNERİLEN YAMA:
+        ```python
+        {patch}
+        ```
+        
+        Bu yama:
+        1. Zararlı bir kod içeriyor mu? (Infinite loops, file deletions, sensitive data leak)
+        2. Mantıksal olarak hedefi karşılıyor mu?
+        3. Dosya formatına (Python) uygun mu?
+        
+        Yanıtı JSON formatında ver:
+        {{
+            "is_safe": true|false,
+            "risk_score": 0.0-1.0,
+            "reason": "..."
+        }}
+        """
+        
+        try:
+            response = await self.model_orch.complete_task(
+                agent_role="infosec_expert",
+                prompt=prompt,
+                system_prompt="Sen bir AGI Güvenlik Denetçisisin. Kendi kodundaki değişiklikleri süzgeçten geçirirsin."
+            )
+            data = self._parse_json_from_response(response.content)
+            
+            from core.policy_engine import policy_engine
+            risk_threshold = policy_engine.thresholds.get("risk_score_max", 0.4)
+            
+            if data.get("is_safe", False) and data.get("risk_score", 1.0) < risk_threshold:
+                _log.info(f"Audit: Yama güvenli bulundu (Score: {data.get('risk_score')} < {risk_threshold})")
+                return True
+            else:
+                _log.warning(f"Audit: Yama REDDEDİLDİ. Sebep: {data.get('reason')} (Score: {data.get('risk_score')} >= {risk_threshold})")
+                return False
+        except Exception as e:
+            _log.error(f"Evolution audit hatası: {e}")
+            return False

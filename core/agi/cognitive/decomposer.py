@@ -26,6 +26,7 @@ class GoalDecomposer:
         
         prompt = f"""
         Aşağıdaki karmaşık hedefi otonom olarak 2-4 adet alt göreve (sub-task) böl.
+        Alt görevler arasında mantıksal bir sıra (bağımlılık) varsa, bunu 'dependencies' alanında belirt.
         
         ANAHEDEF: {frame.objective}
         RİSK: {frame.risk_level.value}
@@ -35,9 +36,18 @@ class GoalDecomposer:
         {{
             "sub_tasks": [
                 {{
+                    "id": "task_1",
                     "task_type": "...",
                     "objective": "...",
-                    "priority": 1-10
+                    "priority": 1-10,
+                    "dependencies": []
+                }},
+                {{
+                    "id": "task_2",
+                    "task_type": "...",
+                    "objective": "...",
+                    "priority": 1-10,
+                    "dependencies": ["task_1"]
                 }}
             ]
         }}
@@ -47,7 +57,7 @@ class GoalDecomposer:
             response = await self.model_orch.complete_task(
                 agent_role="architect",
                 prompt=prompt,
-                system_prompt="Sen bir AGI Hedef Ayrıştırıcısısın. Karmaşık problemleri daha küçük, yönetilebilir alt görevlere bölmelisin."
+                system_prompt="Sen bir AGI Hedef Ayrıştırıcısısın. Karmaşık problemleri hiyerarşik ve bağımlılıkları gözeterek alt görevlere bölmelisin."
             )
             
             import json, re
@@ -63,6 +73,8 @@ class GoalDecomposer:
                 return [frame]
                 
             sub_frames = []
+            id_map = {} # LLM'in verdiği ID'leri gerçek UUID'lere eşler
+            
             for st in sub_tasks:
                 try:
                     t_type_str = str(st.get("task_type", "research")).upper()
@@ -76,11 +88,18 @@ class GoalDecomposer:
                     priority=st.get("priority", 5),
                     risk_level=frame.risk_level,
                     constraints=frame.constraints,
-                    context_scope="local"
+                    context_scope="local",
+                    parent_id=frame.id
                 )
+                id_map[st.get("id", str(len(sub_frames)))] = sub_frame.id
                 sub_frames.append(sub_frame)
+            
+            # Bağımlılıkları ata
+            for i, st in enumerate(sub_tasks):
+                deps = st.get("dependencies", [])
+                sub_frames[i].dependencies = [id_map[d] for d in deps if d in id_map]
                 
-            _log.info(f"Ana hedef {len(sub_frames)} alt hedefe bölündü.")
+            _log.info(f"Ana hedef {len(sub_frames)} hiyerarşik alt hedefe bölündü.")
             return sub_frames
 
         except Exception as e:

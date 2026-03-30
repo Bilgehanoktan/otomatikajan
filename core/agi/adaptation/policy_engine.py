@@ -3,6 +3,7 @@ from typing import Optional, Dict, List, Any
 from core.agi.schemas import EpisodeRecord, PolicyProposal
 from llm.model_orchestrator import ModelOrchestrator
 from memory.store import memory_store
+from db.session import session_scope
 from observability.logging import get_logger
 
 _log = get_logger("agi_policy_engine")
@@ -26,13 +27,14 @@ class PolicyEngine:
         if not recent_memories:
             return None
 
-        # Başarısızlıkları filtrele
+        # Başarısızlıkları ve başarıları analiz et
         failures = [m for m in recent_memories if m.metadata_.get("status") == "failed"]
-        if len(failures) < 2:
-            _log.info("Yeterli başarısızlık deseni bulunamadı. Analiz durduruldu.")
-            return None
-
-        _log.info(f"{len(failures)} başarısızlık üzerine analiz yapılıyor...")
+        
+        if not failures:
+            _log.info("Son görevlerde hata bulunamadı. Optimizasyon analizi başlatılıyor...")
+            # Eğer hata yoksa bile optimizasyon için devam edebiliriz
+        
+        _log.info(f"{len(failures)} başarısızlık ve {len(recent_memories)} toplam tecrübe üzerine analiz yapılıyor...")
 
         # LLM'e analiz yaptır
         prompt = self._build_evolution_prompt(recent_memories)

@@ -294,7 +294,7 @@ def cleanup_memories():
 def run_self_update_task(target_file_path: str, instruction: str):
     """Sistemin kendi kodunu asenkron olarak değiştirmesi."""
     async def _execute():
-        from core.orchestrator import orchestrator
+        from core.agi.cognitive.nexus_orchestrator import nexus_orchestrator as orchestrator
         if not orchestrator.self_updater:
             return "Self-Updater aktif degil."
         return await orchestrator.self_updater.modify_system_file(
@@ -309,7 +309,7 @@ def run_visual_audit_task():
     """Arayüzü periyodik olarak denetler ve iyileştirme önerileri sunar."""
     async def _execute():
         from observability.visual_util import capture_screenshot
-        from core.orchestrator import orchestrator
+        from core.agi.cognitive.nexus_orchestrator import nexus_orchestrator as orchestrator
         from db.session import AsyncSessionLocal
         from db.repository import ImprovementRepository
         
@@ -356,7 +356,7 @@ def run_market_intelligence_task():
     """Pazar trendlerini analiz eder ve stratejik raporlar hazırlar."""
     async def _execute():
         from tools.web_search import get_web_search
-        from core.orchestrator import orchestrator
+        from core.agi.cognitive.nexus_orchestrator import nexus_orchestrator as orchestrator
         from db.session import AsyncSessionLocal
         from db.repository import ImprovementRepository
         import json

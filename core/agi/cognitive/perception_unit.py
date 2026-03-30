@@ -5,24 +5,27 @@ from observability.logging import get_logger
 from llm.model_orchestrator import ModelOrchestrator
 from core.agi.schemas import UnifiedInput, ProblemFrame, TaskType, RiskLevel
 
-_log = get_logger("agi_interpreter")
+_log = get_logger("agi_perception_unit")
 
-class IntentInterpreter:
+class PerceptionUnit:
     """
-    Bilişsel Çekirdek - Yorumlama Katmanı.
-    UnifiedInput nesnesini 'ProblemFrame' yapısına dönüştürür.
+    Bilişsel Çekirdek - Algı Katmanı (Perception Unit).
+    Ham 'UnifiedInput' girdilerini yüksek seviyeli 'ProblemFrame' (Bilişsel Çerçeve) yapılarına dönüştürür.
+    Bu birim, dış dünyadan gelen duyusal verilerin (istekler, loglar, hatalar) anlamlandırılmasından sorumludur.
     """
     def __init__(self, model_orch: ModelOrchestrator):
         self.model_orch = model_orch
 
-    async def interpret(self, inp: UnifiedInput) -> ProblemFrame:
-        _log.info(f"Yorumlanıyor: {inp.input_id} (Kaynak: {inp.source_type.value})")
+    async def perceive(self, inp: UnifiedInput) -> ProblemFrame:
+        """
+        Girdiyi algıla ve bilişsel bir çerçeve (ProblemFrame) oluştur.
+        """
+        _log.info(f"Algılanıyor: {inp.input_id} (Kaynak: {inp.source_type.value})")
 
-        prompt = self._build_interpreter_prompt(inp)
+        prompt = self._build_perception_prompt(inp)
         try:
-            response = await self.model_orch.generate(
-                prompt,
-                task_id=f"interpret_{inp.input_id[:8]}",
+            response = await self.model_orch.complete(
+                [{"role": "user", "content": prompt}],
                 preferred_agent="architect"
             )
             
@@ -42,7 +45,7 @@ class IntentInterpreter:
                 ambiguity_score=frame_data.get("ambiguity_score", 0.0)
             )
         except Exception as e:
-            _log.error(f"Yorumlama hatası: {e}")
+            _log.error(f"Algılama hatası: {e}")
             # Fallback frame
             return ProblemFrame(
                 task_type=TaskType.ANALYSIS,
@@ -50,10 +53,10 @@ class IntentInterpreter:
                 risk_level=RiskLevel.MEDIUM if inp.urgency > 7 else RiskLevel.LOW
             )
 
-    def _build_interpreter_prompt(self, inp: UnifiedInput) -> str:
+    def _build_perception_prompt(self, inp: UnifiedInput) -> str:
         return f"""
-        Aşağıdaki girdiyi bir 'ProblemFrame' nesnesine dönüştür. 
-        Sistem AGI odaklı bir agent sistemidir. 
+        Aşağıdaki duyusal girdiyi bir 'ProblemFrame' (Bilişsel Çerçeve) nesnesine dönüştür. 
+        Sen gelişmiş bir AGI sisteminin 'Algı Birimi' (Perception Unit) parçasısın. 
         
         Girdi Türü: {inp.source_type.value}
         Girdi İçeriği: {inp.raw_payload}

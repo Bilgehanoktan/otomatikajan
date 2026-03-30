@@ -53,7 +53,7 @@ if _ENV == "production":
         sys.exit(1)
 
 # ── Core singleton'ları ───────────────────────────────────
-from core.orchestrator import orchestrator
+from core.agi.cognitive.nexus_orchestrator import nexus_orchestrator as orchestrator
 from core.heal_engine import heal_engine
 from core.events import event_bus
 from core.job_queue import job_queue
