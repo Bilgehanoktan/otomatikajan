@@ -110,7 +110,7 @@ class IntegratedOrchestrator:
                         db=db_session,
                         title="[AUTONOMOUS] AGI System Evolution",
                         description=mission["raw_proposal"],
-                        source="agi_teleology",
+                        source="api",
                         priority="medium",
                         tags=["autonomous", "agi", "self-evolution"],
                         status=ProjectStatus.PENDING.value
