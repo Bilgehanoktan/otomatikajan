@@ -78,7 +78,17 @@ class IntegratedOrchestrator:
                 global_workspace.broadcast("ChronosMesh", f"Optimal future selected: {optimal.get('type')}", importance=0.95)
         except Exception: pass
 
-        _log.info("--- Btnleik Bilin Dngs Tamamland ---")
+        # 7. Uyku ve Rüya (Memory Consolidation / Semantic Wisdom) [Katman 13]
+        try:
+            from core.agi.learning.dreamer import dreamer
+            # Consolidate best practices periodically via LLM abstraction extraction
+            await dreamer.consolidate_knowledge(db_session)
+            global_workspace.broadcast("Dreamer", "Semantic knowledge consolidated and saved to memory.", importance=0.85)
+        except Exception as e:
+            _log.error(f"Dreamer consolidation hatası: {e}")
+
+        _log.info("--- Bütünleşik Bilinç Döngüsü Tamamlandı ---")
 
 # Singleton
 integrated_orchestrator = IntegratedOrchestrator()
+
