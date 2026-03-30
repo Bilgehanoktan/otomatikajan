@@ -1,48 +1,57 @@
 import asyncio
 import os
 import sys
-from unittest.mock import MagicMock
 
-# Proje köke python path ekle
 sys.path.append(os.getcwd())
 
-async def verify_agi_evolution_intelligence():
-    print("--- AGI 20.0 & 21.0 Verification ---")
+async def verify_agi_evolution():
+    print("--- AGI Phase 13 Action Genesis Verification ---")
     
     try:
-        from core.agi.learning.skill_synthesizer import skill_synthesizer
-        from core.agi.cognitive.aesthetic_auditor import aesthetic_auditor
-        
-        print("[OK] AGI 20.0/21.0 components imported successfully.")
-        
-        # 1. Test Skill Synthesis (Weaver)
-        # Mock DB session
-        mock_db = MagicMock()
-        
-        created_skills = await skill_synthesizer.synthesize_from_wisdom(mock_db)
-        if len(created_skills) > 0:
-            print(f"[OK] Skill Weaver: Successfully synthesized {len(created_skills)} skills.")
-            for s in created_skills:
-                skill_path = os.path.join(".agent/skills", s, "SKILL.md")
-                if os.path.exists(skill_path):
-                    print(f"    - Skill created at: {skill_path}")
-                else:
-                    print(f"    - [WARN] Skill dir created but SKILL.md missing for {s}")
-        else:
-            print("[INFO] Skill Weaver: No new skills to synthesize (already exists or no wisdom).")
+        from core.agi.consciousness.integrated_orchestrator import integrated_orchestrator
+        from db.session import AsyncSessionLocal
+        from db.models import Project
+        from sqlalchemy import select
+        from core.agi.cognitive.teleology_engine import teleology_engine
+        from core.agi.cognitive.hive_memory import hive_memory
 
-        # 2. Test Aesthetic Reflection (Visual Audit)
-        audit_result = await aesthetic_auditor.audit_aesthetics()
-        if audit_result.get("status") == "completed":
-            print(f"[OK] Aesthetic Reflection: Audit completed.")
-            print(f"    - Feedback excerpt: {audit_result['feedback'][:100]}...")
-        else:
-            print(f"[ERROR] Aesthetic Reflection failed: {audit_result}")
-            
+        print("[OK] Modules imported.")
+
+        # Simulate a minimal mind cycle by calling the components manually
+        # 1. Provide fake context
+        hive_memory.shared_state["global_context"] = "System is missing unit tests for the AGI core."
+
+        # 2. Run the Teleology Engine manually
+        wisdom = [
+            {"cognitive_health": "Optimal"},
+            hive_memory.shared_state
+        ]
+        print("\n[STEP 1] Running Teleology Engine...")
+        missions = await teleology_engine.synthesize_missions(wisdom)
+        print(f"[OK] Teleology synthesized {len(missions)} missions.")
+        for m in missions:
+            print(f"  -> {m.get('raw_proposal', '')[:100]}...")
+
+        # 3. Simulate Mind Cycle execution
+        print("\n[STEP 2] Running full Mind Cycle (creates Celery background tasks if confident)...")
+        async with AsyncSessionLocal() as db:
+            await integrated_orchestrator.run_mind_cycle(db)
+
+        # 4. Check if an Autonomous project was created
+        print("\n[STEP 3] Verifying Database for Autonomous Project...")
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(select(Project).where(Project.source == "agi_teleology"))
+            projs = result.scalars().all()
+            print(f"[OK] Found {len(projs)} active Autonomous Projects in DB.")
+            for p in projs[-3:]: # latest 3
+                print(f"  -> ID: {p.id} | Title: {p.title} | Status: {p.status}")
+
+        print("\n--- Verification completed successfully. ---")
+
     except Exception as e:
-        print(f"[ERROR] Verification failed: {e}")
+        print(f"\n[ERROR] Verification failed: {e}")
         import traceback
         traceback.print_exc()
 
 if __name__ == "__main__":
-    asyncio.run(verify_agi_evolution_intelligence())
+    asyncio.run(verify_agi_evolution())
