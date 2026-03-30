@@ -24,10 +24,11 @@ async def verify_agi_subconscious():
         affective_core.state["curiosity"] = 0.9
         affective_core.state["urgency"] = 0.2
         
-        # 2. Tetikle `run_mind_cycle` - Asenkron bekleyiş olmadan dönmeli
+        # Tetikle `run_mind_cycle` - Asenkron bekleyiş olmadan dönmeli
         print("[INFO] Running 1st Unified Mind Cycle...")
         start_t = time.time()
-        await orchestrator.run_mind_cycle()
+        from unittest.mock import MagicMock
+        await orchestrator.run_mind_cycle(MagicMock())
         end_t = time.time()
         
         print(f"[OK] Mind Cycle completed in: {end_t - start_t:.3f} seconds.")
