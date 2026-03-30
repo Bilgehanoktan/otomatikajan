@@ -50,9 +50,38 @@ class GoalDecomposer:
                 system_prompt="Sen bir AGI Hedef Ayrıştırıcısısın. Karmaşık problemleri daha küçük, yönetilebilir alt görevlere bölmelisin."
             )
             
-            # TODO: Gerçek bir parsing ve sub-frame üretimi.
-            # Şimdilik ana görevi döndür (fazla rekürsiyonu önlemek için).
-            return [frame]
+            import json, re
+            match = re.search(r'\{.*\}', response.content, re.DOTALL)
+            if not match:
+                _log.warning("Decomposer JSON sonucu bulamadı. Orijinal hedefe dönülüyor.")
+                return [frame]
+                
+            data = json.loads(match.group())
+            sub_tasks = data.get("sub_tasks", [])
+            
+            if not sub_tasks:
+                return [frame]
+                
+            sub_frames = []
+            for st in sub_tasks:
+                try:
+                    t_type_str = str(st.get("task_type", "research")).upper()
+                    t_type = TaskType[t_type_str] if hasattr(TaskType, t_type_str) else TaskType.RESEARCH
+                except Exception:
+                    t_type = TaskType.RESEARCH
+                    
+                sub_frame = ProblemFrame(
+                    task_type=t_type,
+                    objective=st.get("objective", "Unknown objective"),
+                    priority=st.get("priority", 5),
+                    risk_level=frame.risk_level,
+                    constraints=frame.constraints,
+                    context_scope="local"
+                )
+                sub_frames.append(sub_frame)
+                
+            _log.info(f"Ana hedef {len(sub_frames)} alt hedefe bölündü.")
+            return sub_frames
 
         except Exception as e:
             _log.error(f"Decomposition hatası: {e}")
