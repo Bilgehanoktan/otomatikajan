@@ -30,8 +30,28 @@ class ChronosMesh:
         """
         
         try:
-            response = await model_orchestrator.generate_json(prompt)
-            timelines = response.get("timelines", [])
+            response = await model_orchestrator.complete_task(
+                agent_role="architect",
+                prompt=prompt,
+                system_prompt="Sen bir AGI Zaman Çizgisi Simülatörüsün."
+            )
+            import json
+            # Attempt to parse
+            try:
+                # Remove markdown codeblocks if exist
+                text = response.content.strip()
+                if text.startswith("```json"):
+                    text = text[7:]
+                if text.endswith("```"):
+                    text = text[:-3]
+                data = json.loads(text)
+                if isinstance(data, list):
+                    timelines = data
+                else:
+                    timelines = data.get("timelines", [])
+            except Exception:
+                timelines = []
+                
             _log.info(f"Chronos Mesh: {len(timelines)} paralel zaman çizelgesi başarıyla üretildi.")
             return timelines
         except Exception as e:
