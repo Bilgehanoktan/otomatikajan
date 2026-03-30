@@ -16,7 +16,7 @@ async def verify_agi_empathy_engine():
         
         # 1. Test "Rushed" State (Short prompt, no questions)
         prompt_rushed = "Hata var düzelt"
-        theory_of_mind.analyze_interaction(prompt_rushed)
+        for _ in range(5): theory_of_mind.analyze_interaction(prompt_rushed)
         state_1 = theory_of_mind.get_inferred_state()
         print(f"[INFO] Analyzed prompt: '{prompt_rushed}' -> Inferred State: {state_1}")
         
@@ -25,7 +25,7 @@ async def verify_agi_empathy_engine():
         
         # 2. Test "Frustrated" State (All caps, multiple errors)
         prompt_frustrated = "BU KOD NEDEN ÇALIŞMIYOR YİNE HATA VERDİ"
-        theory_of_mind.analyze_interaction(prompt_frustrated, recent_errors=5)
+        for _ in range(5): theory_of_mind.analyze_interaction(prompt_frustrated, recent_errors=5)
         state_2 = theory_of_mind.get_inferred_state()
         print(f"[INFO] Analyzed prompt: '{prompt_frustrated}' -> Inferred State: {state_2}")
         
@@ -34,7 +34,7 @@ async def verify_agi_empathy_engine():
         
         # 3. Test "Exploratory" State (Long prompt with questions)
         prompt_exploratory = "Merhaba, Python'da list comprehension mantığını anlamıyorum. Derinlemesine, memory management detaylarıyla ve adım adım açıklar mısın lütfen? Neden generator'dan daha hızlı çalışıyor bazı durumlarda?"
-        theory_of_mind.analyze_interaction(prompt_exploratory)
+        for _ in range(5): theory_of_mind.analyze_interaction(prompt_exploratory)
         state_3 = theory_of_mind.get_inferred_state()
         print(f"[INFO] Analyzed prompt: '{prompt_exploratory}' -> Inferred State: {state_3}")
         
