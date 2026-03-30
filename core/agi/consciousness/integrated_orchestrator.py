@@ -16,10 +16,11 @@ class IntegratedOrchestrator:
         """
         _log.info("--- Bütünleşik AGI Zihin Döngüsü (Unified Mind Cycle) Başlatılıyor ---")
         
-        # 0. Duygusal Çekirdek (Affective Core) [Katman 29] & Theory of Mind [Katman 30]
+        # 0. Duygusal Çekirdek (Affective Core) [Katman 29] & Theory of Mind [Katman 30] & Bilinçaltı (Subconscious) [Katman 31]
         try:
             from core.agi.consciousness.affective_core import affective_core
             from core.agi.cognitive.theory_of_mind import theory_of_mind
+            from core.agi.cognitive.subconscious_processor import subconscious_processor
             
             # Basit simülasyon: her döngüde hafif curiosity artışı (idle gibi)
             affective_core.adjust_state("idle", magnitude=0.01)
@@ -27,7 +28,14 @@ class IntegratedOrchestrator:
             user_mood = theory_of_mind.get_inferred_state()
             
             global_workspace.broadcast("AffectiveCore", f"AGI Mood: {mood} | USER Mood: {user_mood}", importance=1.0)
-        except Exception: pass
+            
+            # Bilinçaltını (Subconscious) Tetikle
+            st = affective_core.state
+            if st.get("curiosity", 0) > 0.6 and st.get("urgency", 1) < 0.5:
+                subconscious_processor.spawn_dream_thread()
+            
+        except Exception as e:
+            _log.warning(f"Affective/Subconscious tetikleme hatası: {e}")
         
         # 1. Duyusal Veri Analizi (Sensory/Nervous System)
         try:
