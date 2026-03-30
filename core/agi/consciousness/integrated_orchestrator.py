@@ -44,6 +44,7 @@ class IntegratedOrchestrator:
             global_workspace.broadcast("Axiology", report, importance=0.9)
         except Exception: pass
 
+        reflection = {}
         # 3. Öz-Farkındalık ve Strateji (Metacognitive)
         try:
             from core.agi.monitoring.meta_audit import meta_audit
@@ -52,18 +53,77 @@ class IntegratedOrchestrator:
         except Exception: pass
 
         # 4. Amaç ve Misyon Sentezi (Teleology Engine)
+        missions = []
         try:
             from core.agi.cognitive.teleology_engine import teleology_engine
-            # missions = await teleology_engine.synthesize_missions(...)
-            global_workspace.broadcast("Teleology", "Checking purpose gaps...", importance=0.6)
-        except Exception: pass
+            from core.agi.cognitive.hive_memory import hive_memory
+            import json
+            
+            # Bellek birleşimi (Hafıza koruması)
+            learned_wisdom = [
+                reflection,
+                json.loads(hive_memory.dump_state())
+            ]
+            missions = await teleology_engine.synthesize_missions(learned_wisdom)
+            global_workspace.broadcast("Teleology", f"Synthesized {len(missions)} autonomous missions.", importance=0.9)
+        except Exception as e:
+            _log.warning(f"Teleology pass error: {e}")
 
-        # 5. ngr ve Risk (Foresight Oracle)
+        # 5. Öngörü, Risk (Foresight Oracle) ve Eylem Çıkışı (Celery)
         try:
             from core.agi.cognitive.foresight_oracle import foresight_oracle
-            # risks = await foresight_oracle.simulate_plan(...)
-            global_workspace.broadcast("Foresight", "Scanning timeline risks...", importance=0.5)
-        except Exception: pass
+            from core.agi.schemas import PlanProposal
+            from db.repository import ProjectRepository
+            from db.models import ProjectStatus
+            import uuid
+            
+            for mission in missions:
+                if "raw_proposal" not in mission:
+                    continue
+                
+                plan = PlanProposal(
+                    agent_id="teleology_engine",
+                    content=mission["raw_proposal"],
+                    confidence=0.8
+                )
+                
+                risks = await foresight_oracle.simulate_plan(plan)
+                global_workspace.broadcast("Foresight", f"Simulated risks: {len(risks)} found.", importance=0.8)
+                
+                safe_to_execute = True
+                for rsk in risks:
+                    if "critical" in str(rsk.get("raw", "")).lower():
+                        safe_to_execute = False
+                        break
+                
+                if safe_to_execute:
+                    _log.info("🔔 Otonom Misyon Onaylandı. Action Genesis: Celery'ye görev yollanıyor.")
+                    new_proj = await ProjectRepository.create(
+                        db=db_session,
+                        title="[AUTONOMOUS] AGI System Evolution",
+                        description=mission["raw_proposal"],
+                        source="agi_teleology",
+                        priority="medium",
+                        tags=["autonomous", "agi", "self-evolution"],
+                        status=ProjectStatus.PENDING.value
+                    )
+                    await db_session.commit()
+                    
+                    from tasks.celery_app import celery_app
+                    celery_app.send_task(
+                        "tasks.project_tasks.run_project_task",
+                        kwargs={
+                            "db_project_id": str(new_proj.id),
+                            "title": "[AUTONOMOUS] AGI System Evolution",
+                            "description": mission["raw_proposal"],
+                            "job_id": str(uuid.uuid4())
+                        },
+                        queue="background"
+                    )
+                    global_workspace.broadcast("ActionGateway", f"Spawned background task {new_proj.id}", importance=1.0)
+                    
+        except Exception as e:
+            _log.warning(f"Foresight & Action error: {e}")
 
         # 6. Multiversal Zaman Mesh (Chronos Mesh) [Katman 28]
         try:
