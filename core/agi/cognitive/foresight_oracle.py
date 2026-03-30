@@ -18,14 +18,15 @@ class ForesightOracle:
         """
         Bir planın adımlarını simüle eder ve olası riskleri saptar.
         """
-        _log.info(f"Plan Simülasyonu (Mental Simulation) başlatılıyor: {plan.task_id}...")
+        import dataclasses
+        _log.info(f"Plan Simülasyonu (Mental Simulation) başlatılıyor...")
         
         prompt = f"""
         Aşağıdaki uygulama planını adım adım zihninde simüle et. 
         Her adım için "Ne yanlış gidebilir?" sorusunu sor ve olası riskleri (Edge Cases) belirle.
         
         PLAN:
-        {json.dumps(plan.dict(), indent=2)}
+        {json.dumps(dataclasses.asdict(plan), indent=2)}
         
         Lütfen saptanan riskleri JSON listesi olarak döndür:
         {{
