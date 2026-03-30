@@ -1,5 +1,5 @@
 import json
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Dict
 from core.agi.schemas import EpisodeRecord
 from llm.model_orchestrator import ModelOrchestrator
 from memory.store import memory_store
