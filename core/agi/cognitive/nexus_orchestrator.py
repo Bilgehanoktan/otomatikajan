@@ -16,6 +16,9 @@ from llm.model_orchestrator import ModelOrchestrator
 from memory.retrieval import context_builder
 from quality.output_schema import output_parser, AgentOutput
 from core.task_management import ProjectTask, SubTask, TaskStatus, TaskPlanner, TaskStateService, ReportSynthesizer
+from core.agi.cognitive.architect import Architect
+from core.agi.operational.scaffolder import scaffolder
+from core.agi.cognitive.memory_api import memory_api
 
 _log = get_logger("nexus_orchestrator")
 
@@ -30,6 +33,7 @@ class NexusOrchestrator:
         self.planner     = TaskPlanner()
         self.state_svc   = TaskStateService()
         self.synthesizer = ReportSynthesizer()
+        self.architect   = Architect(model_orch=self.model_orch)
         self.self_updater = None # Faz 8 Infra
         self._agents: dict = {}
         self._health: dict[str, float] = {}
@@ -81,9 +85,14 @@ class NexusOrchestrator:
         task_id = project_id or str(uuid.uuid4())
         _log.info(f"[NEXUS] Hedef koordinasyonu başlatıldı: {title} ({task_id})")
         
+        # --- Faz 20: Stratejik Bağlam Entegrasyonu ---
+        strategic_context = await memory_api.get_strategic_context(query=f"{title} {description}")
+        _log.info("[NEXUS] Stratejik hafıza bağlamı yüklendi.")
+        
         task = ProjectTask(id=task_id, title=title)
         # Niyet Odaklı Dekompozisyon (Intent-Based Decomposition)
-        task.subtasks = self.planner.plan(title, description)
+        # Plana stratejik bağlamı ekleyerek dekompozisyonu güçlendiriyoruz
+        task.subtasks = self.planner.plan(f"{title}\nBAĞLAM: {strategic_context}", description)
         task.status = TaskStatus.RUNNING
         self.state_svc.save(task)
 
@@ -110,17 +119,48 @@ class NexusOrchestrator:
         _log.info(f"[NEXUS] Hedef tamamlandı. Durum: {task.status}")
         return task
 
+    async def coordinate_architecture(self, proposal: Dict[str, Any]) -> bool:
+        """
+        Mimari bir öneriyi koordine eder: Denetim -> Scaffolding -> Görevlendirme.
+        """
+        from core.agi.security.audit_gate import AuditGate
+        gate = AuditGate(self.model_orch)
+        
+        # 1. Mimari Denetim
+        is_safe = await gate.verify_architecture_proposal(proposal)
+        if not is_safe:
+            _log.warning("[NEXUS] Mimari plan denetimi GEÇEMEDİ. İşlem iptal edildi.")
+            return False
+            
+        # 2. Scaffolding (Yapısal İnşa)
+        _log.info("[NEXUS] Mimari inşa (Scaffolding) başlatılıyor.")
+        success = True
+        for action in proposal.get("actions", []):
+            if action["type"] == "create_subsystem":
+                if not scaffolder.scaffold_subsystem(action):
+                    success = False
+            elif action["type"] == "split_file":
+                if not scaffolder.split_file_structure(action["source"], action["targets"]):
+                    success = False
+                    
+        if success:
+            _log.info("[NEXUS] Mimari iskelet başarıyla inşa edildi.")
+            # 3. İskeletlerin doldurulması (Implementation) için yeni proje başlatılabilir
+            # Bu, CEO Engine veya Nexus tarafından otomatik koordine edilir.
+            
+        return success
+
     async def _execute_subtask_nexus(self, st: SubTask, parent_task: ProjectTask):
         """
         Bir alt görevi Nexus üzerinden yürütür. 
-        Burada QuantumExecutor devreye girer.
+        Burada VelocityEngine devreye girer.
         """
         st.status = TaskStatus.RUNNING
         t_start = time.time()
         
         try:
             # --- Faz 17: Quantum Simülasyonu Entegrasyonu ---
-            from core.agi.operational.quantum_executor import quantum_executor
+            from core.agi.operational.velocity_engine import velocity_engine
             
             # Bağlam Genişletme (Contextual Expansion)
             enriched_context = await context_builder.build_context(
@@ -130,7 +170,7 @@ class NexusOrchestrator:
             )
             
             # Eylem simülasyonu ve yürütme (Look-Ahead Grounding)
-            result = await quantum_executor.simulate_and_execute(
+            result = await velocity_engine.simulate_and_execute(
                 agent_id=st.agent_id,
                 prompt=st.prompt,
                 context={"parent_goal": parent_task.title, "full_context": enriched_context},

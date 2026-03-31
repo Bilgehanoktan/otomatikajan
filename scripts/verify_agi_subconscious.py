@@ -1,8 +1,14 @@
 import asyncio
 import sys
 import os
+# Proje köke python path ekle
+if os.getcwd() not in sys.path:
+    sys.path.append(os.getcwd())
+
 from sqlalchemy import select, func
-from db.session import AsyncSessionLocal
+from db.session import AsyncSessionLocal, init_db
+from core.agi.cognitive.synaptic_cortex import synaptic_cortex
+from core.agi.cognitive.motivation_engine import motivation_engine
 from db.models import Memory, Project
 from observability.logging import get_logger
 
@@ -13,6 +19,7 @@ async def audit_subconscious():
     Sistemin 'bilinçaltı' metriklerini (hafıza, politika, nedensellik) denetler.
     """
     _log.info("--- AGI BİLİNÇALTI DENETİMİ BAŞLATILIYOR ---")
+    await init_db()
     
     async with AsyncSessionLocal() as db:
         # 1. Hafıza İstatistikleri
@@ -44,6 +51,14 @@ async def audit_subconscious():
         # 5. Proje Bütünlüğü
         projects = await db.scalar(select(func.count()).select_from(Project))
         _log.info(f"Toplam Takip Edilen Proje: {projects}")
+        
+        # 6. Affective Core (Motivation) Durumu
+        state = motivation_engine.current_state
+        _log.info(f"--- AFFECTIVE CORE DURUMU ---")
+        _log.info(f"  - Motivasyon: {state.motivation_level:.2f}")
+        _log.info(f"  - Dayanıklılık: {state.resilience_score:.2f}")
+        _log.info(f"  - Israr Politikası: {state.persistence_policy}")
+        _log.info(f"  - Enerji Rezervi: {state.energy_reserve:.2f}")
 
     _log.info("--- DENETİM TAMAMLANDI ---")
 

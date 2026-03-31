@@ -23,6 +23,14 @@ except ImportError:
     Vector = None
     _VECTOR_AVAILABLE = False
 
+# Cross-DB JSON Compatibility (SRE Fallback)
+from sqlalchemy import JSON as SA_JSON
+from sqlalchemy.dialects.postgresql import JSONB as PG_JSONB
+
+def SmartJSON():
+    """Postgres'te JSONB, diğerlerinde (SQLite) JSON döner."""
+    return PG_JSONB().with_variant(SA_JSON(), "sqlite")
+
 
 def utcnow():
     return datetime.now(timezone.utc)
@@ -106,7 +114,7 @@ class Project(Base):
     priority      = Column(SAEnum(TaskPriority, native_enum=False, length=16), default=TaskPriority.MEDIUM, nullable=False, index=True)
     # priority: "critical" | "high" | "medium" | "low"
     progress_pct  = Column(Integer, default=0)           # 0-100
-    tags          = Column(JSONB, default=list)           # ["tag1", "tag2"]
+    tags          = Column(SmartJSON(), default=list)           # ["tag1", "tag2"]
     deadline      = Column(DateTime(timezone=True), nullable=True)
     assigned_agent= Column(String(64), default="")       # preferred agent
     error_detail  = Column(Text, default="")             # son hata detayı
@@ -116,8 +124,8 @@ class Project(Base):
     cancelled_by  = Column(String(128), default="")
     workflow_template = Column(String(32), default="default", nullable=False, index=True)
     quality_profile   = Column(String(32), default="standard", nullable=False, index=True)
-    acceptance_criteria = Column(JSONB, default=list)
-    execution_context   = Column(JSONB, default=dict)
+    acceptance_criteria = Column(SmartJSON(), default=list)
+    execution_context   = Column(SmartJSON(), default=dict)
     review_required     = Column(Boolean, default=False, nullable=False)
     # ──────────────────────────────────────────────────────
     created_at   = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
@@ -152,9 +160,9 @@ class SubTask(Base):
     cost_usd      = Column(Float, default=0.0)
     latency_s     = Column(Float, default=0.0)
     quality_score = Column(Float, nullable=True)
-    quality_detail = Column(JSONB, default=dict)
+    quality_detail = Column(SmartJSON(), default=dict)
     reviewed      = Column(Boolean, default=False, nullable=False)
-    review_notes  = Column(JSONB, default=list)
+    review_notes  = Column(SmartJSON(), default=list)
     created_at    = Column(DateTime(timezone=True), default=utcnow)
     updated_at    = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
     completed_at  = Column(DateTime(timezone=True), nullable=True)
@@ -192,7 +200,7 @@ class DomainEventLog(Base):
     severity   = Column(String(32), default="info")
     phase      = Column(String(32), default="")
     message    = Column(Text, default="")
-    payload    = Column(JSONB, default=dict)
+    payload    = Column(SmartJSON(), default=dict)
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
 
 
@@ -217,7 +225,7 @@ class WebhookSubscription(Base):
     id         = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     owner_id   = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
     url        = Column(String(2048), nullable=False)
-    events     = Column(JSONB, default=list)
+    events     = Column(SmartJSON(), default=list)
     secret     = Column(String(64), nullable=False)
     is_active  = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), default=utcnow)
@@ -249,7 +257,7 @@ class TaskLog(Base):
     # event: "status_change" | "agent_start" | "agent_done" | "retry" | "error" | "cancelled"
     message    = Column(Text, default="")
     agent_id   = Column(String(64), default="system")
-    payload    = Column(JSONB, default=dict)
+    payload    = Column(SmartJSON(), default=dict)
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
 
     project = relationship("Project", back_populates="task_logs")
@@ -355,8 +363,8 @@ class Memory(Base):
     body        = Column("content", Text, nullable=False)            # DB'de 'content' olarak geçer
     category    = Column(String(64), default="general", nullable=False, index=True)
     importance  = Column(Float, default=0.5, nullable=False)
-    metadata_   = Column(JSONB, default=dict)                        # DB'de JSONB
-    tags        = Column(JSONB, default=list)                        # DB'de JSONB
+    metadata_   = Column(SmartJSON(), default=dict)                        # DB'de JSONB
+    tags        = Column(SmartJSON(), default=list)                        # DB'de JSONB
     expires_at  = Column(DateTime(timezone=True), nullable=True)
     project_id  = Column(String(64), nullable=True, index=True)      # DB'de 'character varying'
     created_at  = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
@@ -400,7 +408,7 @@ class CEOSuggestedTask(Base):
     owner_agent_hint = Column(String(64))
     status           = Column(String(32), default="suggested") # suggested, approved, rejected
     reasoning_summary = Column(Text)
-    impact_projection = Column(JSONB, default=dict)
+    impact_projection = Column(SmartJSON(), default=dict)
     created_task_id  = Column(UUID(as_uuid=True), nullable=True)
     created_at       = Column(DateTime(timezone=True), default=utcnow)
 
@@ -442,7 +450,7 @@ class SkillExecutionLog(Base):
     skill_id     = Column(String(64), nullable=False, index=True)
     success      = Column(Boolean, default=True, nullable=False)
     summary      = Column(Text, default="")
-    data         = Column(JSONB, default=dict) # Skill-specific output
+    data         = Column(SmartJSON(), default=dict) # Skill-specific output
     duration_s   = Column(Float, default=0.0)
     created_at   = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
 

@@ -44,7 +44,7 @@ async def verify_nexus_quantum_sync():
         
     # 3. Quantum Executor Simulation Check
     try:
-        from core.agi.operational.quantum_executor import quantum_executor
+        from core.agi.operational.velocity_engine import velocity_engine
         print("[-] Testing Quantum Executor 'Look-Ahead' Grounding...")
         
         # Test a safe file read simulation
@@ -53,7 +53,7 @@ async def verify_nexus_quantum_sync():
             "path": "main.py"
         }
         
-        simulation_result = await quantum_executor.simulate(action, context={"reason": "Self-test"})
+        simulation_result = await velocity_engine.simulate(action, context={"reason": "Self-test"})
         
         if simulation_result.get("status") == "success":
             print(f"[OK] Quantum Simulation Successful: {simulation_result.get('summary')}")

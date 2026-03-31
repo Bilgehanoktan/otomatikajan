@@ -1,5 +1,5 @@
 from typing import Optional, List, Dict, Any
-from memory.store import memory_store
+from core.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
 from db.session import session_scope
 from observability.logging import get_logger
 

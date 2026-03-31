@@ -8,23 +8,23 @@ async def verify_agi_evolution():
     print("--- AGI Phase 13 Action Genesis Verification ---")
     
     try:
-        from core.agi.consciousness.integrated_orchestrator import integrated_orchestrator
+        from core.agi.consciousness.neural_core_orchestrator import NeuralCoreOrchestrator
         from db.session import AsyncSessionLocal
         from db.models import Project
         from sqlalchemy import select
         from core.agi.cognitive.teleology_engine import teleology_engine
-        from core.agi.cognitive.hive_memory import hive_memory
+        from core.agi.cognitive.swarm_cortex import swarm_cortex
 
         print("[OK] Modules imported.")
 
         # Simulate a minimal mind cycle by calling the components manually
         # 1. Provide fake context
-        hive_memory.shared_state["global_context"] = "System is missing unit tests for the AGI core."
+        swarm_cortex.shared_state["global_context"] = "System is missing unit tests for the AGI core."
 
         # 2. Run the Teleology Engine manually
         wisdom = [
             {"cognitive_health": "Optimal"},
-            hive_memory.shared_state
+            swarm_cortex.shared_state
         ]
         print("\n[STEP 1] Running Teleology Engine...")
         missions = await teleology_engine.synthesize_missions(wisdom)
@@ -33,9 +33,10 @@ async def verify_agi_evolution():
             print(f"  -> {m.get('raw_proposal', '')[:100]}...")
 
         # 3. Simulate Mind Cycle execution
-        print("\n[STEP 2] Running full Mind Cycle (creates Celery background tasks if confident)...")
+        print("\n[STEP 2] Running full Mind Cycle (creates background tasks if confident)...")
         async with AsyncSessionLocal() as db:
-            await integrated_orchestrator.run_mind_cycle(db)
+            nco = NeuralCoreOrchestrator()
+            await nco.run_mind_cycle(db)
 
         # 4. Check if an Autonomous project was created
         print("\n[STEP 3] Verifying Database for Autonomous Project...")

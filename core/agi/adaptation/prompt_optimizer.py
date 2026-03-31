@@ -2,7 +2,7 @@ import os
 import json
 from typing import Optional, Dict, List, Any
 from llm.model_orchestrator import ModelOrchestrator
-from memory.store import memory_store
+from core.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
 from sqlalchemy.ext.asyncio import AsyncSession
 from observability.logging import get_logger
 

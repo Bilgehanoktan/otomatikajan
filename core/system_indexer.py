@@ -65,8 +65,16 @@ class SystemIndexer:
             self.project_root = Path(__file__).resolve().parents[1]
 
         self.index_path = (self.project_root / index_path).resolve()
+        
+        # Faz 30: Caching Layer
+        self._cached_data: Dict[str, Any] | None = None
+        self._cached_mtime: float = 0.0
+        self._last_read_time: float = 0.0
+        self._cache_ttl: int = 60 # saniye
 
     def _atomic_write_json(self, data: Dict[str, Any]) -> None:
+        # Yazma işlemi yapıldığında cache'i geçersiz kıl
+        self._cached_data = None
         self.index_path.parent.mkdir(parents=True, exist_ok=True)
 
         fd, temp_path = tempfile.mkstemp(
@@ -216,9 +224,26 @@ class SystemIndexer:
         if not self.index_path.exists():
             return self.build_index()
 
+        import time
+        now = time.time()
+        
+        # 1. TTL ve mtime Kontrolü
+        if self._cached_data and (now - self._last_read_time < self._cache_ttl):
+            return self._cached_data
+
         try:
+            current_mtime = self.index_path.stat().st_mtime
+            if self._cached_data and (current_mtime <= self._cached_mtime):
+                self._last_read_time = now
+                return self._cached_data
+            
+            # 2. Diskten Oku (Cache Geçersiz veya İlk Okuma)
             with self.index_path.open("r", encoding="utf-8") as f:
-                return json.load(f)
+                self._cached_data = json.load(f)
+                self._cached_mtime = current_mtime
+                self._last_read_time = now
+                logger.debug(f"[INDEXER-CACHE] İndeks diskten yüklendi: {self.index_path.name}")
+                return self._cached_data
         except Exception:
             return self.build_index()
 

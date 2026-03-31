@@ -94,10 +94,10 @@ class TaskPlanner:
             "boundaries": "Sistem mimarisini veya kodu eleştirme, sadece olanı son kullanıcı ve geliştiriciler için belgele.",
             "expected_output": "1. Kurulum talimatları\n2. API kullanım örnekleri\n3. Genel geliştirici rehberi"
         },
-        "system_controller": {
-            "skill": "Sistem sağlığı, maliyet analizi ve genel denetim",
-            "boundaries": "Teknik geliştirme yapma. Sadece diğer ajanların çıktılarını sistem bütünlüğü ve maliyet açısından denetle.",
-            "expected_output": "1. Sistem Sağlık Raporu\n2. Tahmini Operasyonel Maliyetler\n3. Mimari Uyum Onayı"
+        "self_governor": {
+            "skill": "Sistem sağlığı, otonom politika yönetimi ve hata analizi",
+            "boundaries": "Teknik geliştirme yapma. Sadece diğer ajanların çıktılarını sistem bütünlüğü, maliyet ve politika uyumu açısından denetle.",
+            "expected_output": "1. Öz-Yönetim Raporu\n2. Kök Neden Analizi (Hata varsa)\n3. Politika Önerileri (preferred_provider vb.)"
         },
     }
 

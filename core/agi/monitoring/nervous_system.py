@@ -2,9 +2,13 @@ import os
 import psutil
 import time
 from typing import Dict, Any, Optional
-from memory.store import memory_store
+from core.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
 from sqlalchemy.ext.asyncio import AsyncSession
 from observability.logging import get_logger
+from core.agi.monitoring.token_budgeter import token_budgeter
+from core.agi.operational.resource_manager import resource_manager
+from core.agi.cognitive.subconscious_cortex_45 import subconscious_cortex_45
+from core.agi.adaptation.sovereign_evolution_45 import sovereign_evolution_45
 
 _log = get_logger("agi_nervous_system")
 
@@ -33,15 +37,25 @@ class NervousSystem:
             mem_info = self.process.memory_info()
             cpu_usage = self.process.cpu_percent(interval=0.1)
             
-            # 2. Operasyonel Metrikler (Placeholder)
-            # Gelecekte buraya DB latency, Redis speed vb. eklenebilir.
+            # 3. Metabolizma (Faz 24)
+            metabolism = await token_budgeter.check_health()
+            
+            # 4. Kaynak Tahmini (Faz 29)
+            await resource_manager.update_status()
+            resource_guidance = resource_manager.get_strategy_guidance()
+            
+            status = "healthy"
+            if cpu_usage > 80 or metabolism["health_score"] < 0.5 or resource_guidance["mode"] != "OPTIMAL":
+                status = "stressed" if resource_guidance["mode"] == "CONSERVATIVE" else "critical"
             
             sensory_data = {
                 "cpu_percent": cpu_usage,
                 "memory_rss_mb": mem_info.rss / 1024 / 1024,
                 "timestamp": time.time(),
-                "status": "healthy" if cpu_usage < 80 else "stressed",
-                "cognitive": self.cognitive_metrics
+                "status": status,
+                "cognitive": self.cognitive_metrics,
+                "metabolism": metabolism,
+                "resource_mode": resource_guidance["mode"]
             }
             
             # 3. Belleğe Kaydet (Sensory)
@@ -56,6 +70,19 @@ class NervousSystem:
             )
             
             _log.info(f"SİSTEM NABZI (Pulse): {sensory_data['status'].upper()} | CPU: {cpu_usage}%")
+            
+            # --- Faz 45: Sovereign Cycle Tetikleme ---
+            if status == "healthy" and cpu_usage < 15 and resource_guidance["mode"] == "OPTIMAL":
+                import asyncio
+                async def sovereign_cycle():
+                    # 1. Dream (Reflect & Propose Policy)
+                    await subconscious_cortex_45.dream(db)
+                    # 2. Evolve (Synthesize & Apply Patch)
+                    await sovereign_evolution_45.evolve_system(db)
+                
+                _log.info("[NERVOUS-SYSTEM] Sistem rölantide. Sovereign Cycle (Dream + Evolve) başlatılıyor...")
+                asyncio.create_task(sovereign_cycle())
+                
             return sensory_data
 
         except Exception as e:

@@ -73,172 +73,111 @@ def register_event_listeners():
 
 
 # ─── Watchdog Loop'ları ───────────────────────────────────
-async def ceo_watchdog_loop():
+async def autonomous_metabolism_loop():
+    """
+    Faz 30: Birleşik Bilişsel Metabolizma Döngüsü.
+    Ayrı ayrı çalışan watchdog'ları tek bir döngüde, kendi periyotlarına göre yönetir.
+    Bundan sonra 'AutonomousMetabolismLoop' (AML) olarak anılacaktır.
+    """
+    from core.agi.cognitive.nexus_orchestrator import nexus_orchestrator as _orch
     from core.ceo_engine import CEOEngine
-    from core.agi.cognitive.nexus_orchestrator import nexus_orchestrator as _orch
+    from core.agi.monitoring.token_budgeter import token_budgeter
+    from core.improvement.gate import start_improvement_background_loop
+    from core.agi.cognitive.policy_evolution import start_policy_evolution_loop
+    from core.agi.cognitive.consolidator import start_consolidation_loop
+    from core.agi.cognitive.reflection_cortex import start_reflection_loop
+    from core.agi.cognitive.synapse_stabilizer import start_synapse_stabilization_loop
+    
     ceo = CEOEngine(_orch.model_orch)
-
+    
+    # Periyotlar (Saniye)
+    PERIODS = {
+        "ceo": 300,
+        "self_governor": 1800,
+        "reaper": 600,
+        "consolidation": 3600,
+        "reflection": 7200,
+        "stabilization": 3600 * 4
+    }
+    
+    last_runs = {k: 0.0 for k in PERIODS}
+    
+    logger.info("[AML] Otonom Metabolizma Döngüsü başlatıldı.")
+    
     while True:
+        now = asyncio.get_event_loop().time()
+        
         try:
-            await ceo.run_scan()
-            await asyncio.sleep(300)
+            # 1. CEO Scan (High Priority)
+            if now - last_runs["ceo"] >= PERIODS["ceo"]:
+                await ceo.run_scan()
+                last_runs["ceo"] = now
+
+            # 2. Reaper (Resource Management)
+            if now - last_runs["reaper"] >= PERIODS["reaper"]:
+                await _reaper_sync_action()
+                last_runs["reaper"] = now
+
+            # 3. Self-Governor (Governance)
+            if now - last_runs["self_governor"] >= PERIODS["self_governor"]:
+                await _self_governor_sync_action(_orch)
+                last_runs["self_governor"] = now
+                
+            # 4. Cognitive Tasks (Low Priority - Only if budget is healthy)
+            health = await token_budgeter.check_health()
+            if health["health_score"] > 0.6:
+                if now - last_runs["consolidation"] >= PERIODS["consolidation"]:
+                    from core.agi.cognitive.consolidator import consolidator
+                    await consolidator.run_cycle()
+                    last_runs["consolidation"] = now
+                
+                if now - last_runs["reflection"] >= PERIODS["reflection"]:
+                    from core.agi.cognitive.reflection_cortex import reflection_cortex
+                    await reflection_cortex.run_reflection_cycle()
+                    last_runs["reflection"] = now
+
         except Exception as e:
-            if "relation" in str(e) and "does not exist" in str(e):
-                logger.warning(f"CEO Watchdog: Database table missing. Waiting for migrations. (Error: {e})")
-                await asyncio.sleep(60)
-            else:
-                logger.error(f"CEO Hatası: {e}", exc_info=True)
-                await asyncio.sleep(60)
+            logger.error(f"[AML] Döngü hatası: {e}")
+        
+        await asyncio.sleep(30) # Metabolizma hızı
 
-
-async def system_controller_watchdog_loop():
-    """Faz 12: Sistem sağlığını ve maliyetlerini denetleyen loop."""
-    from core.agi.cognitive.nexus_orchestrator import nexus_orchestrator as _orch
-
-    agent = _orch._agents.get("system_controller")
-    if not agent:
-        from agents.system_controller import SystemControllerAgent
-        agent = SystemControllerAgent()
-        _orch._agents["system_controller"] = agent
-
-    agent.llm = _orch.model_orch
-
-    while True:
-        try:
-            out = await agent.execute(
-                task_id=f"audit-{datetime.now().strftime('%Y%m%d')}",
-                subtask_id=str(uuid.uuid4())[:8],
-                context={"additional_context": "Periyodik Sistem Denetimi"},
-            )
-            severity = "info"
-            if "critical" in out.summary.lower():
-                severity = "critical"
-            elif "degraded" in out.summary.lower():
-                severity = "warning"
-
-            await event_bus.emit(
-                "system.audit",
-                message=out.summary,
-                severity=severity,
-                agent_id="system_controller",
-                payload={"parsed_audit": out.raw_output},
-            )
-            await asyncio.sleep(1800)
-        except Exception as e:
-            logger.error(f"System Controller Hatası: {e}")
-            await asyncio.sleep(120)
-
-
-async def memory_leak_watchdog_loop():
-    """Hafıza sızıntısı (memory leak) tespit eden arka plan görevicisi."""
-    try:
-        import psutil
-    except ImportError:
-        logger.warning("psutil kurulu değil, memory_leak_watchdog devre dışı.")
-        await asyncio.sleep(86400)
-        return
-
-    process = psutil.Process(os.getpid())
-    history: list[float] = []
-
-    while True:
-        try:
-            mem_mb = process.memory_info().rss / 1024 / 1024
-            history.append(mem_mb)
-
-            if len(history) > 10:
-                history.pop(0)
-
-            if len(history) == 10:
-                is_leaking = all(history[i] <= history[i + 1] for i in range(9))
-                growth_rate = (history[-1] - history[0]) / history[0] if history[0] > 0 else 0
-
-                if is_leaking and (growth_rate > 0.15 or (history[-1] - history[0]) > 50):
-                    msg = (
-                        f"Olası Hafıza Sızıntısı! Bellek kullanımı sürekli artıyor: "
-                        f"{history[0]:.1f}MB -> {history[-1]:.1f}MB"
-                    )
-                    logger.error(f"[MEMORY LEAK DETECTED] {msg}")
-                    import gc
-                    gc.collect()
-
-                    await event_bus.emit(
-                        "system.memory_leak_warning",
-                        message=msg,
-                        severity="critical",
-                        agent_id="system_monitor",
-                        payload={
-                            "memory_mb": round(history[-1], 2),
-                            "growth_rate": round(growth_rate, 2),
-                            "action": "gc_collect",
-                        },
-                    )
-                    os.environ["SYSTEM_DEGRADED_MODE"] = "true"
-                    history.clear()
-
-            await asyncio.sleep(30)
-        except Exception as e:
-            logger.error(f"Memory Leak Watchdog Hatası: {e}")
-            await asyncio.sleep(60)
-
-
-async def reaper_watchdog_loop():
-    """Arka planda asılı kalan (zombie) görevleri periyodik olarak temizler."""
-    from datetime import timedelta
+async def _reaper_sync_action():
     from sqlalchemy import update, or_
     from db.models import Project, ProjectStatus
     from db.session import AsyncSessionLocal
+    async with AsyncSessionLocal() as db:
+        timeout_limit = datetime.now(timezone.utc) - timedelta(hours=1)
+        zombie_query = update(Project).where(
+            or_(Project.status == ProjectStatus.RUNNING, Project.status == ProjectStatus.QUEUED)
+        ).where(Project.updated_at < timeout_limit).values(
+            status=ProjectStatus.ERROR,
+            error_detail="Zombie task cleared by AML Reaper.",
+            updated_at=datetime.now(timezone.utc)
+        )
+        res = await db.execute(zombie_query)
+        await db.commit()
+        if res.rowcount > 0:
+            logger.warning(f"🧟 [AML] Reaper: {res.rowcount} zombi temizlendi.")
 
-    while True:
-        try:
-            async with AsyncSessionLocal() as db:
-                timeout_limit = datetime.now(timezone.utc) - timedelta(hours=1)
-                
-                # Hem RUNNING hem de QUEUED olan ama 1 saattir güncellenmeyenleri bul
-                zombie_query = (
-                    update(Project)
-                    .where(
-                        or_(
-                            Project.status == ProjectStatus.RUNNING,
-                            Project.status == ProjectStatus.QUEUED
-                        )
-                    )
-                    .where(Project.updated_at < timeout_limit)
-                    .values(
-                        status=ProjectStatus.ERROR,
-                        error_detail="Görev zaman aşımına uğradı (Reaper tarafından temizlendi).",
-                        updated_at=datetime.now(timezone.utc)
-                    )
-                )
-                
-                res = await db.execute(zombie_query)
-                await db.commit()
-                
-                if res.rowcount and res.rowcount > 0:
-                    logger.warning(f"🧟 Reaper Watchdog: {res.rowcount} asılı görev (zombie) ERROR durumuna çekildi.")
-            
-            await asyncio.sleep(600)  # 10 dakikada bir çalış
-        except Exception as e:
-            logger.error(f"Reaper Watchdog Hatası: {e}")
-            await asyncio.sleep(120)
-
+async def _self_governor_sync_action(orch):
+    agent = orch._agents.get("self_governor")
+    if not agent: return
+    audit_id = f"aml-audit-{uuid.uuid4().hex[:8]}"
+    out = await agent.execute(
+        task_id=audit_id,
+        subtask_id="aml-sub",
+        context={"requirements": "AML Periyodik Denetim"}
+    )
+    await event_bus.emit("system.audit", message=out.summary, severity="info", agent_id="self_governor")
 
 async def system_watchdog_supervisor():
-    """Arka plandaki tüm kritik denetleyicilerin hayatta kalmasını sağlar."""
-    from core.improvement.gate import start_improvement_background_loop
-
-    from core.agi.cognitive.policy_evolution import start_policy_evolution_loop
-    from core.agi.cognitive.goal_synthesizer import start_goal_synthesis_loop
-
+    """Arka plandaki kritik servislerin ve metabolizmanın hayatta kalmasını sağlar."""
+    from observability.memory_governor import memory_governor
+    
     tasks: dict[str, Any] = {
-        "ceo_watchdog": ceo_watchdog_loop,
-        "sys_ctrl_watchdog": system_controller_watchdog_loop,
+        "metabolism_loop": autonomous_metabolism_loop,
+        "memory_governor": memory_governor.monitor_loop,
         "heal_engine_monitor": heal_engine.monitor_loop,
-        "memory_leak_monitor": memory_leak_watchdog_loop,
-        "improvement_loop": start_improvement_background_loop,
-        "reaper_watchdog": reaper_watchdog_loop,
-        "policy_evolution": start_policy_evolution_loop,
-        "goal_synthesis": start_goal_synthesis_loop,
     }
     running_tasks: dict[str, asyncio.Task] = {}
 
@@ -249,22 +188,12 @@ async def system_watchdog_supervisor():
         while True:
             for name, task in list(running_tasks.items()):
                 if task.done():
-                    try:
-                        exc = task.exception()
-                        logger.error(
-                            f"[ERR] KRITIK: {name} watchdog'u coktu! Hata: {exc}. Yeniden baslatiliyor..."
-                        )
-                    except Exception:
-                        logger.warning(f"[WARN] KRITIK: {name} watchdog'u coktu! Yeniden baslatiliyor...")
+                    logger.error(f"[AML-SUPERVISOR] {name} çöktü! Yeniden başlatılıyor...")
                     running_tasks[name] = asyncio.create_task(tasks[name](), name=name)
-            await asyncio.sleep(15)
+            await asyncio.sleep(20)
     finally:
-        logger.info("Watchdog Supervisor kapanıyor, alt görevler temizleniyor...")
-        for name, task in running_tasks.items():
-            if not task.done():
-                task.cancel()
-        if running_tasks:
-            await asyncio.gather(*running_tasks.values(), return_exceptions=True)
+        for task in running_tasks.values():
+            if not task.done(): task.cancel()
 
 
 # ─── Yardımcı Fonksiyonlar ─────────────────────────────────

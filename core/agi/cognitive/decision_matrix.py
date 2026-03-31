@@ -64,8 +64,14 @@ class DecisionMatrix:
             )
 
     def _build_decision_prompt(self, frame: ProblemFrame, context: ContextPackage) -> str:
-        # Planner blueprint'ini 'Decision Matrix' perspektifinden kullan
-        return build_planner_execution_contract(frame, context)
+        base_prompt = build_planner_execution_contract(frame, context)
+        
+        # Faz 22: Synapse (Bilinçaltı) Derslerini Enjekte Et
+        if context.synapse_lessons:
+            lessons_text = "\n".join([f"- [{m['category']}]: {m['body']}" for m in context.synapse_lessons])
+            base_prompt += f"\n\n### INNATE LESSONS (SYNAPSE)\n{lessons_text}\n\nLütfen planı hazırlarken bu 'bilinçaltı' derslerini ve politikaları temel al."
+            
+        return base_prompt
 
     def _parse_json_from_response(self, text: str) -> Dict[str, Any]:
         match = re.search(r'\{.*\}', text, re.DOTALL)

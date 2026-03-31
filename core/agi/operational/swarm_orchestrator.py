@@ -1,7 +1,7 @@
 import asyncio
 from typing import List, Dict, Any, Optional
 from core.agi.orchestrator import ModelOrchestrator
-from core.agi.cognitive.hive_memory import hive_memory
+from core.agi.cognitive.swarm_cortex import swarm_cortex
 from observability.logging import get_logger
 
 _log = get_logger("agi_swarm_orchestrator")
@@ -21,7 +21,7 @@ class SwarmOrchestrator:
         
         # 1. Kovan durumunu güncelle
         epic_ctx = "%.100s" % epic_task
-        await hive_memory.update_hive_context(f"Şu anki Epic: {epic_ctx}")
+        await swarm_cortex.update_hive_context(f"Şu anki Epic: {epic_ctx}")
         
         # 2. Görevi parçala (Decomposition)
         sub_tasks = await self._decompose_epic(epic_task)

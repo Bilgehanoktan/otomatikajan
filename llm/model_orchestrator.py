@@ -8,6 +8,8 @@ from pydantic import BaseModel
 import logging
 import httpx
 import random
+from core.agi.monitoring.token_budgeter import token_budgeter
+from core.agi.operational.resource_manager import resource_manager
 
 logger = logging.getLogger(__name__)
 
@@ -193,8 +195,8 @@ ROUTING_POLICY: dict[str, list[str]] = {
     # Tech Writer: Fluent and cheap
     "tech_writer": ["gemini", "openai", "groq", "openrouter", "anthropic"],
     
-    # System Controller: Decision/Planning
-    "system_controller": ["openai", "groq", "anthropic", "gemini"],
+    # Self Governor: Decision/Planning
+    "self_governor": ["openai", "groq", "anthropic", "gemini"],
     
     # Strategist: Planning/Reasoning
     "strategist": ["nvidia", "anthropic", "openai", "groq"],
@@ -223,8 +225,17 @@ class ModelOrchestrator:
     sağlayıcıları (fallback zinciriyle) dener, devre kesiciyi yönetir.
     """
 
+    # Global Pacing & Resilience (Faz 12.1 Root Cause Fix)
+    _GLOBAL_THROTTLE_UNTIL: float = 0.0 # Tüm sağlayıcılar için ortak sessizlik süresi
+    _LATENCY_HISTORY: list[float] = []
+
     def __init__(self):
         self.providers = {p.name: p for p in PROVIDERS}
+        
+        # Faz 12.1: Dinamik Başlatma (Registry'den bağımsız ama orkestrasyon için gerekli)
+        self._agents: Dict[str, Any] = {} 
+        self.client = httpx.AsyncClient(timeout=90.0) # Arttırılmış timeout
+        logger.info(f"ModelOrchestrator: {len(self.providers)} saglayici ile baslatildi.")
         self._log_provider_status()
 
     async def generate(self, prompt: str, system_prompt: str = "Sen yardımcı bir AI asistansın.") -> str:
@@ -277,23 +288,31 @@ class ModelOrchestrator:
             except Exception as e:
                 logger.warning(f"Budget check error: {e}")
 
-        # ── DİNAMİK PROMPT YAMASI ──
-        try:
-            from core.prompt_manager import prompt_manager
-            system_prompt = prompt_manager.apply_patch(agent_role, system_prompt)
-        except Exception as e:
-            logger.warning(f"Prompt patch hatası: {e}")
+        # 1. Global Pacing (Rate Limit Savunması)
+        if ModelOrchestrator._GLOBAL_THROTTLE_UNTIL > time.time():
+            wait_time = ModelOrchestrator._GLOBAL_THROTTLE_UNTIL - time.time()
+            logger.warning(f"SİSTEMSEL YAVAŞLATMA (COOLDOWN) AKTİF. {wait_time:.1f}s bekleniyor...")
+            await asyncio.sleep(wait_time)
 
-        # ── THEORY OF MIND (EMPATHY ENGINE) [Katman 30] ──
-        try:
-            from core.agi.cognitive.theory_of_mind import theory_of_mind
-            from core.agi.adaptation.empathy_tuner import empathy_tuner
-            # Model the user's state from the current prompt
-            theory_of_mind.analyze_interaction(prompt)
-            # Apply psychological empathy patch
-            system_prompt = empathy_tuner.patch_system_prompt(system_prompt)
-        except Exception as e:
-            logger.warning(f"Empathy Tuner (ToM) hatası: {e}")
+        # 2. Bütçe ve Kaynak Kontrolü
+        if not await token_budgeter.should_execute(agent_role):
+            raise RuntimeError(f"Ajan {agent_role} için bütçe/hız sınırı aşıldı.")
+
+        # 3. Prompt Hazırlığı ve Dinamik Yama (Strategist + Empathy Tuner)
+        from core.prompt_manager import prompt_manager
+        from core.agi.adaptation.empathy_tuner import empathy_tuner
+
+        system_prompt = prompt_manager.apply_patch(agent_role, system_prompt)
+        system_prompt = empathy_tuner.patch_system_prompt(system_prompt)
+        
+        # Boş mesaj koruması (400 Bad Request Fix)
+        if not prompt or not prompt.strip():
+            prompt = "(İçerik boş bırakıldı - otonom dolgu)"
+            
+        messages = [
+            {"role": "system", "content": system_prompt or "Sen bir AI asistansın."},
+            {"role": "user", "content": prompt}
+        ]
 
         # Ajanın rolüne göre fallback zincirini al
         base_providers = ROUTING_POLICY.get(agent_role, ROUTING_POLICY["general"])
@@ -337,12 +356,6 @@ class ModelOrchestrator:
                 skipped_details.append(f"{provider_name} (Circuit Open)")
                 continue
 
-            # API çağrısı için mesaj formatı
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt}
-            ]
-            
             try:
                 result = await self._call(provider, messages, max_tokens=2048, project_id=project_id)
                 return result
@@ -351,11 +364,17 @@ class ModelOrchestrator:
                 last_error = e
                 # Rate Limit (429) tespiti
                 is_rate_limit = "429" in str(e) or "rate_limit" in str(e).lower()
+                is_budget_error = "402" in str(e)
                 
                 if is_rate_limit:
-                    logger.error(f"RATE LIMIT (429) hit on {provider.name}. Applying extra penalty.")
+                    logger.error(f"RATE LIMIT (429) hit on {provider.name}. Coordinated slowdown triggered.")
+                    # 429 durumunda bütün sistemin hızını 10 saniye boyunca kes (Throttle)
+                    ModelOrchestrator._GLOBAL_THROTTLE_UNTIL = time.time() + 10.0
                     provider.penalty_multiplier = max(provider.penalty_multiplier * 4, 16)
                     provider.circuit = CircuitState.OPEN # Hemen kapat
+                    resource_manager.report_error(provider.name, 429)
+                elif is_budget_error:
+                    resource_manager.report_error(provider.name, 402)
                 
                 logger.warning(f"Sağlayıcı Hatası ({provider.name}): {str(e)}. Fallback modele geçiliyor.")
                 err_summary = str(e)[:50]
@@ -579,10 +598,10 @@ class ModelOrchestrator:
         if not user_prompt:
             user_prompt = str(messages)
 
-        result = await self.complete_task(
+            result = await self.complete_task(
             agent_role=preferred_agent,
             prompt=user_prompt,
-            system_prompt=system_prompt or "Sen yardımcı bir AI asistansın.",
+            system_prompt=system_prompt or "Sen otonom bir sistem yöneticisisin.",
         )
         return result.content
 

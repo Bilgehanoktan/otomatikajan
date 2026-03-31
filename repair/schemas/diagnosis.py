@@ -23,6 +23,8 @@ class ProblemClass(str, Enum):
     PERFORMANCE_REGRESSION = "performance_regression"
     SECURITY_VIOLATION    = "security_violation"
     TEST_REGRESSION       = "test_regression"
+    ARCHITECTURAL_DEBT    = "architectural_debt"
+    SUBSYSTEM_CREATION    = "subsystem_creation"
     UNKNOWN               = "unknown"
 
 

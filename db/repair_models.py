@@ -15,9 +15,8 @@ from sqlalchemy import (
     Boolean, Column, DateTime, Float, Integer,
     String, Text, Index,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
-
-from db.models import Base
+from sqlalchemy.dialects.postgresql import UUID
+from db.models import Base, SmartJSON
 
 
 def _utcnow():
@@ -36,10 +35,10 @@ class RepairIncident(Base):
     module           = Column(String(128), nullable=False, index=True)
     symptom          = Column(Text, nullable=False)
     stack_trace      = Column(Text, default="")
-    suspected_files  = Column(JSONB, default=list)
-    failing_tests    = Column(JSONB, default=list)
+    suspected_files  = Column(SmartJSON(), default=list)
+    failing_tests    = Column(SmartJSON(), default=list)
     reproduction_hint = Column(Text, default="")
-    context_data     = Column(JSONB, default=dict)
+    context_data     = Column(SmartJSON(), default=dict)
     occurrence_count = Column(Integer, default=1)
     status           = Column(String(32), default="open", nullable=False, index=True)
     # open | triaged | in_repair | resolved | rejected
@@ -67,8 +66,8 @@ class RepairJobRecord(Base):
     branch_name    = Column(String(256), nullable=True)
     diff           = Column(Text, default="") # Text type has no practical limit
     error_detail   = Column(Text, default="")
-    meta           = Column(JSONB, default=dict)   # Faz 12+ tüm state
-    history        = Column(JSONB, default=list)   # durum geçiş log'u
+    meta           = Column(SmartJSON(), default=dict)   # Faz 12+ tüm state
+    history        = Column(SmartJSON(), default=list)   # durum geçiş log'u
     created_at     = Column(DateTime(timezone=True), default=_utcnow, nullable=False)
     updated_at     = Column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow)
 
@@ -89,7 +88,7 @@ class RepairProposal(Base):
     title               = Column(String(512), nullable=False)
     body                = Column(Text, default="")
     diff                = Column(Text, default="")
-    changed_files       = Column(JSONB, default=list)
+    changed_files       = Column(SmartJSON(), default=list)
     risk_level          = Column(String(16), default="low")
     validation_summary  = Column(Text, default="")
     auto_merge          = Column(Boolean, default=False, nullable=False)
@@ -110,7 +109,7 @@ class RepairPatchLog(Base):
     job_id           = Column(String(64), nullable=False, index=True)
     incident_id      = Column(String(64), nullable=False)
     classification   = Column(String(64), nullable=False, index=True)
-    target_files     = Column(JSONB, default=list)
+    target_files     = Column(SmartJSON(), default=list)
     diff_size_lines  = Column(Integer, default=0)
     outcome          = Column(String(32), nullable=False, index=True)
     # success | regression | rejected | manual_merged | rolled_back
@@ -135,8 +134,8 @@ class VectorLessonModel(Base):
     resolution   = Column(Text, nullable=False)
     job_id       = Column(String(64), nullable=False)
     incident_id  = Column(String(64), nullable=False)
-    embedding    = Column(JSONB, default=list)  # TF-IDF veya LLM embedding
-    tags         = Column(JSONB, default=list)
+    embedding    = Column(SmartJSON(), default=list)  # TF-IDF veya LLM embedding
+    tags         = Column(SmartJSON(), default=list)
     created_at   = Column(DateTime(timezone=True), default=_utcnow, nullable=False)
 
     __table_args__ = (

@@ -15,6 +15,7 @@ const STATUS_LABELS = {
   'running': 'Çalışıyor',
   'pending_approval': 'Onay Bekliyor',
   'completed': 'Tamamlandı',
+  'done': 'Başarılı',
   'partial_complete': 'Kısmi Başarı',
   'error': 'Hatalı',
   'failed': 'Hatalı',
@@ -431,7 +432,7 @@ async function loadDashboard() {
     const hs = ov.metrics?.system_score ?? ov.agents?.system_score;
     const hsLabel = document.getElementById('health-score-label');
     if (hsLabel && hs != null) {
-      const p = typeof hs === 'number' ? Math.round(hs) : 0;
+      const p = typeof hs === 'number' ? Math.round(hs * 100) : 0;
       hsLabel.textContent = p + '%';
       hsLabel.style.color = p > 80 ? 'var(--green)' : p > 50 ? 'var(--yellow)' : 'var(--red)';
     }
@@ -574,7 +575,7 @@ async function loadTasks() {
   } catch (e) { document.getElementById('task-table').innerHTML = `<div class="loading" style="color:var(--red);">Hata: ${e.message}</div>`; }
 }
 
-function agentEmoji(id) { return { architect: '🏛️', backend_dev: '⚙️', frontend_dev: '🎨', qa_engineer: '🧪', devops: '🚀', security: '🔒', data_eng: '🗄️', tech_writer: '📝' }[id] || '🤖'; }
+function agentEmoji(id) { return { self_governor: '⚖️', architect: '🏛️', backend_dev: '⚙️', frontend_dev: '🎨', qa_engineer: '🧪', devops: '🚀', security: '🔒', data_eng: '🗄️', tech_writer: '📝' }[id] || '🤖'; }
 
 async function openTaskDetail(id) {
   openModal('modal-detail');
@@ -1071,20 +1072,23 @@ function initWS() {
   wsConn.onmessage = (e) => {
     try {
       const d = JSON.parse(e.data);
+      if (d.error === 'Unauthorized') {
+        if (statusEl) { statusEl.textContent = '○ YETKİ YOK'; statusEl.style.color = '#ef4444'; }
+        return;
+      }
       if (d.event === 'live_patch') handleLivePatch(d);
       else if (d.event === 'approval.needed') { toast('⚠️ Onay Talebi Geldi', 'warning'); loadApprovals(); }
       else if (d.event === 'debate_state') { if (typeof handleDebateState === 'function') handleDebateState(d); }
       else if (d.event === 'job_progress') {
         const idShort = d.job_id ? d.job_id.substring(0, 8) : '...';
         toast(`🔨 Onarım: ${idShort} -> ${d.status}`, 'info');
-        // Sayfa bazlı otomatik yenileme (Data Freshness)
         const activePage = document.querySelector('.page.active')?.id;
         if (activePage === 'page-repair-center') loadRepairCenter();
         if (activePage === 'page-dashboard') loadDashboard();
         if (activePage === 'page-tasks') loadTasks();
       }
       else { addLog(d); updateFeed(d); }
-    } catch { }
+    } catch (err) { console.error('WS Error:', err); }
   };
 }
 
@@ -1092,10 +1096,21 @@ function addLog(evt) {
   const feed = document.getElementById('log-feed');
   if (!feed) return;
   if (feed.querySelector('.loading')) feed.innerHTML = '';
+  if (evt.error) return; // Hata objelerini log olarak basma
+  
   const div = document.createElement('div');
   div.className = `log-entry ${evt.severity || 'info'}`;
-  const tag = evt.agent_id ? `<span class="log-tag">[${evt.agent_id}]</span>` : '<span class="log-tag">[SYSTEM]</span>';
-  div.innerHTML = `<span class="log-time">${new Date().toLocaleTimeString('tr-TR')}</span> ${tag} ${evt.message || evt.event || ''}`;
+  
+  // Ajan ID formatla (yoksa SYSTEM)
+  const agentId = evt.agent_id || 'SYSTEM';
+  const tagClass = evt.agent_id ? 'log-tag agent' : 'log-tag system';
+  const tag = `<span class="${tagClass}">[${agentId}]</span>`;
+  
+  // Mesaj içeriğini belirle (message öncelikli)
+  const content = evt.message || evt.event || evt.type || '';
+  if (!content) return; // İçerik yoksa basma
+
+  div.innerHTML = `<span class="log-time">${new Date().toLocaleTimeString('tr-TR')}</span> ${tag} <span class="log-msg">${content}</span>`;
   feed.insertBefore(div, feed.firstChild);
   if (feed.children.length > 300) feed.removeChild(feed.lastChild);
 }

@@ -5,10 +5,10 @@ from observability.logging import get_logger
 
 _log = get_logger("agi_hive_memory")
 
-class HiveMemory:
+class SwarmCortex:
     """
-    Cognitive Core (Katman 20): Hive Memory.
-    Sürü birimleri arasında paylaşılan global bellek ve durum alanı.
+    Cognitive Core (Katman 20): Swarm Cortex.
+    Sürü birimleri arasında paylaşılan global bellek ve durum alanı (former Hive Memory).
     """
     def __init__(self) -> None:
         self.shared_state: Dict[str, Any] = {
@@ -29,13 +29,13 @@ class HiveMemory:
                 "status": "ready",
                 "last_seen": datetime.now(timezone.utc).isoformat()
             })
-            _log.info(f"Swarm Unit Kayıt Edildi: {unit_id}")
+            _log.info(f"[SWARM] Unit Kayıt Edildi: {unit_id}")
 
     async def update_hive_context(self, context_update: str):
-        """Kovanın global bağlamını günceller."""
+        """Sürünün global bağlamını günceller."""
         self.shared_state["global_context"] = context_update
         self.shared_state["last_sync"] = datetime.now(timezone.utc).isoformat()
-        _log.info("Hive Context Güncellendi.")
+        _log.info("[SWARM] Context Güncellendi.")
 
     def get_available_units(self, required_capability: str) -> List[str]:
         """Belirli bir yeteneğe sahip boşta olan birimleri döndürür."""
@@ -46,8 +46,12 @@ class HiveMemory:
         ]
 
     def dump_state(self) -> str:
-        """Kovanın anlık durumunu JSON olarak döner."""
+        """Sürünün anlık durumunu JSON olarak döner."""
         return json.dumps(self.shared_state, indent=2)
 
-# Singleton
-hive_memory = HiveMemory()
+# Singleton Instance
+swarm_cortex = SwarmCortex()
+
+# Compatibility Aliases
+HiveMemory = SwarmCortex
+hive_memory = swarm_cortex

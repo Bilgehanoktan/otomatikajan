@@ -2,7 +2,7 @@ import json
 from typing import Optional, Dict, Any
 from core.agi.schemas import EpisodeRecord, SkillArtifact
 from llm.model_orchestrator import ModelOrchestrator
-from memory.store import memory_store
+from core.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
 from observability.logging import get_logger
 
 _log = get_logger("agi_skill_distiller")

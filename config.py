@@ -85,7 +85,19 @@ else:
 DB_POOL_SIZE   = int(os.getenv("DB_POOL_SIZE", "10"))
 DB_MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", "20"))
 DB_POOL_TIMEOUT = int(os.getenv("DB_POOL_TIMEOUT", "30"))
-REDIS_URL      = os.getenv("REDIS_URL", "")
+
+# ── Redis URL Tespiti ─────────────────────────────────────
+_raw_redis_url = os.getenv("REDIS_URL", "")
+
+if _is_in_docker:
+    # Docker içinde '127.0.0.1' veya 'localhost' kullanımı genellikle hatadır
+    if not _raw_redis_url or "127.0.0.1" in _raw_redis_url or "localhost" in _raw_redis_url:
+        REDIS_URL = f"redis://:{os.getenv('REDIS_PASSWORD', '')}@redis:6379/0"
+    else:
+        REDIS_URL = _raw_redis_url
+else:
+    REDIS_URL = _raw_redis_url or "redis://127.0.0.1:6380/0"
+
 JWT_SECRET     = os.getenv("JWT_SECRET", "")
 ADMIN_SECRET   = os.getenv("ADMIN_SECRET", "")
 MONTHLY_BUDGET = float(os.getenv("MONTHLY_BUDGET_USD", "50.0"))

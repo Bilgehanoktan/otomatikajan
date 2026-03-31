@@ -2,12 +2,12 @@ from types import SimpleNamespace
 
 import pytest
 
-from memory.store import memory_store
+from core.agi.consciousness.semantic_memory import semantic_memory
 
 
 @pytest.mark.asyncio
 async def test_memory_write_gate_rejects_low_importance():
-    allowed = await memory_store.memory_write_gate(
+    allowed = await semantic_memory.memory_write_gate(
         db=None,
         data=SimpleNamespace(importance=0.1),
         category="episode_record",

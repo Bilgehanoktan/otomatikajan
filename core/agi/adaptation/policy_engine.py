@@ -2,7 +2,7 @@ import json
 from typing import Optional, Dict, List, Any
 from core.agi.schemas import EpisodeRecord, PolicyProposal
 from llm.model_orchestrator import ModelOrchestrator
-from memory.store import memory_store
+from core.agi.consciousness.semantic_memory import semantic_memory
 from db.session import session_scope
 from observability.logging import get_logger
 
@@ -23,7 +23,7 @@ class PolicyEngine:
         _log.info("Politika evrimi (Policy Evolution) analizi başlatılıyor...")
         
         # Son 15 bölümü getir
-        recent_memories = await memory_store.get_recent(db, category="episode_record", limit=15)
+        recent_memories = await semantic_memory.get_recent(db, category="episode_record", limit=15)
         if not recent_memories:
             return None
 

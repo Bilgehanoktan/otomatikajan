@@ -41,12 +41,28 @@ class MemoryEntry:
         return min(1.0, overlap / len(q_words))
 
 
+from observability.memory_governor import memory_governor
+
 class InMemoryStore:
     """Hafif in-process bellek — DB bağımlılığı yok."""
 
-    def __init__(self, max_entries: int = 1000):
+    def __init__(self, max_entries: int = 400):
         self._entries: dict[str, MemoryEntry] = {}
         self._max     = max_entries
+        
+        # Memory Governor'a kaydol
+        memory_governor.register_cleanup_callback(self.clear_stale_entries)
+
+    def clear_stale_entries(self):
+        """Hafıza dolduğunda en az önemli %50 kaydı siler."""
+        if not self._entries: return
+        count = len(self._entries)
+        # Önem derecesine göre sırala ve yarısını sil
+        sorted_keys = sorted(self._entries, key=lambda k: self._entries[k].importance)
+        for k in sorted_keys[:count // 2]:
+            del self._entries[k]
+        from observability.logging import get_logger
+        get_logger("memory_retrieval").warning(f"[MEM-STORE] Pruned {count // 2} entries.")
 
     def save(
         self,
@@ -140,7 +156,7 @@ class InMemoryStore:
 
 
 # Singleton (DB yokken bunu kullanır)
-_fallback_store = InMemoryStore(max_entries=2000)
+_fallback_store = InMemoryStore(max_entries=500)
 
 
 # ════════════════════════════════════════════════════════
@@ -210,7 +226,7 @@ class ContextBuilder:
         # Önce DB
         try:
             from db.session import AsyncSessionLocal
-            from memory.store import memory_store
+            from core.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
             async with AsyncSessionLocal() as db:
                 return await memory_store.search(
                     db,
@@ -243,7 +259,7 @@ class ContextBuilder:
         # 1. DB'ye kaydet (kalıcı)
         try:
             from db.session import AsyncSessionLocal
-            from memory.store import memory_store
+            from core.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
             
             async def _persist(session):
                 await memory_store.save(

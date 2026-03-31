@@ -107,10 +107,14 @@ async def websocket_logs(ws: WebSocket):
     if not token:
         # Alt-metot: Sec-WebSocket-Protocol veya Authorization Header
         token = ws.headers.get("authorization", "").replace("Bearer ", "")
+    
+    if not token:
+        # 3. Öncelik: Cookie (access_token) - Dashboard uyumluluğu için
+        token = ws.cookies.get("access_token")
 
     if not token:
         await ws.accept()
-        await ws.send_text(json.dumps({"error": "Unauthorized", "code": 4001}))
+        await ws.send_text(json.dumps({"error": "Unauthorized", "code": 4001, "message": "WebSocket için yetkilendirme (token/cookie) gerekli."}))
         await ws.close(code=4001)
         return
 

@@ -22,6 +22,7 @@ class NeuralCoreOrchestrator:
             from core.agi.consciousness.affective_core import affective_core
             from core.agi.cognitive.theory_of_mind import theory_of_mind
             from core.agi.cognitive.latency_mind_processor import latency_mind_processor
+            from core.agi.cognitive.synaptic_cortex import synaptic_cortex
             
             # Basit simülasyon: her döngüde hafif curiosity artışı (idle gibi)
             affective_core.adjust_state("idle", magnitude=0.01)
@@ -54,24 +55,33 @@ class NeuralCoreOrchestrator:
         except Exception: pass
 
         reflection = {}
-        # 3. Öz-Farkındalık ve Strateji (Metacognitive)
+        # 3. Öz-Farkındalık, Teşhis ve Strateji (Metacognitive & Diagnostic)
         try:
             from core.agi.monitoring.meta_audit import meta_audit
+            from core.agi.cognitive.reflection_cortex import reflection_cortex
+            
+            # Perform Meta Audit
             reflection = await meta_audit.perform_self_reflection(db_session)
             global_workspace.broadcast("MetaCognition", reflection, importance=0.7)
-        except Exception: pass
+            
+            # Reflection: Perform autonomous performance review
+            await reflection_cortex.run_reflection_cycle(db_session)
+            global_workspace.broadcast("Diagnostic", "Cognitive performance audit completed.", importance=0.6)
+            
+        except Exception as e:
+            _log.warning(f"Metacognitive/Diagnostic pass error: {e}")
 
         # 4. Amaç ve Misyon Sentezi (Teleology Engine)
         missions = []
         try:
             from core.agi.cognitive.teleology_engine import teleology_engine
-            from core.agi.cognitive.hive_memory import hive_memory
+            from core.agi.cognitive.swarm_cortex import swarm_cortex
             import json
             
             # Bellek birleşimi (Hafıza koruması)
             learned_wisdom = [
                 reflection,
-                json.loads(hive_memory.dump_state())
+                json.loads(swarm_cortex.dump_state())
             ]
             missions = await teleology_engine.synthesize_missions(learned_wisdom)
             global_workspace.broadcast("Teleology", f"Synthesized {len(missions)} autonomous missions.", importance=0.9)
@@ -137,33 +147,31 @@ class NeuralCoreOrchestrator:
 
         # 6. Multiversal Zaman Mesh (Chronos Mesh) [Katman 28]
         try:
-            from core.agi.cognitive.chronos_mesh import chronos_mesh
+            from core.agi.cognitive.foresight_cortex import foresight_cortex
             from core.agi.adaptation.timeline_selector import timeline_selector
             
             # Simüle edilmiş plan context (örnek)
             mock_plan = {"title": "AGI Self-Evolution", "content": "Recursive code expansion."}
-            timelines = await chronos_mesh.simulate_parallel_futures(mock_plan)
+            timelines = await foresight_cortex.simulate_parallel_futures(mock_plan)
             if timelines:
                 optimal = await timeline_selector.select_optimal_timeline(timelines)
                 global_workspace.broadcast("ChronosMesh", f"Optimal future selected: {optimal.get('type')}", importance=0.95)
         except Exception: pass
 
-        # 7. Uyku ve Rüya (Memory Consolidation / Semantic Wisdom) [Katman 13]
+        # 7. Uyku ve Rüya (Memory Consolidation / Semantic Wisdom) [Katman 45 - Sovereign]
         try:
-            from core.agi.learning.dreamer import dreamer
-            # Consolidate best practices periodically via LLM abstraction extraction
-            await dreamer.consolidate_knowledge(db_session)
-            global_workspace.broadcast("Dreamer", "Semantic knowledge consolidated and saved to memory.", importance=0.85)
+            from core.agi.cognitive.subconscious_cortex_45 import subconscious_cortex_45
+            from core.agi.adaptation.sovereign_evolution_45 import sovereign_evolution_45
+            
+            # Consolidate best practices and synthesize policies (v45 unified)
+            await subconscious_cortex_45.dream(db_session)
+            
+            # 8. Otonom Öz-Evrim ve Kod Yamama (Sovereign 45) [Katman 45]
+            await sovereign_evolution_45.evolve_system(db_session)
+            
+            global_workspace.broadcast("SovereignMind", "Subconscious reflection and autonomous evolution cycle completed (v45.0).", importance=1.0)
         except Exception as e:
-            _log.error(f"Dreamer consolidation hatası: {e}")
-
-        # 8. Öz-Evrim ve Kod Düzenleme (Evolutionary Architect) [Katman 32]
-        try:
-            from core.agi.operational.evolutionary_architect import evolutionary_architect
-            await evolutionary_architect.propose_evolution()
-            global_workspace.broadcast("SelfEvolution", "Autonomous code improvements analyzed and proposed.", importance=1.0)
-        except Exception as e:
-            _log.error(f"Öz-Evrim döngü hatası: {e}")
+            _log.error(f"Sovereign Mind Cycle hatası: {e}")
 
         _log.info("--- Sinirsel Çekirdek Zihin Döngüsü Tamamlandı ---")
 

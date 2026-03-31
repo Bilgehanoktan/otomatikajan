@@ -47,18 +47,27 @@ def _get_engine():
             # Re-check under lock
             if _engine is None or (curr_active_loop is not None and _last_loop is not curr_active_loop):
                 logger.debug(f"SQLAlchemy: Creating engine for loop {id(curr_active_loop)} (URL: {DATABASE_URL.split('@')[-1]})")
-                _engine = create_async_engine(
-                    DATABASE_URL,
-                    pool_size=DB_POOL_SIZE,
-                    max_overflow=DB_MAX_OVERFLOW,
-                    pool_timeout=DB_POOL_TIMEOUT,
-                    pool_pre_ping=True,
-                    echo=False,
-                    connect_args={
-                        "command_timeout": 60,
-                        "server_settings": {"search_path": "public"}
-                    }
-                )
+                try:
+                    _engine = create_async_engine(
+                        DATABASE_URL,
+                        pool_size=DB_POOL_SIZE,
+                        max_overflow=DB_MAX_OVERFLOW,
+                        pool_timeout=DB_POOL_TIMEOUT,
+                        pool_pre_ping=True,
+                        echo=False,
+                        connect_args={
+                            "command_timeout": 60,
+                            "server_settings": {"search_path": "public"}
+                        }
+                    )
+                    # Asyncio task başlatma yerine sessiz kal, init_db zaten yapılacak
+                    pass
+                except Exception as e:
+                    logger.warning(f"SQLAlchemy: Ana DB (Postgres) bağlantısı kurulamadı: {e}. SQLite Fallback aktif ediliyor.")
+                    # Fallback to Local SQLite
+                    sqlite_url = "sqlite+aiosqlite:///./cortex_local.db"
+                    _engine = create_async_engine(sqlite_url)
+                
                 _last_loop = curr_active_loop
                 if curr_active_loop:
                     logger.info("SQLAlchemy: Yeni event loop algılandı, engine yenilendi.")
@@ -155,32 +164,46 @@ async def init_db():
     except ImportError:
         APP_ENV = os.getenv("APP_ENV", "development")
 
-    global _DB_AVAILABLE, _DB_ERROR
+    global _DB_AVAILABLE, _DB_ERROR, _engine
     _DB_AVAILABLE = False
+    
+    async def run_init(target_engine):
+        is_sqlite = "sqlite" in str(target_engine.url)
+        async with target_engine.begin() as conn:
+            if not is_sqlite:
+                try:
+                    from sqlalchemy import text
+                    await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+                except Exception as e:
+                    logger.warning(f"pgvector uzantısı oluşturulamadı: {e}")
+
+            import db.models
+            import db.repair_models
+            await conn.run_sync(Base.metadata.create_all)
+            _log_msg = "SQLite Fallback Hazır" if is_sqlite else "Postgres Hazır"
+            logger.info(f"OK: Veritabanı tabloları hazır ({APP_ENV} - {_log_msg}).")
+            return True
+
     try:
         engine = _get_engine()
-        async with engine.begin() as conn:
-            # pgvector uzantısı — hata olursa devam et (opsiyonel)
-            try:
-                await conn.execute(__import__("sqlalchemy").text("CREATE EXTENSION IF NOT EXISTS vector"))
-            except Exception as e:
-                logger.warning(f"pgvector uzantısı oluşturulamadı (vektör hafıza kısıtlı olabilir): {e}")
-
-            if APP_ENV == "production":
-                # Production'da create_all kullanma — Alembic migration'a güven
-                await conn.execute(__import__("sqlalchemy").text("SELECT 1"))
-                print("OK: DB bağlantısı doğrulandı (production).")
-                _DB_AVAILABLE = True
-                _DB_ERROR = ""
-            else:
-                # Development/test: create_all
-                await conn.run_sync(Base.metadata.create_all)
-                print(f"OK: Veritabanı tabloları hazır ({APP_ENV} modu).")
-                _DB_AVAILABLE = True
-                _DB_ERROR = ""
+        await run_init(engine)
+        _DB_AVAILABLE = True
+        _DB_ERROR = ""
     except Exception as e:
         _DB_ERROR = str(e)
-        logger.error(f"[ERR] Kritik DB Bashlatma Hatasi: {e}")
+        if "sqlite" not in str(_get_engine().url):
+            logger.warning(f"Postgres bağlantısı başlatma sırasında başarısız oldu: {e}. SQLite'a zorlanıyor...")
+            sqlite_url = "sqlite+aiosqlite:///./cortex_local.db"
+            _engine = create_async_engine(sqlite_url)
+            try:
+                await run_init(_engine)
+                _DB_AVAILABLE = True
+                _DB_ERROR = ""
+                return
+            except Exception as e2:
+                _DB_ERROR = f"SQLite Fallback da başarısız: {e2}"
+        
+        logger.error(f"[ERR] Kritik DB Başlatma Hatası: {_DB_ERROR}")
         # Uygulama çökmesin ama degraded mode'da kalsın
 
 
@@ -239,9 +262,12 @@ def get_redis_client():
                 # Docker içinde değilsek (redis ismi çözülemiyorsa) localhost kullan
                 socket.gethostbyname("redis")
             except socket.gaierror:
-                url = url.replace("redis:6379", "127.0.0.1:6380") # docker-compose-mapped port
-                logger.debug(f"Redis: 'redis' hostu bulunamadı, localhost:6380'e (host mode) yönlendiriliyor.")
-        
+                # Sadece eğer 6380 portu dışarıdan açıksa (host mode tespiti)
+                if os.getenv("RUNNING_ON_HOST", "false").lower() == "true":
+                    url = url.replace("redis:6379", "127.0.0.1:6380")
+                    logger.debug(f"Redis: Host mode detected, using 127.0.0.1:6380")
+
+        logger.info(f"Redis: Connecting to {url}")
         _redis_instance = redis.from_url(url, decode_responses=True)
         return _redis_instance
     except Exception as e:

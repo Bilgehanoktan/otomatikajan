@@ -12,7 +12,7 @@ async def verify_agi_reflection():
         from core.agi.orchestrator import agi_orchestrator
         from core.agi.adaptation.policy_engine import policy_engine
         from core.agi.security.audit_gate import AuditGate
-        from memory.store import memory_store
+        from core.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
         
         print("[OK] All AGI Refelection components imported successfully.")
         

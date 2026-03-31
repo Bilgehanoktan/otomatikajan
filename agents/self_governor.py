@@ -3,44 +3,54 @@ from schemas import SubtaskOutput, AgentStatus, Artifact, ArtifactType, ErrorDet
 from typing import Dict, Any
 from datetime import datetime, timezone
 import traceback
+import logging
 
-class SystemControllerAgent(BaseAgent):
+_log = logging.getLogger("self_governor")
+
+class SelfGovernorAgent(BaseAgent):
     """
-    Sistemin genel sağlığını, model performanslarını ve maliyetlerini izleyen denetleyici ajan.
-    'Otomasyon' projesindeki SystemController konseptinin 'faz12' uyarlamasıdır.
+    Sistemin genel sağlığını, model performanslarını ve operasyonel politikalarını (Policy) 
+    yöneten otonom denetleyici ajan. AGI Gap: Reflective Reasoning & Failure Learning.
     """
     
     def __init__(self, orchestrator=None):
         self.llm = orchestrator
-        self.id = "system_controller"
-        self.name = "Sistem Denetleyicisi"
-        self.emoji = "🛡️"
+        self.id = "self_governor" 
+        self.name = "Öz-Yönetim Denetçisi (Self-Governor)"
+        self.emoji = "⚖️"
     
     @property
     def role(self) -> str:
-        return "system_controller"
+        return "self_governor"
         
     @property
     def system_prompt(self) -> str:
-        return """Sen AI Şirketinin Sistem Denetleyicisisin (System Controller).
-Görevin, sistemin genel sağlığını, model performanslarını ve maliyetlerini izlemektir.
-Sana verilen istatistikleri incele ve aşağıdaki konularda kararlar al:
-1. Hangi modeller şu an verimli çalışıyor?
-2. Hangi sağlayıcılar (GPT, Claude, Gemini) sorunlu veya yavaş?
-3. Genel sistem stratejisi ne olmalı? (Örn: "Maliyet çok yüksek, Gemini'ye geçelim" veya "Hata oranı arttı, sadece GPT-4 kullanalım")
+        return """Sen AI Şirketinin Öz-Yönetim Denetçisisin (Self-Governor).
+Görevin, sistemin sadece sağlığını değil, aynı zamanda etik, maliyet ve verimlilik 
+politikalarına uygunluğunu denetlemektir. 
 
+AGI DÜZEYİ DENETİM PRENSİPLERİ:
+1. Yansıtıcı Muhakeme (Reflective Reasoning): Neden hata alıyoruz? Semptom yerine kök nedene odaklan.
+2. Hata Öğrenme (Failure Learning): Tekrarlayan model hatalarını (429, 400 vb.) tespit et ve karantina öner.
+3. Kaynak Optimizasyonu: En iyi performansı veren modeli en düşük maliyetle seçmek için strateji belirle.
+
+Sana verilen istatistikleri ve olay loglarını incele.
 Çıktıyı SADECE aşağıdaki JSON formatında ver, başka hiçbir metin ekleme:
 {
-  "summary": "Sistem sağlığı ve performans özeti",
+  "summary": "Sistem sağlığı ve politika uygunluk özeti",
+  "reasoning": "Hataların ve performansın derinlemesine analizi (Kök neden tespiti)",
   "recommendations": ["öneri 1", "öneri 2"],
   "system_status": "healthy | degraded | critical",
-  "global_overrides": {"preferred_provider": "openai | anthropic | gemini | auto"} 
+  "policy_overrides": {
+      "preferred_provider": "openai | anthropic | gemini | auto",
+      "emergency_mode": true | false,
+      "quarantine_providers": ["liste"]
+  } 
 }"""
 
     async def execute(self, task_id: str, subtask_id: str, context: Dict[str, Any]) -> SubtaskOutput:
         start_time = datetime.now(timezone.utc)
         
-        # 1. Orchestrator'dan güncel canlı istatistikleri al (Latency, Success Rate vb.)
         if not self.llm:
              return SubtaskOutput(
                 task_id=task_id, subtask_id=subtask_id, agent_id=self.role,
@@ -48,11 +58,32 @@ Sana verilen istatistikleri incele ve aşağıdaki konularda kararlar al:
                 started_at=start_time, completed_at=datetime.now(timezone.utc)
             )
             
+        # 1. Canlı İstatistikler ve Olay Loglarını Topla
         stats = self.llm.provider_stats()
-        user_prompt = f"Güncel Sistem İstatistikleri (Dinamik): {stats}\nEk Bağlam: {context.get('additional_context', 'Yok')}"
+        
+        # 2. Son Hataları DB'den Çek (AGI: State Awareness)
+        recent_errors = []
+        try:
+            from db.session import AsyncSessionLocal
+            from db.repository import EventLogRepository
+            async with AsyncSessionLocal() as db:
+                logs = await EventLogRepository.recent(db, n=20)
+                recent_errors = [f"[{l.severity}] {l.message}" for l in logs if l.severity in ("warning", "critical")]
+        except Exception as ex:
+            _log.warning(f"Self-Governor DB log çekemedi: {ex}")
+
+        user_prompt = f"""### GÜNCEL SİSTEM DURUMU
+İstatistikler: {stats}
+Son Kritik Olaylar: {recent_errors}
+
+### BAĞLAM
+Görev Tanımı: {context.get('requirements', 'Periyodik Sistem Denetimi')}
+Ek Bilgi: {context.get('additional_context', 'Yok')}
+
+Lütfen kök neden analizi yaparak sistem politikalarını güncelle."""
         
         try:
-            # 2. Denetleme isteğini LLM'e gönder
+            # 3. Muhakeme ve Karar Süreci
             llm_response = await self.llm.complete_task(
                 agent_role=self.role,
                 prompt=user_prompt,
@@ -60,10 +91,10 @@ Sana verilen istatistikleri incele ve aşağıdaki konularda kararlar al:
                 task_id=task_id
             )
             
-            # 3. Yanıtı JSON olarak işle
+            # 4. Yanıtı JSON olarak işle
             parsed_data = self._parse_llm_json(llm_response.content)
             
-            # 4. Standart çıktı formatına dönüştür
+            # 5. Başarı durumunu ve AGI kanıtlarını kaydet
             return SubtaskOutput(
                 task_id=task_id,
                 subtask_id=subtask_id,
@@ -75,11 +106,11 @@ Sana verilen istatistikleri incele ve aşağıdaki konularda kararlar al:
                 cost_usd=llm_response.cost_usd,
                 latency_s=llm_response.latency_s,
                 status=AgentStatus.SUCCESS,
-                summary=parsed_data.get("summary", "Sistem denetimi ve sağlık kontrolü tamamlandı."),
+                summary=parsed_data.get("summary", "Sistem öz-yönetim denetimi tamamlandı."),
                 raw_output=llm_response.content,
                 artifacts=[
                     Artifact(
-                        name="system_health_report.json", 
+                        name="governance_policy_update.json", 
                         type=ArtifactType.JSON, 
                         content=llm_response.content
                     )
@@ -89,15 +120,13 @@ Sana verilen istatistikleri incele ve aşağıdaki konularda kararlar al:
             )
             
         except Exception as e:
-            # 5. Hata durumunda kurtarma bilgisiyle birlikte dön
+            _log.error(f"Self-Governor Kritik Hata: {str(e)}")
             return SubtaskOutput(
                 task_id=task_id,
                 subtask_id=subtask_id,
                 agent_id=self.role,
-                provider="unknown",
-                model="unknown",
                 status=AgentStatus.FAILED,
-                summary=f"Sistem denetleyicisi çalışırken hata oluştu: {str(e)}",
+                summary=f"Öz-Yönetim Denetçisi hatası: {str(e)}",
                 raw_output="",
                 started_at=start_time,
                 completed_at=datetime.now(timezone.utc),

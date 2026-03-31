@@ -51,17 +51,17 @@ class TestCognitiveArchitecture(unittest.IsolatedAsyncioTestCase):
         
         self.session_patchers = [
             patch("core.agi.central_executive.session_scope", return_value=mock_ctx),
-            patch("core.agi.operational.motor_subsystem.session_scope", return_value=mock_ctx),
+            patch("core.agi.operational.action_cortex.session_scope", return_value=mock_ctx),
             patch("core.agi.adaptation.policy_engine.session_scope", return_value=mock_ctx)
         ]
         for p in self.session_patchers: p.start()
 
         # 4. Other Logic Patcher
         self.logic_patchers = [
-            patch("memory.store.get_embedding", AsyncMock(return_value=[0.1]*1536)),
-            patch("memory.store.memory_store.memory_write_gate", AsyncMock(return_value=True)),
-            patch("memory.store.memory_store.save_episode", AsyncMock()),
-            patch("memory.store.memory_store.get_recent", AsyncMock(return_value=[])),
+            patch("core.agi.consciousness.semantic_memory.get_embedding", AsyncMock(return_value=[0.1]*1536)),
+            patch("core.agi.consciousness.semantic_memory.semantic_memory.memory_write_gate", AsyncMock(return_value=True)),
+            patch("core.agi.consciousness.semantic_memory.semantic_memory.save_episode", AsyncMock()),
+            patch("core.agi.consciousness.semantic_memory.semantic_memory.get_recent", AsyncMock(return_value=[])),
             patch("api.ws_manager.ws_manager.broadcast_skill_trace", AsyncMock())
         ]
         for p in self.logic_patchers: p.start()
@@ -70,7 +70,7 @@ class TestCognitiveArchitecture(unittest.IsolatedAsyncioTestCase):
         self.brain.agents = {
             "architect": MagicMock(execute=AsyncMock(return_value=MagicMock(raw_output="Cognitive Output")))
         }
-        self.brain.motor.agents = self.brain.agents
+        self.brain.action_cortex.agents = self.brain.agents
 
     async def asyncTearDown(self):
         self.patcher_http.stop()

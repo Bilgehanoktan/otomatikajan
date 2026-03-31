@@ -171,25 +171,25 @@ async def monitoring_overview(current_user=Depends(get_current_user)):
         pass
 
     # ── Sentinel: Opsiyonel Servis Takibi (Faz 14.1) ──────
+    # Docker ortamında psutil diğer container'ları göremez. Redis heartbeat kullanıyoruz.
     result["optional_services"] = {
-        "telegram_bot": _check_os_process("telegram_app/main.py"),
-        "watchdog":     _check_os_process("memory/watchdog.py"),
-        "scheduler":    _check_os_process("scripts/scheduler.py")
+        "telegram_bot": await _check_redis_heartbeat("faz12:telegram_heartbeat"),
+        "watchdog":     await _check_redis_heartbeat("faz12:watchdog_heartbeat"),
+        "scheduler":    await _check_redis_heartbeat("faz12:scheduler_heartbeat")
     }
 
     return result
 
 
-def _check_os_process(script_name: str) -> str:
-    """Belirli bir scriptin çalışıp çalışmadığını psutil ile kontrol eder."""
+async def _check_redis_heartbeat(key: str) -> str:
+    """Redis üzerindeki heartbeat kaydına bakarak servis durumunu döner."""
     try:
-        for proc in psutil.process_iter(['cmdline']):
-            try:
-                cmd = proc.info.get('cmdline')
-                if cmd and any(script_name in part for part in cmd):
-                    return "online"
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
-                continue
+        from db.session import get_redis_client
+        redis = get_redis_client()
+        if redis:
+            hb = await redis.get(key)
+            if hb and (int(time.time()) - int(hb)) <= 60:
+                return "online"
     except Exception:
         pass
     return "offline"
@@ -544,5 +544,37 @@ async def cleanup_api_metrics(days: int = Query(7, ge=1, le=90)):
             deleted = await ApiMetricRepository.cleanup_old(db, days=days)
             await db.commit()
         return {"deleted": deleted, "older_than_days": days}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ════════════════════════════════════════════════════════
+# AGI SOVEREIGN EVOLUTION (Faz 45)
+# ════════════════════════════════════════════════════════
+@router.get("/agi/evolution", summary="AGI Öz-Evrim ve Provenance Kayıtları")
+async def agi_evolution_monitoring(limit: int = Query(20, ge=1, le=100), current_user=Depends(get_current_user)):
+    """AGI'nin kendi kodunu iyileştirme (Self-Patching) geçmişini getirir."""
+    try:
+        from db.session import AsyncSessionLocal
+        from db.models import Memory
+        from sqlalchemy import select
+        
+        async with AsyncSessionLocal() as db:
+            stmt = select(Memory).where(Memory.category == "evolution_provenance").order_by(Memory.created_at.desc()).limit(limit)
+            result = await db.execute(stmt)
+            provenance_records = result.scalars().all()
+        
+        return [
+            {
+                "id": str(p.id),
+                "timestamp": p.created_at.isoformat(),
+                "file_path": p.metadata_.get("file_path"),
+                "reason": p.metadata_.get("reasoning"),
+                "policy_id": p.metadata_.get("policy_reference"),
+                "diff": p.metadata_.get("diff_summary"),
+                "version": p.metadata_.get("version")
+            }
+            for p in provenance_records
+        ]
     except Exception as e:
         return {"error": str(e)}

@@ -10,23 +10,23 @@ async def verify_agi_swarm_intelligence():
     print("--- AGI 23.0 Verification ---")
     
     try:
-        from core.agi.cognitive.hive_memory import hive_memory
+        from core.agi.cognitive.swarm_cortex import swarm_cortex
         from core.agi.operational.swarm_orchestrator import swarm_orchestrator
         
         print("[OK] AGI 23.0 components imported successfully.")
         
-        # 1. Test Hive Memory
-        await hive_memory.register_unit("test_unit_A", ["coding", "testing"])
-        await hive_memory.update_hive_context("Testing Swarm Integration")
+        # 1. Test Swarm Cortex
+        await swarm_cortex.register_unit("test_unit_A", ["coding", "testing"])
+        await swarm_cortex.update_hive_context("Testing Swarm Integration")
         
-        state = hive_memory.shared_state
+        state = swarm_cortex.shared_state
         if "test_unit_A" in [u["id"] for u in state["active_units"]]:
-            print(f"[OK] Hive Memory: Unit registration successful.")
+            print(f"[OK] Swarm Cortex: Unit registration successful.")
         else:
             print("[ERROR] Hive Memory: Unit registration failed.")
 
         if state["global_context"] == "Testing Swarm Integration":
-            print(f"[OK] Hive Memory: Context synchronization successful.")
+            print(f"[OK] Swarm Cortex: Context synchronization successful.")
         else:
             print("[ERROR] Hive Memory: Context synchronization failed.")
 

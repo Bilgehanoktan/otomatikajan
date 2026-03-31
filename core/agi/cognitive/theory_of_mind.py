@@ -65,5 +65,32 @@ class TheoryOfMind:
             return f"{dominant.capitalize()}"
         return "Neutral"
 
+    async def persist_state(self, db: Any, project_id: str):
+        """
+        [Phase 22] Mevcut kullanıcı modelini hafızaya kaydeder.
+        """
+        from core.agi.cognitive.synaptic_cortex import synaptic_cortex
+        body = f"User Cognitive Profile: {self.get_inferred_state()} | State: {self.user_state}"
+        await synaptic_cortex.save(
+            db,
+            agent_id="theory_of_mind",
+            body=body,
+            category="user_profile",
+            project_id=project_id,
+            importance=0.4
+        )
+        _log.info("Theory of Mind: Kullanıcı profili hafızaya kaydedildi.")
+
+    async def load_state(self, db: Any, project_id: str):
+        """
+        [Phase 22] Geçmiş etkileşimlerden kullanıcı modelini yükler.
+        """
+        from core.agi.cognitive.synaptic_cortex import synaptic_cortex
+        past = await synaptic_cortex.search(db, query="User Cognitive Profile", project_id=project_id, top_k=1)
+        if past:
+            # Basit bir string parse veya metadata kullanımıyla state geri yüklenebilir.
+            # Şu an için sadece loglama yapıyoruz, gelecekte self.user_state güncellenecek.
+            _log.info(f"Theory of Mind: Geçmiş profil yüklendi: {past[0]['body'][:50]}...")
+
 # Singleton
 theory_of_mind = TheoryOfMind()

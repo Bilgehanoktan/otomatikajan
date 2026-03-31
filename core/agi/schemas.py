@@ -79,6 +79,8 @@ class ContextPackage:
     graph_links: List[Dict[str, Any]] = field(default_factory=list)
     failure_patterns: List[str] = field(default_factory=list)
     policy_hints: List[str] = field(default_factory=list)
+    synapse_lessons: List[Dict[str, Any]] = field(default_factory=list)
+    affective_context: Optional['AffectiveState'] = None # Phase 28
 
 @dataclass
 class PlanStep:
@@ -88,6 +90,8 @@ class PlanStep:
     params: Dict[str, Any] = field(default_factory=dict)
     dependencies: List[str] = field(default_factory=list)
     verification_point: Optional[str] = None
+    # Swarm Evolution (Phase 25)
+    workspace_context: Dict[str, Any] = field(default_factory=dict)
 
 @dataclass
 class PlanProposal:
@@ -109,6 +113,8 @@ class ExecutionPlan:
     rollback_conditions: List[str] = field(default_factory=list)
     confidence_estimate: float = 1.0
     estimated_risk: RiskLevel = RiskLevel.LOW
+    # Swarm Evolution (Phase 25)
+    workspace: Dict[str, Any] = field(default_factory=dict)
 
 # --- Katman 5: Operational Execution Layer ---
 
@@ -126,6 +132,10 @@ class ActionRecord:
     errors: List[str] = field(default_factory=list)
     trace_ref: Optional[str] = None
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    # Swarm Evolution (Phase 25)
+    workspace_update: Optional[Dict[str, Any]] = None
+    # Metacognition (Phase 27)
+    cognitive_trace: Optional[Dict[str, Any]] = field(default_factory=dict) # internal reasoning pattern
 
 # --- Katman 6: Verification and Critique Layer ---
 
@@ -140,6 +150,17 @@ class VerificationReport:
     safe_to_finalize: bool = False
     safe_to_learn: bool = False
     followup_needed: List[str] = field(default_factory=list)
+
+# --- Katman 28: Affective Core & Resilience ---
+
+@dataclass
+class AffectiveState:
+    """Sistemin içsel 'duygusal' ve motivasyonel durumu."""
+    motivation_level: float = 1.0 # 0.0 - 1.0 (Başarı/Başarısızlık oranı ile beslenir)
+    resilience_score: float = 1.0 # Dayanıklılık (Kritik görevlerde artar)
+    energy_reserve: float = 1.0   # Token bütçesi ve metabolik sağlık
+    persistence_policy: str = "balanced" # careful, balanced, aggressive
+    internal_stress: float = 0.0 # 0.0 - 1.0
 
 # --- Katman 7: Memory and Learning Layer ---
 
@@ -174,6 +195,10 @@ class EpisodeRecord:
     skill_candidates: List[str] = field(default_factory=list)
     policy_candidates: List[str] = field(default_factory=list)
     world_model_updates: List[Dict[str, Any]] = field(default_factory=list)
+    # Metacognition (Phase 27)
+    metacognitive_score: float = 1.0 # self-assessed reasoning quality
+    internal_drift_detected: bool = False
+    affective_state: Optional[AffectiveState] = None # Phase 28
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 @dataclass

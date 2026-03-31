@@ -42,21 +42,43 @@ async def system_health():
         tg_status = "NOT_CONFIGURED"
 
     def check_celery():
-        from config import QUEUE_BACKEND
-        if (QUEUE_BACKEND or "auto").lower() == "inprocess":
-            return "NOT_CONFIGURED"
-            
         try:
-            from core.celery_app import celery_app
-            i = celery_app.control.inspect(timeout=0.5)
+            from config import QUEUE_BACKEND
+            if (QUEUE_BACKEND or "auto").lower() == "inprocess":
+                return "NOT_CONFIGURED"
+                
+            from tasks.celery_app import celery_app
+            from config import REDIS_URL
+            if REDIS_URL:
+                celery_app.conf.broker_url = REDIS_URL
+                celery_app.conf.result_backend = REDIS_URL
+            
+            # Synchronous call for threadpool
+            i = celery_app.control.inspect(timeout=3.0)
             stats = i.ping()
-            return "UP" if stats and len(stats) > 0 else "DOWN"
+            if stats and len(stats) > 0:
+                return "UP"
+            
+            # Fallback
+            active = i.active()
+            if active is not None:
+                return "UP"
+                
+            return "DOWN"
         except Exception:
             return "DOWN"
 
     celery_status = await run_in_threadpool(check_celery)
 
+    # Calculate System Health Score (Faz 12.1 Logic)
+    h_score = 1.0
+    if tg_status != "UP" and celery_status == "UP": h_score = 0.6
+    elif tg_status == "UP" and celery_status != "UP": h_score = 0.6
+    elif tg_status != "UP" and celery_status != "UP": h_score = 0.1
+
     return {
+        "status": "UP" if tg_status == "UP" and celery_status == "UP" else "DEGRADED",
+        "health_score": h_score,
         "telegram_bot": {"status": tg_status},
         "celery_workers": {"status": celery_status}
     }

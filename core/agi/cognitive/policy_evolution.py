@@ -5,12 +5,12 @@ from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any, Optional
 
 from observability.logging import get_logger
-from core.agi.operational.quantum_executor import QuantumResult
+from core.agi.operational.velocity_engine import EngineResult
 from core.policy_engine import policy_engine, AutomationLevel
 from llm.model_orchestrator import ModelOrchestrator
 from db.session import session_scope
-from db.repository import SkillLogRepository, EventLogRepository
 from core.agi.schemas import ActionRecord
+from core.agi.cognitive.reflection_cortex import ReflectionCortex
 
 _log = get_logger("policy_evolution")
 
@@ -25,6 +25,7 @@ class PolicyEvolutionEngine:
         self.policy_engine = policy_engine
         self.min_sample_size = 5  # Politika değişikliği için gereken minimum eylem sayısı
         self.success_threshold = 0.9 # %90 başarı oranı altındakilerde otomasyonu düşür veya izle
+        self.diagnostic = ReflectionCortex(model_orch=self.model_orch)
 
     async def run_evolution_cycle(self, days: int = 1):
         """
@@ -58,12 +59,11 @@ class PolicyEvolutionEngine:
         # Gerçek uygulamada SQLAlchemy 'group_by' sorgusu yapılmalı.
         _log.debug("[EVOLUTION] Performans verileri madenleniyor...")
         
-        # Örnek stat yapısı:
-        # stats = {
-        #    "ui_components": {"success": 12, "fail": 0, "avg_duration": 1.2},
-        #    "core_logic": {"success": 5, "fail": 2, "avg_duration": 4.5}
-        # }
-        return stats # TODO: Implement real DB aggregation
+        # Faz 21: Bilişsel teşhis katmanından gerçek verileri al
+        async with session_scope() as db:
+            agent_stats = await self.diagnostic._get_agent_stats(db)
+            
+        return {"agent_performance": agent_stats}
 
     async def _synthesize_policy_adjustments(self, stats: Dict[str, Any]) -> List[Dict[str, Any]]:
         """

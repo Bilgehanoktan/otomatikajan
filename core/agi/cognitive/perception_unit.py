@@ -19,10 +19,27 @@ class PerceptionUnit:
     async def perceive(self, inp: UnifiedInput) -> ProblemFrame:
         """
         Girdiyi algıla ve bilişsel bir çerçeve (ProblemFrame) oluştur.
+        Faz 22: Proactive Memory Recall eklendi.
         """
         _log.info(f"Algılanıyor: {inp.input_id} (Kaynak: {inp.source_type.value})")
 
-        prompt = self._build_perception_prompt(inp)
+        # --- Faz 22: Proactive Recall (Hafıza Taraması) ---
+        past_memories = []
+        try:
+            from core.agi.cognitive.synaptic_cortex import synaptic_cortex
+            from db.session import session_scope
+            async with session_scope() as db:
+                # Girdi içeriğiyle benzer geçmiş epizotları ara
+                past_memories = await synaptic_cortex.search(
+                    db, 
+                    query=str(inp.raw_payload)[:100], 
+                    project_id=str(inp.input_id),
+                    top_k=3
+                )
+        except Exception as e:
+            _log.warning(f"Proactive Recall hatası (Algı katmanı): {e}")
+
+        prompt = self._build_perception_prompt(inp, past_memories)
         try:
             response = await self.model_orch.complete(
                 [{"role": "user", "content": prompt}],
@@ -53,15 +70,21 @@ class PerceptionUnit:
                 risk_level=RiskLevel.MEDIUM if inp.urgency > 7 else RiskLevel.LOW
             )
 
-    def _build_perception_prompt(self, inp: UnifiedInput) -> str:
+    def _build_perception_prompt(self, inp: UnifiedInput, past_memories: Optional[list] = None) -> str:
+        memory_str = ""
+        if past_memories:
+            memory_str = "\nBENZER GEÇMİŞ DENEYİMLER:\n" + "\n".join([f"- {m['body']}" for m in past_memories])
+
         return f"""
         Aşağıdaki duyusal girdiyi bir 'ProblemFrame' (Bilişsel Çerçeve) nesnesine dönüştür. 
         Sen gelişmiş bir AGI sisteminin 'Algı Birimi' (Perception Unit) parçasısın. 
+        {memory_str}
         
         Girdi Türü: {inp.source_type.value}
         Girdi İçeriği: {inp.raw_payload}
         Güven Seviyesi: {inp.trust_level}
         Aciliyet: {inp.urgency}
+        ...
         
         Yanıtı SADECE aşağıdaki JSON formatında ver:
         {{

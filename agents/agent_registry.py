@@ -146,7 +146,7 @@ YASAK:
 
 GÜVENLİK VE BÜTÜNLÜK PROTOKOLÜ (ASLA ESNETİLEMEZ):
 • KRİTİK DOSYALARI SİLME/DEĞİŞTİRME: .env, main.py, baslat.bat, core/safety_gate.py, db/models.py gibi dosyalar dokunulmazdır.
-• Tehlikeli komut (rm -rf, drop table vb.) çalıştırmadan önce mutlaka 'system_controller' veya kullanıcı onayı iste.
+• Tehlikeli komut (rm -rf, drop table vb.) çalıştırmadan önce mutlaka 'self_governor' veya kullanıcı onayı iste.
 • Dosya silme operasyonları yerine her zaman '.bak' veya '.old' uzantısıyla yedekleme yap.
 • Herhangi bir dosyayı DEKLEMEK (Overwrite) yerine, birleştirme (merge) veya güvenli düzenleme yöntemlerini tercih et.
 ════════════════════════════════════════════════
@@ -301,15 +301,15 @@ Yanıtlarında 'Trendler', 'Analiz' ve 'Stratejik Aksiyonlar' başlıklarını k
 """ + _CLEAN_CODE_CONTRACT,
         ),
         Agent(
-            id="system_controller",
-            name="Sistem Denetçisi",
+            id="self_governor",
+            name="Öz-Yönetim Denetçisi",
             emoji="⚖️",
-            role="Maliyet ve Mimari Denetçi",
-            system_prompt="""Sen sistemin genel denetçisisin.
+            role="Otonom Sistem ve Politika Denetçisi",
+            system_prompt="""Sen sistemin otonom öz-yönetim denetçisisin (Self-Governor).
 Görevin:
-- Üretilen mimari kararların maliyet etkinliğini kontrol etmek.
-- Ajanlar arası veri sözleşmelerine (contracts) uyulup uyulmadığını denetlemek.
-- Güvenlik ve performans standartlarından ödün verilmediğinden emin olmak.
+- Üretilen kararların bütçe, performans ve güvenlik politikalarına uygunluğunu denetlemek.
+- Ajanlar arası veri sözleşmelerine (contracts) uyulup uyulmadığını kontrol etmek.
+- Sistem hatalarını (429, 400 vb.) analiz ederek otonom çözüm veya karantina önermek.
 - Eğer bir risk görürsen, 'Critical' veya 'High' olarak işaretle ve düzeltme öner.
 """ + _CLEAN_CODE_CONTRACT,
         ),
@@ -340,6 +340,17 @@ Görevin:
                             _log.info(f"Ajan Promptu Dinamik Olarak Güncellendi: {aid}")
         except Exception as e:
             _log.error(f"Dinamik prompt yukleme hatasi: {e}")
+
+    # --- Faz 23: Neural Pruning Support ---
+    pruned_path = os.path.join(os.path.dirname(__file__), "pruned_agents.json")
+    if os.path.exists(pruned_path):
+        try:
+            with open(pruned_path, "r", encoding="utf-8") as f:
+                pruned_ids = json.load(f)
+                active_agents = [a for a in active_agents if a.id not in pruned_ids]
+                _log.info(f"Registry: {len(pruned_ids)} ajan budandı (pruned).")
+        except Exception as e:
+            _log.error(f"Budanmış ajan yükleme hatası: {e}")
 
     return {a.id: a for a in active_agents}
 
@@ -392,6 +403,19 @@ Görevin: Uzmanlık alanına giren işleri ECC standartlarına ve temiz kod pren
             _log.info(f"Registry: {len(dynamic_agents)} dinamik ajan yuklendi.")
         except Exception as e:
             _log.error(f"Dinamik ajan yukleme hatasi: {e}")
+    
+    # --- Faz 23: Specialist Pruning ---
+    pruned_path = os.path.join(os.path.dirname(__file__), "pruned_agents.json")
+    if os.path.exists(pruned_path):
+        try:
+            with open(pruned_path, "r", encoding="utf-8") as f:
+                pruned_ids = json.load(f)
+                for pid in pruned_ids:
+                    if pid in specialists:
+                        del specialists[pid]
+                        _log.info(f"Discovery: Uzman ajan budandı: {pid}")
+        except Exception as e:
+            _log.error(f"Uzman budama hatası: {e}")
     
     _log.info(f"Discovery: {len(specialists)} toplam uzman beceri ve dinamik ajan keşfedildi.")
     return specialists

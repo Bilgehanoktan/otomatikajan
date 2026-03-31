@@ -1,6 +1,6 @@
 from typing import List, Optional, Any
 from core.agi.schemas import ContextPackage
-from memory.store import memory_store
+from core.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
 from sqlalchemy.ext.asyncio import AsyncSession
 from observability.logging import get_logger
 

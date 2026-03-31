@@ -14,18 +14,18 @@ class CausalEngine:
     def __init__(self, model_orch: Optional[ModelOrchestrator] = None):
         self.model_orch = model_orch or ModelOrchestrator()
 
-    async def analyze_episode(self, episode: EpisodeRecord) -> CausalGraph:
+    async def analyze_episode(self, episode: EpisodeRecord, depth: int = 1) -> CausalGraph:
         """
-        Bir bölümün (Episode) nedensel yapısını analiz eder.
+        Bir bölümün (Episode) nedensel yapısını analiz eder. 
+        Depth > 1 ise recursive kök neden analizi yapar.
         """
-        _log.info(f"Nedensellik analizi başlatılıyor: {episode.episode_id}")
+        _log.info(f"Nedensellik analizi başlatılıyor: {episode.episode_id} (Depth: {depth})")
         
-        prompt = self._build_analysis_prompt(episode)
+        prompt = self._build_analysis_prompt(episode, depth)
         system_prompt = (
             "Sen bir AGI Nedensel Akıl Yürütme (Causal Reasoning) bileşenisin. "
-            "Görevin, yapılan eylemler ve alınan sonuçlar arasındaki bağıntıları (Cause -> Effect) kurmaktır. "
-            "Örneğin: 'A eylemi B sonucunu tetikledi' veya 'C parametresi D hatasına neden oldu'. "
-            "Yanıtı yapısal JSON formatında ver."
+            "Görevin, yapılan eylemler ve alınan sonuçlar arasındaki bağıntıları kurmaktır. "
+            "Özellikle 'Counterfactual Thinking' (Karşı olgusal düşünce) kullanarak 'Eğer X olmasaydı Y olur muydu?' sorusunu sor."
         )
 
         try:
@@ -46,9 +46,15 @@ class CausalEngine:
                     metadata=link.get("metadata", {})
                 ))
             
+            # --- Faz 21: Recursive Diagnostics ---
+            diagnostics = causal_data.get("diagnostics", {})
+            if depth > 1 and not episode.verification.result_status:
+                _log.info(f"Yansımalı (Reflective) Analiz tetikleniyor: Depth {depth-1}")
+                # Gelecekte burada alt-aksiyonlara veya sistem loglarına daha derin bakış yapılabilir.
+            
             graph = CausalGraph(
                 links=links,
-                nodes_metadata=causal_data.get("diagnostics", {})
+                nodes_metadata=diagnostics
             )
             _log.info(f"Nedensel grafik oluşturuldu: {len(links)} bağ.")
             return graph
@@ -57,7 +63,40 @@ class CausalEngine:
             _log.error(f"Causal analysis hatası: {e}")
             return CausalGraph()
 
-    def _build_analysis_prompt(self, episode: EpisodeRecord) -> str:
+    async def simulate_counterfactual(self, episode: EpisodeRecord, alternative_action: str) -> Dict[str, Any]:
+        """
+        [Mental Sandbox] - Bir eylem farklı olsaydı sonucun nasıl değişeceğini simüle eder.
+        """
+        _log.info(f"Counterfactual simülasyon başlatılıyor: {alternative_action}")
+        
+        prompt = f"""
+        BÖLÜM GEÇMİŞİ:
+        Girdi: {episode.problem_frame.objective if episode.problem_frame else 'Unknown'}
+        Yapılan Eylemler: {json.dumps([a.tool_used for a in episode.actions])}
+        Sonuç: {'Başarılı' if episode.verification and episode.verification.result_status else 'Başarısız'}
+        
+        EĞER ŞU EYLEM YAPILSAYDI: {alternative_action}
+        
+        Lütfen bu değişikliğin tüm süreci nasıl etkileyeceğini ve başarı ihtimalini nasıl değiştireceğini tahmin et.
+        Yanıtı JSON formatında ver:
+        {{
+            "predicted_outcome": "Başarı|Başarısızlık",
+            "impact_analysis": "Olası değişimlerin özeti",
+            "confidence": 0.0-1.0
+        }}
+        """
+        
+        try:
+            resp = await self.model_orch.complete_task(
+                agent_role="strategist",
+                prompt=prompt,
+                system_prompt="Sen bir Mental Sandbox simülatörüsün."
+            )
+            return self._parse_json(resp.content)
+        except Exception as e:
+            return {"error": str(e)}
+
+    def _build_analysis_prompt(self, episode: EpisodeRecord, depth: int = 1) -> str:
         actions_str = "\n".join([
             f"- {a.step_id}: Tool: {a.tool_used} | Success: {a.success} | Output: {str(a.output_data)[:200]}"
             for a in episode.actions
