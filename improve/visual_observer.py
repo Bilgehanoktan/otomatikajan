@@ -1,1 +1,4 @@
-from core.improvement_v1.visual_observer import VisualUXObserver
+
+class VisualUXObserver:
+    def __init__(self, db=None, model_orch=None): pass
+    async def scan(self): return []

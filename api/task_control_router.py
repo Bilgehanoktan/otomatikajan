@@ -207,12 +207,20 @@ async def stop_task(task_id: str, current_user=Depends(get_current_user)):
             queue_job_id = p.job_id or task_id
             _ensure_queue_capability(job_queue, "supports_cancel", "stop")
             cancelled_ok = job_queue.request_cancel(queue_job_id)
+            
+            if not cancelled_ok:
+                logger.error(f"[CANCEL_FAIL] Görev kuyrukta durdurulamadı: {queue_job_id}")
+                raise HTTPException(
+                    status_code=409, 
+                    detail="Görev kuyruk seviyesinde durdurulamadı. Görev zaten tamamlanmış veya sistem meşgul olabilir."
+                )
+
             logger.info(f"Stop signal sent to queue job {queue_job_id}: {cancelled_ok}")
 
             await ProjectRepository.cancel(db, pid, cancelled_by="stop_command")
             await TaskLogRepository.write(
                 db, pid, "stopped",
-                f"Durduruldu (queue_job={queue_job_id}, signal_sent={cancelled_ok})",
+                f"Durduruldu (queue_job={queue_job_id})",
                 level="warning", agent_id="dashboard",
             )
             await db.commit()

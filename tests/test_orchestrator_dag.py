@@ -1,8 +1,8 @@
 import pytest
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
-from core.orchestrator import Orchestrator, SubTask, TaskStatus
-from core.task_management import ProjectTask
+from core.orchestrator import Orchestrator
+from core.agi.task_governance import SovereignGoal, GovernedTask, GovernanceStatus
 
 @pytest.fixture
 def mock_llm_orchestrator():

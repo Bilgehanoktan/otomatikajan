@@ -58,7 +58,7 @@ async def get_finance_history(days: int = Query(7, ge=1, le=30), current_user=De
                     SUM(cost_usd) as total_cost,
                     COUNT(*) as call_count
                 FROM llm_cost_logs
-                WHERE created_at > NOW() - INTERVAL ':days days'
+                WHERE created_at > NOW() - (INTERVAL '1 day' * :days)
                 GROUP BY DATE(created_at)
                 ORDER BY DATE(created_at) ASC
             """)

@@ -11,7 +11,7 @@ async def verify_nexus_quantum_sync():
     
     # 1. Singleton Sync Check
     try:
-        from core.agi.cognitive.nexus_orchestrator import nexus_orchestrator
+        from core.agi.cognitive.sovereign_cortex import nexus_orchestrator
         from core.context import orchestrator as context_orch
         
         print("[-] Checking Singleton Integrity...")

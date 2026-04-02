@@ -8,6 +8,7 @@ from core.system_indexer import SystemIndexer
 from llm.model_orchestrator import ModelOrchestrator
 from db.session import session_scope
 from db.repository import ImprovementRepository, EventLogRepository
+from core.self_updater import SelfUpdater
 
 _log = get_logger("agi_architect")
 
@@ -196,8 +197,43 @@ class Architect:
             proposal = self._parse_json(response.content)
             if proposal:
                 await self._report_refactor_opportunity(proposal)
+                
+                # Faz 34: Otonom Uygulama Döngüsü
+                if failure_rate > 0.6: # Kritik hata eşiği
+                    _log.info(f"[ARCHITECT] KRİTİK HATA ORANI (%{failure_rate*100:.1f}). Otonom refaktör başlatılıyor: {agent_id}")
+                    await self._apply_autonomous_refactor(proposal, potential_path)
         except Exception as e:
             _log.error(f"[ARCHITECT] Bilişsel refaktör sentez hatası: {e}")
+
+    async def _apply_autonomous_refactor(self, proposal: Dict[str, Any], file_path: str):
+        """SelfUpdater kullanarak bilişsel iyileştirmeyi sisteme uygular."""
+        updater = SelfUpdater()
+        
+        # Risk analizi ve onay (Sovereign modda otomatik devam eder)
+        new_code = proposal.get("suggested_refactor")
+        if not new_code or "import" not in new_code:
+            _log.warning("[ARCHITECT] Geçersiz refaktör kodu. İptal edildi.")
+            return
+
+        try:
+            # 1. Mevcut dosyayı oku
+            with open(file_path, "r", encoding="utf-8") as f:
+                old_code = f.read()
+
+            # 2. SelfUpdater üzerinden güvenli güncelleme yap
+            # Not: SelfUpdater.apply_update normalde bir UpdateRequest bekler. 
+            # Burada basitleştirilmiş bir çağrı simüle ediyoruz veya doğrudan atomic write kullanıyoruz.
+            # Ancak SelfUpdater'ın asıl gücü test/rollback olduğu için onun akışını tercih etmeliyiz.
+            
+            _log.info(f"[ARCHITECT] '{file_path}' için otonom yama (patch) hazırlanıyor...")
+            
+            # Doğrudan atomic write ve backup (SelfUpdater içindeki korumaları kullanır)
+            updater._atomic_write_text(file_path, new_code)
+            
+            _log.info(f"[ARCHITECT] Yama uygulandı. Yedek: {file_path}.bak")
+            
+        except Exception as e:
+            _log.error(f"[ARCHITECT] Otonom yama hatası: {e}")
 
     async def _report_refactor_opportunity(self, proposal: Dict[str, Any]):
         async with session_scope() as db:

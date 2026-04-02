@@ -1,6 +1,7 @@
 import asyncio
 import uuid
 import json
+import re
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any, Optional
 
@@ -9,6 +10,7 @@ from core.agi.operational.velocity_engine import EngineResult
 from core.policy_engine import policy_engine, AutomationLevel
 from llm.model_orchestrator import ModelOrchestrator
 from db.session import session_scope
+from db.repository import EventLogRepository
 from core.agi.schemas import ActionRecord
 from core.agi.cognitive.reflection_cortex import ReflectionCortex
 
@@ -97,8 +99,15 @@ class PolicyEvolutionEngine:
                 prompt=prompt,
                 system_prompt="Sen bir AGI Stratejistisin. Sistemin operasyonel verimliliğini ve güvenliğini optimize edersin."
             )
-            # JSON Parse ve List dönüsü
-            return [] # Mock for now
+            # JSON Parse — LLM listesi çıkar
+            match = re.search(r'\[.*?\]', response.content, re.DOTALL)
+            if match:
+                proposals = json.loads(match.group())
+                if isinstance(proposals, list):
+                    _log.info(f"[EVOLUTION] {len(proposals)} politika önerisi üretildi.")
+                    return proposals
+            _log.warning("[EVOLUTION] LLM yanıtı geçerli JSON listesi içermiyor. Boş döndürülüyor.")
+            return []
         except Exception as e:
             _log.error(f"[EVOLUTION] Sentez hatası: {e}")
             return []
@@ -135,15 +144,18 @@ class PolicyEvolutionEngine:
         policy_engine.evolve_policy(update_data)
         
         # Event Bus'a bildir
-        async with session_scope() as db:
-            await EventLogRepository.write(
-                db,
-                event_type="policy_evolved",
-                severity="warning",
-                phase="metacognition",
-                message=f"Politika Otonom Güncellendi: {proposal.get('reason')}",
-                payload=proposal
-            )
+        try:
+            async with session_scope() as db:
+                await EventLogRepository.write(
+                    db,
+                    event_type="policy_evolved",
+                    severity="warning",
+                    phase="metacognition",
+                    message=f"Politika Otonom Güncellendi: {proposal.get('reason')}",
+                    payload=proposal
+                )
+        except Exception as e:
+            _log.warning(f"[EVOLUTION] Event log yazılamadı: {e}")
 
 # --- Background Task Definition ---
 async def start_policy_evolution_loop():

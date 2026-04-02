@@ -1,7 +1,7 @@
 """
-AGI Self-Patching Doğrulama Testi (Phase 40).
-Sistemin kendi kodunu otonom olarak (Evolution Engine) yamama kapasitesini test eder.
-Süreç: Dummy dosya oluştur -> Policy Proposal Enjekte et -> Evolve et -> Doğrula.
+AGI Sovereign Patching Doğrulama Testi (Phase 45.0).
+Sistemin kendi kodunu otonom olarak (Sovereign Evolution) yamama ve 
+Provenance Engine üzerinden izlenebilirlik oluşturma kapasitesini test eder.
 """
 import asyncio
 import os
@@ -9,7 +9,7 @@ import shutil
 from sqlalchemy import select
 from db.session import AsyncSessionLocal, init_db
 from db.models import Memory
-from core.agi.adaptation.evolution_engine import evolution_engine
+from core.agi.adaptation.sovereign_evolution_45 import sovereign_evolution_45
 from core.agi.operational.patching_sandbox import patching_sandbox
 from observability.logging import get_logger
 
@@ -74,8 +74,8 @@ async def main():
         await inject_policy_proposal(db)
         
         # 3. Evolution Döngüsünü çalıştır
-        _log.info("Evolution Engine manuel tetikleniyor...")
-        await evolution_engine.evolve_system(db)
+        _log.info("Sovereign Evolution Engine manuel tetikleniyor...")
+        await sovereign_evolution_45.evolve_system(db)
         
     # 4. Doğrulama
     success, msg = await verify_patch_result()

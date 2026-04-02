@@ -22,7 +22,7 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from code_engine import CodeGenerationResult, CodeFile
+    from sovereign_codegen import CodeGenerationResult, CodeFile
 
 
 # ════════════════════════════════════════════════════════
@@ -172,7 +172,7 @@ class PythonStaticAnalyzer:
     ]
 
     def analyze(self, cf: "CodeFile") -> FileReviewResult:
-        from code_engine import CodeLanguage
+        from sovereign_codegen import CodeLanguage
         result = FileReviewResult(
             path=cf.path,
             language=cf.language.value,
@@ -240,6 +240,7 @@ class PythonStaticAnalyzer:
 
             # Çok uzun fonksiyon (>35 satır)
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                from sovereign_codegen import init_sovereign_codegen
                 body_lines = (node.end_lineno or node.lineno) - node.lineno
                 if body_lines > 35:
                     result.findings.append(Finding(
@@ -489,7 +490,7 @@ class CodeReviewEngine:
         llm_depth:   bool = True,
     ) -> ProjectReviewReport:
         """Tüm projeyi incele + isteğe bağlı otomatik düzelt."""
-        from code_engine import CodeLanguage
+        from sovereign_codegen import CodeLanguage
 
         report = ProjectReviewReport(
             project_id=code_result.project_id,

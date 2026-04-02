@@ -160,11 +160,45 @@ _fallback_store = InMemoryStore(max_entries=500)
 
 
 # ════════════════════════════════════════════════════════
+# Reality Grounding — Gerçeklik Kontrolü (Phase 34)
+# ════════════════════════════════════════════════════════
+def _get_reality_context() -> str:
+    """Mevcut çalışma dizinindeki dosya yapısını özetler (Daha derin bağlam)."""
+    import os
+    try:
+        files = []
+        # Faz 34: Derinlik 3'e çıkarıldı, gürültü filtreleri eklendi.
+        exclude_dirs = {'.git', '__pycache__', 'node_modules', 'venv', '.gemini', '.idea'}
+        
+        for root, dirs, fs in os.walk(".", topdown=True):
+            # Filtreleme
+            dirs[:] = [d for d in dirs if d not in exclude_dirs]
+            
+            level = root.count(os.sep)
+            if level > 3: continue # Depth limit (Deep Grounding)
+            
+            indent = "  " * level
+            files.append(f"{indent}📂 {os.path.basename(root) or './'}")
+            
+            # Seçici dosya listeleme (Sadece önemli uzantılar)
+            for f in fs[:20]: # Dosya sınırı
+                if any(ext in f for ext in ['.py', '.js', '.md', '.json', '.html', '.css', '.bat', '.sh']):
+                    files.append(f"{indent}  📄 {f}")
+        
+        return "\n".join(files)
+    except Exception:
+        return "Dosya listesi alınamadı."
+
+# ════════════════════════════════════════════════════════
 # Bağlam İnşaatçısı — ajan prompt'larına bellek ekler
 # ════════════════════════════════════════════════════════
 CONTEXT_TEMPLATE = """
 === İlgili Geçmiş Deneyimler ===
 {memories}
+
+=== Gerçeklik Bağlamı (Current FS) ===
+{reality}
+
 === Görev ===
 {task}"""
 
@@ -185,12 +219,21 @@ class ContextBuilder:
         project_id: str | None = None,
         top_k:      int = 5,
         token_budget: int = 1500,
+        internal_monologue: str = ""
     ) -> str:
         """
         İlgili anıları arar, prompt'a enjekte edilecek metin döner.
         Anı yoksa orijinal görevi döner.
         """
-        # DB'den ara (varsa), yoksa in-memory fallback
+        # Faz 39: Negatif Dersleri (Hataları) Önceliklendir
+        negative_lessons = await self._search_memories(
+            query=task_text,
+            agent_id=agent_id,
+            project_id=project_id,
+            category="negative_lesson",
+            top_k=3
+        )
+        
         memories = await self._search_memories(
             query=task_text,
             agent_id=agent_id,
@@ -199,18 +242,36 @@ class ContextBuilder:
             token_budget=token_budget,
         )
 
-        if not memories:
-            return task_text
-
         mem_lines = []
-        for i, m in enumerate(memories, 1):
-            cat  = m.get("category", "general")
-            body = m.get("body", "")[:400]
-            score = m.get("score", 0)
-            mem_lines.append(f"{i}. [{cat}] (alaka: {score:.2f})\n   {body}")
+        if negative_lessons:
+            mem_lines.append("!!! ÖNEMLİ: GEÇMİŞ HATALARDAN DERSLER !!!")
+            for i, m in enumerate(negative_lessons, 1):
+                mem_lines.append(f"HATA-{i}: {m.get('body', '')}")
+            mem_lines.append("-" * 30)
 
+        if memories:
+            mem_lines.append("İlgili Geçmiş Deneyimler:")
+            for i, m in enumerate(memories, 1):
+                cat  = m.get("category", "general")
+                if cat == "negative_lesson": continue # Zaten yukarıda eklendi
+                body = m.get("body", "")[:400]
+                score = m.get("score", 0)
+                mem_lines.append(f"{i}. [{cat}] (alaka: {score:.2f})\n   {body}")
+        
+        if not mem_lines or (len(mem_lines) == 1 and "Geçmiş" not in mem_lines[0]):
+            mem_lines.append("İlgili geçmiş anı bulunamadı.")
+
+        if internal_monologue:
+            mem_lines.append("-" * 30)
+            mem_lines.append("=== ÖNCEKİ BİLİŞSEL DÜŞÜNCE (RESUMED CONTEXT) ===")
+            mem_lines.append(internal_monologue)
+            mem_lines.append("-" * 30)
+
+        reality = _get_reality_context()
+        
         context = CONTEXT_TEMPLATE.format(
             memories="\n\n".join(mem_lines),
+            reality=reality,
             task=task_text,
         )
         return context
@@ -219,9 +280,10 @@ class ContextBuilder:
         self,
         query:      str,
         agent_id:   str,
-        project_id: str | None,
-        top_k:      int,
-        token_budget: int,
+        project_id: str | None = None,
+        category:   str | None = None,
+        top_k:      int = 5,
+        token_budget: int = 2000,
     ) -> list[dict]:
         # Önce DB
         try:
@@ -232,6 +294,8 @@ class ContextBuilder:
                     db,
                     query=query,
                     agent_id=agent_id,
+                    project_id=project_id,
+                    category=category,
                     top_k=top_k,
                     token_budget=token_budget,
                 )

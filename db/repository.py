@@ -181,6 +181,23 @@ class ProjectRepository:
             )
 
     @staticmethod
+    async def update_context(db: AsyncSession, project_id, context: dict) -> None:
+        """Proje execution_context'ini atomik olarak günceller."""
+        # Mevcut context'i al
+        p = await ProjectRepository.get(db, project_id)
+        if not p: return
+        
+        current = p.execution_context or {}
+        current.update(context)
+        
+        await db.execute(
+            update(Project)
+            .where(Project.id == project_id)
+            .values(execution_context=current, updated_at=_utcnow())
+        )
+        await db.commit()
+
+    @staticmethod
     async def set_error(db: AsyncSession, project_id, error: str) -> None:
         await db.execute(
             update(Project)

@@ -10,196 +10,35 @@ import httpx
 import random
 from core.agi.monitoring.token_budgeter import token_budgeter
 from core.agi.operational.resource_manager import resource_manager
+from core.agi.consciousness.affective_core import affective_core
+from core.agi.operational.metabolic_governor import metabolic_governor, MetabolicMode
 
 logger = logging.getLogger(__name__)
 
-# ── 1. Canonical Çıktı Sözleşmesi ────────────────────────
-class LLMResponse(BaseModel):
-    content: str
-    input_tokens: int
-    output_tokens: int
-    model_name: str
-    provider: str
-    latency_s: float
-    cost_usd: float
-
-# ── 2. Devre Kesici (Circuit Breaker) Durumları ──────────
-class CircuitState(str, Enum):
-    CLOSED    = "closed"     # Normal çalışma
-    OPEN      = "open"       # Devre açık, istekler geçmiyor
-    HALF_OPEN = "half_open"  # Test modunda
-
-@dataclass
-class ProviderStats:
-    name:           str
-    api_key_env:    str
-    base_url:       str
-    model:          str
-    history:        List[bool]   = field(default_factory=list)
-    latencies:      List[float]  = field(default_factory=list)
-    success:        int          = 0
-    failure:        int          = 0
-    total_latency:  float        = 0.0
-    last_failure:   float        = 0.0
-    circuit:        CircuitState = CircuitState.CLOSED
-    penalty_multiplier: int      = 1
-    quarantine_until:   float    = 0.0  # Otonom Karantina (Faz 12.1)
-    latency_streak:     int      = 0    # Ardışık yavaşlama sayısı (Faz 12.3)
-
-    OPEN_THRESHOLD:    int   = field(default=3,    init=False, repr=False)
-    HALF_OPEN_AFTER:   float = field(default=30.0, init=False, repr=False)
-    WINDOW_SIZE:       int   = field(default=10,   init=False, repr=False)
-    LATENCY_THRESHOLD: float = field(default=15.0, init=False, repr=False) # Karantina sınırı
-
-    def __post_init__(self):
-        object.__setattr__(self, "_fail_streak", 0)
-
-    @property
-    def health_score(self) -> float:
-        if not self.history: return 1.0
-        
-        # Recent success rate
-        recent_success_rate = sum(self.history) / len(self.history)
-        
-        # Latency Penalty (Slow models are less preferred)
-        latency_penalty = 1.0
-        avg = self.avg_latency
-        if avg > 5.0:  # If slower than 5 seconds
-            # Score drops linearly between 5s and 15s
-            latency_penalty = max(0.4, 1.0 - (avg - 5.0) / 10.0)
-
-        base = recent_success_rate * latency_penalty
-        
-        # Karantina Kontrolü
-        if self.quarantine_until > time.time():
-            return 0.0
-
-        if self.circuit == CircuitState.OPEN: base = 0.0
-        elif self.circuit == CircuitState.HALF_OPEN: base *= 0.3
-        return round(float(base), 3)
-
-    @property
-    def avg_latency(self) -> float:
-        total = self.success + self.failure
-        return round(float(self.total_latency / total), 2) if total else 0.0
-
-    def record_success(self, latency: float):
-        self.success      += 1
-        self.total_latency += latency
-        self.penalty_multiplier = 1
-        self.circuit       = CircuitState.CLOSED
-        
-        # Faz 12.3: Gecikme Kontrolü
-        if latency > self.LATENCY_THRESHOLD:
-            self.latency_streak += 1
-            if self.latency_streak >= 3:
-                self.quarantine_until = time.time() + 1800 # 30 dk karantina
-                logger.warning(f"GECİKME KARANTİNASI: {self.name} ardışık {self.latency_streak} yavaş yanıt nedeniyle 30dk askıya alındı.")
-        else:
-            self.latency_streak = 0
-
-        self.history.append(True)
-        self.latencies.append(latency)
-        if len(self.history) > self.WINDOW_SIZE:
-            self.history.pop(0)
-            self.latencies.pop(0)
-
-    def record_failure(self):
-        self.failure      += 1
-        self.last_failure  = time.time()
-        self.history.append(False)
-        if len(self.history) > self.WINDOW_SIZE:
-            self.history.pop(0)
-        
-        # Increase backoff penalty
-        self.penalty_multiplier = min(self.penalty_multiplier * 2, 32)
-        
-        if self.history.count(False) >= self.OPEN_THRESHOLD:
-            self.circuit = CircuitState.OPEN
-            logger.error(f"Devre Kesici AÇILDI (OPEN): {self.name} geçici olarak devredışı. Ceza: {self.penalty_multiplier}x")
-            
-            # Faz 12.1: Otonom Karantina (Eğer çok sık hata alıyorsa 1 saat kapat)
-            if self.penalty_multiplier >= 16:
-                self.quarantine_until = time.time() + 3600
-                logger.critical(f"OTONOM KARANTİNA (BAN): {self.name} kronik hata nedeniyle 1 saat yasaklandı.")
-
-    def is_available(self) -> bool:
-        if self.quarantine_until > time.time():
-            return False
-            
-        if self.circuit in (CircuitState.CLOSED, CircuitState.HALF_OPEN): return True
-        # Backoff adjusts the duration
-        # 429 rate limit errors increase the penalty_multiplier rapidly
-        cooldown = self.HALF_OPEN_AFTER * self.penalty_multiplier
-        if self.circuit == CircuitState.OPEN and (time.time() - self.last_failure > cooldown):
-            self.circuit = CircuitState.HALF_OPEN
-            logger.info(f"Devre Kesici YARI-AÇIK (HALF-OPEN): {self.name} test ediliyor.")
-            return True
-        return False
-
-    def maybe_half_open(self) -> bool:
-        """Legacy compat (RC1): is_available() ile aynı davranış."""
-        return self.is_available()
-
-    @property
-    def api_key(self) -> str:
-        return os.getenv(self.api_key_env, "")
-
-    def is_placeholder_key(self) -> bool:
-        """API anahtarının bir placeholder (örnek değer) olup olmadığını kontrol eder."""
-        key = self.api_key
-        if not key: return True
-        
-        # Bilinen placeholder değerleri ve desenleri
-        placeholders = [
-            "sk-...", "sk-ant-...", "AI...", "your-", "key-", "...", "abc...",
-            "YOUR_API_KEY", "YOUR_OPENAI_KEY", "PLACEHOLDER"
-        ]
-        
-        # Eğer anahtar listedeki bir placeholder'a tam eşitse
-        if any(key == p for p in placeholders):
-            return True
-            
-        # Çok kısa anahtarlar da muhtemelen placeholder'dır (gerçek anahtarlar genelde 30+ karakter)
-        if len(key) < 20: 
-            return True
-            
-        return False
-
-# ── 3. Sağlayıcılar ve Rota Politikası ───────────────────
-PROVIDERS: list[ProviderStats] = [
-    ProviderStats(name="openai", api_key_env="OPENAI_API_KEY", base_url="https://api.openai.com/v1/chat/completions", model="gpt-4o-mini"),
-    ProviderStats(name="anthropic", api_key_env="ANTHROPIC_API_KEY", base_url="https://api.anthropic.com/v1/messages", model="claude-3-5-haiku-20241022"),
-    ProviderStats(name="gemini", api_key_env="GEMINI_API_KEY", base_url="https://generativelanguage.googleapis.com", model="gemini-2.0-flash"),
-    ProviderStats(name="groq", api_key_env="GROQ_API_KEY", base_url="https://api.groq.com/openai/v1/chat/completions", model="llama-3.3-70b-versatile"),
-    ProviderStats(name="openrouter", api_key_env="OPENROUTER_API_KEY", base_url="https://openrouter.ai/api/v1/chat/completions", model="meta-llama/llama-3.1-70b-instruct"),
-    ProviderStats(name="nvidia", api_key_env="NVIDIA_API_KEY", base_url="https://integrate.api.nvidia.com/v1/chat/completions", model="qwen/qwen3.5-397b-a17b"),
-    ProviderStats(name="moonshot", api_key_env="MOONSHOT_API_KEY", base_url="https://api.moonshot.cn/v1/chat/completions", model="moonshot-v1-8k"),
-    ProviderStats(name="deepseek", api_key_env="DEEPSEEK_API_KEY", base_url="https://api.deepseek.com/chat/completions", model="deepseek-chat"),
-]
+from llm.llm_types import LLMResponse, CircuitState, ProviderStats, PROVIDERS
 
 # V2 Mimari: Ajan rolüne göre model hiyerarşisi (isimler PROVIDERS ile eşleşmeli)
 ROUTING_POLICY: dict[str, list[str]] = {
     # Architect: High-end models for decision making
-    "architect": ["nvidia", "anthropic", "openai", "groq", "openrouter", "gemini"],
+    "architect": ["nvidia", "openai", "groq", "openrouter", "gemini", "anthropic"],
     
     # Backend Dev: Coding expertise
     "backend_dev": ["nvidia", "openai", "groq", "openrouter", "gemini", "anthropic"],
     
     # QA Engineer: Large context and speed (Balanced)
-    "qa_engineer": ["openai", "gemini", "groq", "openrouter"],
+    "qa_engineer": ["openai", "gemini", "groq", "openrouter", "anthropic"],
     
     # Security: Precise and strict
-    "security": ["nvidia", "anthropic", "openai", "groq"],
+    "security": ["nvidia", "openai", "groq", "anthropic"],
     
     # Tech Writer: Fluent and cheap
     "tech_writer": ["gemini", "openai", "groq", "openrouter", "anthropic"],
     
     # Self Governor: Decision/Planning
-    "self_governor": ["openai", "groq", "anthropic", "gemini"],
+    "self_governor": ["openai", "groq", "gemini", "anthropic"],
     
     # Strategist: Planning/Reasoning
-    "strategist": ["nvidia", "anthropic", "openai", "groq"],
+    "strategist": ["nvidia", "openai", "groq", "anthropic"],
     
     # Visual Auditor: Vision-capable models
     "visual_auditor": ["gemini", "openai", "groq"],
@@ -225,8 +64,7 @@ class ModelOrchestrator:
     sağlayıcıları (fallback zinciriyle) dener, devre kesiciyi yönetir.
     """
 
-    # Global Pacing & Resilience (Faz 12.1 Root Cause Fix)
-    _GLOBAL_THROTTLE_UNTIL: float = 0.0 # Tüm sağlayıcılar için ortak sessizlik süresi
+    # Global Pacing & Resilience (Faz 43: Kinetik Arbiter Entegrasyonu)
     _LATENCY_HISTORY: list[float] = []
 
     def __init__(self):
@@ -273,6 +111,8 @@ class ModelOrchestrator:
         task_id: str = "unknown",
         project_id: str | None = None
     ) -> LLMResponse:
+        # Phase 7 & 43: Budget and Pacing checks are handled below
+
         # ── BÜTÇE KONTROLÜ (Phase 7) ──
         if project_id:
             try:
@@ -288,11 +128,7 @@ class ModelOrchestrator:
             except Exception as e:
                 logger.warning(f"Budget check error: {e}")
 
-        # 1. Global Pacing (Rate Limit Savunması)
-        if ModelOrchestrator._GLOBAL_THROTTLE_UNTIL > time.time():
-            wait_time = ModelOrchestrator._GLOBAL_THROTTLE_UNTIL - time.time()
-            logger.warning(f"SİSTEMSEL YAVAŞLATMA (COOLDOWN) AKTİF. {wait_time:.1f}s bekleniyor...")
-            await asyncio.sleep(wait_time)
+        # 1. Global Pacing (Faz 43: Arbiter üzerinden otomatik yönetilir)
 
         # 2. Bütçe ve Kaynak Kontrolü
         if not await token_budgeter.should_execute(agent_role):
@@ -315,30 +151,39 @@ class ModelOrchestrator:
         ]
 
         # Ajanın rolüne göre fallback zincirini al
-        base_providers = ROUTING_POLICY.get(agent_role, ROUTING_POLICY["general"])
-        # LOAD BALANCING & HEALTH SORTING (Faz 12.1 Hardening):
-        # Sağlayıcıları health_score'a göre sırala, en iyileri başa al.
-        available_stats = []
-        for p_name in base_providers:
-            p_stat = self.providers.get(p_name)
-            if p_stat and p_stat.api_key and not p_stat.is_placeholder_key():
-                available_stats.append(p_stat)
+        candidates = ROUTING_POLICY.get(agent_role, ROUTING_POLICY["general"]).copy()
         
-        # Health score'a göre sırala (azalan)
-        available_stats.sort(key=lambda x: x.health_score, reverse=True)
+        # Faz 48: Metabolik Koordinasyon (Update & Mode Detection)
+        optimal_provider_name = None
+        try:
+            await metabolic_governor.update_metabolism(self.providers)
+            mode = metabolic_governor.get_mode()
+            
+            # ECO Modunda Pacing (Dinamik Yavaşlatma)
+            if mode == MetabolicMode.ECO:
+                # Enerjiye göre 1.5 - 5.5 saniye arası dursa (drip-feed)
+                delay = 1.5 + (1.0 - affective_core.energy) * 4.0
+                logger.info(f"[METABOLISM-PACING] ECO Modu Aktif: {delay:.1f}s geciktirme uygulanıyor...")
+                await asyncio.sleep(delay)
+                
+            # Faz 48: Metabolizmaya göre optimize edilmiş sağlayıcı seçimi
+            optimal_provider_name = metabolic_governor.get_optimal_provider(candidates, self.providers)
+            if optimal_provider_name and optimal_provider_name in candidates:
+                # Optimal sağlayıcıyı listenin en başına taşı
+                candidates.remove(optimal_provider_name)
+                candidates.insert(0, optimal_provider_name)
+        except Exception as me:
+            logger.warning(f"[METABOLISM-SYNC] Metabolik hata (Bypass): {me}")
         
-        # En tepedeki 2 taneyi kendi içinde karıştır (Eşit sağlıkta olanları randomize et)
-        top_tier = [p for p in available_stats if p.health_score >= 0.8]
-        if len(top_tier) >= 2:
-            random.shuffle(top_tier)
-            preferred_providers = [p.name for p in top_tier] + [p.name for p in available_stats if p.health_score < 0.8]
-        else:
-            preferred_providers = [p.name for p in available_stats]
+        # Eğer optimal bulunamadıysa (Hepsi devredeyse) orjinal listeyi dene
+        if not candidates or (optimal_provider_name and optimal_provider_name not in candidates):
+            # Fallback (Safety only)
+             pass
 
         last_error = None
         skipped_details = []
         
-        for provider_name in preferred_providers:
+        for provider_name in candidates:
             provider = self.providers.get(provider_name)
             
             if not provider:
@@ -368,11 +213,9 @@ class ModelOrchestrator:
                 
                 if is_rate_limit:
                     logger.error(f"RATE LIMIT (429) hit on {provider.name}. Coordinated slowdown triggered.")
-                    # 429 durumunda bütün sistemin hızını 10 saniye boyunca kes (Throttle)
-                    ModelOrchestrator._GLOBAL_THROTTLE_UNTIL = time.time() + 10.0
-                    provider.penalty_multiplier = max(provider.penalty_multiplier * 4, 16)
-                    provider.circuit = CircuitState.OPEN # Hemen kapat
-                    resource_manager.report_error(provider.name, 429)
+                    # Faz 43: Arbiter'ı uyar
+                    from core.agi.operational.kinetic_arbiter import kinetic_arbiter
+                    affective_core.adjust_state("rate_limit_429", magnitude=0.2)
                 elif is_budget_error:
                     resource_manager.report_error(provider.name, 402)
                 
@@ -515,20 +358,31 @@ class ModelOrchestrator:
         sys_msg = next((m["content"] for m in messages if m["role"] == "system"), "")
         usr_msgs = [m for m in messages if m["role"] != "system"]
         
-        # Proxy desteği
-        base_url = os.getenv("CLAUDE_PROXY_URL") or p.base_url
+        # Proxy & Model Overrides (Faz 45.1 Entegrasyonu)
+        base_url   = os.getenv("ANTHROPIC_BASE_URL") or os.getenv("CLAUDE_PROXY_URL") or p.base_url
+        auth_token = os.getenv("ANTHROPIC_AUTH_TOKEN")
+        model      = os.getenv("ANTHROPIC_MODEL") or p.model
+        api_key    = p.api_key
+
         if base_url and not base_url.endswith("/messages"):
              if "/v1" not in base_url: base_url = base_url.rstrip("/") + "/v1/messages"
              else: base_url = base_url.rstrip("/") + "/messages"
 
+        headers = {
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+        }
+        
+        # Eğer ANTHROPIC_AUTH_TOKEN varsa, Bearer token olarak kullanır (OpenRouter uyumlu)
+        if auth_token:
+            headers["Authorization"] = f"Bearer {auth_token}"
+        else:
+            headers["x-api-key"] = api_key
+
         resp = await client.post(
             base_url,
-            headers={
-                "x-api-key": p.api_key,
-                "anthropic-version": "2023-06-01",
-                "content-type": "application/json",
-            },
-            json={"model": p.model, "max_tokens": max_tokens, "system": sys_msg, "messages": usr_msgs},
+            headers=headers,
+            json={"model": model, "max_tokens": max_tokens, "system": sys_msg, "messages": usr_msgs},
         )
         resp.raise_for_status()
         return resp.json()["content"][0]["text"]
@@ -598,7 +452,7 @@ class ModelOrchestrator:
         if not user_prompt:
             user_prompt = str(messages)
 
-            result = await self.complete_task(
+        result = await self.complete_task(
             agent_role=preferred_agent,
             prompt=user_prompt,
             system_prompt=system_prompt or "Sen otonom bir sistem yöneticisisin.",

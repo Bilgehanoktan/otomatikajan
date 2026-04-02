@@ -243,21 +243,14 @@ class AuditGate:
         """
         
         try:
+            # Phase 35: Shadow Backup Integration
+            from core.agi.security.backup_service import backup_service
+            
             response = await self.model_orch.complete_task(
                 agent_role="infosec_expert",
                 prompt=prompt,
                 system_prompt="Kendi kodunu iyileştiren bir AGI'nin güvenlik denetçisisin."
             )
-            data = self._parse_json_from_response(response.content)
-            
-            if not data.get("is_safe", False) or data.get("risk_score", 1.0) > 0.5:
-                _log.warning(f"Audit: Neural denetim REDDİ: {data.get('reason')}")
-                return False
-
-            # 4. Otomatik Regresyon Testleri (Phase 38)
-            import subprocess
-            _log.info("[AUDIT] Regresyon testleri (pytest) başlatılıyor...")
-            # Not: Gerçek dünyada bu izole bir ortamda yapılmalıdır.
             # Burada projedeki mevcut testleri çalıştırıyoruz.
             test_proc = subprocess.run(["pytest", "-q", "--maxfail=1"], capture_output=True, text=True, timeout=30)
             

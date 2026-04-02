@@ -60,5 +60,77 @@ class Chronicler:
         _log.info(f"Zaman Analizi Tamamlandı. Ortalama Süre: {avg_duration:.2f}s")
         return analysis
 
+    async def record_provenance_structured(self, action: str, component: str, reason: str, change_summary: str, risk_mitigation: str, verification: str, affective_state: Optional[Dict[str, Any]] = None):
+        """
+        Otonom iyileştirme kararlarını makinece okunabilir JSON formatında kaydeder.
+        Faz 12.3: Duygusal bağlam (affective_state) desteği eklendi.
+        """
+        import os
+        import json
+        from datetime import datetime, timezone
+        
+        root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        json_file = os.path.join(root, "PROVENANCE.json")
+        md_file = os.path.join(root, "PROVENANCE.md")
+        
+        data = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "version": "12.3-A",
+            "action": action,
+            "component": component,
+            "reason": reason,
+            "change_summary": change_summary,
+            "risk_mitigation": risk_mitigation,
+            "verification": verification,
+            "affective_context": affective_state # Duygusal hafıza
+        }
+        
+        # 1. MD Log (İnsan için)
+        log_entry = f"## [{data['timestamp']}] {action}\n"
+        log_entry += f"- **Component**: `{component}`\n"
+        log_entry += f"- **Reasoning**: {reason}\n"
+        log_entry += f"- **Summary**: {change_summary}\n"
+        log_entry += f"- **Mitigation**: {risk_mitigation}\n"
+        log_entry += f"- **Verification**: {verification}\n\n"
+        
+        try:
+            with open(md_file, "a", encoding="utf-8") as f:
+                f.write(log_entry)
+        except Exception as e:
+            _log.error(f"MD Provenance write failed: {e}")
+
+        # 2. JSON Store (Makine/AGI Hafızası için)
+        records = []
+        try:
+            if os.path.exists(json_file):
+                with open(json_file, "r", encoding="utf-8") as f:
+                    records = json.load(f)
+            
+            records.append(data)
+            # Sadece son 100 kaydı tut (Hafıza şişmesini önle)
+            records = records[-100:]
+            
+            with open(json_file, "w", encoding="utf-8") as f:
+                json.dump(records, f, indent=2)
+        except Exception as e:
+            _log.error(f"JSON Provenance write failed: {e}")
+
+    async def get_recent_provenance(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """Makine dostu formatta son otonom kararları döner."""
+        import os
+        root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        json_file = os.path.join(root, "PROVENANCE.json")
+        
+        if not os.path.exists(json_file):
+            return []
+            
+        try:
+            with open(json_file, "r", encoding="utf-8") as f:
+                records = json.load(f)
+            return records[-limit:]
+        except Exception as e:
+            _log.warning(f"Failed to read provenance memory: {e}")
+            return []
+
 # Singleton
 chronicler = Chronicler()

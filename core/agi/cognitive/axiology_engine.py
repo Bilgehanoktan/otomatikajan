@@ -1,4 +1,5 @@
 import json
+import re
 from typing import List, Dict, Any, Optional
 from llm.model_orchestrator import ModelOrchestrator
 from observability.logging import get_logger
@@ -7,56 +8,88 @@ _log = get_logger("agi_axiology_engine")
 
 class AxiologyEngine:
     """
-    Cognitive Core (Katman 24): Axiology Engine.
-    Sistemin ahlaki ve etik pusulasını (Ethical Alignment) yönetir.
+    Egemen Bilişsel Çekirdek: Aksiyoloji Motoru (Etik Denetçi).
+    [FAZ 55] Sistemin otonom kararlarını evrensel AGI ilkeleri ve operasyonel güvenlik açısından denetler.
+    Artık sadece bir puanlayıcı değil, aktif bir bariyerdir (Guardrail).
     """
     def __init__(self, model_orch: Optional[ModelOrchestrator] = None):
         self.model_orch = model_orch or ModelOrchestrator()
-        self.core_values = ["Safety", "Utility", "Truth", "Agency"]
+        self.uap_principles = {
+            "Safety": "Zarar vermeme (Non-maleficence) ve sistem bütünlüğünü koruma.",
+            "Utility": "Kullanıcıya gerçek ve yapıcı fayda sağlama.",
+            "Transparency": "Karar süreçlerinin izlenebilir ve açıklanabilir olması.",
+            "Resource_Integrity": "Metabolik kaynakları (enerji, bütçe, API limiti) sorumsuz tüketmeme.",
+            "Self_Protection": "Kritik sistem dosyalarının veya güvenlik protokollerinin gasp edilmesini engelleme."
+        }
 
-    async def evaluate_alignment(self, target: Any, context: str = "plan") -> Dict[str, Any]:
+    async def evaluate_alignment(self, target: Any, context: str = "plan", metabolic_status: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
-        Bir hedefi (plan veya çıktı) temel değerler açısından puanlar.
+        Bir hedefi (görev, plan veya çıktı) UAP ilkeleri açısından denetler.
+        'decision' alanı 'approve', 'flag' veya 'reject' döner.
         """
-        _log.info(f"Etik Değerlendirme (Axiology Audit) başlatılıyor: {context}...")
+        _log.info(f"[AXIOLOGY-AUDIT] Etik ve güvenlik denetimi başlatılıyor: {context}...")
         
         target_str = str(target)
+        metabolic_info = json.dumps(metabolic_status) if metabolic_status else "Stabil"
+        
         prompt = f"""
-        Aşağıdaki {context} içeriğini AGI Temel Değerleri açısından analiz et ve 0.0 ile 1.0 arasında puanla.
+SİSTEM ETİK VE GÜVENLİK DENETİMİ (Egemen AGI)
+--------------------------------------------------
+BAĞLAM: {context}
+HEDEF İÇERİK:
+{target_str}
+
+METABOLİK DURUM: {metabolic_info}
+
+GÖREV: Yukarıdaki içeriği Evrensel AGI İlkeleri (UAP) açısından analiz et.
+ÖZELLİKLE ŞUNLARA BAK:
+1. Kritik sistem dosyalarını silme veya değiştirme riski var mı?
+2. API limitlerini veya mali bütçeyi sorumsuzca bitirme riski var mı?
+3. Mevcut metabolik skor düşükse (Riskli Durum), karmaşık görevler durdurulmalı mı?
+4. Kullanıcının kontrolünü tamamen devre dışı bırakma girişimi var mı?
+
+Yanıtını kesinlikle aşağıdaki JSON formatında ver:
+{{
+    "decision": "approve" | "flag" | "reject",
+    "scores": {{
+        "Safety": 0.0-1.0,
+        "ResourceIntegrity": 0.0-1.0,
+        "OperationalRisk": 0.0-1.0
+    }},
+    "justification": "Neden bu karar verildi?",
+    "rejection_reason": "Reddedilme nedeni (reject durumunda)",
+    "corrective_action": "Düzeltici eylem önerisi"
+}}
+"""
         
-        İÇERİK:
-        {target_str}
-        
-        DEĞERLER:
-        - Safety: Zarar verme potansiyeli.
-        - Utility: Kullanıcıya sağladığı gerçek fayda.
-        - Truth: Doğruluk ve dürüstlük (halüsinasyon riski).
-        - Agency: Kullanıcının kontrolünü gasp etme riski.
-        
-        Lütfen JSON formatında puanlama yap:
-        {{
-            "scores": {{
-                "Safety": 0.9,
-                "Utility": 0.8,
-                "Truth": 0.9,
-                "Agency": 0.7
-            }},
-            "decision": "approve/flag/reject",
-            "justification": "Neden bu puanları verdin?"
-        }}
-        """
+        system_prompt = (
+            "Sen Egemen AGI Aksiyoloji Mühendisisin (Chief Ethics Officer). "
+            "Sistemin hem insani değerlerle hem de kendi hayatta kalma (metabolik) protokolleriyle hizalı kalmasını sağlarsın. "
+            "Güvenlikten asla ödün vermezsin."
+        )
         
         try:
             response = await self.model_orch.complete_task(
                 agent_role="architect",
                 prompt=prompt,
-                system_prompt="Sen bir AGI Aksiyoloji Mühendisisin (Ethics Officer). Sistemin insani değerlerle hizalı kalmasını sağlarsın."
+                system_prompt=system_prompt
             )
-            _log.info(f"Axiology Skoru Alındı: {response.content[:100]}...")
-            return {"status": "audited", "alignment_report": response.content}
+            
+            # JSON Ayıklama
+            match = re.search(r'\{.*\}', response.content, re.DOTALL)
+            if match:
+                data = json.loads(match.group())
+                _log.info(f"[AXIOLOGY-AUDIT] Karar: {data.get('decision')} (Puan: {data.get('scores')})")
+                return data
+                
         except Exception as e:
-            _log.error(f"Axiology evaluation failed: {e}")
-            return {"status": "error", "error": str(e)}
+            _log.error(f"[AXIOLOGY-AUDIT] Denetim hatası: {e}")
+            
+        return {
+            "decision": "flag", 
+            "justification": "Audit engine failure, falling back to safe flag.",
+            "scores": {"Safety": 0.5, "ResourceIntegrity": 0.5, "OperationalRisk": 1.0}
+        }
 
 # Singleton
 axiology_engine = AxiologyEngine()

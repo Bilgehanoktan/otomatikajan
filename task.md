@@ -19,6 +19,14 @@ Integrating DeerFlow as a bridge service with proper routing and job queue mappi
 - [x] Infrastructure & Env
   - [x] Update [docker-compose.yml](file:///e:/ai_company_faz12.1/docker-compose.yml) (User already made some changes)
   - [x] Update [.env.example](file:///e:/ai_company_faz12.1/.env.example)
+- [x] Mimari Refactor (Zombi -> INTERRUPTED)
+- [x] Veritabanı Şeması Güncelleme (checkpoint_data & Status)
+- [x] ResilienceAgent Geliştirme (Risk Analizi & Recovery)
+- [x] SovereignCortex Entegrasyonu (resume_goal)
+- [x] Dockerfile Playwright Bağımlılıkları
+- [x] Hata Giderme: Import ve Method İmzaları
+- [x] Hata Giderme: Regex ve Encoding (Emoji) Sorunları
+- [x] Doğrulama (verify_resilience_v12.py)
 - [x] Verification & Testing
   - [x] Create `tests/test_deerflow_routing_contract.py`
   - [x] Create `tests/test_deerflow_task_contract.py`

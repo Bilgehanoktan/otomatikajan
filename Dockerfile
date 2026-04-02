@@ -24,10 +24,16 @@ RUN groupadd --gid 1001 appgroup \
 WORKDIR /app
 RUN chown appuser:appgroup /app
 
-# Temel sistem kütüphaneleri (PostgreSQL istemcisi ve Curl)
+# Temel sistem kütüphaneleri (PostgreSQL istemcisi, Curl ve Playwright/Browser bağımlılıkları)
 RUN apt-get -o Acquire::Retries=3 update && apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
     libpq5 curl \
+    libglib2.0-0 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
+    libxkbcommon0 libxcomposite1 libxdamage1 libxext6 libxfixes3 libxrandr2 \
+    libgbm1 libasound2 libpango-1.0-0 libcairo2 \
     && rm -rf /var/lib/apt/lists/*
+
+# Playwright browser'larını kur
+RUN playwright install chromium
 
 # Builder'dan bağımlılıkları kopyala
 COPY --from=builder /install /usr/local
@@ -35,6 +41,12 @@ COPY . .
 
 # Temizlik
 RUN rm -f .env .env.local *.zip *.pyc
+
+# ─── Aşama 2.5: Bütünlük Kontrolü (Quality Guard) ────────
+FROM base-runtime AS validator
+RUN pip install --no-cache-dir ruff==0.4.0
+# Bu aşama, eğer sistemde import hatası veya kritik lint hatası varsa build'i durdurur.
+RUN python scripts/verify_system_integrity.py
 
 
 # ─── Aşama 3: Üretim Slim (App & Beat için) ──────────────
@@ -61,27 +73,9 @@ FROM base-runtime AS production-worker
 USER root
 RUN apt-get -o Acquire::Retries=3 update && apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
     docker.io \
-    libglib2.0-0 \
-    libnss3 \
-    libatk1.0-0 \
-    libatk-bridge2.0-0 \
-    libcups2 \
-    libdrm2 \
-    libxkbcommon0 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxext6 \
-    libxfixes3 \
-    libxrandr2 \
-    libgbm1 \
-    libasound2 \
-    libpango-1.0-0 \
-    libcairo2 \
     && rm -rf /var/lib/apt/lists/*
 
-# Playwright browser'larını kur (Sadece worker için)
-# Cache'i korumak için ayrı katman
-RUN playwright install chromium
+# Playwright browser'ları zaten base-runtime'da kurulu.
 
 USER appuser
 CMD ["celery", "-A", "tasks.celery_app", "worker", "--loglevel=info", "--queues=critical,default,background", "--concurrency=2"]

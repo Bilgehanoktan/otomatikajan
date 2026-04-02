@@ -29,6 +29,7 @@ class EngineResult:
     """Yürütme sonucu (Eski EngineResult)."""
     success: bool
     output_data: Any
+    reflection: str = ""
     errors: List[str] = field(default_factory=list)
     duration_s: float = 0.0
 
@@ -61,33 +62,42 @@ class VelocityEngine:
 
     async def simulate_and_execute(self, agent_id: str, prompt: str, context: Dict[str, Any], task_id: str) -> EngineResult:
         """Eylemi simüle et, riskleri ölç ve ardından yürüt."""
+        from core.agi.operational.kinetic_arbiter import kinetic_arbiter
+        
         t_start = time.time()
         await self._ensure_agents()
         
-        _log.info(f"[VELOCITY] Eylem simülasyonu başlatıldı: {agent_id} (Görev: {task_id})")
+        # Faz 43: Kinetik Kaynak Dağıtıcı (Arbiter) - Slot Al
+        await kinetic_arbiter.acquire_slot(agent_id, task_id)
         
-        # 1. Bilişsel Simülasyon
-        sim_success, sim_report = await self._run_simulation(agent_id, prompt, context)
-        if not sim_success:
-            _log.warning(f"[VELOCITY] Simülasyon reddedildi: {sim_report}")
-            return EngineResult(success=False, output_data=None, errors=[f"Simulation Error: {sim_report}"])
+        try:
+            _log.info(f"[VELOCITY] Eylem simülasyonu başlatıldı: {agent_id} (Görev: {task_id})")
+            
+            # 1. Bilişsel Simülasyon
+            sim_success, sim_report = await self._run_simulation(agent_id, prompt, context)
+            if not sim_success:
+                _log.warning(f"[VELOCITY] Simülasyon reddedildi: {sim_report}")
+                return EngineResult(success=False, output_data=None, errors=[f"Simulation Error: {sim_report}"])
 
-        # 2. Risk Denetimi (Audit Gate)
-        from core.agi.security.audit_gate import AuditGate
-        audit_gate = AuditGate(self.model_orch)
-        is_safe, risk_notes = await self._inspect_intent_simulated(agent_id, prompt, sim_report)
-        if not is_safe:
-            _log.error(f"[VELOCITY] Audit Gate eylemi durdurdu: {risk_notes}")
-            return EngineResult(success=False, output_data=None, errors=[f"Security Breach: {risk_notes}"])
+            # 2. Risk Denetimi (Audit Gate)
+            from core.agi.security.audit_gate import AuditGate
+            audit_gate = AuditGate(self.model_orch)
+            is_safe, risk_notes = await self._inspect_intent_simulated(agent_id, prompt, sim_report)
+            if not is_safe:
+                _log.error(f"[VELOCITY] Audit Gate eylemi durdurdu: {risk_notes}")
+                return EngineResult(success=False, output_data=None, errors=[f"Security Breach: {risk_notes}"])
 
-        # 3. Gerçek Yürütme
-        result = await self._realize_action(agent_id, prompt, context, task_id)
-        result.duration_s = time.time() - t_start
-        
-        # 4. Refleksif Analiz
-        await self._reflect_and_log(agent_id, result, task_id)
-        
-        return result
+            # 3. Gerçek Yürütme
+            result = await self._realize_action(agent_id, prompt, context, task_id)
+            result.duration_s = time.time() - t_start
+            
+            # 4. Refleksif Analiz
+            await self._reflect_and_log(agent_id, result, task_id)
+            
+            return result
+        finally:
+            # Faz 43: Slotu Bırak
+            kinetic_arbiter.release_slot()
 
     async def execute_swarm(self, actions: List[Dict[str, Any]], context: Dict[str, Any], task_id: str) -> List[EngineResult]:
         """Birden fazla eylemi paralel olarak (Swarm mode) yürütür."""
@@ -120,7 +130,11 @@ class VelocityEngine:
 
         try:
             out = await agent.execute(task_id=task_id, subtask_id=str(uuid.uuid4()), context=context)
-            return EngineResult(success=True, output_data=out.raw_output)
+            return EngineResult(
+                success=True, 
+                output_data=out.raw_output,
+                reflection=getattr(out, "reflection", "")
+            )
         except Exception as e:
             return EngineResult(success=False, output_data=None, errors=[str(e)])
 

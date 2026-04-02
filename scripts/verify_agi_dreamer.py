@@ -1,6 +1,6 @@
 """
-AGI Dreamer Verification Script (Phase 35).
-Test senaryosu: Benzer hata kayıtları üretilir, Dreamer tetiklenir ve 
+AGI Subconscious Cortex Verification Script (Phase 45.0).
+Test senaryosu: Benzer hata kayıtları üretilir, Subconscious Cortex (45.0) tetiklenir ve 
 hafıza konsolidasyonu (bilinçaltı öğrenme) başarısı doğrulanır.
 """
 import os
@@ -14,7 +14,7 @@ if os.getcwd() not in sys.path:
 
 from db.session import AsyncSessionLocal, init_db
 from db.models import Memory
-from core.agi.cognitive.dreamer import dreamer
+from core.agi.cognitive.subconscious_cortex_45 import subconscious_cortex_45
 from core.agi.cognitive.synaptic_cortex import synaptic_cortex
 from observability.logging import get_logger
 
@@ -43,8 +43,8 @@ async def verify_dreamer():
         _log.info(f"{len(test_ids)} adet benzer hata kaydı oluşturuldu.")
 
         # 2. Dreamer'ı Tetikle
-        _log.info("Dreamer (Düşleme) süreci manuel olarak başlatılıyor...")
-        await dreamer.dream(db, limit=10)
+        _log.info("Subconscious Cortex (Düşleme) süreci manuel olarak başlatılıyor...")
+        await subconscious_cortex_45.dream(db, limit=10)
         await db.commit()
 
         # 3. Sonuçları Kontrol Et

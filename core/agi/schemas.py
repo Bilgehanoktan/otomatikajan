@@ -59,6 +59,8 @@ class ProblemFrame:
     expected_output_type: str = "report"
     priority: int = 5
     ambiguity_score: float = 0.0
+    consensus_required: bool = False
+    consensus_score: float = 0.0
     
     # --- Hiyerarşik Yapı (Phase 17) ---
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
@@ -81,6 +83,7 @@ class ContextPackage:
     policy_hints: List[str] = field(default_factory=list)
     synapse_lessons: List[Dict[str, Any]] = field(default_factory=list)
     affective_context: Optional['AffectiveState'] = None # Phase 28
+    integrity_status: Dict[str, Any] = field(default_factory=dict) # Faz 12.2: State Awareness
 
 @dataclass
 class PlanStep:
@@ -92,6 +95,10 @@ class PlanStep:
     verification_point: Optional[str] = None
     # Swarm Evolution (Phase 25)
     workspace_context: Dict[str, Any] = field(default_factory=dict)
+    # Faz 39: Konsensüs Verileri
+    consensus_required: bool = False
+    consensus_score: float = 0.0
+    consensus_notes: Optional[str] = None
 
 @dataclass
 class PlanProposal:
@@ -113,6 +120,8 @@ class ExecutionPlan:
     rollback_conditions: List[str] = field(default_factory=list)
     confidence_estimate: float = 1.0
     estimated_risk: RiskLevel = RiskLevel.LOW
+    # Faz 12.2: Predictive Alignment
+    evaluated_alternatives: List[Dict[str, Any]] = field(default_factory=list)
     # Swarm Evolution (Phase 25)
     workspace: Dict[str, Any] = field(default_factory=dict)
 
@@ -125,6 +134,7 @@ class ActionRecord:
     plan_id: str = ""
     step_id: str = ""
     tool_used: str = ""
+    agent_id: str = ""
     input_data: Any = None
     output_data: Any = None
     duration_s: float = 0.0

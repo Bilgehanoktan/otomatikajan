@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Awaitable, Callable, Optional
 from observability.logging import get_logger  # type: ignore
+from core.agi.cognitive.metacognitive_auditor import metacognitive_auditor
 
 _log = get_logger("core.job_queue")
 
@@ -37,6 +38,8 @@ class Job:
     error:       str            = ""
     attempts:    int            = 0
     max_attempts:int            = 3
+    recovery_attempts: int      = 0
+    max_recovery_attempts: int  = 1
     created_at:  str            = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     started_at:  str            = ""
     completed_at:str            = ""
@@ -166,8 +169,6 @@ class JobQueue(BaseQueueCapabilities):
     def get_job(self, job_id: str) -> Job | None:
         return self._jobs.get(job_id)
 
-        return list(tuple(self._jobs.values())[-limit:])  # type: ignore
-
     @property
     def dead_letters(self) -> list[Job]:
         return self._dead_letter.copy()
@@ -230,12 +231,31 @@ class JobQueue(BaseQueueCapabilities):
         token = self._cancel_tokens.get(job_id)
         if token:
             token.set()
+            
+            # Faz 12.1: DeerFlow köprü iptalini de tetikle (Fire & Forget)
+            try:
+                from integrations.deerflow_bridge import DeerFlowBridgeClient
+                client = DeerFlowBridgeClient()
+                asyncio.create_task(client.cancel(job_id))
+            except Exception as e:
+                 _log.debug(f"DeerFlow bridge cancel trigger failed (atland): {e}")
+
             return True
+            
         job = self._jobs.get(job_id)
         if job and job.status in (JobStatus.PENDING, JobStatus.RETRYING):
             job.status = JobStatus.ERROR
             job.error  = "Kullanıcı tarafından iptal edildi"
             job.completed_at = datetime.now(timezone.utc).isoformat()
+            
+            # Faz 12.1: Bekleyen iş olsa dahi DeerFlow Bridge'e iptal gönder (Garantici yaklaşım)
+            try:
+                from integrations.deerflow_bridge import DeerFlowBridgeClient
+                client = DeerFlowBridgeClient()
+                asyncio.create_task(client.cancel(job_id))
+            except Exception:
+                 pass
+                 
             return True
         return False
 
@@ -347,12 +367,42 @@ class JobQueue(BaseQueueCapabilities):
                 if job.attempts < job.max_attempts:
                     wait = min(2 ** job.attempts, self._max_retry_wait)
                     await asyncio.sleep(wait)
+                    continue
 
-            # Tüm denemeler tükendi -> dead-letter
-            job.status       = JobStatus.DEAD
-            job.completed_at = datetime.now(timezone.utc).isoformat()
-            self._dead_letter.append(job)
-            _log.error(f"❌ Job {job.id} KALICI BAŞARISIZLIK (Dead Letter): {job.error}")
+                # Normal denemeler bitti, Metacognitive Recovery (Phase 45) devreye girsin
+                if job.status == JobStatus.RETRYING and job.recovery_attempts < job.max_recovery_attempts:
+                    _log.info(f"[SOVEREIGN-RECOVERY] Job {job.id} için otonom analiz başlatılıyor...")
+                    
+                    # Son monoloğu payload'dan alalım (SovereignCortex tarafından eklenmiş olmalı)
+                    last_monologue = job.payload.get("internal_monologue", "")
+                    
+                    audit_result = await metacognitive_auditor.analyze_job_failure(
+                        job_type=job.type,
+                        job_payload=job.payload,
+                        error_msg=job.error,
+                        last_monologue=last_monologue
+                    )
+                    
+                    if audit_result.get("recoverable"):
+                        job.recovery_attempts += 1
+                        job.attempts = 0 # Sayacı sıfırla ki normal retries tekrar başlasın
+                        
+                        # Payload'u zenginleştir
+                        job.payload["recovery_context"] = audit_result.get("context_augmentation", "")
+                        job.payload["inhibition_signal"] = audit_result.get("inhibition_injection", "")
+                        
+                        _log.info(f"[SOVEREIGN-RECOVERY] Job {job.id} RECOVERING. Deneme: {job.recovery_attempts}. Neden: {audit_result.get('root_cause')}")
+                        # Kuyruğa geri koy (In-process olduğu için put yeterli)
+                        await self._queue.put(job)
+                        job.status = JobStatus.PENDING
+                        return # İşlem pending olarak kuyruğa döndü
+                    else:
+                        _log.warning(f"[SOVEREIGN-RECOVERY] Job {job.id} kurtarılamaz olarak işaretlendi.")
+
+                job.status = JobStatus.DEAD # Kalıcı hata
+                self._dead_letter.append(job)
+                job.completed_at = datetime.now(timezone.utc).isoformat()
+                return
 
         finally:
             self._cancel_tokens.pop(job.id, None)
@@ -402,9 +452,9 @@ class CeleryJobQueue(BaseQueueCapabilities):
             supports_registration=False,
             supports_listing=True,
             supports_dead_letters=False,
-            supports_cancel=False,
-            supports_pause=False,
-            supports_resume=False,
+            supports_cancel=True,
+            supports_pause=True,
+            supports_resume=True,
             listing_scope="process_local",
         )
         try:
@@ -580,6 +630,58 @@ class CeleryJobQueue(BaseQueueCapabilities):
     def register(self, job_type: str, handler: Any):
         _log.debug(f"CeleryJobQueue: {job_type} için handler kaydedildi (Celery tarafında karşılığı olmalı).")
 
+    def request_cancel(self, job_id: str) -> bool:
+        """Celery görevini iptal et (Revoke + Terminate)."""
+        if not self._available:
+            return False
+        try:
+            from celery.result import AsyncResult
+            res = AsyncResult(job_id, app=self._celery)
+            res.revoke(terminate=True)
+            
+            # Local cache update
+            job = self._jobs.get(job_id)
+            if job:
+                job.status = JobStatus.DEAD
+                job.error = "Cancelled by user (Celery Revoke)"
+            
+            _log.info(f"Celery job cancelled: {job_id}")
+            
+            # Faz 12.1: DeerFlow köprü iptalini de tetikle (Fire & Forget)
+            try:
+                from integrations.deerflow_bridge import DeerFlowBridgeClient
+                client = DeerFlowBridgeClient()
+                # Celery worker loop'unda olmayabiliriz (API context), loop kontrolü yap
+                try:
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(client.cancel(job_id))
+                except RuntimeError:
+                    # Alternatif: Yeni loop veya senkron httpx (burada fire-and-forget yeterli)
+                    pass
+            except Exception as e:
+                _log.debug(f"DeerFlow bridge cancel trigger failed (atland): {e}")
+                
+            return True
+        except Exception as e:
+            _log.error(f"Failed to cancel Celery job {job_id}: {e}")
+            return False
+
+    def pause_job(self, job_id: str) -> bool:
+        """Celery için pause/resume desteği kısıtlıdır (Cooperative değildir)."""
+        job = self._jobs.get(job_id)
+        if job:
+            job.status = JobStatus.PAUSED
+            return True
+        return False
+
+    def resume_job(self, job_id: str) -> bool:
+        """Celery için pause/resume desteği kısıtlıdır (Cooperative değildir)."""
+        job = self._jobs.get(job_id)
+        if job and job.status == JobStatus.PAUSED:
+            job.status = JobStatus.RUNNING
+            return True
+        return False
+
 
 def _celery_state_to_job(state: str) -> JobStatus:
     return {
@@ -605,9 +707,17 @@ def create_job_queue():
         return JobQueue(concurrency=WORKER_CONCURRENCY)
 
     # auto mode
-    env_redis = os.getenv("REDIS_URL")
-    if env_redis or REDIS_URL:
-        return CeleryJobQueue()
+    has_redis_config = bool(os.getenv("REDIS_URL") or REDIS_URL)
+    
+    if has_redis_config:
+        try:
+            # SRE Hardening: Sadece URL varlığı yetmez, ping testi yap (opsiyonel ama önerilir)
+            # Şimdilik Celery'ye güven ama import error veya bariz config hatası varsa fallback yap.
+            return CeleryJobQueue()
+        except Exception as e:
+            from observability.logging import get_logger
+            get_logger("job_queue").warning(f"Redis config var ama Celery baslatilamadi: {e}. In-process'e donuluyor.")
+            return JobQueue(concurrency=WORKER_CONCURRENCY)
 
     return JobQueue(concurrency=WORKER_CONCURRENCY)
 

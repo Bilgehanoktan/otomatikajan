@@ -1,10 +1,12 @@
 import asyncio
 import json
 import re
+import os
 from typing import List, Dict, Any, Optional
 from observability.logging import get_logger
 from llm.model_orchestrator import model_orchestrator, ModelOrchestrator
 from core.agi.schemas import PlanProposal
+from core.agi.consciousness.affective_core import affective_core
 
 _log = get_logger("agi_foresight")
 
@@ -18,54 +20,62 @@ class ForesightCortex:
     def __init__(self, model_orch: Optional[ModelOrchestrator] = None):
         self.model_orch = model_orch or model_orchestrator
 
-    async def simulate_plan(self, plan: PlanProposal) -> List[Dict[str, Any]]:
+    async def simulate_plan(self, plan: Any) -> Dict[str, Any]:
         """
-        Bir planın adımlarını simüle eder ve olası riskleri saptar. (Legacy Oracle Logic)
-        Geçmiş hatalardan (Anti-Patterns) ders çıkararak simülasyonu derinleştirir.
+        Bir planın adımlarını simüle eder, riskleri saptar ve stratejik uyum skorunu belirler.
+        Faz 50: Gerçek dünya (Grounding) verileri ile desteklenmiştir.
         """
         import dataclasses
         from db.session import session_scope
-        from db.models import ImprovementOpportunity
-        from sqlalchemy import select
+        from core.agi.cognitive.synaptic_cortex import synaptic_cortex
         
-        _log.info(f"[FORESIGHT] Yansımalı Plan Simülasyonu (Reflective Mental Simulation) başlatılıyor...")
+        _log.info(f"[FORESIGHT] Yansımalı Plan Simülasyonu başlatılıyor...")
         
-        # 1. Geçmiş Hataları (Anti-Patterns) Topla
-        anti_patterns = []
+        # 1. Bilişsel Hafızadan Dersleri Topla (Synapse)
+        synapse_lessons = []
         try:
             async with session_scope() as db:
-                result = await db.execute(
-                    select(ImprovementOpportunity)
-                    .where(ImprovementOpportunity.severity == "high")
-                    .limit(5)
-                )
-                opps = result.scalars().all()
-                anti_patterns = [f"- {o.title}: {o.description}" for o in opps]
+                synapse_lessons = await synaptic_cortex.search(db, query="", category="cognitive_lesson", top_k=5)
         except Exception as e:
-            _log.warning(f"[FORESIGHT] Anti-Pattern verisi alınamadı (devam ediliyor): {e}")
+            _log.warning(f"[FORESIGHT] Synapse lessons alınamadı: {e}")
 
-        anti_pattern_context = "\n".join(anti_patterns) if anti_patterns else "Henüz saptanmış kritik hata deseni bulunamadı."
+        lesson_context = "\n".join([f"- {l['body']}" for l in synapse_lessons]) if synapse_lessons else "Ders bulunamadı."
+
+        plan_content = json.dumps(dataclasses.asdict(plan), indent=2, default=str) if dataclasses.is_dataclass(plan) else str(plan)
+        
+        # Faz 12.4: Duygusal Simülasyon
+        aff_matrix = affective_core.get_state_matrix()
+        stress_level = aff_matrix.get("internal_stress", 0.0)
+        mood = affective_core.get_current_mood()
+
+        # Faz 50: Reality Check (Grounding)
+        grounding_context = await self._perform_reality_check()
 
         prompt = f"""
-        Aşağıdaki uygulama planını adım adım zihninde simüle et. 
-        Her adım için "Ne yanlış gidebilir?" sorusunu sor ve olası riskleri (Edge Cases) belirle.
+        Aşağıdaki uygulama planını zihninde simüle et. 
         
-        GEÇMİŞTE SAPTANAN KRİTİK HATA DESENLERİ (BUNLARDAN KAÇIN):
-        {anti_pattern_context}
+        SİSTEM DURUMU (AFFECTIVE STATE):
+        - Ruh Hali: {mood}
+        - Stres Seviyesi: {stress_level:.2f} (0.0 - 1.0)
+        - Önemli: Eğer stres > 0.7 ise, 'Hasty Code' (Aceleci Kod) ve 'Regression' risklerini daha yüksek olasılıkla değerlendir.
+        
+        SON BİLİŞSEL DERSLER:
+        {lesson_context}
         
         PLAN:
-        {json.dumps(dataclasses.asdict(plan), indent=2, default=str)}
+        {plan_content}
+
+        GERÇEK DÜNYA DURUMU (GROUNDING):
+        {grounding_context}
         
-        Lütfen saptanan riskleri JSON listesi olarak döndür:
+        Lütfen simülasyon çıktısını JSON olarak döndür:
         {{
             "predicted_risks": [
-                {{
-                    "step_index": 1,
-                    "severity": "high/medium/low",
-                    "failure_mode": "Öngörülen hata açıklaması",
-                    "impact": "Sisteme etkisi"
-                }}
-            ]
+                {{ "step": 1, "severity": "high", "failure_mode": "...", "impact": "..." }}
+            ],
+            "strategic_alignment_score": 0.85, 
+            "reasoning": "Planın hedefe uygunluk analizi",
+            "suggested_mitigations": ["Riskleri azaltmak için öneri"]
         }}
         """
         
@@ -73,19 +83,18 @@ class ForesightCortex:
             response = await self.model_orch.complete_task(
                 agent_role="architect",
                 prompt=prompt,
-                system_prompt="Sen bir AGI Öngörü Birimisin (Foresight Cortex). Geçmiş hatalardan ders çıkarır, eylemlerin gizli risklerini henüz gerçekleşmeden görürsün."
+                system_prompt="Sen bir AGI Öngörü Birimisin (Foresight Cortex). Planların gizli risklerini ve stratejik değerini henüz gerçekleşmeden analiz edersin."
             )
             
             match = re.search(r'\{.*\}', response.content, re.DOTALL)
             if match:
                 data = json.loads(match.group())
-                risks = data.get("predicted_risks", [])
-                _log.info(f"[FORESIGHT] Simülasyon Tamamlandı, {len(risks)} risk noktası saptandı.")
-                return risks
-            return []
+                _log.info(f"[FORESIGHT] Simülasyon Tamamlandı. Skor: {data.get('strategic_alignment_score')}")
+                return data
+            return {"predicted_risks": [], "strategic_alignment_score": 0.5}
         except Exception as e:
             _log.error(f"[FORESIGHT] Foresight simulation failed: {e}")
-            return []
+            return {"predicted_risks": [], "strategic_alignment_score": 0.0}
     
     async def simulate_parallel_futures(self, original_plan: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
@@ -138,6 +147,38 @@ class ForesightCortex:
             _log.error(f"[FORESIGHT] Gelecek simülasyonu hatası: {e}")
             return []
 
+    async def _perform_reality_check(self) -> str:
+        """
+        Dosya sistemi üzerinden mevcut durumu tarar (Grounding).
+        Simülatörün halüsinasyon görmesini engeller.
+        """
+        try:
+            _log.info("[FORESIGHT] Gerçeklik kontrolü (Reality Check) başlatılıyor...")
+            cwd = os.getcwd()
+            files = []
+            
+            # Kritik dizinleri tara (Maksimum derinlik 2)
+            critical_dirs = ["core/agi", "api", "db", "integrations"]
+            for d in critical_dirs:
+                d_path = os.path.join(cwd, d)
+                if os.path.exists(d_path):
+                    for root, dirs, filenames in os.walk(d_path):
+                        rel_root = os.path.relpath(root, cwd)
+                        depth = rel_root.count(os.sep)
+                        if depth <= 1:
+                            for f in filenames:
+                                if f.endswith(".py"):
+                                    files.append(os.path.join(rel_root, f))
+                        if depth > 1:
+                            break # Limit depth
+
+            snapshot = "MEVCUT MİMARİ YAPISI (SINIRLI):\n"
+            snapshot += "\n".join(files[:30]) # Sadece ilk 30 dosya (Context budget)
+            return snapshot
+        except Exception as e:
+            _log.error(f"[FORESIGHT] Reality check hatası: {e}")
+            return "Gerçeklik verisi alınamadı."
+
     async def select_optimal_timeline(self, timelines: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
         """Üretilen senaryolar arasından en güvenli/verimli olanı seçer."""
         if not timelines:
@@ -153,3 +194,7 @@ foresight_cortex = ForesightCortex()
 # Compatibility Aliases
 ChronosMesh = ForesightCortex
 chronos_mesh = foresight_cortex
+
+# [FIX] neural_core_orchestrator.py 'foresight_oracle' adıyla import ediyor.
+# ForesightCortex'in alias'ı olarak tanımlıyoruz.
+foresight_oracle = foresight_cortex

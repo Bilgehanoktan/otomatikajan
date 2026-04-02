@@ -5,7 +5,9 @@ from pydantic import BaseModel
 from auth.jwt_auth import get_current_user, require_admin
 from core.context import orchestrator
 from db.session import AsyncSessionLocal
-from core.improvement_v1.observer import ImprovementObserver
+from core.improvement.cognitive_verifier import cognitive_verifier
+from core.agi.cognitive.sovereign_auditor import sovereign_auditor
+from core.agi.cognitive.evolution_engine import evolution_engine
 from observability.logging import get_logger
 
 router = APIRouter(prefix="/improvements", tags=["Self-Improvement"])
@@ -33,41 +35,26 @@ class ApplyPatchRequest(BaseModel):
 @router.get("/scan", response_model=List[ImprovementResponse])
 async def scan_for_improvements(background_tasks: BackgroundTasks, current_user=Depends(get_current_user)):
     try:
-        from core.improvement.gate import improvement_gate
-        proposals: List[Any] = await improvement_gate.get_proposals()
+        proposals: List[Any] = await evolution_engine.get_active_proposals()
         
         # Eğer aktif öneri yoksa, bir döngü tetikle (Arka planda)
         if not proposals:
-            background_tasks.add_task(improvement_gate.run_cycle)
-            
-            # Eski observer'ı fallback olarak çalıştır ama patch üretmeyi dene
-            async with AsyncSessionLocal() as db:
-                from improve.observer import ImprovementObserver as OldObserver
-                observer = OldObserver(db)
-                old_ops = await observer.scan()
-                return [
-                    ImprovementResponse(
-                        id=str(getattr(o, "id", f"old_{i}")),
-                        description=getattr(o, "description", ""),
-                        severity=getattr(o, "severity", "medium"),
-                        affected_files=getattr(o, "affected_files", []),
-                        evidence={
-                            "patch": "Sistem bu hatayı analiz ediyor... Lütfen birkaç dakika sonra tekrar tarayın.",
-                            "evidence": o.evidence if hasattr(o, "evidence") and isinstance(o.evidence, dict) else {"raw": str(getattr(o, "evidence", ""))}
-                        },
-                    )
-                    for i, o in enumerate(old_ops)
-                ]
+            background_tasks.add_task(evolution_engine.run_evolution_cycle)
+            return []
 
         return [
             ImprovementResponse(
-                id=f"prop_{i}",
-                description=p["issue"]["reason"] if isinstance(p, dict) and "issue" in p else "AI Analizi Gerekli",
-                severity="high",
-                affected_files=[p["issue"].get("agent_id", "system")] if isinstance(p, dict) and "issue" in p else ["system"],
-                evidence={"patch": p.get("patch"), "evidence": p.get("issue", {}).get("evidence")} if isinstance(p, dict) else {"patch": "Analiz devam ediyor..."},
+                id=p["id"],
+                description=p["finding"]["title"],
+                severity=p["finding"].get("severity", "medium"),
+                affected_files=[p["finding"].get("evidence", {}).get("affected_file", "system")],
+                evidence={
+                    "finding": p["finding"],
+                    "patch": p.get("patch"),
+                    "reasoning": p.get("reasoning")
+                }
             )
-            for i, p in enumerate(proposals)
+            for p in proposals
         ]
     except Exception as e:
         logger.error(f"Improvement scan hatası: {e}")
@@ -81,59 +68,14 @@ async def apply_autonomous_proposal(
     current_user=Depends(require_admin),
 ):
     try:
-        from core.improvement.gate import improvement_gate
+        proposals = await evolution_engine.get_active_proposals()
+        proposal = next((p for p in proposals if p["id"] == proposal_id), None)
         
-        # New Proposal Format: prop_0, prop_1 ...
-        if proposal_id.startswith("prop_"):
-            idx = int(proposal_id.replace("prop_", ""))
-            proposals = await improvement_gate.get_proposals()
-            if idx >= len(proposals):
-                raise HTTPException(status_code=404, detail="Prosedür bulunamadı.")
-            proposal = proposals[idx]
-            background_tasks.add_task(improvement_gate.apply_proposal, proposal)
-            return {"status": "started", "message": f"İyileştirme {proposal_id} uygulanmaya başlandı."}
+        if not proposal:
+            raise HTTPException(status_code=404, detail=f"İyileştirme ID {proposal_id} bulunamadı.")
 
-        # Old/UUID/Deterministic Format fallback
-        # we need to find the issue in OldObserver and convert it to a proposal
-        async with AsyncSessionLocal() as db:
-            from core.improvement_v1.observer import ImprovementObserver as OldObserver
-            observer = OldObserver(db)
-            old_ops = await observer.scan()
-            found = next((o for o in old_ops if str(getattr(o, "id", "")) == proposal_id), None)
-            
-            if not found:
-                # Debugging log for SRE
-                logger.warning(f"Proposal {proposal_id} not found in current scan. Available IDs: {[getattr(o, 'id', '') for o in old_ops]}")
-                raise HTTPException(
-                    status_code=404, 
-                    detail=f"İyileştirme ID {proposal_id} bulunamadı veya artık geçerli değil. Lütfen sayfayı yenileyip tekrar deneyin."
-                )
-            
-            # Bridge to new gate: add as task to run cycle for this specific issue
-            issue = {
-                "type": getattr(found, "source_metric", "unknown"),
-                "agent_id": found.affected_files[0] if found.affected_files else "system",
-                "reason": found.description,
-                "evidence": found.evidence
-            }
-            
-            # Manually trigger a fix for this issue via gate-like logic
-            async def force_apply():
-                try:
-                    from core.improvement.proposer import proposer
-                    from core.improvement.verifier import verifier
-                    logger.info(f"Forcing apply for {proposal_id} ({found.description})")
-                    patch = await proposer.propose_fix(issue)
-                    if patch and await verifier.verify_patch(patch, issue):
-                        await improvement_gate.apply_proposal({"issue": issue, "patch": patch})
-                        await improvement_gate._report_improvement({"issue": issue, "patch": patch}, auto=False)
-                    else:
-                        logger.error(f"Patch proposal or verification failed for {proposal_id}")
-                except Exception as ex:
-                    logger.error(f"force_apply fail: {ex}")
-
-            background_tasks.add_task(force_apply)
-            return {"status": "started", "message": f"İyileştirme {proposal_id} analiz ediliyor ve uygulanacak."}
+        background_tasks.add_task(evolution_engine.apply_evolution, proposal)
+        return {"status": "started", "message": f"Evrim adımı {proposal_id} uygulanmaya başlandı."}
 
     except HTTPException:
         raise

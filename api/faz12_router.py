@@ -82,8 +82,7 @@ async def run_debate(body: DebateRequest, current_user=Depends(get_current_user)
     """Multi-agent debate başlat. İki ajan kritik bir karar üzerinde tartışır."""
     try:
         from core.debate_engine import get_debate_engine
-        from core.orchestrator import get_orchestrator
-        orch = get_orchestrator()
+        from core.agi.cognitive.sovereign_cortex import sovereign_cortex as orch
 
         engine = get_debate_engine(model_orch=orch.model_orch, max_rounds=body.max_rounds)
         result = await engine.run_debate(

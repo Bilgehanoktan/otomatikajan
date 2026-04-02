@@ -25,7 +25,7 @@
 ## Mimari
 
 ```
-POST /projects
+POST /api/v1/tasks
      │
      ▼
 JobQueue (async)
@@ -186,13 +186,13 @@ curl -X POST http://localhost:8000/api/v1/auth/logout \
 
 ```bash
 # Async (hemen job_id döner)
-curl -X POST http://localhost:8000/api/v1/projects \
+curl -X POST http://localhost:8000/api/v1/tasks \
   -H "Authorization: Bearer <token>" \
   -d '{"title": "E-ticaret Platformu", "description": "React + FastAPI", "async_mode": true}'
 # → {"job_id": "abc123", "status": "queued"}
 
 # Durum sorgula
-curl http://localhost:8000/api/v1/projects/abc123/status \
+curl http://localhost:8000/api/v1/tasks/abc123 \
   -H "Authorization: Bearer <token>"
 ```
 
@@ -210,7 +210,7 @@ curl -X POST http://localhost:8000/api/v1/approvals/{id}/decide \
 
 ```bash
 curl http://localhost:8000/api/v1/heal/report    # ajan sağlık raporu
-curl http://localhost:8000/api/v1/metrics        # p50/p95/p99 metrikler
+curl http://localhost:8000/metrics               # p50/p95/p99 metrikler
 wscat -c "ws://localhost:8000/ws?token=<token>"  # canlı olaylar (WebSocket)
 ```
 
@@ -238,7 +238,7 @@ make test               # tüm testler
 make test-cov           # kapsam raporu (htmlcov/index.html)
 
 pytest tests/test_review_fixes.py -v    # inceleme düzeltme testleri
-pytest tests/test_faz3.py -v            # kalite sistemi testleri
+pytest tests/test_dashboard_api.py -v   # mevcut sözleşme / dashboard testleri
 pytest tests/test_heal_system.py -v     # öz-iyileştirme testleri
 ```
 
@@ -248,7 +248,7 @@ pytest tests/test_heal_system.py -v     # öz-iyileştirme testleri
 |-------|--------|
 | `test_suite.py` | MMR, orchestrator, job queue, rate limiter |
 | `test_heal_system.py` | FSM, recovery stratejileri, root cause |
-| `test_faz3.py` | Kalite sistemi, approval gate, memory |
+| `test_dashboard_api.py` | Dashboard API sözleşmeleri |
 | `test_review_fixes.py` | Auth negatif senaryolar, 429, webhook HMAC, deque |
 
 ---

@@ -46,11 +46,13 @@ class CausalEngine:
                     metadata=link.get("metadata", {})
                 ))
             
-            # --- Faz 21: Recursive Diagnostics ---
+            # --- [FIX-10] Faz 21: Recursive Diagnostics — Artık Gerçekten Çalışıyor ---
             diagnostics = causal_data.get("diagnostics", {})
-            if depth > 1 and not episode.verification.result_status:
-                _log.info(f"Yansımalı (Reflective) Analiz tetikleniyor: Depth {depth-1}")
-                # Gelecekte burada alt-aksiyonlara veya sistem loglarına daha derin bakış yapılabilir.
+            if depth > 1 and episode.verification and not episode.verification.result_status:
+                _log.info(f"[CAUSAL] Yansımalı (Reflective) Analiz tetikleniyor: Depth {depth-1}")
+                drill_links = await self._drill_down_action_causes(episode, depth - 1)
+                links.extend(drill_links)
+                _log.info(f"[CAUSAL] Drill-down analiz tamamlandı: {len(drill_links)} ek nedensel bağ bulundu.")
             
             graph = CausalGraph(
                 links=links,
@@ -62,6 +64,65 @@ class CausalEngine:
         except Exception as e:
             _log.error(f"Causal analysis hatası: {e}")
             return CausalGraph()
+
+    async def _drill_down_action_causes(self, episode: EpisodeRecord, depth: int) -> List[CausalLink]:
+        """
+        [FIX-10] Recursive derinlemesine nedensel analiz.
+        Episode'daki her başarısız action için LLM'e ayrı ayrı soruyor: 
+        'Bu adım neden başarısız oldu?'
+        """
+        extra_links: List[CausalLink] = []
+        failed_actions = [a for a in episode.actions if not a.success]
+        
+        if not failed_actions:
+            # Sistem başarısız oldu ama belirli bir action başarısız değil
+            # Genel verification failure'a bak
+            failed_actions = episode.actions[-1:] if episode.actions else []
+
+        for action in failed_actions[:3]:  # En fazla 3 action incele (token tasarrufu)
+            prompt = f"""
+            Başarısız eylem analizi:
+            Ajan: {action.tool_used}
+            Giriş: {str(action.input_data)[:200]}
+            Çıktı: {str(action.output_data)[:200]}
+            Hatalar: {action.errors}
+
+            'Kademeli Nedensellik' (Kaba Neden Analizi) yap:
+            Bu eylemin neden başarısız olduğunun olasi 3 nedenini sırala.
+            JSON listesi döndür:
+            [
+              {{
+                "cause": "ne yol açtı",
+                "effect": "{action.action_id}_failure",
+                "type": "causes_failure",
+                "confidence": 0.85,
+                "metadata": {{"action_id": "{action.action_id}", "depth": {depth}}}
+              }}
+            ]
+            """
+            try:
+                resp = await self.model_orch.complete_task(
+                    agent_role="critic",
+                    prompt=prompt,
+                    system_prompt="AGI Nedensel Analiz uzmanı olarak başarısızlıkların kök nedenlerini bulursun."
+                )
+                import re
+                import json as _json
+                m = re.search(r'\[.*\]', resp.content, re.DOTALL)
+                if m:
+                    raw = _json.loads(m.group())
+                    for item in raw:
+                        extra_links.append(CausalLink(
+                            cause_id=str(item.get("cause", "unknown")),
+                            effect_id=str(item.get("effect", action.action_id)),
+                            relationship_type=item.get("type", "causes_failure"),
+                            confidence=float(item.get("confidence", 0.7)),
+                            metadata=item.get("metadata", {})
+                        ))
+            except Exception as drill_err:
+                _log.warning(f"[CAUSAL] Drill-down hatası action {action.action_id}: {drill_err}")
+        
+        return extra_links
 
     async def simulate_counterfactual(self, episode: EpisodeRecord, alternative_action: str) -> Dict[str, Any]:
         """

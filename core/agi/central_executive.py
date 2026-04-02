@@ -11,12 +11,15 @@ from core.agi.schemas import (
     UnifiedInput, SourceType, EpisodeRecord, ContextPackage, RiskLevel, TaskType
 )
 from core.agi.cognitive.perception_unit import PerceptionUnit
-from core.agi.cognitive.decision_matrix import DecisionMatrix
+from core.agi.cognitive.strategic_decision_center import StrategicDecisionCenter
 from core.agi.security.audit_gate import AuditGate
 from core.agi.cognitive.synaptic_cortex import synaptic_cortex
 from core.agi.cognitive.compactor import context_compactor
 from core.agi.cognitive.motivation_engine import motivation_engine # Phase 28
 from db.session import session_scope
+
+# WorldModel Katman 9: Observability & Graph Context
+from core.agi.world import service_graph, task_state_graph, causal_error_graph
 
 _log = get_logger("agi_central_executive")
 
@@ -37,7 +40,7 @@ class CentralExecutive:
         
         # Bilişsel Birimlerin Başlatılması (Faz 16 Bio-Evolution)
         self.perception = PerceptionUnit(self.model_orch)
-        self.decision = DecisionMatrix(self.model_orch)
+        self.decision = StrategicDecisionCenter(self.model_orch)
         
         from core.agi.operational.motor_synapse import MotorSynapse
         from core.agi.operational.velocity_engine import velocity_engine
@@ -72,8 +75,8 @@ class CentralExecutive:
         affective_state = await motivation_engine.recalibrate_state(recent_episodes, frame)
 
         # --- Otonom Hedef Ayrıştırma (Decomposition) ---
-        from core.agi.cognitive.decomposer import goal_decomposer
-        sub_frames = await goal_decomposer.break_down(frame)
+        from core.agi.cognitive.sovereign_planner import sovereign_planner as goal_decomposer
+        sub_frames = await goal_decomposer.decompose(frame.objective, frame.description, list(self.all_agents.values()))
         
         # Eğer sadece tek frame varsa, standart akış devam eder.
         target_frames = sub_frames if len(sub_frames) > 1 else [frame]
@@ -123,11 +126,19 @@ class CentralExecutive:
             # 2. Epistemik Arama ve Bağlam Kurulumu
             from core.agi.world.repo_graph import repo_world_model
             repo_world_model.scan()
+            
+            # Katman 9: Servis Sağlığı ve Görev Geçmişi
+            service_health = service_graph.get_health_report()
+            task_history = task_state_graph.get_summary()
+            
             summary = repo_world_model.get_summary()
             repo_context_pack = summary.get("context_pack", "")
+            
+            # Entegre Dünya Modeli Bağlamı
+            world_context = f"{repo_context_pack}\n\n[SERVICE_HEALTH]: {service_health}\n[TASK_HISTORY]: {task_history}"
 
             from core.agi.cognitive.perception_gate import perception_gate
-            enriched_context = await perception_gate.probe(current_frame, f"{raw_input}\n\nÖnceki Adım Sonuçları: {cumulative_result}")
+            enriched_context = await perception_gate.probe(current_frame, f"{raw_input}\n\n{world_context}\n\nÖnceki Adım Sonuçları: {cumulative_result}")
             
             reflection_context = enriched_context if enriched_context else ""
             current_attempt = 1
@@ -163,6 +174,12 @@ class CentralExecutive:
                     synapse_lessons = await synaptic_cortex.search(db, query="", category="policy_proposal", top_k=5)
                     synapse_lessons += await synaptic_cortex.search(db, query="", category="reflection_log", top_k=5)
 
+                # State Awareness: Bütünlük Durumu Enjeksiyonu (Faz 12.2)
+                integrity = await self._get_integrity_status()
+
+                # --- Affective Context Extension (Faz 12.3) ---
+                # affective_state zaten yukarıda (satır 72) recalibrate edildi
+                
                 last_context = ContextPackage(
                     working_context=f"{working_summary}{reflection_block}{world_model_context}",
                     graph_links=[{
@@ -171,7 +188,9 @@ class CentralExecutive:
                     }],
                     relevant_skills=list(self.specialists.keys()),
                     policy_hints=["Memory is append-only.", f"Parent Goal: {frame.objective}"],
-                    synapse_lessons=synapse_lessons
+                    synapse_lessons=synapse_lessons,
+                    integrity_status=integrity,
+                    affective_context=affective_state # Faz 12.3: Duygusal bağlam enjeksiyonu
                 )
                 
                 # 3. Karar Verme Katmanı
@@ -325,7 +344,35 @@ class CentralExecutive:
                 if last_verification and last_verification.result_status and last_verification.integration_reality_score >= 0.7:
                     from core.agi.learning.distiller import skill_distiller
                     await skill_distiller.distill(episode, db)
-                
+
+                # --- [FIX-9] WorldModel Güncellemeleri ---
+                # 9.3: TaskStateGraph
+                try:
+                    from core.agi.world.task_state_graph import task_state_graph
+                    task_id = str(inp.input_id)
+                    if last_verification and last_verification.result_status:
+                        task_state_graph.mark_success(task_id)
+                    else:
+                        task_state_graph.mark_failed(
+                            task_id,
+                            reason=getattr(last_verification, "evidence_summary", "Unknown"),
+                            causal_root=causal_graph.nodes_metadata.get("root_cause_step", "") if causal_graph else ""
+                        )
+                except Exception as _tsg_err:
+                    _log.debug(f"TaskStateGraph güncelleme hatası: {_tsg_err}")
+
+                # 9.4: CausalErrorGraph — başarısız episode'lardan hata örüntülerini öğren
+                if causal_graph and not (last_verification and last_verification.result_status):
+                    try:
+                        from core.agi.world.causal_error_graph import causal_error_graph
+                        causal_error_graph.ingest_causal_graph(
+                            causal_graph,
+                            episode_id=str(inp.input_id),
+                            agent_id=str(frame.task_type.value) if frame else "system"
+                        )
+                    except Exception as _ceg_err:
+                        _log.debug(f"CausalErrorGraph güncelleme hatası: {_ceg_err}")
+
                 # Otonom Adaptasyon ve Politika Evrimi
                 try:
                     from core.agi.adaptation.policy_engine import policy_engine
@@ -339,6 +386,27 @@ class CentralExecutive:
                     asyncio.create_task(strategy_tuner.synthesize_policy(episode))
         
         return episode
+
+    async def _get_integrity_status(self) -> Dict[str, Any]:
+        """Sistemin operasyonel dürüstlük (integrity) durumunu döner."""
+        status = {
+            "mode": "nominal",
+            "degraded_components": [],
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        
+        # 1. Model Orkestratörü Sağlığı
+        orch_health = self.model_orch.get_health_score()
+        if orch_health < 0.7:
+            status["mode"] = "degraded"
+            status["degraded_components"].append("llm_orchestrator")
+            
+        # 2. Veritabanı / Failsafe Durumu
+        if self.model_orch.circuit_breaker_tripped:
+            status["mode"] = "failsafe"
+            status["degraded_components"].append("api_availability")
+            
+        return status
 
 # --- Singleton ---
 central_executive = CentralExecutive()

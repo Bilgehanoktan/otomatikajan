@@ -18,6 +18,7 @@ except ImportError:
     pass
 
 from db.models import Base
+import db.repair_models # Ensure all models are registered
 
 config = context.config
 

@@ -8,6 +8,7 @@ from db.session import session_scope
 from sqlalchemy import select
 from db.models import ImprovementOpportunity, CEOSuggestedTask
 from core.agi.operational.neural_tool_weaver import neural_tool_weaver
+from core.agi.cognitive.causal_engine import causal_engine
 
 _log = get_logger("agi_evolutionary_architect")
 
@@ -52,7 +53,7 @@ class EvolutionaryArchitect:
                         continue
 
                 # B. KOD YAMASI (Patching)
-                target_file = self._detect_target_file(opp)
+                target_file = await self._detect_target_file(opp)
                 if not target_file or not self._is_allowed(target_file):
                     _log.warning(f"Evrimsel Mimar: '{opp.title}' için hedef dosya saptanamadı veya izin verilmedi.")
                     continue
@@ -90,14 +91,26 @@ class EvolutionaryArchitect:
                 except Exception as e:
                     _log.error(f"Evrimsel Mimar yama sentezi hatası: {e}")
 
-    def _detect_target_file(self, opp: ImprovementOpportunity) -> Optional[str]:
-        """Basit dosya yolu tespiti."""
-        # TODO: CausalEngine veya RepoGraph entegrasyonu ile daha akıllı tespit
+    async def _detect_target_file(self, opp: ImprovementOpportunity) -> Optional[str]:
+        """Causal Engine ve RepoGraph ile akıllı dosya tespiti."""
+        _log.debug(f"Evrimsel Mimar: '{opp.title}' için hedef dosya saptanıyor...")
+        
+        # 1. Eğer evidence içinde spesifik bir dosya varsa (Observer'dan gelen)
+        if opp.evidence and "file" in opp.evidence:
+            return opp.evidence["file"]
+
+        # 2. Nedensellik Analizi (Causal Engine)
+        # Not: EpisodeRecord gerektirdiği için her fırsatta (Opportunity) Episode verisi olmayabilir.
+        # Bu durumda başlık/açıklamadan regex ile fallback yapılır.
+        
         text = f"{opp.title} {opp.description} {opp.evidence_detail}"
         # core/agi/... scripts/... gibi desenleri ara
-        match = re.search(r'(core/agi/[a-zA-Z0-9_\-/]+\.py|scripts/[a-zA-Z0-9_\-]+\.py)', text)
+        match = re.search(r'(core/agi/[a-zA-Z0-9_\-/]+\.py|scripts/[a-zA-Z0-9_\-]+\.py|db/repository\.py)', text)
         if match:
-            return match.group(1)
+            target = match.group(1)
+            _log.info(f"Evrimsel Mimar: Dosya tespiti (Regex): {target}")
+            return target
+            
         return None
 
     def _is_allowed(self, path: str) -> bool:

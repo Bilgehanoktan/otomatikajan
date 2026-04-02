@@ -73,13 +73,26 @@ class SubconsciousCortex45:
                             pass
                 
                 for policy in insights.get("suggested_policies", []):
-                    await synaptic_cortex.save_policy(db, {
-                        "title": f"Sovereign-Policy-v45: {policy['title']}",
-                        "proposed_rule": policy["rule"],
-                        "reason": policy["reason"],
-                        "benefit": "Sovereign subconscious consolidation",
-                        "evidence": [str(e.id) for e in recent_episodes[:3]]
-                    })
+                    # Phase 46.3: Adversarial Policy Audit
+                    audit_response = await self.model_orch.complete_task(
+                        agent_role="critic",
+                        prompt=f"Yeni Politika Önerisi: {policy['rule']}\nNeden: {policy['reason']}\n\nBu kural mantıklı mı? Güvenlik riski taşıyor mu? JSON: {{'is_valid': true/false, 'critique': '...'}}",
+                        system_prompt="Sen AGI Politika Denetçisisin (Sovereign Critic)."
+                    )
+                    
+                    import json, re
+                    audit_match = re.search(r'\{.*\}', audit_response.content, re.DOTALL)
+                    if audit_match and json.loads(audit_match.group()).get("is_valid"):
+                        _log.info(f"[SOVEREIGN-CORTEX] Politika onaylandı: {policy['title']}")
+                        await synaptic_cortex.save_policy(db, {
+                            "title": f"Sovereign-Policy-v45: {policy['title']}",
+                            "proposed_rule": policy["rule"],
+                            "reason": policy["reason"],
+                            "benefit": "Sovereign subconscious consolidation",
+                            "evidence": [str(e.id) for e in recent_episodes[:3]]
+                        })
+                    else:
+                        _log.warning(f"[SOVEREIGN-CORTEX] Politika REDDEDİLDİ: {policy['title']}")
 
             _log.info("--- SOVEREIGN DREAMING TAMAMLANDI (Derin Bilgi Sentezlendi) ---")
 

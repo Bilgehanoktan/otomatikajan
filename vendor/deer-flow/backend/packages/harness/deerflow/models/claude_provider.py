@@ -55,6 +55,7 @@ class ClaudeChatModel(ChatAnthropic):
 
     def model_post_init(self, __context: Any) -> None:
         """Auto-load credentials and configure OAuth if needed."""
+        import os
         from pydantic import SecretStr
 
         from deerflow.models.credential_loader import (
@@ -103,6 +104,11 @@ class ClaudeChatModel(ChatAnthropic):
         # Ensure api_key is SecretStr
         if isinstance(self.anthropic_api_key, str):
             self.anthropic_api_key = SecretStr(self.anthropic_api_key)
+
+        # Ensure base URL is set for OpenRouter integration
+        if os.getenv("ANTHROPIC_BASE_URL"):
+            self.anthropic_api_url = os.getenv("ANTHROPIC_BASE_URL")
+            logger.info(f"Setting ClaudeChatModel base URL to: {self.anthropic_api_url}")
 
         super().model_post_init(__context)
 

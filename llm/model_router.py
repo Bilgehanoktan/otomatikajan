@@ -258,7 +258,7 @@ class ModelRouter:
         """Complexity ve role göre en uygun sağlayıcıyı seç."""
         # Critical / High -> NVIDIA (CHAMPION) > Anthropic öncelikli
         if complexity in (TaskComplexity.CRITICAL, TaskComplexity.HIGH):
-            return "nvidia" # New champion model
+            return "nvidia" # Champion model (Qwen-3.5)
 
         # Medium -> Gemini (maliyet/performans dengesi)
         if complexity == TaskComplexity.MEDIUM:

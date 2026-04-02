@@ -9,6 +9,21 @@ echo    AI Yazılım Şirketi (DeerFlow) - Başlatılıyor
 echo    Sürüm: 4.0.0-RC1.4
 echo ----------------------------------------------------
 
+:: 0. Ön Kontrol: Sistem Bütünlüğü (Quality Guard)
+echo [*] Sistem bütünlüğü kontrol ediliyor (Quality Guard)...
+python scripts\verify_system_integrity.py
+if %errorlevel% neq 0 (
+    echo [!] KRITIK: Sistem bütünlük kontrolü başarisiz oldu!
+    echo [!] Hatalari düzeltmeden sistemi başlatmak güvenli değildir.
+    set /p "choice=Yine de devam etmek istiyor musunuz? (E/H): "
+    if /i "%choice%" neq "E" (
+        echo [!] Islemi iptal ettiniz.
+        pause
+        exit /b 1
+    )
+    echo [!] UYARI: Kontrol atlandi, sistem hatali olabilir.
+)
+
 :: 1. Docker Kontrol
 echo [*] Docker kontrol ediliyor...
 docker info >nul 2>&1

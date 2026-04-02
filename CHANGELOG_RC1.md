@@ -64,3 +64,41 @@
 - **Motor Subsystem & Execution**: `MotorSubsystem`, `QuantumExecutor` ve `EvolutionaryArchitect` ile operasyonel çekirdek sertleştirildi.
 - **AuditGate Hardening**: Gelişen risk eşikleri ve politika motoruyla tam uyumlu, otonom onayı yöneten güvenlik katmanı (`AuditGate`) güncellendi.
 - **Verification**: `verify_phase_18.py` ile tüm bilişsel nodların (Policy, Goal, Audit) stabil olduğu doğrulandı.
+
+### Sprint 7 — Model Resilience & Gateway Integration (Faz 12.12.x)
+- **OpenRouter Integration**: OpenRouter API ağ geçidi (`ANTHROPIC_BASE_URL`, `ANTHROPIC_AUTH_TOKEN`) entegre edildi. Sistem artık Anthropic modellerine OpenRouter üzerinden öncelikli erişim sağlıyor.
+- **llm/model_orchestrator.py**: Model yönlendirme politikaları OpenRouter sağlayıcısını destekleyecek şekilde güncellendi; 429 ve 400 hataları için otonom fallback mekanizması güçlendirildi.
+- **.env**: `OPENROUTER_API_KEY` ve sağlayıcı spesifik konfigürasyonlar eklendi.
+
+### Sprint 8 — Sovereign State Reliability & Governance Hardening
+- **Database Schema (subtasks)**: `subtasks` tablosuna `internal_monologue` sütunu eklendi. Bu sayede otonom ajanların içsel akıl yürütme süreçleri kalıcı hale getirildi ve bilişsel şeffaflık sağlandı.
+- **Core/Governance**: `GovernanceWatchdog` ve `SelfAuditAgent` aktif edildi. Sistem artık mimari ihlalleri otonom olarak tespit edip raporlayabiliyor.
+- **Kinetic Resilience**: `SovereignCortex` üzerinde otonom kaynak arbitrasyonu ve hata kurtarma döngüleri (Recovery Loops) sertleştirildi.
+- **Verification**: `verify_phase_42-49.py` serisi ile egemen yönetişim ve hafıza sürekliliği doğrulandı.
+
+### Sprint 9 — Recursive Strategic Depth & Metabolic Governance (Faz 13.0)
+- **Sovereign Depth**: `SovereignPlanner` ve `SovereignCortex` rekürsif planlama (Phase 51) desteğiyle güncellendi. Artık karmaşık hedefler otonom olarak alt-planlara bölünüp derinlemesine çözülebiliyor.
+- **Metabolic Governance**: `MetabolicGovernor` (Phase 52) entegre edildi. Sistem artık LLM sağlayıcılarının anlık gecikme ve hata oranlarını izliyor, rotalamayı otonom olarak (metabolik sağlığa göre) optimize ediyor.
+- **Task Governance**: `GovernedTask` şemasına hiyerarşik yapı (`parent_id`, `is_complex`) alanları eklendi.
+- **Verification**: `test_recursive_depth_v51.py` ve `test_metabolic_surge_v52.py` ile hiyerarşik planlama ve otonom kaynak adaptasyonu doğrulandı.
+
+### Sprint 10 — Ethics, Persistence & Sovereign Mastery (Faz 12.1 v121.0)
+- **Phase 50: Sovereign Grounding**: `AgiGoalDecomposer` refaktör edildi. Ajanların araç kullanımı (tooling) ve dosya sistemi bağlamı üzerindeki farkındalıkları (grounding) derinleştirildi.
+- **Phase 53: Positive Learning**: Başarı ve hata analizlerinden beslenen otonom ajan kontratı iyileştirme döngüsü aktif edildi. Sistem artık "tecrübe" kazanabiliyor.
+- **Phase 54: Sovereign Code Generation**: Kod üretimi mimarisi `sovereign_codegen` ile persistent (DB-backed) hale getirildi. Üretilen yamaların izlenebilirliği ve geri kurtarılabilirliği sağlandı.
+- **Phase 55: Ethical Guardrails**: `AxiologyEngine` otonom bir hakem (arbiter) olarak yapılandırıldı. Tüm görevler için zorunlu etik denetim ve risk analizi katmanı eklendi.
+- **Verification**: `test_sovereign_grounding_v50.py`, `test_positive_learning_v53.py`, `test_codegen_db_logic_v2.py` ve `test_ethical_guardrails_v55.py` ile v121.0 bütünlüğü doğrulandı.
+
+### Sprint 11 � Stabilization & Cognitive Repair (Faz 12.1 Internal)
+- **db/session.py**: Oturum y�netimi g��lendirildi. IntegrityError ve PendingRollbackError an�nda otomatik temizlik ve ba�lant� kurtarma (Session Hardening) eklendi.
+- **core/agi/cognitive/metacognitive_auditor.py**: Idempotent UPSERT mant���na ge�ildi. M�kerrer kay�tlar art�k hata f�rlatmak yerine mevcut kayd� g�ncelliyor (Race Condition Protection).
+- **core/heal_engine.py**: Sistem geneli sa�l�k metrikleri (Error Rate, DB Connectivity) takip edilmeye ba�land�. Sa�l�k skoru hesaplamas� sistemik hatalar� i�erecek �ekilde g�ncellendi.
+- **Verification**: verify_upsert.py ve verify_heal_engine.py ile y�ksek hata tolerans� ve stabilite do�ruland�.
+
+
+### Sprint 12 - CEO Engine Strategic Observability & Persistence (Faz 12.1 Final)
+- **core/ceo_engine.py**: `run_scan()` içerisindeki kritik `NameError` (uninitialized `opportunities`) giderildi.
+- **Persistence Hardening**: `CEOEngine` tarafında stratejik bulguların ve önerilen görevlerin DB'ye kalıcı olarak yazılması için `db.commit()` mekanizması entegre edildi.
+- **Startup Stability**: `metacognitive_auditor.py` içerisindeki eksik `AgentOutput` importu giderilerek server çökmesi (startup crash) engellendi.
+- **Verification**: `scripts/test_ceo_persistence.py` ile veritabanı yazma süreçleri ve otonom tarama bütünlüğü host ve container üzerinde %100 doğrulandı.
+- **Dashboard Sync**: CEO Denetimi sayfası, terminal-inspired manifesto ve canlı senkronize edilen 1000+ bulgu ile v121.0 standartlarına yükseltildi.

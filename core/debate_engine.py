@@ -51,6 +51,7 @@ class DebateResult:
     decision_log: list[str]            = field(default_factory=list)
     agreement_reached: bool            = False
     duration_s:   float                = 0.0
+    is_mock_response: bool             = False
 
     def to_dict(self) -> dict:
         return {
@@ -60,6 +61,7 @@ class DebateResult:
             "agreement_reached": self.agreement_reached,
             "rounds_count":     len(self.rounds),
             "duration_s":       round(float(self.duration_s), 2),
+            "is_mock_response": self.is_mock_response,
             "rounds": [
                 {
                     "round_num":      r.round_num,
@@ -233,6 +235,7 @@ class DebateEngine:
             decision_log=decision_log,
             agreement_reached=agreement_reached,
             duration_s=float(time.time() - t_start),
+            is_mock_response=getattr(self, "_used_mock", False),
         )
 
     async def _llm(self, prompt: str, agent_role: str, force_provider: str | None = None) -> str:
@@ -247,6 +250,7 @@ class DebateEngine:
             )
         except Exception as e:
             _log.warning(f"Debate LLM hatası ({agent_role}): {e} — mock kullanılıyor")
+            self._used_mock = True
             return self._mock_response(agent_role, prompt)
 
     @staticmethod

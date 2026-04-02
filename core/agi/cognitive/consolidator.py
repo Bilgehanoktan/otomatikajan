@@ -23,6 +23,10 @@ class Consolidator:
         self.knowledge_dir = "knowledge"
         os.makedirs(self.knowledge_dir, exist_ok=True)
 
+    async def run_cycle(self, db: Optional[AsyncSession] = None):
+        """run_consolidation_cycle için alias (Lifespan uyumluluğu)."""
+        return await self.run_consolidation_cycle(db)
+
     async def run_consolidation_cycle(self, db: Optional[AsyncSession] = None):
         """Tüm sistemi tarar ve yeni bilgileri sentezler."""
         _log.info("[CONSOLIDATOR] Konsolidasyon döngüsü (Dream Cycle) başlatıldı.")
@@ -119,11 +123,12 @@ class Consolidator:
                 pass
         return None
 
+# Singleton Instance
+consolidator = Consolidator()
+
 # --- Background Task Definition ---
 async def start_consolidation_loop():
     from core.agi.monitoring.token_budgeter import token_budgeter
-    consolidator = Consolidator()
-    
     while True:
         try:
             # ── ADAPTIVE SLEEP (Phase 24) ──

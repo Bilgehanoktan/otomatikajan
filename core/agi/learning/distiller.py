@@ -19,12 +19,16 @@ class SkillDistiller:
         """
         Episode kaydını analiz eder ve genelleştirilmiş bir skill olup olamayacağına karar verir.
         """
+        # SUCCESS-ONLY SKILL DISTILLATION
         if not episode.verification or not episode.verification.result_status:
-           _log.info("Episode başarısız olduğu için skill çıkarımı yapılmadı.")
-           return None
+           if episode.lessons_learned:
+               _log.info("Episode başarısız ama dersler var. Negatif öğrenme uygulanıyor.")
+           else:
+               _log.info("Episode başarısız ve ders yok. Öğrenim atlanıyor.")
+               return None
 
-        if episode.verification.integration_reality_score < 0.7:
-           _log.info("Gerçeklik puanı düşük (unsure success). Skill çıkarımı riskli.")
+        if episode.verification and episode.verification.integration_reality_score < 0.4:
+           _log.info("Gerçeklik puanı çok düşük. Öğrenim riskli.")
            return None
 
         _log.info(f"Skill damıtma başlatılıyor: {episode.problem_frame.objective if episode.problem_frame else 'Unknown'}")

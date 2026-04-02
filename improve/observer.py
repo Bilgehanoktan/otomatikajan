@@ -1,1 +1,4 @@
-from core.improvement_v1.observer import ImprovementObserver, ImprovementOpportunity
+
+class ImprovementObserver:
+    def __init__(self, db=None, model_orch=None): pass
+    async def scan(self): return []

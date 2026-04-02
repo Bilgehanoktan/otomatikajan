@@ -74,7 +74,7 @@ class CodeResultOut(BaseModel):
 @router.get("/templates", summary="Kullanılabilir proje şablonları")
 async def list_templates():
     """Desteklenen proje şablonlarını listele."""
-    from code_engine import ProjectTemplate, TEMPLATE_SPECS
+    from sovereign_codegen import ProjectTemplate, TEMPLATE_SPECS
     return {
         t.value: {
             "name":        t.value,
@@ -96,7 +96,7 @@ async def generate_code(
     Code review ajan otomatik çalışır ve lint kontrolleri uygulanır.
     Sonuç ZIP olarak indirilebilir.
     """
-    from code_engine import get_code_engine, ProjectTemplate
+    from sovereign_codegen import get_code_engine, ProjectTemplate
     from core.events import event_bus
 
     engine = get_code_engine()
@@ -155,18 +155,18 @@ async def generate_code(
 
 @router.get("/results", summary="Tüm kod üretim sonuçları")
 async def list_results(user = Depends(get_optional_user)):
-    from code_engine import get_code_engine
+    from sovereign_codegen import get_code_engine
     engine = get_code_engine()
     if not engine: return []
-    return engine.list_results()
+    return await engine.list_results()
 
 
 @router.get("/{project_id}", summary="Belirli üretim detayı")
 async def get_result(project_id: str, user = Depends(get_optional_user)):
-    from code_engine import get_code_engine
+    from sovereign_codegen import get_code_engine
     engine = get_code_engine()
     if not engine: raise HTTPException(503, "Motor başlatılamadı")
-    result = engine.get_result(project_id)
+    result = await engine.get_result(project_id)
     if not result:
         raise HTTPException(404, "Üretim bulunamadı")
 
@@ -200,10 +200,10 @@ async def get_file_content(
     path: str = Query(..., description="Dosya yolu, örn: src/api.py"),
     user = Depends(get_optional_user),
 ):
-    from code_engine import get_code_engine
+    from sovereign_codegen import get_code_engine
     engine = get_code_engine()
     if not engine: raise HTTPException(503, "Motor başlatılamadı")
-    result = engine.get_result(project_id)
+    result = await engine.get_result(project_id)
     if not result:
         raise HTTPException(404, "Üretim bulunamadı")
 
@@ -229,10 +229,10 @@ async def download_zip(
     user = Depends(get_optional_user),
 ):
     """Tüm üretilen dosyaları ZIP arşiv olarak döndür."""
-    from code_engine import get_code_engine
+    from sovereign_codegen import get_code_engine
     engine = get_code_engine()
     if not engine: raise HTTPException(503, "Motor başlatılamadı")
-    result = engine.get_result(project_id)
+    result = await engine.get_result(project_id)
     if not result:
         raise HTTPException(404, "Üretim bulunamadı")
 

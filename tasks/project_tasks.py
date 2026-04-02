@@ -76,10 +76,10 @@ def run_project_task(
     logger.info(f"🚀 Worker görevi devraldı: {job_id or db_project_id} — {title}")
 
     async def _execute_task():
-        from core.agi.orchestrator import agi_orchestrator
-        from core.agi.schemas import SourceType
+        from core.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
         from db.session import AsyncSessionLocal
         from db.repository import ProjectRepository
+        from core.agi.task_governance import GovernanceStatus as AGIStatus
 
         async with AsyncSessionLocal() as db:
             # 1. State: Ajanlar çalışmaya başlıyor (pending -> running)
@@ -96,26 +96,20 @@ def run_project_task(
             await ProjectRepository.mark_started(db, p.id)
             await db.commit()
 
-        # 2. Asıl işi AGI Orchestrator'a devret
-        source_val = p.source.value if hasattr(p.source, "value") else str(p.source)
-        try:
-            agi_source = SourceType(source_val)
-        except ValueError:
-            agi_source = SourceType.TASK_REQUEST
-
-        episode = await agi_orchestrator.run(
-            raw_input={"title": title, "description": description, "context": execution_context},
-            source=agi_source
+        # 2. Asıl işi Nexus Orchestrator'a devret
+        # Bu aşamada Nexus, planlama ve yürütmeyi (coordinate_goal) yapar.
+        result_task = await orchestrator.coordinate_goal(
+            title=title, 
+            description=description, 
+            project_id=db_project_id,
+            workflow_template=workflow_template,
+            quality_profile=quality_profile,
+            acceptance_criteria=acceptance_criteria,
+            execution_context=execution_context
         )
         
-        # Backward compatibility for the worker return value
-        # Orchestrator object'e benzer bir yapı dönüyoruz (report ve subtasks)
-        class LegacyOrchResult:
-            def __init__(self, ep):
-                self.report = ep.final_output
-                self.subtasks = ep.actions # ActionRecord -> Subtask mock
-        
-        return LegacyOrchResult(episode)
+        # Result task zaten ProjectTask tipinde, worker akışı için döndür
+        return result_task
 
     try:
         # Asenkron akışı çalıştır
@@ -128,10 +122,10 @@ def run_project_task(
             if result.get("status") == "error":
                 raise Exception(f"Task error: {result.get('reason')}")
 
-        # ProjectTask uyumlu alanlar (Orchestrator'dan dönen nesne):
-        # Durumları güvenle al (Enum geliyorsa value al)
+        # ProjectTask uyumlu alanlar (NexusOrchestrator'dan dönen nesne):
+        # Durumları güvenle al
         has_failures = any(
-            (s.status.value if hasattr(s.status, "value") else str(s.status)) in ("error", "skipped", "failed")
+            s.status in (AGIStatus.ERROR, AGIStatus.FAILED, AGIStatus.SKIPPED)
             for s in result.subtasks
         )
         final_status = ProjectStatus.PARTIAL_COMPLETE if has_failures else ProjectStatus.COMPLETED
@@ -294,9 +288,9 @@ def cleanup_memories():
 def run_self_update_task(target_file_path: str, instruction: str):
     """Sistemin kendi kodunu asenkron olarak değiştirmesi."""
     async def _execute():
-        from core.agi.cognitive.nexus_orchestrator import nexus_orchestrator as orchestrator
+        from core.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
         if not orchestrator.self_updater:
-            return "Self-Updater aktif degil."
+            return "Self-Updater aktif değil."
         return await orchestrator.self_updater.modify_system_file(
             target_file_path=target_file_path,
             instruction=instruction
@@ -309,7 +303,7 @@ def run_visual_audit_task():
     """Arayüzü periyodik olarak denetler ve iyileştirme önerileri sunar."""
     async def _execute():
         from observability.visual_util import capture_screenshot
-        from core.agi.cognitive.nexus_orchestrator import nexus_orchestrator as orchestrator
+        from core.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
         from db.session import AsyncSessionLocal
         from db.repository import ImprovementRepository
         
@@ -356,7 +350,7 @@ def run_market_intelligence_task():
     """Pazar trendlerini analiz eder ve stratejik raporlar hazırlar."""
     async def _execute():
         from tools.web_search import get_web_search
-        from core.agi.cognitive.nexus_orchestrator import nexus_orchestrator as orchestrator
+        from core.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
         from db.session import AsyncSessionLocal
         from db.repository import ImprovementRepository
         import json

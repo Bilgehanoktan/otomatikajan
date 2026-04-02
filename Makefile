@@ -62,7 +62,7 @@ security:
 
 # ── Docker ─────────────────────────────────────────────────
 docker-build:
-	docker build --target production -t ai-yazilim-sirketi:latest .
+	docker build --target production-slim -t ai-yazilim-sirketi:latest .
 
 docker-up:
 	docker compose up -d

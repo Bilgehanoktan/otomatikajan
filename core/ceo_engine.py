@@ -20,8 +20,7 @@ try:
     from db.models import ImprovementOpportunity, CEOSuggestedTask, CEODecision, Project, CEOPerformanceLog
 except ImportError:
     pass
-from core.improvement_v1.observer import ImprovementObserver
-from core.improvement_v1.visual_observer import VisualUXObserver
+from core.agi.cognitive.sovereign_auditor import sovereign_auditor
 from llm.model_orchestrator import ModelOrchestrator
 from core.forecaster import CEOForecaster
 from observability.logging import get_logger
@@ -62,13 +61,27 @@ class CEOEngine:
                 else:
                     logger.error(f"CEO Engine budget check failed: {e}")
 
-            # 1. Collect opportunities using the observer
-            observer = ImprovementObserver(db)
-            logger.debug("👔 CEO Engine: Scanning via ImprovementObserver...")
-            opportunities = await observer.scan()
+            # 1. Collect opportunities using the high-fidelity auditor
+            logger.debug("👔 CEO Engine: Scanning via SovereignCortexAuditor...")
+            auditor_findings = await sovereign_auditor.run_full_audit()
+            
+            opportunities = []
+            # Map auditor findings to CEOEngine internal format
+            for f in auditor_findings:
+                opportunities.append({
+                    "source_type": f["source_type"],
+                    "source_ref": f["id"],
+                    "title": f["title"],
+                    "description": f["description"],
+                    "severity": f["severity"],
+                    "category": f.get("category", "reliability"),
+                    "evidence": f["evidence"],
+                    "evidence_detail": str(f["evidence"])
+                })
             
             # 1.1 Visual UX Scan (Faz 12)
             try:
+                from improve.visual_observer import VisualUXObserver
                 visual_obs = VisualUXObserver(db, self.model_orch)
                 visual_ops = await visual_obs.scan()
                 if visual_ops:
@@ -101,6 +114,7 @@ class CEOEngine:
             scored_opportunities = await self.score_opportunities(opportunities)
             logger.debug("👔 CEO Engine: Persisting opportunities to DB...")
             await self._persist_opportunities(db, scored_opportunities)
+            await db.commit()
             
             # 3. Decide next actions and create suggestions
             logger.debug("👔 CEO Engine: Deciding next actions based on scored opportunities...")
@@ -109,6 +123,20 @@ class CEOEngine:
             self.last_scan_at = datetime.now(timezone.utc)
             logger.info(f"CEO Engine: Scan complete. Found {len(scored_opportunities)} opportunities.")
             return scored_opportunities
+
+    async def audit_codebase(self):
+        """Alias for run_scan to support legacy calls."""
+        return await self.run_scan()
+
+    async def _scan_strategic_gaps(self, db) -> List[Dict[str, Any]]:
+        """Scans for strategic architectural gaps."""
+        try:
+            from improve.observer import ImprovementObserver
+            obs = ImprovementObserver(db, self.model_orch)
+            return await obs.scan()
+        except Exception as e:
+            logger.error(f"CEO Engine strategic scan failed: {e}")
+            return []
 
     async def _scan_operational_stalling(self, db) -> List[Dict[str, Any]]:
         """Scans for tasks that are stalled or in problematic states."""
@@ -346,6 +374,7 @@ class CEOEngine:
             if op_data["priority_score"] >= 50:
                 logger.info(f"CEO Engine: {op_data['title']} için öneri hazırlanıyor (Priority: {op_data['priority_score']})")
                 await self._create_suggestion_from_op(db, op_data)
+                await db.commit()
             else:
                 logger.debug(f"CEO Engine: {op_data['title']} eşik değerini geçemedi (Priority: {op_data['priority_score']} < 50)")
 
@@ -621,6 +650,6 @@ _ceo_engine = None
 def get_ceo_engine() -> CEOEngine:
     global _ceo_engine
     if _ceo_engine is None:
-        from core.agi.cognitive.nexus_orchestrator import nexus_orchestrator as orchestrator
+        from core.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
         _ceo_engine = CEOEngine(orchestrator.model_orch)
     return _ceo_engine

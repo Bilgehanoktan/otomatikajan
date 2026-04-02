@@ -298,20 +298,36 @@ async def get_current_user(
     request: Request,
     db: AsyncSession = Depends(get_db_dep),
 ):
-    token = None
+    """
+    Kullanıcıyı doğrular.
+    Faz 12.1 Resilience: Header'daki token geçersizse (stale storage), 
+    otomatik olarak Cookie'ye fallback yapar.
+    """
     # 1. Öncelik: Header (Authorization: Bearer ...)
+    header_token = None
     auth_header = request.headers.get("Authorization")
     if auth_header and auth_header.startswith("Bearer "):
-        token = auth_header.split(" ")[1]
+        header_token = auth_header.split(" ")[1]
+        try:
+            # Header token'ı hemen doğrula
+            return await auth_service.get_user_from_token(db, header_token)
+        except Exception:
+            # Header token hatalıysa sessizce devam et ve Cookie'ye bak
+            pass
     
     # 2. İkincil: Cookie (access_token)
-    if not token:
-        token = request.cookies.get("access_token")
-        
-    if not token:
-        raise HTTPException(status_code=401, detail="Oturum geçersiz veya yetkilendirme gerekli")
-        
-    return await auth_service.get_user_from_token(db, token)
+    cookie_token = request.cookies.get("access_token")
+    if cookie_token:
+        try:
+            return await auth_service.get_user_from_token(db, cookie_token)
+        except Exception:
+            pass
+            
+    # Her ikisi de yoksa veya geçersizse
+    raise HTTPException(
+        status_code=401, 
+        detail="Oturum geçersiz veya yetkilendirme gerekli"
+    )
 
 
 async def get_optional_user(
@@ -361,11 +377,26 @@ async def login(req: LoginRequest, response: Response, request: Request, db: Asy
 
 
 @router.post("/refresh", response_model=TokenResponse, summary="Token rotasyonu")
-async def refresh_token(body: dict, db: AsyncSession = Depends(get_db_dep)):
-    rt = body.get("refresh_token", "")
+async def refresh_token(
+    request: Request,
+    response: Response,
+    body: Optional[dict] = None,
+    db: AsyncSession = Depends(get_db_dep)
+):
+    # 1. Öncelik: Body
+    rt = (body or {}).get("refresh_token", "")
+    
+    # 2. İkincil: Cookie Fallback (Silent Refresh)
+    if not rt:
+        rt = request.cookies.get("refresh_token", "")
+        
     if not rt:
         raise HTTPException(status_code=422, detail="refresh_token gerekli")
-    return await auth_service.refresh(db, rt)
+    
+    res = await auth_service.refresh(db, rt)
+    # Yeni token'ları cookie olarak da set et (Önemli: Rotasyon)
+    set_auth_cookies(response, res.access_token, res.refresh_token, request=request)
+    return res
 
 
 @router.post("/logout", summary="Tüm oturumları kapat")

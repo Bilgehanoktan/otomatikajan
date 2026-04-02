@@ -68,6 +68,7 @@ class TheoryOfMind:
     async def persist_state(self, db: Any, project_id: str):
         """
         [Phase 22] Mevcut kullanıcı modelini hafızaya kaydeder.
+        user_state metadata olarak da yazılır; load_state tarafından restore edilebilir.
         """
         from core.agi.cognitive.synaptic_cortex import synaptic_cortex
         body = f"User Cognitive Profile: {self.get_inferred_state()} | State: {self.user_state}"
@@ -77,20 +78,35 @@ class TheoryOfMind:
             body=body,
             category="user_profile",
             project_id=project_id,
-            importance=0.4
+            importance=0.4,
+            metadata={"user_state": self.user_state, "inferred": self.get_inferred_state()}
         )
         _log.info("Theory of Mind: Kullanıcı profili hafızaya kaydedildi.")
 
+
     async def load_state(self, db: Any, project_id: str):
         """
-        [Phase 22] Geçmiş etkileşimlerden kullanıcı modelini yükler.
+        [FIX-5] Geçmiş etkileşimlerden kullanıcı modelini geri yükler.
+        Artık state gerçekten restore ediliyor.
         """
         from core.agi.cognitive.synaptic_cortex import synaptic_cortex
         past = await synaptic_cortex.search(db, query="User Cognitive Profile", project_id=project_id, top_k=1)
         if past:
-            # Basit bir string parse veya metadata kullanımıyla state geri yüklenebilir.
-            # Şu an için sadece loglama yapıyoruz, gelecekte self.user_state güncellenecek.
-            _log.info(f"Theory of Mind: Geçmiş profil yüklendi: {past[0]['body'][:50]}...")
+            record = past[0]
+            meta = record.get("metadata", {})
+            saved_state = meta.get("user_state", {})
+            if saved_state and isinstance(saved_state, dict):
+                # Güvenli state restore — sadece bilinen keyler
+                for key in self.user_state:
+                    if key in saved_state:
+                        try:
+                            self.user_state[key] = float(saved_state[key])
+                        except (ValueError, TypeError):
+                            pass
+                _log.info(f"Theory of Mind: [RESTORED] Kullanıcı profili yüklendi: {self.get_inferred_state()}")
+            else:
+                _log.info(f"Theory of Mind: Profil kaydı var ama parse edilemedi. Varsayılan state kullanılıyor.")
+
 
 # Singleton
 theory_of_mind = TheoryOfMind()

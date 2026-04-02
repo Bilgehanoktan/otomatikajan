@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from sqlalchemy import select, desc, func
 from db.models import Memory
 from observability.logging import get_logger
+from core.agi.consciousness.affective_core import affective_core
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -85,6 +86,10 @@ class UnifiedGalacticCortex:
         final_metadata = metadata or {}
         if "signature" not in final_metadata:
             final_metadata["signature"] = uuid.uuid4().hex # Basitleştirilmiş imza
+            
+        # Faz 12.4: Duygusal Bağlam (Affective Context) Mührü
+        if "affective_context" not in final_metadata:
+            final_metadata["affective_context"] = affective_core.get_state_matrix()
 
         entry = Memory(
             id=uuid.uuid4(),
@@ -99,9 +104,12 @@ class UnifiedGalacticCortex:
             created_at=datetime.now(timezone.utc)
         )
         
-        # DB'ye ekle
-        db.add(entry)
-        await db.flush()
+        # DB'ye ekle (Eğer session varsa)
+        if db is not None:
+            db.add(entry)
+            await db.flush()
+        else:
+            _log.debug("[UGC-SAVER] No DB session. Saving to Hot Cache only.")
 
         # Hot Cache'e ekle (UI ve hızlı geri çağırma için)
         cache_item = {
@@ -139,6 +147,30 @@ class UnifiedGalacticCortex:
             tags=["episode", status]
         )
 
+    async def save_negative_lesson(self, db: AsyncSession, agent_id: str, body: str, importance: float = 0.7, metadata: dict = None) -> Memory:
+        """Hata durumlarını ve 'yapılmaması gerekenleri' hafızaya işler."""
+        return await self.save(
+            db=db,
+            agent_id=agent_id,
+            body=f"[FAILURE] {body}",
+            category="negative_lesson",
+            importance=importance,
+            metadata=metadata or {},
+            tags=["failure", "lesson"]
+        )
+
+    async def save_architectural_inhibition(self, db: AsyncSession, rule_id: str, target: str, description: str) -> Memory:
+        """Faz 42: Yasaklı mimari pratikleri ve dizinleri hafızaya 'inhibition' (ketleme) olarak işler."""
+        return await self.save(
+            db=db,
+            agent_id="governance_watchdog",
+            body=f"[INHIBITION] {rule_id}: {description} (Target: {target})",
+            category="arch_inhibition",
+            importance=0.9,
+            metadata={"rule_id": rule_id, "target": target},
+            tags=["governance", "inhibition", "architectural"]
+        )
+
     async def save_skill(self, db: AsyncSession, skill_data: dict) -> Memory:
         body = f"Skill Artifact: {skill_data.get('name')}\nPurpose: {skill_data.get('description')}"
         return await self.save(
@@ -163,6 +195,31 @@ class UnifiedGalacticCortex:
             tags=["policy", "governance"]
         )
 
+    async def save_thought_thread(self, db: AsyncSession, thought: str, context_id: str = "global") -> Memory:
+        """Faz 45: Bilişsel Devamlılık için 'Düşünce Zinciri' (Thought Thread) kaydeder."""
+        return await self.save(
+            db=db,
+            agent_id="central_executive",
+            body=thought,
+            category="thought_thread",
+            importance=0.8,
+            metadata={"context_id": context_id},
+            tags=["continuity", "internal_monologue"]
+        )
+
+    async def get_continuous_monologue(self, db: AsyncSession, limit: int = 5) -> str:
+        """Faz 45: Son düşünce zincirlerini birleştirerek bilişsel devamlılık sağlar."""
+        memories = await self.search(
+            db=db,
+            query="",
+            category="thought_thread",
+            top_k=limit
+        )
+        if not memories: return "Bilişsel devamlılık başlatılıyor..."
+        # En yeniden en eskiye doğru birleştir
+        threads = [m['body'] for m in reversed(memories)]
+        return "\n>>> ".join(threads)
+
     async def synthesize_global_knowledge(self, db: AsyncSession, top_k: int = 20) -> List[Memory]:
         """Global bir 'bilgelik' katmanında birleştirir."""
         stmt = select(Memory).where(
@@ -178,6 +235,24 @@ class UnifiedGalacticCortex:
                 m.tags = (m.tags or []) + ["universal"]
         
         return list(top_memories)
+
+    async def get_negative_patterns(self, db: AsyncSession, limit: int = 10) -> List[Dict[str, Any]]:
+        """Sistemdeki tekrarlayan hata ve negatif ders örüntülerini getirir."""
+        return await self.search(
+            db=db,
+            query="",
+            category="negative_lesson",
+            top_k=limit
+        )
+
+    async def get_architectural_inhibitions(self, db: AsyncSession, limit: int = 20) -> List[Dict[str, Any]]:
+        """Faz 42: Kayıtlı mimari kısıtlamaları getirir."""
+        return await self.search(
+            db=db,
+            query="",
+            category="arch_inhibition",
+            top_k=limit
+        )
 
     async def search(
         self,
@@ -200,30 +275,31 @@ class UnifiedGalacticCortex:
                     results.append(m)
                     if len(results) >= top_k: return results
 
-        # 2. DB Fallback
-        stmt = select(Memory).order_by(desc(Memory.importance), desc(Memory.created_at))
-        if agent_id: stmt = stmt.where(Memory.agent_id == agent_id)
-        if category: stmt = stmt.where(Memory.category == category)
-        if project_id: stmt = stmt.where(Memory.project_id == str(project_id))
-        stmt = stmt.where((Memory.expires_at == None) | (Memory.expires_at > datetime.now(timezone.utc)))
+        db_results = []
+        if db is not None:
+            stmt = select(Memory).order_by(desc(Memory.importance), desc(Memory.created_at))
+            if agent_id: stmt = stmt.where(Memory.agent_id == agent_id)
+            if category: stmt = stmt.where(Memory.category == category)
+            if project_id: stmt = stmt.where(Memory.project_id == str(project_id))
+            stmt = stmt.where((Memory.expires_at == None) | (Memory.expires_at > datetime.now(timezone.utc)))
+                
+            if query:
+                stmt = stmt.where(Memory.body.ilike(f"%{query}%"))
+                
+            result = await db.execute(stmt.limit(top_k))
+            rows = result.scalars().all()
             
-        if query:
-            stmt = stmt.where(Memory.body.ilike(f"%{query}%"))
-            
-        result = await db.execute(stmt.limit(top_k))
-        rows = result.scalars().all()
-        
-        db_results = [
-            {
-                "id": str(m.id),
-                "agent_id": m.agent_id,
-                "body": m.body,
-                "category": m.category,
-                "importance": m.importance,
-                "metadata": m.metadata_,
-                "created_at": m.created_at.isoformat()
-            } for m in rows
-        ]
+            db_results = [
+                {
+                    "id": str(m.id),
+                    "agent_id": m.agent_id,
+                    "body": m.body,
+                    "category": m.category,
+                    "importance": m.importance,
+                    "metadata": m.metadata_,
+                    "created_at": m.created_at.isoformat()
+                } for m in rows
+            ]
         
         # Birleştir (Tekil ID'lerle)
         seen_ids = {r["id"] for r in results}

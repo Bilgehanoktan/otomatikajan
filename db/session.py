@@ -67,6 +67,9 @@ def _get_engine():
                     # Fallback to Local SQLite
                     sqlite_url = "sqlite+aiosqlite:///./cortex_local.db"
                     _engine = create_async_engine(sqlite_url)
+                    # Explicitly track degraded state
+                    global _DB_DEGRADED
+                    _DB_DEGRADED = True
                 
                 _last_loop = curr_active_loop
                 if curr_active_loop:
@@ -117,6 +120,7 @@ except ImportError:
 
 # ── DB Durumu — degraded mode takibi ─────────────────────
 _DB_AVAILABLE: bool = False
+_DB_DEGRADED:  bool = False
 _DB_ERROR:     str  = ""
 
 def db_error() -> str:
@@ -206,6 +210,10 @@ async def init_db():
         logger.error(f"[ERR] Kritik DB Başlatma Hatası: {_DB_ERROR}")
         # Uygulama çökmesin ama degraded mode'da kalsın
 
+def is_db_degraded() -> bool:
+    """Sistemin fallback (SQLite) modunda olup olmadığını döner."""
+    return _DB_DEGRADED
+
 
 async def close_db():
     await _get_engine().dispose()
@@ -214,15 +222,28 @@ async def close_db():
 
 @asynccontextmanager
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """FastAPI Depends ile kullanım için context manager."""
+    """Sistem genelinde güvenli veritabanı oturumu sağlar."""
     async with AsyncSessionLocal() as session:
         try:
             yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
+            # Sadece aktif bir işlem varsa commit yap
+            if session.in_transaction():
+                await session.commit()
+        except Exception as e:
+            # Kritik: Hata anında derhal geri al
+            try:
+                await session.rollback()
+            except Exception:
+                pass
+            
+            from sqlalchemy.exc import IntegrityError, PendingRollbackError
+            if isinstance(e, (IntegrityError, PendingRollbackError)):
+                 logger.debug(f"Hafif DB Çakışması (Kontrollü): {e}")
+            else:
+                 logger.error(f"DB Kritik Hata: {e}", exc_info=True)
             raise
         finally:
+            # Oturumu kapatmadan önce temizlik
             await session.close()
 
 
@@ -231,9 +252,21 @@ async def get_db_dep() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
         try:
             yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
+            if session.in_transaction():
+                await session.commit()
+        except Exception as e:
+            # SRE Hardening: Hata anında oturumu temizle
+            try:
+                await session.rollback()
+            except Exception as rb_err:
+                logger.error(f"DB Rollback hatası: {rb_err}")
+            
+            # Log & Re-raise
+            from sqlalchemy.exc import IntegrityError, PendingRollbackError
+            if isinstance(e, (IntegrityError, PendingRollbackError)):
+                logger.warning(f"DB Oturum Çakışması/Zehirlenmesi: {e}")
+            else:
+                logger.error(f"DB İşlem Hatası: {e}")
             raise
         finally:
             await session.close()

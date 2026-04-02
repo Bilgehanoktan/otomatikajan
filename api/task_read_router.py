@@ -59,6 +59,8 @@ async def list_tasks(
             "limit":    limit,
             "offset":   offset,
             "tasks":    [_project_to_dict(p) for p in projects],
+            "is_fallback": False,
+            "source_of_truth": "database"
         }
     except Exception as e:
         logger.warning(f"DB görev listesi başarısız, fallback: {e}")
@@ -73,9 +75,36 @@ async def list_tasks(
                      "source": "api", "priority": "medium", "progress_pct": 0}
                     for t in tasks[-limit:]
                 ],
+                "is_fallback": True,
+                "source_of_truth": "orchestrator_memory",
+                "degraded_reason": str(e)
             }
         except Exception:
-            return {"total": 0, "tasks": []}
+            return {"total": 0, "tasks": [], "is_fallback": True, "source_of_truth": "empty_fallback"}
+
+
+@router.get("/capabilities", summary="Sistemin otonom yetenek ve uzman ajan listesi")
+async def task_capabilities(current_user=Depends(get_current_user)):
+    """Sistemin otonom olarak hangi uzmanlıklara sahip olduğunu döner."""
+    try:
+        from core.agency.loader import agency_loader
+        agents = agency_loader.list_agents()
+        return {
+            "capabilities": [
+                {
+                    "id": a["id"], 
+                    "name": a.get("id", "Unknown").capitalize(),
+                    "description": a.get("description", ""),
+                    "category": a.get("category", "general")
+                } 
+                for a in agents
+            ],
+            "total_specialists": len(agents),
+            "source_of_truth": "agency_loader"
+        }
+    except Exception as e:
+        logger.error(f"Failed to load capabilities: {e}")
+        return {"capabilities": [], "total_specialists": 0, "error": str(e)}
 
 
 # ════════════════════════════════════════════════════════
@@ -112,8 +141,9 @@ async def tasks_summary(current_user=Depends(get_current_user)):
             "cost":      total_cost,
 
             # Kaynak-bazlı backward compatibility
-            "done":      completed,
             "failed":    errored,
+            "is_fallback": False,
+            "source_of_truth": "database"
         }
     except Exception:
         try:
@@ -133,9 +163,11 @@ async def tasks_summary(current_user=Depends(get_current_user)):
                 "cancelled": 0,
                 "done":      completed,
                 "failed":    errored,
+                "is_fallback": True,
+                "source_of_truth": "orchestrator_memory"
             }
         except Exception:
-            return {"total": 0, "pending": 0, "running": 0, "completed": 0, "error": 0, "done": 0, "failed": 0}
+            return {"total": 0, "pending": 0, "running": 0, "completed": 0, "error": 0, "done": 0, "failed": 0, "is_fallback": True, "source_of_truth": "empty_fallback"}
 
 
 @router.get("/{task_id}", summary="Görev detayı")
@@ -254,6 +286,8 @@ async def task_subtasks(task_id: str, current_user=Depends(get_current_user)):
                 "agent_id":     s.agent_id,
                 "status":       s.status,
                 "attempts":     s.attempts,
+                "is_complex":   s.is_complex,
+                "parent_id":    str(s.parent_id) if s.parent_id else None,
                 "recovered":    s.recovered,
                 "llm_provider": s.llm_provider,
                 "input_tokens": s.input_tokens,

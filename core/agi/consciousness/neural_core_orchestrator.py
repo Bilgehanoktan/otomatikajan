@@ -107,12 +107,13 @@ class NeuralCoreOrchestrator:
                     confidence=0.8
                 )
                 
-                risks = await foresight_oracle.simulate_plan(plan)
-                global_workspace.broadcast("Foresight", f"Simulated risks: {len(risks)} found.", importance=0.8)
+                risks_data = await foresight_oracle.simulate_plan(plan)
+                predicted_risks = risks_data.get("predicted_risks", [])
+                global_workspace.broadcast("Foresight", f"Simulated risks: {len(predicted_risks)} found.", importance=0.8)
                 
                 safe_to_execute = True
-                for rsk in risks:
-                    if "critical" in str(rsk.get("raw", "")).lower():
+                for rsk in predicted_risks:
+                    if "critical" in str(rsk.get("severity", "")).lower() or "critical" in str(rsk.get("raw", "")).lower():
                         safe_to_execute = False
                         break
                 

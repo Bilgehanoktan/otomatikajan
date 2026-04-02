@@ -28,8 +28,8 @@ class Severity(str, Enum):
     ACTION   = "action"
 
 if TYPE_CHECKING:
-    from core.agi.cognitive.nexus_orchestrator import NexusOrchestrator
-    from core.task_management import SubTask
+    from core.agi.cognitive.sovereign_cortex import SovereignCortex
+    from core.agi.task_governance import GovernedTask
 
 
 @dataclass
@@ -57,8 +57,8 @@ class SelfHealEngine:
     CRITICAL_THRESHOLD = SCORE_THRESHOLDS["degraded"]
     DEAD_THRESHOLD     = SCORE_THRESHOLDS["critical"]
 
-    def __init__(self, orchestrator: "NexusOrchestrator"):
-        self.orch     = orchestrator
+    def __init__(self, orchestrator=None):
+        self._orch    = orchestrator
         self.rca      = RootCauseAnalyzer()
         self._snaps:  dict[str, AgentSnapshot] = {}
         self._events: list[HealEvent]          = []
@@ -76,6 +76,11 @@ class SelfHealEngine:
         # engine._backup_mode -> backup modunda olan agent'lar
         self.suppressed:   set[str]  = set()   # throttle: aynı ajan tekrar tetiklenmesin
         self._backup_mode: set[str]  = set()   # backup/isolated ajanlar
+
+        # ── Faz 12.1 Sistemik Metrikler ───────────────────
+        self._db_available = True
+        self._error_rate   = 0.0
+        self._last_systemic_update = 0.0
 
     # ── Ana Döngü ─────────────────────────────────────────
     async def monitor_loop(self):
@@ -95,9 +100,23 @@ class SelfHealEngine:
             except Exception as e:
                 self._log("system", "warning", "monitor", f"Döngü iç hata: {e}")
 
+    @property
+    def orch(self):
+        if self._orch is None:
+            from core.agi.cognitive.sovereign_cortex import sovereign_cortex
+            self._orch = sovereign_cortex
+        return self._orch
+
     async def _cycle(self):
         raw_health = self.orch.get_health()
         self._sync_snapshots(raw_health)
+        
+        # Faz 12.1: Sistemik metrikleri periyodik güncelle (60sn)
+        now = time.time()
+        if now - self._last_systemic_update > 60.0:
+            await self._update_systemic_metrics()
+            self._last_systemic_update = now
+
         anomalies = self.rca.analyze(self._snaps)
         for anomaly in anomalies:
             self._log(anomaly.agent_id, anomaly.severity, "analyze",
@@ -105,6 +124,27 @@ class SelfHealEngine:
         for agent_id, snap in self._snaps.items():
             if agent_id not in self._active_recoveries:
                 await self._decide_and_act(snap)
+
+    async def _update_systemic_metrics(self):
+        """Sistem geneli sağlık göstergelerini (DB, Error Rate) arka planda günceller."""
+        try:
+            from db.session import is_db_available, AsyncSessionLocal
+            self._db_available = await is_db_available()
+            
+            # DB kapalıysa metrik çekmeye çalışma
+            if not self._db_available:
+                self._error_rate = 1.0
+                return
+
+            from db.repository import ApiMetricRepository
+            async with AsyncSessionLocal() as db:
+                # Son 1 saatteki hata oranına bak
+                stats = await ApiMetricRepository.endpoint_stats(db, hours=1)
+                total = sum(s["total"] for s in stats)
+                errors = sum(s["errors"] for s in stats)
+                self._error_rate = errors / total if total > 5 else 0.0 # Az veride gürültüyü engelle
+        except Exception as e:
+            self._log("system", "warning", "monitor", f"Sistemik metrik güncelleme hatası: {e}")
 
     # ── FSM Geçişleri ─────────────────────────────────────
     def _sync_snapshots(self, raw_health: dict):
@@ -315,20 +355,21 @@ class SelfHealEngine:
     def system_health_score(self) -> float:
         """Faz 14 Stability Calibration: EWMA tabanlı, False-Positive korumalı Sağlık Skoru."""
         h = self.orch.get_health()
-        if not h:
-            return 1.0
-
+        
         # 1. Ağırlıklı Ajan Skoru
-        CRITICAL_AGENTS = {"orchestrator": 2.5, "database": 2.0, "llm_client": 1.5}
-        total_weight = 0.0
-        weighted_score_sum = 0.0
+        if not h:
+            base_score = 1.0
+        else:
+            CRITICAL_AGENTS = {"orchestrator": 2.5, "database": 2.0, "llm_client": 1.5}
+            total_weight = 0.0
+            weighted_score_sum = 0.0
 
-        for agent_id, score in h.items():
-            weight = CRITICAL_AGENTS.get(agent_id, 1.0)
-            total_weight += weight
-            weighted_score_sum += (score * weight)
+            for agent_id, score in h.items():
+                weight = CRITICAL_AGENTS.get(agent_id, 1.0)
+                total_weight += weight
+                weighted_score_sum += (score * weight)
 
-        base_score = weighted_score_sum / total_weight if total_weight > 0 else 1.0
+            base_score = weighted_score_sum / total_weight if total_weight > 0 else 1.0
 
         # 2. Latency Penalty: EWMA (Exponentially Weighted Moving Average)
         latency_penalty = 0.0
@@ -362,7 +403,15 @@ class SelfHealEngine:
         except Exception:
             pass
 
-        final_score = (base_score - latency_penalty) * mem_multiplier
+        # 4. Error Rate Penalty (Faz 12.1)
+        error_penalty = 0.0
+        if self._error_rate > 0.1: # %10 hata payı sonrası
+            error_penalty = min(0.5, (self._error_rate - 0.1) * 2) # %35 hata -> 0.5 ceza
+
+        # 5. DB Availability Multiplier
+        db_multiplier = 1.0 if self._db_available else 0.2
+
+        final_score = (base_score - latency_penalty - error_penalty) * mem_multiplier * db_multiplier
         return round(float(max(0.0, min(1.0, final_score))), 3)
 
     def recent_events(self, n: int = 30) -> list[dict]:
@@ -433,5 +482,4 @@ class _DummySubTask:
         self.attempts = 0
 
 # --- Singleton ---
-from core.agi.cognitive.nexus_orchestrator import nexus_orchestrator
-heal_engine = SelfHealEngine(nexus_orchestrator)
+heal_engine = SelfHealEngine()

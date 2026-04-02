@@ -2,7 +2,7 @@ import asyncio
 import os
 import shutil
 from pathlib import Path
-from core.agi.cognitive.nexus_orchestrator import nexus_orchestrator
+from core.agi.cognitive.sovereign_cortex import nexus_orchestrator as nexus_orchestrator
 from core.agi.operational.scaffolder import scaffolder
 
 async def verify_self_building_layer():

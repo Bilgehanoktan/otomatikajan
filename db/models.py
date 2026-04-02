@@ -80,6 +80,8 @@ class ProjectStatus(str, enum.Enum):
     ERROR = "ERROR"
     CANCELLED = "CANCELLED"
     PAUSED = "PAUSED"
+    INTERRUPTED = "INTERRUPTED"    # Kesintiye uğrayan (Zombi değil, kurtarılabilir)
+    RESUMING = "RESUMING"          # Otonom olarak devam ettiriliyor
 
 class ProjectSource(str, enum.Enum):
     API = "api"
@@ -127,6 +129,7 @@ class Project(Base):
     acceptance_criteria = Column(SmartJSON(), default=list)
     execution_context   = Column(SmartJSON(), default=dict)
     review_required     = Column(Boolean, default=False, nullable=False)
+    checkpoint_data     = Column(SmartJSON(), default=dict)  # AGI Dayanıklılık: Son güvenli durum verisi
     # ──────────────────────────────────────────────────────
     created_at   = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
     updated_at   = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
@@ -161,6 +164,7 @@ class SubTask(Base):
     latency_s     = Column(Float, default=0.0)
     quality_score = Column(Float, nullable=True)
     quality_detail = Column(SmartJSON(), default=dict)
+    internal_monologue = Column(Text, default="")
     reviewed      = Column(Boolean, default=False, nullable=False)
     review_notes  = Column(SmartJSON(), default=list)
     created_at    = Column(DateTime(timezone=True), default=utcnow)
@@ -455,3 +459,46 @@ class SkillExecutionLog(Base):
     created_at   = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
 
     project = relationship("Project")
+
+
+# ── Egemen Kod Üretim Modelleri (Faz 12.1 - Sovereign Codegen) ──
+class SovereignCodeResult(Base):
+    """
+    Sovereign AGI tarafından üretilen kod paketlerinin üst verisi.
+    Her sonuç bir Proje (Project) ile ilişkilidir.
+    """
+    __tablename__ = "sovereign_code_results"
+
+    id             = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id     = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    title          = Column(String(512), nullable=False)
+    language       = Column(String(64), default="mixed")
+    technologies   = Column(SmartJSON(), default=list) # ["react", "fastapi"]
+    status         = Column(String(32), default="generated") # generating, completed, failed
+    summary        = Column(Text, default="")
+    total_files    = Column(Integer, default=0)
+    provenance_hash= Column(String(64), nullable=True) # ProvenanceEngine entegrasyonu için
+    created_at     = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+    updated_at     = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    project = relationship("Project")
+    files   = relationship("SovereignCodeFile", back_populates="result", cascade="all, delete-orphan")
+
+
+class SovereignCodeFile(Base):
+    """
+    Üretilen her bir dosyanın içeriği ve metadata bilgisi.
+    """
+    __tablename__ = "sovereign_code_files"
+
+    id             = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    result_id      = Column(UUID(as_uuid=True), ForeignKey("sovereign_code_results.id", ondelete="CASCADE"), nullable=False, index=True)
+    filename       = Column(String(256), nullable=False)
+    path           = Column(String(1024), nullable=False)
+    content        = Column(Text, nullable=False)
+    language       = Column(String(64), default="python")
+    is_generated   = Column(Boolean, default=True)
+    provenance_id  = Column(String(64), nullable=True) # Her dosya bazlı köken takibi
+    created_at     = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+    result = relationship("SovereignCodeResult", back_populates="files")

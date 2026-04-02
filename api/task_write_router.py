@@ -138,6 +138,8 @@ async def create_task(req: TaskCreateRequest, current_user=Depends(get_current_u
             # Standard single agent or DAG
             task_name = "run_project"
 
+
+
         # ── Skill Suggestion (Phase 12.2 Integration) ─────
         skill_req = SkillRequest(
             task_type="project_create",
@@ -158,12 +160,15 @@ async def create_task(req: TaskCreateRequest, current_user=Depends(get_current_u
         # ── Suggested Skill'leri Context'e Yaz (Faz 12.2) ──
         if suggested_skills:
             try:
-                # p.execution_context bir JSONB, dict olarak alıp güncelleyelim
-                ctx = dict(p.execution_context or {})
-                ctx["suggested_skills"] = suggested_skills
-                await ProjectRepository.update_fields(db, pid, execution_context=ctx)
-                logger.debug(f"Task {db_project_id} context güncellendi (suggested_skills).")
-                await db.commit()
+                async with AsyncSessionLocal() as db:
+                    # p.execution_context bir JSONB, dict olarak alıp güncelleyelim
+                    p_to_update = await ProjectRepository.get(db, pid)
+                    if p_to_update:
+                        ctx = dict(p_to_update.execution_context or {})
+                        ctx["suggested_skills"] = suggested_skills
+                        await ProjectRepository.update_fields(db, pid, execution_context=ctx)
+                        await db.commit()
+                        logger.debug(f"Task {db_project_id} context güncellendi (suggested_skills).")
             except Exception as ctx_err:
                 logger.warning(f"Skill context yazımı başarısız (atlandı): {ctx_err}")
 
@@ -198,8 +203,24 @@ async def create_task(req: TaskCreateRequest, current_user=Depends(get_current_u
         project_dict["status"] = TaskState.QUEUED.value
 
     except Exception as e:
-        logger.error(f"Celery Job Queue hatası: {e}")
-        raise HTTPException(status_code=500, detail="Görev kuyruğa alınamadı, ancak DB'ye kaydedildi.")
+        logger.error(f"Celery/Job Queue hatası: {e}")
+        # 3. State: ERROR (Kuyruğa gönderilemedi)
+        async with AsyncSessionLocal() as db:
+            if db_project_id:
+                pid = uuid.UUID(db_project_id)
+                await ProjectRepository.update_fields(db, pid, status=ProjectStatus.ERROR.value)
+                await TaskLogRepository.write(
+                    db, pid, ProjectStatus.ERROR.value,
+                    f"Kuyruk Hatası: {str(e)}",
+                    agent_id="system",
+                    payload={"error": str(e), "failed_at": "enqueue"}
+                )
+                await db.commit()
+        
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Görev DB'ye kaydedildi (ID: {db_project_id}) ancak kuyruğa alınamadı: {str(e)}"
+        )
 
     # Event yayını
     try:

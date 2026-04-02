@@ -53,7 +53,8 @@ if _ENV == "production":
         sys.exit(1)
 
 # ── Core singleton'ları ───────────────────────────────────
-from core.agi.cognitive.nexus_orchestrator import nexus_orchestrator as orchestrator
+from core.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
+from core.agi.governance.watchdog import governance_watchdog
 from core.heal_engine import heal_engine
 from core.events import event_bus
 from core.job_queue import job_queue
@@ -155,29 +156,40 @@ async def websocket_logs(ws: WebSocket):
 async def health_check():
     from db.session import is_db_available, db_error
     from core.agency.loader import agency_loader
+    from observability.memory_governor import memory_governor
+    
     db_ok = await is_db_available()
     current_agents = len(orchestrator._agents) if hasattr(orchestrator, "_agents") else 0
     specialists = len(agency_loader.agents)
+    mem_usage = memory_governor.get_current_usage_mb()
 
     return {
-        "status": "degraded" if (not db_ok or os.getenv("SYSTEM_DEGRADED_MODE") == "true") else "ok",
-        "reason": "memory_leak" if os.getenv("SYSTEM_DEGRADED_MODE") == "true" else ("db_failed" if not db_ok else None),
+        "status": "degraded" if (not db_ok or mem_usage > memory_governor.MAX_MEMORY_MB) else "ok",
+        "reason": "memory_limit_exceeded" if mem_usage > memory_governor.MAX_MEMORY_MB else ("db_failed" if not db_ok else None),
         "version": APP_VERSION,
         "env": _ENV,
         "agents": current_agents,
         "specialists": specialists,
+        "memory": {
+            "current_mb": round(mem_usage, 2),
+            "limit_mb": memory_governor.MAX_MEMORY_MB,
+            "status": "warning" if mem_usage > memory_governor.WARNING_MEMORY_MB else "healthy"
+        },
         "heal_score": heal_engine.system_health_score() if hasattr(heal_engine, "system_health_score") else 1.0,
         "ws_clients": ws_manager.client_count,
         "db": {"available": db_ok, "error": db_error() if not db_ok else ""},
         "queue": {
             "backend": getattr(job_queue, "backend_name", "unknown"),
             "supports_registration": getattr(job_queue, "supports_registration", False),
-            "supports_cancel": getattr(job_queue, "supports_cancel", False),
-            "supports_pause": getattr(job_queue, "supports_pause", False),
-            "supports_resume": getattr(job_queue, "supports_resume", False),
-            "listing_scope": getattr(getattr(job_queue, "capabilities", None), "listing_scope", "unknown"),
         },
         "repair": _get_repair_health_summary(),
+        "governance": {
+            "health_score": round(governance_watchdog.health_score, 2),
+            "instinct_count": governance_watchdog.instinct_count,
+            "prevented_count": governance_watchdog.prevented_count,
+            "is_auditing": True,
+            "status": "healthy" if governance_watchdog.health_score > 0.8 else "warning"
+        },
         "timestamp": datetime.now(timezone.utc),
     }
 
@@ -204,18 +216,16 @@ async def deep_health_check():
     active_tasks = [
         t.get_name()
         for t in asyncio.all_tasks()
-        if "watchdog" in t.get_name() or "supervisor" in t.get_name() or "Controller" in t.get_name()
+        if "metabolism" in t.get_name() or "governor" in t.get_name() or "supervisor" in t.get_name()
     ]
-    missing_tasks = [
-        t
-        for t in ["ceo_watchdog", "sys_ctrl_watchdog", "heal_engine_monitor", "memory_leak_monitor"]
-        if not any(t in task_name for task_name in active_tasks)
-    ]
+    required = ["metabolism_loop", "memory_governor"]
+    missing_tasks = [r for r in required if not any(r in task_name for task_name in active_tasks)]
+    
     if missing_tasks:
-        logger.warning(f"Derin Sağlık Kontrolü Başarısız: Eksik/Çökmüş görevler -> {missing_tasks}")
+        logger.warning(f"Derin Sağlık Kontrolü Başarısız: Eksik AML görevleri -> {missing_tasks}")
         return JSONResponse(status_code=503, content={"status": "degraded", "missing": missing_tasks})
 
-    return {"status": "healthy", "active_background_processes": active_tasks, "timestamp": datetime.now().isoformat()}
+    return {"status": "healthy", "active_aml_tasks": active_tasks, "timestamp": datetime.now().isoformat()}
 
 
 @app.get("/metrics", tags=["Sistem"])
