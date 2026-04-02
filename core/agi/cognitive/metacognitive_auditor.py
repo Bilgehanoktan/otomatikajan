@@ -2,18 +2,22 @@ import asyncio
 import os
 import json
 import re
-from datetime import datetime, timezone
+import hashlib
+from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any, Optional
 from sqlalchemy import select, func, desc, case
 from sqlalchemy.ext.asyncio import AsyncSession
 from observability.logging import get_logger
 from llm.model_orchestrator import ModelOrchestrator
-from db.session import session_scope
-from db.models import SkillExecutionLog, ImprovementOpportunity, Project
+from db.session import session_scope, AsyncSessionLocal
+from db.models import SkillExecutionLog, ImprovementOpportunity, Project, SubTask
+from db.repository import ProjectRepository, ApiMetricRepository
 from core.agi.cognitive.synaptic_cortex import synaptic_cortex
 from quality.reviewer import ReviewResult
 from core.system_indexer import SystemIndexer
 from quality.output_schema import AgentOutput
+from core.agency.loader import agency_loader
+from memory.watchdog import watchdog
 
 _log = get_logger("agi_metacognitive_auditor")
 
@@ -28,6 +32,19 @@ class MetacognitiveAuditor:
     def __init__(self, model_orch: Optional[ModelOrchestrator] = None):
         self.model_orch = model_orch or ModelOrchestrator()
         self.indexer = SystemIndexer()
+        
+        # Faz 50: Eşik Değerleri (Configuration)
+        self.threshold_error_rate = 5.0  # %5 hata eşiği
+        self.threshold_latency_ms = 5000 # 5 saniye gecikme eşiği
+        self.min_occurrences = 3        # Tekrarlanan hata eşiği
+        self.core_path = "core/agi/"
+        self.arch_spec_path = "AGI_SISTEM_MIMARISI.md"
+        self.required_structure = [
+            "core/agi/cognitive",
+            "core/agi/operational",
+            "core/agi/learning",
+            "core/agi/security"
+        ]
 
     # --- PART 1: Real-time Job Failure Analysis (Metacognitive Recovery) ---
 
@@ -99,6 +116,135 @@ JSON formatında yanıt ver:
             _log.error(f"[META-AUDIT] LLM Analiz Hatası: {e}")
         
         return {"recoverable": False, "root_cause": "Audit failure"}
+
+    # --- PART 1.1: System-Wide Audit (Unified from SovereignAuditor) ---
+
+    async def run_full_audit(self) -> List[Dict[str, Any]]:
+        """Tüm sistem katmanlarını tarar ve bulguları döner. (SovereignAuditor Entegrasyonu)"""
+        _log.info("[META-AUDIT] Sistem genel denetimi başlatılıyor...")
+        
+        findings = []
+        
+        # 1. API ve Performans Denetimi
+        findings.extend(await self._audit_api_metrics())
+        
+        # 2. Watchdog ve Anomali Denetimi
+        findings.extend(await self._audit_watchdog_events())
+        
+        # 3. Proje ve Görev Basarisizlik Denetimi
+        findings.extend(await self._audit_project_failures())
+        
+        # 4. Yetenek ve Kapasite Gaping (AGI Gap)
+        findings.extend(await self._audit_capacity_gaps())
+        
+        _log.info(f"[META-AUDIT] Denetim tamamlandi. {len(findings)} bulgu tespit edildi.")
+        return findings
+
+    async def _audit_api_metrics(self) -> List[Dict[str, Any]]:
+        """API hata oranları ve gecikme sürelerini denetler."""
+        ops = []
+        try:
+            async with AsyncSessionLocal() as db:
+                stats = await ApiMetricRepository.endpoint_stats(db, hours=1)
+                for s in stats:
+                    endpoint = s["endpoint"]
+                    
+                    if "/improvements/" in endpoint or "/audit/" in endpoint:
+                        continue
+
+                    if s["error_rate"] > self.threshold_error_rate:
+                        ops.append({
+                            "id": f"api_err_{self._generate_hash(endpoint + 'error')}",
+                            "category": "performance",
+                            "source_type": "api_error_rate",
+                            "severity": "high",
+                            "title": f"Yüksek Hata Oranı: {endpoint}",
+                            "description": f"'{endpoint}' uç noktasında %{s['error_rate']} oranında hata saptandı.",
+                            "evidence": s
+                        })
+                    
+                    if s["avg_ms"] > self.threshold_latency_ms:
+                        ops.append({
+                            "id": f"api_lat_{self._generate_hash(endpoint + 'latency')}",
+                            "category": "efficiency",
+                            "source_type": "api_latency",
+                            "severity": "medium",
+                            "title": f"Düşük Performans: {endpoint}",
+                            "description": f"'{endpoint}' uç noktası ortalama {s['avg_ms']}ms gecikme ile çalışıyor.",
+                            "evidence": s
+                        })
+        except Exception as e:
+            _log.error(f"API Audit failed: {e}")
+        return ops
+
+    async def _audit_watchdog_events(self) -> List[Dict[str, Any]]:
+        """Watchdog üzerinden tekrarlanan hataları denetler."""
+        ops = []
+        try:
+            patterns = await watchdog.search_events("tekrarlanan hata anomali timeout rate limit", top_k=15)
+            agent_stats = {}
+            for event in patterns:
+                aid = event.get("agent_id")
+                if aid:
+                    agent_stats[aid] = agent_stats.get(aid, 0) + 1
+            
+            for aid, count in agent_stats.items():
+                if count >= self.min_occurrences:
+                    ops.append({
+                        "id": f"wd_anomaly_{self._generate_hash(aid)}",
+                        "category": "reliability",
+                        "source_type": "recurring_anomaly",
+                        "severity": "high",
+                        "title": f"Tekrarlanan Ajan Hatası: {aid}",
+                        "description": f"Ajan '{aid}' son operasyonlarda {count} kez anomali bildirdi.",
+                        "evidence": {"agent_id": aid, "count": count}
+                    })
+        except Exception as e:
+            _log.error(f"Watchdog Audit failed: {e}")
+        return ops
+
+    async def _audit_project_failures(self) -> List[Dict[str, Any]]:
+        """Başarısız olan projeleri denetler."""
+        ops = []
+        try:
+            async with AsyncSessionLocal() as db:
+                recent_failures = await ProjectRepository.list_recent(db, limit=10, status="error")
+                for proj in recent_failures:
+                    ops.append({
+                        "id": f"proj_fail_{self._generate_hash(str(proj.id))}",
+                        "category": "reliability",
+                        "source_type": "project_failure",
+                        "severity": "high",
+                        "title": f"Görev Başarısızlığı: {proj.title[:40]}",
+                        "description": f"'{proj.title}' görevi başarısız oldu. Hata: {proj.error_detail[:150]}",
+                        "evidence": {"project_id": str(proj.id), "error": proj.error_detail}
+                    })
+        except Exception as e:
+            _log.error(f"Project Audit failed: {e}")
+        return ops
+
+    async def _audit_capacity_gaps(self) -> List[Dict[str, Any]]:
+        """Sistemin yetenek matrisi boşluklarını denetler."""
+        ops = []
+        try:
+            agents = agency_loader.list_agents()
+            agent_ids = {a["id"] for a in agents}
+            if "researcher" not in agent_ids:
+                ops.append({
+                    "id": "gap_researcher",
+                    "category": "capacity",
+                    "source_type": "missing_capability",
+                    "severity": "medium",
+                    "title": "Kapasite Eksikliği: Researcher",
+                    "description": "Sistemde 'researcher' uzmanı bulunamadı.",
+                    "evidence": {"missing": "researcher"}
+                })
+        except Exception as e:
+            _log.error(f"Capacity Audit failed: {e}")
+        return ops
+
+    def _generate_hash(self, text: str) -> str:
+        return hashlib.sha256(text.encode()).hexdigest()[:12]
 
     # --- PART 2: Task Revision Audit & Distillation (Subconscious Legacy) ---
 
@@ -243,6 +389,84 @@ JSON formatında yanıt ver:
                 
         except Exception as e:
             _log.error(f"[METACOGNITION] Positive distillation failed: {e}")
+
+    # --- PART 2.2: Automated Codebase Audit (Unified from SelfAuditAgent) ---
+
+    async def scan_codebase(self) -> List[Dict[str, Any]]:
+        """AGI çekirdek dizinini tarar ve teknik borçları analiz eder. (SelfAudit entegrasyonu)"""
+        _log.info(f"[META-AUDIT] Kod tabanı öz-denetimi başlatıldı: {self.core_path}")
+        collected_files = []
+        for root, dirs, files in os.walk(self.core_path):
+            dirs[:] = [d for d in dirs if d not in {"__pycache__", ".git", "node_modules"}]
+            for f in files:
+                if f.endswith(".py") and not f.startswith("test_"):
+                    collected_files.append(os.path.join(root, f))
+        
+        # Dosyaları gruplandırarak analiz et (Maks 10 dosya)
+        batches = [collected_files[i:i + 6] for i in range(0, min(len(collected_files), 18), 6)]
+        all_issues = []
+        
+        for batch in batches:
+            snippets = []
+            for fpath in batch:
+                try:
+                    with open(fpath, "r", encoding="utf-8", errors="ignore") as fh:
+                        content = fh.read()
+                    todos = content.count("# TODO")
+                    passes = content.count("\n    pass\n") + content.count("\n        pass\n")
+                    snippets.append(f"--- FILE: {fpath} (TODOs: {todos}, bare_pass: {passes}) ---\n{content[:2000]}")
+                except Exception: continue
+            
+            if not snippets: continue
+            
+            prompt = f"İncele ve teknik borçları (pass, TODO, kısıtlı mantık) JSON listesi olarak dön:\n\n" + "\n\n".join(snippets)
+            try:
+                response = await self.model_orch.complete_task(
+                    agent_role="critic",
+                    prompt=prompt,
+                    system_prompt="Sen bir AGI Öz-Denetim uzmanısın. Gerçek teknik borçları tespit edersin."
+                )
+                match = re.search(r'\[.*\]', response.content, re.DOTALL)
+                if match:
+                    all_issues.extend(json.loads(match.group()))
+            except Exception as e:
+                _log.error(f"Codebase batch audit failed: {e}")
+        
+        return all_issues
+
+    # --- PART 2.3: Architectural Drift Analysis (Unified from Metacognition) ---
+
+    async def check_architectural_health(self) -> Dict[str, Any]:
+        """Sistemin mimari bütünlüğünü ve bilişsel sağlığını denetler."""
+        _log.info("[META-AUDIT] Mimari sağlık analizi başlatılıyor...")
+        
+        missing = [f for f in self.required_structure if not os.path.exists(folder := f)]
+        doc_missing = not os.path.exists(self.arch_spec_path)
+        
+        cognitive_health = {}
+        async with session_scope() as db:
+            try:
+                # MetaAudit entegrasyonu: Başarı oranı
+                total = await db.execute(select(func.count(SubTask.id)))
+                total_count = total.scalar() or 0
+                success = await db.execute(select(func.count(SubTask.id)).where(SubTask.status == "completed"))
+                success_count = success.scalar() or 0
+                rate = (success_count / total_count) if total_count > 0 else 1.0
+                cognitive_health = {
+                    "success_rate": rate,
+                    "condition": "Optimal" if rate > 0.8 else "Strained",
+                    "total_tasks": total_count
+                }
+            except Exception:
+                cognitive_health = {"error": "Stats unavailable"}
+
+        return {
+            "drift_detected": len(missing) > 0 or doc_missing,
+            "missing_folders": missing,
+            "doc_exists": not doc_missing,
+            "cognitive_health": cognitive_health,
+            "status": "STABLE" if not (missing or doc_missing) else "DEGRADED"
+        }
 
     # --- PART 3: Historical Reflection & Bottleneck Analysis (Reflection Cortex) ---
 
