@@ -1,9 +1,11 @@
+import os
 import logging
 import time
 from typing import Dict, Any, List, Optional
 from llm.model_orchestrator import ModelOrchestrator
 from core.agi.quality.benchmarking_engine import benchmarking_engine
 from core.agi.schemas import VerificationReport
+from core.agi.task_governance import GovernedTask
 
 _log = logging.getLogger("agi_sovereign_evaluator")
 
@@ -44,6 +46,65 @@ class SovereignEvaluator:
         
         _log.info(f"[EVAL] Değerlendirme Tamamlandı. AGI Index: {results['agi_index']}")
         return results
+
+    async def evaluate_task_outcome(self, task: GovernedTask) -> Dict[str, Any]:
+        """
+        [Katman 60]: Görevin fiziksel/mantıksal kanıtlarını (Evidence) sorgulayarak
+        'Bilişsel Çelişki' (Dissonance) denetimi yapar.
+        """
+        _log.info(f"[EVAL-TASK] {task.agent_id} tarafından tamamlanan adım denetleniyor: {task.id}")
+        
+        evidence_found = []
+        missing_evidence = []
+        score = 1.0
+
+        # 1. Dosya kanıtı ara (FileSystem Check)
+        # Agent'ın sonucunda veya promptunda geçen dosya yollarını basitçe tara
+        words = (task.result + " " + task.prompt).split()
+        potential_files = [w for w in words if ("/" in w or "\\" in w) and "." in w]
+        
+        for path in set(potential_files):
+            # Temizle (tırnaklar, parantezler vs.)
+            clean_path = path.strip(".,()[]'\" \n\t")
+            if os.path.exists(clean_path):
+                evidence_found.append(f"File: {clean_path}")
+            else:
+                missing_evidence.append(f"Missing File: {clean_path}")
+
+        # 2. Mantıksal Çelişki Analizi (LLM-Assisted Self-Critic)
+        # Sadece kritik görevlerde veya kanıt bulunamadığında LLM'e sor
+        if not evidence_found and task.result:
+            critic_prompt = f"""
+            GÖREV: {task.prompt}
+            AJAN SONUCU: {task.result}
+            
+            Yukarıdaki sonuç, görevle uyumlu mu? İllüzyon (Halüsinasyon) görüyor mu? 
+            Yanıtı kısa bir 'UYUMLU' veya 'ÇELİŞKİLİ' şeklinde ver ve nedenini açıkla.
+            """
+            response = await self.model_orch.request(
+                prompt=critic_prompt,
+                agent_id="self_critic",
+                system_prompt="Sen bir AGI Öz-Denetçisisin (Self-Critic Agent). Fiziksel kanıt bulamadığım anlarda mantık yürütürsün."
+            )
+            
+            if "ÇELİŞKİLİ" in response.upper() or "INCONSISTENT" in response.upper():
+                score = 0.3
+                _log.warning(f"[EVAL-DISSONANCE] BİLİŞSEL ÇELİŞKİ TESPİT EDİLDİ: {response[:100]}...")
+            else:
+                score = 0.7 # Kanıt yok ama mantık doğru
+        
+        # Kesin kanıt varsa skor tam
+        if len(evidence_found) > 0:
+            score = 1.0
+
+        report = {
+            "score": score,
+            "evidence": evidence_found,
+            "missing": missing_evidence,
+            "is_grounded": score >= 0.7
+        }
+        
+        return report
 
     async def _eval_reasoning(self) -> float:
         """Mantık yürütme derinliğini ölçer (Gerçek LLM Analizi)."""

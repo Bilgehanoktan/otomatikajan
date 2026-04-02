@@ -7,20 +7,27 @@ from datetime import datetime
 class TaskState(str, Enum):
     # Başlangıç
     PENDING = "PENDING"           # Beklemede (init)
+    CREATED = "created"           # Oluşturuldu (core uyumluluk)
+    VALIDATED = "validated"       # Doğrulandı (core uyumluluk)
     QUEUED = "QUEUED"             # Kuyrukta (Celery)
     
     # Yürütme
+    ASSIGNED = "assigned"         # Atandı (core uyumluluk)
     RUNNING = "RUNNING"           # Çalışıyor
     
     # Müdahale / Ara Durumlar
     PENDING_APPROVAL = "PENDING_APPROVAL" # Onay Bekliyor
+    AWAITING_APPROVAL = "awaiting_approval" # Onay Bekliyor (core uyumluluk)
     PAUSED = "PAUSED"             # Duraklatıldı
     RETRYING = "RETRYING"         # Yeniden Deneniyor
+    HEALING = "healing"           # İyileştirme (core uyumluluk)
+    SYNTHESIZING = "synthesizing" # Sentezleme (core uyumluluk)
     
     # Bitiş
     COMPLETED = "COMPLETED"       # Tamamlandı
     PARTIAL_COMPLETE = "PARTIAL_COMPLETE" # Kısmen Tamamlandı
     ERROR = "ERROR"               # Hata (Failed)
+    FAILED = "failed"             # Hata (core uyumluluk)
     CANCELLED = "CANCELLED"       # İptal Edildi
 
 # ── 1b. DEERFLOW OLAY TİPLERİ (STREAM EVENT TYPES) ──────

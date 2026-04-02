@@ -40,6 +40,7 @@ from core.agi.cognitive.axiology_engine import axiology_engine
 from core.agi.operational.metabolic_governor import metabolic_governor
 from core.agi.learning.wisdom_synthesizer import wisdom_synthesizer
 from core.agi.cognitive.memory_pruner import memory_pruner
+from core.agi.quality.sovereign_evaluator import sovereign_evaluator
 
 _log = get_logger("agi_sovereign_cortex")
 
@@ -371,6 +372,25 @@ class SovereignCortex:
 
         # 3. Nexus Yürütme (Leaf Node or Blocked Recursion)
         await self._execute_subtask_nexus(st, task)
+        
+        # --- Phase 60: Autonomous Evaluator (AEBC) ---
+        # Adım tamamlandıktan sonra fiziksel/mantıksal kanıt denetimi yap.
+        if st.status == TaskStatus.COMPLETED:
+            eval_report = await sovereign_evaluator.evaluate_task_outcome(st)
+            if not eval_report["is_grounded"]:
+                _log.warning(f"[SOVEREIGN-DISSONANCE] Bilişsel Çelişki! {st.agent_id} başarılı dedi ama kanıt yok. ({eval_report['score']:.2f})")
+                # Eğer skor çok düşükse (Hallüsinasyon şüphesi), durumu ERROR'a çek ve bir kez otomatik retry dene.
+                if eval_report["score"] < 0.5 and getattr(st, "attempts", 0) < 1:
+                    _log.info(f"[SOVEREIGN-RECORRECTION] Otonom Öz-Düzeltme başlatılıyor: {st.id}")
+                    st.status = TaskStatus.ERROR
+                    st.result = f"BİLİŞSEL ÇELİŞKİ HATASI: {eval_report['missing']}. Lütfen gerçek kanıt (dosya vb.) oluşturun."
+                    st.attempts = getattr(st, "attempts", 0) + 1
+                    # Recursive retry (Wait one metabolic cycle)
+                    await asyncio.sleep(2)
+                    return await self._process_node_recursive(st, task, events, depth)
+                else:
+                    # Kısmi başarı olarak işaretle veya uyarı ile devam et
+                    st.result += f"\n[WARNING: LOW_GROUNDING_EVIDENCE ({eval_report['score']:.2f})]"
         
         # --- Update Persistence Context ---
         ctx = getattr(self, "execution_context", {})
