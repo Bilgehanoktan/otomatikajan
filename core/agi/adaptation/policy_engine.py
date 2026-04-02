@@ -10,8 +10,11 @@ _log = get_logger("agi_policy_engine")
 
 class PolicyEngine:
     """
+    AGI Adaptive Policy Engine (core.agi.adaptation.policy_engine).
     Adaptation Core (Katman 8): Adaptive Policy Evolution.
     Geçmiş deneyimleri (özellikle başarısızlıkları) analiz ederek sistem geneli kurallar (Policy) üretir.
+    NOT: Repair pipeline politika motoru ile karıştırılmamalıdır.
+    Repair motor: core.policy_engine.PolicyEngine
     """
     def __init__(self, model_orch: Optional[ModelOrchestrator] = None):
         self.model_orch = model_orch or ModelOrchestrator()
@@ -115,3 +118,7 @@ class PolicyEngine:
 
 # --- Singleton ---
 policy_engine = PolicyEngine()
+
+# Alias for disambiguation
+AdaptivePolicyEngine = PolicyEngine
+adaptive_policy_engine = policy_engine

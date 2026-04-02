@@ -33,7 +33,10 @@ class PolicyDecision:
 
 class PolicyEngine:
     """
+    Repair Pipeline Policy Engine (core.policy_engine).
     Hangi kararın nerede otomasyon alabileceğini yöneten dinamik motor.
+    NOT: AGI adaptif politika motoru ile karıştırılmamalıdır.
+    AGI adaptif motor: core.agi.adaptation.policy_engine.PolicyEngine
     """
     POLICY_FILE = "config/policies.json"
 
@@ -195,3 +198,7 @@ class PolicyEngine:
 
 # Singleton
 policy_engine = PolicyEngine()
+
+# Alias for disambiguation
+RepairPolicyEngine = PolicyEngine
+repair_policy_engine = policy_engine
