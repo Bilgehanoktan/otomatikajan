@@ -8,6 +8,9 @@ from pydantic import BaseModel
 import logging
 import httpx
 import random
+from db.session import AsyncSessionLocal
+from db.models import SovereignModelPolicy, LLMCostLog
+from sqlalchemy import select
 from core.agi.monitoring.token_budgeter import token_budgeter
 from core.agi.operational.resource_manager import resource_manager
 from core.agi.consciousness.affective_core import affective_core
@@ -103,6 +106,33 @@ class ModelOrchestrator:
         if missing:
             logger.debug(f"[LLM] Anahtarı eksik sağlayıcılar: {', '.join(missing)}")
 
+    async def get_fallback_chain(self, agent_role: str, is_critical: bool = False) -> list[str]:
+        """
+        Ajan rolüne, sistemin metabolik moduna ve görevin kritiklik seviyesine göre 
+        dinamik sağlayıcı zinciri üretir. (Fas 81: Strategic Routing)
+        """
+        # 1. Ham Politika
+        chain = ROUTING_POLICY.get(agent_role, ROUTING_POLICY["general"]).copy()
+        
+        # 2. Metabolik Filtreleme (Energy/Cost Management)
+        current_mode = metabolic_governor.get_mode()
+        
+        # Eğer kritik bir görev değilse ve mod ECO (Verimlilik) ise: Pahalı modelleri sona at veya çıkar.
+        if current_mode == MetabolicMode.ECO and not is_critical:
+            # Nvidia ve OpenAI pahalı kabul edildi (Basitleştirilmiş örnek)
+            expensive = ["nvidia", "openai", "anthropic"]
+            chain = [p for p in chain if p not in expensive] + [p for p in chain if p in expensive]
+            logger.debug(f"[METABOLIC-ROUTING] Mod: ECO. Pahalı modeller zincirin sonuna itildi.")
+            
+        # 3. Kritik Görev Promosyonu (Performance Boost)
+        if is_critical or current_mode == MetabolicMode.TURBO:
+            # Kritik görevlerde en zeki modelleri (Top-tier) en başa al
+            top_tier = ["openai", "nvidia", "anthropic"]
+            chain = [p for p in top_tier if p in chain] + [p for p in chain if p not in top_tier]
+            logger.info(f"[STRATEGIC-ROUTING] Kritik Görev/Hız Önceliği (TURBO). Top-tier modeller başa alındı.")
+
+        return chain
+
     async def complete_task(
         self,
         agent_role: str,
@@ -140,6 +170,12 @@ class ModelOrchestrator:
 
         system_prompt = prompt_manager.apply_patch(agent_role, system_prompt)
         system_prompt = empathy_tuner.patch_system_prompt(system_prompt)
+
+        # Phase 81: Strategic Content Analysis - Is this task critical for North Star?
+        is_critical = any(kw in (prompt + system_prompt).lower() for kw in ["critical", "architectural", "security", "production", "north star"])
+        
+        # 4. Dinamik Fallback Zinciri
+        chain = await self.get_fallback_chain(agent_role, is_critical=is_critical)
         
         # Boş mesaj koruması (400 Bad Request Fix)
         if not prompt or not prompt.strip():
@@ -151,7 +187,7 @@ class ModelOrchestrator:
         ]
 
         # Ajanın rolüne göre fallback zincirini al
-        candidates = ROUTING_POLICY.get(agent_role, ROUTING_POLICY["general"]).copy()
+        candidates = await self.get_fallback_chain(agent_role)
         
         # Faz 48: Metabolik Koordinasyon (Update & Mode Detection)
         optimal_provider_name = None
@@ -166,14 +202,23 @@ class ModelOrchestrator:
                 logger.info(f"[METABOLISM-PACING] ECO Modu Aktif: {delay:.1f}s geciktirme uygulanıyor...")
                 await asyncio.sleep(delay)
                 
-            # Faz 48: Metabolizmaya göre optimize edilmiş sağlayıcı seçimi
+            # Faz 48 & 64: Hibrit NAS ve Metabolizma Önceliği
             optimal_provider_name = metabolic_governor.get_optimal_provider(candidates, self.providers)
+            
+            # Tüm adayları sağlık puanlarına göre sırala (Faz 64)
+            candidates.sort(key=lambda p: self.providers.get(p).health_score if self.providers.get(p) else 0, reverse=True)
+            
             if optimal_provider_name and optimal_provider_name in candidates:
-                # Optimal sağlayıcıyı listenin en başına taşı
+                # Metabolik olarak en uygun olanı başa al
                 candidates.remove(optimal_provider_name)
                 candidates.insert(0, optimal_provider_name)
+                logger.info(f"[SOVEREIGN-NAS] Metabolik optimal ({optimal_provider_name}) başa alındı, diğerleri sağlık puanına göre sıralandı.")
+            else:
+                logger.info(f"[SOVEREIGN-NAS] Sağlık puanına göre yeniden sıralama yapıldı: {candidates[:3]}...")
         except Exception as me:
-            logger.warning(f"[METABOLISM-SYNC] Metabolik hata (Bypass): {me}")
+            logger.warning(f"[METABOLISM-SYNC] Metabolik hata (Health-Fallback): {me}")
+            # Fallback: Sadece sağlık puanına göre sırala
+            candidates.sort(key=lambda p: self.providers.get(p).health_score if self.providers.get(p) else 0, reverse=True)
         
         # Eğer optimal bulunamadıysa (Hepsi devredeyse) orjinal listeyi dene
         if not candidates or (optimal_provider_name and optimal_provider_name not in candidates):
@@ -202,7 +247,7 @@ class ModelOrchestrator:
                 continue
 
             try:
-                result = await self._call(provider, messages, max_tokens=2048, project_id=project_id)
+                result = await self._call(provider, messages, max_tokens=2048, project_id=project_id, agent_role=agent_role)
                 return result
                 
             except Exception as e:
@@ -236,7 +281,7 @@ class ModelOrchestrator:
 
         raise RuntimeError(error_msg)
 
-    async def _call(self, provider: ProviderStats, messages: list[dict], max_tokens: int, project_id: str | None = None) -> LLMResponse:
+    async def _call(self, provider: ProviderStats, messages: list[dict], max_tokens: int, project_id: str | None = None, agent_role: str = "general") -> LLMResponse:
         llm_timeout = float(os.getenv("LLM_TIMEOUT_S", "30"))
         t0 = time.time()
         
@@ -278,7 +323,8 @@ class ModelOrchestrator:
                 rec = cost_tracker.record(
                     provider=provider.name, model=provider.model, agent_id="orchestrator",
                     input_tokens=est_tokens, output_tokens=out_tokens, 
-                    latency_s=latency, success=True, project_id=project_id
+                    latency_s=latency, success=True, project_id=project_id,
+                    agent_role=agent_role
                 )
                 
                 # Arka planda DB'ye yaz (fire and forget tarzı ama await etmek daha güvenli)
@@ -514,6 +560,13 @@ class ModelOrchestrator:
             provider.record_failure()
             logger.error(f"Vision API call failed ({provider.name}): {e}")
             raise e
+
+    def get_health_score(self) -> float:
+        """Tüm sağlayıcıların genel sağlık puan ortalaması."""
+        if not self.providers:
+            return 1.0
+        scores = [p.health_score for p in self.providers.values()]
+        return sum(scores) / len(scores)
 
     def provider_stats(self) -> list[dict]:
         """Arayüzde (Dashboard) devre kesici durumunu göstermek için."""

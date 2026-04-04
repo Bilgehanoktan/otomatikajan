@@ -22,7 +22,7 @@ import textwrap
 import time
 import uuid
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, List, Dict
 
 from observability.logging import get_logger
 
@@ -171,6 +171,55 @@ class SandboxRunner:
             sys.exit(0 if result.wasSuccessful() else 1)
         """)
         return await self.run_python(runner_code, timeout=timeout, extra_files=extra)
+
+    async def run_command(
+        self,
+        command: List[str],
+        timeout: Optional[int] = None,
+        cwd: Optional[str] = None
+    ) -> SandboxResult:
+        """Sistem komutunu sandbox'ta çaliştir."""
+        run_id = f"cmd_{uuid.uuid4().hex[:8]}"
+        t0     = time.time()
+        timeout = timeout or self.timeout
+
+        docker_active = await self._docker_available_check()
+        
+        if self._is_prod and not docker_active:
+            return SandboxResult(
+                run_id=run_id, success=False, stdout="", stderr="Security failure: Docker required.",
+                exit_code=-1, duration_s=0, mode="security_blocked"
+            )
+
+        try:
+            if docker_active and self._use_docker:
+                full_cmd = [
+                    "docker", "run", "--rm", "--network=none", "--memory=128m",
+                    "--cap-drop=ALL", "--security-opt", "no-new-privileges",
+                    self.docker_image
+                ] + command
+            else:
+                full_cmd = command
+
+            proc = await asyncio.create_subprocess_exec(
+                *full_cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                cwd=cwd
+            )
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+            return SandboxResult(
+                run_id=run_id, success=(proc.returncode == 0),
+                stdout=stdout.decode("utf-8", errors="replace"),
+                stderr=stderr.decode("utf-8", errors="replace"),
+                exit_code=proc.returncode or 0,
+                duration_s=time.time() - t0, mode="docker_cmd" if docker_active else "cmd"
+            )
+        except Exception as e:
+            return SandboxResult(
+                run_id=run_id, success=False, stdout="", stderr=str(e),
+                exit_code=-1, duration_s=time.time() - t0, mode="error"
+            )
 
     async def run_ruff_check(self, code: str) -> SandboxResult:
         """Ruff linter kontrolü (Docker ile tam izole veya subprocess)."""

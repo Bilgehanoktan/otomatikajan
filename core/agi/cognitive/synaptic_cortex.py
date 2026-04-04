@@ -65,10 +65,21 @@ class UnifiedGalacticCortex:
         _log.info(f"[UGC] Başlatıldı. Hot Cache boyutu: {cache_size}")
 
     def prune_hot_cache(self):
-        """MemoryGovernor tarafından tetiklenen acil durum temizliği."""
+        """MemoryGovernor tarafından tetiklenen acil durum temizliği - V5.3 Orphan Yedekleme eklendi."""
         count = len(self._hot_cache)
+        if count > 0:
+            try:
+                orphan_file = os.path.join(self.knowledge_dir, "orphan_memories.json")
+                mode = 'a' if os.path.exists(orphan_file) else 'w'
+                with open(orphan_file, mode, encoding='utf-8') as f:
+                    for item in self._hot_cache:
+                        f.write(json.dumps(item) + "\n")
+                _log.info(f"[UGC-PRUNE] {count} orphan memory başarıyla kurtarıldı ve kalıcı depolamaya (json) aktarıldı.")
+            except Exception as e:
+                _log.error(f"[UGC-PRUNE] Orphan memory yedekleme hatası: {e}")
+                
         self._hot_cache.clear()
-        _log.warning(f"[UGC-PRUNE] Hot Cache temizlendi. {count} kayıt silindi.")
+        _log.warning(f"[UGC-PRUNE] Hot Cache geçici bellekten temizlendi. ({count} kayıt)")
 
     async def save(
         self,
@@ -80,9 +91,11 @@ class UnifiedGalacticCortex:
         importance: float = 0.5,
         metadata: Optional[Dict[str, Any]] = None,
         tags: Optional[List[str]] = None,
-        expires_at: Optional[datetime] = None
+        expires_at: Optional[datetime] = None,
+        parent_id: Optional[uuid.UUID] = None,
+        cause_id: Optional[uuid.UUID] = None
     ) -> Memory:
-        """Deneyimi kaydeder ve Hot Cache'e ekler."""
+        """Deneyimi kaydeder ve Hot Cache'e ekler. Memory V5: Causal Anchoring."""
         final_metadata = metadata or {}
         if "signature" not in final_metadata:
             final_metadata["signature"] = uuid.uuid4().hex # Basitleştirilmiş imza
@@ -101,6 +114,8 @@ class UnifiedGalacticCortex:
             metadata_=final_metadata,
             tags=tags or [],
             expires_at=expires_at,
+            parent_id=parent_id,
+            cause_id=cause_id,
             created_at=datetime.now(timezone.utc)
         )
         
@@ -129,7 +144,33 @@ class UnifiedGalacticCortex:
         """Hızlı erişim için in-memory cache'deki kayıtları döner."""
         return list(self._hot_cache)
 
-    async def save_episode(self, db: AsyncSession, episode_data: dict) -> Memory:
+    async def memory_write_gate(self, db: AsyncSession, record: Any, category: str = "general") -> bool:
+        """
+        [FAZ 50] Bilişsel Bellek Geçidi. 
+        Verinin kalıcı hafızaya (DB) yazılmaya değer olup olmadığını denetler.
+        Düşük kaliteli, başarısız veya gürültülü (noisy) verilerin hafızayı kirletmesini engeller.
+        """
+        importance = getattr(record, "importance", 0.5)
+        status = getattr(record, "status", "unknown")
+        
+        # Faz 50: Dinamik Eşik (Affective Core'a bağlı olabilir)
+        threshold = 0.4
+        
+        # 1. Başarısız işler (failed) sadece 'high' severity ise kaydedilir
+        if status == "error" or status == "failed":
+            if importance < 0.8:
+                _log.debug(f"[UGC-GATE] Kayıt reddedildi (Düşük önemde hata): {category}")
+                return False
+
+        # 2. Çok düşük önemdeki genel kayıtlar reddedilir
+        if importance < threshold:
+            _log.debug(f"[UGC-GATE] Kayıt reddedildi (Önem eşiği altında): {category}")
+            return False
+
+        _log.info(f"[UGC-GATE] Kayıt onaylandı: {category} (İmza: {getattr(record, 'id', 'N/A')})")
+        return True
+
+    async def save_episode(self, db: AsyncSession, episode_data: dict, parent_id: Optional[uuid.UUID] = None) -> Memory:
         """Bir görevin tam yaşam döngüsünü (Episode) kaydeder."""
         project_id = episode_data.get("project_id")
         title = episode_data.get("title", "Unknown Task")
@@ -144,11 +185,12 @@ class UnifiedGalacticCortex:
             project_id=project_id,
             importance=0.7,
             metadata=episode_data,
-            tags=["episode", status]
+            tags=["episode", status],
+            parent_id=parent_id
         )
 
-    async def save_negative_lesson(self, db: AsyncSession, agent_id: str, body: str, importance: float = 0.7, metadata: dict = None) -> Memory:
-        """Hata durumlarını ve 'yapılmaması gerekenleri' hafızaya işler."""
+    async def save_negative_lesson(self, db: AsyncSession, agent_id: str, body: str, importance: float = 0.7, metadata: dict = None, parent_id: Optional[uuid.UUID] = None, cause_id: Optional[uuid.UUID] = None) -> Memory:
+        """Hata durumlarını ve 'yapılmaması gerekenleri' hafızaya işler. Memory V5: Causal Anchoring."""
         return await self.save(
             db=db,
             agent_id=agent_id,
@@ -156,7 +198,9 @@ class UnifiedGalacticCortex:
             category="negative_lesson",
             importance=importance,
             metadata=metadata or {},
-            tags=["failure", "lesson"]
+            tags=["failure", "lesson"],
+            parent_id=parent_id,
+            cause_id=cause_id
         )
 
     async def save_architectural_inhibition(self, db: AsyncSession, rule_id: str, target: str, description: str) -> Memory:
@@ -245,14 +289,14 @@ class UnifiedGalacticCortex:
             top_k=limit
         )
 
-    async def get_architectural_inhibitions(self, db: AsyncSession, limit: int = 20) -> List[Dict[str, Any]]:
-        """Faz 42: Kayıtlı mimari kısıtlamaları getirir."""
-        return await self.search(
-            db=db,
-            query="",
-            category="arch_inhibition",
-            top_k=limit
-        )
+    async def get_recent(self, db: AsyncSession, category: Optional[str] = None, limit: int = 10) -> List[Memory]:
+        """Belirli bir kategorideki en son kayıtları getirir."""
+        stmt = select(Memory).order_by(desc(Memory.created_at))
+        if category:
+            stmt = stmt.where(Memory.category == category)
+        
+        result = await db.execute(stmt.limit(limit))
+        return list(result.scalars().all())
 
     async def search(
         self,
@@ -273,8 +317,8 @@ class UnifiedGalacticCortex:
             for m in self._hot_cache:
                 if q_lower in m["body"].lower():
                     results.append(m)
-                    if len(results) >= top_k: return results
 
+        # 2. DB'den ara
         db_results = []
         if db is not None:
             stmt = select(Memory).order_by(desc(Memory.importance), desc(Memory.created_at))
@@ -284,9 +328,20 @@ class UnifiedGalacticCortex:
             stmt = stmt.where((Memory.expires_at == None) | (Memory.expires_at > datetime.now(timezone.utc)))
                 
             if query:
-                stmt = stmt.where(Memory.body.ilike(f"%{query}%"))
+                # Faz 73: Fuzzy/Keyword Search Alignment (AGI Context Recall)
+                # Sadece tam eşleşme değil, kelime bazlı "Herhangi biri varsa getir" mantığı
+                keywords = [k.strip() for k in query.split() if len(k) > 2]
+                if keywords:
+                    from sqlalchemy import or_
+                    # Hem body (content) hem de metadata içinde ara
+                    filters = []
+                    for kw in keywords[:5]: # Performans için ilk 5 anahtar kelime
+                        filters.append(Memory.body.ilike(f"%{kw}%"))
+                    stmt = stmt.where(or_(*filters))
+                else:
+                    stmt = stmt.where(Memory.body.ilike(f"%{query}%"))
                 
-            result = await db.execute(stmt.limit(top_k))
+            result = await db.execute(stmt.limit(top_k * 2)) # Daha fazla çekip sonra harmanlıyoruz
             rows = result.scalars().all()
             
             db_results = [
@@ -301,13 +356,170 @@ class UnifiedGalacticCortex:
                 } for m in rows
             ]
         
-        # Birleştir (Tekil ID'lerle)
-        seen_ids = {r["id"] for r in results}
-        for r in db_results:
-            if r["id"] not in seen_ids:
-                results.append(r)
+        # 3. Birleştir ve Benzersizleştir (ID bazlı)
+        seen_ids = set()
+        final_list = []
         
+        # Sıralama: Hem Hot Cache hem DB sonuçlarını 'importance' ve 'created_at' bazlı harmanla
+        combined = results + db_results
+        # ISO formatlı created_at'e göre sıralama için key
+        combined.sort(key=lambda x: (x.get('importance', 0), x.get('created_at', '')), reverse=True)
+
+        for item in combined:
+            if item["id"] not in seen_ids:
+                final_list.append(item)
+                seen_ids.add(item["id"])
+            if len(final_list) >= top_k:
+                break
+                
+        return final_list[:top_k]
+
+    def check_similarity(self, text_a: str, text_b: str) -> float:
+        """
+        Faz 12.2: Semantik Benzerlik Kontrolü.
+        Basit Jaccard yerine Cosine Similarity (vektör bazlı) kullanarak kavramsal benzerliği ölçer.
+        Not: API üzerinden embedding alırken gecikme olabilir, kritik looplarda dikkat edilmeli.
+        """
+        if not text_a or not text_b: return 0.0
+        
+        # Eğer çok kısaysa veya sadece bir kelimeyse basit Jaccard fallback
+        if len(text_a.split()) < 3 or len(text_b.split()) < 3:
+            words_a = set(text_a.lower().split())
+            words_b = set(text_b.lower().split())
+            if not words_a or not words_b: return 0.0
+            return round(len(words_a.intersection(words_b)) / len(words_a.union(words_b)), 3)
+
+        # Uzun metinlerde semantik karşılaştırma için asenkron yapı gerekebilir, 
+        # ancak bu metod senkron imzalı. Şimdilik hızlı token-match + partial-ratio hibriti kullanıyoruz.
+        # Gelecekte asenkron check_similarity_async(self, a, b) eklenebilir.
+        
+        from difflib import SequenceMatcher
+        return round(SequenceMatcher(None, text_a.lower(), text_b.lower()).ratio(), 3)
+
+    async def check_semantic_similarity(self, text_a: str, text_b: str) -> float:
+        """ASEM Katmanı: Gerçek vektör bazlı benzerlik."""
+        emb_a = await get_embedding(text_a)
+        emb_b = await get_embedding(text_b)
+        
+        if not emb_a or not emb_b:
+            return self.check_similarity(text_a, text_b) # Fallback
+
+        import numpy as np
+        vec_a = np.array(emb_a)
+        vec_b = np.array(emb_b)
+        dot = np.dot(vec_a, vec_b)
+        norm_a = np.linalg.norm(vec_a)
+        norm_b = np.linalg.norm(vec_b)
+        return float(round(dot / (norm_a * norm_b), 4))
+
+    async def follow_causal_chain(self, db: AsyncSession, root_id: uuid.UUID, limit: int = 20) -> List[Dict[str, Any]]:
+        """Memory V5: Root bir nedenin tetiklediği tüm zinciri (causal trace) getirir."""
+        stmt = select(Memory).where(
+            (Memory.parent_id == root_id) | (Memory.cause_id == root_id)
+        ).order_by(Memory.created_at.asc())
+        
+        result = await db.execute(stmt.limit(limit))
+        rows = result.scalars().all()
+        
+        chain = []
+        for m in rows:
+            data = {
+                "id": str(m.id),
+                "agent_id": m.agent_id,
+                "body": m.body,
+                "category": m.category,
+                "parent_id": str(m.parent_id) if m.parent_id else None,
+                "cause_id": str(m.cause_id) if m.cause_id else None,
+                "created_at": m.created_at.isoformat()
+            }
+            chain.append(data)
+            # Recursive check for this node
+            sub_chain = await self.follow_causal_chain(db, m.id, limit=limit-len(chain))
+            chain.extend(sub_chain)
+            if len(chain) >= limit: break
+            
+        return chain
+
+    async def search_synergetic(
+        self,
+        db: AsyncSession,
+        query: str,
+        top_k: int = 10
+    ) -> List[Dict[str, Any]]:
+        """
+        [FAZ 71] Semantik Sinerji Araması (Multi-hop Knowledge Discovery). 
+        Birincil arama sonuçlarından çıkarılan temalara göre ilişkili 'Bilgelik' ve 'Dersleri' de bulur.
+        """
+        # 1. Birincil Arama
+        primary = await self.search(db, query, top_k=max(3, top_k // 2))
+        if not primary: return []
+        
+        results = primary[:]
+        seen_ids = {p["id"] for p in primary}
+        
+        # 2. Temaları ve Bağlamı Belirle
+        # Arama sonuçlarından en önemli anahtar kelimeleri ve kategorileri topla
+        extracted_tags = set()
+        for p in primary:
+            if p.get("metadata") and "tags" in p["metadata"]:
+                for t in p["metadata"]["tags"]: extracted_tags.add(t)
+            # Kategoriden de ipucu al (örn: 'database' -> 'sql')
+            extracted_tags.add(p.get("category", "general"))
+
+        # 3. İkincil Sinerjik Arama (Hop 2)
+        # Sinerji için sadece yüksek önemdeki 'Bilgelik' (Wisdom) ve 'Dersleri' (Lesson) hedefliyoruz.
+        synergy_queries = list(extracted_tags)[:5] # Performans için sınırla
+        
+        for tag in synergy_queries:
+            # Her tag için bir miktar 'wisdom' ara
+            synergy_hits = await self.search(
+                db=db,
+                query=tag,
+                category="semantic_wisdom",
+                top_k=2
+            )
+            for hit in synergy_hits:
+                if hit["id"] not in seen_ids:
+                    # Sinerji imzasını ekle
+                    hit["body"] = f"[SYNERGY-LINK ({tag})] {hit['body']}"
+                    results.append(hit)
+                    seen_ids.add(hit["id"])
+            
+            if len(results) >= top_k: break
+
+        # 4. Önem ve Alaka Düzeyine Göre Sırala
+        results.sort(key=lambda x: x.get('importance', 0), reverse=True)
         return results[:top_k]
+
+    async def search_with_causal_anchoring(self, db: AsyncSession, query: str, top_k: int = 10, use_synergy: bool = True) -> List[Dict[str, Any]]:
+        """Daha derin bir bilişsel bağlam için semantik sonuçların causal komşularını ve sinerjik bağlarını dahil eder."""
+        
+        # Faz 71: Sinerji araması varsayılan olarak açık
+        if use_synergy:
+            primary_results = await self.search_synergetic(db, query, top_k=max(5, top_k // 2))
+        else:
+            primary_results = await self.search(db, query, top_k=top_k // 2)
+        
+        v5_context = []
+        seen_ids = set()
+        
+        for p in primary_results:
+            v5_context.append(p)
+            seen_ids.add(p["id"])
+            
+            # Causal Tracing (Neden-Sonuç İlişkisi)
+            if p.get("id"):
+                try:
+                    trace = await self.follow_causal_chain(db, uuid.UUID(p["id"]), limit=3)
+                    for t in trace:
+                        if t["id"] not in seen_ids:
+                            t["body"] = f"[CAUSAL-TRACE] {t['body']}"
+                            v5_context.append(t)
+                            seen_ids.add(t["id"])
+                except Exception as e:
+                    _log.debug(f"Causal trace error on search: {e}")
+        
+        return v5_context[:top_k]
 
 # Registry / Singleton Instance
 ugc = UnifiedGalacticCortex()

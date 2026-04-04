@@ -48,8 +48,11 @@ Sana verilen istatistikleri ve olay loglarını incele.
   } 
 }"""
 
-    async def execute(self, task_id: str, subtask_id: str, context: Dict[str, Any]) -> SubtaskOutput:
+    async def execute(self, task_id: str, subtask_id: str, prompt: str, context: Dict[str, Any]) -> SubtaskOutput:
         start_time = datetime.now(timezone.utc)
+        
+        # Faz 12.3: Bilişsel Bağlamı İnşa Et
+        cognitive_block = self._build_cognitive_context(context)
         
         if not self.llm:
              return SubtaskOutput(
@@ -72,9 +75,14 @@ Sana verilen istatistikleri ve olay loglarını incele.
         except Exception as ex:
             _log.warning(f"Self-Governor DB log çekemedi: {ex}")
 
-        user_prompt = f"""### GÜNCEL SİSTEM DURUMU
+        user_prompt = f"""### TALİMAT
+{prompt}
+
+### GÜNCEL SİSTEM DURUMU
 İstatistikler: {stats}
 Son Kritik Olaylar: {recent_errors}
+
+{cognitive_block}
 
 ### BAĞLAM
 Görev Tanımı: {context.get('requirements', 'Periyodik Sistem Denetimi')}

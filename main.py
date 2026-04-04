@@ -177,7 +177,12 @@ async def health_check():
         },
         "heal_score": heal_engine.system_health_score() if hasattr(heal_engine, "system_health_score") else 1.0,
         "ws_clients": ws_manager.client_count,
-        "db": {"available": db_ok, "error": db_error() if not db_ok else ""},
+        "db": {
+            "available": db_ok, 
+            "error": db_error() if not db_ok else "",
+            "is_fallback": (await import_db_degraded())
+        },
+        "redis": await _get_redis_status(),
         "queue": {
             "backend": getattr(job_queue, "backend_name", "unknown"),
             "supports_registration": getattr(job_queue, "supports_registration", False),
@@ -234,6 +239,24 @@ async def get_metrics():
 
 
 # ── Yardımcılar ───────────────────────────────────────────
+async def _get_redis_status() -> dict:
+    try:
+        from db.session import get_redis_client
+        r = get_redis_client()
+        if r:
+            await r.ping()
+            return {"available": True}
+        return {"available": False, "error": "Redis client not initialized"}
+    except Exception as e:
+        return {"available": False, "error": str(e)}
+
+async def import_db_degraded() -> bool:
+    try:
+        from db.session import is_db_degraded
+        return is_db_degraded()
+    except Exception:
+        return False
+
 def _get_process_memory() -> str:
     try:
         import psutil

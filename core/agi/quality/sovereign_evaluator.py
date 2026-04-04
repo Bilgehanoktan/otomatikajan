@@ -6,6 +6,7 @@ from llm.model_orchestrator import ModelOrchestrator
 from core.agi.quality.benchmarking_engine import benchmarking_engine
 from core.agi.schemas import VerificationReport
 from core.agi.task_governance import GovernedTask
+from core.agi.monitoring.nervous_system import nervous_system
 
 _log = logging.getLogger("agi_sovereign_evaluator")
 
@@ -59,43 +60,72 @@ class SovereignEvaluator:
         score = 1.0
 
         # 1. Dosya kanıtı ara (FileSystem Check)
-        # Agent'ın sonucunda veya promptunda geçen dosya yollarını basitçe tara
-        words = (task.result + " " + task.prompt).split()
-        potential_files = [w for w in words if ("/" in w or "\\" in w) and "." in w]
+        import re
+        # Dosya yolu örüntüsü: slaşlı yollar veya uzantısı olan belirgin isimler
+        # Örn: 'path/to/file.txt', 'config.json', 'C:\temp\log.txt'
+        file_pattern = r'[a-zA-Z0-9_\-\.\/\\~]+\.[a-zA-Z]{2,5}\b'
+        all_text = task.result + " " + task.prompt
+        potential_files = re.findall(file_pattern, all_text)
         
         for path in set(potential_files):
-            # Temizle (tırnaklar, parantezler vs.)
+            # URL'leri filtrele (http/https ile başlıyorsa dosya değildir)
+            if path.startswith("http") or "://" in path:
+                continue
+
+            # Temizle (noktalama işaretleri vs.)
             clean_path = path.strip(".,()[]'\" \n\t")
+            if not clean_path: continue
+            
             if os.path.exists(clean_path):
-                evidence_found.append(f"File: {clean_path}")
+                # AST Structural Verification (Phase 60.5 Enhancement)
+                if clean_path.endswith(".py"):
+                    try:
+                        import ast
+                        with open(clean_path, "r", encoding="utf-8") as f:
+                            ast.parse(f.read(), filename=clean_path)
+                        evidence_found.append(f"Valid Python File: {clean_path}")
+                    except SyntaxError as e:
+                        _log.error(f"[EVAL-AST] Syntax error in python file: {clean_path} - {e}")
+                        missing_evidence.append(f"Syntax Error in File: {clean_path} ({e.msg} at line {e.lineno})")
+                    except Exception as e:
+                        evidence_found.append(f"File (unparsed): {clean_path}")
+                else:
+                    evidence_found.append(f"File: {clean_path}")
             else:
                 missing_evidence.append(f"Missing File: {clean_path}")
 
         # 2. Mantıksal Çelişki Analizi (LLM-Assisted Self-Critic)
-        # Sadece kritik görevlerde veya kanıt bulunamadığında LLM'e sor
-        if not evidence_found and task.result:
-            critic_prompt = f"""
-            GÖREV: {task.prompt}
-            AJAN SONUCU: {task.result}
-            
-            Yukarıdaki sonuç, görevle uyumlu mu? İllüzyon (Halüsinasyon) görüyor mu? 
-            Yanıtı kısa bir 'UYUMLU' veya 'ÇELİŞKİLİ' şeklinde ver ve nedenini açıkla.
-            """
-            response = await self.model_orch.request(
-                prompt=critic_prompt,
-                agent_id="self_critic",
-                system_prompt="Sen bir AGI Öz-Denetçisisin (Self-Critic Agent). Fiziksel kanıt bulamadığım anlarda mantık yürütürsün."
-            )
-            
-            if "ÇELİŞKİLİ" in response.upper() or "INCONSISTENT" in response.upper():
-                score = 0.3
-                _log.warning(f"[EVAL-DISSONANCE] BİLİŞSEL ÇELİŞKİ TESPİT EDİLDİ: {response[:100]}...")
-            else:
-                score = 0.7 # Kanıt yok ama mantık doğru
+        # Sadece fiziksel kanıt bulunamadığında ve belirgin bir hata yoksa LLM'e sor
+        if not evidence_found and not missing_evidence and task.result:
+            try:
+                critic_prompt = f"""
+                GÖREV: {task.prompt}
+                AJAN SONUCU: {task.result}
+                
+                Yukarıdaki sonuç, görevle uyumlu mu? İllüzyon (Halüsinasyon) görüyor mu? 
+                Yanıtı kısa bir 'UYUMLU' veya 'ÇELİŞKİLİ' şeklinde ver ve nedenini açıkla.
+                """
+                response = await self.model_orch.generate(
+                    prompt=critic_prompt,
+                    system_prompt="Sen bir AGI Öz-Denetçisisin (Self-Critic Agent). Fiziksel kanıt bulamadığım anlarda mantık yürütürsün."
+                )
+                
+                if "ÇELİŞKİLİ" in response.upper() or "INCONSISTENT" in response.upper():
+                    score = 0.3
+                    _log.warning(f"[EVAL-DISSONANCE] BİLİŞSEL ÇELİŞKİ TESPİT EDİLDİ: {response[:100]}...")
+                else:
+                    score = 0.7 # Kanıt yok ama mantık doğru
+            except Exception as e:
+                _log.warning(f"[EVAL-LLM-FAILURE] Öz-Denetçi LLM başarısız oldu, güvenli moda geçiliyor: {e}")
+                score = 0.5 # Belirsizlik durumunda orta skor
         
-        # Kesin kanıt varsa skor tam
-        if len(evidence_found) > 0:
+        # Kesin kanıt varsa skor tam, yoksa ceza uygula
+        if len(evidence_found) > 0 and not missing_evidence:
             score = 1.0
+        elif missing_evidence:
+            # Eksik kanıt varsa skoru düşür (Dissonance)
+            score = min(score, 0.4)
+            _log.error(f"[EVAL-GROUNDING] EKSİK KANIT TESPİT EDİLDİ: {missing_evidence}")
 
         report = {
             "score": score,
@@ -104,15 +134,20 @@ class SovereignEvaluator:
             "is_grounded": score >= 0.7
         }
         
+        # --- Phase 60.5: Raporlama ---
+        try:
+            nervous_system.log_grounding_event(report["score"], not report["is_grounded"])
+        except Exception as re:
+            _log.warning(f"Metrik raporlama hatas: {re}")
+            
         return report
 
     async def _eval_reasoning(self) -> float:
         """Mantık yürütme derinliğini ölçer (Gerçek LLM Analizi)."""
         prompt = "Determine if the following statement is logically sound: 'If all A are B and some B are C, then some A are C.' Explain why."
         # AGI Evaluator real LLM check
-        response = await self.model_orch.request(
+        response = await self.model_orch.generate(
             prompt=prompt,
-            agent_id="evaluator",
             system_prompt="Sen bir Mantık ve Akıl Yürütme Denetçisisin."
         )
         # Determine if answer is correct (No, some A are C is a logical fallacy)

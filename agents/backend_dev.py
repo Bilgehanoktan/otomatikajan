@@ -21,11 +21,20 @@ Senden istenen görevleri yerine getir ve çıktıyı SADECE aşağıdaki JSON f
   ]
 }"""
 
-    async def execute(self, task_id: str, subtask_id: str, context: Dict[str, Any]) -> SubtaskOutput:
+    async def execute(self, task_id: str, subtask_id: str, prompt: str, context: Dict[str, Any]) -> SubtaskOutput:
         start_time = datetime.now(timezone.utc)
         
-        # 1. Orchestrator'dan gelen context'i prompt'a çevir
-        user_prompt = f"Gereksinimler: {context.get('requirements')}\nMimari Plan: {context.get('architecture_plan')}"
+        # 1. Bilişsel Bağlamı İnşa Et (Faz 12.3: Causal Continuity)
+        cognitive_block = self._build_cognitive_context(context)
+        
+        user_prompt = f"""
+ TALİMAT: {prompt}
+ 
+ {cognitive_block}
+ 
+ ANA HEDEFLER VE BAĞLAM:
+ {context.get('parent_goal', 'Belirtilmedi')}
+ """
         
         try:
             # 2. ModelOrchestrator üzerinden (güvenli, fallback'li) LLM'i çağır
@@ -36,8 +45,17 @@ Senden istenen görevleri yerine getir ve çıktıyı SADECE aşağıdaki JSON f
                 task_id=task_id
             )
             
-            # 3. LLM çıktısını zorunlu JSON'a parse et
-            parsed_data = self._parse_llm_json(llm_response.content)
+            # 2.1 Faz 75: Reflective Reasoning (Self-Correction)
+            # Ajan ürettiği ilk çıktıyı geçmiş kısıtlara göre denetler.
+            _log.info(f"[SOVEREIGN-REFLECTION] Ajan {self.role} öz-denetim yapıyor...")
+            final_content = await self._reflective_correction(
+                task_prompt=prompt,
+                initial_output=llm_response.content,
+                context=context
+            )
+            
+            # 3. Denetlenmiş LLM çıktısını zorunlu JSON'a parse et
+            parsed_data = self._parse_llm_json(final_content)
             
             # 4. Artifact (Dosya) nesnelerini oluştur
             artifacts = []

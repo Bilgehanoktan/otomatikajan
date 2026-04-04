@@ -65,6 +65,9 @@ class ProviderStats:
 
     @property
     def avg_latency(self) -> float:
+        # Phase 12.5 Scaling: Use moving window (last 10) instead of all-time totals
+        if self.latencies:
+            return round(sum(self.latencies) / len(self.latencies), 2)
         total = self.success + self.failure
         return round(float(self.total_latency / total), 2) if total else 0.0
 
@@ -76,7 +79,10 @@ class ProviderStats:
         if latency > self.LATENCY_THRESHOLD:
             self.latency_streak += 1
             if self.latency_streak >= 3:
-                self.quarantine_until = time.time() + 1800
+                # Dynamically scale quarantine: 5 mins * multiplier (max 30 mins)
+                duration = min(300 * self.penalty_multiplier, 1800)
+                self.quarantine_until = time.time() + duration
+                logger.warning(f"[LLM-PACING] {self.name} yavaşlama nedeniyle {duration}s karantinaya alındı.")
         else:
             self.latency_streak = 0
         self.history.append(True)
@@ -91,15 +97,17 @@ class ProviderStats:
         self.history.append(False)
         if len(self.history) > self.WINDOW_SIZE:
             self.history.pop(0)
+        # Hata durumunda multiplieri arttır (Geometrik Pacing)
         self.penalty_multiplier = min(self.penalty_multiplier * 2, 32)
         if self.history.count(False) >= self.OPEN_THRESHOLD:
             self.circuit = CircuitState.OPEN
 
     def is_available(self) -> bool:
-        if self.quarantine_until > time.time(): return False
+        now = time.time()
+        if self.quarantine_until > now: return False
         if self.circuit in (CircuitState.CLOSED, CircuitState.HALF_OPEN): return True
         cooldown = self.HALF_OPEN_AFTER * self.penalty_multiplier
-        if self.circuit == CircuitState.OPEN and (time.time() - self.last_failure > cooldown):
+        if self.circuit == CircuitState.OPEN and (now - self.last_failure > cooldown):
             self.circuit = CircuitState.HALF_OPEN
             return True
         return False

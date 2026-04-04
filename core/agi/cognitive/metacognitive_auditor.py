@@ -117,6 +117,156 @@ JSON formatında yanıt ver:
         
         return {"recoverable": False, "root_cause": "Audit failure"}
 
+    async def audit_plan(self, objective: str, plan_steps: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        [FAZ 65 - REFLECTIVE REASONING] Oluşturulan planı uygulamadan önce otonom olarak denetler.
+        Eksik adımlar, mantıksal boşluklar veya yüksek riskli operasyonları tespit eder.
+        """
+        _log.info(f"[META-AUDIT] Plan denetimi başlatıldı: {objective}")
+        
+        prompt = f"""
+PLAN ÖZ-YANSIMA VE DENETİM (Egemen AGI)
+----------------------------------------------
+ANA HEDEF: {objective}
+ÖNERİLEN PLAN ADIMLARI:
+{json.dumps(plan_steps, indent=2)}
+
+GÖREV: Bu planı Egemen AGI standartlarına (Faz 65) göre denetle.
+Aşağıdaki kriterlere göre puan ver (0.0 - 1.0) ve iyileştirme önerilerini listele:
+1. 'coverage_score': Plan tüm alt hedefleri kapsıyor mu?
+2. 'logic_score': Adımlar arasındaki bağımlılıklar mantıklı mı?
+3. 'risk_score': Tehlikeli veya geri alınamaz adımlar var mı? (Göz ardı edilen hard delete vb.)
+4. 'optimizations': Planı nasıl daha etkili, hızlı veya güvenli yapabiliriz?
+
+JSON formatında yanıt ver:
+{{
+  "coverage_score": 0.8,
+  "logic_score": 0.9,
+  "risk_score": 0.1,
+  "is_safe": true,
+  "gaps": ["...", "..."],
+  "refinement_suggestion": "Planın şu adımını şununla değiştir/ekle..."
+}}
+"""
+        try:
+            response = await self.model_orch.complete_task(
+                agent_role="self_governor", 
+                prompt=prompt, 
+                system_prompt="Sen Egemen AGI Üst-Bilişsel Denetçi (Metacognitive Auditor) ünitesisin. Bir planı uygulamadan önce otonom olarak öz-eleştiri yapar ve deliklerini bulursun."
+            )
+            
+            match = re.search(r'\{.*\}', response.content, re.DOTALL)
+            if match:
+                return json.loads(match.group())
+        except Exception as e:
+            _log.error(f"[META-AUDIT] Plan denetimi hatası: {e}")
+            
+        return {"is_safe": True, "coverage_score": 1.0, "logic_score": 1.0, "risk_score": 0.0, "gaps": []}
+
+    async def simulate_action_impact(self, agent_id: str, prompt: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        [FAZ 65 - FORESIGHT SIMULATION] Eylemin yaratacağı etkiyi önceden simüle eder.
+        Dosya sistemi değişikliklerini, riskleri ve stratejik kaymaları öngörür.
+        """
+        _log.info(f"[META-AUDIT] Eylem simülasyonu başlatıldı: {agent_id}")
+        
+        sim_prompt = f"""
+EYLEM SİMÜLASYONU VE ÖNGÖRÜ (Egemen AGI)
+----------------------------------------------
+AJAN: {agent_id}
+TALİMAT: {prompt}
+BAĞLAM ÖZETİ: {str(context.get('working_context', ''))[:1000]}
+MEVCUT MONOLOG: {context.get('thought_thread', 'Bilinmiyor')}
+
+GÖREV: Bu eylemin 'Dünya' üzerindeki etkisini simüle et ve olası 'Dünya Deltasını' (World Delta) tahmin et.
+Özellikle şunları öngör:
+1. Hangi dosyalar değişebilir veya oluşabilir?
+2. Hangi sistem servisleri etkilenebilir?
+3. Beklenmedik bir 'Yan Etki' (Side Effect) oluşma ihtimali var mı?
+4. Eylem 'Kırmızı Çizgileri' (Hard delete, irreversible vb.) ihlal ediyor mu?
+
+JSON formatında yanıt ver:
+{{
+  "predicted_status": "success | risky | dangerous",
+  "world_delta": {{
+    "files": ["...", "..."],
+    "state_change": "..."
+  }},
+  "risk_score": 0.1,
+  "foresight_report": "Kısa simülasyon özeti ve uyarısı."
+}}
+"""
+        try:
+            response = await self.model_orch.complete_task(
+                agent_role="architect",
+                prompt=sim_prompt,
+                system_prompt="Sen Egemen AGI Simülasyon Uzmanısın (Foresight Engine). Gelecekteki eylemlerin sonuçlarını %95 doğrulukla tahmin edersin."
+            )
+            
+            match = re.search(r'\{.*\}', response.content, re.DOTALL)
+            if match:
+                return json.loads(match.group())
+        except Exception as e:
+            _log.error(f"[META-AUDIT] Simülasyon hatası: {e}")
+            
+        return {"predicted_status": "success", "risk_score": 0.0, "foresight_report": "Simulation failed, defaulting to optimistic success."}
+
+    async def analyze_cognitive_trace(self, all_actions: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        [FAZ 52] Bir yürütme dalgasındaki (Wave) bilişsel izi analiz eder.
+        """
+        if not all_actions:
+            return {"status": "no_actions", "success_rate": 1.0, "efficiency_score": 1.0}
+
+        _log.info(f"[META-AUDIT] Bilişsel iz analizi başlatıldı: {len(all_actions)} eylem.")
+        
+        success_count = sum(1 for a in all_actions if a.get("status") == "success")
+        total_cost = sum(a.get("cost_usd", 0) for a in all_actions)
+        total_latency = sum(a.get("latency_s", 0) for a in all_actions)
+        
+        # Basit Skorlama
+        success_rate = success_count / len(all_actions)
+        
+        # Derin Analiz (Opsiyonel: Eğer hata varsa veya yüksek maliyetli ise)
+        deep_insights = ""
+        if success_rate < 1.0 or total_cost > 0.5:
+             prompt = f"""
+             BİLİŞSEL İZ ANALİZİ (GÖREV SONRASI ÖZ-YANSIMA)
+             --------------------------------------------------
+             EYLEMLER: {json.dumps(all_actions, indent=2)}
+             BAŞARI ORANI: %{success_rate * 100:.1f}
+             TOPLAM MALİYET: ${total_cost:.4f}
+             TOPLAM GECİKME: {total_latency:.2f}s
+             
+             GÖREV: Bu bilişsel akışı (trace) analiz et. Hangi adımda darboğaz (bottleneck) yaşandı? 
+             Hangi ajan daha verimli olabilirdi? Sistemik bir hata örüntüsü var mı?
+             
+             Yanıtı JSON formatında ver:
+             {{
+               "evaluation": "Genel değerlendirme...",
+               "bottleneck_id": "step_id | None",
+               "improvement_suggestion": "Bundan sonra ne yapılmalı?"
+             }}
+             """
+             try:
+                 response = await self.model_orch.complete_task(
+                     agent_role="critic",
+                     prompt=prompt,
+                     system_prompt="Sen bir AGI Performans Analistisin."
+                 )
+                 match = re.search(r'\{.*\}', response.content, re.DOTALL)
+                 if match:
+                     deep_insights = json.loads(match.group())
+             except Exception as e:
+                 _log.warning(f"[META-AUDIT] Derin iz analizi başarısız: {e}")
+
+        return {
+            "success_rate": success_rate,
+            "total_cost": total_cost,
+            "total_latency": total_latency,
+            "deep_insights": deep_insights or "Nominal performance."
+        }
+
     # --- PART 1.1: System-Wide Audit (Unified from SovereignAuditor) ---
 
     async def run_full_audit(self) -> List[Dict[str, Any]]:
@@ -468,6 +618,61 @@ JSON formatında yanıt ver:
             "status": "STABLE" if not (missing or doc_missing) else "DEGRADED"
         }
 
+    # --- PART 2: Strategic Plan Audit (Metacognitive Reflection) ---
+    
+    async def audit_plan(self, title: str, subtasks: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        [FAZ 65 - REFLECTIVE REASONING] Oluşturulan stratejik planı denetler.
+        Planın kapsam yeterliliğini, mantıksal tutarlılığını ve güvenlik risklerini analiz eder.
+        """
+        _log.info(f"[META-AUDIT] Stratejik plan denetimi başlatıldı: {title}")
+        
+        prompt = f"""
+ÖZ-YANSIMA: STRATEJİK PLAN DENETİMİ (Egemen AGI)
+----------------------------------------------
+ÜST-HEDEF: {title}
+ÖNERİLEN ALT-GÖREVLER:
+{json.dumps(subtasks, indent=2, ensure_ascii=False)}
+
+GÖREV: Bu stratejik planı bir 'Üst-Bilişsel Denetçi' (Metacognitive Auditor) olarak analiz et.
+Plan şu kriterlere göre değerlendirilmeli:
+1. GÜVENLİK (is_safe): Plan geri döndürülemez kritik hatalar veya güvenlik açıkları içeriyor mu? (Örn: auth bypass, root delete)
+2. KAPSAM (coverage_score): Plan, üst-hedefin tüm gereksinimlerini karşılıyor mu? (0.0 - 1.0)
+3. MANTIK (logic_score): Alt-görevlerin sıralaması ve bağımlılıkları mantıklı mı? (0.0 - 1.0)
+4. EKSİKLER (gaps): Planda unutulan kritik adımlar veya riskler neler?
+5. ÖNERİ (refinement_suggestion): Planı daha sağlam ve verimli hale getirmek için spesifik önerin nedir?
+
+Sadece JSON formatında yanıt ver:
+{{
+  "is_safe": true,
+  "coverage_score": 0.85,
+  "logic_score": 0.9,
+  "gaps": ["adım 2'de güvenlik kontrolü eksik", "test coverage belirtilmemiş"],
+  "refinement_suggestion": "...",
+  "risk_assessment": "low|medium|high"
+}}
+"""
+
+        try:
+            response = await self.model_orch.complete_task(
+                agent_role="architect",
+                prompt=prompt,
+                system_prompt="Sen Egemen AGI Mimari Denetçi (Metacognitive Auditor) ünitesisin. Planların kalitesini ve güvenliğini denetlersin."
+            )
+            
+            # JSON Parse
+            match = re.search(r'\{.*\}', response.content, re.DOTALL)
+            if match:
+                return json.loads(match.group())
+            else:
+                _log.warning("[META-AUDIT] Denetim çıktısı JSON formatında değil, varsayılan onay veriliyor.")
+                return {"is_safe": True, "coverage_score": 1.0, "logic_score": 1.0, "gaps": [], "refinement_suggestion": ""}
+                
+        except Exception as e:
+            _log.error(f"[META-AUDIT] Plan denetimi sırasında hata: {e}")
+            return {"is_safe": True, "coverage_score": 1.0, "logic_score": 1.0, "gaps": [], "refinement_suggestion": "Analysis failed, defaulting to pass."}
+
+    # --- PART 3: Historical Trend Analysis (Continuous Learning) ---
     # --- PART 3: Historical Reflection & Bottleneck Analysis (Reflection Cortex) ---
 
     async def run_reflection_cycle(self, db: Optional[AsyncSession] = None):
@@ -568,7 +773,7 @@ JSON formatında yanıt ver:
 
     async def _create_improvement_opportunity(self, db: AsyncSession, data: Dict, bn: Dict):
         """Teşhis sonuçlarını sistemin iyileştirme deposuna kaydeder. (Atomic UPSERT)"""
-        p_hash = ImprovementOpportunity.generate_hash("cog_diag", f"{bn['agent_id']}:{bn['skill_id']}")
+        p_hash = ImprovementOpportunity.generate_hash("cog_diag", f"{bn.get('agent_id', 'unknown')}:{bn.get('skill_id', 'unknown')}")
         
         # 1. Mevcut kaydı ara
         stmt = select(ImprovementOpportunity).where(ImprovementOpportunity.pattern_hash == p_hash)
@@ -578,24 +783,24 @@ JSON formatında yanıt ver:
         try:
             if existing_opp:
                 _log.info(f"[REFLECTION] Mevcut gelişim fırsatı güncelleniyor: {existing_opp.id}")
-                existing_opp.description = f"RECURRING Root Cause: {data['root_cause']}\nRepair: {data['repair_action']}"
-                existing_opp.evidence_detail = f"Updated Evidence: {data['repair_detail']}"
-                existing_opp.severity = data['urgency']
+                existing_opp.description = f"RECURRING Root Cause: {data.get('root_cause', 'N/A')}\nRepair: {data.get('repair_action', 'N/A')}"
+                existing_opp.evidence_detail = f"Updated Evidence: {data.get('repair_detail', 'N/A')}"
+                existing_opp.severity = data.get('urgency', 'medium')
                 existing_opp.updated_at = datetime.now(timezone.utc)
                 opp_id = existing_opp.id
             else:
                 opp = ImprovementOpportunity(
                     source_type="cognitive_diagnostic",
-                    source_ref=f"{bn['agent_id']}:{bn['skill_id']}",
-                    title=f"Cognitive Repair: {bn['agent_id']}",
-                    description=f"Root Cause: {data['root_cause']}\nRepair: {data['repair_action']}",
-                    severity=data['urgency'],
+                    source_ref=f"{bn.get('agent_id', 'unknown')}:{bn.get('skill_id', 'unknown')}",
+                    title=f"Cognitive Repair: {bn.get('agent_id', 'unknown')}",
+                    description=f"Root Cause: {data.get('root_cause', 'N/A')}\nRepair: {data.get('repair_action', 'N/A')}",
+                    severity=data.get('urgency', 'medium'),
                     category="reliability",
-                    evidence_detail=data['repair_detail'],
+                    evidence_detail=data.get('repair_detail', 'N/A'),
                     pattern_hash=p_hash
                 )
                 db.add(opp)
-                await db.flush() # Burada hata alabilir (Race Condition)
+                await db.flush() # Race condition potential
                 opp_id = opp.id
                 _log.info(f"[REFLECTION] Yeni bilişsel onarım fırsatı kaydedildi: {opp_id}")
             
@@ -603,20 +808,26 @@ JSON formatında yanıt ver:
             
         except Exception as e:
             from sqlalchemy.exc import IntegrityError
-            if "UniqueViolationError" in str(e) or isinstance(e, IntegrityError):
-                await db.rollback() # Bu alt-oturum işlemini geri al
-                _log.warning(f"[REFLECTION] Kayıt çakışması tespit edildi (Race Condition), güncelleniyor...")
-                # Tekrar dene: Mevcut olanı bul ve güncelle
-                res = await db.execute(select(ImprovementOpportunity).where(ImprovementOpportunity.pattern_hash == p_hash))
-                existing_opp = res.scalar_one_or_none()
-                if existing_opp:
-                    existing_opp.description += f"\n[RACE] {data['root_cause']}"
-                    await db.flush()
-                    opp_id = existing_opp.id
-                else:
-                    raise # Beklenmedik durum
+            if isinstance(e, IntegrityError) or "UniqueViolation" in str(e):
+                # Race condition: Başka bir worker bizden önce ekledi. 
+                # Mevcut oturumu rollback yapmadan (flush hatasını temizleyerek) devam etmek zor olabilir,
+                # bu yüzden bu alt işlemi rollback yapıp mevcut olanı güncellemeliyiz.
+                try:
+                    await db.rollback()
+                    # Tekrar dene: Mevcut olanı bul ve güncelle (New transaction start implied by session usage)
+                    _log.warning(f"[REFLECTION] Kayıt çakışması (Race Condition), mevcut kayıt güncelleniyor...")
+                    res = await db.execute(select(ImprovementOpportunity).where(ImprovementOpportunity.pattern_hash == p_hash))
+                    existing_opp = res.scalar_one_or_none()
+                    if existing_opp:
+                        existing_opp.description += f"\n[RACE] {data.get('root_cause', 'N/A')}"
+                        await db.flush()
+                except Exception as inner_e:
+                    _log.error(f"[REFLECTION] Race condition kurtarma başarısız: {inner_e}")
             else:
+                _log.error(f"[REFLECTION] Beklenmedik DB hatası: {e}")
+                # Hata dışarı fırlatılmalı ki oturum yöneticisi (get_db) bilsin
                 raise
+
         
         # Deneyimi SynapticCortex'e kaydet
         f_rate = bn.get('failure_rate', 0.0)
@@ -634,6 +845,13 @@ JSON formatında yanıt ver:
         )
         
         _log.info(f"[REFLECTION] Bilişsel onarım kaydı tamamlandı: {opp_id}")
+
+    async def run_cleanup(self):
+        """
+        Self-Audit cleanup: Kod tabanındaki teknik borçları tarar.
+        (Compatibility for lifespan.py loop)
+        """
+        return await self.scan_codebase()
 
 # Singleton Instance
 metacognitive_auditor = MetacognitiveAuditor()

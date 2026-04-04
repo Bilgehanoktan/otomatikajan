@@ -13,7 +13,7 @@ from sqlalchemy import (
     Integer, String, Text, Index, Enum as SAEnum,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
-from sqlalchemy.orm import DeclarativeBase, relationship
+from sqlalchemy.orm import DeclarativeBase, relationship, backref
 import enum
 
 try:
@@ -130,6 +130,7 @@ class Project(Base):
     execution_context   = Column(SmartJSON(), default=dict)
     review_required     = Column(Boolean, default=False, nullable=False)
     checkpoint_data     = Column(SmartJSON(), default=dict)  # AGI Dayanıklılık: Son güvenli durum verisi
+    goal_id             = Column(UUID(as_uuid=True), ForeignKey("sovereign_goals.id", ondelete="SET NULL"), nullable=True)
     # ──────────────────────────────────────────────────────
     created_at   = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
     updated_at   = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
@@ -143,6 +144,7 @@ class Project(Base):
                             lazy="select", cascade="all, delete-orphan")
     task_logs= relationship("TaskLog", back_populates="project",
                             lazy="select", cascade="all, delete-orphan")
+    goal     = relationship("SovereignGoal", back_populates="projects", foreign_keys=[goal_id])
 
 
 # ── Alt Görevler ─────────────────────────────────────────
@@ -167,7 +169,12 @@ class SubTask(Base):
     internal_monologue = Column(Text, default="")
     reviewed      = Column(Boolean, default=False, nullable=False)
     review_notes  = Column(SmartJSON(), default=list)
+    causal_anchor = Column(Text, default="")         # Faz 12.3: Bu adımın ana çıkarımı (Anchor)
+    inhibition_signals = Column(SmartJSON(), default=list) # Faz 12.3: Negatif sinapslar / Kısıtlar
+    parent_id     = Column(UUID(as_uuid=True), ForeignKey("subtasks.id"), nullable=True)
+    dependencies  = Column(SmartJSON(), default=list)
     created_at    = Column(DateTime(timezone=True), default=utcnow)
+
     updated_at    = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
     completed_at  = Column(DateTime(timezone=True), nullable=True)
 
@@ -189,6 +196,7 @@ class LLMCostLog(Base):
     latency_s     = Column(Float, default=0.0)
     success       = Column(Boolean, default=True)
     error_type    = Column(String(64), default="")
+    agent_role    = Column(String(50), index=True)
     created_at    = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
 
     project = relationship("Project", back_populates="cost_logs")
@@ -220,6 +228,30 @@ class AgentHealthLog(Base):
     message    = Column(Text, default="")
     action     = Column(String(64), default="")
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+
+
+# ── AGI Stratejik Hedefler (Faz 79) ──────────────────────
+class SovereignGoal(Base):
+    """
+    Sistemin North Star (Kutup Yıldızı) Hedefleri. 
+    Aylar sürecek 'Ana Vizyon' ve 'Stratejik Yol Haritası' burada tutulur.
+    """
+    __tablename__ = "sovereign_goals"
+
+    id               = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    title            = Column(String(512), nullable=False)
+    vision_statement = Column(Text, nullable=False)     # "Tam otonom Geliştirici AGI olmak"
+    priority         = Column(Integer, default=50)      # 1-100
+    status           = Column(String(32), default="active") # active, achieved, pivoted
+    kpis             = Column(SmartJSON(), default=dict) # {"cost_per_task": 0.5, "failure_rate": 0.05}
+    target_date      = Column(DateTime(timezone=True), nullable=True)
+    created_at       = Column(DateTime(timezone=True), default=utcnow)
+    achieved_at      = Column(DateTime(timezone=True), nullable=True)
+
+    projects    = relationship("Project", back_populates="goal", 
+                             primaryjoin="SovereignGoal.id == Project.goal_id",
+                             foreign_keys="[Project.goal_id]")
+    suggestions = relationship("CEOSuggestedTask", back_populates="goal_ref")
 
 
 # ── Webhook Abonelikleri ──────────────────────────────────
@@ -371,10 +403,37 @@ class Memory(Base):
     tags        = Column(SmartJSON(), default=list)                        # DB'de JSONB
     expires_at  = Column(DateTime(timezone=True), nullable=True)
     project_id  = Column(String(64), nullable=True, index=True)      # DB'de 'character varying'
+    parent_id   = Column(UUID(as_uuid=True), ForeignKey("memories.id"), nullable=True, index=True) # Causal Anchoring
+    cause_id    = Column(UUID(as_uuid=True), nullable=True, index=True) # Linked to a specific event or ErrorID
     created_at  = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
 
 
 # ── CEO Engine Modelleri (Faz 8) ──────────────────────────
+class CEOSuggestedTask(Base):
+    __tablename__ = "ceo_suggested_tasks"
+
+    id               = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    opportunity_id   = Column(UUID(as_uuid=True), ForeignKey("improvement_opportunities.id"))
+    title            = Column(String(512), nullable=False)
+    description      = Column(Text)
+    priority         = Column(String(32), default="medium")
+    owner_agent_hint = Column(String(64), default="architect")
+    status           = Column(String(32), default="suggested")
+    parent_id        = Column(UUID(as_uuid=True), ForeignKey("ceo_suggested_tasks.id"), nullable=True) # Hiyerarşik planlama
+    plan_hierarchy   = Column(SmartJSON(), default=dict) # {"step_index": 1, "total_steps": 3, "depends_on": [...]}
+    reasoning_summary= Column(Text)
+    impact_projection= Column(SmartJSON(), default=dict)
+    created_task_id  = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=True)
+    goal_id          = Column(UUID(as_uuid=True), ForeignKey("sovereign_goals.id"), nullable=True) # North Star Link
+    created_at       = Column(DateTime(timezone=True), default=utcnow)
+    updated_at       = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    opportunity = relationship("ImprovementOpportunity", back_populates="suggestions")
+    created_task = relationship("Project", backref=backref("suggestion_source", uselist=False), foreign_keys=[created_task_id])
+    sub_tasks    = relationship("CEOSuggestedTask", backref=backref("parent", remote_side=[id]))
+    goal_ref     = relationship("SovereignGoal", back_populates="suggestions")
+
+
 class ImprovementOpportunity(Base):
     __tablename__ = "improvement_opportunities"
 
@@ -395,26 +454,13 @@ class ImprovementOpportunity(Base):
     status           = Column(String(32), default="open", index=True) # open, suggested, resolved
     created_at       = Column(DateTime(timezone=True), default=utcnow)
 
+    suggestions      = relationship("CEOSuggestedTask", back_populates="opportunity", cascade="all, delete-orphan")
+
     @staticmethod
-    def generate_hash(stype: str, sref: str) -> str:
+    def generate_hash(source_type: str, source_ref: str) -> str:
         import hashlib
-        return hashlib.sha256(f"{stype}:{sref}".encode()).hexdigest()
-
-
-class CEOSuggestedTask(Base):
-    __tablename__ = "ceo_suggested_tasks"
-
-    id               = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    opportunity_id   = Column(UUID(as_uuid=True), ForeignKey("improvement_opportunities.id"))
-    title            = Column(String(512), nullable=False)
-    description      = Column(Text)
-    priority         = Column(String(16), default="medium")
-    owner_agent_hint = Column(String(64))
-    status           = Column(String(32), default="suggested") # suggested, approved, rejected
-    reasoning_summary = Column(Text)
-    impact_projection = Column(SmartJSON(), default=dict)
-    created_task_id  = Column(UUID(as_uuid=True), nullable=True)
-    created_at       = Column(DateTime(timezone=True), default=utcnow)
+        payload = f"{source_type}:{source_ref or ''}"
+        return hashlib.sha256(payload.encode()).hexdigest()[:32]
 
 
 class CEODecision(Base):
@@ -502,3 +548,39 @@ class SovereignCodeFile(Base):
     created_at     = Column(DateTime(timezone=True), default=utcnow, nullable=False)
 
     result = relationship("SovereignCodeResult", back_populates="files")
+
+
+# ── Faz 60+: Sovereign Model Governance & NAS ──────────
+class SovereignModelPolicy(Base):
+    """
+    Her ajan rolü için en iyi çalışan (NASOptimizer tarafından belirlenen)
+    model ve fallback zinciri politikasını saklar.
+    """
+    __tablename__ = "sovereign_model_policies"
+
+    id               = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    agent_role       = Column(String(64), nullable=False, unique=True, index=True)
+    winner_provider  = Column(String(64), nullable=False)
+    runner_up        = Column(String(64), nullable=True)
+    fallback_chain   = Column(SmartJSON(), default=list) # ["openai", "gemini", ...]
+    confidence       = Column(Float, default=0.5)
+    last_optimized   = Column(DateTime(timezone=True), default=utcnow)
+    created_at       = Column(DateTime(timezone=True), default=utcnow)
+    updated_at       = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+class ModelBenchmarking(Base):
+    """
+    NAS (Neural Architecture Search) için modellerin tarihsel performans metrikleri.
+    """
+    __tablename__ = "model_benchmarking"
+
+    id               = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    agent_role       = Column(String(64), nullable=False, index=True)
+    provider         = Column(String(64), nullable=False, index=True)
+    avg_latency      = Column(Float, default=0.0)
+    avg_cost         = Column(Float, default=0.0)
+    success_rate     = Column(Float, default=0.0)
+    quality_score    = Column(Float, default=0.0)
+    recorded_at      = Column(DateTime(timezone=True), default=utcnow, index=True)
+

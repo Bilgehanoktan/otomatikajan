@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from db.models import (
     Project, SubTask, LLMCostLog, DomainEventLog,
     TaskLog, ApiMetric, TelegramUser, TelegramCommandLog,
-    ProjectStatus, SkillExecutionLog,
+    ProjectStatus, SkillExecutionLog, Memory,
 )
 
 
@@ -150,16 +150,29 @@ class ProjectRepository:
         )
 
     @staticmethod
-    async def cancel(db: AsyncSession, project_id, cancelled_by: str = "system") -> None:
-        await db.execute(
+    async def cancel(db: AsyncSession, project_id, cancelled_by: str = "system") -> bool:
+        """
+        Sadece aktif durumdaki işleri iptal eder. 
+        Geriye işlemin başarılı olup olmadığını döner (status guard).
+        """
+        cancellable = [
+            ProjectStatus.PENDING.value, 
+            ProjectStatus.RUNNING.value, 
+            ProjectStatus.QUEUED.value, 
+            ProjectStatus.RETRYING.value,
+            ProjectStatus.PAUSED.value
+        ]
+        res = await db.execute(
             update(Project)
             .where(Project.id == project_id)
+            .where(Project.status.in_(cancellable))
             .values(
                 status=ProjectStatus.CANCELLED.value,
                 cancelled_at=_utcnow(),
                 cancelled_by=cancelled_by,
             )
         )
+        return res.rowcount > 0
 
     @staticmethod
     async def update_fields(db: AsyncSession, project_id, **fields) -> None:
@@ -306,6 +319,9 @@ class SubTaskRepository:
         quality_detail: dict | None = None,
         reviewed: bool = False,
         review_notes: list | None = None,
+        causal_anchor: str = "",
+        inhibition_signals: list | None = None,
+        internal_monologue: str = "",
     ) -> None:
         await db.execute(
             update(SubTask)
@@ -323,6 +339,9 @@ class SubTaskRepository:
                 quality_detail=quality_detail or {},
                 reviewed=reviewed,
                 review_notes=review_notes or [],
+                causal_anchor=causal_anchor,
+                inhibition_signals=inhibition_signals or [],
+                internal_monologue=internal_monologue,
                 completed_at=_utcnow(),
             )
         )
@@ -334,6 +353,7 @@ class SubTaskRepository:
         result: str,
         attempts: int,
         quality_detail: dict | None = None,
+        internal_monologue: str = "",
     ) -> None:
         await db.execute(
             update(SubTask)
@@ -343,6 +363,7 @@ class SubTaskRepository:
                 result=result,
                 attempts=attempts,
                 quality_detail=quality_detail or {},
+                internal_monologue=internal_monologue,
                 completed_at=_utcnow(),
             )
         )
@@ -355,6 +376,14 @@ class SubTaskRepository:
             .offset(offset).limit(limit)
         )
         return list(result.scalars().all())
+
+    @staticmethod
+    async def save_causal_metadata(db: AsyncSession, subtask_id: uuid.UUID, anchor: str, inhibition: list[str]) -> None:
+        await db.execute(
+            update(SubTask)
+            .where(SubTask.id == subtask_id)
+            .values(causal_anchor=anchor, inhibition_signals=inhibition)
+        )
 
 
 # ════════════════════════════════════════════════════════
@@ -775,3 +804,72 @@ class SkillLogRepository:
             .limit(limit)
         )
         return list(result.scalars().all())
+
+
+# ════════════════════════════════════════════════════════
+# Memory / RAG Repository (Faz 12.1 - Semantic Memory 2.0)
+# ════════════════════════════════════════════════════════
+class MemoryRepository:
+
+    @staticmethod
+    async def create(
+        db: AsyncSession,
+        agent_id: str,
+        body: str,
+        category: str = "general",
+        importance: float = 0.5,
+        project_id: str | None = None,
+        tags: list | None = None,
+        metadata: dict | None = None,
+        parent_id: uuid.UUID | None = None,
+        cause_id: uuid.UUID | None = None,
+    ) -> Memory:
+        mem = Memory(
+            agent_id=agent_id,
+            body=body,
+            category=category,
+            importance=importance,
+            project_id=project_id,
+            tags=tags or [],
+            metadata_=metadata or {},
+            parent_id=parent_id,
+            cause_id=cause_id,
+        )
+        db.add(mem)
+        await db.flush()
+        return mem
+
+    @staticmethod
+    async def get_by_category(db: AsyncSession, category: str, limit: int = 100) -> list[Memory]:
+        result = await db.execute(
+            select(Memory)
+            .where(Memory.category == category)
+            .order_by(Memory.created_at.desc())
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
+    @staticmethod
+    async def find_recurring_failures(db: AsyncSession, limit_hours: int = 24, min_count: int = 3) -> list[dict]:
+        """
+        [FAZ 73] Son N saatteki benzer hata/başarısızlık desenlerini gruplar.
+        """
+        from datetime import timedelta
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=limit_hours)
+        
+        # Basit bir SQL gruplama (İleride vector similarity eklenebilir)
+        # body'nin ilk 50 karakterine göre grupla
+        result = await db.execute(
+            select(
+                Memory.agent_id,
+                func.substring(Memory.body, 1, 60).label("pattern"),
+                func.count(Memory.id).label("freq")
+            )
+            .where(Memory.created_at >= cutoff)
+            .where(Memory.category.in_(["error", "failure_lesson", "negative_lesson"]))
+            .group_by(Memory.agent_id, "pattern")
+            .having(func.count(Memory.id) >= min_count)
+            .order_by(desc("freq"))
+        )
+        
+        return [{"agent_id": r[0], "pattern": r[1], "frequency": r[2]} for r in result.all()]

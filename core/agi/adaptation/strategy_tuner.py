@@ -22,12 +22,13 @@ class StrategyTuner:
     def __init__(self, model_orch: Optional[ModelOrchestrator] = None):
         self.model_orch = model_orch or ModelOrchestrator()
 
-    async def determine_strategy(self, episode_history: list, current_frame: Any, budget_limited: bool = False, sensory_metrics: Optional[Dict[str, Any]] = None) -> RuntimeStrategy:
+    async def determine_strategy(self, episode_history: list, current_frame: Any, budget_limited: bool = False, sensory_metrics: Optional[Dict[str, Any]] = None, failed_attempts: int = 0) -> RuntimeStrategy:
         """
         Geçmiş verilere ve mevcut problem çerçevesine göre strateji belirler.
-        Faz 26: Kaynak Duyarlı (Resource-Aware) strateji seçimi entegre edildi.
+        Faz 83: Dynamic Escalation - Başarısızlık durumunda strateji anlık ağırlaştırılır.
         """
-        _log.info(f"Otonom Strateji Belirleniyor: {current_frame.objective[:50]}... (Bütçe Kısıtı: {budget_limited})")
+        objective_text = getattr(current_frame, "objective", getattr(current_frame, "prompt", "Unknown"))
+        _log.info(f"Otonom Strateji Belirleniyor: {objective_text[:50]}... (Hata Sayısı: {failed_attempts})")
         
         # 1. Kaynak Yönetimi (Resource Manager) Tahmini:
         await resource_manager.update_status()
@@ -51,7 +52,11 @@ class StrategyTuner:
         if current_frame.risk_level == RiskLevel.HIGH and guidance["mode"] != "CRITICAL_SAVING":
             return RuntimeStrategy(max_attempts=4, simulation_required=True)
             
-        # 5. Dinamik Analiz (LLM Optimization)
+        # 5. Dinamik Analiz / Escalation (Faz 83)
+        if failed_attempts >= 2:
+            _log.warning(f"GÖREV TAKILDI ({failed_attempts} hata). STRATEJİK ESCALATION AKTİF!")
+            return RuntimeStrategy(max_attempts=max_attempts + 2, simulation_required=True, consensus_required=True)
+            
         return RuntimeStrategy(max_attempts=max_attempts)
 
     async def synthesize_policy(self, episode: EpisodeRecord):

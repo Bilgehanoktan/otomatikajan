@@ -43,10 +43,15 @@ class GovernedTask:
     consensus_report: str | None = None
     # Faz 42: Bilişsel Devamlılık
     internal_monologue: str = ""
+    # Faz 12.3: Bilişsel Çapalar (Anchors)
+    causal_anchor: str = ""      # Bu alt görevin ana özeti/dersi
+    inhibition_signals: list[str] = field(default_factory=list) # Kısıtlar
     # Faz 51: Rekürsif Dekompozisyon (Sovereign Depth)
     is_complex:   bool       = False
     parent_id:    str | None = None
     complexity_reasoning: str = ""
+    dependencies: list[str] = field(default_factory=list)
+
 
 @dataclass
 class SovereignGoal:
@@ -155,67 +160,79 @@ class TaskPlanner:
         return False
 
     async def plan_sovereign(self, title: str, description: str, history: Optional[str] = None) -> list[SubTask]:
-        """Faz 42 & 45: Bilişsel ketleme ve Tarihçe Damıtma destekli egemen planlama."""
-        # Async retrieval of inhibitions
+        """Faz 51 [Sovereign Evolution]: Rekürsif Stratejik Dekompozisyon destekli planlama."""
+        from core.agi.cognitive.recursive_decomposer import RecursiveDecomposer
+        decomposer = RecursiveDecomposer()
+        
+        # 1. Bilişsel Bağlam ve İnhibisyonları Yükle
         inhibitions = []
+        monologue = ""
         try:
             from core.agi.cognitive.synaptic_cortex import synaptic_cortex
             from db.session import get_db
             async with get_db() as db:
                 inhibitions_data = await synaptic_cortex.get_architectural_inhibitions(db, limit=10)
                 inhibitions = [i["body"] for i in inhibitions_data]
-                
-                # Faz 45: Bilişsel Devamlılık (Thought Monologue)
                 monologue = await synaptic_cortex.get_continuous_monologue(db, limit=3)
         except Exception as e:
-            from observability.logging import get_logger
             get_logger("agi_task_planner").warning(f"Failed to load cognitive background: {e}")
-            monologue = ""
 
-        # Faz 45: Tarihçe Damıtma (Distillation)
-        distilled_history = ""
-        if history and len(history) > 2000:
-            distilled_history = await self.distill_execution_history(history)
-        elif history:
-            distilled_history = history
-
-        # Lazy import to avoid circular dependencies
-        try:
-            from quality.output_schema import OUTPUT_FORMAT_INSTRUCTION
-        except ImportError:
-            OUTPUT_FORMAT_INSTRUCTION = ""
-            
+        # 2. Stratejik Dekompozisyon (DAG Oluşturma)
+        context = {
+            "monologue": monologue,
+            "inhibitions": inhibitions,
+            "history_summary": history[:500] if history else ""
+        }
+        strategic_tasks = await decomposer.decompose_goal(title, description, context)
+        
+        # 3. GovernedTask Nesnelerine Dönüştür
         subtasks = []
-        for agent_id, base_contract in self.AGENT_CONTRACTS.items():
+        task_mapping = {} # plan_id -> internal_id mapping
+        
+        for st in strategic_tasks:
+            agent_id = st.get("agent_id", "architect")
+            base_contract = self.AGENT_CONTRACTS.get(agent_id, self.AGENT_CONTRACTS["architect"])
             contract = self.dynamic_contracts.get(agent_id, base_contract)
             
-            inhibition_text = "\n".join([f"- {i}" for i in inhibitions]) if inhibitions else "- Yok."
+            internal_id = str(uuid.uuid4())[:8]
+            task_mapping[st.get("task_id", "unknown")] = internal_id
+            
+            inhibition_text = f"MİMARİ KISIT: {st.get('inhibition', 'Yok.')}\n" + \
+                              "\n".join([f"- {i}" for i in inhibitions]) if inhibitions else "- Yok."
             
             prompt = (
-                f"Proje Görevi: {title}\n"
-                f"Genel Açıklama: {description}\n\n"
-                f"### BİLİŞSEL DEVAMLILIK (İÇSEL KONUŞMA)\n{monologue}\n\n"
-                f"### STRATEJİK GEÇMİŞ (DAMITILMIŞ)\n{distilled_history if distilled_history else 'Yeni süreç.'}\n\n"
-                f"### MİMARİ KISITLAMALAR (ÖNEMLİ)\n"
-                f"Sistem öz-denetim geçmişine dayalı aşağıdaki yasaklara KESİNLİKLE uymalısın:\n"
-                f"{inhibition_text}\n\n"
+                f"STRATEJİK ALT-GÖREV: {st.get('objective', title)}\n"
+                f"Üst-Hedef: {title}\n"
+                f"### BİLİŞSEL DEVAMLILIK\n{monologue}\n\n"
+                f"### ÖZEL İNHİBİSYONLAR (YASAKLAR)\n{inhibition_text}\n\n"
+                f"### KABUL KRİTERLERİ\n" + "\n".join([f"- {c}" for c in st.get('acceptance_criteria', [])]) + "\n\n"
                 f"Senin Uzmanlığın: {contract['skill']}\n"
-                f"Kapsam Sınırın (BUNUN DIŞINA ÇIKMA): {contract['boundaries']}\n\n"
-                f"Senden Beklenen Kesin Çıktı Formatı (Veri Sözleşmesi):\n{contract['expected_output']}\n\n"
-                f"Talimat: Bu projeye SADECE kendi rolün ({agent_id}) çerçevesinde katkı sağla. "
-                f"Eğer sana önceki ajanlardan bir 'Bağlam (Önceki Çıktılar)' verildiyse, onların mimari kararlarına saygı duy ve kendi çıktılarını onlara mükemmel bir şekilde entegre et.\n\n"
-                f"{OUTPUT_FORMAT_INSTRUCTION}"
+                f"Beklenen Çıktı: {contract['expected_output']}\n"
             )
-            risk_info = self._assess_risk(agent_id, contract, title, description)
             
-            subtasks.append(SubTask(
-                id=str(uuid.uuid4())[:8],
+            risk_info = self._assess_risk(agent_id, contract, title, st.get('objective', ''))
+            
+            # Bağımlılıkları dahili ID'lere eşle
+            internal_deps = [task_mapping[d] for d in st.get("dependencies", []) if d in task_mapping]
+            
+            gt = SubTask(
+                id=internal_id,
                 agent_id=agent_id,
                 prompt=prompt,
                 risk_level=risk_info["level"],
-                consensus_required=risk_info["consensus_required"]
-            ))
+                consensus_required=risk_info["consensus_required"],
+                is_complex=True,
+                complexity_reasoning=st.get("objective", "")
+            )
+            # GovernedTask (SubTask dataclass) üzerinde dependencies alanını kullan (Faz 51)
+            # Not: Dataclass'ta 'dependencies' alanı henüz yoksa eklemeliyiz.
+            if hasattr(gt, "dependencies"): 
+                 gt.dependencies = internal_deps
+            
+            subtasks.append(gt)
+            
         return subtasks
+
 
     async def distill_execution_history(self, history: str) -> str:
         """Faz 45: Uzun yürütme geçmişini stratejik bir özet haline getirir."""

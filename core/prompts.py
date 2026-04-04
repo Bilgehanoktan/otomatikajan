@@ -50,7 +50,7 @@ KOD TABANI BAĞLAMI (CODEBASE CONTEXT):
 UZMAN AJAN ADAYLARI (En uygun olanı seçin):
 {specialist_list_str}
 
-CEO olarak durumu yorumlayın ve en iyi Uzman Ajanı görevlendirin.
+CEO olarak durumu yorumlayın ve en iyi Uzman Ajanı (veya gerekliyse bir yol haritasını) görevlendirin.
 Yanıtınızı JSON formatında dönün:
 {{
     "title": "Profesyonel görev başlığı",
@@ -58,6 +58,11 @@ Yanıtınızı JSON formatında dönün:
     "reasoning": "Bu durumun neden öncelikli olduğunu ve neden bu spesifik uzman ajanı seçtiğinizi açıklayın.",
     "agent_id": "Listedeki uzman ajanın tam ID'si",
     "confidence": 0.95,
+    "is_roadmap": true,
+    "steps": [
+        {{"title": "1. Adım Başlığı", "description": "...", "agent_id": "..."}},
+        {{"title": "2. Adım Başlığı", "description": "...", "agent_id": "..."}}
+    ],
     "projection": {{
         "estimated_cost": 250.0,
         "risk_reduction_pct": 80,

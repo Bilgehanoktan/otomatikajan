@@ -25,7 +25,9 @@ class NervousSystem:
             "total_tasks": 0,
             "successful_tasks": 0,
             "tool_reliability": {},
-            "correction_count": 0
+            "correction_count": 0,
+            "grounding_persistence": 1.0,
+            "dissonance_alerts": 0
         }
 
     async def pulse(self, db: AsyncSession) -> Dict[str, Any]:
@@ -109,6 +111,16 @@ class NervousSystem:
             self.cognitive_metrics["correction_count"] += 1
             
         _log.debug(f"Bilişsel Olay: {event_type} | Başarı: {success} | Detay: {detail}")
+
+    def log_grounding_event(self, score: float, has_dissonance: bool):
+        """Gerçeklik doğrulama skorunu ve çelişki olaylarını kaydeder."""
+        # Rolling average (p=0.2)
+        current = self.cognitive_metrics.get("grounding_persistence", 1.0)
+        self.cognitive_metrics["grounding_persistence"] = round((current * 0.8) + (score * 0.2), 3)
+        
+        if has_dissonance:
+            self.cognitive_metrics["dissonance_alerts"] += 1
+            _log.warning(f"[NS-GROUNDING] Bilişsel Çelişki Bildirildi! Toplam: {self.cognitive_metrics['dissonance_alerts']}")
 
 # --- Singleton ---
 nervous_system = NervousSystem()

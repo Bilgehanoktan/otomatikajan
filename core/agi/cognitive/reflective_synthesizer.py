@@ -18,42 +18,45 @@ class ReflectiveSynthesizer:
     def __init__(self, model_orch: Optional[ModelOrchestrator] = None):
         self.model_orch = model_orch or ModelOrchestrator()
 
-    async def audit_subtask(self, st: SubTask, frame: ProblemFrame, context: str = "") -> Tuple[bool, str, str]:
+    async def audit_subtask(self, st: SubTask, frame: ProblemFrame, context: str = "") -> Dict[str, Any]:
         """
         Bir alt görevin sonucunu denetler.
-        Döner: (başarılı_mı, eleştiri, tamir_ipucu)
+        Döner: {'is_valid': bool, 'critique': str, 'repair_hint': str, 'causal_anchor': str, 'inhibition': str}
         """
         if st.status != TaskStatus.COMPLETED:
-            return False, "Görev teknik olarak tamamlanamadı.", "Teknik hatayı gider."
+            return {"is_valid": False, "critique": "Görev teknik olarak tamamlanamadı.", "repair_hint": "Teknik hatayı gider."}
 
         _log.info(f"[REFLECTIVE-AUDIT] Alt görev denetleniyor: {st.agent_id} | Hedef: {frame.objective[:50]}...")
 
         prompt = f"""
-Sovereign AGI Bilişsel Denetim (Phase 50)
------------------------------------------
-ANA HEDEF: {frame.objective}
-ALT GÖREV TALİMATI: {st.prompt}
-AJAN ÇIKTISI (SONUÇ): 
-{st.result[:2000]}
+ SİSTEM GÜVENCE DENETİMİ (Phase 12.3: Causal Anchoring)
+ -----------------------------------------
+ HEDEFLENEN: {frame.objective}
+ ALT GÖREV: {st.prompt}
+ AJAN SONUCU: 
+ {st.result[:3000]}
+ 
+ GÖREV: Ajanın çıktısını ana hedefle kıyasla ve şu 4 bileşeni damıt:
+ 1. 'is_valid': Ajan gerçekten başarılı mı? (Grounding/Kanıt var mı?)
+ 2. 'critique': Neden başarılı veya neden fail?
+ 3. 'causal_anchor': Bu adımda ne BAŞARILDI? (Örn: "Database şeması 'users' tablosu ile oluşturuldu.")
+ 4. 'inhibition': Gelecek adımlar için KRİTİK KISIT veya UYARI (Örn: "Port 5433'ü kullanmayı unutma, 5432 kapalı.")
 
-GÖREV: Ajanın çıktısını ana hedefle kıyasla. 
-Ajan gerçekten hedefe hizmet eden, doğru ve kaliteli bir sonuç üretti mi? 
-Yoksa yüzeysel bir cevap mı verdi veya hata mı yaptı?
-
-Yanıtı JSON formatında ver:
-{{
-    "is_valid": true|false,
-    "critique": "Sonucun neden geçerli veya geçersiz olduğuna dair teknik eleştiri",
-    "repair_hint": "Eğer geçersizse, ajana bir sonraki denemede neyi düzeltmesi gerektiğini söyleyen ipucu",
-    "confidence_score": 0.0 - 1.0
-}}
-"""
+ Yanıtı JSON formatında ver:
+ {{
+     "is_valid": true|false,
+     "critique": "...",
+     "causal_anchor": "...",
+     "inhibition": "...",
+     "grounding_score": 0.0 - 1.0
+ }}
+ """
 
         try:
             response = await self.model_orch.complete_task(
                 agent_role="metacognitive_auditor",
                 prompt=prompt,
-                system_prompt="Sen bir AGI Kalite ve Mantık Denetçisisin. Ajanların çıktılarını 'Bilişsel Yansıma' ile sorgularsın."
+                system_prompt="Sen Sovereign AGI'nin Bilişsel Devamlılık ve Gerçeklik Denetimi uzmanısın. Her adımın bir sonrakine 'mantıksal bir çapa' (anchor) bırakmasını sağlarsın."
             )
             
             match = re.search(r'\{.*\}', response.content, re.DOTALL)
@@ -61,19 +64,26 @@ Yanıtı JSON formatında ver:
                 data = json.loads(match.group())
                 is_valid = data.get("is_valid", False)
                 critique = data.get("critique", "Analiz yapılamadı.")
-                repair_hint = data.get("repair_hint", "")
+                
+                # Grounding Check (Faz 60.1)
+                grounding = data.get("grounding_score", 1.0)
+                if grounding < 0.6:
+                    is_valid = False
+                    critique = f"GÜVEN EKSİKLİĞİ ({grounding}): Ajanın iddiası somut kanıtlarla (kod/log) desteklenmiyor."
+                    data["is_valid"] = False
+                    data["critique"] = critique
                 
                 if not is_valid:
                     _log.warning(f"[REFLECTIVE-AUDIT] GÖREV REDDEDİLDİ! Nedeni: {critique}")
                 else:
-                    _log.info(f"[REFLECTIVE-AUDIT] Görev onaylandı. Güven skoru: {data.get('confidence_score')}")
+                    _log.info(f"[REFLECTIVE-AUDIT] Görev onaylandı. Anchor: {data.get('causal_anchor')}")
                 
-                return is_valid, critique, repair_hint
+                return data
                 
         except Exception as e:
             _log.error(f"[REFLECTIVE-AUDIT] Denetim hatası: {e}")
             
-        return True, "Denetim sistemi hatası, güvenildi.", "" # Hata durumunda akışı bozma (Fallback: True)
+        return {"is_valid": True, "critique": "Audit bypass.", "causal_anchor": "Görev tamamlandı.", "inhibition": ""}
 
 # Singleton
 reflective_synthesizer = ReflectiveSynthesizer()

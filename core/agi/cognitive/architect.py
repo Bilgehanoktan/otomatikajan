@@ -249,6 +249,95 @@ class Architect:
             )
             await db.commit()
 
+    async def decompose(self, prompt: str) -> str:
+        """
+        Karmaşık bir görevi otonom olarak atomik alt-görevlere böler. (Faz 67)
+        """
+        _log.info("[ARCHITECT] Görev ayrıştırılıyor (Recursive Decomposition)...")
+        try:
+            response = await self.model_orch.complete_task(
+                agent_role="architect",
+                prompt=prompt,
+                system_prompt="Sen bir AGI Master Planner'sın. Karmaşık görevleri, bağımlılıkları gözeterek en küçük atomik parçalara ayırırsın. SADECE JSON döndür."
+            )
+            return response.content
+        except Exception as e:
+            _log.error(f"[ARCHITECT] Decompose error: {e}")
+            return "[]"
+
+    async def refactor_plan(self, prompt: str) -> str:
+        """
+        Başarısız bir simülasyon veya hata sonrası planı revize eder. (Faz 65/66)
+        """
+        _log.info("[ARCHITECT] Plan revize ediliyor (Reflective Refactor)...")
+        try:
+            response = await self.model_orch.complete_task(
+                agent_role="architect",
+                prompt=prompt,
+                system_prompt="Sen bir AGI Strateji Uzmanısın. Eleştirileri ve simülasyon hatalarını dikkate alarak planı daha güvenli ve etkili hale getirirsin."
+            )
+            return response.content
+        except Exception as e:
+            _log.error(f"[ARCHITECT] Refactor plan error: {e}")
+            return "Error while refactoring plan."
+
+    async def forge_specialist_prompt(self, role: str, task_context: str) -> str:
+        """
+        Subtask için özel bir uzman ajan 'prompt'u sentezler (Phase 70).
+        """
+        _log.info(f"[ARCHITECT-FORGE] Uzmanlık sentezleniyor: {role}")
+        
+        prompt = f"""
+        Rol: {role}
+        Görev Bağlamı: {task_context}
+        
+        Sistem bu görev için geçici bir uzman ajana ihtiyaç duyuyor. 
+        Lütfen bu ajan için en az 500 kelimelik, derinlemesine teknik prensipler içeren, 
+        'Zorunlu Kurallar' ve 'Limitler' bölümlerine sahip bir SYSTEM PROMPT hazırla.
+        """
+        
+        try:
+            response = await self.model_orch.complete_task(
+                agent_role="architect",
+                prompt=prompt,
+                system_prompt="Sen bir AGI Master Weaver'sın. Diğer ajanların 'Zihin Haritasını' tasarlarsın."
+            )
+            return response.content
+        except Exception as e:
+            _log.error(f"[ARCHITECT-FORGE] Forgery error: {e}")
+            return f"Sen {role} konusunda uzmansın."
+
+    async def recalibrate_reasoning(self, report: Dict[str, Any]):
+        """
+        Bilişsel puan düştüğünde sistemi otonom olarak iyileştirir (Faz 69).
+        """
+        _log.warning(f"[ARCHITECT-SELF-REPAIR] Düşük bilişsel puan analizi raporlanıyor...")
+        
+        prompt = f"""
+        Sovereign AGI bilişsel testi (EvalHarness) başarısız oldu.
+        RAPOR: {json.dumps(report, indent=2)}
+        
+        Lütfen zayıf olan bilişsel katmanı (ToolGrounder, ForesightCortex vb.) analiz et ve 
+        mantıksal bir iyileştirme/refaktör planı oluştur.
+        """
+        
+        try:
+            response = await self.model_orch.complete_task(
+                agent_role="architect",
+                prompt=prompt,
+                system_prompt="Sen bir AGI Mühendisisin. Kendi bilişsel yapındaki mantıksal hataları otonom olarak onarmakla sorumlusun."
+            )
+            
+            # Bu planı 'Self-Evolution' fırsatı olarak kaydet
+            await self._report_refactor_opportunity({
+                "agent_id": "cognitive_core",
+                "reasoning": f"EvalHarness performans düşüşü: {report.get('overall_cognitive_score')}",
+                "suggested_refactor": response.content
+            })
+            _log.info("[ARCHITECT-SELF-REPAIR] Bilişsel recalibration planı hazırlandı ve kaydedildi.")
+        except Exception as e:
+            _log.error(f"[ARCHITECT-SELF-REPAIR] Recalibration error: {e}")
+
     def _parse_json(self, text: str) -> Optional[Dict]:
         import re
         match = re.search(r'\{.*\}', text, re.DOTALL)

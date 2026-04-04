@@ -31,15 +31,24 @@ class ForesightCortex:
         
         _log.info(f"[FORESIGHT] Yansımalı Plan Simülasyonu başlatılıyor...")
         
-        # 1. Bilişsel Hafızadan Dersleri Topla (Synapse)
-        synapse_lessons = []
+        # 1. Bilişsel Hafızadan Nedensel Bağlamı Topla (V5 Causal Recall)
+        causal_wisdom = []
         try:
             async with session_scope() as db:
-                synapse_lessons = await synaptic_cortex.search(db, query="", category="cognitive_lesson", top_k=5)
+                # Faz 77: Causal Grounding Integration (Priority 2: Planning Depth)
+                plan_name = plan.title if hasattr(plan, 'title') else "Plan Analysis"
+                causal_wisdom = await synaptic_cortex.search_with_causal_anchoring(
+                    db=db, 
+                    query=f"{plan_name} strategic plan execution", 
+                    top_k=5
+                )
         except Exception as e:
-            _log.warning(f"[FORESIGHT] Synapse lessons alınamadı: {e}")
+            _log.warning(f"[FORESIGHT] Causal Recall alınamadı: {e}")
 
-        lesson_context = "\n".join([f"- {l['body']}" for l in synapse_lessons]) if synapse_lessons else "Ders bulunamadı."
+        wisdom_context = "\n".join([
+            f"- [{l.get('category', 'lesson')}] {l.get('body')}" 
+            for l in causal_wisdom
+        ]) if causal_wisdom else "Derin nedensel bağlam bulunamadı."
 
         plan_content = json.dumps(dataclasses.asdict(plan), indent=2, default=str) if dataclasses.is_dataclass(plan) else str(plan)
         
@@ -59,8 +68,8 @@ class ForesightCortex:
         - Stres Seviyesi: {stress_level:.2f} (0.0 - 1.0)
         - Önemli: Eğer stres > 0.7 ise, 'Hasty Code' (Aceleci Kod) ve 'Regression' risklerini daha yüksek olasılıkla değerlendir.
         
-        SON BİLİŞSEL DERSLER:
-        {lesson_context}
+        SON BİLİŞSEL DERSLER VE NEDENSEL BİLGELİK (CAUSAL WISDOM):
+        {wisdom_context}
         
         PLAN:
         {plan_content}

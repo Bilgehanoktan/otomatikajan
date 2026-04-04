@@ -8,7 +8,7 @@ from typing import List, Dict, Any, Optional
 
 from sqlalchemy import select, delete, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
-from db.models import Memory, ProjectStatus, ProjectTask, SubTask
+from db.models import Memory, ProjectStatus, Project, SubTask
 from db.session import session_scope
 from db.repository import ProjectRepository
 from core.agi.learning.wisdom_synthesizer import wisdom_synthesizer
@@ -28,6 +28,7 @@ class DreamEngine:
         self.model_orch = model_orch or ModelOrchestrator()
         self.knowledge_dir = "knowledge"
         os.makedirs(self.knowledge_dir, exist_ok=True)
+        self.is_dreaming = False
         
         # Sıkıştırma Konfigürasyonu
         self.min_importance = 0.2
@@ -37,19 +38,76 @@ class DreamEngine:
     # --- PART 1: Memory Pruning & Consolidation (from MemoryPruner) ---
 
     async def run_dream_cycle(self, db: AsyncSession):
-        """Ana bilişsel temizlik ve rüya döngüsü."""
-        _log.info("[DREAM] Rüya döngüsü başlatıldı: Bilişsel temizlik ve konsolidasyon yapılıyor.")
+        """Ana bilişsel temizlik ve rüya döngüsü. (Consolidated v12.1)"""
+        if self.is_dreaming:
+            _log.info("[DREAM] Zaten bir rüya döngüsü devam ediyor.")
+            return
+
+        self.is_dreaming = True
+        _log.info("--- SOVEREIGN DREAM CYCLE STARTED ---")
         
-        # 1. Gürültü Temizliği (Pruning)
-        await self.prune_noise(db)
+        try:
+            # 1. Gürültü Temizliği (Pruning)
+            await self.prune_noise(db)
+            
+            # 2. Benzer Anıları Konsolide Et (Hafıza Sentezi)
+            await self.consolidate_memories(db)
+            
+            # 3. Bölüm Analizi ve Politika Sentezi (from SubconsciousCortex45)
+            await self.synthesize_policies(db)
+            
+            # 4. Proje Bazlı Bilgi Sentezi (Knowledge Item Generation)
+            await self.synthesize_knowledge_items(db)
+            
+            _log.info("--- SOVEREIGN DREAM CYCLE COMPLETED ---")
+        except Exception as e:
+            _log.error(f"[DREAM] Rüya döngüsü hatası: {e}")
+        finally:
+            self.is_dreaming = False
+
+    async def synthesize_policies(self, db: AsyncSession):
+        """Bölümler (Episodes) arasındaki örüntüleri bulur ve politikalar sentezler."""
+        from core.agi.cognitive.synaptic_cortex import synaptic_cortex
         
-        # 2. Benzer Anıları Konsolide Et (Hafıza Sentezi)
-        await self.consolidate_memories(db)
+        # Son bölümleri (Episodes) getir
+        recent_episodes = await synaptic_cortex.get_recent(db, category="episode_record", limit=20)
+        if len(recent_episodes) < 5:
+            return
+
+        _log.info(f"[DREAM-POLICY] {len(recent_episodes)} bölüm analiz ediliyor...")
         
-        # 3. Proje Bazlı Bilgi Sentezi (Knowledge Item Generation)
-        await self.synthesize_knowledge_items(db)
+        history_str = "\n".join([
+            f"- Title: {e.metadata_.get('title', 'N/A')} | Status: {e.metadata_.get('status', 'N/A')} | Summary: {e.body[:100]}"
+            for e in recent_episodes
+        ])
+
+        prompt = f"GÖREV GEÇMİŞİ:\n{history_str}\n\nLütfen bu tecrübelerden 'Evrensel Dersler' ve 'POLİTİKALAR' sentezle. JSON: {{'lessons': [], 'policies': [{{'title': '...', 'rule': '...', 'reason': '...'}}]}}"
         
-        _log.info("[DREAM] Rüya döngüsü tamamlandı.")
+        try:
+            response = await self.model_orch.complete_task(
+                agent_role="architect",
+                prompt=prompt,
+                system_prompt="Sen AGI Bilinçaltı Politika Sentezleyicisisin."
+            )
+            import re
+            match = re.search(r'\{.*\}', response.content, re.DOTALL)
+            if match:
+                data = json.loads(match.group())
+                for policy in data.get("policies", []):
+                    # Kısmi kopya: synaptic_cortex.save_policy
+                    _log.info(f"[DREAM-POLICY] Yeni politika önerildi: {policy.get('title')}")
+                    await synaptic_cortex.save(
+                        db, agent_id="dream_engine", body=policy.get("rule"),
+                        category="policy_proposal", importance=0.8,
+                        metadata={
+                            "proposed_rule": policy.get("rule"),
+                            "reason": policy.get("reason"),
+                            "title": policy.get("title"),
+                            "status": "pending"
+                        }
+                    )
+        except Exception as e:
+            _log.warning(f"[DREAM-POLICY] Politika sentez hatası: {e}")
 
     async def prune_noise(self, db: AsyncSession):
         """Düşük öncelikli ve eski anıları temizler."""

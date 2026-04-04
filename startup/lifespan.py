@@ -86,7 +86,7 @@ async def autonomous_metabolism_loop():
     from core.agi.cognitive.evolution_engine import evolution_engine
     from core.agi.cognitive.policy_evolution import start_policy_evolution_loop
     from core.agi.cognitive.consolidator import start_consolidation_loop
-    from core.agi.cognitive.reflection_cortex import start_reflection_loop
+    from core.agi.cognitive.metacognitive_auditor import start_reflection_loop
     from core.agi.cognitive.synapse_stabilizer import start_synapse_stabilization_loop
     
     ceo = CEOEngine(_orch.model_orch)
@@ -313,10 +313,27 @@ async def lifespan(app: FastAPI):
 
         job_queue.register("run_project", _run_project_wrapper)
 
-        # Faz 12.1: DeerFlow Handlers (In-Process Routing)
+        # Faz 12.1: DeerFlow Handlers (Real Bridge Integration)
         async def _run_deerflow_wrapper(**payload):
-            # DeerFlow görevlerini ana orkestrasyon akışına bağlar
-            return await _run_project_wrapper(**payload)
+            try:
+                from integrations.deerflow_bridge import DeerFlowBridgeClient
+                client = DeerFlowBridgeClient()
+                
+                # Payload mapping
+                thread_id = payload.get("db_project_id") or payload.get("job_id") or str(uuid.uuid4())
+                prompt = payload.get("description") or payload.get("title") or "DeerFlow Task"
+                
+                logger.info(f"[DEERFLOW] Routing task to bridge (thread={thread_id})")
+                res = await client.run(thread_id=thread_id, prompt=prompt)
+                
+                if res.get("status") == "error":
+                     logger.warning(f"[DEERFLOW] Bridge error, falling back: {res.get('message')}")
+                     return await _run_project_wrapper(**payload)
+                
+                return res
+            except Exception as e:
+                logger.error(f"[DEERFLOW] Bridge integration failed: {e}. Falling back to internal engine.")
+                return await _run_project_wrapper(**payload)
 
         for df_task in ["deerflow_run", "deerflow_plan", "deerflow_research", "deerflow_review", "deerflow_recovery"]:
             job_queue.register(df_task, _run_deerflow_wrapper)
@@ -462,7 +479,10 @@ async def lifespan(app: FastAPI):
 
     await reaper.stop()
     await job_queue.stop()
-    await orchestrator.shutdown()
+    try:
+        await orchestrator.shutdown()
+    except Exception:
+        pass
     try:
         await event_bus.shutdown()
     except Exception:

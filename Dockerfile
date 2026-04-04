@@ -32,14 +32,20 @@ RUN apt-get -o Acquire::Retries=3 update && apt-get -o Acquire::Retries=3 instal
     libgbm1 libasound2 libpango-1.0-0 libcairo2 \
     && rm -rf /var/lib/apt/lists/*
 
-# Playwright browser'larını kur
-RUN playwright install chromium
+# Playwright Ayarları: Browser'ları global bir dizine kur ki her kullanıcı erişebilsin
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN mkdir -p $PLAYWRIGHT_BROWSERS_PATH && chown appuser:appgroup $PLAYWRIGHT_BROWSERS_PATH
 
-# Builder'dan bağımlılıkları kopyala
+# Builder'dan bağımlılıkları kopyala (Playwright paketi bu aşamada gelir)
 COPY --from=builder /install /usr/local
+
+# Playwright browser'larını kur (Artık playwright paketi mevcut)
+RUN playwright install chromium && chown -R appuser:appgroup $PLAYWRIGHT_BROWSERS_PATH
+
 COPY . .
 
 # Temizlik
+RUN rm -rf /root/.cache
 RUN rm -f .env .env.local *.zip *.pyc
 
 # ─── Aşama 2.5: Bütünlük Kontrolü (Quality Guard) ────────

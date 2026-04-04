@@ -1,12 +1,11 @@
 """
-[DEPRECATED] improvement_v1/models.py
-Compatibility shim — all models moved to core.improvement.models
+[CONSOLIDATION SHIM] improvement_v1/models.py -> core/improvement/models.py
+Legacy import redirection.
 """
-from core.improvement.models import (
-    ImprovementOpportunity,
-    PatchProposal,
-    VerificationResult,
-    GateDecision,
-)
+from core.improvement.models import *
 
-__all__ = ["ImprovementOpportunity", "PatchProposal", "VerificationResult", "GateDecision"]
+# Legacy common names
+TaskState = TaskState
+ImprovementTask = ImprovementTask
+
+__all__ = ["TaskState", "ImprovementTask"]

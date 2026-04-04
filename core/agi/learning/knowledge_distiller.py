@@ -25,26 +25,41 @@ class KnowledgeDistiller:
 
         _log.info(f"[DISTILLER] {len(episodes)} bölüm üzerinden damıtma (distillation) başlatılıyor...")
         
-        # Bölüm özetlerini topla
-        summaries = "\n".join([
-            f"- EPISODE ({e.get('episode_id')}): {e.get('final_output', '')[:300]}"
-            for e in episodes
-        ])
+        # Bölüm özetlerini, dersleri ve hataları topla
+        summaries = []
+        for e in episodes:
+            summary = f"- EPISODE ({e.get('episode_id')}): RESULT: {e.get('final_output', '')[:200]}"
+            # V5 Causal: İlgili dersleri ekle
+            lessons = e.get("lessons_learned", [])
+            if lessons:
+                summary += f"\n  - LESSONS: {json.dumps(lessons)}"
+            # V5 Causal: Hataları ekle
+            failures = e.get("failures", [])
+            if failures:
+                summary += f"\n  - FAILURES (INHIBIT THESE): {json.dumps(failures)}"
+            summaries.append(summary)
+            
+        summaries_text = "\n\n".join(summaries)
 
         prompt = f"""
-        Aşağıdaki deneyim kayıtlarını (Episodes) incele. 
-        Bunlar arasından 'Sistem Genelinde' geçerli olabilecek 3-5 adet teknik kural veya stratejik patern çıkar.
+        Aşağıdaki deneyim kayıtlarını (Başarılar, Hatalar ve Dersler) bir AGI mimarı olarak analiz et. 
+        Bu verilerden 'Sistem İçgüdüleri' (System Instincts) sentezle.
+        
+        ÖZELLİKLE: 
+        1. Hangi durumlarda sistem hata yapıyor? (INHIBITION PATTERNS)
+        2. Hangi stratejiler %100 başarı getiriyor? (SUCCESS PATTERNS)
         
         DENEYİMLER:
-        {summaries}
+        {summaries_text}
         
         Yanıtı JSON formatında (Instinct) ver:
         {{
             "instincts": [
                 {{
-                    "title": "Kısa başlık",
-                    "pattern": "Teknik veya stratejik kural/patern",
-                    "confidence": 0.85,
+                    "title": "İçgüdü Başlığı",
+                    "pattern": "Teknik/Stratejik kural",
+                    "type": "inhibition|success",
+                    "confidence": 0.95,
                     "category": "security/performance/logic"
                 }}
             ]
@@ -60,17 +75,19 @@ class KnowledgeDistiller:
             
             data = self._parse_json(response.content)
             instincts = data.get("instincts", [])
-            
             for inst in instincts:
-                _log.info(f"[DISTILLER] Yeni sistem içgüdüsü damıtıldı: {inst['title']}")
-                # SynapticCortex'e 'instinct' kategorisinde kaydet
+                _log.info(f"[DISTILLER] Yeni sistem içgüdüsü damıtıldı ({inst.get('type')}): {inst['title']}")
+                # SynapticCortex'e 'instinct' kategorisinde kaydet (V5 Causal Root)
                 await synaptic_cortex.save(
                     db=None, # UGC Hot Cache
                     agent_id="distiller",
-                    body=f"{inst['title']}: {inst['pattern']}",
+                    body=f"[{inst.get('type', 'instinct').upper()}] {inst['title']}: {inst['pattern']}",
                     category="system_instinct",
                     importance=inst.get("confidence", 0.8),
-                    metadata={"instinct_category": inst.get("category")}
+                    metadata={
+                        "instinct_category": inst.get("category"),
+                        "type": inst.get("type", "success")
+                    }
                 )
             
             return instincts

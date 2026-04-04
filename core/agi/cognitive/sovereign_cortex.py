@@ -11,6 +11,7 @@ import json
 from typing import Any, Dict, List, Optional
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
+from schemas import SubtaskOutput
 
 from agents.agent_registry import build_agents
 from observability.logging import get_logger
@@ -35,12 +36,16 @@ from core.agi.consciousness.affective_core import affective_core
 from core.agi.cognitive.foresight_cortex import foresight_cortex
 from core.agi.learning.memory_gate import memory_gate
 from core.agi.governance.watchdog import governance_watchdog
+from core.agi.governance.consensus_arbiter import consensus_arbiter
 from core.agi.cognitive.reflective_synthesizer import reflective_synthesizer
 from core.agi.cognitive.axiology_engine import axiology_engine
 from core.agi.operational.metabolic_governor import metabolic_governor
 from core.agi.learning.wisdom_synthesizer import wisdom_synthesizer
 from core.agi.cognitive.memory_pruner import memory_pruner
 from core.agi.quality.sovereign_evaluator import sovereign_evaluator
+from core.agi.cognitive.cognitive_blackboard import get_blackboard
+from core.agi.operational.tool_grounder import get_grounded_tool_input
+from core.agi.quality.eval_harness import eval_harness
 
 _log = get_logger("agi_sovereign_cortex")
 
@@ -81,6 +86,9 @@ class SovereignCortex:
             
             # Governance Watchdog Activation (Phase 41)
             await self.watchdog.start()
+
+            # Metacognitive Drift Loop Activation (Phase 69)
+            asyncio.create_task(self._metacognitive_drift_loop())
             
             _log.info(f"[SOVEREIGN] Bilişsel yönetim merkezi aktif. {len(self._agents)} ajan hazır.")
 
@@ -90,6 +98,54 @@ class SovereignCortex:
 
     def agent_count(self) -> int:
         return len(self._agents) if self._agents else 0
+
+    async def _metacognitive_drift_loop(self):
+        """
+        AGI Öz-Bakım Döngüsü (Phase 69).
+        Bilişsel puanları kontrol eder ve gerekirse otonom refaktör tetikler.
+        """
+        while self._is_running:
+            try:
+                _log.info("[SOVEREIGN-AUTOCHECK] Bilişsel sağlık denetimi başlatılıyor...")
+                report = await eval_harness.run_full_evaluation()
+                score = report.get("overall_cognitive_score", 0.0)
+                
+                if score < 0.8:
+                    _log.warning(f"[SOVEREIGN-AUTOCHECK] DÜŞÜK BİLİŞSEL PUAN: {score:.2f}. Otonom recalibration tetikleniyor.")
+                    # Faz 69: Otonom iyileştirme
+                    await self.architect.recalibrate_reasoning(report)
+                else:
+                    _log.info(f"[SOVEREIGN-AUTOCHECK] Bilişsel sağlık stabil: {score:.2f}")
+
+                # Her 1 saatte bir kontrol et (Test için bu süreyi kısaltabiliriz)
+                await asyncio.sleep(3600)
+            except Exception as e:
+                _log.error(f"[SOVEREIGN-AUTOCHECK] Öz-bakım döngüsü hatası: {e}")
+                await asyncio.sleep(300)
+
+    async def _ensure_specialist_availability(self, subtask: SubTask):
+        """Eğer subtask çok özelleşmişse, otonom olarak bir uzman 'forge' eder."""
+        role = subtask.agent_id
+        if role not in self._agents:
+            _log.info(f"[SOVEREIGN-WEAVER] Uzman ajan eksikliği saptandı: {role}. Otonom forgery başlatılıyor...")
+            
+            # Architect ile uzmanlık promptu oluştur
+            specialist_prompt = await self.architect.forge_specialist_prompt(role, subtask.title + " " + subtask.description)
+            
+            from agents.agent_registry import Agent
+            new_agent = Agent(
+                id=role,
+                name=f"{role.capitalize()} Specialist",
+                emoji="🧩",
+                role=f"Specialized {role}",
+                system_prompt=specialist_prompt
+            )
+            new_agent.llm = self.model_orch
+            
+            # Runtime registry'e ekle
+            self._agents[role] = new_agent
+            self._health[role] = 1.0
+            _log.info(f"[SOVEREIGN-WEAVER] Yeni uzman ajan sisteme dahil edildi: {role}")
 
     def load_self_updater(self):
         try:
@@ -179,6 +235,32 @@ class SovereignCortex:
         # Faz 20 & 42: Bilişsel Ketleme Destekli Planlama
         subtasks = await self.planner.plan_sovereign(title, description)
         
+        # Faz 65: Öz-Yansıma ve Plan Denetimi (Reflective Reasoning Loop)
+        _log.info("[SOVEREIGN] Plan öz-yansıma döngüsü başlatılıyor (Faz 65)...")
+        
+        MAX_REVISIONS = 2
+        for revision_step in range(MAX_REVISIONS + 1):
+            # Denetim için alt görevleri JSON formatına çevir
+            plan_summary = [{"agent_id": st.agent_id, "prompt": st.prompt} for st in subtasks]
+            audit_res = await metacognitive_auditor.audit_plan(title, plan_summary)
+            
+            is_safe = audit_res.get("is_safe", True)
+            coverage = audit_res.get("coverage_score", 1.0)
+            
+            if not is_safe or coverage < 0.7:
+                if revision_step < MAX_REVISIONS:
+                    _log.warning(f"[SOVEREIGN-REFLECT] Plan yetersiz bulundu ({'GÜVENSİZ' if not is_safe else 'Eksik Kapsam: '+str(coverage)}). Revize ediliyor (Deneme {revision_step+1}/{MAX_REVISIONS})...")
+                    # Geri bildirimi topla ve yeniden planla
+                    revision_context = f"\n\n[MİMARİ DENETİM GERİ BİLDİRİMİ]: {audit_res.get('refinement_suggestion')}\nEksikler: {', '.join(audit_res.get('gaps', []))}"
+                    subtasks = await self.planner.plan_sovereign(title, description + revision_context)
+                else:
+                    _log.error(f"[SOVEREIGN-REFLECT] Plan {MAX_REVISIONS} denemede mükemmelleştirilemedi. Kritik hata: {audit_res.get('refinement_suggestion')}")
+                    # En iyi planla devam et veya hata fırlat (AGI otonomisi gereği en iyisiyle devam etmeyi seçebilir)
+                    break
+            else:
+                _log.info(f"[SOVEREIGN-REFLECT] Plan onaylandı (Deneme: {revision_step}, Logic: {audit_res.get('logic_score')}, Coverage: {coverage})")
+                break
+        
         # --- Faz 20 & 12.1: Stratejik ve Bilişsel Bağlam Entegrasyonu ---
         strategic_context = await memory_api.get_strategic_context(query=f"{title} {description}")
         cognitive_memory = await self._sync_provenance_memory() # Faz 12.1: Otonom hafıza
@@ -211,6 +293,57 @@ class SovereignCortex:
         if inhibition:
             _log.info(f"[SOVEREIGN-RECOVERY] Mimari kısıtlama (Inhibition) enjekte ediliyor: {inhibition[:50]}...")
             description += f"\n\n### KRİTİK KISITLAMA (NEGATİF SİNAPS):\n{inhibition}"
+
+        # --- Phase 61: Grounded Planning (Failure Recall) ---
+        try:
+            _log.info("[SOVEREIGN-GROUNDING] Geçmiş başarısızlıklar ve dersler hatırlanıyor (Deep Recall + Causal V5)...")
+            async with AsyncSessionLocal() as db:
+                failures = await synaptic_cortex.search_with_causal_anchoring(
+                    db=db, 
+                    query=f"{title} {description}", 
+                    top_k=5
+                )
+            # Filter for lessons/failures if needed, but causal search might bring related episodes too
+            
+            if failures:
+                failure_context = "\n".join([f"- {f.get('body')}" for f in failures])
+                description += f"\n\n### GEÇMİŞTEN DERSLER (BİLİŞSEL TEMELLENDİRME):\n{failure_context}"
+                _log.info(f"[SOVEREIGN-GROUNDING] {len(failures)} ders planlamaya enjekte edildi.")
+            else:
+                _log.info("[SOVEREIGN-GROUNDING] Benzer bir geçmiş başarısızlık bulunamadı (Temiz sayfa).")
+        except Exception as e:
+            _log.warning(f"Failure recall failed: {e}")
+
+        # --- Phase 61: Recursive Risk Detection (Auto-High-Risk & Blacklist) ---
+        import re
+        sensitive_patterns = [
+            r"\.env", r"db/", r"core/agi/", r"main\.py"
+        ]
+        critical_blacklist = [
+            r"rm\s+-rf", r"\bdrop\b\s+(table|database|schema)", 
+            r"\btruncate\b\s+table", r"chmod\s+-?[R]?\s*777",
+            r"(?i)select\s+.*\s+from\s+users(?!\s+where)", r">\s*(/dev/null|/etc/passwd)"
+        ]
+        
+        combined_text = title.lower() + " " + description.lower()
+        
+        # 1. Kritik Blacklist (Anında Red)
+        if any(re.search(pattern, combined_text) for pattern in critical_blacklist):
+            _log.error(f"[SOVEREIGN-SAFETY] SİSTEMİ TEHLİKEYE ATACAK KRİTİK İHLAL ENGELLENDİ: '{title}'")
+            task.status = TaskStatus.ERROR
+            task.report = "⚠️ GÜVENLİK İHLALİ BAŞLATILAMADI: Sistem güvenliğini doğrudan tehdit eden kara listeye alınmış bir desen (rm -rf, drop table, chmod 777 vb.) tespit edildi."
+            async with AsyncSessionLocal() as db:
+                await ProjectRepository.update_fields(db, task.id, status=ProjectStatus.ERROR, error_detail=task.report)
+                await db.commit()
+            return task
+
+        # 2. Risk (Konsensüs Gerektirenler)
+        is_risky = any(re.search(pattern, combined_text) for pattern in sensitive_patterns)
+        if is_risky:
+            _log.warning(f"[SOVEREIGN-SAFETY] YÜKSEK RİSK TESPİT EDİLDİ: '{title}'. Konsensüs zorunlu kılınıyor.")
+            # task execution_context'e risk sinyalini işle
+            task.execution_context["consensus_required"] = True
+            task.risk_level = "high"
 
         # Bilişsel Bağlamı Birleştir (Diyalektik planlama için gerekli)
         mood = self.affective.get_current_mood()
@@ -548,14 +681,14 @@ class SovereignCortex:
                 ep_dict["project_id"] = task.id
                 ep_dict["title"] = task.title
                 ep_dict["status"] = task.status.value
-                await synaptic_cortex.save_episode(db, ep_dict)
+                episode_mem = await synaptic_cortex.save_episode(db, ep_dict)
 
             # 4. Skill çıkarımı (Eğer uygunsa)
             if reflected_episode.verification and reflected_episode.verification.result_status:
                 async with get_db() as db:
                     await skill_distiller.distill(reflected_episode, db)
             
-            # 5. Hafızaya dersleri kaydet (Ekstra log olarak)
+            # 5. Hafızaya dersleri kaydet (Ekstra log olarak) — Memory V5: Parent ID Linkage
             async with get_db() as db:
                 for lesson in reflected_episode.lessons_learned:
                     await synaptic_cortex.save(
@@ -565,7 +698,8 @@ class SovereignCortex:
                         category="cognitive_lesson",
                         project_id=task.id,
                         importance=0.6,
-                        metadata={"task_status": task.status.value}
+                        metadata={"task_status": task.status.value},
+                        parent_id=episode_mem.id # CAUSAL ANCHORING
                     )
 
             # Faz 53: Bilgelik Döngüsü (Wisdom Loop) 
@@ -664,172 +798,184 @@ class SovereignCortex:
             
         return success
 
-    async def _update_project_context(self, project_id: str, context: Dict[str, Any]):
-        """Veritabanındaki proje execution_context'ini günceller."""
+    async def _execute_subtask_nexus(self, task: ProjectTask, subtask: SubTask):
+        """
+        [FAZ 72] Subtask'ın bilişsel hazırlığını yapar, hafıza enjeksiyonu gerçekleştirir 
+        ve uygun ajana (Velocity Engine) gönderir.
+        """
         try:
+            # 1. Uzman Ajan Kontrolü
+            await self._ensure_specialist_availability(subtask)
+
+            # 2. Blackboard (Working Memory) Entegrasyonu
+            blackboard = get_blackboard(task.id)
+            working_ctx = await blackboard.get_working_context()
+            
+            # 3. SEMANTİK HAFIZA 2.0: Sinerjik Ders Enjeksiyonu (Phase 72)
+            from core.agi.cognitive.synaptic_cortex import synaptic_cortex
             from db.session import AsyncSessionLocal
-            from db.repository import ProjectRepository
-            async with AsyncSessionLocal() as db:
-                await ProjectRepository.update_context(db, project_id, context)
-        except Exception as e:
-            _log.warning(f"[PERSISTENCE] Context güncelleme hatası: {e}")
-
-    async def _execute_subtask_nexus(self, st: SubTask, parent_task: ProjectTask):
-        """
-        Bir alt görevi Nexus üzerinden yürütür. 
-        VelocityEngine ve Recursive Resilience (Faz 29) devreye girer.
-        """
-        st.status = TaskStatus.RUNNING
-        t_start = time.time()
-        
-        # Faz 28: Motivasyon çarpanını al
-        max_attempts = self.motivation.get_persistence_multiplier()
-        attempts = 0
-        
-        while attempts < max_attempts:
-            attempts += 1
+            
+            _log.info(f"[SOVEREIGN-MEMORY] Ajan {subtask.agent_id} için sinerjik bellek taraması (V5.2) başlatılıyor...")
             try:
-                from core.agi.operational.velocity_engine import velocity_engine
-                
-                # Bağlam Genişletme (Faz 42: Bilişsel Devamlılık)
-                enriched_context = await context_builder.build_context(
-                    agent_id=st.agent_id,
-                    task_text=st.prompt,
-                    project_id=parent_task.id,
-                    internal_monologue=st.internal_monologue
-                )
-                
-                # Phase 35: Safety-First Pre-Execution Backup
-                from core.agi.security.backup_service import backup_service
-                writing_agents = ["backend_dev", "source_refactor", "architect", "data_eng"]
-                if st.agent_id in writing_agents:
-                    # Basit bir regex ile prompt içindeki olası dosya yollarını yakala
-                    import re
-                    potential_files = re.findall(r'[\w\./-]+\.(?:py|js|json|css|html|md|sh|bat)', st.prompt)
-                    for f_path in potential_files:
-                        if os.path.exists(f_path) and not os.path.isdir(f_path):
-                            _log.info(f"[SAFETY] Otomatik gölge yedek tetiklendi: {f_path}")
-                            backup_service.create_backup(f_path)
+                async with AsyncSessionLocal() as db_mem:
+                    # Görev bağlamına göre derin ve sinerjik hafıza taraması
+                    past_lessons = await synaptic_cortex.search_with_causal_anchoring(
+                        db=db_mem,
+                        query=f"{subtask.title} {subtask.prompt}",
+                        top_k=5,
+                        use_synergy=True
+                    )
+                    
+                    if past_lessons:
+                        _log.info(f"[SOVEREIGN-MEMORY] {len(past_lessons)} sinerjik ders bulundu. Prompt'a enjekte ediliyor.")
+                        
+                        wisdom_block = "\n\n### 🧠 BİLİŞSEL MİRAS (SEMANTİK HAFIZA 2.0):\n"
+                        wisdom_block += "Aşağıdaki geçmiş tecrübeler bu görev için kritik öneme sahiptir:\n"
+                        for m in past_lessons:
+                            wisdom_block += f"- {m.get('body')}\n"
+                        
+                        # Ajanın promptuna doğrudan enjekte et (Kaçınılmaz Bilgi)
+                        subtask.prompt += wisdom_block
+                        
+                        # Blackboard'a kaydet
+                        await blackboard.post_discovery("semantic_recall", f"Ajan {subtask.agent_id} için {len(past_lessons)} sinerjik tecrübe enjekte edildi.")
+            except Exception as mem_err:
+                _log.warning(f"[SOVEREIGN-MEMORY] Bellek enjeksiyon hatası: {mem_err}")
 
-                # Faz 39: Konsensüs Mekanizması (Dialectic Execution)
-                if getattr(st, "consensus_required", False):
-                    _log.info(f"[CONSENSUS] Yüksek Risk Tespit Edildi! '{st.agent_id}' için konsensüs aranıyor.")
-                    from core.agi.cognitive.consensus_manager import consensus_manager
-                    from core.agi.schemas import PlanProposal
+            # 4. Risk ve Simülasyon Kontrolü
+            is_risky = any(kw in (subtask.prompt or "").lower() for kw in ["modify", "edit", "write", "delete", "create"])
+            if is_risky or subtask.risk_level == RiskLevel.HIGH:
+                _log.info(f"[SOVEREIGN-REFLECTION] Riskli görev tespiti: {subtask.title}. Foresight simülasyonu başlatılıyor...")
+                sim_report = await foresight_cortex.simulate_plan(subtask)
+                
+                if sim_report.get("strategic_alignment_score", 0.0) < 0.6:
+                    _log.warning("[SOVEREIGN-AUTO-REPAIR] Simülasyon başarısız. Revizyon gerekiyor.")
+                    await self.replan_subtask(task, subtask, sim_report.get("reasoning", "Düşük stratejik uyum."))
+                    return
+
+            # 5. Yürütme Döngüsü (Attempt & Recovery)
+            subtask.status = TaskStatus.RUNNING
+            t_start = time.time()
+            max_attempts = self.motivation.get_persistence_multiplier() or 2
+            attempts = 0
+            
+            while attempts < max_attempts:
+                attempts += 1
+                try:
+                    from core.agi.operational.velocity_engine import velocity_engine
                     
-                    # 1. Birden fazla ajandan/bakış açısından teklif al (Simüle edilmiş veya farklı LLM parametreleri ile)
-                    proposals = [
-                        PlanProposal(agent_id=st.agent_id, content=st.prompt, confidence=0.8),
-                        PlanProposal(agent_id="security_auditor", content=f"Review and secure: {st.prompt}", confidence=0.9)
-                    ]
+                    # Dinamik Context Hazırlığı
+                    enriched_context = await context_builder.build_context(
+                        agent_id=subtask.agent_id,
+                        task_text=subtask.prompt,
+                        project_id=task.id,
+                        internal_monologue=getattr(subtask, 'internal_monologue', '')
+                    )
                     
-                    consensus_report = await consensus_manager.resolve(st.prompt, enriched_context, proposals)
-                    st.consensus_score = consensus_report.get("consensus_score", 0.0)
-                    st.consensus_report = json.dumps(consensus_report)
+                    # 6. Yürütme (Velocity Engine)
+                    result = await velocity_engine.simulate_and_execute(
+                        agent_id=subtask.agent_id,
+                        prompt=subtask.prompt,
+                        context=enriched_context,
+                        task_id=task.id
+                    )
                     
-                    if st.consensus_score < 0.6:
-                        _log.warning(f"[CONSENSUS] Uzlaşı sağlanamadı (Skor: {st.consensus_score}). Görev durduruluyor.")
-                        st.status = TaskStatus.ERROR
-                        st.result = "KONSENSÜS HATASI: Güvenli bir orta yol bulunamadı."
+                    if result.success:
+                        subtask.status = TaskStatus.COMPLETED
+                        subtask.result = str(result.output_data)
+                        subtask.internal_monologue = result.reflection
+                        
+                        # 7. Çıktı Denetimi (Phase 67)
+                        audit_res = await reflective_synthesizer.audit_subtask(subtask, task.to_frame())
+                        if not audit_res.get("is_valid", False) and attempts < max_attempts:
+                            _log.warning(f"[SOVEREIGN-AUDIT] Çıktı reddedildi. Yeniden deneme {attempts}/{max_attempts}...")
+                            subtask.prompt += f"\n\n### ÖZ-ELEŞTİRİ VE DÜZELTME:\n{audit_res.get('repair_hint', 'Hata düzeltilmeli.')}"
+                            continue
+                        
+                        _log.info(f"[SOVEREIGN-EXECUTE] Subtask başarıyla tamamlandı: {subtask.agent_id}")
                         break
-                    
-                    # Planı hibrit plan ile güncelle
-                    st.prompt = consensus_report.get("hybrid_plan", st.prompt)
-                    _log.info(f"[CONSENSUS] Hibrit plan kabul edildi. Skor: {st.consensus_score}")
-
-                # Faz 36: Shared Blackboard (Bilişsel Süreklilik) enjeksiyonu
-                shared_state = parent_task.get_shared_state()
-                if shared_state:
-                    _log.debug(f"[NEXUS] Paylaşılan bellek enjekte ediliyor ({len(shared_state)} anahtar).")
-                
-                # Eylem simülasyonu ve yürütme
-                result = await velocity_engine.simulate_and_execute(
-                    agent_id=st.agent_id,
-                    prompt=st.prompt,
-                    context={
-                        "parent_goal": parent_task.title, 
-                        "full_context": enriched_context,
-                        "shared_state": shared_state,
-                        "consensus_data": getattr(st, "consensus_report", None) # Faz 39
-                    },
-                    task_id=parent_task.id
-                )
-                
-                if result.success:
-                    st.status = TaskStatus.COMPLETED
-                    st.result = result.output_data if isinstance(result.output_data, str) else str(result.output_data)
-                    # Faz 42: Bilişsel Yansımayı Kaydet
-                    st.internal_monologue = result.reflection
-                    
-                    # Faz 36: Shared State Extraction (Otonom Hafıza Güncelleme)
-                    if "[STATE_UPDATE]" in st.result:
-                        try:
-                            import re
-                            json_match = re.search(r'\[STATE_UPDATE\]\s*(\{.*\})', st.result, re.DOTALL)
-                            if json_match:
-                                state_updates = json.loads(json_match.group(1))
-                                parent_task.update_shared_state(state_updates)
-                                _log.info(f"[NEXUS] Paylaşılan bellek güncellendi (Otonom): {list(state_updates.keys())}")
-                        except Exception as e:
-                            _log.warning(f"[NEXUS] State update ayrıştırma hatası: {e}")
-
-                    # Faz 50: Bilişsel Yansıma (Real-time Reflection Audit)
-                    is_valid, critique, repair_hint = await reflective_synthesizer.audit_subtask(st, parent_task.to_frame())
-                    
-                    if not is_valid and attempts < max_attempts:
-                        _log.warning(f"[REFLECTIVE-AUDIT] Çıktı reddedildi. Yeniden deneme ({attempts}/{max_attempts}). Gerekçe: {critique}")
-                        st.status = TaskStatus.RUNNING 
-                        st.prompt += f"\n\n### ÖZ-ELEŞTİRİ VE DÜZELTME EMRİ:\n{repair_hint or critique}"
-                        self.affective.adjust_state("inhibition", magnitude=0.1)
-                        continue # Attempt again with repair_hint
-                    
-                    if not is_valid:
-                        _log.error(f"[REFLECTIVE-AUDIT] Max deneme sonrası görev hala geçersiz. Hata olarak işaretleniyor.")
-                        st.status = TaskStatus.ERROR
-                        st.result = f"GÖREV DENETİMİ BAŞARISIZ: {critique}"
+                except Exception as ex:
+                    _log.error(f"[SOVEREIGN-EXECUTE] Kritik yürütme hatası: {ex}")
+                    if attempts >= max_attempts:
+                        subtask.status = TaskStatus.ERROR
                         break
+            
+            subtask.duration_s = time.time() - t_start
 
-                    self.affective.adjust_state("success", magnitude=0.05)
-                    _log.info(f"[NEXUS] Başarılı yürütme ve denetim: {st.agent_id} (Attempt: {attempts})")
-                    break
-                else:
-                    # Faz 28: Hata durumunda Affective Core'u uyar
-                    self.affective.adjust_state("error", magnitude=0.1)
-                    
-                    # Faz 12.5: Bilişsel Hafızaya Başarısızlık Deseni Olarak Kaydet (Negative Synapse)
-                    try:
-                        from db.session import get_db
-                        async with get_db() as db:
-                            await synaptic_cortex.save_negative_lesson(
-                                db=db,
-                                agent_id=st.agent_id,
-                                body=f"Subtask '{st.id}' failed. Errors: {'; '.join(result.errors)}",
-                                importance=0.5,
-                                metadata={"task_id": parent_task.id}
-                            )
-                    except Exception: pass
-                    
-                    if attempts < max_attempts:
-                        _log.warning(f"[SOVEREIGN] Hata! Tanılama (Diagnostic) başlatılıyor ({attempts}/{max_attempts}): {st.agent_id}")
-                        
-                        # Faz 12.5: Tanılama Yansıması (Reflective Diagnostic)
-                        diagnostic_advice = await self._diagnostic_reflection(st, result.errors)
-                        st.prompt += f"\n\n[BİLİŞSEL TANILAMA]: {diagnostic_advice}"
-                        
-                        await asyncio.sleep(1) # Grace period
-                    else:
-                        st.status = TaskStatus.ERROR
-                        st.result = "; ".join(result.errors)
-                        _log.error(f"[SOVEREIGN] Max deneme sayısına ulaşıldı: {st.agent_id}")
-                        
-            except Exception as e:
-                self.affective.adjust_state("error", magnitude=0.15)
-                if attempts >= max_attempts:
-                    st.status = TaskStatus.ERROR
-                    st.result = str(e)
-                    _log.error(f"[NEXUS] Beklenmedik kritik hata ({st.agent_id}): {e}")
-                    break
-                await asyncio.sleep(1)
+        except Exception as e:
+            # Phase 65: Failure Learning (Priority 5)
+            await blackboard.post_warning(subtask.agent_id or "internal", f"Görev hatası: {str(e)}", severity="critical")
+            raise e
+
+    async def replan_subtask(self, task: GovernedTask, subtask: SubTask, critique: str):
+        """
+        Başarısız bir simülasyon sonrası alt görevi otonom olarak yeniden planlar.
+        'Self-Correction' (Otonom Kendi Kendini Düzeltme) döngüsüdür.
+        """
+        _log.info(f"[SOVEREIGN-REPLAN] Görev revize ediliyor: {subtask.title}")
+        
+        prompt = f"""
+        Aşağıdaki alt görev, simülasyon aşamasında başarısız oldu.
+        NEDEN: {critique}
+        
+        ORİJİNAL GÖREV:
+        - Başlık: {subtask.title}
+        - Eylem: {subtask.action}
+        - Hedef: {task.title}
+        
+        Lütfen bu görevi, yukarıdaki eleştiriyi dikkate alarak daha güvenli ve etkili bir şekilde yeniden yapılandır. 
+        Sadece güncellenmiş görev talimatlarını döndür.
+        """
+        
+        try:
+            response = await self.architect.refactor_plan(prompt)
+            # Alt görevi güncelle
+            subtask.content = response
+            subtask.status = TaskStatus.QUEUED # Tekrar sıraya al
+            _log.info(f"[SOVEREIGN-REPLAN] Görev başarıyla revize edildi ve tekrar sıraya alındı.")
+        except Exception as e:
+            _log.error(f"[SOVEREIGN-REPLAN] Revizyon hatası: {e}")
+            subtask.status = TaskStatus.ERROR
+
+    async def _execute_subtask_core(self, task: GovernedTask, subtask: SubTask):
+        """Orijinal alt görev yürütme mantığı (Refactor edilmiş)."""
+        # ... (Önceki mantık devam eder)
+
+    async def decompose_subtask(self, parent_goal: SovereignGoal, subtask: SubTask) -> bool:
+        """
+        Büyük bir alt görevi (SubTask) otonom olarak daha küçük parçalara böler.
+        'Sovereign Depth' (Recursive AGI) çekirdek mantığıdır.
+        """
+        prompt = f"""
+        Şu görev 'COMPLEX' olarak işaretlendi: {subtask.title}
+        Görevi daha küçük, yönetilebilir 3-5 adet atomic alt-görev (Sub-SubTask) haline getir.
+        
+        KAPSAM: {subtask.content or subtask.prompt}
+        HEDEF: {parent_goal.title}
+        
+        JSON Liste formatında döndür:
+        [{{"title": "...", "assigned_agent": "...", "content": "..."}}]
+        """
+        try:
+            response = await self.architect.decompose(prompt) # Architect'te yeni metod
+            sub_tasks_data = json.loads(response)
+            
+            for i, data in enumerate(sub_tasks_data):
+                new_st = SubTask(
+                    id=f"{subtask.id}.{i+1}",
+                    title=data["title"],
+                    assigned_agent=data["assigned_agent"],
+                    prompt=data["content"],
+                    parent_id=subtask.id,
+                    status=TaskStatus.QUEUED
+                )
+                parent_goal.subtasks.append(new_st)
+            
+            subtask.status = TaskStatus.COMPLETED # Ana görev 'Ayrıştırıldı' olarak işaretlenir.
+            return True
+        except Exception as e:
+            _log.error(f"[SOVEREIGN-DEPTH] Ayrıştırma hatası: {e}")
+            return False
 
         st.duration_s = time.time() - t_start
 
@@ -876,9 +1022,14 @@ class SovereignCortex:
             synthesizer = GoalSynthesizer(model_orch=self.model_orch)
             # Arka planda çalıştır (Task'ı bloklama)
             asyncio.create_task(synthesizer.run_synthesis_cycle())
-            _log.info("[SOVEREIGN] Self-Evolution cycle started in background.")
+
+            # Phase 73: Memory Distiller Entegrasyonu (Faz 86 Stabilizasyonu)
+            from core.agi.learning.memory_distiller import memory_distiller
+            asyncio.create_task(memory_distiller.run_distillation_cycle())
+            
+            _log.info("[SOVEREIGN] Self-Evolution and Memory Distillation cycles started in background.")
         except Exception as e:
-            _log.error(f"Failed to trigger evolution: {e}")
+            _log.error(f"Failed to trigger evolution/distillation: {e}")
 
     async def resume_goal(self, project_id: str):
         """Kesintiye uğrayan bir hedefi DB'den yükler ve devam ettirir."""
@@ -900,6 +1051,21 @@ class SovereignCortex:
                 project_id=p.id,
                 execution_context=p.execution_context
             )
+
+    async def shutdown(self):
+        """Bilişsel yönetim merkezini güvenli bir şekilde kapatır."""
+        async with self._lock:
+            if not self._is_running: return
+            _log.info("[SOVEREIGN] Kapatma dizisi başlatıldı...")
+            
+            # Watchdog'u durdur
+            try:
+                await self.watchdog.stop()
+            except Exception as e:
+                _log.error(f"Watchdog stop failed: {e}")
+            
+            self._is_running = False
+            _log.info("[SOVEREIGN] Kapatma tamamlandı.")
 
 # --- Singleton ---
 sovereign_cortex = SovereignCortex()

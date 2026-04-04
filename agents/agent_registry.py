@@ -51,16 +51,20 @@ class Agent(BaseAgent):
             system_prompt=self.system_prompt
         )
 
-    async def execute(self, task_id: str, subtask_id: str, context: Dict[str, Any], project_id: str | None = None) -> SubtaskOutput:
+    async def execute(self, task_id: str, subtask_id: str, prompt: str, context: Dict[str, Any], project_id: str | None = None) -> SubtaskOutput:
         """
         Canonical Faz 12 Ajan Yürütme Motoru.
         Orchestrator tarafından çağrılır.
         """
         start_time = datetime.now(timezone.utc)
-        requirements = context.get("requirements", "")
-        shared_context = context.get("shared_context", "")
         
-        user_prompt = f"Gereksinimler: {requirements}"
+        # 1. Bilişsel Bağlamı İnşa Et (Faz 12.3: Causal Continuity)
+        # Not: Agent class'ı BaseAgent'tan miras aldığı için _build_cognitive_context'e erişebilir.
+        cognitive_block = self._build_cognitive_context(context)
+        
+        user_prompt = f"GÖREV TALİMATI: {prompt}\n\n{cognitive_block}"
+        
+        shared_context = context.get("shared_context", "")
         if shared_context:
             user_prompt += f"\n\nBağlam (Önceki Çıktılar):\n{shared_context}"
 

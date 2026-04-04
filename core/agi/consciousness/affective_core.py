@@ -24,6 +24,33 @@ class AffectiveCore:
             "internal_stress": 0.2, # Phase 28: İçsel stres (Hata ve 429 ile artar)
             "energy_reserve": 1.0   # Phase 28: Enerji seviyesi (Token harcaması ve 429 ile azalır)
         }
+        import time
+        self._last_decay_time = time.time()
+
+    def _apply_passive_metabolism(self):
+        """
+        [FAZ 88] Pasif Metabolizma: Zaman geçtikçe stresin azalmasını ve enerjinin 
+        yavaşça dolmasını sağlar (Background heartbeat yerine request-driven).
+        """
+        import time
+        now = time.time()
+        elapsed = now - self._last_decay_time
+        if elapsed < 10: # Çok sık tetiklenmesin
+            return
+            
+        # Her 60 saniyede %1 stres azalması ve %0.5 enerji dolumu (Dinamik Scaling)
+        decay_factor = elapsed / 6000.0 # 6000s = %100 decay
+        
+        # 1. Stress Decay (Stres zamanla sönümlenir)
+        self.state["internal_stress"] = max(0.1, self.state["internal_stress"] - (decay_factor * 2.0))
+        
+        # 2. Energy Recovery (Enerji zamanla dolar)
+        self.state["energy_reserve"] = min(1.0, self.state["energy_reserve"] + decay_factor)
+        
+        # 3. Urgency Decay (Acele hissi zamanla normalleşir)
+        self.state["urgency"] = max(0.2, self.state["urgency"] - decay_factor)
+
+        self._last_decay_time = now
 
     @property
     def energy(self) -> float:
@@ -40,16 +67,18 @@ class AffectiveCore:
             self.state["caution"] = min(1.0, self.state["caution"] + magnitude)
             self.state["curiosity"] = max(0.0, self.state["curiosity"] - (magnitude * 0.5))
             self.state["satisfaction"] = max(0.0, self.state["satisfaction"] - magnitude)
-            self.state["internal_stress"] = min(1.0, self.state["internal_stress"] + (magnitude * 1.5))
+            # Faz 88: Stress dengelendi (1.5x -> 1.0x) - Hata ve Başarı dengesi
+            self.state["internal_stress"] = min(1.0, self.state["internal_stress"] + magnitude)
             _log.warning(f"Affective Core: [STRES ARTTI] Caution: {self.state['caution']:.2f}, Stress: {self.state['internal_stress']:.2f}")
 
         elif event_type == "success" or event_type == "goal_reached":
-            # Başari varsa tatmin ve merak artar, ihtiyat ve stres azalır
+            # Başari varsa tatmin ve merak artar, ihtiyat ve stres azalır, enerji dolumu sağlanır.
             self.state["satisfaction"] = min(1.0, self.state["satisfaction"] + magnitude)
             self.state["curiosity"] = min(1.0, self.state["curiosity"] + (magnitude * 0.5))
             self.state["caution"] = max(0.0, self.state["caution"] - (magnitude * 0.3))
             self.state["internal_stress"] = max(0.0, self.state["internal_stress"] - magnitude)
-            _log.info(f"Affective Core: [BAŞARI] Satisfaction: {self.state['satisfaction']:.2f}, Stress: {self.state['internal_stress']:.2f}")
+            self.state["energy_reserve"] = min(1.0, self.state["energy_reserve"] + (magnitude * 2.0))
+            _log.info(f"Affective Core: [BAŞARI] Satisfaction: {self.state['satisfaction']:.2f}, Energy: {self.state['energy_reserve']:.2f}")
 
         elif event_type == "rate_limit_429" or event_type == "api_error":
             # Rate limit enerji tüketir, stres yaratır

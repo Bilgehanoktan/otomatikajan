@@ -57,7 +57,7 @@ class CognitiveVerifier:
                     cwd=str(workdir),
                     timeout=30,
                 )
-                return result.get("status") == "success"
+                return result.success
         except Exception as e:
             logger.error(f"Sandbox check unexpected error: {e}")
             return False

@@ -453,8 +453,8 @@ class CeleryJobQueue(BaseQueueCapabilities):
             supports_listing=True,
             supports_dead_letters=False,
             supports_cancel=True,
-            supports_pause=True,
-            supports_resume=True,
+            supports_pause=False,
+            supports_resume=False,
             listing_scope="process_local",
         )
         try:
@@ -491,6 +491,7 @@ class CeleryJobQueue(BaseQueueCapabilities):
             "send_webhook":      "tasks.project_tasks.send_webhook_task",
             "cleanup":           "tasks.project_tasks.cleanup_memories",
             "self_update":       "tasks.project_tasks.run_self_update_task",
+            "system_dream":      "tasks.project_tasks.run_system_dream_task", # Faz 46: System Dream
             "deerflow_run":      "tasks.deerflow_tasks.run_deerflow_streaming_task",
             "deerflow_plan":     "tasks.deerflow_tasks.run_deerflow_streaming_task",
             "deerflow_research": "tasks.deerflow_tasks.run_deerflow_streaming_task",

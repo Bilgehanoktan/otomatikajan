@@ -126,8 +126,15 @@ class StrategicDecisionCenter:
         if integrity.get("degraded_components"):
             mode_str += f" (Kısıtlı: {', '.join(integrity['degraded_components'])})"
 
-        # Synapse Lessons
-        lessons_text = "\n".join([f"- [{m['category']}]: {m['body']}" for m in context.synapse_lessons]) if context.synapse_lessons else "Ders bulunamadı."
+        # Synapse Lessons (Dersler ve Çapalar)
+        lessons_text = ""
+        if context.synapse_lessons:
+            for m in context.synapse_lessons:
+                body = m.get("body") or m.get("lesson") or "Detay yok"
+                cat = m.get("category") or m.get("type") or "insight"
+                lessons_text += f"- [{cat.upper()}]: {body}\n"
+        else:
+            lessons_text = "Ders/Çapa bulunamadı. Temiz hafıza ile başla."
 
         prompt = f"""
         ### SYSTEM STATUS: {mode_str}

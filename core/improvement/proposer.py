@@ -14,11 +14,15 @@ class PatchProposer:
 
     async def propose_fix(self, issue: Dict[str, Any]) -> str:
         """Sorun için bir yama (patch) önerir."""
+        reason = issue.get('reason') or issue.get('description') or "Bilinmeyen sorun"
+        agent_id = issue.get('agent_id') or issue.get('evidence', {}).get('agent_id') or "system"
+        evidence = issue.get('evidence') or "Kanıt yok"
+
         prompt = f"""
         Sistem Otopilot: Kendi Kendini İyileştirme Modu
-        Tespit Edilen Sorun: {issue['reason']}
-        Ajan: {issue['agent_id']}
-        Kanıtlar: {issue['evidence']}
+        Tespit Edilen Sorun: {reason}
+        Ajan: {agent_id}
+        Kanıtlar: {evidence}
         
         Sistemden alınan bu verilerle uzman bir mühendis gibi davranarak sorunu kalıcı olarak çözmek için bir aksiyon öner. 
         Eğer bir kod değişikliği gerekiyorsa, bunu standart DIFF formatında sun.

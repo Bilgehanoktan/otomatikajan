@@ -9,6 +9,7 @@ from llm.model_orchestrator import ModelOrchestrator
 from core.agi.cognitive.synaptic_cortex import synaptic_cortex
 
 from core.agi.world.causal_error_graph import causal_error_graph
+from core.agi.operational.metabolic_governor import metabolic_governor, MetabolicMode
 
 _log = logging.getLogger("agi_wisdom_synthesizer")
 
@@ -40,6 +41,15 @@ class WisdomSynthesizer:
             traces.append(f"Ajan: {st.agent_id} | Adım: {st.id}\nDurum: {st.status}\nSonuç: {st.result}\nİçsel Monolog: {getattr(st, 'internal_monologue', 'N/A')}")
 
         full_trace = "\n---\n".join(traces[:10]) 
+
+        # --- Phase 60.6: Saturation & Metabolic Gating ---
+        is_saturated, existing_wisdom = await self._check_saturation(task)
+        if is_saturated:
+            _log.info(f"[WISDOM-SATURATION] Benzer ders zaten mevcut, sentez atlanyor: {task.title}")
+            if existing_wisdom:
+                # Grevin importance skorunu ve tekrar saysn artr
+                await self._increment_importance(existing_wisdom)
+            return "SATURATED" # Atlandn belirt
 
         # 2. LLM ile Sentez (Semantic & Causal Compression)
         prompt = f"""
@@ -88,9 +98,61 @@ class WisdomSynthesizer:
                 
                 return content
         except Exception as e:
-            _log.error(f"[WISDOM] Sentez/Nedensellik hatası: {e}")
+            _log.error(f"[WISDOM] Sentez/Nedensellik hatas: {e}")
         
         return None
+
+    async def _check_saturation(self, task: ProjectTask) -> tuple[bool, Optional[Dict]]:
+        """Benzer bir dersin zaten kaydedilip kaydedilmediğini kontrol eder."""
+        try:
+            async with self._get_db() as db:
+                # Benzer kategorideki son 10 dersi getir
+                existing = await synaptic_cortex.search(
+                    db=db,
+                    query=task.title,
+                    category="semantic_wisdom",
+                    top_k=5
+                )
+                
+                # Metabolik Duruma Göre Eşik Belirle
+                mode = metabolic_governor.get_mode()
+                threshold = 0.75 if mode == MetabolicMode.ECO else 0.90
+                
+                for memory in existing:
+                    # Faz 12.2: Gerçek semantik benzerlik
+                    sim = await synaptic_cortex.check_semantic_similarity(
+                        task.title + " " + task.description, 
+                        memory["body"]
+                    )
+                    if sim >= threshold:
+                        return True, memory
+        except Exception as e:
+            _log.warning(f"[WISDOM-SAT] Saturation check error: {e}")
+        return False, None
+
+    async def _increment_importance(self, memory_dict: Dict):
+        """Mevcut bilgelik kaydının 'önem' ve 'tekrar' verisini günceller."""
+        try:
+            from db.models import Memory
+            from sqlalchemy import update
+            async with self._get_db() as db:
+                m_id = memory_dict.get("id")
+                new_importance = min(memory_dict.get("importance", 0.5) + 0.1, 1.0) # +0.1 for ASE mode
+                await db.execute(
+                    update(Memory).where(Memory.id == m_id).values(
+                        importance=new_importance,
+                        updated_at=datetime.now(timezone.utc)
+                    )
+                )
+                await db.commit()
+                _log.info(f"[WISDOM] Importance increased for memory {m_id} to {new_importance}")
+        except Exception as e:
+            _log.warning(f"Importance güncelleme hatası: {e}")
+
+    def _get_db(self):
+        """Consolidated DB session getter for async operations."""
+        from db.session import AsyncSessionLocal
+        return AsyncSessionLocal()
 
     async def _parse_and_record_causality(self, content: str, task_id: str):
         """[CAUSAL_LINKS] bloğundaki verileri WorldModel'e aktarır."""
@@ -107,10 +169,6 @@ class WisdomSynthesizer:
                 preventive_action=fix.strip(),
                 metadata={"effect_desc": effect.strip()}
             )
-
-    def _get_db(self):
-        from db.session import get_db
-        return get_db()
 
 # Singleton
 wisdom_synthesizer = WisdomSynthesizer()

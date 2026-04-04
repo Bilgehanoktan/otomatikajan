@@ -4,6 +4,7 @@ from typing import List, Dict, Any, Optional
 from llm.model_orchestrator import ModelOrchestrator
 from core.agi.task_governance import GovernedTask, GovernanceStatus, SubTask, TaskStatus
 import uuid
+import uuid
 from core.agi.cognitive.synaptic_cortex import synaptic_cortex
 from db.session import get_db
 
@@ -64,9 +65,10 @@ class SovereignPlanner:
                  affect_summary = "\n[BİLİŞSEL MOD: BALANCED] Dengeli bir planlama yap."
 
         agent_briefs = "\n".join([
-            f"- {a['id']}: {a['role']} ({a['name']})" 
+            f"- {a.id}: {a.role} ({a.name})" 
             for a in available_agents
         ])
+
 
         prompt = f"""
         Aşağıdaki hedefi (Goal) gerçekleştirmek için MODÜLER, VERİMLİ ve ADIM ADIM bir uygulama planı oluştur.
@@ -158,8 +160,8 @@ class SovereignPlanner:
             return subtasks
 
         except Exception as e:
-            _log.error(f"[DECOMPOSER] Dekompozisyon hatası: {e}")
-            return []
+            _log.error(f"[PLANNER] Dekompozisyon hatası: {e}")
+            return [SubTask(id=str(uuid.uuid4())[:8], agent_id="architect", prompt=f"Fallback: {title}", status=TaskStatus.PENDING)]
 
     def get_execution_waves(self, subtasks: List[SubTask]) -> List[List[SubTask]]:
         """
@@ -202,12 +204,18 @@ class SovereignPlanner:
 
     def _parse_json(self, text: str) -> Optional[Dict]:
         import re
+        _log.debug(f"[PLANNER] Parsing JSON from text length: {len(text)}")
         match = re.search(r'\{.*\}', text, re.DOTALL)
         if match:
             try:
-                return json.loads(match.group())
-            except Exception:
+                data = json.loads(match.group())
+                _log.debug(f"[PLANNER] JSON successfully parsed. Keys: {list(data.keys())}")
+                return data
+            except Exception as e:
+                _log.error(f"[PLANNER] JSON Load Error: {e} | Text: {text[:200]}")
                 pass
+        else:
+            _log.error(f"[PLANNER] No JSON block found in text: {text[:200]}")
         return None
 
 # Singleton

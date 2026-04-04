@@ -3,8 +3,11 @@ Auth Router — /api/v1/auth prefix ile kayıtlı
 Faz 8'deki lazy facade yaklaşımının Faz 12'ye geri alınmış hali.
 """
 
+from typing import TYPE_CHECKING
 from fastapi import APIRouter, Depends, Response, Request, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.session import get_db_dep
 from auth.jwt_auth import get_current_user
@@ -30,14 +33,14 @@ def _svc():
 
 
 @router.post("/register", summary="Yeni kullanıcı kaydı")
-async def register(body: dict, db: AsyncSession = Depends(get_db_dep)):
+async def register(body: dict, db: "AsyncSession" = Depends(get_db_dep)):
     svc, Reg, _, _, _, _ = _svc()
     user = await svc.register(db, body["email"], body["password"])
     return {"id": str(user.id), "email": user.email}
 
 
 @router.post("/login", summary="Giriş — token al")
-async def login(response: Response, request: Request, body: dict, db: AsyncSession = Depends(get_db_dep)):
+async def login(response: Response, request: Request, body: dict, db: "AsyncSession" = Depends(get_db_dep)):
     svc, _, _, _, set_cookies, _ = _svc()
     res = await svc.login(db, body["email"], body["password"])
     set_cookies(response, res.access_token, res.refresh_token, request=request)
@@ -45,7 +48,7 @@ async def login(response: Response, request: Request, body: dict, db: AsyncSessi
 
 
 @router.post("/refresh", summary="Access token yenile")
-async def refresh(request: Request, response: Response, body: dict | None = None, db: AsyncSession = Depends(get_db_dep)):
+async def refresh(request: Request, response: Response, body: dict | None = None, db: "AsyncSession" = Depends(get_db_dep)):
     svc, _, _, _, set_cookies, _ = _svc()
     rt = (body or {}).get("refresh_token")
     
@@ -62,7 +65,7 @@ async def refresh(request: Request, response: Response, body: dict | None = None
 
 
 @router.post("/logout", summary="Oturumu kapat")
-async def logout(response: Response, current_user=Depends(get_current_user), db: AsyncSession = Depends(get_db_dep)):
+async def logout(response: Response, current_user=Depends(get_current_user), db: "AsyncSession" = Depends(get_db_dep)):
     svc, _, _, _, _, clear_cookies = _svc()
     await svc.revoke_all(db, str(current_user.id))
     clear_cookies(response)

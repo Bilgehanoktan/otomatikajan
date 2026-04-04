@@ -8,8 +8,11 @@ API Rotaları — Faz 2
 
 import os
 import uuid
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Depends, Header, Request, Query
 from pydantic import BaseModel, Field
+from typing import List, Dict, Any, Optional
+from core.agi.cognitive.cognitive_blackboard import get_blackboard
+from core.agi.quality.eval_harness import eval_harness
 
 from fastapi.concurrency import run_in_threadpool
 from api.rate_limiter import rate_limit

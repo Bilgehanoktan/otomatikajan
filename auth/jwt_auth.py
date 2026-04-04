@@ -300,34 +300,35 @@ async def get_current_user(
 ):
     """
     Kullanıcıyı doğrular.
-    Faz 12.1 Resilience: Header'daki token geçersizse (stale storage), 
-    otomatik olarak Cookie'ye fallback yapar.
+    Faz 12.1 Resilience: 
+    - JWT Hataları (401): Sessiz fallback / Redirect.
+    - DB Hataları: 500 at (Refresh döngüsü oluşmaması için).
     """
-    # 1. Öncelik: Header (Authorization: Bearer ...)
+    from sqlalchemy.exc import SQLAlchemyError
+    
     header_token = None
     auth_header = request.headers.get("Authorization")
     if auth_header and auth_header.startswith("Bearer "):
         header_token = auth_header.split(" ")[1]
         try:
-            # Header token'ı hemen doğrula
             return await auth_service.get_user_from_token(db, header_token)
+        except SQLAlchemyError as se:
+            logger.error(f"[AUTH-RESILIENCE] DB Hatası (Header): {se}")
+            raise HTTPException(status_code=500, detail="Kimlik doğrulama sunucusu meşgul (DB).")
         except Exception:
-            # Header token hatalıysa sessizce devam et ve Cookie'ye bak
             pass
     
-    # 2. İkincil: Cookie (access_token)
     cookie_token = request.cookies.get("access_token")
     if cookie_token:
         try:
             return await auth_service.get_user_from_token(db, cookie_token)
+        except SQLAlchemyError as se:
+            logger.error(f"[AUTH-RESILIENCE] DB Hatası (Cookie): {se}")
+            raise HTTPException(status_code=500, detail="Kimlik doğrulama sunucusu meşgul (DB).")
         except Exception:
             pass
             
-    # Her ikisi de yoksa veya geçersizse
-    raise HTTPException(
-        status_code=401, 
-        detail="Oturum geçersiz veya yetkilendirme gerekli"
-    )
+    raise HTTPException(status_code=401, detail="Oturum geçersiz veya yetkilendirme gerekli")
 
 
 async def get_optional_user(

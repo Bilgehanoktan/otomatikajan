@@ -15,6 +15,7 @@ from core.agi.operational.patching_sandbox import patching_sandbox
 from core.agi.security.audit_gate import audit_gate
 from core.agi.monitoring.provenance_engine_45 import provenance_engine_45
 from db.models import Memory
+from core.agi.learning.specialist_forge import specialist_forge
 from core.agi.schemas import EpisodeRecord, CausalGraph
 from observability.logging import get_logger
 
@@ -36,6 +37,15 @@ class SovereignEvolutionEngine:
         
         logger.info(f"[EVOLUTION] Sovereign Evolution: Döngü başlatıldı.")
         
+        # [PHASE 52] Specialist Forging: Başarılı desenlerden uzman damıt (Metabolizma)
+        try:
+            from db.session import async_session
+            async with async_session() as db:
+                await self.run_specialist_forge_cycle(db)
+        except Exception as e:
+            logger.warning(f"[EVOLUTION] Specialist Forge hatası: {e}")
+
+        # Auditor Findings
         findings = await sovereign_auditor.run_full_audit()
         if not findings:
             logger.info("[EVOLUTION] İyileştirilecek bir alan bulunamadı.")
@@ -47,7 +57,8 @@ class SovereignEvolutionEngine:
                 continue
 
             patch = await proposer.propose_fix(finding)
-            if not patch: continue
+            if not patch: 
+                continue
                 
             success, confidence, reasoning = await cognitive_verifier.verify_patch(patch, finding)
             if success:
@@ -66,6 +77,14 @@ class SovereignEvolutionEngine:
             else:
                 self.negative_synapses.add(finding_id)
                 logger.error(f"[EVOLUTION] Yama reddedildi: {finding.get('title')}")
+
+
+    async def run_specialist_forge_cycle(self, db: AsyncSession):
+        """Başarılı desenlerden yeni uzman ajanlar sentezler. (Phase 52)"""
+        logger.info("[EVOLUTION] Uzman Sentezi (Specialist Forge) döngüsü başlatıldı.")
+        new_specialists = await specialist_forge.forge_new_specialists(db)
+        if new_specialists:
+            logger.info(f"[EVOLUTION] {len(new_specialists)} yeni uzman ajan sisteme eklendi.")
 
     # --- PART 2: Policy-Driven Evolution (Integrated from SovereignEvolution45) ---
 

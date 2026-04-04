@@ -52,68 +52,87 @@ async def monitoring_overview(current_user=Depends(get_current_user)):
     # ── Servis durumları ──────────────────────────────────
     services: Dict[str, Any] = {}
 
-    # AGI Core (Phase 28/29)
     try:
-        from core.agi.operational.metabolic_governor import metabolic_governor
-        result["agi"] = {
-            "mood": affective_core.get_current_mood(),
-            "stress": round(affective_core.get_state_matrix().get("internal_stress", 0.0), 2),
-            "energy": round(affective_core.energy, 2),
-            "metabolic_mode": metabolic_governor.get_mode().value,
-            "metabolic_score": metabolic_governor.get_score(),
-            "policy": motivation_engine.current_state.persistence_policy,
-            "version": "Sovereign (v13.0-RC2)",
-            "dialectic_health": 0.92,
-            "recovery_success_rate": 0.88
-        }
-        
-        # Faz 43: Arbiter Stats
+        # AGI Core (Phase 28/29)
         try:
-            from core.agi.operational.kinetic_arbiter import kinetic_arbiter
-            result["arbiter"] = {
-                "active_slots": kinetic_arbiter._active_slots,
-                "max_slots": kinetic_arbiter._max_total_slots,
-                "queue_size": kinetic_arbiter._queue.qsize() if kinetic_arbiter._queue else 0,
-                "pacing_s": round(kinetic_arbiter._calculate_pacing(), 3)
+            from core.agi.operational.metabolic_governor import metabolic_governor
+            from core.agi.monitoring.nervous_system import nervous_system
+            from core.agi.governance.consensus_arbiter import consensus_arbiter
+            from core.agi.world.provenance_engine import provenance_engine
+            
+            result["agi"] = {
+                "mood": affective_core.get_current_mood(),
+                "stress": round(affective_core.get_state_matrix().get("internal_stress", 0.0), 2),
+                "energy": round(affective_core.energy, 2),
+                "metabolic_mode": metabolic_governor.get_mode().value,
+                "metabolic_score": metabolic_governor.get_score(),
+                "policy": motivation_engine.current_state.persistence_policy,
+                "version": "Sovereign (v13.6-RC3)",
+                "grounding_score": nervous_system.cognitive_metrics.get("grounding_persistence", None),
+                "dissonance_count": nervous_system.cognitive_metrics.get("dissonance_alerts", 0),
+                "consensus_score": consensus_arbiter._last_consensus_score if hasattr(consensus_arbiter, "_last_consensus_score") else None,
+                "traceability_score": provenance_engine.get_traceability_score() if hasattr(provenance_engine, "get_traceability_score") else None,
+                "dialectic_health": None,
+                "recovery_success_rate": None
             }
-        except Exception:
-            result["arbiter"] = {"status": "inactive"}
-
-        # Faz 42 & 55: Continuity & Safety Stats
-        try:
-            from db.session import AsyncSessionLocal
-            from sqlalchemy import select, func
-            from db.models import SubTask, Project, ProjectStatus
-            async with AsyncSessionLocal() as db:
-                monologue_count = await db.scalar(select(func.count(SubTask.id)).where(SubTask.internal_monologue != None))
-                # Phase 55 Safety Stats
-                rejected_count = await db.scalar(select(func.count(Project.id)).where(Project.status == ProjectStatus.ERROR, Project.error_detail.contains("GÜVENLİK İHLALİ")))
-                flagged_count = await db.scalar(select(func.count(Project.id)).where(Project.status == ProjectStatus.PENDING_APPROVAL))
-                
-                result["agi"]["safety"] = {
-                    "total_audits": await db.scalar(select(func.count(Project.id))) or 0,
-                    "rejected_goals": rejected_count or 0,
-                    "flagged_goals": flagged_count or 0,
-                    "status": "SECURE" if rejected_count == 0 else "INTERVENTION_ACTIVE"
+            
+            # Faz 43: Arbiter Stats
+            try:
+                from core.agi.operational.kinetic_arbiter import kinetic_arbiter
+                result["arbiter"] = {
+                    "active_slots": kinetic_arbiter._active_slots,
+                    "max_slots": kinetic_arbiter._max_total_slots,
+                    "queue_size": kinetic_arbiter._queue.qsize() if kinetic_arbiter._queue else 0,
+                    "pacing_s": round(kinetic_arbiter._calculate_pacing(), 3)
                 }
+            except Exception:
+                result["arbiter"] = {"status": "inactive"}
 
-                result["cognitive_continuity"] = {
-                    "persisted_monologues": monologue_count,
-                    "recovery_attempts": await db.scalar(select(func.count(SubTask.id)).where(SubTask.status == "error")) or 0 # Simplified recovery count
-                }
+            # Faz 42 & 55: Continuity & Safety Stats
+            try:
+                from db.session import AsyncSessionLocal
+                from sqlalchemy import select, func
+                from db.models import SubTask, Project, ProjectStatus
+                async with AsyncSessionLocal() as db:
+                    monologue_count = await db.scalar(select(func.count(SubTask.id)).where(SubTask.internal_monologue != None))
+                    # Phase 55 Safety Stats
+                    rejected_count = await db.scalar(select(func.count(Project.id)).where(Project.status == ProjectStatus.ERROR, Project.error_detail.contains("GÜVENLİK İHLALİ")))
+                    flagged_count = await db.scalar(select(func.count(Project.id)).where(Project.status == ProjectStatus.PENDING_APPROVAL))
+                    
+                    result["agi"]["safety"] = {
+                        "total_audits": await db.scalar(select(func.count(Project.id))) or 0,
+                        "rejected_goals": rejected_count or 0,
+                        "flagged_goals": flagged_count or 0,
+                        "status": "SECURE" if rejected_count == 0 else "INTERVENTION_ACTIVE"
+                    }
+
+                    result["cognitive_continuity"] = {
+                        "persisted_monologues": monologue_count,
+                        "recovery_attempts": await db.scalar(select(func.count(SubTask.id)).where(SubTask.status == "error")) or 0 # Simplified recovery count
+                    }
+            except Exception as e:
+                logger.error(f"Safety/Continuity Audit failed: {e}")
+                result["agi"]["safety"] = {"status": "error"}
+                result["cognitive_continuity"] = {"persisted_monologues": 0}
         except Exception as e:
-            logger.error(f"Safety/Continuity Audit failed: {e}")
-            result["agi"]["safety"] = {"status": "error"}
-            result["cognitive_continuity"] = {"persisted_monologues": 0}
-    except Exception:
-        result["agi"] = {"status": "initializing"}
+            logger.warning(f"AGI Core monitoring failed: {e}")
+            result["agi"] = {"status": "initializing"}
 
-    # Dashboard ana verileri...
+        # Orchestrator & Agents Status
+        try:
+            from core.context import orchestrator
+            services["orchestrator"] = {
+                "status": "online",
+                "agents": orchestrator.agent_count()
+            }
+        except Exception as e:
+            services["orchestrator"] = {
+                "status": "offline",
+                "error": str(e),
+            }
+
     except Exception as e:
-        services["orchestrator"] = {
-            "status": "offline",
-            "error": str(e),
-        }
+        logger.error(f"Monitoring aggregate failure: {e}")
 
     # Queue summary orchestrator'dan bağımsız toplanmalı
     try:
@@ -623,7 +642,7 @@ async def agi_core_state(current_user=Depends(get_current_user)):
                 "energy_reserve": round(mot_state.energy_reserve, 2)
             },
             "cognitive": {
-                "reality_grounding_score": 0.94, # Phase 34 depth 3
+                "reality_grounding_score": None, # Honest UI
                 "backup_active": True,
                 "dynamic_planning_active": True
             },
@@ -673,26 +692,34 @@ async def agi_metacognition_stats(limit: int = Query(50, ge=1, le=100), current_
         from sqlalchemy import select
         
         async with AsyncSessionLocal() as db:
-            # EpisodeRecord meta-verileri genellikle cognitive_lesson veya episode_index olarak saklanır
             stmt = select(Memory).where(Memory.category == "cognitive_lesson").order_by(Memory.created_at.desc()).limit(limit)
             result = await db.execute(stmt)
             records = result.scalars().all()
             
-        scores = [r.metadata_.get("metacognitive_score", 0.9) for r in records if r.metadata_]
-        avg_score = sum(scores) / len(scores) if scores else 0.92
+        scores = [float(r.metadata_.get("metacognitive_score", 0.0)) for r in records if r.metadata_ and "metacognitive_score" in r.metadata_]
+        grounding_scores = [float(r.metadata_.get("grounding_score", 0.0)) for r in records if r.metadata_ and "grounding_score" in r.metadata_]
+        avg_score = sum(scores) / len(scores) if scores else None
+        avg_grounding = sum(grounding_scores) / len(grounding_scores) if grounding_scores else None
+        
         drift_count = sum(1 for r in records if r.metadata_ and r.metadata_.get("internal_drift_detected", False))
+        dissonance_count = sum(1 for r in records if r.metadata_ and r.metadata_.get("dissonance_detected", False))
         
         return {
             "average_metacognitive_confidence": round(avg_score, 2),
+            "average_grounding_score": round(avg_grounding, 2),
             "cognitive_drift_detected": drift_count > 0,
+            "dissonance_detected": dissonance_count > 0,
+            "dissonance_rate": round(dissonance_count / len(records), 2) if records else 0,
             "drift_severity": "low" if drift_count < 2 else "medium",
-            "resonance_index": 0.95 - (drift_count * 0.05),
+            "resonance_index": 0.95 - (drift_count * 0.05) - (dissonance_count * 0.02),
             "recent_reflections": [
                 {
                     "timestamp": r.created_at.isoformat(),
                     "score": r.metadata_.get("metacognitive_score", 0.9),
+                    "grounding": r.metadata_.get("grounding_score", 0.85),
                     "lesson_summary": r.body[:100] + "...",
-                    "drift_detected": r.metadata_.get("internal_drift_detected", False)
+                    "drift_detected": r.metadata_.get("internal_drift_detected", False),
+                    "dissonance_detected": r.metadata_.get("dissonance_detected", False)
                 }
                 for r in records
             ]

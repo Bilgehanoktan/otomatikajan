@@ -204,26 +204,39 @@ async def stop_task(task_id: str, current_user=Depends(get_current_user)):
                 )
 
             # In-process queue'ya gerçek cancel sinyali gönder
-            queue_job_id = p.job_id or task_id
+            queue_job_id = p.job_id or str(p.id)
             _ensure_queue_capability(job_queue, "supports_cancel", "stop")
             cancelled_ok = job_queue.request_cancel(queue_job_id)
             
             if not cancelled_ok:
-                logger.error(f"[CANCEL_FAIL] Görev kuyrukta durdurulamadı: {queue_job_id}")
+                logger.warning(f"[CANCEL] Kuyruk işlemi reddetti (zaten bitmiş olabilir): {queue_job_id}")
+                # Kuyruk reddetmiş olsa bile (belki PENDING değildir), DB'de RUNNING ise 
+                # ve biz durdurmak istiyorsak, DB üzerinden zorlayabiliriz.
+                # Ancak 'honesty' prensibi gereği, kuyruk durduramadıysa kullanıcıya bildiriyoruz.
                 raise HTTPException(
                     status_code=409, 
                     detail="Görev kuyruk seviyesinde durdurulamadı. Görev zaten tamamlanmış veya sistem meşgul olabilir."
                 )
 
-            logger.info(f"Stop signal sent to queue job {queue_job_id}: {cancelled_ok}")
-
-            await ProjectRepository.cancel(db, pid, cancelled_by="stop_command")
-            await TaskLogRepository.write(
-                db, pid, "stopped",
-                f"Durduruldu (queue_job={queue_job_id})",
-                level="warning", agent_id="dashboard",
-            )
-            await db.commit()
+            # DB durumunu güncelle (Atomic Status Guard ile)
+            updated = await ProjectRepository.cancel(db, pid, cancelled_by=f"user:{current_user.id}")
+            
+            if updated:
+                await TaskLogRepository.write(
+                    db, pid, "stopped",
+                    f"Durduruldu (queue_job={queue_job_id})",
+                    level="warning", agent_id="dashboard",
+                )
+                await db.commit()
+                logger.info(f"[STOP] Task {pid} marked as CANCELLED in DB.")
+            else:
+                logger.warning(f"[STOP] Task {pid} DB sync skipped (already finished/error).")
+                # Eğer DB güncellenemediyse, büyük ihtimalle o arada bitti.
+                # Bu durumda 409 dönmek daha dürüst olur.
+                raise HTTPException(
+                    status_code=409, 
+                    detail="Görev DB seviyesinde durdurulamadı. Muhtemelen o anda tamamlandı."
+                )
  
         return {"stopped": True, "id": task_id, "signal_sent": cancelled_ok}
     except HTTPException:
@@ -268,8 +281,15 @@ async def pause_task(task_id: str, current_user=Depends(get_current_user)):
                     level="info", agent_id="dashboard",
                 )
                 await db.commit()
+                logger.info(f"[PAUSE] Task {pid} successfully paused.")
+            else:
+                logger.warning(f"[PAUSE] Kuyruk işlemi reddetti (zaten PAUSED veya bitmiş olabilir): {queue_job_id}")
+                raise HTTPException(
+                    status_code=409, 
+                    detail="Görev kuyruk seviyesinde duraklatılamadı. Görev zaten duraklatılmış, tamamlanmış veya sistem meşgul olabilir."
+                )
 
-        return {"paused": paused_ok, "id": task_id}
+        return {"paused": True, "id": task_id}
     except HTTPException:
         raise
     except Exception as e:
@@ -306,8 +326,15 @@ async def resume_task(task_id: str, current_user=Depends(get_current_user)):
                     level="info", agent_id="dashboard",
                 )
                 await db.commit()
+                logger.info(f"[RESUME] Task {pid} successfully resumed.")
+            else:
+                logger.warning(f"[RESUME] Kuyruk işlemi reddetti: {queue_job_id}")
+                raise HTTPException(
+                    status_code=409, 
+                    detail="Görev kuyruk seviyesinde devam ettirilemedi. Görev zaten çalışıyor, tamamlanmış veya sistem meşgul olabilir."
+                )
 
-        return {"resumed": resumed_ok, "id": task_id}
+        return {"resumed": True, "id": task_id}
     except HTTPException:
         raise
     except Exception as e:

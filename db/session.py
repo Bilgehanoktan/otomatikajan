@@ -48,6 +48,14 @@ def _get_engine():
             if _engine is None or (curr_active_loop is not None and _last_loop is not curr_active_loop):
                 logger.debug(f"SQLAlchemy: Creating engine for loop {id(curr_active_loop)} (URL: {DATABASE_URL.split('@')[-1]})")
                 try:
+                    # SRE Hardening: Provider-aware connect_args (Faz 12.1)
+                    connect_args = {}
+                    if "postgresql" in DATABASE_URL:
+                        connect_args = {
+                            "command_timeout": 60,
+                            "server_settings": {"search_path": "public"}
+                        }
+                    
                     _engine = create_async_engine(
                         DATABASE_URL,
                         pool_size=DB_POOL_SIZE,
@@ -55,10 +63,7 @@ def _get_engine():
                         pool_timeout=DB_POOL_TIMEOUT,
                         pool_pre_ping=True,
                         echo=False,
-                        connect_args={
-                            "command_timeout": 60,
-                            "server_settings": {"search_path": "public"}
-                        }
+                        connect_args=connect_args
                     )
                     # Asyncio task başlatma yerine sessiz kal, init_db zaten yapılacak
                     pass
@@ -232,13 +237,14 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         except Exception as e:
             # Kritik: Hata anında derhal geri al
             try:
-                await session.rollback()
-            except Exception:
-                pass
+                if session.is_active:
+                    await session.rollback()
+            except Exception as rb_err:
+                logger.error(f"DB Rollback hatası (get_db): {rb_err}")
             
             from sqlalchemy.exc import IntegrityError, PendingRollbackError
             if isinstance(e, (IntegrityError, PendingRollbackError)):
-                 logger.debug(f"Hafif DB Çakışması (Kontrollü): {e}")
+                 logger.warning(f"DB Oturum Çakışması/Zehirlenmesi Yakalandı: {e}")
             else:
                  logger.error(f"DB Kritik Hata: {e}", exc_info=True)
             raise
@@ -257,19 +263,21 @@ async def get_db_dep() -> AsyncGenerator[AsyncSession, None]:
         except Exception as e:
             # SRE Hardening: Hata anında oturumu temizle
             try:
-                await session.rollback()
+                if session.is_active:
+                    await session.rollback()
             except Exception as rb_err:
-                logger.error(f"DB Rollback hatası: {rb_err}")
+                logger.error(f"DB Rollback hatası (get_db_dep): {rb_err}")
             
             # Log & Re-raise
             from sqlalchemy.exc import IntegrityError, PendingRollbackError
             if isinstance(e, (IntegrityError, PendingRollbackError)):
-                logger.warning(f"DB Oturum Çakışması/Zehirlenmesi: {e}")
+                logger.warning(f"DB Bağımlılık Oturum Zehirlenmesi: {e}")
             else:
                 logger.error(f"DB İşlem Hatası: {e}")
             raise
         finally:
             await session.close()
+
 
 session_scope = get_db
 

@@ -130,9 +130,13 @@ class CausalEngine:
         """
         _log.info(f"Counterfactual simülasyon başlatılıyor: {alternative_action}")
         
+        goal_text = "Unknown"
+        if episode.problem_frame:
+            goal_text = getattr(episode.problem_frame, "objective", getattr(episode.problem_frame, "prompt", "Unknown"))
+            
         prompt = f"""
         BÖLÜM GEÇMİŞİ:
-        Girdi: {episode.problem_frame.objective if episode.problem_frame else 'Unknown'}
+        Girdi: {goal_text}
         Yapılan Eylemler: {json.dumps([a.tool_used for a in episode.actions])}
         Sonuç: {'Başarılı' if episode.verification and episode.verification.result_status else 'Başarısız'}
         
@@ -163,8 +167,12 @@ class CausalEngine:
             for a in episode.actions
         ])
         
+        goal_text = "Unknown"
+        if episode.problem_frame:
+            goal_text = getattr(episode.problem_frame, "objective", getattr(episode.problem_frame, "prompt", "Unknown"))
+            
         return f"""
-        HEDEF: {episode.problem_frame.objective if episode.problem_frame else 'Unknown'}
+        HEDEF: {goal_text}
         
         EYLEMLER:
         {actions_str}

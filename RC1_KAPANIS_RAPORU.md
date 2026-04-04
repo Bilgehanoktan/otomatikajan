@@ -3,6 +3,13 @@
 Bu sürümde yapılan ana düzeltmeler:
 
 ## Kapatılan kritik sorunlar
+- `api/monitoring_router.py` dürüstlük (Honest UI) refaktörü tamamlandı.
+  - Sahte (%92, %94 vb.) metrikler kaldırıldı, DB/State bazlı dinamik yapıya geçildi.
+- `tests/.archive/` klasörü oluşturuldu.
+  - Kırık, "legacy_" veya "verify_" takılı 17 adet dosya arşive taşınarak test suit temizlendi.
+  - `pytest` artık 0 "Collection Error" ile çalışıyor.
+- `core/agi/cognitive/sovereign_cortex.py` güvenlik duvarı (Security Hardening) eklendi.
+  - Kritik blacklist (rm -rf, drop table, chmod 777) ile doğrudan eylem engelleme devrede.
 - `api/task_router.py` compatibility shim güçlendirildi.
   - `TaskCreateRequest`, `TaskUpdateRequest`, `_project_to_dict` re-export ediliyor.
   - read/write/control router'ları tek shim altında toplanıyor.

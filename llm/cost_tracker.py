@@ -24,6 +24,7 @@ class CostRecord:
     cost_usd: float
     latency_s: float
     success: bool
+    agent_role: str = "general"
     project_id: str | None = None
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -38,11 +39,12 @@ class CostTracker:
         return calculate_cost(model, input_tokens, output_tokens)
 
     def record(self, provider: str, model: str, agent_id: str, input_tokens: int, output_tokens: int,
-               latency_s: float, success: bool, project_id: str | None = None) -> CostRecord:
+               latency_s: float, success: bool, project_id: str | None = None, agent_role: str = "general") -> CostRecord:
         rec = CostRecord(
             provider=provider,
             model=model,
             agent_id=agent_id,
+            agent_role=agent_role,
             input_tokens=input_tokens,
             output_tokens=output_tokens,
             cost_usd=self.calculate_cost(model, input_tokens, output_tokens),
@@ -62,6 +64,7 @@ class CostTracker:
         # Log entry
         db.add(LLMCostLog(
             provider=rec.provider, model=rec.model, agent_id=rec.agent_id,
+            agent_role=rec.agent_role,
             input_tokens=rec.input_tokens, output_tokens=rec.output_tokens,
             cost_usd=rec.cost_usd, latency_s=rec.latency_s, success=rec.success,
             project_id=rec.project_id

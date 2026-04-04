@@ -139,6 +139,11 @@ function showPage(name) {
     targetPage.style.display = 'block'; // Force show
   } else {
     console.error('Page not found:', 'page-' + name);
+    // [RECOVERY] If page not found, go back to dashboard and notify
+    if (name !== 'dashboard') {
+      showToast(`'${name}' sayfası bulunamadı. Ana sayfaya dönülüyor.`, 'warning');
+      showPage('dashboard');
+    }
   }
   document.querySelectorAll('.nav-item').forEach(n => {
     n.classList.remove('active');
@@ -382,6 +387,16 @@ async function api(path, opts = {}) {
         const errJson = JSON.parse(errorText);
         errorMsg = errJson.detail || errJson.message || errorMsg;
       } catch (ex) { }
+      
+      // Critical Audit: Log failed API calls to the UI for user visibility
+      if (r.status >= 400 && r.status !== 401) {
+        console.error(`[API-CRITICAL] Path: ${path} Status: ${r.status} Error: ${errorMsg}`);
+        // Only show toast if not a background/silent request
+        if (!path.includes('/monitoring/') && !path.includes('/health')) {
+          showToast(`Sistem Hatası (${r.status}): ${errorMsg}`, 'error');
+        }
+      }
+      
       throw new Error(errorMsg);
     }
     
@@ -639,6 +654,51 @@ async function loadDashboard() {
         return `<span class="service-pill ${st}" title="${i.error || ''}"><span class="service-dot"></span>${label}</span>`;
       }).join('') || '<span style="color:var(--muted);font-size:11px;">Aktif servis yok</span>';
     }
+    
+    // Phase 60.5: Reality Grounding & Dissonance Sync
+    if (ov.agi) {
+      if (ov.agi.version) safeSetText('sovereign-version', ov.agi.version);
+      
+      const gScore = ov.agi.grounding_score ?? 1.0;
+      const pReal = Math.round(gScore * 100);
+      safeSetText('sovereign-reality-val', pReal + '%');
+      safeStyle('sovereign-reality-fill', { 
+        width: pReal + '%',
+        background: pReal > 80 ? 'var(--gold)' : (pReal > 40 ? 'var(--orange)' : 'var(--red)')
+      });
+
+      const dBadge = safeGet('sovereign-dissonance-badge');
+      if (dBadge) {
+        if (ov.agi.dissonance_count > 0) {
+          dBadge.style.display = 'inline-block';
+          dBadge.textContent = `ÇELİŞKİ DETEKTÖRÜ (${ov.agi.dissonance_count})`;
+        } else {
+          dBadge.style.display = 'none';
+        }
+      }
+
+      // Phase 61: Consensus Gating visualization
+      const cScore = ov.agi.consensus_score ?? 1.0;
+      const pCons = Math.round(cScore * 100);
+      safeSetText('sovereign-consensus-val', pCons + '%');
+      safeStyle('sovereign-consensus-fill', { 
+        width: pCons + '%',
+        background: pCons > 80 ? 'var(--cyan)' : (pCons > 60 ? 'var(--yellow)' : 'var(--red)')
+      });
+
+      // Phase 62: Deep Traceability score
+      const tScore = ov.agi.traceability_score ?? 0.5;
+      const pTrace = Math.round(tScore * 100);
+      safeSetText('sovereign-traceability-val', pTrace + '%');
+      safeStyle('sovereign-traceability-fill', { width: pTrace + '%' });
+
+      // Phase 65: Cognitive Blackboard Sync
+      const activeGoalId = ov.active_task_id || (ov.queue?.running_ids ? ov.queue.running_ids[0] : null);
+      if (activeGoalId) {
+        updateCognitiveBlackboard(activeGoalId);
+      }
+    }
+
     // Map health score (Computed vs Agent fallback)
     const hs = ov.metrics?.system_score ?? ov.agents?.system_score;
     const hsLabel = document.getElementById('health-score-label');
@@ -1784,4 +1844,55 @@ function applyCapabilityVisibility() {
     btn.style.display = CAPS.supports_resume ? '' : 'none';
     btn.disabled = !CAPS.supports_resume;
   });
+}
+/**
+ * Phase 65: Bilişsel Karatahta (Working Memory) Güncelleme
+ */
+async function updateCognitiveBlackboard(goalId) {
+  const container = document.getElementById('sovereign-blackboard-container');
+  if (!container) return;
+
+  try {
+    const data = await api('/monitoring/blackboard/' + goalId);
+    if (data.error) throw new Error(data.error);
+
+    let html = '';
+    
+    // 1. Warnings (Priority)
+    if (data.critical_warnings && data.critical_warnings.length > 0) {
+      data.critical_warnings.forEach(w => {
+        html += `<div style="color:var(--red); margin-bottom:4px;">[WARN] ${w.content}</div>`;
+      });
+    }
+
+    // 2. Hypothesis
+    if (data.current_hypothesis) {
+      html += `<div style="color:var(--gold); border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:4px; margin-bottom:8px;">[IDEA] ${data.current_hypothesis.content}</div>`;
+    }
+
+    // 3. Discoveries
+    if (data.active_discoveries && data.active_discoveries.length > 0) {
+      data.active_discoveries.reverse().forEach(d => {
+        html += `<div style="color:var(--text2); opacity:0.8;">> ${d.content}</div>`;
+      });
+    }
+
+    if (!html) html = '<div style="color:var(--muted); font-style:italic;">Henüz aktif keşif yok. Modeller analiz ediyor...</div>';
+    
+    // Reasoning Accuracy (Phase 68: Eval Harness)
+    try {
+      const scoreData = await api('/monitoring/agi/cognitive_score');
+      if (scoreData && scoreData.overall_cognitive_score !== undefined) {
+        const acc = Math.round(scoreData.overall_cognitive_score * 100);
+        safeSetText('sovereign-reasoning-accuracy', 'ACC: ' + acc + '%');
+        safeStyle('sovereign-reasoning-accuracy', { color: acc > 80 ? 'var(--gold)' : 'var(--red)' });
+      }
+    } catch (e) {
+      console.warn('Cognitive score fetch failed');
+    }
+
+  } catch (e) {
+    console.error('Blackboard fetch error:', e);
+    container.innerHTML = '<div style="color:var(--muted);">Karatahta erişilemez durumda.</div>';
+  }
 }
