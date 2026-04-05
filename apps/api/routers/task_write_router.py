@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from auth.jwt_auth import get_current_user, get_optional_user
-from api._task_shared import _db_session, _project_to_dict, TaskCreateRequest, TaskUpdateRequest
+from ._task_shared import _db_session, _project_to_dict, TaskCreateRequest, TaskUpdateRequest
 from observability.logging import get_logger
 
 # V2 Mimarisi İçe Aktarımları
