@@ -283,10 +283,24 @@ class AuthService:
 
     async def get_user_from_token(self, db: AsyncSession, token: str) -> Any:
         from db.models import User
+        import uuid
+        from sqlalchemy import select
+        
         payload = _decode_token(token)
         if payload.get("type") != "access":
             raise HTTPException(status_code=401, detail="Access token gerekli")
-        result = await db.execute(select(User).where(User.id == payload["sub"]))
+            
+        # Ensure ID is a UUID object for SQLAlchemy/SQLite compatibility
+        user_id_str = payload.get("sub")
+        if not user_id_str:
+            raise HTTPException(status_code=401, detail="Token'da 'sub' eksik")
+            
+        try:
+            user_id = uuid.UUID(user_id_str)
+        except ValueError:
+            raise HTTPException(status_code=401, detail="Geçersiz kullanıcı ID formatı")
+
+        result = await db.execute(select(User).where(User.id == user_id))
         user   = result.scalar_one_or_none()
         if not user or not user.is_active:
             raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı veya devre dışı")
