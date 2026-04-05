@@ -27,7 +27,9 @@ from typing import Optional
 from core.agency.loader import agency_loader
 from core.prompts import DEBATE_PROMPT_A, DEBATE_PROMPT_B, DEBATE_PROMPT_MOD, DEBATE_SYNTHESIS_PROMPT
 from observability.logging import get_logger
-from api.ws_manager import ws_manager
+# Faz 12.1 Stability: Event-Driven UI Updates
+from packages.orchestration.domain.events import event_bus
+from packages.contracts.events import EVENT_DEBATE_STATE
 
 _log = get_logger("debate_engine")
 
@@ -177,9 +179,9 @@ class DebateEngine:
                 agent_a=agent_a, persona_a=persona_a,
                 context_hint=context_hint
             )
-            await ws_manager.broadcast_debate_state(debate_id, "thinking", agent_a, round_num)
+            await event_bus.emit(EVENT_DEBATE_STATE, {"debate_id": debate_id, "state": "thinking", "agent_id": agent_a, "round": round_num})
             arg_a = await self._llm(prompt_a, agent_a, force_provider=provider_map.get(agent_a))
-            await ws_manager.broadcast_debate_state(debate_id, "arguing", agent_a, round_num, content=arg_a[:200])
+            await event_bus.emit(EVENT_DEBATE_STATE, {"debate_id": debate_id, "state": "arguing", "agent_id": agent_a, "round": round_num, "content": arg_a[:200]})
             history += f"\n[{agent_a} — Tur {round_num}]:\n{arg_a}\n"
 
             # ── Agent B yanıt verir ───────────────────────────
@@ -187,18 +189,18 @@ class DebateEngine:
                 history=history, agent_b=agent_b,
                 persona_b=persona_b, agent_a=agent_a
             )
-            await ws_manager.broadcast_debate_state(debate_id, "thinking", agent_b, round_num)
+            await event_bus.emit(EVENT_DEBATE_STATE, {"debate_id": debate_id, "state": "thinking", "agent_id": agent_b, "round": round_num})
             arg_b = await self._llm(prompt_b, agent_b, force_provider=provider_map.get(agent_b))
-            await ws_manager.broadcast_debate_state(debate_id, "arguing", agent_b, round_num, content=arg_b[:200])
+            await event_bus.emit(EVENT_DEBATE_STATE, {"debate_id": debate_id, "state": "arguing", "agent_id": agent_b, "round": round_num, "content": arg_b[:200]})
             history += f"\n[{agent_b} — Tur {round_num}]:\n{arg_b}\n"
 
             # ── Moderatör değerlendirme notu ──────────────────
             prompt_mod = DEBATE_PROMPT_MOD.format(
                 history=history, moderator=moderator, persona_m=persona_m
             )
-            await ws_manager.broadcast_debate_state(debate_id, "thinking", moderator, round_num)
+            await event_bus.emit(EVENT_DEBATE_STATE, {"debate_id": debate_id, "state": "thinking", "agent_id": moderator, "round": round_num})
             mod_note = await self._llm(prompt_mod, moderator, force_provider=provider_map.get(moderator))
-            await ws_manager.broadcast_debate_state(debate_id, "arguing", moderator, round_num, content=mod_note[:200])
+            await event_bus.emit(EVENT_DEBATE_STATE, {"debate_id": debate_id, "state": "arguing", "agent_id": moderator, "round": round_num, "content": mod_note[:200]})
             history += f"\n[Moderatör — Tur {round_num}]:\n{mod_note}\n"
 
             rounds.append(DebateRound(
@@ -220,11 +222,11 @@ class DebateEngine:
         synthesis_prompt = DEBATE_SYNTHESIS_PROMPT.format(
             history=history, moderator=moderator, persona_m=persona_m
         )
-        await ws_manager.broadcast_debate_state(debate_id, "thinking", moderator, 999) # 999 is final
+        await event_bus.emit(EVENT_DEBATE_STATE, {"debate_id": debate_id, "state": "thinking", "agent_id": moderator, "round": 999}) # 999 is final
         consensus = await self._llm(synthesis_prompt, moderator, force_provider=provider_map.get(moderator))
         # Pacify weird slice lint
         safe_consensus = str(consensus or "")
-        await ws_manager.broadcast_debate_state(debate_id, "concluded", moderator, 999, consensus=safe_consensus[:300])
+        await event_bus.emit(EVENT_DEBATE_STATE, {"debate_id": debate_id, "state": "concluded", "agent_id": moderator, "round": 999, "consensus": safe_consensus[:300]})
         _log.info(f"Debate tamamlandı [{debate_id}] — {len(rounds)} tur, uzlaşı={agreement_reached}")
 
         return DebateResult(
