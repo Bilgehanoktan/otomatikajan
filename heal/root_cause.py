@@ -25,6 +25,9 @@ ERROR_PATTERNS: list[tuple[str, list[str]]] = [
     ("NetworkError",       ["connection", "network", "dns", "ssl", "socket", "unreachable"]),
     ("ServerError",        ["500", "502", "503", "504", "server error", "internal error"]),
     ("ParseError",         ["json", "parse", "decode", "invalid response", "unexpected"]),
+    ("InternalError",      ["attributeerror", "nameerror", "typeerror", "uuid", "keyerror", "recursion"]),
+    ("DatabaseError",      ["sqlalchemy", "psycopg", "sqlite", "operationalerror", "integrityerror", "connection refused"]),
+    ("MemoryPressure",     ["memory", "allocation", "oom", "resource exhausted"]),
 ]
 
 
