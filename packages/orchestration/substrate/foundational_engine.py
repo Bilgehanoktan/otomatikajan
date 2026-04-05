@@ -223,7 +223,7 @@ class Orchestrator:
             # 2. Yürütme (Ajan Katmanı)
             agent = self._agents.get(st.agent_id)
             if not agent:
-                from core.agency.loader import agency_loader
+                from packages.orchestration.agency.loader import agency_loader
                 spec_data = agency_loader.get_agent(st.agent_id)
                 if spec_data:
                     from agents.agent_registry import Agent
@@ -237,7 +237,7 @@ class Orchestrator:
                     self._agents[st.agent_id] = agent
                 else:
                     try:
-                        from core.agency.factory import get_specialist_factory
+                        from packages.orchestration.agency.factory import get_specialist_factory
                         factory = get_specialist_factory(self.model_orch)
                         spec_data = await factory.build_specialist(st.agent_id, st.prompt)
                         if spec_data:

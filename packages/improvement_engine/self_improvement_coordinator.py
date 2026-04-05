@@ -4,8 +4,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
 
-from core.improvement.observer import ImprovementObserver
-from core.improvement.models import ImprovementOpportunity
+from packages.orchestration.experimental.observer import ImprovementObserver
+from packages.orchestration.experimental.models import ImprovementOpportunity
 from packages.orchestration.application.self_updater import SelfUpdater
 from packages.orchestration.domain.events import event_bus
 from observability.logging import get_logger

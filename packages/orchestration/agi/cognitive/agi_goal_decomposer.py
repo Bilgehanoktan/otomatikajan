@@ -6,7 +6,7 @@ import glob
 from typing import List, Dict, Any, Optional
 from llm.model_orchestrator import ModelOrchestrator
 from packages.orchestration.agi.task_governance import SubTask, TaskStatus
-from core.agi.cognitive.synaptic_cortex import synaptic_cortex
+from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
 from db.session import get_db
 
 _log = logging.getLogger("agi_goal_decomposer")

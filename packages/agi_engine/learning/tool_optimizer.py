@@ -26,7 +26,7 @@ class ToolOptimizer:
         Aracı "hardened" (dayanıklı) hale getirir.
         Gereksiz logları siler, error handling ekler, performansı artırır.
         """
-        from core.agi.operational.tool_weaver import tool_registry
+        from packages.orchestration.agi.operational.tool_weaver import tool_registry
         tool_meta = tool_registry.get_tool(tool_name)
         if not tool_meta:
             return

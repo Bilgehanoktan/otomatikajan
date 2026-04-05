@@ -9,7 +9,7 @@ from llm.model_orchestrator import ModelOrchestrator
 from db.session import session_scope, get_db
 from db.repository import ImprovementRepository, ProjectRepository, EventLogRepository
 from packages.orchestration.agi.schemas import SourceType
-from core.agi.cognitive.synaptic_cortex import synaptic_cortex
+from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
 
 _log = get_logger("goal_synthesizer")
 
@@ -90,7 +90,7 @@ class GoalSynthesizer:
             )
             
             # JSON Parse ve Misyon Kaydı
-            from core.agi.cognitive.sovereign_cortex import nexus_orchestrator
+            from packages.orchestration.agi.cognitive.sovereign_cortex import nexus_orchestrator
             mission_data = self._parse_json(response.content)
             
             if mission_data:

@@ -92,7 +92,7 @@ class MotorSynapse:
         while current_retry <= max_retries:
             try:
                 # Dinamik Araç Kontrolü (Neural Tool Weaver)
-                from core.agi.operational.neural_tool_weaver import tool_registry
+                from packages.orchestration.agi.operational.neural_tool_weaver import tool_registry
                 dynamic_tool = tool_registry.get_tool(step.agent_id)
                 
                 if dynamic_tool:
@@ -126,7 +126,7 @@ except Exception as e:
                 else:
                     agent = self.agents.get(step.agent_id)
                     if not agent:
-                        from core.agi.operational.neural_tool_weaver import neural_tool_weaver
+                        from packages.orchestration.agi.operational.neural_tool_weaver import neural_tool_weaver
                         weave_res = await neural_tool_weaver.weave_capability(f"Yeni motor gereksinimi: {step.agent_id}", step.agent_id)
                         if weave_res["status"] == "success":
                             from agents.agent_registry import build_agents

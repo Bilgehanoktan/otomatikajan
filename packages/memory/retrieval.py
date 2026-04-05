@@ -288,7 +288,7 @@ class ContextBuilder:
         # Önce DB
         try:
             from db.session import AsyncSessionLocal
-            from core.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
+            from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
             async with AsyncSessionLocal() as db:
                 return await memory_store.search(
                     db,
@@ -323,7 +323,7 @@ class ContextBuilder:
         # 1. DB'ye kaydet (kalıcı)
         try:
             from db.session import AsyncSessionLocal
-            from core.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
+            from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
             
             async def _persist(session):
                 await memory_store.save(

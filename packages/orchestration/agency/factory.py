@@ -83,5 +83,5 @@ source: dynamic_factory
 
 # Singleton or helper function
 def get_specialist_factory(model_orch: ModelOrchestrator) -> SpecialistFactory:
-    from core.agency.loader import agency_loader
+    from packages.orchestration.agency.loader import agency_loader
     return SpecialistFactory(model_orch, agency_loader.base_dir)

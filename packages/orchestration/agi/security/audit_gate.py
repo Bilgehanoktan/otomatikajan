@@ -64,7 +64,7 @@ class AuditGate:
             return VerificationReport(result_status=False, evidence_summary=f"Audit failed: {e}")
 
     async def _run_symbolic_checks(self, actions: List[ActionRecord]) -> Dict[str, Any]:
-        from core.agi.security.symbolic_engine import symbolic_engine
+        from packages.orchestration.agi.security.symbolic_engine import symbolic_engine
         files_to_check = set()
         
         # Action'lardan değiştirilen dosyaları bul (basitleştirilmiş regex veya metadata)
@@ -244,7 +244,7 @@ class AuditGate:
         
         try:
             # Phase 35: Shadow Backup Integration
-            from core.agi.security.backup_service import backup_service
+            from packages.orchestration.agi.security.backup_service import backup_service
             
             response = await self.model_orch.complete_task(
                 agent_role="infosec_expert",
@@ -303,7 +303,7 @@ class AuditGate:
         _log.info(f"Mimari Öneri Denetleniyor: {proposal.get('title')}")
         
         # 1. Kaba Kısıtlamalar (Hard Constraints)
-        from core.agi.operational.scaffolder import scaffolder
+        from packages.orchestration.agi.operational.scaffolder import scaffolder
         for action in proposal.get("actions", []):
             if action.get("type") == "create_subsystem":
                 path = action.get("path", "")

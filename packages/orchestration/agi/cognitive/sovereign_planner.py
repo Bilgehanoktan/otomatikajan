@@ -5,7 +5,7 @@ from llm.model_orchestrator import ModelOrchestrator
 from packages.orchestration.agi.task_governance import GovernedTask, GovernanceStatus, SubTask, TaskStatus
 import uuid
 import uuid
-from core.agi.cognitive.synaptic_cortex import synaptic_cortex
+from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
 from db.session import get_db
 
 _log = logging.getLogger("agi_sovereign_planner")

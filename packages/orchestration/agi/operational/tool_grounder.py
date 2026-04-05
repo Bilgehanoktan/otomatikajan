@@ -3,8 +3,8 @@ import re
 from typing import Dict, Any, List, Optional
 import difflib
 import os
-from core.agi.cognitive.cognitive_blackboard import CognitiveBlackboard
-from core.agi.world.repo_graph import repo_world_model # Phase 64
+from packages.orchestration.agi.cognitive.cognitive_blackboard import CognitiveBlackboard
+from packages.orchestration.agi.world.repo_graph import repo_world_model # Phase 64
 
 logger = logging.getLogger("agi_tool_grounder")
 
@@ -109,7 +109,7 @@ class ToolGrounder:
         return input_data
 
 async def get_grounded_tool_input(goal_id: str, tool_name: str, tool_input: Any) -> Any:
-    from core.agi.cognitive.cognitive_blackboard import get_blackboard
+    from packages.orchestration.agi.cognitive.cognitive_blackboard import get_blackboard
     bb = get_blackboard(goal_id)
     grounder = ToolGrounder(bb)
     return await grounder.ground_input(tool_name, tool_input)

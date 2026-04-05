@@ -24,8 +24,8 @@ from db.session import session_scope
 # Faz 12.1 Stability: Event-Driven UI Updates
 from packages.orchestration.domain.events import event_bus
 from packages.contracts.events import EVENT_SKILL_TRACE
-from core.agi.world.provenance_engine import provenance_engine
-from core.agi.cognitive.metacognitive_auditor import MetacognitiveAuditor # Phase 65
+from packages.orchestration.agi.world.provenance_engine import provenance_engine
+from packages.orchestration.agi.cognitive.metacognitive_auditor import MetacognitiveAuditor # Phase 65
 
 _log = get_logger("velocity_engine")
 
@@ -68,7 +68,7 @@ class VelocityEngine:
 
     async def simulate_and_execute(self, agent_id: str, prompt: str, context: Dict[str, Any], task_id: str) -> EngineResult:
         """Eylemi simüle et, riskleri ölç ve ardından yürüt."""
-        from core.agi.operational.kinetic_arbiter import kinetic_arbiter
+        from packages.orchestration.agi.operational.kinetic_arbiter import kinetic_arbiter
         
         t_start = time.time()
         await self._ensure_agents()
@@ -86,7 +86,7 @@ class VelocityEngine:
                 return EngineResult(success=False, output_data=None, errors=[f"Simulation Error: {sim_report}"])
 
             # 2. Risk Denetimi (Audit Gate)
-            from core.agi.security.audit_gate import AuditGate
+            from packages.orchestration.agi.security.audit_gate import AuditGate
             audit_gate = AuditGate(self.model_orch)
             is_safe, risk_notes = await self._inspect_intent_simulated(agent_id, prompt, sim_report)
             if not is_safe:
@@ -95,7 +95,7 @@ class VelocityEngine:
 
             # 3. Araç Topraklama (Tool Grounding - Faz 66)
             _log.info(f"[VELOCITY-GROUND] Araç girdileri topraklanıyor (Faz 66): {agent_id}")
-            from core.agi.operational.tool_grounder import get_grounded_tool_input
+            from packages.orchestration.agi.operational.tool_grounder import get_grounded_tool_input
             grounded_context = await get_grounded_tool_input(task_id, agent_id, context)
             
             if grounded_context == "BLOCKED_PATH_ACCESS":
@@ -110,7 +110,7 @@ class VelocityEngine:
             await self._reflect_and_log(agent_id, result, task_id)
             
             # Phase 88: Project-level success boosts satisfaction and recovers energy
-            from core.agi.consciousness.affective_core import affective_core
+            from packages.orchestration.agi.consciousness.affective_core import affective_core
             if result.success:
                 affective_core.adjust_state("goal_reached", magnitude=0.15)
             else:

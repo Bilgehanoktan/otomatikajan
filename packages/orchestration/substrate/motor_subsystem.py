@@ -79,7 +79,7 @@ class MotorSubsystem:
             
             try:
                 # --- Dinamik Araç Kontrolü (Phase 12.4) ---
-                from core.agi.operational.tool_weaver import tool_registry
+                from packages.orchestration.agi.operational.tool_weaver import tool_registry
                 dynamic_tool = tool_registry.get_tool(step.agent_id)
                 
                 if dynamic_tool:
@@ -115,7 +115,7 @@ except Exception as e:
                     # Normal Ajan Yürütme (Ajan bir motor ünitesi gibi davranır)
                     agent = self.agents.get(step.agent_id)
                     if not agent:
-                        from core.agi.operational.tool_weaver import tool_weaver
+                        from packages.orchestration.agi.operational.tool_weaver import tool_weaver
                         weave_res = await tool_weaver.weave_capability(f"Yeni ajan/motor gereksinimi: {step.agent_id}", step.agent_id)
                         if weave_res["status"] == "success":
                             return await self._execute_motor_step(step, plan_id)

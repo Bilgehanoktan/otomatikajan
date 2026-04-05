@@ -7,8 +7,8 @@ from llm.model_orchestrator import ModelOrchestrator
 from packages.orchestration.agi.schemas import (
     ProblemFrame, ContextPackage, ExecutionPlan, PlanStep, RiskLevel, AffectiveState
 )
-from core.agi.cognitive.foresight_cortex import foresight_cortex
-from core.agi.cognitive.motivation_engine import motivation_engine
+from packages.orchestration.agi.cognitive.foresight_cortex import foresight_cortex
+from packages.orchestration.agi.cognitive.motivation_engine import motivation_engine
 
 _log = get_logger("agi_strategic_decision")
 

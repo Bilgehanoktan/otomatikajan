@@ -3,7 +3,7 @@ Watchdog Log Aggregation (Vector Memory)
 Sistem olaylarını ve iyileştirme kayıtlarını vektör veri tabanına (MemoryStore) işler.
 """
 from typing import Any
-from core.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
+from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
 from db.session import AsyncSessionLocal
 from observability.logging import get_logger
 

@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Awaitable, Callable, Optional
 from observability.logging import get_logger  # type: ignore
-from core.agi.cognitive.metacognitive_auditor import metacognitive_auditor
+from packages.orchestration.agi.cognitive.metacognitive_auditor import metacognitive_auditor
 
 _log = get_logger("core.job_queue")
 

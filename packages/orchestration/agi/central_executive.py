@@ -5,20 +5,20 @@ from typing import Optional, Dict, Any, List
 from sqlalchemy import select, desc # Faz 82-85: Strategic Query
 from observability.logging import get_logger
 from llm.model_orchestrator import ModelOrchestrator
-from core.agi.operational.local_failsafe_engine import local_failsafe
+from packages.orchestration.agi.operational.local_failsafe_engine import local_failsafe
 from agents.agent_registry import build_agents
 
 # Bilişsel Birimlerin (Cortex Mimarisi) İçe Aktarımı
 from packages.orchestration.agi.schemas import (
     UnifiedInput, SourceType, EpisodeRecord, ContextPackage, RiskLevel, TaskType
 )
-from core.agi.cognitive.perception_unit import PerceptionUnit
-from core.agi.cognitive.strategic_decision_center import StrategicDecisionCenter
-from core.agi.security.audit_gate import AuditGate
-from core.agi.cognitive.synaptic_cortex import synaptic_cortex
-from core.agi.cognitive.compactor import context_compactor
-from core.agi.cognitive.motivation_engine import motivation_engine # Phase 28
-from core.agi.cognitive.thread_governor import thread_governor # Phase 63
+from packages.orchestration.agi.cognitive.perception_unit import PerceptionUnit
+from packages.orchestration.agi.cognitive.strategic_decision_center import StrategicDecisionCenter
+from packages.orchestration.agi.security.audit_gate import AuditGate
+from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
+from packages.orchestration.agi.cognitive.compactor import context_compactor
+from packages.orchestration.agi.cognitive.motivation_engine import motivation_engine # Phase 28
+from packages.orchestration.agi.cognitive.thread_governor import thread_governor # Phase 63
 from db.session import session_scope
 
 # WorldModel Katman 9: Observability & Graph Context
@@ -44,8 +44,8 @@ class CentralExecutive:
         self.perception = PerceptionUnit(self.model_orch)
         self.decision = StrategicDecisionCenter(self.model_orch)
         
-        from core.agi.operational.motor_synapse import MotorSynapse
-        from core.agi.operational.velocity_engine import velocity_engine
+        from packages.orchestration.agi.operational.motor_synapse import MotorSynapse
+        from packages.orchestration.agi.operational.velocity_engine import velocity_engine
         self.motor_synapse = MotorSynapse(self.all_agents)
         self.velocity_engine = velocity_engine
         self.audit = AuditGate(self.model_orch)
@@ -58,7 +58,7 @@ class CentralExecutive:
         _log.info(f"Yürütme döngüsü başlatılıyor. Kaynak: {source.value}")
         
         async with session_scope() as db:
-            from core.agi.cognitive.theory_of_mind import theory_of_mind
+            from packages.orchestration.agi.cognitive.theory_of_mind import theory_of_mind
             await theory_of_mind.load_state(db, str(input_id) if input_id else "global")
             theory_of_mind.analyze_interaction(str(raw_input))
             
@@ -84,7 +84,7 @@ class CentralExecutive:
         affective_state = await motivation_engine.recalibrate_state(recent_episodes, frame)
 
         # 3. [FAZ 51] Stratejik Dekompozisyon ve DAG
-        from core.agi.cognitive.sovereign_planner import sovereign_planner
+        from packages.orchestration.agi.cognitive.sovereign_planner import sovereign_planner
         sub_frames = await sovereign_planner.decompose(frame.objective, frame.objective, list(self.all_agents.values()))
         execution_waves = sovereign_planner.get_execution_waves(sub_frames)
         
@@ -161,7 +161,7 @@ class CentralExecutive:
                     break
 
         # 5. Hafıza ve Metacognitive Analiz
-        from core.agi.cognitive.metacognition import metacognition
+        from packages.orchestration.agi.cognitive.metacognition import metacognition
         trace_analysis = await metacognition.analyze_cognitive_trace(all_actions)
         
         episode = EpisodeRecord(
@@ -174,7 +174,7 @@ class CentralExecutive:
         )
         
         async with session_scope() as db:
-            from core.agi.cognitive.theory_of_mind import theory_of_mind
+            from packages.orchestration.agi.cognitive.theory_of_mind import theory_of_mind
             await theory_of_mind.persist_state(db, str(input_id) if input_id else "global")
 
             if await synaptic_cortex.memory_write_gate(db, episode, "episode_record"):
@@ -190,13 +190,13 @@ class CentralExecutive:
 
     async def _execute_task_frame(self, current_frame, inp, cumulative_history, affective_state, synapse_lessons: List[Dict[str, Any]] = None, thought_thread: str = "", north_star_goal: Any = None) -> Dict[str, Any]:
         """Tek bir görev birimini (frame) yürütür."""
-        from core.agi.adaptation.strategy_tuner import strategy_tuner
-        from core.agi.monitoring.nervous_system import nervous_system
+        from packages.orchestration.agi.adaptation.strategy_tuner import strategy_tuner
+        from packages.orchestration.agi.monitoring.nervous_system import nervous_system
         
         async with session_scope() as db:
             sensory_metrics = await nervous_system.pulse(db)
         
-        from core.agi.world.repo_graph import repo_world_model
+        from packages.orchestration.agi.world.repo_graph import repo_world_model
         repo_world_model.scan()
         summary = repo_world_model.get_summary()
 
@@ -262,7 +262,7 @@ class CentralExecutive:
 
         causal_graph = None
         if not success:
-            from core.agi.cognitive.causal_engine import causal_engine
+            from packages.orchestration.agi.cognitive.causal_engine import causal_engine
             temp_ep = EpisodeRecord(problem_frame=current_frame, actions=task_actions, verification=last_verification)
             causal_graph = await causal_engine.analyze_episode(temp_ep, depth=2)
 

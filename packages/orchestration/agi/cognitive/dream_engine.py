@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from db.models import Memory, ProjectStatus, Project, SubTask
 from db.session import session_scope
 from db.repository import ProjectRepository
-from core.agi.learning.wisdom_synthesizer import wisdom_synthesizer
+from packages.orchestration.agi.learning.wisdom_synthesizer import wisdom_synthesizer
 from llm.model_orchestrator import ModelOrchestrator
 from observability.logging import get_logger
 
@@ -67,7 +67,7 @@ class DreamEngine:
 
     async def synthesize_policies(self, db: AsyncSession):
         """Bölümler (Episodes) arasındaki örüntüleri bulur ve politikalar sentezler."""
-        from core.agi.cognitive.synaptic_cortex import synaptic_cortex
+        from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
         
         # Son bölümleri (Episodes) getir
         recent_episodes = await synaptic_cortex.get_recent(db, category="episode_record", limit=20)
@@ -224,7 +224,7 @@ dream_engine = DreamEngine()
 
 async def start_dream_loop():
     """Background metabolism loop with adaptive sleep."""
-    from core.agi.monitoring.token_budgeter import token_budgeter
+    from packages.orchestration.agi.monitoring.token_budgeter import token_budgeter
     while True:
         try:
             health = await token_budgeter.check_health()

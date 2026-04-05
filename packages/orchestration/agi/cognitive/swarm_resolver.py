@@ -27,8 +27,8 @@ class SwarmResolver:
         _log.info(f"[SWARM] Akran denetimi başlatıldı: {producer_id} -> {reviewer_id}")
         
         # --- Neuro-Symbolic Verification (Phase 26) ---
-        from core.agi.cognitive.symbolic_prover import symbolic_prover
-        from core.agi.security.symbolic_engine import symbolic_engine
+        from packages.orchestration.agi.cognitive.symbolic_prover import symbolic_prover
+        from packages.orchestration.agi.security.symbolic_engine import symbolic_engine
         import tempfile
         import os
 

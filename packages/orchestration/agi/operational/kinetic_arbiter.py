@@ -4,7 +4,7 @@ from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field
 
 from observability.logging import get_logger
-from core.agi.consciousness.affective_core import affective_core
+from packages.orchestration.agi.consciousness.affective_core import affective_core
 
 _log = get_logger("kinetic_arbiter")
 

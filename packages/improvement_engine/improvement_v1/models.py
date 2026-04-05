@@ -2,7 +2,7 @@
 [CONSOLIDATION SHIM] improvement_v1/models.py -> core/improvement/models.py
 Legacy import redirection.
 """
-from core.improvement.models import *
+from packages.orchestration.experimental.models import *
 
 # Legacy common names
 TaskState = TaskState

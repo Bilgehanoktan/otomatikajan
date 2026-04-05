@@ -3,7 +3,7 @@ import logging
 from enum import Enum
 from typing import Dict, List, Any, Optional
 from llm.llm_types import PROVIDERS, ProviderStats, CircuitState
-from core.agi.consciousness.affective_core import affective_core
+from packages.orchestration.agi.consciousness.affective_core import affective_core
 
 _log = logging.getLogger("agi_metabolic_governor")
 

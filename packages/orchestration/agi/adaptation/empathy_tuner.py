@@ -1,6 +1,6 @@
 from typing import Optional
 from observability.logging import get_logger
-from core.agi.cognitive.theory_of_mind import theory_of_mind
+from packages.orchestration.agi.cognitive.theory_of_mind import theory_of_mind
 
 _log = get_logger("agi_empathy_tuner")
 

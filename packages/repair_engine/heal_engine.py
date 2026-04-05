@@ -28,7 +28,7 @@ class Severity(str, Enum):
     ACTION   = "action"
 
 if TYPE_CHECKING:
-    from core.agi.cognitive.sovereign_cortex import SovereignCortex
+    from packages.orchestration.agi.cognitive.sovereign_cortex import SovereignCortex
     from packages.orchestration.agi.task_governance import GovernedTask
 
 
@@ -105,7 +105,7 @@ class SelfHealEngine:
     @property
     def orch(self):
         if self._orch is None:
-            from core.agi.cognitive.sovereign_cortex import sovereign_cortex
+            from packages.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex
             self._orch = sovereign_cortex
         return self._orch
 

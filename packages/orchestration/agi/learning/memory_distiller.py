@@ -117,7 +117,7 @@ class MemoryDistiller:
             await db.commit()
 
         # 2. Kalıcı Hafıza (Wisdom) olarak kaydet
-        from core.agi.cognitive.synaptic_cortex import synaptic_cortex
+        from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
         async with AsyncSessionLocal() as db:
             await synaptic_cortex.save(
                 db=db,

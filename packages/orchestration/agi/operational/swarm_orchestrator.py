@@ -1,7 +1,7 @@
 import asyncio
 from typing import List, Dict, Any, Optional
-from core.agi.orchestrator import ModelOrchestrator
-from core.agi.cognitive.swarm_cortex import swarm_cortex
+from packages.orchestration.agi.orchestrator import ModelOrchestrator
+from packages.orchestration.agi.cognitive.swarm_cortex import swarm_cortex
 from observability.logging import get_logger
 
 _log = get_logger("agi_swarm_orchestrator")

@@ -7,8 +7,8 @@ from llm.model_orchestrator import model_orchestrator
 from db.session import session_scope
 from sqlalchemy import select
 from db.models import ImprovementOpportunity, CEOSuggestedTask
-from core.agi.operational.neural_tool_weaver import neural_tool_weaver
-from core.agi.cognitive.causal_engine import causal_engine
+from packages.orchestration.agi.operational.neural_tool_weaver import neural_tool_weaver
+from packages.orchestration.agi.cognitive.causal_engine import causal_engine
 
 _log = get_logger("agi_evolutionary_architect")
 
@@ -67,7 +67,7 @@ class EvolutionaryArchitect:
                     
                     if patch_suggestion:
                         # 4. Güvenlik Denetimi (Audit Gate) [Katman 31]
-                        from core.agi.security.audit_gate import AuditGate
+                        from packages.orchestration.agi.security.audit_gate import AuditGate
                         audit_gate = AuditGate(model_orchestrator)
                         is_safe = await audit_gate.verify_evolution_patch(opp, patch_suggestion, target_file)
                         

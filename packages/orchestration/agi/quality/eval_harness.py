@@ -2,8 +2,8 @@ import asyncio
 import logging
 import uuid
 from typing import Dict, Any, List
-from core.agi.cognitive.cognitive_blackboard import get_blackboard
-from core.agi.operational.tool_grounder import get_grounded_tool_input
+from packages.orchestration.agi.cognitive.cognitive_blackboard import get_blackboard
+from packages.orchestration.agi.operational.tool_grounder import get_grounded_tool_input
 
 logger = logging.getLogger("agi_eval_harness")
 

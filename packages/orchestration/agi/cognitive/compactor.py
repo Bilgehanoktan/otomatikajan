@@ -2,7 +2,7 @@
 Compatibility shim: compactor → dream_engine
 [CONSOLIDATION] Bu modül dream_engine.py ile birleştirilmiştir.
 """
-from core.agi.cognitive.dream_engine import (
+from packages.orchestration.agi.cognitive.dream_engine import (
     DreamEngine,
     dream_engine,
 )

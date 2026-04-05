@@ -3,10 +3,10 @@ import logging
 import time
 from typing import Dict, Any, List, Optional
 from llm.model_orchestrator import ModelOrchestrator
-from core.agi.quality.benchmarking_engine import benchmarking_engine
+from packages.orchestration.agi.quality.benchmarking_engine import benchmarking_engine
 from packages.orchestration.agi.schemas import VerificationReport
 from packages.orchestration.agi.task_governance import GovernedTask
-from core.agi.monitoring.nervous_system import nervous_system
+from packages.orchestration.agi.monitoring.nervous_system import nervous_system
 
 _log = logging.getLogger("agi_sovereign_evaluator")
 

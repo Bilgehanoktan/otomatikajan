@@ -9,13 +9,13 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .sovereign_auditor import sovereign_auditor
-from core.improvement.proposer import proposer
-from core.improvement.cognitive_verifier import cognitive_verifier
-from core.agi.operational.patching_sandbox import patching_sandbox
-from core.agi.security.audit_gate import audit_gate
-from core.agi.monitoring.provenance_engine_45 import provenance_engine_45
+from packages.orchestration.experimental.proposer import proposer
+from packages.orchestration.experimental.cognitive_verifier import cognitive_verifier
+from packages.orchestration.agi.operational.patching_sandbox import patching_sandbox
+from packages.orchestration.agi.security.audit_gate import audit_gate
+from packages.orchestration.agi.monitoring.provenance_engine_45 import provenance_engine_45
 from db.models import Memory
-from core.agi.learning.specialist_forge import specialist_forge
+from packages.orchestration.agi.learning.specialist_forge import specialist_forge
 from packages.orchestration.agi.schemas import EpisodeRecord, CausalGraph
 from packages.orchestration.domain.events import event_bus
 from observability.logging import get_logger
@@ -173,9 +173,9 @@ class SovereignEvolutionEngine:
     async def _report_event(self, proposal: Dict, auto: bool = False):
         """Evrim olaylarını raporlar."""
         try:
-            from core.agi.cognitive.sovereign_cortex import nexus_orchestrator as orchestrator
-            from core.agi.cognitive.chronicler import chronicler
-            from core.agi.consciousness.affective_core import affective_core
+            from packages.orchestration.agi.cognitive.sovereign_cortex import nexus_orchestrator as orchestrator
+            from packages.orchestration.agi.cognitive.chronicler import chronicler
+            from packages.orchestration.agi.consciousness.affective_core import affective_core
             
             msg = f"{'OTONOM ' if auto else ''}Evrim Adımı: {proposal['finding']['title']}"
             await chronicler.record_provenance_structured({
@@ -199,7 +199,7 @@ class SovereignEvolutionEngine:
 
     async def apply_evolution(self, proposal: Dict):
         """Onaylanan evrim adımını sisteme uygular."""
-        from core.agi.cognitive.sovereign_cortex import nexus_orchestrator as orchestrator
+        from packages.orchestration.agi.cognitive.sovereign_cortex import nexus_orchestrator as orchestrator
         if not orchestrator.self_updater: return
 
         finding = proposal["finding"]

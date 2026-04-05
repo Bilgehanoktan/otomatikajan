@@ -19,33 +19,33 @@ from llm.model_orchestrator import ModelOrchestrator
 from memory.retrieval import context_builder
 from quality.output_schema import output_parser, AgentOutput
 from packages.orchestration.agi.task_governance import SovereignGoal, GovernedTask, GovernanceStatus, TaskPlanner, TaskStateService, ReportSynthesizer, TaskStatus, ProjectTask, SubTask
-from core.agi.cognitive.metacognitive_auditor import metacognitive_auditor
-from core.agi.cognitive.architect import Architect
-from core.agi.operational.scaffolder import scaffolder
-from core.agi.cognitive.memory_api import memory_api
+from packages.orchestration.agi.cognitive.metacognitive_auditor import metacognitive_auditor
+from packages.orchestration.agi.cognitive.architect import Architect
+from packages.orchestration.agi.operational.scaffolder import scaffolder
+from packages.orchestration.agi.cognitive.memory_api import memory_api
 from packages.orchestration.agi.schemas import EpisodeRecord, ActionRecord, UnifiedInput, ProblemFrame, TaskType, RiskLevel, VerificationReport
-from core.agi.learning.cognitive_mirror import cognitive_mirror
-from core.agi.learning.distiller import skill_distiller
-from core.agi.cognitive.agi_goal_decomposer import agi_goal_decomposer
-from core.agi.cognitive.collaborative_node import collaborative_node
-from core.agi.learning.knowledge_distiller import knowledge_distiller
-from core.agi.learning.prompt_synthesizer import PromptSynthesizer
-from core.agi.cognitive.synaptic_cortex import synaptic_cortex
-from core.agi.cognitive.motivation_engine import motivation_engine
-from core.agi.consciousness.affective_core import affective_core
-from core.agi.cognitive.foresight_cortex import foresight_cortex
-from core.agi.learning.memory_gate import memory_gate
-from core.agi.governance.watchdog import governance_watchdog
-from core.agi.governance.consensus_arbiter import consensus_arbiter
-from core.agi.cognitive.reflective_synthesizer import reflective_synthesizer
-from core.agi.cognitive.axiology_engine import axiology_engine
-from core.agi.operational.metabolic_governor import metabolic_governor
-from core.agi.learning.wisdom_synthesizer import wisdom_synthesizer
-from core.agi.cognitive.memory_pruner import memory_pruner
-from core.agi.quality.sovereign_evaluator import sovereign_evaluator
-from core.agi.cognitive.cognitive_blackboard import get_blackboard
-from core.agi.operational.tool_grounder import get_grounded_tool_input
-from core.agi.quality.eval_harness import eval_harness
+from packages.orchestration.agi.learning.cognitive_mirror import cognitive_mirror
+from packages.orchestration.agi.learning.distiller import skill_distiller
+from packages.orchestration.agi.cognitive.agi_goal_decomposer import agi_goal_decomposer
+from packages.orchestration.agi.cognitive.collaborative_node import collaborative_node
+from packages.orchestration.agi.learning.knowledge_distiller import knowledge_distiller
+from packages.orchestration.agi.learning.prompt_synthesizer import PromptSynthesizer
+from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
+from packages.orchestration.agi.cognitive.motivation_engine import motivation_engine
+from packages.orchestration.agi.consciousness.affective_core import affective_core
+from packages.orchestration.agi.cognitive.foresight_cortex import foresight_cortex
+from packages.orchestration.agi.learning.memory_gate import memory_gate
+from packages.orchestration.agi.governance.watchdog import governance_watchdog
+from packages.orchestration.agi.governance.consensus_arbiter import consensus_arbiter
+from packages.orchestration.agi.cognitive.reflective_synthesizer import reflective_synthesizer
+from packages.orchestration.agi.cognitive.axiology_engine import axiology_engine
+from packages.orchestration.agi.operational.metabolic_governor import metabolic_governor
+from packages.orchestration.agi.learning.wisdom_synthesizer import wisdom_synthesizer
+from packages.orchestration.agi.cognitive.memory_pruner import memory_pruner
+from packages.orchestration.agi.quality.sovereign_evaluator import sovereign_evaluator
+from packages.orchestration.agi.cognitive.cognitive_blackboard import get_blackboard
+from packages.orchestration.agi.operational.tool_grounder import get_grounded_tool_input
+from packages.orchestration.agi.quality.eval_harness import eval_harness
 
 _log = get_logger("agi_sovereign_cortex")
 
@@ -370,7 +370,7 @@ class SovereignCortex:
                                for word in ["mimari", "architecture", "core", "refactor", "security"])
         if is_architectural:
             _log.info(f"[SOVEREIGN] Mimari Denetim (Audit Gate) başlatılıyor: {title}")
-            from core.agi.security.audit_gate import audit_gate
+            from packages.orchestration.agi.security.audit_gate import audit_gate
             # Basit bir proposal objesi oluştur (Gerçekte daha zengin olabilir)
             proposal = {"title": title, "reasoning": description, "actions": []}
             is_safe = await audit_gate.verify_architecture_proposal(proposal)
@@ -445,7 +445,7 @@ class SovereignCortex:
             self.affective.adjust_state("goal_reached", magnitude=0.2)
             # Phase 53: Positive Skill Synthesis
             try:
-                from core.agi.cognitive.metacognitive_auditor import metacognitive_auditor
+                from packages.orchestration.agi.cognitive.metacognitive_auditor import metacognitive_auditor
                 # Fire and forget or awaited? Awaited for now to ensure DB session consistency.
                 async with get_db() as db:
                     await metacognitive_auditor.distill_positive_skill(db, task.title, task.subtasks)
@@ -753,7 +753,7 @@ class SovereignCortex:
         self.planner.dynamic_contracts[agent_id] = new_contract
         
         # 2. Değerlendirme paketini çalıştır
-        from core.agi.quality.sovereign_evaluator import sovereign_evaluator
+        from packages.orchestration.agi.quality.sovereign_evaluator import sovereign_evaluator
         eval_report = await sovereign_evaluator.run_suite()
         new_score = eval_report["agi_index"]
         
@@ -771,7 +771,7 @@ class SovereignCortex:
         """
         Mimari bir öneriyi koordine eder: Denetim -> Scaffolding -> Görevlendirme.
         """
-        from core.agi.security.audit_gate import AuditGate
+        from packages.orchestration.agi.security.audit_gate import AuditGate
         gate = AuditGate(self.model_orch)
         
         # 1. Mimari Denetim
@@ -812,7 +812,7 @@ class SovereignCortex:
             working_ctx = await blackboard.get_working_context()
             
             # 3. SEMANTİK HAFIZA 2.0: Sinerjik Ders Enjeksiyonu (Phase 72)
-            from core.agi.cognitive.synaptic_cortex import synaptic_cortex
+            from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
             from db.session import AsyncSessionLocal
             
             _log.info(f"[SOVEREIGN-MEMORY] Ajan {subtask.agent_id} için sinerjik bellek taraması (V5.2) başlatılıyor...")
@@ -862,7 +862,7 @@ class SovereignCortex:
             while attempts < max_attempts:
                 attempts += 1
                 try:
-                    from core.agi.operational.velocity_engine import velocity_engine
+                    from packages.orchestration.agi.operational.velocity_engine import velocity_engine
                     
                     # Dinamik Context Hazırlığı
                     enriched_context = await context_builder.build_context(
@@ -1005,7 +1005,7 @@ class SovereignCortex:
     async def _sync_provenance_memory(self):
         """Otonom değişim kayıtlarını hafızaya yükler."""
         try:
-            from core.agi.cognitive.chronicler import chronicler
+            from packages.orchestration.agi.cognitive.chronicler import chronicler
             history = await chronicler.get_recent_provenance(limit=10)
             if history:
                  summary = "; ".join([f"{h.get('target', 'sys')}: {h.get('reasoning', 'mod')[:50]}" for h in history])
@@ -1018,13 +1018,13 @@ class SovereignCortex:
     async def trigger_self_evolution(self):
         """Otonom iyileştirme döngüsünü (GoalSynthesizer) manuel olarak tetikler."""
         try:
-            from core.agi.cognitive.goal_synthesizer import GoalSynthesizer
+            from packages.orchestration.agi.cognitive.goal_synthesizer import GoalSynthesizer
             synthesizer = GoalSynthesizer(model_orch=self.model_orch)
             # Arka planda çalıştır (Task'ı bloklama)
             asyncio.create_task(synthesizer.run_synthesis_cycle())
 
             # Phase 73: Memory Distiller Entegrasyonu (Faz 86 Stabilizasyonu)
-            from core.agi.learning.memory_distiller import memory_distiller
+            from packages.orchestration.agi.learning.memory_distiller import memory_distiller
             asyncio.create_task(memory_distiller.run_distillation_cycle())
             
             _log.info("[SOVEREIGN] Self-Evolution and Memory Distillation cycles started in background.")

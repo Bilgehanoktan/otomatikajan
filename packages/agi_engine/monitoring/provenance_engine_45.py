@@ -7,7 +7,7 @@ import difflib
 from typing import Optional, Dict, Any, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from db.models import Memory
-from core.agi.cognitive.synaptic_cortex import synaptic_cortex
+from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
 from observability.logging import get_logger
 
 _log = get_logger("agi_provenance_engine")

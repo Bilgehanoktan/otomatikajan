@@ -4,9 +4,9 @@ Self-Improvement: Gate
 """
 import asyncio
 from typing import List, Dict
-from core.improvement.observer import observer
-from core.improvement.proposer import proposer
-from core.improvement.verifier import verifier
+from packages.orchestration.experimental.observer import observer
+from packages.orchestration.experimental.proposer import proposer
+from packages.orchestration.experimental.verifier import verifier
 from observability.logging import get_logger
 
 logger = get_logger("improvement.gate")
@@ -58,7 +58,7 @@ class ImprovementGate:
 
     async def _report_improvement(self, proposal: Dict, auto: bool = False):
         """İyileştirme sonucunu kullanıcıya raporlar (WS üzerinden)."""
-        from core.agi.cognitive.sovereign_cortex import nexus_orchestrator as orchestrator
+        from packages.orchestration.agi.cognitive.sovereign_cortex import nexus_orchestrator as orchestrator
         msg = f"{'OTONOM ' if auto else ''}İyileştirme Uygulandı: {proposal['issue']['reason']}"
         if orchestrator.ws_manager:
             await orchestrator.ws_manager.broadcast({
@@ -75,7 +75,7 @@ class ImprovementGate:
 
     async def apply_proposal(self, proposal: Dict):
         """Onaylanan yamayı sisteme uygular."""
-        from core.agi.cognitive.sovereign_cortex import nexus_orchestrator as orchestrator
+        from packages.orchestration.agi.cognitive.sovereign_cortex import nexus_orchestrator as orchestrator
         if not orchestrator.self_updater:
             logger.error("Self-Updater modülü bulunamadı, yama uygulanamıyor.")
             return

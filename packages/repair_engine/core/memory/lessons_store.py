@@ -126,7 +126,7 @@ class LessonsStore:
             
             # Faz 12.1: Puanla ve Playbook / Guardrail Üret
             if rec.decision in ("approved", "merged") and rec.feedback_note:
-                from core.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
+                from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
                 import asyncio
                 from db.session import AsyncSessionLocal
                 

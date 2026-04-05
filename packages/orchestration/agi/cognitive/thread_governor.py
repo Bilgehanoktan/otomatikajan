@@ -2,7 +2,7 @@ import logging
 import json
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
-from core.agi.cognitive.synaptic_cortex import synaptic_cortex
+from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
 from db.session import session_scope
 from llm.model_orchestrator import ModelOrchestrator
 

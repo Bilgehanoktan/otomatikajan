@@ -6,10 +6,10 @@ from datetime import datetime, timezone
 
 from packages.orchestration.agi.task_governance import ProjectTask, SubTask, TaskStatus
 from llm.model_orchestrator import ModelOrchestrator
-from core.agi.cognitive.synaptic_cortex import synaptic_cortex
+from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
 
-from core.agi.world.causal_error_graph import causal_error_graph
-from core.agi.operational.metabolic_governor import metabolic_governor, MetabolicMode
+from packages.orchestration.agi.world.causal_error_graph import causal_error_graph
+from packages.orchestration.agi.operational.metabolic_governor import metabolic_governor, MetabolicMode
 
 _log = logging.getLogger("agi_wisdom_synthesizer")
 

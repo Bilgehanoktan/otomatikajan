@@ -6,13 +6,13 @@ from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any, Optional
 
 from observability.logging import get_logger
-from core.agi.operational.velocity_engine import EngineResult
+from packages.orchestration.agi.operational.velocity_engine import EngineResult
 from packages.orchestration.governance.policy_engine import policy_engine, AutomationLevel
 from llm.model_orchestrator import ModelOrchestrator
 from db.session import session_scope
 from db.repository import EventLogRepository
 from packages.orchestration.agi.schemas import ActionRecord
-from core.agi.cognitive.metacognitive_auditor import ReflectionCortex
+from packages.orchestration.agi.cognitive.metacognitive_auditor import ReflectionCortex
 
 _log = get_logger("policy_evolution")
 

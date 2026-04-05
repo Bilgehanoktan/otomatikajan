@@ -2,7 +2,7 @@ import json
 import re
 from typing import List, Optional, Dict, Any
 from packages.orchestration.agi.schemas import ExecutionPlan, PlanStep, RiskLevel, PlanProposal
-from core.agi.cognitive.red_team_agent import red_team
+from packages.orchestration.agi.cognitive.red_team_agent import red_team
 from llm.model_orchestrator import ModelOrchestrator
 from observability.logging import get_logger
 
@@ -45,7 +45,7 @@ class ConsensusManager:
         
         # 0. Faz 40: Semantik Temellendirme (Semantic Grounding)
         try:
-            from core.agi.cognitive.synaptic_cortex import synaptic_cortex
+            from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
             lessons = await synaptic_cortex.search(db=None, query=context, category="cognitive_lesson", top_k=3)
             grounding_data = "\n".join([f"- {l.get('body', '')}" for l in lessons])
         except Exception as e:
@@ -109,7 +109,7 @@ class ConsensusManager:
             red_report = await red_team.attack_plan(context, data.get("hybrid_plan", ""))
 
             # --- Phase 44 & 46: Collaborative Consensus (Governance Check & Refinement) ---
-            from core.agi.governance.watchdog import governance_watchdog
+            from packages.orchestration.agi.governance.watchdog import governance_watchdog
             from packages.orchestration.agi.task_governance import SubTask
             
             mock_subtask = SubTask(id="consensus_eval", agent_id="architect", prompt=data.get("hybrid_plan", ""))

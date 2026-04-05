@@ -13,7 +13,7 @@ class MotivationEngine:
 
     def __init__(self):
         self.current_state = AffectiveState()
-        from core.agi.consciousness.affective_core import affective_core
+        from packages.orchestration.agi.consciousness.affective_core import affective_core
         self.affective = affective_core
 
     async def recalibrate_state(self, recent_episodes: List[Any], current_frame: ProblemFrame) -> AffectiveState:

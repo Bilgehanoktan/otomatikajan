@@ -23,7 +23,7 @@ try:
     )
 except ImportError:
     pass
-from core.agi.cognitive.sovereign_auditor import sovereign_auditor
+from packages.orchestration.agi.cognitive.sovereign_auditor import sovereign_auditor
 from llm.model_orchestrator import ModelOrchestrator
 from packages.orchestration.ceo.forecaster import CEOForecaster
 from observability.logging import get_logger
@@ -442,7 +442,7 @@ class CEOEngine:
     async def _generate_suggestion_with_llm(self, op: ImprovementOpportunity) -> Dict[str, str]:
         """Uses LLM to delegate to a specific Specialist Agent from the library."""
         from packages.orchestration.indexing.system_indexer import SystemIndexer
-        from core.agency.loader import agency_loader
+        from packages.orchestration.agency.loader import agency_loader
         
         indexer = SystemIndexer()
         # Fetch relevant code context
@@ -855,6 +855,6 @@ _ceo_engine = None
 def get_ceo_engine() -> CEOEngine:
     global _ceo_engine
     if _ceo_engine is None:
-        from core.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
+        from packages.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
         _ceo_engine = CEOEngine(orchestrator.model_orch)
     return _ceo_engine

@@ -86,7 +86,7 @@ class SourceRefactorNode:
 
 # --- Background Task Definition ---
 async def start_source_refactor_loop():
-    from core.agi.monitoring.token_budgeter import token_budgeter
+    from packages.orchestration.agi.monitoring.token_budgeter import token_budgeter
     node = SourceRefactorNode()
     
     while True:

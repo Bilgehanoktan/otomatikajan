@@ -11,10 +11,10 @@ import random
 from db.session import AsyncSessionLocal
 from db.models import SovereignModelPolicy, LLMCostLog
 from sqlalchemy import select
-from core.agi.monitoring.token_budgeter import token_budgeter
-from core.agi.operational.resource_manager import resource_manager
-from core.agi.consciousness.affective_core import affective_core
-from core.agi.operational.metabolic_governor import metabolic_governor, MetabolicMode
+from packages.orchestration.agi.monitoring.token_budgeter import token_budgeter
+from packages.orchestration.agi.operational.resource_manager import resource_manager
+from packages.orchestration.agi.consciousness.affective_core import affective_core
+from packages.orchestration.agi.operational.metabolic_governor import metabolic_governor, MetabolicMode
 
 from packages.orchestration.domain.events import event_bus
 logger = logging.getLogger(__name__)
@@ -168,7 +168,7 @@ class ModelOrchestrator:
 
         # 3. Prompt Hazırlığı ve Dinamik Yama (Strategist + Empathy Tuner)
         from packages.orchestration.application.prompt_manager import prompt_manager
-        from core.agi.adaptation.empathy_tuner import empathy_tuner
+        from packages.orchestration.agi.adaptation.empathy_tuner import empathy_tuner
 
         system_prompt = prompt_manager.apply_patch(agent_role, system_prompt)
         system_prompt = empathy_tuner.patch_system_prompt(system_prompt)
@@ -276,7 +276,7 @@ class ModelOrchestrator:
                 if is_rate_limit:
                     logger.error(f"RATE LIMIT (429) hit on {provider.name}. Coordinated slowdown triggered.")
                     # Faz 43: Arbiter'ı uyar
-                    from core.agi.operational.kinetic_arbiter import kinetic_arbiter
+                    from packages.orchestration.agi.operational.kinetic_arbiter import kinetic_arbiter
                     affective_core.adjust_state("rate_limit_429", magnitude=0.2)
                 elif is_budget_error:
                     resource_manager.report_error(provider.name, 402)

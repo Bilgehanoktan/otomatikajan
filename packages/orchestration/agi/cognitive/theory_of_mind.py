@@ -70,7 +70,7 @@ class TheoryOfMind:
         [Phase 22] Mevcut kullanıcı modelini hafızaya kaydeder.
         user_state metadata olarak da yazılır; load_state tarafından restore edilebilir.
         """
-        from core.agi.cognitive.synaptic_cortex import synaptic_cortex
+        from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
         body = f"User Cognitive Profile: {self.get_inferred_state()} | State: {self.user_state}"
         await synaptic_cortex.save(
             db,
@@ -89,7 +89,7 @@ class TheoryOfMind:
         [FIX-5] Geçmiş etkileşimlerden kullanıcı modelini geri yükler.
         Artık state gerçekten restore ediliyor.
         """
-        from core.agi.cognitive.synaptic_cortex import synaptic_cortex
+        from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
         past = await synaptic_cortex.search(db, query="User Cognitive Profile", project_id=project_id, top_k=1)
         if past:
             record = past[0]
