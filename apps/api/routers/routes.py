@@ -15,9 +15,9 @@ from core.agi.cognitive.cognitive_blackboard import get_blackboard
 from core.agi.quality.eval_harness import eval_harness
 
 from fastapi.concurrency import run_in_threadpool
-from api.rate_limiter import rate_limit
-from auth.jwt_auth import get_current_user
-from api.mcp_router import router as mcp_router
+from apps.api.routers.rate_limiter import rate_limit
+from apps.api.routers.auth.jwt_auth import get_current_user
+from apps.api.routers.mcp_router import router as mcp_router
 
 router = APIRouter()
 router.include_router(mcp_router)

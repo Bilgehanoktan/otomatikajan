@@ -8,7 +8,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
-from auth.jwt_auth import get_current_user, require_admin
+from apps.api.routers.auth.jwt_auth import get_current_user, require_admin
 from observability.logging import get_logger
 
 router = APIRouter(prefix="/repair/admin", tags=["Self-Repair-Admin"])

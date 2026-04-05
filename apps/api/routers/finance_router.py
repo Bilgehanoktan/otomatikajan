@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Query
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, List
 
-from auth.jwt_auth import get_current_user
+from apps.api.routers.auth.jwt_auth import get_current_user
 from observability.logging import get_logger
 from config import BUDGET_USD
 

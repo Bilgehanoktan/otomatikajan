@@ -2,9 +2,9 @@ import json
 from typing import Optional, Any
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from auth.jwt_auth import get_current_user, require_admin
+from apps.api.routers.auth.jwt_auth import get_current_user, require_admin
 from observability.logging import get_logger
-from api.resilience import circuit_breaker
+from apps.api.routers.resilience import circuit_breaker
 
 router = APIRouter(prefix="/faz12", tags=["Faz12-AI-Engine"])
 _log   = get_logger("api.faz12")

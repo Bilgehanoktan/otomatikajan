@@ -12,7 +12,7 @@ from typing import List, Dict, Any
 import os
 from pathlib import Path
 
-from auth.jwt_auth import optional_admin
+from apps.api.routers.auth.jwt_auth import optional_admin
 from observability.logging import get_logger
 
 logger = get_logger("api.mcp")

@@ -24,7 +24,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from auth.jwt_auth import get_current_user, require_admin
+from apps.api.routers.auth.jwt_auth import get_current_user, require_admin
 from repair.ingestion.incident_ingestor import incident_ingestor
 from repair.triage.triage_engine import triage_engine
 from repair.memory.incident_memory import incident_memory
