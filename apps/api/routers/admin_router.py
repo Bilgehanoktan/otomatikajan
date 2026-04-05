@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth.jwt_auth import require_admin
+from apps.api.routers.auth.jwt_auth import require_admin
 from db.models import User
 from db.session import get_db_dep
 
