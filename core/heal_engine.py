@@ -78,8 +78,10 @@ class SelfHealEngine:
         self._backup_mode: set[str]  = set()   # backup/isolated ajanlar
 
         # ── Faz 12.1 Sistemik Metrikler ───────────────────
-        self._db_available = True
-        self._error_rate   = 0.0
+        self._db_available    = True
+        self._redis_available = True
+        self._disk_free_gb    = 10.0
+        self._error_rate      = 0.0
         self._last_systemic_update = 0.0
 
     # ── Ana Döngü ─────────────────────────────────────────
@@ -126,12 +128,29 @@ class SelfHealEngine:
                 await self._decide_and_act(snap)
 
     async def _update_systemic_metrics(self):
-        """Sistem geneli sağlık göstergelerini (DB, Error Rate) arka planda günceller."""
+        """Sistem geneli sağlık göstergelerini (DB, Redis, Disk, Error Rate) arka planda günceller."""
         try:
+            # 1. DB Check
             from db.session import is_db_available, AsyncSessionLocal
             self._db_available = await is_db_available()
             
-            # DB kapalıysa metrik çekmeye çalışma
+            # 2. Redis Check
+            try:
+                from core.cache import redis_client
+                self._redis_available = await redis_client.ping()
+            except Exception:
+                self._redis_available = False
+
+            # 3. Disk Check
+            try:
+                import shutil
+                import os
+                usage = shutil.disk_usage(os.getcwd())
+                self._disk_free_gb = usage.free / (1024**3)
+            except Exception:
+                self._disk_free_gb = 5.0 # fallback
+
+            # 4. Error Rate Check
             if not self._db_available:
                 self._error_rate = 1.0
                 return
@@ -408,10 +427,18 @@ class SelfHealEngine:
         if self._error_rate > 0.1: # %10 hata payı sonrası
             error_penalty = min(0.5, (self._error_rate - 0.1) * 2) # %35 hata -> 0.5 ceza
 
-        # 5. DB Availability Multiplier
-        db_multiplier = 1.0 if self._db_available else 0.2
+        # 5. DB & Redis Multiplier
+        db_multiplier    = 1.0 if self._db_available else 0.2
+        redis_multiplier = 1.0 if self._redis_available else 0.8 # Redis kritiktir ama DB kadar değil
 
-        final_score = (base_score - latency_penalty - error_penalty) * mem_multiplier * db_multiplier
+        # 6. Disk Multiplier
+        disk_multiplier = 1.0
+        if self._disk_free_gb < 1.0: # 1GB'dan az yer varsa kritik
+            disk_multiplier = 0.5
+        elif self._disk_free_gb < 3.0: # 3GB kritik eşik
+            disk_multiplier = 0.8
+
+        final_score = (base_score - latency_penalty - error_penalty) * mem_multiplier * db_multiplier * redis_multiplier * disk_multiplier
         return round(float(max(0.0, min(1.0, final_score))), 3)
 
     def recent_events(self, n: int = 30) -> list[dict]:
