@@ -3,8 +3,8 @@ import json
 import re
 import os
 from typing import List, Dict, Any, Optional
-from observability.logging import get_logger
-from llm.model_orchestrator import model_orchestrator, ModelOrchestrator
+from packages.observability.logging import get_logger
+from packages.llm_gateway.model_orchestrator import model_orchestrator, ModelOrchestrator
 from packages.orchestration.agi.schemas import PlanProposal
 from packages.orchestration.agi.consciousness.affective_core import affective_core
 
@@ -26,7 +26,7 @@ class ForesightCortex:
         Faz 50: Gerçek dünya (Grounding) verileri ile desteklenmiştir.
         """
         import dataclasses
-        from db.session import session_scope
+        from packages.persistence.session import session_scope
         from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
         
         _log.info(f"[FORESIGHT] Yansımalı Plan Simülasyonu başlatılıyor...")

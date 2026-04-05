@@ -9,7 +9,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
-from llm.cost_calc import PRICING, calculate_cost, estimate_tokens, format_cost, cost_summary  # noqa: F401
+from packages.llm_gateway.cost_calc import PRICING, calculate_cost, estimate_tokens, format_cost, cost_summary  # noqa: F401
 
 MONTHLY_BUDGET_USD = float(os.getenv("MONTHLY_BUDGET_USD", "50.0"))
 
@@ -58,7 +58,7 @@ class CostTracker:
         return rec
 
     async def persist(self, db, rec: CostRecord):
-        from db.models import LLMCostLog, Project  # lazy
+        from packages.persistence.models import LLMCostLog, Project  # lazy
         from sqlalchemy import update
         
         # Log entry

@@ -3,8 +3,8 @@ import uuid
 import re
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
-from llm.model_orchestrator import ModelOrchestrator
-from observability.logging import get_logger
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
+from packages.observability.logging import get_logger
 from packages.orchestration.agi.task_governance import GovernedTask, GovernanceStatus
 
 _log = get_logger("agi_recursive_decomposer")

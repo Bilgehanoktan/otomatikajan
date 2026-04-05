@@ -2,9 +2,9 @@ import asyncio
 from typing import List, Dict, Any, Optional
 from sqlalchemy import select, func, desc, update, case
 from sqlalchemy.ext.asyncio import AsyncSession
-from observability.logging import get_logger
-from db.session import session_scope
-from db.models import SkillExecutionLog, ImprovementOpportunity, Memory
+from packages.observability.logging import get_logger
+from packages.persistence.session import session_scope
+from packages.persistence.models import SkillExecutionLog, ImprovementOpportunity, Memory
 from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
 
 _log = get_logger("agi_synapse_stabilizer")

@@ -9,13 +9,13 @@ from typing import Optional
 
 from apps.api.routers.auth.jwt_auth import get_current_user, get_optional_user
 from ._task_shared import _db_session, _project_to_dict, TaskCreateRequest, TaskUpdateRequest
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 # V2 Mimarisi İçe Aktarımları
 from schemas import TaskState
-from db.models import ProjectStatus, Project
-from db.session import AsyncSessionLocal
-from db.repository import ProjectRepository, TaskLogRepository
+from packages.persistence.models import ProjectStatus, Project
+from packages.persistence.session import AsyncSessionLocal
+from packages.persistence.repository import ProjectRepository, TaskLogRepository
 from packages.orchestration.application.task_routing import task_router
 from packages.orchestration.application.job_queue import job_queue
 from skills.base import SkillRequest

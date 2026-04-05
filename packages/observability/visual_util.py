@@ -2,7 +2,7 @@ import asyncio
 import base64
 import os
 from playwright.async_api import async_playwright
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 logger = get_logger("visual_util")
 

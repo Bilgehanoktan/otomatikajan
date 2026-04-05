@@ -41,7 +41,7 @@ class MemoryEntry:
         return min(1.0, overlap / len(q_words))
 
 
-from observability.memory_governor import memory_governor
+from packages.observability.memory_governor import packages.memory_governor
 
 class InMemoryStore:
     """Hafif in-process bellek — DB bağımlılığı yok."""
@@ -61,7 +61,7 @@ class InMemoryStore:
         sorted_keys = sorted(self._entries, key=lambda k: self._entries[k].importance)
         for k in sorted_keys[:count // 2]:
             del self._entries[k]
-        from observability.logging import get_logger
+        from packages.observability.logging import get_logger
         get_logger("memory_retrieval").warning(f"[MEM-STORE] Pruned {count // 2} entries.")
 
     def save(
@@ -287,7 +287,7 @@ class ContextBuilder:
     ) -> list[dict]:
         # Önce DB
         try:
-            from db.session import AsyncSessionLocal
+            from packages.persistence.session import AsyncSessionLocal
             from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
             async with AsyncSessionLocal() as db:
                 return await memory_store.search(
@@ -322,7 +322,7 @@ class ContextBuilder:
         """Başarılı bir çıktıdan öğrenilen dersi hem DB'ye hem in-memory'ye kaydet."""
         # 1. DB'ye kaydet (kalıcı)
         try:
-            from db.session import AsyncSessionLocal
+            from packages.persistence.session import AsyncSessionLocal
             from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
             
             async def _persist(session):

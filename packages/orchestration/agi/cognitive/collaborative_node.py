@@ -1,6 +1,6 @@
 import logging
 from typing import Dict, Any, List, Optional
-from llm.model_orchestrator import ModelOrchestrator
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 
 _log = logging.getLogger("agi_collaborative_node")
 

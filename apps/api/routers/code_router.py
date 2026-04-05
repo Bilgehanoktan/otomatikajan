@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 from typing import Optional
 
 from apps.api.routers.auth.jwt_auth import get_current_user, get_optional_user
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 router = APIRouter(prefix="/code", tags=["Code Generation"])
 logger = get_logger("code_router")
@@ -25,7 +25,7 @@ logger = get_logger("code_router")
 
 # ── Lazy bağımlılıklar ────────────────────────────────────
 def _orch():
-    from core.context import orchestrator
+    from packages.orchestration.context import orchestrator
     return orchestrator
 
 

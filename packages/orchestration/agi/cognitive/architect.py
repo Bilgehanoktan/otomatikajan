@@ -3,11 +3,11 @@ import json
 import os
 from sqlalchemy import select, func, desc, update, case
 from typing import List, Dict, Any, Optional
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 from packages.orchestration.indexing.system_indexer import SystemIndexer
-from llm.model_orchestrator import ModelOrchestrator
-from db.session import session_scope
-from db.repository import ImprovementRepository, EventLogRepository
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
+from packages.persistence.session import session_scope
+from packages.persistence.repository import ImprovementRepository, EventLogRepository
 from packages.orchestration.application.self_updater import SelfUpdater
 
 _log = get_logger("agi_architect")
@@ -110,7 +110,7 @@ class Architect:
     async def _report_architecture_opportunity(self, proposal: Dict[str, Any]):
         """Sentezlenen mimari planı İyileştirme Fırsatı olarak kaydeder."""
         async with session_scope() as db:
-            from db.repository import ImprovementRepository
+            from packages.persistence.repository import ImprovementRepository
             
             opp = await ImprovementRepository.create(
                 db,
@@ -138,7 +138,7 @@ class Architect:
         """Agent performans verilerini (SkillExecutionLog) analiz ederek mantıksal borçları bulur."""
         _log.info("[ARCHITECT] Bilişsel borç taraması (Agent Efficiency) başlatıldı.")
         
-        from db.models import SkillExecutionLog
+        from packages.persistence.models import SkillExecutionLog
         from sqlalchemy import func, select, desc
         
         async with session_scope() as db:

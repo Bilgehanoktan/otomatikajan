@@ -2,7 +2,7 @@ import json
 import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
-from db.session import get_redis_client
+from packages.persistence.session import get_redis_client
 
 logger = logging.getLogger("agi_blackboard")
 

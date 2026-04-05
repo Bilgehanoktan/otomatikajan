@@ -1,8 +1,8 @@
 import json
 import re
 from typing import Dict, Any, Optional
-from observability.logging import get_logger
-from llm.model_orchestrator import ModelOrchestrator
+from packages.observability.logging import get_logger
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 from packages.orchestration.agi.schemas import UnifiedInput, ProblemFrame, TaskType, RiskLevel
 
 _log = get_logger("agi_perception_unit")
@@ -27,7 +27,7 @@ class PerceptionUnit:
         past_memories = []
         try:
             from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
-            from db.session import session_scope
+            from packages.persistence.session import session_scope
             async with session_scope() as db:
                 # Girdi içeriğiyle benzer geçmiş epizotları ara
                 past_memories = await synaptic_cortex.search(

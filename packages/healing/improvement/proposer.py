@@ -3,8 +3,8 @@ Self-Improvement: Proposer
 Tespit edilen sorunlar için LLM tabanlı çözüm önerileri (diff) oluşturur.
 """
 from typing import Dict, Any
-from llm.model_orchestrator import ModelOrchestrator
-from observability.logging import get_logger
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
+from packages.observability.logging import get_logger
 
 logger = get_logger("improvement.proposer")
 
@@ -38,5 +38,5 @@ class PatchProposer:
             return ""
 
 # --- Singleton setup ---
-from llm.model_orchestrator import ModelOrchestrator
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 proposer = PatchProposer(ModelOrchestrator())

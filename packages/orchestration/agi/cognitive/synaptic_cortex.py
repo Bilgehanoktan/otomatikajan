@@ -12,8 +12,8 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from sqlalchemy import select, desc, func
-from db.models import Memory
-from observability.logging import get_logger
+from packages.persistence.models import Memory
+from packages.observability.logging import get_logger
 from packages.orchestration.agi.consciousness.affective_core import affective_core
 
 if TYPE_CHECKING:
@@ -44,7 +44,7 @@ async def get_embedding(text_: str) -> list[float] | None:
         return None
 
 from collections import deque
-from observability.memory_governor import memory_governor
+from packages.observability.memory_governor import packages.memory_governor
 
 class UnifiedGalacticCortex:
     """

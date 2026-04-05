@@ -9,7 +9,7 @@ import httpx
 from celery import Task
 from celery.utils.log import get_task_logger
 
-from db.models import ProjectStatus
+from packages.persistence.models import ProjectStatus
 from tasks.celery_app import celery_app
 
 logger = get_task_logger(__name__)
@@ -76,10 +76,10 @@ def run_project_task(
     logger.info(f"🚀 Worker görevi devraldı: {job_id or db_project_id} — {title}")
 
     async def _execute_task():
-        from core.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
-        from db.session import AsyncSessionLocal
-        from db.repository import ProjectRepository
-        from core.agi.task_governance import GovernanceStatus as AGIStatus
+        from packages.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
+        from packages.persistence.session import AsyncSessionLocal
+        from packages.persistence.repository import ProjectRepository
+        from packages.orchestration.agi.task_governance import GovernanceStatus as AGIStatus
 
         async with AsyncSessionLocal() as db:
             # 1. State: Ajanlar çalışmaya başlıyor (pending -> running)
@@ -132,8 +132,8 @@ def run_project_task(
 
         # DB'yi güncelle
         async def _mark_done():
-            from db.session import AsyncSessionLocal
-            from db.repository import ProjectRepository
+            from packages.persistence.session import AsyncSessionLocal
+            from packages.persistence.repository import ProjectRepository
             async with AsyncSessionLocal() as db:
                 p = await ProjectRepository.get(db, _uuid.UUID(db_project_id))
                 if p:
@@ -165,8 +165,8 @@ def run_project_task(
         logger.error(f"❌ Proje hatası ({job_id or db_project_id}): {exc}")
 
         async def _set_failed():
-            from db.session import AsyncSessionLocal
-            from db.repository import ProjectRepository
+            from packages.persistence.session import AsyncSessionLocal
+            from packages.persistence.repository import ProjectRepository
             async with AsyncSessionLocal() as db:
                 p = await ProjectRepository.get(db, _uuid.UUID(db_project_id))
                 if p:
@@ -233,8 +233,8 @@ def send_webhook_task(self: Task, event: str, payload: dict):
 
 
 async def _get_subscriptions(event: str) -> list[dict]:
-    from db.session import AsyncSessionLocal
-    from db.models import WebhookSubscription
+    from packages.persistence.session import AsyncSessionLocal
+    from packages.persistence.models import WebhookSubscription
     from sqlalchemy import select
 
     async with AsyncSessionLocal() as db:
@@ -253,7 +253,7 @@ async def _get_subscriptions(event: str) -> list[dict]:
 def heal_check_task():
     """Her 1 dakikada bir sağlık kontrolü."""
     try:
-        from core.heal_engine import heal_engine
+        from packages.orchestration.heal_engine import heal_engine
         score = heal_engine.system_health_score()
         logger.info(f"🩺 Sistem sağlık skoru: {score}")
         return {"health": score}
@@ -265,8 +265,8 @@ def heal_check_task():
 def cleanup_memories():
     """Süresi dolmuş bellekleri temizle."""
     async def _clean():
-        from db.session import AsyncSessionLocal
-        from db.models import Memory
+        from packages.persistence.session import AsyncSessionLocal
+        from packages.persistence.models import Memory
         from sqlalchemy import delete
 
         async with AsyncSessionLocal() as db:
@@ -288,7 +288,7 @@ def cleanup_memories():
 def run_self_update_task(target_file_path: str, instruction: str):
     """Sistemin kendi kodunu asenkron olarak değiştirmesi."""
     async def _execute():
-        from core.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
+        from packages.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
         if not orchestrator.self_updater:
             return "Self-Updater aktif değil."
         return await orchestrator.self_updater.modify_system_file(
@@ -302,10 +302,10 @@ def run_self_update_task(target_file_path: str, instruction: str):
 def run_visual_audit_task():
     """Arayüzü periyodik olarak denetler ve iyileştirme önerileri sunar."""
     async def _execute():
-        from observability.visual_util import capture_screenshot
-        from core.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
-        from db.session import AsyncSessionLocal
-        from db.repository import ImprovementRepository
+        from packages.observability.visual_util import capture_screenshot
+        from packages.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
+        from packages.persistence.session import AsyncSessionLocal
+        from packages.persistence.repository import ImprovementRepository
         
         try:
             # 1. Ekran görüntüsü al
@@ -350,9 +350,9 @@ def run_market_intelligence_task():
     """Pazar trendlerini analiz eder ve stratejik raporlar hazırlar."""
     async def _execute():
         from tools.web_search import get_web_search
-        from core.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
-        from db.session import AsyncSessionLocal
-        from db.repository import ImprovementRepository
+        from packages.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
+        from packages.persistence.session import AsyncSessionLocal
+        from packages.persistence.repository import ImprovementRepository
         import json
         
         try:

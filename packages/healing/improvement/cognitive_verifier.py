@@ -12,8 +12,8 @@ from typing import Any, Dict, Optional, Tuple
 
 from packages.orchestration.application.sandbox_runner import SandboxRunner
 from packages.orchestration.application.debate_engine import DebateEngine
-from llm.model_orchestrator import model_orchestrator
-from observability.logging import get_logger
+from packages.llm_gateway.model_orchestrator import model_orchestrator
+from packages.observability.logging import get_logger
 
 logger = get_logger("improvement.cognitive_verifier")
 

@@ -3,8 +3,8 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List
 from sqlalchemy import select, desc # Faz 82-85: Strategic Query
-from observability.logging import get_logger
-from llm.model_orchestrator import ModelOrchestrator
+from packages.observability.logging import get_logger
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 from packages.orchestration.agi.operational.local_failsafe_engine import local_failsafe
 from agents.agent_registry import build_agents
 
@@ -19,11 +19,11 @@ from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
 from packages.orchestration.agi.cognitive.compactor import context_compactor
 from packages.orchestration.agi.cognitive.motivation_engine import motivation_engine # Phase 28
 from packages.orchestration.agi.cognitive.thread_governor import thread_governor # Phase 63
-from db.session import session_scope
+from packages.persistence.session import session_scope
 
 # WorldModel Katman 9: Observability & Graph Context
 from packages.orchestration.agi.world import service_graph, task_state_graph, causal_error_graph
-from db.repository import EventLogRepository # Faz 85: Cognitive Logging
+from packages.persistence.repository import EventLogRepository # Faz 85: Cognitive Logging
 
 _log = get_logger("agi_central_executive")
 
@@ -67,7 +67,7 @@ class CentralExecutive:
             _log.info(f"[THREAD-LOADED] Mevcut Monolog: {active_thread[:80]}...")
             
             # Phase 82: North Star Goal Alignment (Executive Context)
-            from db.models import SovereignGoal
+            from packages.persistence.models import SovereignGoal
             stmt = select(SovereignGoal).where(SovereignGoal.status == "active").order_by(desc(SovereignGoal.priority))
             res = await db.execute(stmt)
             active_goal = res.scalars().first()

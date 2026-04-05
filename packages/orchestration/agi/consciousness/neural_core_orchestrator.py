@@ -1,6 +1,6 @@
 import asyncio
 from typing import List, Dict, Any, Optional
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 from packages.orchestration.agi.consciousness.global_workspace import global_workspace
 
 _log = get_logger("agi_neural_core")
@@ -92,8 +92,8 @@ class NeuralCoreOrchestrator:
         try:
             from packages.orchestration.agi.cognitive.foresight_oracle import foresight_oracle
             from packages.orchestration.agi.schemas import PlanProposal
-            from db.repository import ProjectRepository
-            from db.models import ProjectStatus
+            from packages.persistence.repository import ProjectRepository
+            from packages.persistence.models import ProjectStatus
             import uuid
             
             # Motor ve Karar birimleri için misyon hazırlığı (Faz 14.3)

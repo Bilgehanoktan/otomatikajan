@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from apps.api.routers.auth.jwt_auth import get_current_user, require_admin
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 router = APIRouter(prefix="/repair/admin", tags=["Self-Repair-Admin"])
 _log  = get_logger("api.repair_admin")
@@ -106,7 +106,7 @@ async def metrics_summary(
     current_user=Depends(get_current_user),
 ):
     """Repair benchmark özeti."""
-    from repair.verification.metrics_collector import get_metrics_store
+    from packages.repair_engine.verification.metrics_collector import get_metrics_store
     return await get_metrics_store().summary(last_days=last_days)
 
 
@@ -117,7 +117,7 @@ async def metrics_trends(
     current_user=Depends(get_current_user),
 ):
     """Trend verileri (bucket'lar halinde)."""
-    from repair.verification.metrics_collector import get_metrics_store
+    from packages.repair_engine.verification.metrics_collector import get_metrics_store
     return {"trends": get_metrics_store().trends(last_days, bucket_days)}
 
 
@@ -127,7 +127,7 @@ async def metrics_top_modules(
     current_user=Depends(get_current_user),
 ):
     """En çok incident alan modüller."""
-    from repair.verification.metrics_collector import get_metrics_store
+    from packages.repair_engine.verification.metrics_collector import get_metrics_store
     return {"modules": await get_metrics_store().top_modules(top_n)}
 
 
@@ -136,7 +136,7 @@ async def metrics_top_modules(
 @router.post("/feedback")
 async def record_feedback(body: FeedbackRequest, current_user=Depends(get_current_user)):
     """İnsan reviewer geri bildirimini kaydet."""
-    from repair.memory.lessons_store import get_lessons_store, FEEDBACK_CODES
+    from packages.repair_engine.memory.lessons_store import get_lessons_store, FEEDBACK_CODES
     if body.feedback_code not in FEEDBACK_CODES:
         raise HTTPException(422, f"Geçersiz feedback_code. Geçerliler: {FEEDBACK_CODES}")
     rec = get_lessons_store().record(
@@ -158,19 +158,19 @@ async def list_recent_feedback(
     limit: int = Query(20, ge=1, le=100),
     current_user=Depends(get_current_user),
 ):
-    from repair.memory.lessons_store import get_lessons_store
+    from packages.repair_engine.memory.lessons_store import get_lessons_store
     return {"feedback": get_lessons_store().list_recent(limit)}
 
 
 @router.get("/feedback/stats")
 async def feedback_stats(current_user=Depends(get_current_user)):
-    from repair.memory.lessons_store import get_lessons_store
+    from packages.repair_engine.memory.lessons_store import get_lessons_store
     return get_lessons_store().stats()
 
 
 @router.get("/feedback/module/{module_name:path}")
 async def module_feedback(module_name: str, current_user=Depends(get_current_user)):
-    from repair.memory.lessons_store import get_lessons_store
+    from packages.repair_engine.memory.lessons_store import get_lessons_store
     return get_lessons_store().module_feedback_summary(module_name)
 
 
@@ -181,13 +181,13 @@ async def module_feedback(module_name: str, current_user=Depends(get_current_use
 @router.get("/lessons")
 async def list_lessons(limit: int = 20, current_user=Depends(get_current_user)):
     """RC1 Alias: /feedback/recent ile aynı — lessons store listesi."""
-    from repair.memory.lessons_store import get_lessons_store
+    from packages.repair_engine.memory.lessons_store import get_lessons_store
     return {"lessons": get_lessons_store().list_recent(limit)}
 
 @router.get("/lessons/stats")
 async def lessons_stats(current_user=Depends(get_current_user)):
     """Lessons store istatistikleri."""
-    from repair.memory.lessons_store import get_lessons_store
+    from packages.repair_engine.memory.lessons_store import get_lessons_store
     store = get_lessons_store()
     records = store.list_recent(1000)
     return {"total": len(records), "recent": records[:5]}
@@ -195,5 +195,5 @@ async def lessons_stats(current_user=Depends(get_current_user)):
 @router.get("/ranker/stats")
 async def ranker_stats(current_user=Depends(get_current_user)):
     """Root cause ranker istatistikleri."""
-    from repair.analysis.root_cause_ranker import get_root_cause_ranker
+    from packages.repair_engine.analysis.root_cause_ranker import get_root_cause_ranker
     return get_root_cause_ranker().stats()

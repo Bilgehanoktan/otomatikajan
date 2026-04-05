@@ -4,8 +4,8 @@ Sistem olaylarını ve iyileştirme kayıtlarını vektör veri tabanına (Memor
 """
 from typing import Any
 from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
-from db.session import AsyncSessionLocal
-from observability.logging import get_logger
+from packages.persistence.session import AsyncSessionLocal
+from packages.observability.logging import get_logger
 
 logger = get_logger("memory.watchdog")
 

@@ -14,11 +14,11 @@ from packages.orchestration.experimental.cognitive_verifier import cognitive_ver
 from packages.orchestration.agi.operational.patching_sandbox import patching_sandbox
 from packages.orchestration.agi.security.audit_gate import audit_gate
 from packages.orchestration.agi.monitoring.provenance_engine_45 import provenance_engine_45
-from db.models import Memory
+from packages.persistence.models import Memory
 from packages.orchestration.agi.learning.specialist_forge import specialist_forge
 from packages.orchestration.agi.schemas import EpisodeRecord, CausalGraph
 from packages.orchestration.domain.events import event_bus
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 logger = get_logger("agi.cognitive.evolution")
 
@@ -40,7 +40,7 @@ class SovereignEvolutionEngine:
         
         # [PHASE 52] Specialist Forging: Başarılı desenlerden uzman damıt (Metabolizma)
         try:
-            from db.session import async_session
+            from packages.persistence.session import async_session
             async with async_session() as db:
                 await self.run_specialist_forge_cycle(db)
         except Exception as e:
@@ -101,7 +101,7 @@ class SovereignEvolutionEngine:
             logger.info("[EVOLUTION] Bekleyen politika bulunamadı.")
             return
 
-        from llm.model_orchestrator import ModelOrchestrator
+        from packages.llm_gateway.model_orchestrator import ModelOrchestrator
         orch = ModelOrchestrator()
 
         for m_policy in memories:
@@ -146,7 +146,7 @@ class SovereignEvolutionEngine:
             
         logger.info(f"[EVOLUTION] Otonom öz-iyileştirme tetiklendi. Kök Neden: {root_cause}")
         
-        from llm.model_orchestrator import ModelOrchestrator
+        from packages.llm_gateway.model_orchestrator import ModelOrchestrator
         orch = ModelOrchestrator()
         
         prompt = f"HATA KÖK NEDENİ: {root_cause}\nÇözüm için kod iyileştirme planı (JSON) çıkar: {{'target_file': '...', 'proposed_logic': '...'}}"

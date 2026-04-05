@@ -7,8 +7,8 @@ from datetime import datetime, timezone
 from packages.orchestration.agi.task_governance import GovernedTask, GovernanceStatus
 from packages.orchestration.agi.cognitive.consensus_manager import consensus_manager
 from packages.orchestration.agi.schemas import PlanProposal
-from llm.model_orchestrator import ModelOrchestrator
-from observability.logging import get_logger
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
+from packages.observability.logging import get_logger
 
 _log = get_logger("agi_consensus_arbiter")
 

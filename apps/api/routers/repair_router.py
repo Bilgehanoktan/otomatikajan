@@ -25,15 +25,15 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from apps.api.routers.auth.jwt_auth import get_current_user, require_admin
-from repair.ingestion.incident_ingestor import incident_ingestor
-from repair.triage.triage_engine import triage_engine
-from repair.memory.incident_memory import incident_memory
-from repair.memory.patch_memory import patch_memory
-from repair.memory.architecture_memory import architecture_memory
+from packages.repair_engine.ingestion.incident_ingestor import incident_ingestor
+from packages.repair_engine.triage.triage_engine import triage_engine
+from packages.repair_engine.memory.incident_memory import incident_memory
+from packages.repair_engine.memory.patch_memory import patch_memory
+from packages.repair_engine.memory.architecture_memory import architecture_memory
 from packages.repair_engine.application.orchestrator import get_repair_orchestrator
 from packages.orchestration.governance.policy_engine import policy_engine
-from repair.schemas.incident import IncidentSource, IncidentSeverity
-from observability.logging import get_logger
+from packages.repair_engine.schemas.incident import IncidentSource, IncidentSeverity
+from packages.observability.logging import get_logger
 
 _log = get_logger("api.repair")
 
@@ -247,7 +247,7 @@ async def job_decision(
     if body.decision not in ("approve", "reject"):
         raise HTTPException(status_code=422, detail="decision: 'approve' veya 'reject' olmalı")
 
-    from repair.schemas.repair_job import RepairJobStatus
+    from packages.repair_engine.schemas.repair_job import RepairJobStatus
     if body.decision == "reject":
         job.transition(RepairJobStatus.REJECTED, note=f"İnsan kararı: {body.reason[:100]}")
     else:
@@ -301,7 +301,7 @@ async def list_proposals(
 ):
     """Bekleyen PR önerileri — DB + in-memory birleşik liste."""
     # Önce in-memory (güncel session)
-    from repair.release.pr_creator import get_pr_creator
+    from packages.repair_engine.release.pr_creator import get_pr_creator
     creator   = get_pr_creator(_get_repair_project_root())
     mem_props = creator.list_proposals()
 
@@ -327,7 +327,7 @@ async def get_proposal(
     current_user = Depends(get_current_user),
 ):
     """PR önerisi detayı (diff dahil). In-memory veya DB'den okur."""
-    from repair.release.pr_creator import get_pr_creator
+    from packages.repair_engine.release.pr_creator import get_pr_creator
     creator  = get_pr_creator(_get_repair_project_root())
     proposal = creator.get_proposal(pr_id)
 
@@ -456,7 +456,7 @@ async def triage_preview(
     current_user = Depends(get_current_user),
 ):
     """Gerçek incident oluşturmadan triage sonucunu önizle."""
-    from repair.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
+    from packages.repair_engine.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
     inc = IncidentRecord.create(
         source=IncidentSource.MANUAL,
         severity=IncidentSeverity.MEDIUM,
@@ -481,12 +481,12 @@ async def triage_preview(
 async def _update_job_on_proposal_decision(pr_id: str, decision: str, decided_by: str) -> None:
     """Proposal kararına göre linked job durumunu güncelle.
     In-memory bulunamazsa DB'den job_id lookup yapar."""
-    from repair.schemas.repair_job import RepairJobStatus
+    from packages.repair_engine.schemas.repair_job import RepairJobStatus
     job_id = None
 
     # Önce in-memory dene
     try:
-        from repair.release.pr_creator import get_pr_creator
+        from packages.repair_engine.release.pr_creator import get_pr_creator
         creator  = get_pr_creator(_get_repair_project_root())
         proposal = creator.get_proposal(pr_id)
         if proposal:
@@ -497,10 +497,10 @@ async def _update_job_on_proposal_decision(pr_id: str, decision: str, decided_by
     # In-memory bulunamazsa DB'den job_id çek
     if not job_id:
         try:
-            from db.session import AsyncSessionLocal, is_db_available
+            from packages.persistence.session import AsyncSessionLocal, is_db_available
             if await is_db_available():
                 from sqlalchemy import select
-                from db.repair_models import RepairProposal as RepairProposalModel
+                from packages.persistence.repair_models import RepairProposal as RepairProposalModel
                 async with AsyncSessionLocal() as db:
                     stmt = select(RepairProposalModel.job_id).where(RepairProposalModel.pr_id == pr_id)
                     result = await db.execute(stmt)
@@ -532,10 +532,10 @@ async def _update_job_on_proposal_decision(pr_id: str, decision: str, decided_by
 async def _persist_job_status(job) -> None:
     """Job durumunu DB'ye yaz (sessiz hata)."""
     try:
-        from db.session import AsyncSessionLocal, is_db_available
+        from packages.persistence.session import AsyncSessionLocal, is_db_available
         if not await is_db_available():
             return
-        from db.repair_repository import RepairJobRepo
+        from packages.persistence.repair_repository import RepairJobRepo
         async with AsyncSessionLocal() as db:
             await RepairJobRepo.upsert(db, job)
             await db.commit()
@@ -546,10 +546,10 @@ async def _persist_job_status(job) -> None:
 async def _list_proposals_from_db() -> list[dict]:
     """DB'deki tüm proposal'ları getir (sessiz hata)."""
     try:
-        from db.session import AsyncSessionLocal, is_db_available
+        from packages.persistence.session import AsyncSessionLocal, is_db_available
         if not await is_db_available():
             return []
-        from db.repair_repository import RepairProposalRepo
+        from packages.persistence.repair_repository import RepairProposalRepo
         async with AsyncSessionLocal() as db:
             rows = await RepairProposalRepo.list_pending(db)
             return [
@@ -574,11 +574,11 @@ async def _list_proposals_from_db() -> list[dict]:
 async def _get_proposal_from_db(pr_id: str) -> Optional[dict]:
     """Tekil proposal'ı DB'den getir (sessiz hata)."""
     try:
-        from db.session import AsyncSessionLocal, is_db_available
+        from packages.persistence.session import AsyncSessionLocal, is_db_available
         if not await is_db_available():
             return None
         from sqlalchemy import select
-        from db.repair_models import RepairProposal
+        from packages.persistence.repair_models import RepairProposal
         async with AsyncSessionLocal() as db:
             from sqlalchemy import select
             stmt = select(RepairProposal).where(RepairProposal.pr_id == pr_id)
@@ -618,10 +618,10 @@ def _get_repair_project_root() -> str:
 async def _persist_incident(incident) -> None:
     """Incident'i DB'ye kaydet (sessiz hata)."""
     try:
-        from db.session import AsyncSessionLocal, is_db_available
+        from packages.persistence.session import AsyncSessionLocal, is_db_available
         if not await is_db_available():
             return
-        from db.repair_repository import RepairIncidentRepo
+        from packages.persistence.repair_repository import RepairIncidentRepo
         async with AsyncSessionLocal() as db:
             await RepairIncidentRepo.upsert(db, incident)
             await db.commit()
@@ -632,10 +632,10 @@ async def _persist_incident(incident) -> None:
 async def _persist_proposal_decision(pr_id: str, decision: str, decided_by: str) -> None:
     """PR kararını DB'ye kaydet (sessiz hata)."""
     try:
-        from db.session import AsyncSessionLocal, is_db_available
+        from packages.persistence.session import AsyncSessionLocal, is_db_available
         if not await is_db_available():
             return
-        from db.repair_repository import RepairProposalRepo
+        from packages.persistence.repair_repository import RepairProposalRepo
         async with AsyncSessionLocal() as db:
             await RepairProposalRepo.decide(db, pr_id, decision, decided_by)
             await db.commit()
@@ -655,7 +655,7 @@ async def get_similar_incidents(
     current_user=Depends(get_current_user),
 ):
     """Benzer incident'leri döndür (Faz 11 — Similarity Engine)."""
-    from repair.analysis.incident_fingerprint import build_fingerprint, get_similarity_engine
+    from packages.repair_engine.analysis.incident_fingerprint import build_fingerprint, get_similarity_engine
     incident = incident_memory.get(incident_id)
     if not incident:
         raise HTTPException(404, "Incident bulunamadı")
@@ -686,7 +686,7 @@ async def get_job_validation(job_id: str, current_user=Depends(get_current_user)
 
     # 1. Gerçek validation raporunu store'dan çek (RC1)
     try:
-        from repair.verification.verification_engine import get_validation_report
+        from packages.repair_engine.verification.verification_engine import get_validation_report
         real_report = get_validation_report(job_id) or get_validation_report(job.validation_id or "")
         if real_report:
             return {
@@ -734,7 +734,7 @@ async def get_job_validation(job_id: str, current_user=Depends(get_current_user)
     # Architecture guard canlı kontrol
     if job.diff:
         try:
-            from repair.review.architecture_guard import get_architecture_guard
+            from packages.repair_engine.review.architecture_guard import get_architecture_guard
             guard_result = get_architecture_guard().check_diff(job.diff)
             val_data["architecture_ok"]    = guard_result.passed
             val_data["architecture_notes"] = [
@@ -784,7 +784,7 @@ async def get_job_report(
 ):
     """Job raporu döndür — markdown veya html (Faz 11)."""
     from fastapi.responses import PlainTextResponse, HTMLResponse
-    from repair.reporting.report_generator import generate_markdown_report, generate_html_report
+    from packages.repair_engine.reporting.report_generator import generate_markdown_report, generate_html_report
 
     orchestrator = get_repair_orchestrator(_get_repair_project_root())
     job = await orchestrator.get_job(job_id)
@@ -819,9 +819,9 @@ async def simulate_job(
         raise HTTPException(404, "Incident bulunamadı")
 
     # Triage preview ile taktiksel önizleme
-    from repair.triage.triage_engine import triage_engine as te
+    from packages.repair_engine.triage.triage_engine import triage_engine as te
     from packages.orchestration.governance.policy_registry import get_policy_registry
-    from repair.analysis.incident_fingerprint import build_fingerprint, get_similarity_engine
+    from packages.repair_engine.analysis.incident_fingerprint import build_fingerprint, get_similarity_engine
 
     ticket = te.triage(incident)
     fp     = build_fingerprint(incident)
@@ -877,6 +877,6 @@ async def architecture_guard_check(
     current_user=Depends(get_current_user),
 ):
     """Bir diff metnini architecture guard'dan geçir (Faz 11)."""
-    from repair.review.architecture_guard import get_architecture_guard
+    from packages.repair_engine.review.architecture_guard import get_architecture_guard
     result = get_architecture_guard().check_diff(diff)
     return result.to_dict()

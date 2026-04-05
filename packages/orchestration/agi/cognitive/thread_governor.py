@@ -3,8 +3,8 @@ import json
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
-from db.session import session_scope
-from llm.model_orchestrator import ModelOrchestrator
+from packages.persistence.session import session_scope
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 
 _log = logging.getLogger("agi_thread_governor")
 

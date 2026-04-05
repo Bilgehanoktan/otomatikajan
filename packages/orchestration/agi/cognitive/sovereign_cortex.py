@@ -14,15 +14,15 @@ from datetime import datetime, timezone
 from schemas import SubtaskOutput
 
 from agents.agent_registry import build_agents
-from observability.logging import get_logger
-from llm.model_orchestrator import ModelOrchestrator
-from memory.retrieval import context_builder
-from quality.output_schema import output_parser, AgentOutput
+from packages.observability.logging import get_logger
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
+from packages.memory.retrieval import context_builder
+from packages.quality_assurance.output_schema import output_parser, AgentOutput
 from packages.orchestration.agi.task_governance import SovereignGoal, GovernedTask, GovernanceStatus, TaskPlanner, TaskStateService, ReportSynthesizer, TaskStatus, ProjectTask, SubTask
 from packages.orchestration.agi.cognitive.metacognitive_auditor import metacognitive_auditor
 from packages.orchestration.agi.cognitive.architect import Architect
 from packages.orchestration.agi.operational.scaffolder import scaffolder
-from packages.orchestration.agi.cognitive.memory_api import memory_api
+from packages.orchestration.agi.cognitive.memory_api import packages.memory_api
 from packages.orchestration.agi.schemas import EpisodeRecord, ActionRecord, UnifiedInput, ProblemFrame, TaskType, RiskLevel, VerificationReport
 from packages.orchestration.agi.learning.cognitive_mirror import cognitive_mirror
 from packages.orchestration.agi.learning.distiller import skill_distiller
@@ -34,14 +34,14 @@ from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
 from packages.orchestration.agi.cognitive.motivation_engine import motivation_engine
 from packages.orchestration.agi.consciousness.affective_core import affective_core
 from packages.orchestration.agi.cognitive.foresight_cortex import foresight_cortex
-from packages.orchestration.agi.learning.memory_gate import memory_gate
+from packages.orchestration.agi.learning.memory_gate import packages.memory_gate
 from packages.orchestration.agi.governance.watchdog import governance_watchdog
 from packages.orchestration.agi.governance.consensus_arbiter import consensus_arbiter
 from packages.orchestration.agi.cognitive.reflective_synthesizer import reflective_synthesizer
 from packages.orchestration.agi.cognitive.axiology_engine import axiology_engine
 from packages.orchestration.agi.operational.metabolic_governor import metabolic_governor
 from packages.orchestration.agi.learning.wisdom_synthesizer import wisdom_synthesizer
-from packages.orchestration.agi.cognitive.memory_pruner import memory_pruner
+from packages.orchestration.agi.cognitive.memory_pruner import packages.memory_pruner
 from packages.orchestration.agi.quality.sovereign_evaluator import sovereign_evaluator
 from packages.orchestration.agi.cognitive.cognitive_blackboard import get_blackboard
 from packages.orchestration.agi.operational.tool_grounder import get_grounded_tool_input
@@ -175,9 +175,9 @@ class SovereignCortex:
         _log.info(f"[SOVEREIGN] Hedef koordinasyonu başlatıldı: {title} ({task_id})")
 
         # Faz 45: Veritabanından mevcut projeyi yükle veya yeni oluştur
-        from db.session import AsyncSessionLocal
-        from db.repository import ProjectRepository
-        from db.models import ProjectStatus
+        from packages.persistence.session import AsyncSessionLocal
+        from packages.persistence.repository import ProjectRepository
+        from packages.persistence.models import ProjectStatus
         
         async with AsyncSessionLocal() as db:
             existing = await ProjectRepository.get(db, task_id)
@@ -203,7 +203,7 @@ class SovereignCortex:
         # Eğer enerji düşükse (ECO), planlamaya geçmeden önce 'Rüya Döngüsü' ile hafızayı optimize et.
         if affective_core.energy < 0.3:
             _log.info(f"[SOVEREIGN-DREAM] Düşük enerji tespiti ({affective_core.energy:.2f}). Bilişsel Sıkıştırma başlatılıyor...")
-            from db.session import AsyncSessionLocal
+            from packages.persistence.session import AsyncSessionLocal
             async with AsyncSessionLocal() as db:
                 await memory_pruner.dream_cycle(db)
 
@@ -585,7 +585,7 @@ class SovereignCortex:
             
             # İhlalleri Bilişsel Hafızaya Ketleme (Inhibition) olarak kaydet
             try:
-                from db.session import get_db
+                from packages.persistence.session import get_db
                 async with get_db() as db:
                     for v in predicted_violations:
                         await synaptic_cortex.save_architectural_inhibition(
@@ -668,14 +668,14 @@ class SovereignCortex:
             # Faz 45: Bilişsel Devamlılık (Thought Thread) — Memory Gate'ten geçenler için
             thought_text = f"Görev '{task.title}' tamamlandı ({task.status}). Özet: {task.report[:100] if task.report else 'Özet yok'}..."
             try:
-                from db.session import get_db
+                from packages.persistence.session import get_db
                 async with get_db() as db:
                     await synaptic_cortex.save_thought_thread(db, thought_text, context_id="global")
             except Exception as e:
                 _log.error(f"Thought thread save failed: {e}")
 
             # 4. Episode kaydını kalıcı hafızaya işle
-            from db.session import get_db
+            from packages.persistence.session import get_db
             async with get_db() as db:
                 ep_dict = _deep_convert_enums(asdict(reflected_episode))
                 # Compatibility shim for older save_episode implementation
@@ -814,7 +814,7 @@ class SovereignCortex:
             
             # 3. SEMANTİK HAFIZA 2.0: Sinerjik Ders Enjeksiyonu (Phase 72)
             from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
-            from db.session import AsyncSessionLocal
+            from packages.persistence.session import AsyncSessionLocal
             
             _log.info(f"[SOVEREIGN-MEMORY] Ajan {subtask.agent_id} için sinerjik bellek taraması (V5.2) başlatılıyor...")
             try:
@@ -1025,7 +1025,7 @@ class SovereignCortex:
             asyncio.create_task(synthesizer.run_synthesis_cycle())
 
             # Phase 73: Memory Distiller Entegrasyonu (Faz 86 Stabilizasyonu)
-            from packages.orchestration.agi.learning.memory_distiller import memory_distiller
+            from packages.orchestration.agi.learning.memory_distiller import packages.memory_distiller
             asyncio.create_task(memory_distiller.run_distillation_cycle())
             
             _log.info("[SOVEREIGN] Self-Evolution and Memory Distillation cycles started in background.")
@@ -1035,8 +1035,8 @@ class SovereignCortex:
     async def resume_goal(self, project_id: str):
         """Kesintiye uğrayan bir hedefi DB'den yükler ve devam ettirir."""
         _log.info(f"[SOVEREIGN-RESUME] Proje kurtarma başlatıldı: {project_id}")
-        from db.session import AsyncSessionLocal
-        from db.repository import ProjectRepository
+        from packages.persistence.session import AsyncSessionLocal
+        from packages.persistence.repository import ProjectRepository
         
         async with AsyncSessionLocal() as db:
             p = await ProjectRepository.get(db, project_id)

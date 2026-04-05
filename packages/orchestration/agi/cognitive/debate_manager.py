@@ -1,8 +1,8 @@
 import json
 from typing import List, Optional, Dict, Any
-from llm.model_orchestrator import ModelOrchestrator
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 from packages.orchestration.agi.schemas import PlanProposal
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 _log = get_logger("agi_debate_manager")
 

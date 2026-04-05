@@ -2,7 +2,7 @@ import asyncio
 import os
 import sys
 from typing import List, Dict, Any, Optional
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 _log = get_logger("agi_proactive_agent")
 
@@ -22,7 +22,7 @@ class ProactiveAgent:
         _log.info(f"AGI Proaktif Kalp Atışı (Heartbeat) başladı. Periyot: {self.interval_s}s")
         self.is_running = True
         
-        from db.session import session_scope
+        from packages.persistence.session import session_scope
         
         while self.is_running:
             try:

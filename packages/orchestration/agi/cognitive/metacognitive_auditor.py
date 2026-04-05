@@ -7,17 +7,17 @@ from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any, Optional
 from sqlalchemy import select, func, desc, case
 from sqlalchemy.ext.asyncio import AsyncSession
-from observability.logging import get_logger
-from llm.model_orchestrator import ModelOrchestrator
-from db.session import session_scope, AsyncSessionLocal
-from db.models import SkillExecutionLog, ImprovementOpportunity, Project, SubTask
-from db.repository import ProjectRepository, ApiMetricRepository
+from packages.observability.logging import get_logger
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
+from packages.persistence.session import session_scope, AsyncSessionLocal
+from packages.persistence.models import SkillExecutionLog, ImprovementOpportunity, Project, SubTask
+from packages.persistence.repository import ProjectRepository, ApiMetricRepository
 from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
-from quality.reviewer import ReviewResult
+from packages.quality_assurance.reviewer import ReviewResult
 from packages.orchestration.indexing.system_indexer import SystemIndexer
-from quality.output_schema import AgentOutput
+from packages.quality_assurance.output_schema import AgentOutput
 from packages.orchestration.agency.loader import agency_loader
-from memory.watchdog import watchdog
+from packages.memory.watchdog import watchdog
 
 _log = get_logger("agi_metacognitive_auditor")
 

@@ -1,11 +1,11 @@
 import asyncio
 import json
 from typing import Optional, List, Dict, Any
-from observability.logging import get_logger
-from llm.model_orchestrator import model_orchestrator
-from db.session import session_scope
+from packages.observability.logging import get_logger
+from packages.llm_gateway.model_orchestrator import model_orchestrator
+from packages.persistence.session import session_scope
 from sqlalchemy import select, desc
-from db.models import SubTask, ProjectStatus, ImprovementOpportunity
+from packages.persistence.models import SubTask, ProjectStatus, ImprovementOpportunity
 
 _log = get_logger("agi_latency_mind")
 
@@ -67,7 +67,7 @@ class LatencyMindProcessor:
                 try:
                     data = self._parse_json(response.content)
                     if data:
-                        from db.repository import ImprovementRepository
+                        from packages.persistence.repository import ImprovementRepository
                         await ImprovementRepository.create(
                             db=db,
                             source_type="latency_mind_dream",

@@ -10,7 +10,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, List
 
 from apps.api.routers.auth.jwt_auth import get_current_user
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 from config import BUDGET_USD
 
 logger = get_logger("api.finance")
@@ -19,8 +19,8 @@ router = APIRouter(prefix="/finance", tags=["Finance"])
 @router.get("/status", summary="Finansal durum ve bütçe analizi")
 async def get_finance_status(current_user=Depends(get_current_user)):
     try:
-        from observability.metrics import metrics
-        from llm.cost_calc import budget_check, format_cost
+        from packages.observability.metrics import metrics
+        from packages.llm_gateway.cost_calc import budget_check, format_cost
         
         snap = metrics.snapshot()
         spent = snap["computed"].get("total_cost_usd", 0.0)
@@ -46,7 +46,7 @@ async def get_finance_status(current_user=Depends(get_current_user)):
 @router.get("/history", summary="Günlük maliyet geçmişi")
 async def get_finance_history(days: int = Query(7, ge=1, le=30), current_user=Depends(get_current_user)):
     try:
-        from db.session import AsyncSessionLocal
+        from packages.persistence.session import AsyncSessionLocal
         from sqlalchemy import text
         
         # Bu kısım normalde LLMCostLog tablosundan gruplanarak çekilir.
@@ -76,7 +76,7 @@ async def get_finance_history(days: int = Query(7, ge=1, le=30), current_user=De
 @router.get("/top-tasks", summary="En maliyetli projeler")
 async def get_top_costly_tasks(limit: int = 5, current_user=Depends(get_current_user)):
     try:
-        from db.session import AsyncSessionLocal
+        from packages.persistence.session import AsyncSessionLocal
         from sqlalchemy import text
         
         async with AsyncSessionLocal() as db:

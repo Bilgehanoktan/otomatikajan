@@ -169,7 +169,7 @@ class TaskPlanner:
         monologue = ""
         try:
             from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
-            from db.session import get_db
+            from packages.persistence.session import get_db
             async with get_db() as db:
                 inhibitions_data = await synaptic_cortex.get_architectural_inhibitions(db, limit=10)
                 inhibitions = [i["body"] for i in inhibitions_data]
@@ -236,7 +236,7 @@ class TaskPlanner:
 
     async def distill_execution_history(self, history: str) -> str:
         """Faz 45: Uzun yürütme geçmişini stratejik bir özet haline getirir."""
-        from llm.model_orchestrator import ModelOrchestrator
+        from packages.llm_gateway.model_orchestrator import ModelOrchestrator
         orch = ModelOrchestrator()
         
         prompt = f"""
@@ -261,7 +261,7 @@ class TaskPlanner:
         # Backward compatible sync version (No inhibitions)
         # Lazy import to avoid circular dependencies
         try:
-            from quality.output_schema import OUTPUT_FORMAT_INSTRUCTION
+            from packages.quality_assurance.output_schema import OUTPUT_FORMAT_INSTRUCTION
         except ImportError:
             OUTPUT_FORMAT_INSTRUCTION = ""
             

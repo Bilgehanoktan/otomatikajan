@@ -8,7 +8,7 @@ import json
 import re
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional
-from llm.model_orchestrator import ModelOrchestrator
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 
 _log = logging.getLogger("agi_red_team")
 

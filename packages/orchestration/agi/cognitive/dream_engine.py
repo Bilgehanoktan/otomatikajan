@@ -8,12 +8,12 @@ from typing import List, Dict, Any, Optional
 
 from sqlalchemy import select, delete, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
-from db.models import Memory, ProjectStatus, Project, SubTask
-from db.session import session_scope
-from db.repository import ProjectRepository
+from packages.persistence.models import Memory, ProjectStatus, Project, SubTask
+from packages.persistence.session import session_scope
+from packages.persistence.repository import ProjectRepository
 from packages.orchestration.agi.learning.wisdom_synthesizer import wisdom_synthesizer
-from llm.model_orchestrator import ModelOrchestrator
-from observability.logging import get_logger
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
+from packages.observability.logging import get_logger
 
 _log = get_logger("agi_dream_engine")
 

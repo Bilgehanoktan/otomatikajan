@@ -1,8 +1,8 @@
 import json
 from typing import List, Dict, Any, Optional
 from sqlalchemy.future import select
-from db.models import Project, SubTask
-from observability.logging import get_logger
+from packages.persistence.models import Project, SubTask
+from packages.observability.logging import get_logger
 
 _log = get_logger("agi_chronicler")
 

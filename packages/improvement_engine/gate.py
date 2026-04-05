@@ -7,7 +7,7 @@ from typing import List, Dict
 from packages.orchestration.experimental.observer import observer
 from packages.orchestration.experimental.proposer import proposer
 from packages.orchestration.experimental.verifier import verifier
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 logger = get_logger("improvement.gate")
 

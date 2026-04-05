@@ -2,7 +2,7 @@
 from fastapi import APIRouter, HTTPException, Body, Depends
 from apps.api.routers.auth.jwt_auth import get_current_user
 from ._task_shared import _db_session, _project_to_dict
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 import uuid
 
 logger = get_logger("api.tasks.control")
@@ -50,8 +50,8 @@ async def cancel_task(task_id: str, body: dict = Body(default={}), current_user=
     cancelled_by = str(body.get("cancelled_by", "dashboard"))
     try:
         import uuid as _uuid
-        from db.session import AsyncSessionLocal
-        from db.repository import ProjectRepository, TaskLogRepository
+        from packages.persistence.session import AsyncSessionLocal
+        from packages.persistence.repository import ProjectRepository, TaskLogRepository
 
         async with AsyncSessionLocal() as db:
             try:
@@ -107,8 +107,8 @@ async def cancel_task(task_id: str, body: dict = Body(default={}), current_user=
 async def retry_task(task_id: str, current_user=Depends(get_current_user)):
     try:
         import uuid as _uuid
-        from db.session import AsyncSessionLocal
-        from db.repository import ProjectRepository, TaskLogRepository
+        from packages.persistence.session import AsyncSessionLocal
+        from packages.persistence.repository import ProjectRepository, TaskLogRepository
 
         async with AsyncSessionLocal() as db:
             try:
@@ -157,8 +157,8 @@ async def retry_task(task_id: str, current_user=Depends(get_current_user)):
         # DB'deki job_id alanını yeni job ile senkronize et
         try:
             import uuid as _uuid2
-            from db.session import AsyncSessionLocal as _ASL
-            from db.repository import ProjectRepository as _PR2
+            from packages.persistence.session import AsyncSessionLocal as _ASL
+            from packages.persistence.repository import ProjectRepository as _PR2
             async with _ASL() as _db2:
                 await _PR2.set_job_id(_db2, proj_uuid, job.id)
                 await _db2.commit()
@@ -184,8 +184,8 @@ async def stop_task(task_id: str, current_user=Depends(get_current_user)):
     try:
         import uuid as _uuid
         from packages.orchestration.application.job_queue import job_queue
-        from db.session import AsyncSessionLocal
-        from db.repository import ProjectRepository, TaskLogRepository
+        from packages.persistence.session import AsyncSessionLocal
+        from packages.persistence.repository import ProjectRepository, TaskLogRepository
 
         async with AsyncSessionLocal() as db:
             try:
@@ -253,8 +253,8 @@ async def pause_task(task_id: str, current_user=Depends(get_current_user)):
     try:
         import uuid as _uuid
         from packages.orchestration.application.job_queue import job_queue
-        from db.session import AsyncSessionLocal
-        from db.repository import ProjectRepository, TaskLogRepository
+        from packages.persistence.session import AsyncSessionLocal
+        from packages.persistence.repository import ProjectRepository, TaskLogRepository
 
         async with AsyncSessionLocal() as db:
             try:
@@ -301,8 +301,8 @@ async def resume_task(task_id: str, current_user=Depends(get_current_user)):
     try:
         import uuid as _uuid
         from packages.orchestration.application.job_queue import job_queue
-        from db.session import AsyncSessionLocal
-        from db.repository import ProjectRepository, TaskLogRepository
+        from packages.persistence.session import AsyncSessionLocal
+        from packages.persistence.repository import ProjectRepository, TaskLogRepository
 
         async with AsyncSessionLocal() as db:
             try:
@@ -350,8 +350,8 @@ async def copy_task(task_id: str, body: dict = Body(default={}), current_user=De
     new_priority = body.get("priority", "")
     try:
         import uuid as _uuid
-        from db.session import AsyncSessionLocal
-        from db.repository import ProjectRepository, TaskLogRepository
+        from packages.persistence.session import AsyncSessionLocal
+        from packages.persistence.repository import ProjectRepository, TaskLogRepository
 
         async with AsyncSessionLocal() as db:
             try:
@@ -408,8 +408,8 @@ async def copy_task(task_id: str, body: dict = Body(default={}), current_user=De
         # job_id'yi DB'ye geri yaz (queue job.id = canonical id — create/retry ile tutarlı)
         try:
             import uuid as _uuid2
-            from db.session import AsyncSessionLocal as _ASL
-            from db.repository import ProjectRepository as _PR
+            from packages.persistence.session import AsyncSessionLocal as _ASL
+            from packages.persistence.repository import ProjectRepository as _PR
             async with _ASL() as _db2:
                 await _PR.set_job_id(_db2, _uuid2.UUID(copied_id), job.id)
                 await _db2.commit()

@@ -14,8 +14,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.api.routers.auth.jwt_auth import get_current_user
-from db.models import User, WebhookSubscription
-from db.session import get_db_dep
+from packages.persistence.models import User, WebhookSubscription
+from packages.persistence.session import get_db_dep
 
 router = APIRouter(prefix="/webhooks", tags=["Webhooks"])
 
@@ -136,7 +136,7 @@ class WebhookRouter:
     async def dispatch(self, db, event_type: str, payload: dict):
         """Tüm aktif aboneliklere event gönder."""
         from sqlalchemy import select
-        from db.models import WebhookSubscription
+        from packages.persistence.models import WebhookSubscription
 
         subs = (await db.execute(
             select(WebhookSubscription).where(

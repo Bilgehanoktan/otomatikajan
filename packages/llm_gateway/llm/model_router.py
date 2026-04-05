@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 import asyncio
 
 _log = get_logger("llm.model_router")
@@ -199,11 +199,11 @@ class ModelRouter:
         if APP_ENV == "test":
             return
         try:
-            from db.session import AsyncSessionLocal, is_db_available
+            from packages.persistence.session import AsyncSessionLocal, is_db_available
             db_ok = await is_db_available()
             if not db_ok:
                 return
-            from db.models import ModelRouterLog
+            from packages.persistence.models import ModelRouterLog
             async with AsyncSessionLocal() as db:
                 log = ModelRouterLog(
                     prompt_snippet   = snippet,

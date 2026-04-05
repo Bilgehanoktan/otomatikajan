@@ -66,8 +66,8 @@ from packages.healing.application.heal_engine import heal_engine
 from packages.orchestration.domain.events import event_bus
 from packages.orchestration.application.job_queue import job_queue
 from apps.api.routers.ws_manager import ws_manager
-from observability.logging import get_logger
-from observability.metrics import metrics
+from packages.observability.logging import get_logger
+from packages.observability.metrics import metrics
 
 logger = get_logger("main")
 
@@ -164,9 +164,9 @@ async def websocket_logs(ws: WebSocket):
 @app.get("/health", tags=["Sistem"])
 @app.get("/api/v1/health", tags=["Sistem"], include_in_schema=False)
 async def health_check():
-    from db.session import is_db_available, db_error
+    from packages.persistence.session import is_db_available, db_error
     from packages.orchestration.agency.loader import agency_loader
-    from observability.memory_governor import memory_governor
+    from packages.observability.memory_governor import packages.memory_governor
     
     db_ok = await is_db_available()
     current_agents = len(orchestrator._agents) if hasattr(orchestrator, "_agents") else 0
@@ -211,7 +211,7 @@ async def health_check():
 
 @app.get("/health/diagnostics", tags=["Sistem"])
 async def advanced_health():
-    from db.session import is_db_available
+    from packages.persistence.session import is_db_available
     db_ok = await is_db_available()
     all_tasks = asyncio.all_tasks()
     active_watchdogs = [t.get_name() for t in all_tasks if "Watchdog" in t.get_name() or "Controller" in t.get_name()]
@@ -251,7 +251,7 @@ async def get_metrics():
 # ── Yardımcılar ───────────────────────────────────────────
 async def _get_redis_status() -> dict:
     try:
-        from db.session import get_redis_client
+        from packages.persistence.session import get_redis_client
         r = get_redis_client()
         if r:
             await r.ping()
@@ -262,7 +262,7 @@ async def _get_redis_status() -> dict:
 
 async def import_db_degraded() -> bool:
     try:
-        from db.session import is_db_degraded
+        from packages.persistence.session import is_db_degraded
         return is_db_degraded()
     except Exception:
         return False

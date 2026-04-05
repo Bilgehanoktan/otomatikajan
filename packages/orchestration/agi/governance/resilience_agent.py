@@ -10,10 +10,10 @@ import asyncio
 from typing import List
 from datetime import datetime, timezone
 
-from observability.logging import get_logger
-from db.models import Project, ProjectStatus
+from packages.observability.logging import get_logger
+from packages.persistence.models import Project, ProjectStatus
 from packages.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex
-from db.session import AsyncSessionLocal
+from packages.persistence.session import AsyncSessionLocal
 
 _log = get_logger("agi_resilience_agent")
 
@@ -105,9 +105,9 @@ class ResilienceAgent:
             else:
                 _log.error("Cortex 'resume_goal' yetenegine sahip degil. Klasik baslatma deneniyor.")
                 # Fallback: Mevcut coordinate_goal'u project_id ile çağır
-                from db.session import AsyncSessionLocal
+                from packages.persistence.session import AsyncSessionLocal
                 async with AsyncSessionLocal() as db:
-                    from db.repository import ProjectRepository
+                    from packages.persistence.repository import ProjectRepository
                     p = await ProjectRepository.get(db, project_id)
                     if p:
                         await sovereign_cortex.coordinate_goal(

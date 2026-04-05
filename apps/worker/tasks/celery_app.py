@@ -84,7 +84,7 @@ celery_app.conf.beat_schedule = {
 
 
 # ── LOGLAMA ENTEGRASYONU (Faz 12 Fix) ───────────────────
-from observability.logging import configure_logging, get_logger
+from packages.observability.logging import configure_logging, get_logger
 
 @celery_app.on_after_finalize.connect
 def setup_direct_logging(sender, instance=None, **kwargs):
@@ -107,7 +107,7 @@ try:
     @after_setup_logger.connect
     def on_after_setup_logger(logger, *args, **kwargs):
         """Her logger oluştuğunda bizim handler'larımızı ekle."""
-        from observability.logging import DBLogHandler
+        from packages.observability.logging import DBLogHandler
         # DB handler yoksa ekle (güvence)
         if not any(isinstance(h, DBLogHandler) for h in logger.handlers):
             logger.addHandler(DBLogHandler())

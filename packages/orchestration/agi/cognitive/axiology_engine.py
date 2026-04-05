@@ -1,8 +1,8 @@
 import json
 import re
 from typing import List, Dict, Any, Optional
-from llm.model_orchestrator import ModelOrchestrator
-from observability.logging import get_logger
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
+from packages.observability.logging import get_logger
 
 _log = get_logger("agi_axiology_engine")
 

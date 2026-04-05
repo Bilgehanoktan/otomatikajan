@@ -23,9 +23,9 @@ from packages.healing.application.heal_engine import heal_engine
 from packages.orchestration.domain.events import event_bus
 from packages.orchestration.application.job_queue import job_queue
 from apps.api.routers.ws_manager import ws_manager
-from core.reaper_service import reaper
-from observability.logging import configure_logging, get_logger
-from observability.metrics import metrics
+from packages.orchestration.reaper_service import reaper
+from packages.observability.logging import configure_logging, get_logger
+from packages.observability.metrics import metrics
 
 logger = get_logger("startup.lifespan")
 
@@ -38,8 +38,8 @@ async def _forward_to_ws(event):
 async def _persist_event(event):
     if event.payload.get("severity") in ("critical", "warning", "resolved"):
         try:
-            from db.session import AsyncSessionLocal
-            from db.repository import EventLogRepository
+            from packages.persistence.session import AsyncSessionLocal
+            from packages.persistence.repository import EventLogRepository
             async with AsyncSessionLocal() as db:
                 await EventLogRepository.write(
                     db,
@@ -189,8 +189,8 @@ async def autonomous_metabolism_loop():
 
 async def _reaper_sync_action():
     from sqlalchemy import update, or_
-    from db.models import Project, ProjectStatus
-    from db.session import AsyncSessionLocal
+    from packages.persistence.models import Project, ProjectStatus
+    from packages.persistence.session import AsyncSessionLocal
     async with AsyncSessionLocal() as db:
         timeout_limit = datetime.now(timezone.utc) - timedelta(hours=1)
         zombie_query = update(Project).where(
@@ -218,7 +218,7 @@ async def _self_governor_sync_action(orch):
 
 async def system_watchdog_supervisor():
     """Arka plandaki kritik servislerin ve metabolizmanın hayatta kalmasını sağlar."""
-    from observability.memory_governor import memory_governor
+    from packages.observability.memory_governor import packages.memory_governor
     
     tasks: dict[str, Any] = {
         "metabolism_loop": autonomous_metabolism_loop,
@@ -246,8 +246,8 @@ async def system_watchdog_supervisor():
 async def _analyze_interrupted_tasks():
     """Önceki oturumdan kalan 'queued' veya 'running' görevleri 'INTERRUPTED' durumuna çek."""
     try:
-        from db.session import AsyncSessionLocal
-        from db.models import Project, ProjectStatus
+        from packages.persistence.session import AsyncSessionLocal
+        from packages.persistence.models import Project, ProjectStatus
         from sqlalchemy import update
         async with AsyncSessionLocal() as db:
             interrupted_query = (
@@ -275,7 +275,7 @@ async def lifespan(app: FastAPI):
     # 1. Veritabanı
     db_ready = False
     try:
-        from db.session import init_db
+        from packages.persistence.session import init_db
         await init_db()
         # 1.1 Event Bus Bridging (Phase 12.1 Refactor)
         register_event_listeners()
@@ -352,7 +352,7 @@ async def lifespan(app: FastAPI):
         # Phase 46: Subconscious Dream Handler
         async def _run_dream_cycle(**payload):
             from packages.orchestration.agi.cognitive.subconscious_cortex_45 import subconscious_cortex_45
-            from db.session import AsyncSessionLocal
+            from packages.persistence.session import AsyncSessionLocal
             async with AsyncSessionLocal() as db:
                 return await subconscious_cortex_45.dream(db)
         
@@ -390,8 +390,8 @@ async def lifespan(app: FastAPI):
         # 5.1 Hydration (Faz 12.1 Stabilizasyon)
         if db_ready and _ENV != "test":
             logger.info("Self-Repair Veri Hydration baslatiliyor...")
-            from repair.memory.incident_memory import incident_memory
-            from repair.ingestion.incident_ingestor import incident_ingestor
+            from packages.repair_engine.memory.incident_memory import incident_memory
+            from packages.repair_engine.ingestion.incident_ingestor import incident_ingestor
             
             # Paralel hydration
             await asyncio.gather(
@@ -406,7 +406,7 @@ async def lifespan(app: FastAPI):
 
     # 6. Onay Kapısı → Event Bus
     try:
-        from quality.approval_gate import approval_gate
+        from packages.quality_assurance.approval_gate import approval_gate
 
         async def _notify_approval_needed(req):
             await event_bus.emit(
@@ -427,7 +427,7 @@ async def lifespan(app: FastAPI):
         logger.warning(f"Onay Kapısı bildirim bağlantısı başarısız: {_gate_err}")
 
     # Degrade Mode Visibility
-    from db.session import is_db_available
+    from packages.persistence.session import is_db_available
     db_ok = await is_db_available()
     h_score = heal_engine.system_health_score() if hasattr(heal_engine, "system_health_score") else 1.0
 
@@ -445,7 +445,7 @@ async def lifespan(app: FastAPI):
     # 7. Affective Core Hydration [FIX-4] — Önceki duygusal bağlamı yükle
     if db_ready and _ENV != "test":
         try:
-            from db.session import AsyncSessionLocal
+            from packages.persistence.session import AsyncSessionLocal
             from packages.orchestration.agi.consciousness.affective_core import affective_core
             async with AsyncSessionLocal() as db:
                 restored = await affective_core.load_state(db)
@@ -457,7 +457,7 @@ async def lifespan(app: FastAPI):
     # 8. GlobalWorkspace — İlk Bilinç Yayını [FIX-6]
     try:
         from packages.orchestration.agi.consciousness.global_workspace import global_workspace
-        from db.session import is_db_available as _is_db_ok
+        from packages.persistence.session import is_db_available as _is_db_ok
         db_status = "nominal" if await _is_db_ok() else "degraded"
         global_workspace.broadcast(
             layer_name="startup",

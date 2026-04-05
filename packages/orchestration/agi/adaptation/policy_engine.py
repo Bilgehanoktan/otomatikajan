@@ -1,10 +1,10 @@
 import json
 from typing import Optional, Dict, List, Any
 from packages.orchestration.agi.schemas import EpisodeRecord, PolicyProposal
-from llm.model_orchestrator import ModelOrchestrator
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 from packages.orchestration.agi.consciousness.semantic_memory import semantic_memory
-from db.session import session_scope
-from observability.logging import get_logger
+from packages.persistence.session import session_scope
+from packages.observability.logging import get_logger
 
 _log = get_logger("agi_policy_engine")
 

@@ -8,7 +8,7 @@ kapanmamış işleri (RepairJob) tespit eder ve temizler.
 import asyncio
 import time
 from datetime import datetime, timezone
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 _log = get_logger("core.reaper")
 
@@ -43,12 +43,12 @@ class ReaperService:
 
     async def reap(self):
         """Asılı kalan işleri DB üzerinden tespit et ve temizle."""
-        from db.session import AsyncSessionLocal, is_db_available
+        from packages.persistence.session import AsyncSessionLocal, is_db_available
         if not await is_db_available():
             return
 
-        from db.repair_repository import RepairJobRepo
-        from core.repair_orchestrator import get_repair_orchestrator
+        from packages.persistence.repair_repository import RepairJobRepo
+        from packages.orchestration.repair_orchestrator import get_repair_orchestrator
 
         orch = get_repair_orchestrator()
         

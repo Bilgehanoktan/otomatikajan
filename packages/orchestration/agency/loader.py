@@ -17,7 +17,7 @@ except ImportError:
                 content = text
             return _Doc()
 from typing import Dict, List, Any, Optional
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 _log = get_logger("core.agency.loader")
 

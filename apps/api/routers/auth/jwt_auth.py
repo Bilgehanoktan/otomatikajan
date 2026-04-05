@@ -32,8 +32,8 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.session import get_db_dep
-from db.models import User, RefreshToken
+from packages.persistence.session import get_db_dep
+from packages.persistence.models import User, RefreshToken
 
 # ─── JWT Konfigürasyonu — TEK KAYNAK ─────────────────────
 from config import JWT_SECRET
@@ -143,7 +143,7 @@ def clear_auth_cookies(response: Response):
 class AuthService:
 
     async def register(self, db: AsyncSession, email: str, password: str) -> "User":
-        from db.models import User
+        from packages.persistence.models import User
         existing = await db.execute(select(User).where(User.email == email))
         if existing.scalar_one_or_none():
             raise HTTPException(status_code=409, detail="Bu e-posta zaten kayıtlı")
@@ -166,7 +166,7 @@ class AuthService:
         return user
 
     async def login(self, db: AsyncSession, email: str, password: str) -> TokenResponse:
-        from db.models import User, RefreshToken
+        from packages.persistence.models import User, RefreshToken
         result = await db.execute(select(User).where(User.email == email))
         user   = result.scalar_one_or_none()
 
@@ -215,7 +215,7 @@ class AuthService:
         3. Eski token'ı iptal et (revocation)
         4. Yeni çift üret
         """
-        # from db.models import User, RefreshToken # Removed, now top-level
+        # from packages.persistence.models import User, RefreshToken # Removed, now top-level
         from sqlalchemy import update
 
         payload = _decode_token(refresh_token)
@@ -272,7 +272,7 @@ class AuthService:
 
     async def revoke_all(self, db: AsyncSession, user_id: str) -> int:
         """Kullanıcının tüm aktif refresh token'larını iptal eder (logout all)."""
-        from db.models import RefreshToken
+        from packages.persistence.models import RefreshToken
         from sqlalchemy import update
         import uuid
         
@@ -289,7 +289,7 @@ class AuthService:
         return result.rowcount
 
     async def get_user_from_token(self, db: AsyncSession, token: str) -> Any:
-        from db.models import User
+        from packages.persistence.models import User
         import uuid
         from sqlalchemy import select
         

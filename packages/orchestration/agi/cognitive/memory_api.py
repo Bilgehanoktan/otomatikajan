@@ -2,10 +2,10 @@ import os
 import json
 import glob
 from typing import List, Dict, Any, Optional
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 from packages.orchestration.indexing.system_indexer import SystemIndexer
-from db.session import session_scope
-from db.repository import ProjectRepository
+from packages.persistence.session import session_scope
+from packages.persistence.repository import ProjectRepository
 
 _log = get_logger("agi_memory_api")
 
@@ -29,7 +29,7 @@ class MemoryAPI:
         code_context = self.indexer.get_context_for_task(query=query, limit=3)
         
         # 2. Deneyim Bağlamı (Project Logs)
-        from db.models import ProjectStatus
+        from packages.persistence.models import ProjectStatus
         async with session_scope() as db:
             past_projects = await ProjectRepository.list_recent(db, limit=3, search=query, status=ProjectStatus.COMPLETED.value)
             project_context = "\n".join([f"- {p.title}: {p.report if p.report else 'Rapor yok'}" for p in past_projects])

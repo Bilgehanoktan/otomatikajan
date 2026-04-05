@@ -3,8 +3,8 @@ import re
 from typing import List, Optional, Dict, Any
 from packages.orchestration.agi.schemas import ExecutionPlan, PlanStep, RiskLevel, PlanProposal
 from packages.orchestration.agi.cognitive.red_team_agent import red_team
-from llm.model_orchestrator import ModelOrchestrator
-from observability.logging import get_logger
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
+from packages.observability.logging import get_logger
 
 _log = get_logger("agi_consensus_manager")
 

@@ -2,7 +2,7 @@
 from fastapi import APIRouter, HTTPException, Query, Depends
 from apps.api.routers.auth.jwt_auth import get_current_user
 from ._task_shared import _db_session, _project_to_dict
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 from typing import Optional, List, Dict, Any
 
@@ -20,10 +20,10 @@ async def list_tasks(
     current_user=Depends(get_current_user),
 ):
     try:
-        from db.session import AsyncSessionLocal
-        from db.repository import ProjectRepository
+        from packages.persistence.session import AsyncSessionLocal
+        from packages.persistence.repository import ProjectRepository
         from sqlalchemy import select, func
-        from db.models import Project
+        from packages.persistence.models import Project
         async with AsyncSessionLocal() as db:
             # ── Faz 12.1A: Compatibility Shim ───────────────
             status_map = {
@@ -66,7 +66,7 @@ async def list_tasks(
         logger.warning(f"DB görev listesi başarısız, fallback: {e}")
         # in-memory fallback
         try:
-            from core.context import orchestrator
+            from packages.orchestration.context import orchestrator
             tasks = orchestrator.list_tasks()
             return {
                 "total":  len(tasks),
@@ -113,8 +113,8 @@ async def task_capabilities(current_user=Depends(get_current_user)):
 @router.get("/stats/summary", summary="Görev istatistik özeti")
 async def tasks_summary(current_user=Depends(get_current_user)):
     try:
-        from db.session import AsyncSessionLocal
-        from db.repository import ProjectRepository
+        from packages.persistence.session import AsyncSessionLocal
+        from packages.persistence.repository import ProjectRepository
         async with AsyncSessionLocal() as db:
             counts = await ProjectRepository.counts_by_status(db)
             total_cost = await ProjectRepository.get_total_cost(db) # Get cost while session is open
@@ -147,7 +147,7 @@ async def tasks_summary(current_user=Depends(get_current_user)):
         }
     except Exception:
         try:
-            from core.context import orchestrator
+            from packages.orchestration.context import orchestrator
             tasks = orchestrator.list_tasks()
             from collections import Counter
             c = Counter(str(t.status) for t in tasks)
@@ -173,10 +173,10 @@ async def tasks_summary(current_user=Depends(get_current_user)):
 @router.get("/{task_id}", summary="Görev detayı")
 async def get_task(task_id: str, current_user=Depends(get_current_user)):
     try:
-        from db.session import AsyncSessionLocal
-        from db.repository import ProjectRepository, SubTaskRepository, TaskLogRepository
+        from packages.persistence.session import AsyncSessionLocal
+        from packages.persistence.repository import ProjectRepository, SubTaskRepository, TaskLogRepository
         from sqlalchemy import select
-        from db.models import Project
+        from packages.persistence.models import Project
         import uuid as _uuid
 
         async with AsyncSessionLocal() as db:
@@ -198,7 +198,7 @@ async def get_task(task_id: str, current_user=Depends(get_current_user)):
             logs     = await TaskLogRepository.get_by_project(db, p.id, limit=100)
 
             # --- AGI Entegrasyonu (Gelişmiş Episode Verisi) ---
-            from db.models import Memory
+            from packages.persistence.models import Memory
             from sqlalchemy import select
             agi_metadata = None
             # Project ID ile eşleşen en son episode kaydını al
@@ -227,8 +227,8 @@ async def get_task(task_id: str, current_user=Depends(get_current_user)):
 async def task_logs(task_id: str, limit: int = Query(100, ge=1, le=500), current_user=Depends(get_current_user)):
     try:
         import uuid as _uuid
-        from db.session import AsyncSessionLocal
-        from db.repository import ProjectRepository, TaskLogRepository
+        from packages.persistence.session import AsyncSessionLocal
+        from packages.persistence.repository import ProjectRepository, TaskLogRepository
 
         async with AsyncSessionLocal() as db:
             try:
@@ -266,8 +266,8 @@ async def task_logs(task_id: str, limit: int = Query(100, ge=1, le=500), current
 async def task_subtasks(task_id: str, current_user=Depends(get_current_user)):
     try:
         import uuid as _uuid
-        from db.session import AsyncSessionLocal
-        from db.repository import ProjectRepository, SubTaskRepository
+        from packages.persistence.session import AsyncSessionLocal
+        from packages.persistence.repository import ProjectRepository, SubTaskRepository
 
         async with AsyncSessionLocal() as db:
             try:
@@ -318,8 +318,8 @@ async def task_skill_traces(
     """Her beceri yürütme adımının detaylı kaydını döndürür."""
     try:
         import uuid as _uuid
-        from db.session import AsyncSessionLocal
-        from db.repository import ProjectRepository, SkillLogRepository
+        from packages.persistence.session import AsyncSessionLocal
+        from packages.persistence.repository import ProjectRepository, SkillLogRepository
 
         async with AsyncSessionLocal() as db:
             try:

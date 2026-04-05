@@ -26,7 +26,7 @@ router.include_router(mcp_router)
 @router.get("/system/health", summary="Sistem Altyapı Sağlığı (Faz 12.1)")
 async def system_health():
     import time
-    from db.session import get_redis_client
+    from packages.persistence.session import get_redis_client
     from config import REDIS_URL
     
     redis = get_redis_client()
@@ -104,7 +104,7 @@ def _queue():
     return job_queue
 
 def _metrics():
-    from observability.metrics import metrics
+    from packages.observability.metrics import metrics
     return metrics
 
 
@@ -171,8 +171,8 @@ async def cost_summary():
     met = _metrics()
     snap = met.snapshot()
     try:
-        from db.session import AsyncSessionLocal
-        from db.repository import CostRepository
+        from packages.persistence.session import AsyncSessionLocal
+        from packages.persistence.repository import CostRepository
         async with AsyncSessionLocal() as db:
             total   = await CostRepository.total_cost(db)
             by_prov = await CostRepository.by_provider(db)
@@ -186,11 +186,11 @@ async def cost_summary():
 # ════════════════════════════════════════════════════════
 
 def _gate():
-    from quality.approval_gate import approval_gate
+    from packages.quality_assurance.approval_gate import approval_gate
     return approval_gate
 
 def _mem():
-    from memory.retrieval import _fallback_store
+    from packages.memory.retrieval import _fallback_store
     return _fallback_store
 
 
@@ -314,9 +314,9 @@ async def memory_stats():
     store = _mem()
     db_stats = None
     try:
-        from db.session import AsyncSessionLocal
+        from packages.persistence.session import AsyncSessionLocal
         from sqlalchemy import select, func
-        from db.models import Memory
+        from packages.persistence.models import Memory
         async with AsyncSessionLocal() as db:
             result = await db.execute(select(func.count(Memory.id)))
             db_stats = {"db_total": result.scalar() or 0}
@@ -342,6 +342,6 @@ async def memory_search(body: dict):
 @router.delete("/memory/clear", summary="Bellek sıfırla (dev)",
                dependencies=[Depends(rate_limit("memory_clear"))])
 async def clear_memory(current_user=Depends(get_current_user)):
-    from memory.retrieval import _fallback_store
+    from packages.memory.retrieval import _fallback_store
     _fallback_store._entries.clear()
     return {"cleared": True}

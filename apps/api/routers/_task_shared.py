@@ -9,14 +9,14 @@ from fastapi import APIRouter, HTTPException, Query, Body, Depends
 from pydantic import BaseModel, Field
 
 from apps.api.routers.auth.jwt_auth import get_current_user
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 logger = get_logger("api.tasks")
 
 
 # ── DB bağımlılık ──────────────────────────────────────────
 async def _db_session():
-    from db.session import AsyncSessionLocal
+    from packages.persistence.session import AsyncSessionLocal
     async with AsyncSessionLocal() as db:
         yield db
 

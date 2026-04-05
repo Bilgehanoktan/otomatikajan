@@ -9,8 +9,8 @@ from typing import Any, Dict, List, Optional
 
 from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
-from db.models import Memory
-from observability.logging import get_logger
+from packages.persistence.models import Memory
+from packages.observability.logging import get_logger
 
 _log = get_logger("cognitive_synapse")
 

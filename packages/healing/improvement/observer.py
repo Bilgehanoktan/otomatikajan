@@ -6,7 +6,7 @@ Sistemdeki iyileştirme fırsatlarını tarar.
 import uuid
 from typing import List, Dict, Any
 from packages.orchestration.experimental.models import ImprovementOpportunity
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 logger = get_logger("improvement.observer")
 

@@ -1,6 +1,6 @@
 import json
 from typing import List, Dict, Any, Optional
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 _log = get_logger("agi_goal_prioritizer")
 

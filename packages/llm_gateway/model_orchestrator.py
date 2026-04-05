@@ -8,8 +8,8 @@ from pydantic import BaseModel
 import logging
 import httpx
 import random
-from db.session import AsyncSessionLocal
-from db.models import SovereignModelPolicy, LLMCostLog
+from packages.persistence.session import AsyncSessionLocal
+from packages.persistence.models import SovereignModelPolicy, LLMCostLog
 from sqlalchemy import select
 from packages.orchestration.agi.monitoring.token_budgeter import token_budgeter
 from packages.orchestration.agi.operational.resource_manager import resource_manager
@@ -20,7 +20,7 @@ from packages.orchestration.domain.events import event_bus
 logger = logging.getLogger(__name__)
 
 
-from llm.llm_types import LLMResponse, CircuitState, ProviderStats, PROVIDERS
+from packages.llm_gateway.llm_types import LLMResponse, CircuitState, ProviderStats, PROVIDERS
 
 # V2 Mimari: Ajan rolüne göre model hiyerarşisi (isimler PROVIDERS ile eşleşmeli)
 ROUTING_POLICY: dict[str, list[str]] = {
@@ -148,8 +148,8 @@ class ModelOrchestrator:
         # ── BÜTÇE KONTROLÜ (Phase 7) ──
         if project_id:
             try:
-                from db.session import AsyncSessionLocal
-                from db.models import Project
+                from packages.persistence.session import AsyncSessionLocal
+                from packages.persistence.models import Project
                 async with AsyncSessionLocal() as db:
                     proj = await db.get(Project, project_id)
                     if proj and proj.budget_limit > 0 and proj.total_cost >= proj.budget_limit:
@@ -357,9 +357,9 @@ class ModelOrchestrator:
 
             # Metrics ve Maliyet Kaydı
             try:
-                from observability.metrics import metrics
-                from llm.cost_tracker import cost_tracker
-                from db.session import AsyncSessionLocal
+                from packages.observability.metrics import metrics
+                from packages.llm_gateway.cost_tracker import cost_tracker
+                from packages.persistence.session import AsyncSessionLocal
 
                 # In-memory metrics
                 metrics.record_llm_call(
@@ -396,7 +396,7 @@ class ModelOrchestrator:
         except Exception as _exc:
             provider.record_failure(str(_exc))
             try:
-                from observability.metrics import metrics
+                from packages.observability.metrics import metrics
                 metrics.record_llm_call(provider=provider.name, latency_s=time.time() - t0, success=False)
                 metrics.record_error(f"llm.{provider.name}.{type(_exc).__name__}")
                 # Phase 88: Systemic Stress signal
@@ -520,7 +520,7 @@ class ModelOrchestrator:
 
         # Faz 12: Dynamic routing — prompt karmaşıklığına göre provider seç
         try:
-            from llm.model_router import get_model_router
+            from packages.llm_gateway.model_router import get_model_router
             router   = get_model_router()
             prompt_text = " ".join(str(m.get("content", "")) for m in messages)
             decision = router.route(prompt_text, agent_role=preferred_agent)

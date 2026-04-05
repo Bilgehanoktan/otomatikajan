@@ -2,8 +2,8 @@ import json
 import re
 import asyncio
 from typing import List, Dict, Any, Optional
-from observability.logging import get_logger
-from llm.model_orchestrator import ModelOrchestrator
+from packages.observability.logging import get_logger
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 from packages.orchestration.agi.schemas import (
     ProblemFrame, ContextPackage, ExecutionPlan, PlanStep, RiskLevel, AffectiveState
 )

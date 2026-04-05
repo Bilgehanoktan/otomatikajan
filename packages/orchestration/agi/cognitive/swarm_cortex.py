@@ -1,7 +1,7 @@
 import json
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 _log = get_logger("agi_hive_memory")
 

@@ -6,13 +6,13 @@ import uuid as _uuid
 from celery import Task
 from celery.utils.log import get_task_logger
 
-from db.models import ProjectStatus  # type: ignore
-from db.session import AsyncSessionLocal  # type: ignore
-from db.repository import ProjectRepository, TaskLogRepository, SubTaskRepository  # type: ignore
+from packages.persistence.models import ProjectStatus  # type: ignore
+from packages.persistence.session import AsyncSessionLocal  # type: ignore
+from packages.persistence.repository import ProjectRepository, TaskLogRepository, SubTaskRepository  # type: ignore
 from tasks.celery_app import celery_app  # type: ignore
 from integrations.deerflow_bridge import DeerFlowBridgeClient  # type: ignore
 from schemas import DeerFlowEventType  # type: ignore
-from core.heal_engine import heal_engine  # type: ignore
+from packages.orchestration.heal_engine import heal_engine  # type: ignore
 
 # ── DeerFlow Stream Event Normalizer ─────────────────────
 _EVENT_TYPE_MAP: dict[str, DeerFlowEventType] = {
@@ -120,8 +120,8 @@ def run_deerflow_task(
     DeerFlow Bridge üzerinden ağır ajan görevlerini yürüten Celery task.
     """
     async def _execute():
-        from db.session import AsyncSessionLocal
-        from db.repository import ProjectRepository
+        from packages.persistence.session import AsyncSessionLocal
+        from packages.persistence.repository import ProjectRepository
         from integrations.deerflow_bridge import DeerFlowBridgeClient
 
         async with AsyncSessionLocal() as db:
@@ -184,8 +184,8 @@ def run_deerflow_task(
         return result
     except Exception as exc:
         async def _set_failed():
-            from db.session import AsyncSessionLocal
-            from db.repository import ProjectRepository
+            from packages.persistence.session import AsyncSessionLocal
+            from packages.persistence.repository import ProjectRepository
             async with AsyncSessionLocal() as db:
                 p = await ProjectRepository.get(db, to_uuid(db_project_id))
                 if p:
@@ -239,7 +239,7 @@ def run_deerflow_streaming_task(
 
         # Prompt builder: görev tipine göre prompt oluştur
         try:
-            from core.task_templates import render_task_payload
+            from packages.orchestration.task_templates import render_task_payload
             rendered = render_task_payload(
                 original_prompt=f"Goal: {description}",
                 template_id=workflow_template,
@@ -247,7 +247,7 @@ def run_deerflow_streaming_task(
                 acceptance_criteria=acceptance_criteria
             )
             
-            from core.deerflow_prompts import build_deerflow_prompt  # type: ignore
+            from packages.orchestration.deerflow_prompts import build_deerflow_prompt  # type: ignore
             prompt = build_deerflow_prompt(deerflow_role, title, rendered["augmented_prompt"])
         except ImportError:
             prompt = (

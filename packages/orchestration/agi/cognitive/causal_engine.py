@@ -1,8 +1,8 @@
 import json
 from typing import Optional, List, Dict, Any
 from packages.orchestration.agi.schemas import EpisodeRecord, CausalGraph, CausalLink
-from llm.model_orchestrator import ModelOrchestrator
-from observability.logging import get_logger
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
+from packages.observability.logging import get_logger
 
 _log = get_logger("agi_causal_engine")
 

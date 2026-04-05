@@ -2,8 +2,8 @@ import os
 import json
 import logging
 from typing import Dict, Any, Optional
-from observability.logging import get_logger
-from llm.model_orchestrator import ModelOrchestrator
+from packages.observability.logging import get_logger
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 
 _log = get_logger("core.agency.factory")
 

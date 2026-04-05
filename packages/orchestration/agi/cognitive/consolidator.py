@@ -7,7 +7,7 @@ from packages.orchestration.agi.cognitive.dream_engine import (
     dream_engine,
     start_dream_loop,
 )
-from db.session import session_scope
+from packages.persistence.session import session_scope
 
 # Legacy Aliases
 Consolidator = DreamEngine

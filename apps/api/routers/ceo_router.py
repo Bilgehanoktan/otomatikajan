@@ -6,7 +6,7 @@ Exposes CEO Engine findings and status.
 from fastapi import APIRouter, Depends, BackgroundTasks
 from apps.api.routers.auth.jwt_auth import get_current_user
 from packages.orchestration.ceo.engine import get_ceo_engine
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 logger = get_logger("api.ceo")
 router = APIRouter(prefix="/ceo", tags=["CEO Engine"])
@@ -21,8 +21,8 @@ async def get_overview(current_user=Depends(get_current_user)):
 async def get_findings(current_user=Depends(get_current_user)):
     """CEO Engine tarafından bulunan iyileştirme fırsatlarını ve önerileri getir."""
     try:
-        from db.session import session_scope
-        from db.models import ImprovementOpportunity, CEOSuggestedTask
+        from packages.persistence.session import session_scope
+        from packages.persistence.models import ImprovementOpportunity, CEOSuggestedTask
         from sqlalchemy import select
         
         async with session_scope() as db:

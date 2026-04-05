@@ -1,8 +1,8 @@
 import json
 from typing import Optional, Dict, List, Any
 from packages.orchestration.agi.schemas import ExecutionPlan, ProblemFrame, RiskLevel
-from llm.model_orchestrator import ModelOrchestrator
-from observability.logging import get_logger
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
+from packages.observability.logging import get_logger
 
 _log = get_logger("agi_simulation_engine")
 

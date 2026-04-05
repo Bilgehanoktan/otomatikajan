@@ -85,14 +85,14 @@ class DBLogHandler(logging.Handler):
 
         try:
             import asyncio
-            from db.session import AsyncSessionLocal
-            from db.repository import EventLogRepository
+            from packages.persistence.session import AsyncSessionLocal
+            from packages.persistence.repository import EventLogRepository
 
             async def _write():
                 try:
                     # 1. DB Log (Relational)
                     async with AsyncSessionLocal() as db:
-                        from db.repository import EventLogRepository
+                        from packages.persistence.repository import EventLogRepository
                         await EventLogRepository.write(
                             db,
                             event_type=f"log.{record.levelname.lower()}",
@@ -106,7 +106,7 @@ class DBLogHandler(logging.Handler):
                     
                     # 2. Vector Log (Faz 12.2: Log Aggregation to RAG)
                     try:
-                        from memory.watchdog import watchdog
+                        from packages.memory.watchdog import watchdog
                         agent_id = getattr(record, "agent_id", "system")
                         severity = "warning" if record.levelno == logging.WARNING else "critical"
                         phase = getattr(record, "phase", "log")
@@ -214,7 +214,7 @@ try:
             
             # ── Degrade Mode Visibility (P1-05) ───────────────────
             try:
-                from db.session import is_db_available
+                from packages.persistence.session import is_db_available
                 # core.heal_engine import'i circular import riski için içeride
                 from packages.healing.application.heal_engine import heal_engine
                 db_ok = await is_db_available()
@@ -243,8 +243,8 @@ try:
             if not any(path.startswith(s) for s in skip) and should_sample:
                 try:
                     import asyncio
-                    from db.session import AsyncSessionLocal
-                    from db.repository import ApiMetricRepository
+                    from packages.persistence.session import AsyncSessionLocal
+                    from packages.persistence.repository import ApiMetricRepository
                     error_type = "" if not is_error else f"HTTP_{response.status_code}"
                     async def _write():
                         try:
