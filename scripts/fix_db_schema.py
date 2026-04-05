@@ -10,7 +10,7 @@ if os.path.exists(".env.local"):
 
 def fix_schema():
     raw_url = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/ai_company")
-    sync_url = raw_url.replace("+asyncpg", "")
+    sync_url = raw_url.replace("+asyncpg", "").replace("+aiosqlite", "")
     
     print(f"Connecting to: {sync_url} (Sync)")
     engine = create_engine(sync_url)
