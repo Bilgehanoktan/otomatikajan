@@ -11,10 +11,10 @@ async def verify_phase_42():
     print("=== Phase 42: Governance Reinforcement Verification ===")
     
     # 1. Ortam Hazırlığı
-    from core.agi.cognitive.synaptic_cortex import synaptic_cortex
-    from core.agi.governance.watchdog import governance_watchdog
-    from core.agi.task_governance import TaskPlanner
-    from db.session import get_db
+    from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
+    from packages.orchestration.agi.governance.watchdog import governance_watchdog
+    from packages.orchestration.agi.task_governance import TaskPlanner
+    from packages.persistence.session import get_db
     
     planner = TaskPlanner()
     
@@ -25,7 +25,7 @@ async def verify_phase_42():
     async with get_db() as db:
         # Önceki test verilerini temizle (Opsiyonel ama temizlik iyidir)
         from sqlalchemy import delete
-        from db.models import Memory
+        from packages.persistence.models import Memory
         await db.execute(delete(Memory).where(Memory.category == "arch_inhibition"))
         await db.commit()
         

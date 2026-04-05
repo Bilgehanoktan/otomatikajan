@@ -10,9 +10,9 @@ async def verify_agi_foresight_intelligence():
     print("--- AGI 26.0 Verification ---")
     
     try:
-        from core.agi.cognitive.foresight_oracle import foresight_oracle
-        from core.agi.adaptation.risk_mitigator import risk_mitigator
-        from core.agi.schemas import PlanProposal
+        from packages.orchestration.agi.cognitive.foresight_oracle import foresight_oracle
+        from packages.orchestration.agi.adaptation.risk_mitigator import risk_mitigator
+        from packages.orchestration.agi.schemas import PlanProposal
         
         print("[OK] AGI 26.0 components imported successfully.")
         

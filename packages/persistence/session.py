@@ -14,13 +14,13 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from db.models import Base
-from observability.logging import get_logger
+from packages.persistence.models import Base
+from packages.observability.logging import get_logger
 logger = get_logger("db.session")
 
 # Repair modelleri Base.metadata'ya kayıt için import edilmeli
 try:
-    import db.repair_models  # noqa: F401 — tablo tanımlarını Base'e ekler
+    import packages.persistence.repair_models  # noqa: F401 — tablo tanımlarını Base'e ekler
 except Exception as e:
     logger.warning(f"Repair modelleri yuklenemedi: {e}")
 
@@ -186,8 +186,8 @@ async def init_db():
                 except Exception as e:
                     logger.warning(f"pgvector uzantısı oluşturulamadı: {e}")
 
-            import db.models
-            import db.repair_models
+            import packages.persistence.models
+            import packages.persistence.repair_models
             await conn.run_sync(Base.metadata.create_all)
             _log_msg = "SQLite Fallback Hazır" if is_sqlite else "Postgres Hazır"
             logger.info(f"OK: Veritabanı tabloları hazır ({APP_ENV} - {_log_msg}).")

@@ -5,7 +5,7 @@ kural tabanlı ve şablon bazlı temel 'düşünce' motoru.
 """
 from typing import Dict, Any, List
 import re
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 logger = get_logger("agi_local_failsafe")
 

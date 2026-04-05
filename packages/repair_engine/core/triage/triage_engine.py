@@ -9,8 +9,8 @@ Görevler:
 4. Requires human belirleme
 """
 
-from repair.schemas.incident import IncidentRecord, IncidentSeverity
-from repair.schemas.diagnosis import DiagnosisTicket, ProblemClass, RepairMode
+from packages.repair_engine.schemas.incident import IncidentRecord, IncidentSeverity
+from packages.repair_engine.schemas.diagnosis import DiagnosisTicket, ProblemClass, RepairMode
 
 
 # ── Sınıflandırma Kuralları ────────────────────────────────────

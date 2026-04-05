@@ -17,7 +17,7 @@ class StrategicPlanningSkillAdapter(BaseSkillAdapter):
         GStack /plan-ceo-review mantigiyla bir stratejik plan veya tasarim dokumani uretir.
         """
         try:
-            from core.model_orchestrator import model_orchestrator
+            from packages.orchestration.model_orchestrator import model_orchestrator
             
             prompt = f"""
 Sen DeerFlow Otonom Yazılım Şirketi'nin Baş Mimarı ve Strateji Sorumlusu (CSO) rolündesin.

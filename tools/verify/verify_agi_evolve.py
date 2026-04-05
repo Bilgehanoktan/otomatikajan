@@ -9,10 +9,10 @@ async def verify_agi_evolution():
     print("--- AGI 12.2 Verification ---")
     
     try:
-        from core.agi.orchestrator import agi_orchestrator
-        from core.agi.world.repo_graph import repo_world_model
-        from core.agi.learning.distiller import skill_distiller
-        from core.agi.cognitive.simulator import simulation_engine
+        from packages.orchestration.agi.orchestrator import agi_orchestrator
+        from packages.orchestration.agi.world.repo_graph import repo_world_model
+        from packages.orchestration.agi.learning.distiller import skill_distiller
+        from packages.orchestration.agi.cognitive.simulator import simulation_engine
         
         print("[OK] All AGI components imported successfully.")
         

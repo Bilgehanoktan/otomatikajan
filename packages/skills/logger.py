@@ -1,7 +1,7 @@
 import time
 import logging
-from db.session import AsyncSessionLocal as get_db_session
-from db.models import SkillExecutionLog
+from packages.persistence.session import AsyncSessionLocal as get_db_session
+from packages.persistence.models import SkillExecutionLog
 from skills.base import SkillRequest, SkillResult
 
 _log = logging.getLogger("skill_logger")

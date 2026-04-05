@@ -9,10 +9,10 @@ async def verify_agi_reflection():
     print("--- AGI 12.3 Verification ---")
     
     try:
-        from core.agi.orchestrator import agi_orchestrator
-        from core.agi.adaptation.policy_engine import policy_engine
-        from core.agi.security.audit_gate import AuditGate
-        from core.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
+        from packages.orchestration.agi.orchestrator import agi_orchestrator
+        from packages.orchestration.agi.adaptation.policy_engine import policy_engine
+        from packages.orchestration.agi.security.audit_gate import AuditGate
+        from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
         
         print("[OK] All AGI Refelection components imported successfully.")
         
@@ -20,7 +20,7 @@ async def verify_agi_reflection():
         print("[OK] Policy Engine ready.")
         
         # Test AuditGate Hard Grounding
-        from core.agi.schemas import ActionRecord
+        from packages.orchestration.agi.schemas import ActionRecord
         actions = [
             ActionRecord(tool_used="write_file", input_data="main.py", output_data="File main.py written")
         ]
@@ -29,7 +29,7 @@ async def verify_agi_reflection():
         print(f"[OK] Grounding check (main.py): {len(grounding) > 0}")
         
         # Test Memory get_recent
-        from db.session import session_scope
+        from packages.persistence.session import session_scope
         async with session_scope() as db:
             recent = await memory_store.get_recent(db, limit=1)
             print(f"[OK] Memory get_recent working: {len(recent) >= 0}")

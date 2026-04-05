@@ -18,10 +18,10 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional
 
-from repair.generation.patch_generator import GeneratedPatch
-from repair.schemas.patch_plan import PatchPlan
-from repair.schemas.validation import ValidationReport
-from observability.logging import get_logger
+from packages.repair_engine.generation.patch_generator import GeneratedPatch
+from packages.repair_engine.schemas.patch_plan import PatchPlan
+from packages.repair_engine.schemas.validation import ValidationReport
+from packages.observability.logging import get_logger
 
 _log = get_logger("repair.release")
 

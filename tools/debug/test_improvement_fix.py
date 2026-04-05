@@ -1,11 +1,11 @@
 
 import asyncio
 import uuid
-from db.session import AsyncSessionLocal
-from db.repository import ProjectRepository
-from core.improvement.gate import improvement_gate
-from core.improvement.observer import observer
-from core.orchestrator import orchestrator
+from packages.persistence.session import AsyncSessionLocal
+from packages.persistence.repository import ProjectRepository
+from packages.orchestration.improvement.gate import packages.improvement_enginement_gate
+from packages.orchestration.improvement.observer import observer
+from packages.orchestration.orchestrator import orchestrator
 
 async def test_improvement_system():
     print("--- 1. Proje Hataları Mocklama ---")

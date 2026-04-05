@@ -2,11 +2,11 @@ import os
 import json
 import difflib
 from typing import List, Dict, Any, Optional
-from observability.logging import get_logger
-from llm.model_orchestrator import model_orchestrator
-from db.session import session_scope
+from packages.observability.logging import get_logger
+from packages.llm_gateway.model_orchestrator import model_orchestrator
+from packages.persistence.session import session_scope
 from sqlalchemy import select
-from db.models import ImprovementOpportunity, CEOSuggestedTask
+from packages.persistence.models import ImprovementOpportunity, CEOSuggestedTask
 from packages.orchestration.agi.operational.neural_tool_weaver import neural_tool_weaver
 from packages.orchestration.agi.cognitive.causal_engine import causal_engine
 

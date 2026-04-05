@@ -1,7 +1,7 @@
 from typing import Optional, Any
 from packages.orchestration.agi.schemas import EpisodeRecord
-from llm.model_orchestrator import ModelOrchestrator
-from observability.logging import get_logger
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
+from packages.observability.logging import get_logger
 
 _log = get_logger("agi_tool_optimizer")
 

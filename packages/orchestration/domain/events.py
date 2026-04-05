@@ -136,7 +136,7 @@ class EventBus:
         try:
             await handler(event)
         except Exception as e:
-            from observability.logging import get_logger
+            from packages.observability.logging import get_logger
             get_logger("events").warning(
                 f"⚠️  EventBus handler hatası [{event.type}] ({handler.__name__ if hasattr(handler, '__name__') else 'unknown'}): {e}"
             )

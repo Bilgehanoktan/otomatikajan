@@ -6,10 +6,10 @@ import sys
 # Project Root Setup
 sys.path.append(os.getcwd())
 
-from core.agi.cognitive.consensus_manager import ConsensusManager
-from core.agi.cognitive.adversarial_agent import red_team_agent
-from core.agi.schemas import PlanProposal
-from observability.logging import get_logger
+from packages.orchestration.agi.cognitive.consensus_manager import ConsensusManager
+from packages.orchestration.agi.cognitive.adversarial_agent import red_team_agent
+from packages.orchestration.agi.schemas import PlanProposal
+from packages.observability.logging import get_logger
 
 _log = get_logger("verify_phase_40")
 

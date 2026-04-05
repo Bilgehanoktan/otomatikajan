@@ -3,12 +3,12 @@ import time
 import uuid
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 from packages.orchestration.agi.schemas import ExecutionPlan, PlanStep, ActionRecord, RiskLevel
 from packages.orchestration.application.sandbox_runner import get_sandbox_runner
 from agents.agent_registry import build_agents
-from db.repository import SkillLogRepository
-from db.session import session_scope
+from packages.persistence.repository import SkillLogRepository
+from packages.persistence.session import session_scope
 # Faz 12.1 Stability: Event-Driven UI Updates
 from packages.orchestration.domain.events import event_bus
 from packages.contracts.events import EVENT_SKILL_TRACE

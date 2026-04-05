@@ -8,7 +8,7 @@ import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 _log = get_logger("world_service_graph")
 
@@ -157,7 +157,7 @@ class ServiceDependencyGraph:
 
         # PostgreSQL
         try:
-            from db.session import is_db_available
+            from packages.persistence.session import is_db_available
             db_ok = await is_db_available()
             self.update_status("postgresql", "healthy" if db_ok else "down",
                                health_score=1.0 if db_ok else 0.0)

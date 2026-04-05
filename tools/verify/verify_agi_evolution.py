@@ -8,12 +8,12 @@ async def verify_agi_evolution():
     print("--- AGI Phase 13 Action Genesis Verification ---")
     
     try:
-        from core.agi.consciousness.neural_core_orchestrator import NeuralCoreOrchestrator
-        from db.session import AsyncSessionLocal
-        from db.models import Project
+        from packages.orchestration.agi.consciousness.neural_core_orchestrator import NeuralCoreOrchestrator
+        from packages.persistence.session import AsyncSessionLocal
+        from packages.persistence.models import Project
         from sqlalchemy import select
-        from core.agi.cognitive.teleology_engine import teleology_engine
-        from core.agi.cognitive.swarm_cortex import swarm_cortex
+        from packages.orchestration.agi.cognitive.teleology_engine import teleology_engine
+        from packages.orchestration.agi.cognitive.swarm_cortex import swarm_cortex
 
         print("[OK] Modules imported.")
 

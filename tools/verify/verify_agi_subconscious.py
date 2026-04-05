@@ -6,11 +6,11 @@ if os.getcwd() not in sys.path:
     sys.path.append(os.getcwd())
 
 from sqlalchemy import select, func
-from db.session import AsyncSessionLocal, init_db
-from core.agi.cognitive.synaptic_cortex import synaptic_cortex
-from core.agi.cognitive.motivation_engine import motivation_engine
-from db.models import Memory, Project
-from observability.logging import get_logger
+from packages.persistence.session import AsyncSessionLocal, init_db
+from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
+from packages.orchestration.agi.cognitive.motivation_engine import motivation_engine
+from packages.persistence.models import Memory, Project
+from packages.observability.logging import get_logger
 
 _log = get_logger("agi_subconscious_audit")
 

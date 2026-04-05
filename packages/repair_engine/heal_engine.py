@@ -131,12 +131,12 @@ class SelfHealEngine:
         """Sistem geneli sağlık göstergelerini (DB, Redis, Disk, Error Rate) arka planda günceller."""
         try:
             # 1. DB Check
-            from db.session import is_db_available, AsyncSessionLocal
+            from packages.persistence.session import is_db_available, AsyncSessionLocal
             self._db_available = await is_db_available()
             
             # 2. Redis Check
             try:
-                from core.cache import redis_client
+                from packages.orchestration.cache import redis_client
                 self._redis_available = await redis_client.ping()
             except Exception:
                 self._redis_available = False
@@ -155,7 +155,7 @@ class SelfHealEngine:
                 self._error_rate = 1.0
                 return
 
-            from db.repository import ApiMetricRepository
+            from packages.persistence.repository import ApiMetricRepository
             async with AsyncSessionLocal() as db:
                 # Son 1 saatteki hata oranına bak
                 stats = await ApiMetricRepository.endpoint_stats(db, hours=1)
@@ -347,7 +347,7 @@ class SelfHealEngine:
         
         # Faz 12 Hardening: Vektör Belleğe (Watchdog) aktar
         try:
-            from memory.watchdog import watchdog
+            from packages.memory.watchdog import watchdog
             import asyncio
             coro = watchdog.log_event(agent_id, severity, phase, message)
             loop = asyncio.get_running_loop()

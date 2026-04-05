@@ -13,14 +13,14 @@ from enum import Enum
 from typing import Any, Dict, Optional
 
 from agents.agent_registry import build_agents
-from observability.logging import get_logger
-from llm.model_orchestrator import ModelOrchestrator
-from quality.approval_gate import approval_gate, RiskLevel
-from memory.retrieval import context_builder
-from quality.output_schema import output_parser, AgentOutput
-from quality.evaluator import QualityEvaluator
-from quality.scorer import QualityReport
-from quality.reviewer import ReviewerAgent
+from packages.observability.logging import get_logger
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
+from packages.quality_assurance.approval_gate import approval_gate, RiskLevel
+from packages.memory.retrieval import context_builder
+from packages.quality_assurance.output_schema import output_parser, AgentOutput
+from packages.quality_assurance.evaluator import QualityEvaluator
+from packages.quality_assurance.scorer import QualityReport
+from packages.quality_assurance.reviewer import ReviewerAgent
 
 _log = get_logger("orchestrator")
 
@@ -196,7 +196,7 @@ class Orchestrator:
             policy_requires_review = False
             if task_context:
                 try:
-                    from quality.approval_gate import evaluate_policy
+                    from packages.quality_assurance.approval_gate import evaluate_policy
                     policy_requires_review = evaluate_policy(
                         workflow=task_context.workflow_template,
                         profile=task_context.quality_profile,
@@ -279,7 +279,7 @@ class Orchestrator:
             # 4. Bellek Enjeksiyonu (Faz 3 & 6)
             enriched_prompt = st.prompt
             if self._memory_enabled:
-                from memory.retrieval import context_builder
+                from packages.memory.retrieval import context_builder
                 enriched_prompt = await context_builder.build_context(
                     agent_id=st.agent_id,
                     task_text=st.prompt,
@@ -335,8 +335,8 @@ class Orchestrator:
             # DB'ye kaydet (Eğer db_subtask_id atanmışsa Faz 12.1)
             if st.db_subtask_id:
                 try:
-                    from db.session import AsyncSessionLocal as get_db_session
-                    from db.repository import SubTaskRepository
+                    from packages.persistence.session import AsyncSessionLocal as get_db_session
+                    from packages.persistence.repository import SubTaskRepository
                     async with get_db_session() as db:
                         await SubTaskRepository.mark_done(
                             db=db,
@@ -369,8 +369,8 @@ class Orchestrator:
             st.result = str(e)
             if st.db_subtask_id:
                 try:
-                    from db.session import AsyncSessionLocal as get_db_session
-                    from db.repository import SubTaskRepository
+                    from packages.persistence.session import AsyncSessionLocal as get_db_session
+                    from packages.persistence.repository import SubTaskRepository
                     async with get_db_session() as db:
                         await SubTaskRepository.mark_failed(
                             db=db,

@@ -31,7 +31,7 @@ async def test_observer_logic():
         # Mock session context manager
         mock_session.return_value.__aenter__.return_value = AsyncMock()
         
-        from core.improvement.observer import ImprovementObserver
+        from packages.orchestration.improvement.observer import ImprovementObserver
         obs = ImprovementObserver()
         issues = await obs.scan_for_issues()
         
@@ -53,15 +53,15 @@ async def test_gate_logic():
     ]
     
     # Proposer ve Verifier mockla
-    from core.improvement.proposer import PatchProposer
+    from packages.orchestration.improvement.proposer import PatchProposer
     mock_proposer = AsyncMock(spec=PatchProposer)
     mock_proposer.propose_fix.return_value = "DIFF PATCH CONTENT"
     
-    from core.improvement.verifier import PatchVerifier
+    from packages.orchestration.improvement.verifier import PatchVerifier
     mock_verifier = AsyncMock(spec=PatchVerifier)
     mock_verifier.verify_patch.return_value = True
 
-    from core.improvement.gate import ImprovementGate
+    from packages.orchestration.improvement.gate import ImprovementGate
     gate = ImprovementGate()
     
     with patch("core.improvement.gate.observer", mock_observer), \

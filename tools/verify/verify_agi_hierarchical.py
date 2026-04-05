@@ -9,10 +9,10 @@ async def verify_agi_consensus_and_decomposition():
     print("--- AGI 12.8 & 12.9 Verification ---")
     
     try:
-        from core.agi.cognitive.consensus_manager import consensus_manager
-        from core.agi.cognitive.decomposer import goal_decomposer
-        from core.agi.orchestrator import agi_orchestrator
-        from core.agi.schemas import ProblemFrame, TaskType, RiskLevel, ExecutionPlan
+        from packages.orchestration.agi.cognitive.consensus_manager import consensus_manager
+        from packages.orchestration.agi.cognitive.decomposer import goal_decomposer
+        from packages.orchestration.agi.orchestrator import agi_orchestrator
+        from packages.orchestration.agi.schemas import ProblemFrame, TaskType, RiskLevel, ExecutionPlan
         
         print("[OK] AGI 12.8/12.9 components imported successfully.")
         

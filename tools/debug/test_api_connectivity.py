@@ -7,7 +7,7 @@ import sys
 sys.path.append(os.getcwd())
 
 async def test_providers():
-    from llm.model_orchestrator import ModelOrchestrator
+    from packages.llm_gateway.model_orchestrator import ModelOrchestrator
     orchestrator = ModelOrchestrator()
     
     providers_to_test = ["openai", "gemini", "groq", "openrouter", "moonshot", "deepseek", "anthropic"]

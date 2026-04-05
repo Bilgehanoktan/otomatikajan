@@ -4,7 +4,7 @@ import time
 from typing import Dict, Any, Optional
 from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
 from sqlalchemy.ext.asyncio import AsyncSession
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 from packages.orchestration.agi.monitoring.token_budgeter import token_budgeter
 from packages.orchestration.agi.operational.resource_manager import resource_manager
 from packages.orchestration.agi.cognitive.subconscious_cortex_45 import subconscious_cortex_45

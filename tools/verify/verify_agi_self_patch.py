@@ -7,11 +7,11 @@ import asyncio
 import os
 import shutil
 from sqlalchemy import select
-from db.session import AsyncSessionLocal, init_db
-from db.models import Memory
-from core.agi.adaptation.sovereign_evolution_45 import sovereign_evolution_45
-from core.agi.operational.patching_sandbox import patching_sandbox
-from observability.logging import get_logger
+from packages.persistence.session import AsyncSessionLocal, init_db
+from packages.persistence.models import Memory
+from packages.orchestration.agi.adaptation.sovereign_evolution_45 import sovereign_evolution_45
+from packages.orchestration.agi.operational.patching_sandbox import patching_sandbox
+from packages.observability.logging import get_logger
 
 _log = get_logger("agi_self_patch_verify")
 

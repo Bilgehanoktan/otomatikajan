@@ -15,10 +15,10 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional
 
-from repair.schemas.incident import IncidentRecord
-from repair.schemas.patch_plan import PatchPlan
-from repair.schemas.diagnosis import DiagnosisTicket, ProblemClass
-from observability.logging import get_logger
+from packages.repair_engine.schemas.incident import IncidentRecord
+from packages.repair_engine.schemas.patch_plan import PatchPlan
+from packages.repair_engine.schemas.diagnosis import DiagnosisTicket, ProblemClass
+from packages.observability.logging import get_logger
 
 _log = get_logger("repair.generation.test_generator")
 

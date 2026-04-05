@@ -4,10 +4,10 @@ from dataclasses import dataclass, asdict
 from enum import Enum
 from typing import Optional, List, Dict, Any
 
-from repair.schemas.diagnosis import DiagnosisTicket, ProblemClass, RepairMode
-from repair.schemas.patch_plan import PatchPlan, RiskLevel
-from repair.schemas.validation import ValidationReport
-from observability.logging import get_logger
+from packages.repair_engine.schemas.diagnosis import DiagnosisTicket, ProblemClass, RepairMode
+from packages.repair_engine.schemas.patch_plan import PatchPlan, RiskLevel
+from packages.repair_engine.schemas.validation import ValidationReport
+from packages.observability.logging import get_logger
 
 _log = get_logger("core.policy_engine")
 

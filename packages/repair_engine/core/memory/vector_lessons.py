@@ -18,7 +18,7 @@ from collections import Counter
 from dataclasses import dataclass, field
 from typing import Optional
 
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 _log = get_logger("repair.memory.vector_lessons")
 
@@ -228,9 +228,9 @@ class VectorLessonsStore:
 
     async def _async_save_to_db(self, lesson: VectorLesson) -> None:
         try:
-            from db.session import AsyncSessionLocal, is_db_available
+            from packages.persistence.session import AsyncSessionLocal, is_db_available
             if not await is_db_available(): return
-            from db.repair_models import VectorLessonModel
+            from packages.persistence.repair_models import VectorLessonModel
             async with AsyncSessionLocal() as db:
                 model = VectorLessonModel(
                     lesson_id=lesson.lesson_id,
@@ -251,9 +251,9 @@ class VectorLessonsStore:
     async def load_from_db(self) -> None:
         """Başlangıçta DB'deki dersleri yükle."""
         try:
-            from db.session import AsyncSessionLocal, is_db_available
+            from packages.persistence.session import AsyncSessionLocal, is_db_available
             if not await is_db_available(): return
-            from db.repair_models import VectorLessonModel
+            from packages.persistence.repair_models import VectorLessonModel
             from sqlalchemy import select
             async with AsyncSessionLocal() as db:
                 result = await db.execute(select(VectorLessonModel))

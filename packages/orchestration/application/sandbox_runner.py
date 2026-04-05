@@ -24,7 +24,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict
 
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 _log = get_logger("sandbox_runner")
 

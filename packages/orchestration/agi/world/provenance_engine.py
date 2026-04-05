@@ -6,9 +6,9 @@ from datetime import datetime, timezone
 import uuid
 
 from sqlalchemy import select, update
-from db.models import SovereignCodeFile, SovereignCodeResult
-from db.session import AsyncSessionLocal
-from observability.logging import get_logger
+from packages.persistence.models import SovereignCodeFile, SovereignCodeResult
+from packages.persistence.session import AsyncSessionLocal
+from packages.observability.logging import get_logger
 
 _log = get_logger("agi_provenance")
 

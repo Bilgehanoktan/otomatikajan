@@ -1,9 +1,9 @@
 import json
 from typing import List, Dict, Any, Optional
 from sqlalchemy.future import select
-from db.models import TaskLog
-from llm.model_orchestrator import ModelOrchestrator
-from observability.logging import get_logger
+from packages.persistence.models import TaskLog
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
+from packages.observability.logging import get_logger
 
 _log = get_logger("agi_pathogen_detector")
 

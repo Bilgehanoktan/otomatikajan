@@ -81,7 +81,7 @@ class Agent(BaseAgent):
             )
 
             # Çıktıyı parse et (Deneysel ama proaktif: AgentOutput şemasına zorlar)
-            from quality.output_schema import output_parser
+            from packages.quality_assurance.output_schema import output_parser
             parsed = output_parser.parse(self.id, llm_response.content)
 
             return SubtaskOutput(

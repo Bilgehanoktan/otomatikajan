@@ -6,8 +6,8 @@ from types import SimpleNamespace
 # Dosya yollarını ayarla
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from core.agi.cognitive.motivation_engine import motivation_engine
-from core.agi.schemas import ProblemFrame, RiskLevel, TaskType
+from packages.orchestration.agi.cognitive.motivation_engine import motivation_engine
+from packages.orchestration.agi.schemas import ProblemFrame, RiskLevel, TaskType
 from datetime import datetime, timezone
 
 async def test_motivation_calibration():

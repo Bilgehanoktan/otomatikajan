@@ -3,12 +3,12 @@ import uuid
 import json
 import time
 from unittest.mock import AsyncMock, MagicMock, patch
-from core.agi.cognitive.sovereign_cortex import SovereignCortex, sovereign_cortex
-from core.agi.cognitive.goal_decomposer import GoalDecomposer, goal_decomposer
-from core.agi.cognitive.consensus_manager import ConsensusManager, consensus_manager
-from core.agi.cognitive.red_team_agent import red_team
-from core.agi.task_governance import ProjectTask, SubTask, TaskStatus
-from core.agi.schemas import PlanProposal
+from packages.orchestration.agi.cognitive.sovereign_cortex import SovereignCortex, sovereign_cortex
+from packages.orchestration.agi.cognitive.goal_decomposer import GoalDecomposer, goal_decomposer
+from packages.orchestration.agi.cognitive.consensus_manager import ConsensusManager, consensus_manager
+from packages.orchestration.agi.cognitive.red_team_agent import red_team
+from packages.orchestration.agi.task_governance import ProjectTask, SubTask, TaskStatus
+from packages.orchestration.agi.schemas import PlanProposal
 
 async def test_consensus_refinement():
     print("\n--- [TEST] Consensus Governance Refinement ---")

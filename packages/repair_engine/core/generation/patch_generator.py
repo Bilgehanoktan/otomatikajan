@@ -16,8 +16,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional
 
-from repair.schemas.patch_plan import PatchPlan
-from observability.logging import get_logger
+from packages.repair_engine.schemas.patch_plan import PatchPlan
+from packages.observability.logging import get_logger
 
 _log = get_logger("repair.patch_generator")
 

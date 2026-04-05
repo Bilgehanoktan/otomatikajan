@@ -9,7 +9,7 @@ print("--- [CHECK] Bridge & Orkestrasyon Dogrulama ---")
 
 # 1. Orchestrator init
 try:
-    from core.orchestrator import Orchestrator
+    from packages.orchestration.orchestrator import Orchestrator
     o = Orchestrator()
     print(f"[OK] Orchestrator baslatildi. self_updater={o.self_updater}, agents={o.agent_count()}")
 except Exception as e:
@@ -25,7 +25,7 @@ except Exception as e:
 # 3. _normalize_status
 try:
     from tasks.deerflow_tasks import _normalize_status
-    from db.models import ProjectStatus
+    from packages.persistence.models import ProjectStatus
     # String test
     assert _normalize_status("running") == "running"
     # Enum test  

@@ -12,8 +12,8 @@ from packages.shared.utils.git_ops import GitOps
 from packages.orchestration.application.shadow_runner import ShadowRunner
 from packages.orchestration.indexing.system_indexer import SystemIndexer
 from packages.orchestration.application.update_registry import SystemUpdateRegistry
-from llm.model_orchestrator import ModelOrchestrator
-from observability.logging import get_logger
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
+from packages.observability.logging import get_logger
 
 logger = get_logger("self_updater")
 

@@ -15,8 +15,8 @@ from typing import TYPE_CHECKING
 
 # Runtime imports (TYPE_CHECKING değil)
 try:
-    from quality.output_schema import AgentOutput as _AgentOutput
-    from quality.scorer import QualityReport as _QualityReport
+    from packages.quality_assurance.output_schema import AgentOutput as _AgentOutput
+    from packages.quality_assurance.scorer import QualityReport as _QualityReport
 except ImportError:
     pass
 
@@ -52,8 +52,8 @@ class ReviewerAgent:
         quality_profile: str = "standard",
         acceptance_criteria: list[str] = None,
     ) -> ReviewResult:
-        from quality.output_schema import output_parser, OUTPUT_FORMAT_INSTRUCTION
-        from quality.scorer import quality_scorer
+        from packages.quality_assurance.output_schema import output_parser, OUTPUT_FORMAT_INSTRUCTION
+        from packages.quality_assurance.scorer import packages.quality_assurance_scorer
 
         best_output = output
         best_score  = report.overall
@@ -126,7 +126,7 @@ class ReviewerAgent:
         ]
         weak_str = "\n".join(weak_dims) if weak_dims else "Genel olarak zayıf"
 
-        from quality.output_schema import OUTPUT_FORMAT_INSTRUCTION as _FMT
+        from packages.quality_assurance.output_schema import OUTPUT_FORMAT_INSTRUCTION as _FMT
         return (
             f"Sen kıdemli bir yazılım mühendisisin ve aşağıdaki ajan yanıtını eleştiriyorsun.\n\n"
             f"== Mevcut Ajan Yanıtı ({output.agent_id}) ==\n"

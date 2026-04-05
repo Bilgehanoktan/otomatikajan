@@ -10,8 +10,8 @@ async def verify_agi_swarm_intelligence():
     print("--- AGI 23.0 Verification ---")
     
     try:
-        from core.agi.cognitive.swarm_cortex import swarm_cortex
-        from core.agi.operational.swarm_orchestrator import swarm_orchestrator
+        from packages.orchestration.agi.cognitive.swarm_cortex import swarm_cortex
+        from packages.orchestration.agi.operational.swarm_orchestrator import swarm_orchestrator
         
         print("[OK] AGI 23.0 components imported successfully.")
         

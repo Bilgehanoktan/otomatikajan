@@ -16,7 +16,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional, List
 
-from repair.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
+from packages.repair_engine.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
 
 
 # ── Kaynak Tespiti ────────────────────────────────────────
@@ -202,7 +202,7 @@ class IncidentIngestor:
         count = 0
         try:
             if not db_session:
-                from db.session import AsyncSessionLocal, is_db_available
+                from packages.persistence.session import AsyncSessionLocal, is_db_available
                 if not await is_db_available():
                     return 0
                 async with AsyncSessionLocal() as db:
@@ -216,8 +216,8 @@ class IncidentIngestor:
             return 0
 
     async def _do_hydrate(self, db) -> int:
-        from db.repair_repository import RepairIncidentRepo
-        from repair.schemas.incident import IncidentSource, IncidentSeverity, IncidentRecord
+        from packages.persistence.repair_repository import RepairIncidentRepo
+        from packages.repair_engine.schemas.incident import IncidentSource, IncidentSeverity, IncidentRecord
         
         records = await RepairIncidentRepo.get_open(db, limit=500)
         loaded = 0

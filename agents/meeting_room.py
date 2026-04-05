@@ -6,8 +6,8 @@ import json
 import re
 
 from agents.agent_registry import build_agents, Agent
-from llm.model_orchestrator import ModelOrchestrator
-from observability.logging import get_logger
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
+from packages.observability.logging import get_logger
 
 logger = get_logger("meeting_room")
 

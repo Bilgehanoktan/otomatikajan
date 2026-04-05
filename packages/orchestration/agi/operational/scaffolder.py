@@ -2,7 +2,7 @@ import os
 import json
 from pathlib import Path
 from typing import List, Dict, Any, Optional
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 _log = get_logger("agi_scaffolder")
 
@@ -73,7 +73,7 @@ class Scaffolder:
         content += f'Oluşturulma Tarihi: {os.uname().nodename if hasattr(os, "uname") else "System"}\n"""\n\n'
         
         if filename.endswith(".py"):
-            content += "from observability.logging import get_logger\n\n"
+            content += "from packages.observability.logging import get_logger\n\n"
             content += f"logger = get_logger('{path.stem}')\n\n"
             content += "class Placeholder:\n    pass\n"
             

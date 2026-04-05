@@ -13,7 +13,7 @@ from typing import Optional
 from sqlalchemy import select, update, func, desc, Integer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.models import (
+from packages.persistence.models import (
     Project, SubTask, LLMCostLog, DomainEventLog,
     TaskLog, ApiMetric, TelegramUser, TelegramCommandLog,
     ProjectStatus, SkillExecutionLog, Memory,
@@ -709,7 +709,7 @@ class TelegramRepository:
 # ════════════════════════════════════════════════════════
 # CEO / İyileştirme Repository (Faz 8)
 # ════════════════════════════════════════════════════════
-from db.models import ImprovementOpportunity, CEOSuggestedTask
+from packages.persistence.models import ImprovementOpportunity, CEOSuggestedTask
 
 class ImprovementRepository:
 

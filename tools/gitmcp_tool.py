@@ -2,7 +2,7 @@ import os
 import httpx
 import logging
 from typing import Dict, Any, Optional, List
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 logger = get_logger("tools.gitmcp")
 

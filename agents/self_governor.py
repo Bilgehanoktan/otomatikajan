@@ -67,8 +67,8 @@ Sana verilen istatistikleri ve olay loglarını incele.
         # 2. Son Hataları DB'den Çek (AGI: State Awareness)
         recent_errors = []
         try:
-            from db.session import AsyncSessionLocal
-            from db.repository import EventLogRepository
+            from packages.persistence.session import AsyncSessionLocal
+            from packages.persistence.repository import EventLogRepository
             async with AsyncSessionLocal() as db:
                 logs = await EventLogRepository.recent(db, n=20)
                 recent_errors = [f"[{l.severity}] {l.message}" for l in logs if l.severity in ("warning", "critical")]

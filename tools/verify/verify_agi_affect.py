@@ -10,8 +10,8 @@ async def verify_agi_affective_core():
     print("--- AGI 32.0 Verification ---")
     
     try:
-        from core.agi.consciousness.affective_core import affective_core
-        from core.agi.adaptation.timeline_selector import timeline_selector
+        from packages.orchestration.agi.consciousness.affective_core import affective_core
+        from packages.orchestration.agi.adaptation.timeline_selector import timeline_selector
         
         print("[OK] AGI 32.0 components imported successfully.")
         

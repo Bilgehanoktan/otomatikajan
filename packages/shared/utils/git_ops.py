@@ -3,7 +3,7 @@ import subprocess
 from pathlib import Path
 from typing import Optional
 
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 logger = get_logger("git_ops")
 

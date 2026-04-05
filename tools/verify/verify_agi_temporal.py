@@ -10,8 +10,8 @@ async def verify_agi_temporal_intelligence():
     print("--- AGI 24.0 Verification ---")
     
     try:
-        from core.agi.cognitive.chronicler import chronicler
-        from core.agi.adaptation.temporal_tuner import temporal_tuner
+        from packages.orchestration.agi.cognitive.chronicler import chronicler
+        from packages.orchestration.agi.adaptation.temporal_tuner import temporal_tuner
         
         print("[OK] AGI 24.0 components imported successfully.")
         

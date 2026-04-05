@@ -9,10 +9,10 @@ async def verify_agi_superior_intelligence():
     print("--- AGI 18.0 & 19.0 Verification ---")
     
     try:
-        from core.agi.monitoring.nervous_system import nervous_system
-        from core.agi.cognitive.debate_manager import debate_manager
-        from core.agi.cognitive.consensus_manager import consensus_manager
-        from core.agi.schemas import PlanProposal
+        from packages.orchestration.agi.monitoring.nervous_system import nervous_system
+        from packages.orchestration.agi.cognitive.debate_manager import debate_manager
+        from packages.orchestration.agi.cognitive.consensus_manager import consensus_manager
+        from packages.orchestration.agi.schemas import PlanProposal
         from unittest.mock import MagicMock
         
         print("[OK] AGI 18.0/19.0 components imported successfully.")

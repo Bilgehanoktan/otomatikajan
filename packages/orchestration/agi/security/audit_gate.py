@@ -3,8 +3,8 @@ import os
 import re
 from pathlib import Path
 from typing import List, Dict, Any, Optional
-from observability.logging import get_logger
-from llm.model_orchestrator import ModelOrchestrator
+from packages.observability.logging import get_logger
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 from packages.orchestration.agi.schemas import ProblemFrame, ActionRecord, VerificationReport
 
 _log = get_logger("agi_audit")
@@ -354,5 +354,5 @@ class AuditGate:
             return False
 
 # Singleton instance
-from llm.model_orchestrator import ModelOrchestrator
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 audit_gate = AuditGate(model_orch=ModelOrchestrator())

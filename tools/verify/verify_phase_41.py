@@ -2,8 +2,8 @@ import asyncio
 import os
 import json
 import shutil
-from core.agi.governance.watchdog import GovernanceWatchdog
-from core.agi.governance.rules import GovernanceRules
+from packages.orchestration.agi.governance.watchdog import GovernanceWatchdog
+from packages.orchestration.agi.governance.rules import GovernanceRules
 
 async def verify_phase_41():
     print("=== Phase 41: Self-Repairing Governance Verification ===")

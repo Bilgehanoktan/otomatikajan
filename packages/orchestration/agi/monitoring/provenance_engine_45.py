@@ -6,9 +6,9 @@ kök nedenini, politikasını ve kod farkını (diff) izleyen ve kaydeden birim.
 import difflib
 from typing import Optional, Dict, Any, List
 from sqlalchemy.ext.asyncio import AsyncSession
-from db.models import Memory
+from packages.persistence.models import Memory
 from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 _log = get_logger("agi_provenance_engine")
 

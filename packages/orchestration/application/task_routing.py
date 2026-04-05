@@ -1,6 +1,6 @@
 import logging
 from typing import Optional, Tuple
-from llm.model_orchestrator import ModelOrchestrator
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 
 logger = logging.getLogger("core.task_routing")
 

@@ -38,7 +38,7 @@ def get_validation_report(job_id: str) -> dict | None:
 
 async def _persist_to_db(job_id: str, report: dict) -> None:
     try:
-        from db.session import AsyncSessionLocal, is_db_available
+        from packages.persistence.session import AsyncSessionLocal, is_db_available
         if not await is_db_available():
             return
         async with AsyncSessionLocal() as db:
@@ -79,10 +79,10 @@ import subprocess
 import tempfile
 from typing import Optional
 
-from repair.generation.patch_generator import GeneratedPatch
-from repair.schemas.patch_plan import PatchPlan
-from repair.schemas.validation import ValidationReport, ValidationStatus
-from observability.logging import get_logger
+from packages.repair_engine.generation.patch_generator import GeneratedPatch
+from packages.repair_engine.schemas.patch_plan import PatchPlan
+from packages.repair_engine.schemas.validation import ValidationReport, ValidationStatus
+from packages.observability.logging import get_logger
 
 _log = get_logger("repair.verification")
 

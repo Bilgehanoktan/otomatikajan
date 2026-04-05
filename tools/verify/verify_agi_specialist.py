@@ -10,8 +10,8 @@ async def verify_agi_specialist_intelligence():
     print("--- AGI 25.0 Verification ---")
     
     try:
-        from core.agi.learning.specialist_forge import specialist_forge
-        from core.agi.adaptation.role_evolver import role_evolver
+        from packages.orchestration.agi.learning.specialist_forge import specialist_forge
+        from packages.orchestration.agi.adaptation.role_evolver import role_evolver
         
         print("[OK] AGI 25.0 components imported successfully.")
         

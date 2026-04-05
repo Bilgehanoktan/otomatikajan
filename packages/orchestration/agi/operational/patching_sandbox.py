@@ -9,7 +9,7 @@ import ast
 import difflib
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 _log = get_logger("agi_patching_sandbox")
 

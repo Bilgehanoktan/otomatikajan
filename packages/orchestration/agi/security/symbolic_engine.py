@@ -2,7 +2,7 @@ import asyncio
 import subprocess
 import os
 from typing import Dict, Any, List, Optional
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 _log = get_logger("agi_symbolic_engine")
 

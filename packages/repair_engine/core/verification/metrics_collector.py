@@ -21,7 +21,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 _log = get_logger("repair.verification.metrics")
 

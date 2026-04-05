@@ -11,16 +11,16 @@ from config import (
     TELEGRAM_BURST_LIMIT,
 )
 try:
-    from db.repository import ProjectRepository
+    from packages.persistence.repository import ProjectRepository
 except ImportError:
     pass  # lazy — gerçek kullanımda method içinde import edilir
 try:
-    from db.session import session_scope
+    from packages.persistence.session import session_scope
 except ImportError:
     pass  # lazy — gerçek kullanımda method içinde import edilir
-from llm.model_orchestrator import ModelOrchestrator
-from observability.logging import get_logger
-from quality.prompt_guard import enforce_output_contract
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
+from packages.observability.logging import get_logger
+from packages.quality_assurance.prompt_guard import enforce_output_contract
 
 logger = get_logger("ceo_supervisor")
 
@@ -153,7 +153,7 @@ Tıkanmış projeler için sadece doğrudan, 1-2 cümlelik kesin eylem kararlar�
         logger.info("💰 CEO: Bütçe izleme tamamlandı.")
 
     async def watch_and_govern(self):
-        from core.system_control import system_control
+        from packages.orchestration.system_control import system_control
 
         if system_control.is_paused():
             return
@@ -171,7 +171,7 @@ Tıkanmış projeler için sadece doğrudan, 1-2 cümlelik kesin eylem kararlar�
 
             async with session_scope() as db:
                 from sqlalchemy import select
-                from db.models import Project, ProjectStatus
+                from packages.persistence.models import Project, ProjectStatus
 
                 result = await db.execute(
                     select(Project)
@@ -282,7 +282,7 @@ Tıkanmış projeler için sadece doğrudan, 1-2 cümlelik kesin eylem kararlar�
 
         if (now - self.last_performance_review).total_seconds() > 43200:  # 12 saat
             try:
-                from core.employee_evolution import PerformanceReviewer
+                from packages.orchestration.employee_evolution import PerformanceReviewer
 
                 reviewer = PerformanceReviewer(self.model_orch)
                 await reviewer.evaluate_and_evolve()
@@ -292,7 +292,7 @@ Tıkanmış projeler için sadece doğrudan, 1-2 cümlelik kesin eylem kararlar�
 
     async def _apply_action(self, proj, action, db, internal_reason=None):
         """CEO kararlarını veritabanına ve sisteme uygular."""
-        from db.models import TaskLog, ProjectStatus
+        from packages.persistence.models import TaskLog, ProjectStatus
 
         msg = internal_reason or f"CEO Action: {action}"
         logger.info(f"⚡ Uygulanan CEO Kararı: {proj.id} -> {action} ({msg})")

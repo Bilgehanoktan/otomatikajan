@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Awaitable, Callable, Optional
-from observability.logging import get_logger  # type: ignore
+from packages.observability.logging import get_logger  # type: ignore
 from packages.orchestration.agi.cognitive.metacognitive_auditor import metacognitive_auditor
 
 _log = get_logger("core.job_queue")
@@ -121,8 +121,8 @@ class JobQueue(BaseQueueCapabilities):
         """DB'deki açık projeleri (Task) belleğe yükler (Faz 12.1 Persistence Fix)."""
         _log.info("Hydrating standard tasks from DB...")
         try:
-            from db.session import AsyncSessionLocal
-            from db.repository import ProjectRepository
+            from packages.persistence.session import AsyncSessionLocal
+            from packages.persistence.repository import ProjectRepository
             
             async with AsyncSessionLocal() as db:
                 # Sadece aktif (tamamlanmamış) işleri çekelim
@@ -537,8 +537,8 @@ class CeleryJobQueue(BaseQueueCapabilities):
         """DB'deki açık projeleri belleğe yükler (Celery Sync Fix)."""
         _log.info("Hydrating standard tasks from DB for Celery backend...")
         try:
-            from db.session import AsyncSessionLocal
-            from db.repository import ProjectRepository
+            from packages.persistence.session import AsyncSessionLocal
+            from packages.persistence.repository import ProjectRepository
             
             async with AsyncSessionLocal() as db:
                 active_statuses = ["PENDING", "RUNNING", "QUEUED", "RETRYING", "PAUSED"]
@@ -716,7 +716,7 @@ def create_job_queue():
             # Şimdilik Celery'ye güven ama import error veya bariz config hatası varsa fallback yap.
             return CeleryJobQueue()
         except Exception as e:
-            from observability.logging import get_logger
+            from packages.observability.logging import get_logger
             get_logger("job_queue").warning(f"Redis config var ama Celery baslatilamadi: {e}. In-process'e donuluyor.")
             return JobQueue(concurrency=WORKER_CONCURRENCY)
 

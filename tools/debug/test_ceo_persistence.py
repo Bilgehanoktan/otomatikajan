@@ -6,10 +6,10 @@ import os
 # Add project root to sys.path
 sys.path.append(os.getcwd())
 
-from core.ceo_engine import CEOEngine
-from llm.model_orchestrator import ModelOrchestrator
-from db.session import session_scope
-from db.models import ImprovementOpportunity
+from packages.orchestration.ceo_engine import CEOEngine
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
+from packages.persistence.session import session_scope
+from packages.persistence.models import ImprovementOpportunity
 from sqlalchemy import select, func
 
 async def test_persistence():

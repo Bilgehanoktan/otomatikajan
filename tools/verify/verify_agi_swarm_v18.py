@@ -7,16 +7,16 @@ from datetime import datetime, timezone
 # Add project root to sys.path
 sys.path.append(os.getcwd())
 
-from core.agi.central_executive import CentralExecutive
-from core.agi.schemas import SourceType, TaskType, RiskLevel, ProblemFrame, PlanProposal, PlanStep, ContextPackage
+from packages.orchestration.agi.central_executive import CentralExecutive
+from packages.orchestration.agi.schemas import SourceType, TaskType, RiskLevel, ProblemFrame, PlanProposal, PlanStep, ContextPackage
 
 async def verify_agi_swarm_v18():
     print("\n--- AGI Phase 18: 'Swarm & Policy Synthesis' Verification ---")
     
     ce = CentralExecutive()
     # Create a dummy project first to satisfy FK constraints
-    from db.models import Project
-    from db.session import AsyncSessionLocal
+    from packages.persistence.models import Project
+    from packages.persistence.session import AsyncSessionLocal
     import uuid
     
     p_id = uuid.uuid4()

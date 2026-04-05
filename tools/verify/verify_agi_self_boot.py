@@ -9,9 +9,9 @@ async def verify_agi_metalearning_and_selfaudit():
     print("--- AGI 12.10 & 13.0 Verification ---")
     
     try:
-        from core.agi.adaptation.policy_enforcer import policy_enforcer
-        from core.agi.cognitive.self_audit import self_audit
-        from core.agi.orchestrator import agi_orchestrator
+        from packages.orchestration.agi.adaptation.policy_enforcer import policy_enforcer
+        from packages.orchestration.agi.cognitive.self_audit import self_audit
+        from packages.orchestration.agi.orchestrator import agi_orchestrator
         
         print("[OK] AGI 12.10/13.0 components imported successfully.")
         

@@ -2,7 +2,7 @@ import os
 import logging
 import time
 from typing import Dict, Any, List, Optional
-from llm.model_orchestrator import ModelOrchestrator
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 from packages.orchestration.agi.quality.benchmarking_engine import benchmarking_engine
 from packages.orchestration.agi.schemas import VerificationReport
 from packages.orchestration.agi.task_governance import GovernedTask

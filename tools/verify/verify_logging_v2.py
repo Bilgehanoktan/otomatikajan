@@ -10,10 +10,10 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 try:
-    from observability.logging import get_logger, configure_logging
-    from db.session import AsyncSessionLocal
+    from packages.observability.logging import get_logger, configure_logging
+    from packages.persistence.session import AsyncSessionLocal
     from sqlalchemy import select
-    from db.models import DomainEventLog
+    from packages.persistence.models import DomainEventLog
 except ImportError as e:
     print(f"Hata: Modüller yüklenemedi: {e}")
     sys.exit(1)

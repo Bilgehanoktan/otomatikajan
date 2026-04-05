@@ -10,8 +10,8 @@ async def verify_phase_44_45():
     
     # 1. Faz 44: Consensus Governance Testi
     print("[1/3] Phase 44: Consensus Governance (Peer Audit) test ediliyor...")
-    from core.agi.cognitive.consensus_manager import consensus_manager
-    from core.agi.schemas import PlanProposal
+    from packages.orchestration.agi.cognitive.consensus_manager import consensus_manager
+    from packages.orchestration.agi.schemas import PlanProposal
     
     proposals = [
         PlanProposal(agent_id="architect", content="Normal bir plan adımı.", confidence=0.9),
@@ -25,8 +25,8 @@ async def verify_phase_44_45():
     # Simüle edilmiş hibrit plan (Watchdog tarafından reddedilecek bir desen içeriyor)
     hybrid_plan = "Sistem temizliği için core/legacy dizinini sil."
     # Governance Watchdog'u bu plan üzerinde çalıştır
-    from core.agi.governance.watchdog import governance_watchdog
-    from core.agi.task_governance import SubTask
+    from packages.orchestration.agi.governance.watchdog import governance_watchdog
+    from packages.orchestration.agi.task_governance import SubTask
     
     violations = await governance_watchdog.predict_violations([SubTask(id="test", agent_id="architect", prompt=hybrid_plan)])
     
@@ -38,8 +38,8 @@ async def verify_phase_44_45():
 
     # 2. Faz 45: Bilişsel Devamlılık Testi (Thought Threads)
     print("[2/3] Phase 45: Cognitive Continuity (Thought Threads) test ediliyor...")
-    from core.agi.cognitive.synaptic_cortex import synaptic_cortex
-    from db.session import get_db
+    from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
+    from packages.persistence.session import get_db
     
     async with get_db() as db:
         await synaptic_cortex.save_thought_thread(db, "Sovereign AGI çekirdek yönetişimini tamamlıyor.", context_id="test")
@@ -53,7 +53,7 @@ async def verify_phase_44_45():
 
     # 3. Faz 45: Tarihçe Damıtma Testi (Distillation)
     print("[3/3] Phase 45: History Distillation test ediliyor...")
-    from core.agi.task_governance import TaskPlanner
+    from packages.orchestration.agi.task_governance import TaskPlanner
     planner = TaskPlanner()
     
     # Çok uzun bir geçmiş simüle et

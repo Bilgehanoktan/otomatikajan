@@ -10,8 +10,8 @@ async def verify_agi_teleology_intelligence():
     print("--- AGI 29.0 Verification ---")
     
     try:
-        from core.agi.cognitive.teleology_engine import teleology_engine
-        from core.agi.adaptation.goal_prioritizer import goal_prioritizer
+        from packages.orchestration.agi.cognitive.teleology_engine import teleology_engine
+        from packages.orchestration.agi.adaptation.goal_prioritizer import goal_prioritizer
         
         print("[OK] AGI 29.0 components imported successfully.")
         

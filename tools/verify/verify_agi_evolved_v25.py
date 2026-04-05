@@ -6,10 +6,10 @@ import os
 # Root ekle
 sys.path.append(os.getcwd())
 
-from core.agi.central_executive import central_executive
-from core.agi.schemas import SourceType, UnifiedInput
-from db.session import session_scope
-from core.agi.cognitive.synaptic_cortex import synaptic_cortex
+from packages.orchestration.agi.central_executive import central_executive
+from packages.orchestration.agi.schemas import SourceType, UnifiedInput
+from packages.persistence.session import session_scope
+from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
 
 async def test_agi_cognitive_loop_v25():
     print("--- AGI Faz 21-25 Bilişsel Döngü Doğrulaması Başlatılıyor ---")
@@ -34,7 +34,7 @@ async def test_agi_cognitive_loop_v25():
         await db_raw.commit()
     print("[SRE] SQLite 'memories' tablosu doğrulandı.")
 
-    from db.session import init_db
+    from packages.persistence.session import init_db
     await init_db()
     
     input_id = uuid.uuid4()
@@ -60,7 +60,7 @@ async def test_agi_cognitive_loop_v25():
             print(f" - [{m['category']}] {m['body'][:100]}...")
 
     # Adım 3: Theory of Mind Kontrolü
-    from core.agi.cognitive.theory_of_mind import theory_of_mind
+    from packages.orchestration.agi.cognitive.theory_of_mind import theory_of_mind
     inferred = theory_of_mind.get_inferred_state()
     print(f"\n[TOM] Tahmin Edilen Kullanıcı Modeli: {inferred}")
     

@@ -9,8 +9,8 @@ async def verify_agi_empathy_engine():
     print("--- AGI 33.0 Verification ---")
     
     try:
-        from core.agi.cognitive.theory_of_mind import theory_of_mind
-        from core.agi.adaptation.empathy_tuner import empathy_tuner
+        from packages.orchestration.agi.cognitive.theory_of_mind import theory_of_mind
+        from packages.orchestration.agi.adaptation.empathy_tuner import empathy_tuner
         
         print("[OK] AGI 33.0 components imported successfully.")
         

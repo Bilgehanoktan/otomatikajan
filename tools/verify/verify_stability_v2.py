@@ -13,7 +13,7 @@ async def verify_components():
     
     # 1. db.session Hardening
     try:
-        from db.session import _verify_core
+        from packages.persistence.session import _verify_core
         # engine=None testi
         res = await _verify_core() 
         print(f"[OK] db.session._verify_core (None Engine test): {res}")
@@ -44,7 +44,7 @@ async def verify_components():
 
     # 4. core.heal_engine Tip Güvenliği
     try:
-        from core.heal_engine import heal_engine
+        from packages.orchestration.heal_engine import heal_engine
         score = heal_engine.system_health_score()
         print(f"[OK] heal_engine: Sağlık skoru hesaplandı ({score}).")
     except Exception as e:
@@ -52,7 +52,7 @@ async def verify_components():
 
     # 5. core.debate_engine Slicing (DebateResult test)
     try:
-        from core.debate_engine import DebateResult, DebateRound
+        from packages.orchestration.debate_engine import DebateResult, DebateRound
         result = DebateResult(debate_id="test_deb", topic="Kritik Bir Konu " * 50, consensus="Uzlaşı var.") 
         result.rounds.append(DebateRound(
             round_num=1, agent_a_id="a", agent_b_id="b",

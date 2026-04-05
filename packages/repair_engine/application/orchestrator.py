@@ -16,27 +16,27 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from repair.schemas.repair_job import RepairJob, RepairJobStatus
-from repair.schemas.incident import IncidentRecord
-from repair.schemas.diagnosis import DiagnosisTicket, RepairMode
-from repair.schemas.patch_plan import PatchPlan
-from repair.schemas.validation import ValidationStatus
-from repair.ingestion.incident_ingestor import IncidentIngestor, incident_ingestor
-from db.repair_models import RepairJobRecord
-from repair.triage.triage_engine import TriageEngine, triage_engine
-from repair.memory.incident_memory import IncidentMemory, incident_memory
-from repair.memory.patch_memory import PatchMemory, PatchOutcome, patch_memory
-from repair.memory.architecture_memory import ArchitectureMemory, architecture_memory
+from packages.repair_engine.schemas.repair_job import RepairJob, RepairJobStatus
+from packages.repair_engine.schemas.incident import IncidentRecord
+from packages.repair_engine.schemas.diagnosis import DiagnosisTicket, RepairMode
+from packages.repair_engine.schemas.patch_plan import PatchPlan
+from packages.repair_engine.schemas.validation import ValidationStatus
+from packages.repair_engine.ingestion.incident_ingestor import IncidentIngestor, incident_ingestor
+from packages.persistence.repair_models import RepairJobRecord
+from packages.repair_engine.triage.triage_engine import TriageEngine, triage_engine
+from packages.repair_engine.memory.incident_memory import IncidentMemory, incident_memory
+from packages.repair_engine.memory.patch_memory import PatchMemory, PatchOutcome, patch_memory
+from packages.repair_engine.memory.architecture_memory import ArchitectureMemory, architecture_memory
 from packages.orchestration.governance.policy_engine import PolicyEngine, policy_engine
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 # Faz 12.1 Shared Events
 from packages.orchestration.domain.events import event_bus
 from packages.contracts.events import EVENT_JOB_PROGRESS, EVENT_LIVE_PATCH
 
 # DB Persistence (Faz 13)
-from db.session import AsyncSessionLocal
-from db.repair_repository import RepairJobRepo, RepairIncidentRepo
+from packages.persistence.session import AsyncSessionLocal
+from packages.persistence.repair_repository import RepairJobRepo, RepairIncidentRepo
 
 
 # Faz 12.1 Stability Patch: Capability Tracking
@@ -48,7 +48,7 @@ def _register_capability(name: str, status: bool, error: str = ""):
 # Faz 11 yeni bileşenler (lazy import — her zaman erişilebilir olmak zorunda değil)
 def _get_fingerprint_engine():
     try:
-        from repair.analysis.incident_fingerprint import build_fingerprint, get_similarity_engine
+        from packages.repair_engine.analysis.incident_fingerprint import build_fingerprint, get_similarity_engine
         _register_capability("fingerprint", True)
         return build_fingerprint, get_similarity_engine()
     except Exception as e:
@@ -57,7 +57,7 @@ def _get_fingerprint_engine():
 
 def _get_ranker():
     try:
-        from repair.analysis.root_cause_ranker import get_root_cause_ranker
+        from packages.repair_engine.analysis.root_cause_ranker import get_root_cause_ranker
         _register_capability("ranker", True)
         return get_root_cause_ranker()
     except Exception as e:
@@ -66,7 +66,7 @@ def _get_ranker():
 
 def _get_test_gen():
     try:
-        from repair.generation.test_generator import get_test_generator
+        from packages.repair_engine.generation.test_generator import get_test_generator
         _register_capability("test_gen", True)
         return get_test_generator()
     except Exception as e:
@@ -75,7 +75,7 @@ def _get_test_gen():
 
 def _get_canary():
     try:
-        from repair.verification.canary_runner import get_canary_runner
+        from packages.repair_engine.verification.canary_runner import get_canary_runner
         _register_capability("canary", True)
         return get_canary_runner()
     except Exception as e:
@@ -84,7 +84,7 @@ def _get_canary():
 
 def _get_metrics_store():
     try:
-        from repair.verification.metrics_collector import get_metrics_store, make_metric
+        from packages.repair_engine.verification.metrics_collector import get_metrics_store, make_metric
         _register_capability("metrics", True)
         return get_metrics_store(), make_metric
     except Exception as e:
@@ -102,7 +102,7 @@ def _get_policy_registry():
 
 def _get_arch_guard():
     try:
-        from repair.review.architecture_guard import get_architecture_guard
+        from packages.repair_engine.review.architecture_guard import get_architecture_guard
         _register_capability("arch_guard", True)
         return get_architecture_guard()
     except Exception as e:
@@ -178,9 +178,9 @@ class RepairOrchestrator:
         
         # DB Persistence (Resilient to DB failures)
         try:
-            from db.session import AsyncSessionLocal, is_db_available
+            from packages.persistence.session import AsyncSessionLocal, is_db_available
             if await is_db_available():
-                from db.repair_repository import RepairJobRepo, RepairIncidentRepo
+                from packages.persistence.repair_repository import RepairJobRepo, RepairIncidentRepo
                 async with AsyncSessionLocal() as db:
                     await RepairIncidentRepo.upsert(db, incident)
                     await RepairJobRepo.upsert(db, job)
@@ -239,12 +239,12 @@ class RepairOrchestrator:
             
         _log.info("RepairOrchestrator: Geri yükleme (hydration) başlatılıyor...")
         try:
-            from db.session import AsyncSessionLocal, is_db_available
+            from packages.persistence.session import AsyncSessionLocal, is_db_available
             if not await is_db_available():
                 return 0
                 
             async with AsyncSessionLocal() as db:
-                from db.repair_repository import RepairJobRepo
+                from packages.persistence.repair_repository import RepairJobRepo
                 records = await RepairJobRepo.list_recent(db, limit=100)
                 for rec in records:
                     if rec.job_id not in self._jobs_cache:
@@ -425,10 +425,10 @@ class RepairOrchestrator:
     async def _persist_job(self, job: "RepairJob") -> None:
         """Job durumunu DB'ye yaz (sessiz hata)."""
         try:
-            from db.session import AsyncSessionLocal, is_db_available
+            from packages.persistence.session import AsyncSessionLocal, is_db_available
             if not await is_db_available():
                 return
-            from db.repair_repository import RepairJobRepo
+            from packages.persistence.repair_repository import RepairJobRepo
             async with AsyncSessionLocal() as db:
                 await RepairJobRepo.upsert(db, job)
                 await db.commit()
@@ -456,7 +456,7 @@ class RepairOrchestrator:
     ) -> Optional[DiagnosisTicket]:
         """Adım 3: Root Cause Analizi."""
         try:
-            from repair.analysis.root_cause_engine import get_root_cause_engine
+            from packages.repair_engine.analysis.root_cause_engine import get_root_cause_engine
             engine = get_root_cause_engine(self.model_orch)
             ticket = await engine.analyze(
                 ticket=ticket,
@@ -478,7 +478,7 @@ class RepairOrchestrator:
     async def _step_patch_plan(self, job: RepairJob, ticket: DiagnosisTicket) -> Optional[PatchPlan]:
         """Adım 4: Patch Planlama."""
         try:
-            from repair.planning.patch_planner import patch_planner
+            from packages.repair_engine.planning.patch_planner import patch_planner
             plan = patch_planner.plan(ticket, project_root=self.project_root)
             if plan is None:
                 job.transition(RepairJobStatus.REQUIRES_MANUAL_REVIEW, note="Güvenli patch hedefi bulunamadı")
@@ -496,7 +496,7 @@ class RepairOrchestrator:
     async def _step_generate_patch(self, job: RepairJob, plan: PatchPlan, incident: IncidentRecord):
         """Adım 5: Patch Üretimi."""
         try:
-            from repair.generation.patch_generator import get_patch_generator
+            from packages.repair_engine.generation.patch_generator import get_patch_generator
             generator = get_patch_generator(self.model_orch)
             patch = await generator.generate(
                 plan=plan,
@@ -532,7 +532,7 @@ class RepairOrchestrator:
     async def _step_review_patch(self, job: RepairJob, patch, plan: PatchPlan, ticket: DiagnosisTicket) -> bool:
         """Adım 6: Patch Review."""
         try:
-            from repair.review.patch_reviewer import patch_reviewer, ReviewDecisionType
+            from packages.repair_engine.review.patch_reviewer import patch_reviewer, ReviewDecisionType
             review = patch_reviewer.review(patch, plan, ticket)
             job.transition(RepairJobStatus.REVIEWED, note=f"decision={review.decision.value}")
             _log.info(f"Patch review [{job.job_id}]: {review.decision.value}")
@@ -552,7 +552,7 @@ class RepairOrchestrator:
     async def _step_verify(self, job: RepairJob, patch, plan: PatchPlan) -> Optional[ValidationStatus]:
         """Adım 7: Verification."""
         try:
-            from repair.verification.verification_engine import get_verification_engine
+            from packages.repair_engine.verification.verification_engine import get_verification_engine
             engine     = get_verification_engine(self.project_root)
             # engine.verify blocks the loop (copies project), run in thread
             validation = await asyncio.to_thread(engine.verify, patch, plan, job_id=job.job_id)
@@ -572,7 +572,7 @@ class RepairOrchestrator:
     async def _step_create_pr(self, job: RepairJob, patch, plan: PatchPlan, validation, incident: IncidentRecord):
         """Adım 10: PR Önerisi."""
         try:
-            from repair.release.pr_creator import get_pr_creator
+            from packages.repair_engine.release.pr_creator import get_pr_creator
             creator  = get_pr_creator(self.project_root)
             proposal = creator.create_proposal(
                 job_id=job.job_id,
@@ -630,10 +630,10 @@ class RepairOrchestrator:
     async def _persist_job_and_proposal(self, job, proposal) -> None:
         """Job ve PR önerisini DB'ye yaz (arka planda)."""
         try:
-            from db.session import AsyncSessionLocal, is_db_available
+            from packages.persistence.session import AsyncSessionLocal, is_db_available
             if not await is_db_available():
                 return
-            from db.repair_repository import RepairJobRepo, RepairProposalRepo
+            from packages.persistence.repair_repository import RepairJobRepo, RepairProposalRepo
             async with AsyncSessionLocal() as db:
                 await RepairJobRepo.upsert(db, job)
                 await RepairProposalRepo.save(db, proposal)
@@ -660,11 +660,11 @@ class RepairOrchestrator:
     async def _persist_patch_log(self, job, incident, plan, patch, outcome, confidence, diff_lines):
         """Patch log kaydını DB'ye yaz (arka planda)."""
         try:
-            from db.session import AsyncSessionLocal, is_db_available
+            from packages.persistence.session import AsyncSessionLocal, is_db_available
             if not await is_db_available():
                 return
-            from db.repair_repository import RepairPatchLogRepo, RepairJobRepo
-            from repair.memory.patch_memory import PatchRecord
+            from packages.persistence.repair_repository import RepairPatchLogRepo, RepairJobRepo
+            from packages.repair_engine.memory.patch_memory import PatchRecord
             import uuid as _uuid
             from datetime import datetime, timezone
             record = PatchRecord(
@@ -693,7 +693,7 @@ class RepairOrchestrator:
     def _step_fingerprint(self, job: RepairJob, incident: IncidentRecord) -> None:
         """Adım 0: Incident fingerprint üret, duplicate tespit et, job'a yaz."""
         try:
-            from repair.analysis.incident_fingerprint import get_fingerprinter
+            from packages.repair_engine.analysis.incident_fingerprint import get_fingerprinter
             f = get_fingerprinter()
             job.fingerprint = f.compute(incident)
             dup_id = f.find_duplicate(job.fingerprint)
@@ -823,7 +823,7 @@ class RepairOrchestrator:
     async def _do_canary_run(self, job: RepairJob, patch, plan) -> bool:
         """Canary doğrulama alt işlemi."""
         try:
-            from repair.verification.canary_runner import get_canary_runner
+            from packages.repair_engine.verification.canary_runner import get_canary_runner
             runner = get_canary_runner()
             if not runner: return True
             await self._transition_and_persist(job, RepairJobStatus.CANARY_PENDING)
@@ -845,7 +845,7 @@ class RepairOrchestrator:
     def _record_metric(self, job: RepairJob, incident: IncidentRecord, plan, validation, decision: str, duration_s: float) -> None:
         """Metrik kaydet."""
         try:
-            from repair.verification.metrics_collector import get_metrics_store, make_metric
+            from packages.repair_engine.verification.metrics_collector import get_metrics_store, make_metric
             store = get_metrics_store()
             if not store: return
             module = getattr(incident, "module", "unknown") if incident else "unknown"
@@ -974,7 +974,7 @@ class RepairOrchestrator:
         """Faz 12: Başarılı onarımı kaydet (Async destekli)."""
         if decision not in ("success", "merged", "approved"): return
         try:
-            from repair.memory.vector_lessons import get_vector_lessons
+            from packages.repair_engine.memory.vector_lessons import get_vector_lessons
             store = get_vector_lessons()
             symptom = getattr(incident, "symptom", "")
             module = getattr(incident, "module", "unknown")
@@ -989,7 +989,7 @@ class RepairOrchestrator:
     async def _step_get_context_from_vector(self, incident: IncidentRecord) -> str:
         """Faz 12: RAG."""
         try:
-            from repair.memory.vector_lessons import get_vector_lessons
+            from packages.repair_engine.memory.vector_lessons import get_vector_lessons
             store = get_vector_lessons()
             similars = store.find_similar(getattr(incident, "symptom", ""), module=getattr(incident, "module", ""), limit=3)
             if not similars: return ""

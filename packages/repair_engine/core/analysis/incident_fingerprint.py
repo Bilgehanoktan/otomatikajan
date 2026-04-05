@@ -12,8 +12,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional
 
-from repair.schemas.incident import IncidentRecord
-from observability.logging import get_logger
+from packages.repair_engine.schemas.incident import IncidentRecord
+from packages.observability.logging import get_logger
 
 _log = get_logger("repair.analysis.fingerprint")
 

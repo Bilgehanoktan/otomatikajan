@@ -3,10 +3,10 @@ import json
 import uuid
 from typing import Optional, List, Dict, Any
 from packages.orchestration.agi.schemas import ActionRecord
-from llm.model_orchestrator import ModelOrchestrator
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 from packages.orchestration.application.sandbox_runner import get_sandbox_runner
 from packages.orchestration.agi.monitoring.nervous_system import nervous_system
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 _log = get_logger("agi_neural_tool_weaver")
 

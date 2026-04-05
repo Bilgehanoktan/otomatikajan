@@ -8,7 +8,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 async def test_llm_fix():
     print("--- [FAZ 12.1: LLM ORKESTRATÖR DOĞRULAMA] ---")
     try:
-        from llm.model_orchestrator import ModelOrchestrator
+        from packages.llm_gateway.model_orchestrator import ModelOrchestrator
         orch = ModelOrchestrator()
         
         test_messages = [

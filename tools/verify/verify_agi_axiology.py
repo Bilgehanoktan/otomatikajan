@@ -10,8 +10,8 @@ async def verify_agi_axiology_intelligence():
     print("--- AGI 27.0 Verification ---")
     
     try:
-        from core.agi.cognitive.axiology_engine import axiology_engine
-        from core.agi.monitoring.value_auditor import value_auditor
+        from packages.orchestration.agi.cognitive.axiology_engine import axiology_engine
+        from packages.orchestration.agi.monitoring.value_auditor import value_auditor
         
         print("[OK] AGI 27.0 components imported successfully.")
         

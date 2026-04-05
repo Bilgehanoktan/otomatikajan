@@ -2,10 +2,10 @@ import os
 import json
 import asyncio
 from typing import List, Dict, Any, Optional
-from llm.model_orchestrator import ModelOrchestrator
-from observability.logging import get_logger
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
+from packages.observability.logging import get_logger
 from sqlalchemy.future import select
-from db.models import Memory 
+from packages.persistence.models import Memory 
 
 _log = get_logger("agi_skill_synthesizer")
 

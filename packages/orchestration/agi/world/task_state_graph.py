@@ -9,7 +9,7 @@ import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 _log = get_logger("world_task_state_graph")
 
@@ -151,7 +151,7 @@ class TaskStateGraph:
         DB'deki son görev kayıtlarını yükler (startup hydration).
         """
         try:
-            from db.repository import ProjectRepository, SubTaskRepository
+            from packages.persistence.repository import ProjectRepository, SubTaskRepository
             recent = await ProjectRepository.list_recent(db, limit=100)
             for p in recent:
                 task_id = str(p.id)

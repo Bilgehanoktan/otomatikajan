@@ -13,8 +13,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional, List
 
-from repair.schemas.incident import IncidentRecord, IncidentSeverity
-from observability.logging import get_logger
+from packages.repair_engine.schemas.incident import IncidentRecord, IncidentSeverity
+from packages.observability.logging import get_logger
 
 _log = get_logger("repair.memory.incident")
 
@@ -208,7 +208,7 @@ class IncidentMemory:
         count = 0
         try:
             if not db_session:
-                from db.session import AsyncSessionLocal, is_db_available
+                from packages.persistence.session import AsyncSessionLocal, is_db_available
                 if not await is_db_available():
                     _log.warning("Hydration atlandı: DB hazır değil.")
                     return 0
@@ -226,8 +226,8 @@ class IncidentMemory:
             return 0
 
     async def _do_hydrate(self, db) -> int:
-        from db.repair_repository import RepairIncidentRepo
-        from repair.schemas.incident import IncidentSource, IncidentSeverity
+        from packages.persistence.repair_repository import RepairIncidentRepo
+        from packages.repair_engine.schemas.incident import IncidentSource, IncidentSeverity
         
         # Sadece 'open' olanları belleğe al
         records = await RepairIncidentRepo.get_open(db, limit=self.MAX_INCIDENTS)

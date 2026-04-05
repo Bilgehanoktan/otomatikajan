@@ -1,7 +1,7 @@
 import logging
 import json
 from typing import Dict, Any, List, Optional
-from llm.model_orchestrator import ModelOrchestrator
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 
 _log = logging.getLogger("agi_prompt_synthesizer")
 
@@ -34,7 +34,7 @@ class PromptSynthesizer:
         )
 
         try:
-            from quality.output_schema import output_parser
+            from packages.quality_assurance.output_schema import output_parser
             result = await self.model_orch.execute(
                 agent_id="prompt_synthesizer",
                 prompt=prompt,

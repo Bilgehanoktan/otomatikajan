@@ -46,7 +46,19 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection):
-    context.configure(connection=connection, target_metadata=target_metadata)
+    # Cross-Dialect Compatibility (V2)
+    def process_revision_directives(context, revision, directives):
+        if config.get_main_option("sqlalchemy.url").startswith("sqlite"):
+            # SQLite specific fixes if needed during autogenerate
+            pass
+
+    context.configure(
+        connection=connection, 
+        target_metadata=target_metadata,
+        # Phase 12.1: JSONB and UUID mapping for SQLite
+        render_as_batch=True if connection.dialect.name == "sqlite" else False,
+        process_revision_directives=process_revision_directives
+    )
     with context.begin_transaction():
         context.run_migrations()
 

@@ -4,7 +4,7 @@ import asyncio
 import ast
 from typing import List, Tuple
 try:
-    from observability.logging import get_logger
+    from packages.observability.logging import get_logger
 except ImportError:
     import logging
     logging.basicConfig(level=logging.INFO)

@@ -17,7 +17,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Optional
 
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 _log = get_logger("repair.review.architecture_guard")
 
@@ -61,7 +61,7 @@ _FORBIDDEN_IMPORTS = [
     # API router -> DB model/session doğrudan alamaz (repository katmanı üzerinden gitmeli)
     ("api/",    r"from db\.models import",          "api_direct_db_model",  "error"),
     ("api/",    r"from db\.session import",         "api_direct_db_session","warning"),
-    ("api/",    r"import db\.models",               "api_direct_db_model_2","error"),
+    ("api/",    r"import packages.persistence\.models",               "api_direct_db_model_2","error"),
     
     # Auth modülü UI/API'ya çıkmamalı
     ("auth/",   r"from api\.",                      "auth_to_api",          "error"),

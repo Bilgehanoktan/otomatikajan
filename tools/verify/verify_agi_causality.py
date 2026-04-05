@@ -9,14 +9,14 @@ async def verify_agi_causality_and_bridge():
     print("--- AGI 12.5 Verification ---")
     
     try:
-        from core.agi.cognitive.causal_engine import causal_engine
-        from core.agi.learning.bridge import knowledge_bridge
-        from core.agi.orchestrator import agi_orchestrator
+        from packages.orchestration.agi.cognitive.causal_engine import causal_engine
+        from packages.orchestration.agi.learning.bridge import knowledge_bridge
+        from packages.orchestration.agi.orchestrator import agi_orchestrator
         
         print("[OK] AGI 12.5 components imported successfully.")
         
         # Test Causal Engine Interface
-        from core.agi.schemas import EpisodeRecord, ActionRecord, VerificationReport, ProblemFrame, TaskType
+        from packages.orchestration.agi.schemas import EpisodeRecord, ActionRecord, VerificationReport, ProblemFrame, TaskType
         
         mock_ep = EpisodeRecord(
             problem_frame=ProblemFrame(task_type=TaskType.FIX, objective="Fix broken test"),

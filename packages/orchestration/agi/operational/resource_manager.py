@@ -6,9 +6,9 @@ import asyncio
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, Optional
 from sqlalchemy import select, func
-from db.session import session_scope
-from db.models import LLMCostLog, Project
-from observability.logging import get_logger
+from packages.persistence.session import session_scope
+from packages.persistence.models import LLMCostLog, Project
+from packages.observability.logging import get_logger
 
 logger = get_logger("agi_resource_manager")
 

@@ -11,10 +11,10 @@ async def verify_agi_evolution_v16():
     print("--- AGI Phase 16: 'The Recursive Architect' Verification ---")
     
     try:
-        from db.session import session_scope
-        from db.models import ImprovementOpportunity, CEOSuggestedTask, ProjectStatus
-        from core.agi.consciousness.neural_core_orchestrator import neural_core_orchestrator
-        from db.repository import ImprovementRepository
+        from packages.persistence.session import session_scope
+        from packages.persistence.models import ImprovementOpportunity, CEOSuggestedTask, ProjectStatus
+        from packages.orchestration.agi.consciousness.neural_core_orchestrator import neural_core_orchestrator
+        from packages.persistence.repository import ImprovementRepository
         
         print("\n[STEP 1] Testing Neural Core Orchestrator Taxonomy...")
         async with session_scope() as db:
@@ -39,7 +39,7 @@ async def verify_agi_evolution_v16():
             print(f"[OK] Tool Opportunity created: {opp.id}")
             
             # Trigger Evolutionary Architect
-            from core.agi.operational.evolutionary_architect import evolutionary_architect
+            from packages.orchestration.agi.operational.evolutionary_architect import evolutionary_architect
             print("[INFO] Triggering Evolutionary Architect for Skill Synthesis...")
             await evolutionary_architect.propose_evolution()
             

@@ -9,12 +9,12 @@ import os
 # Path adjustment for local imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.agi.central_executive import CentralExecutive
-from core.agi.cognitive.synaptic_cortex import synaptic_cortex
-from core.agi.operational.resource_manager import resource_manager
-from core.agi.operational.local_failsafe_engine import local_failsafe
-from db.session import session_scope, init_db
-from observability.logging import get_logger
+from packages.orchestration.agi.central_executive import CentralExecutive
+from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
+from packages.orchestration.agi.operational.resource_manager import resource_manager
+from packages.orchestration.agi.operational.local_failsafe_engine import local_failsafe
+from packages.persistence.session import session_scope, init_db
+from packages.observability.logging import get_logger
 
 _log = get_logger("verify_agi_30")
 

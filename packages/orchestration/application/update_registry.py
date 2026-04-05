@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 logger = get_logger("update_registry")
 

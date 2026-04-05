@@ -5,9 +5,9 @@ import py_compile
 from typing import List, Dict, Any, Optional
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from observability.logging import get_logger
-from db.session import session_scope
-from db.models import ImprovementOpportunity
+from packages.observability.logging import get_logger
+from packages.persistence.session import session_scope
+from packages.persistence.models import ImprovementOpportunity
 
 _log = get_logger("agi_source_refactor")
 

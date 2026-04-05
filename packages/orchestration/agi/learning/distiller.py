@@ -1,9 +1,9 @@
 import json
 from typing import Optional, Dict, Any
 from packages.orchestration.agi.schemas import EpisodeRecord, SkillArtifact
-from llm.model_orchestrator import ModelOrchestrator
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 _log = get_logger("agi_skill_distiller")
 

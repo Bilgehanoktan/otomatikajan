@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 _log = get_logger("repair.memory.lessons")
 
@@ -113,7 +113,7 @@ class LessonsStore:
     def _teach_ranker(self, rec: FeedbackRecord) -> None:
         """Feedback'i root cause ranker'a ilet."""
         try:
-            from repair.analysis.root_cause_ranker import get_root_cause_ranker
+            from packages.repair_engine.analysis.root_cause_ranker import get_root_cause_ranker
             ranker = get_root_cause_ranker()
             outcome = "success" if rec.decision in ("approved", "merged") else "rejected"
             ranker.record_lesson(
@@ -128,7 +128,7 @@ class LessonsStore:
             if rec.decision in ("approved", "merged") and rec.feedback_note:
                 from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
                 import asyncio
-                from db.session import AsyncSessionLocal
+                from packages.persistence.session import AsyncSessionLocal
                 
                 async def _save_async():
                     async with AsyncSessionLocal() as db:

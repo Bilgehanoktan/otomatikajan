@@ -9,9 +9,9 @@ async def verify_agi_synthesis():
     print("--- AGI 12.4 Verification ---")
     
     try:
-        from core.agi.operational.tool_weaver import tool_weaver, tool_registry
-        from core.agi.world.repo_graph import repo_world_model
-        from core.agi.operational.executor import OperationalExecutor
+        from packages.orchestration.agi.operational.tool_weaver import tool_weaver, tool_registry
+        from packages.orchestration.agi.world.repo_graph import repo_world_model
+        from packages.orchestration.agi.operational.executor import OperationalExecutor
         
         print("[OK] All AGI Synthesis components imported successfully.")
         

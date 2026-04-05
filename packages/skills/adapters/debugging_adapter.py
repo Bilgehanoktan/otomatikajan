@@ -11,7 +11,7 @@ class DebuggingSkillAdapter(BaseSkillAdapter):
     async def execute(self, req: SkillRequest) -> SkillResult:
         try:
             from packages.repair_engine.application.orchestrator import get_repair_orchestrator
-            from repair.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
+            from packages.repair_engine.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
 
             incident = IncidentRecord(
                 incident_id=f"inc-{req.project_id or 'adhoc'}",

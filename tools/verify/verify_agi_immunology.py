@@ -10,8 +10,8 @@ async def verify_agi_immunology_intelligence():
     print("--- AGI 22.0 Verification ---")
     
     try:
-        from core.agi.monitoring.pathogen_detector import pathogen_detector
-        from core.agi.adaptation.immunity_weaver import immunity_weaver
+        from packages.orchestration.agi.monitoring.pathogen_detector import pathogen_detector
+        from packages.orchestration.agi.adaptation.immunity_weaver import immunity_weaver
         
         print("[OK] AGI 22.0 components imported successfully.")
         

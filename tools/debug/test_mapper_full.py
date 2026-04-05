@@ -1,4 +1,4 @@
-from db.models import SovereignGoal, Project, Base, CEOSuggestedTask
+from packages.persistence.models import SovereignGoal, Project, Base, CEOSuggestedTask
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 

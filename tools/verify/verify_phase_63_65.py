@@ -8,11 +8,11 @@ root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-from core.agi.central_executive import central_executive
-from core.agi.cognitive.thread_governor import thread_governor
-from core.agi.operational.tool_grounder import get_grounded_tool_input
-from core.agi.operational.velocity_engine import velocity_engine
-from core.agi.schemas import SourceType
+from packages.orchestration.agi.central_executive import central_executive
+from packages.orchestration.agi.cognitive.thread_governor import thread_governor
+from packages.orchestration.agi.operational.tool_grounder import get_grounded_tool_input
+from packages.orchestration.agi.operational.velocity_engine import velocity_engine
+from packages.orchestration.agi.schemas import SourceType
 
 logging.basicConfig(level=logging.INFO)
 _log = logging.getLogger("VERIFY_PHASE_63_65")

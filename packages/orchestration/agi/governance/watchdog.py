@@ -4,7 +4,7 @@ from typing import List, Dict, Any, Optional
 from packages.orchestration.agi.governance.rules import GovernanceRules, GovernanceViolation
 from packages.orchestration.agi.schemas import PlanProposal
 from packages.healing.application.heal_engine import heal_engine
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 _log = get_logger("agi_governance_watchdog")
 
@@ -78,7 +78,7 @@ class GovernanceWatchdog:
         from packages.repair_engine.application.orchestrator import get_repair_orchestrator
         orch = get_repair_orchestrator(model_orch=self.model_orch)
         
-        from repair.schemas.incident import IncidentRecord
+        from packages.repair_engine.schemas.incident import IncidentRecord
 
         for v in violations:
             _log.info(f"[GOVERNANCE] Otonom onarım başlatılıyor: {v.rule_id} ({v.target})")
@@ -99,7 +99,7 @@ class GovernanceWatchdog:
             # 3. Faz 42: Bilişsel Ketleme (Reinforcement Learning)
             try:
                 from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
-                from db.session import get_db
+                from packages.persistence.session import get_db
                 async with get_db() as db:
                     await synaptic_cortex.save_architectural_inhibition(
                         db=db,
@@ -113,7 +113,7 @@ class GovernanceWatchdog:
         # Update instinct count badge
         try:
             from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
-            from db.session import get_db
+            from packages.persistence.session import get_db
             async with get_db() as db:
                 inhibs = await synaptic_cortex.get_architectural_inhibitions(db, limit=100)
                 self._instinct_count = len(inhibs)

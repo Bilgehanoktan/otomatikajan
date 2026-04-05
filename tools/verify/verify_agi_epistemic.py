@@ -9,10 +9,10 @@ async def verify_agi_epistemic_and_strategy():
     print("--- AGI 12.6 & 12.7 Verification ---")
     
     try:
-        from core.agi.cognitive.perception_gate import perception_gate
-        from core.agi.adaptation.strategy_tuner import strategy_tuner
-        from core.agi.orchestrator import agi_orchestrator
-        from core.agi.schemas import ProblemFrame, TaskType, RiskLevel
+        from packages.orchestration.agi.cognitive.perception_gate import perception_gate
+        from packages.orchestration.agi.adaptation.strategy_tuner import strategy_tuner
+        from packages.orchestration.agi.orchestrator import agi_orchestrator
+        from packages.orchestration.agi.schemas import ProblemFrame, TaskType, RiskLevel
         
         print("[OK] AGI 12.6/12.7 components imported successfully.")
         

@@ -13,8 +13,8 @@ Akış:
 import os
 from typing import Optional
 
-from repair.schemas.diagnosis import DiagnosisTicket, RootCauseHypothesis, RepairMode
-from observability.logging import get_logger
+from packages.repair_engine.schemas.diagnosis import DiagnosisTicket, RootCauseHypothesis, RepairMode
+from packages.observability.logging import get_logger
 
 _log = get_logger("repair.root_cause")
 

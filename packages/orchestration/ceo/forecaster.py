@@ -6,9 +6,9 @@ try:
     from sqlalchemy import select, func, desc
 except ImportError:
     pass
-from db.session import session_scope
-from db.models import LLMCostLog, Project, TaskLog, ApiMetric
-from observability.logging import get_logger
+from packages.persistence.session import session_scope
+from packages.persistence.models import LLMCostLog, Project, TaskLog, ApiMetric
+from packages.observability.logging import get_logger
 
 logger = get_logger("ceo.forecaster")
 

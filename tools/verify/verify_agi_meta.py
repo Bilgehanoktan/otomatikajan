@@ -10,8 +10,8 @@ async def verify_agi_meta_intelligence():
     print("--- AGI 28.0 Verification ---")
     
     try:
-        from core.agi.monitoring.meta_audit import meta_audit
-        from core.agi.adaptation.metacognitive_tuner import metacognitive_tuner
+        from packages.orchestration.agi.monitoring.meta_audit import meta_audit
+        from packages.orchestration.agi.adaptation.metacognitive_tuner import metacognitive_tuner
         
         print("[OK] AGI 28.0 components imported successfully.")
         

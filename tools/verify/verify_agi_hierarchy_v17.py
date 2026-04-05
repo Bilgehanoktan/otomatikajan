@@ -10,11 +10,11 @@ async def verify_agi_hierarchy_v17():
     print("--- AGI Phase 17: 'Hierarchical Self-Refinement' Verification ---")
     
     try:
-        from core.agi.central_executive import central_executive
-        from core.agi.schemas import SourceType, TaskType, ProblemFrame
+        from packages.orchestration.agi.central_executive import central_executive
+        from packages.orchestration.agi.schemas import SourceType, TaskType, ProblemFrame
         
         # Mocking Decomposer to force a hierarchical split
-        from core.agi.cognitive.decomposer import goal_decomposer
+        from packages.orchestration.agi.cognitive.decomposer import goal_decomposer
         
         # Test Case: A complex task that should be split
         complex_input = "Analyze the core/agi/schemas.py file and then add a new field for 'QuantumState'."

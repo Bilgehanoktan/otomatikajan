@@ -6,7 +6,7 @@ from sqlalchemy import select, update, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from db.models import SovereignCodeResult, SovereignCodeFile, Project
+from packages.persistence.models import SovereignCodeResult, SovereignCodeFile, Project
 
 def _utcnow():
     return datetime.now(timezone.utc)

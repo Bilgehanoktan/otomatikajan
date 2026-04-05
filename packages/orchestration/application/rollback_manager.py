@@ -2,7 +2,7 @@ import os
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 logger = get_logger("rollback_manager")
 

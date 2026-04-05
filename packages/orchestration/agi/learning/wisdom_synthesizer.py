@@ -5,7 +5,7 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 
 from packages.orchestration.agi.task_governance import ProjectTask, SubTask, TaskStatus
-from llm.model_orchestrator import ModelOrchestrator
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
 
 from packages.orchestration.agi.world.causal_error_graph import causal_error_graph
@@ -133,7 +133,7 @@ class WisdomSynthesizer:
     async def _increment_importance(self, memory_dict: Dict):
         """Mevcut bilgelik kaydının 'önem' ve 'tekrar' verisini günceller."""
         try:
-            from db.models import Memory
+            from packages.persistence.models import Memory
             from sqlalchemy import update
             async with self._get_db() as db:
                 m_id = memory_dict.get("id")
@@ -151,7 +151,7 @@ class WisdomSynthesizer:
 
     def _get_db(self):
         """Consolidated DB session getter for async operations."""
-        from db.session import AsyncSessionLocal
+        from packages.persistence.session import AsyncSessionLocal
         return AsyncSessionLocal()
 
     async def _parse_and_record_causality(self, content: str, task_id: str):

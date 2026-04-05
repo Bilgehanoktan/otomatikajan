@@ -8,7 +8,7 @@ import hashlib
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 _log = get_logger("world_causal_error_graph")
 

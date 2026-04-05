@@ -1,6 +1,6 @@
 import logging
 from typing import Dict, Any
-from core.prompt_manager import prompt_manager
+from packages.orchestration.prompt_manager import prompt_manager
 
 logger = logging.getLogger("tools.strategy_tools")
 

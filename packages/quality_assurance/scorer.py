@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from quality.output_schema import AgentOutput
+    from packages.quality_assurance.output_schema import AgentOutput
 
 
 # ── Vague kelimeler listesi ───────────────────────────────

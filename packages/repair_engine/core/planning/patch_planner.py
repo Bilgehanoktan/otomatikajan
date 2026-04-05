@@ -9,9 +9,9 @@ Kural: büyük refactor yasak, sadece minimal hedefli değişiklik.
 import os
 from typing import Optional
 
-from repair.schemas.diagnosis import DiagnosisTicket, ProblemClass, RepairMode
-from repair.schemas.patch_plan import PatchPlan, PatchAction, ChangeType, RiskLevel
-from observability.logging import get_logger
+from packages.repair_engine.schemas.diagnosis import DiagnosisTicket, ProblemClass, RepairMode
+from packages.repair_engine.schemas.patch_plan import PatchPlan, PatchAction, ChangeType, RiskLevel
+from packages.observability.logging import get_logger
 
 _log = get_logger("repair.patch_planner")
 

@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 _log = get_logger("core.policy_registry")
 

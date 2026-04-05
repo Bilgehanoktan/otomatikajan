@@ -1,7 +1,7 @@
 import os
 import httpx
 from typing import Dict, Any, Optional
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 logger = get_logger("tools.github")
 

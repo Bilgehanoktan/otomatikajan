@@ -3,7 +3,7 @@ import shutil
 import time
 from pathlib import Path
 from datetime import datetime, timezone
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 _log = get_logger("agi_backup_service")
 

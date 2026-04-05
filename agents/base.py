@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any
 from schemas import SubtaskOutput, AgentStatus, Artifact, ArtifactType
-from llm.model_orchestrator import ModelOrchestrator
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 from datetime import datetime, timezone
 import json
 

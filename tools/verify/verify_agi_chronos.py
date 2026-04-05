@@ -10,9 +10,9 @@ async def verify_agi_chronos_mesh():
     print("--- AGI 31.0 Verification ---")
     
     try:
-        from core.agi.cognitive.foresight_cortex import foresight_cortex as chronos_mesh
-        from core.agi.adaptation.timeline_selector import timeline_selector
-        from llm.model_orchestrator import model_orchestrator
+        from packages.orchestration.agi.cognitive.foresight_cortex import foresight_cortex as chronos_mesh
+        from packages.orchestration.agi.adaptation.timeline_selector import timeline_selector
+        from packages.llm_gateway.model_orchestrator import model_orchestrator
         
         print("[OK] AGI 31.0 components imported successfully.")
         

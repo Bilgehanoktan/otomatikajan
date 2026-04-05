@@ -1,8 +1,8 @@
 import asyncio
 import uuid
 from datetime import datetime
-from db.session import AsyncSessionLocal
-from db.models import SkillExecutionLog
+from packages.persistence.session import AsyncSessionLocal
+from packages.persistence.models import SkillExecutionLog
 
 async def insert_test_log():
     async with AsyncSessionLocal() as db:

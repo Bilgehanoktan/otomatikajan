@@ -9,24 +9,24 @@ try:
 except ImportError:
     pass
 try:
-    from db.session import session_scope
+    from packages.persistence.session import session_scope
 except ImportError:
     pass
 try:
-    from db.repository import ProjectRepository, ApiMetricRepository, TaskLogRepository, CostRepository
+    from packages.persistence.repository import ProjectRepository, ApiMetricRepository, TaskLogRepository, CostRepository
 except ImportError:
     pass
 try:
-    from db.models import (
+    from packages.persistence.models import (
         ImprovementOpportunity, CEOSuggestedTask, CEODecision, 
         Project, CEOPerformanceLog, SovereignGoal # Faz 79: North Star Goals
     )
 except ImportError:
     pass
 from packages.orchestration.agi.cognitive.sovereign_auditor import sovereign_auditor
-from llm.model_orchestrator import ModelOrchestrator
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 from packages.orchestration.ceo.forecaster import CEOForecaster
-from observability.logging import get_logger
+from packages.observability.logging import get_logger
 from tasks.celery_app import celery_app
 
 logger = get_logger("ceo_engine")
@@ -47,7 +47,7 @@ class CEOEngine:
             # --- PHASE 12: Budget Check ---
             try:
                 from config import MONTHLY_BUDGET
-                from db.repository import CostRepository
+                from packages.persistence.repository import CostRepository
                 
                 # Sadece repo ve metod varsa await et
                 if hasattr(CostRepository, 'total_cost'):
@@ -92,7 +92,7 @@ class CEOEngine:
             
             # 1.1 Visual UX Scan (Faz 12)
             try:
-                from improve.visual_observer import VisualUXObserver
+                from packages.improvement_engine.visual_observer import VisualUXObserver
                 visual_obs = VisualUXObserver(db, self.model_orch)
                 visual_ops = await visual_obs.scan()
                 if visual_ops:
@@ -168,7 +168,7 @@ class CEOEngine:
     async def _scan_strategic_gaps(self, db) -> List[Dict[str, Any]]:
         """Scans for strategic architectural gaps."""
         try:
-            from improve.observer import ImprovementObserver
+            from packages.improvement_engine.observer import ImprovementObserver
             obs = ImprovementObserver(db, self.model_orch)
             return await obs.scan()
         except Exception as e:
@@ -601,8 +601,8 @@ class CEOEngine:
         if not getattr(self, "_throttle_auto_exec", False) and confidence >= 0.9 and op_obj.priority_score >= 60:
             logger.info(f"CEO Engine: AUTO-EXECUTING {'first step of ' if is_roadmap else ''}task '{execution_target.title}'")
             
-            from db.models import Project
-            from db.repository import TaskLogRepository
+            from packages.persistence.models import Project
+            from packages.persistence.repository import TaskLogRepository
             
             proj_id = uuid.uuid4()
             new_project = Project(
@@ -812,8 +812,8 @@ class CEOEngine:
 
     async def _auto_approve_next_step(self, db, suggestion: CEOSuggestedTask, prev_project: Project):
         """Yol haritasındaki bir sonraki adımı otomatik olarak başlatır."""
-        from db.models import Project
-        from db.repository import TaskLogRepository
+        from packages.persistence.models import Project
+        from packages.persistence.repository import TaskLogRepository
         
         proj_id = uuid.uuid4()
         new_project = Project(

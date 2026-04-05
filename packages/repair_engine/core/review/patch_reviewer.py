@@ -15,10 +15,10 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 
-from repair.generation.patch_generator import GeneratedPatch
-from repair.schemas.patch_plan import PatchPlan
-from repair.schemas.diagnosis import DiagnosisTicket
-from observability.logging import get_logger
+from packages.repair_engine.generation.patch_generator import GeneratedPatch
+from packages.repair_engine.schemas.patch_plan import PatchPlan
+from packages.repair_engine.schemas.diagnosis import DiagnosisTicket
+from packages.observability.logging import get_logger
 
 _log = get_logger("repair.reviewer")
 

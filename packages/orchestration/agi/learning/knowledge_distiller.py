@@ -1,7 +1,7 @@
 import json
 import logging
 from typing import List, Dict, Any, Optional
-from llm.model_orchestrator import ModelOrchestrator
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
 
 _log = logging.getLogger("agi_knowledge_distiller")

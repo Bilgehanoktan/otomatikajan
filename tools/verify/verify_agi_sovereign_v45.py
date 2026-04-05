@@ -5,11 +5,11 @@ import os
 # Add e:/ai_company_faz12.1 to sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from db.session import AsyncSessionLocal
-from core.agi.cognitive.synaptic_cortex import synaptic_cortex
-from core.agi.adaptation.sovereign_evolution_45 import sovereign_evolution_45
-from core.agi.monitoring.provenance_engine_45 import provenance_engine_45
-from db.models import Memory
+from packages.persistence.session import AsyncSessionLocal
+from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
+from packages.orchestration.agi.adaptation.sovereign_evolution_45 import sovereign_evolution_45
+from packages.orchestration.agi.monitoring.provenance_engine_45 import provenance_engine_45
+from packages.persistence.models import Memory
 from sqlalchemy import select
 
 async def verify_v45_sovereign():

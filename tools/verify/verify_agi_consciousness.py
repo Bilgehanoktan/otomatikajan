@@ -10,8 +10,8 @@ async def verify_agi_consciousness():
     print("--- AGI 30.0 Verification ---")
     
     try:
-        from core.agi.consciousness.global_workspace import global_workspace
-        from core.agi.consciousness.neural_core_orchestrator import neural_core_orchestrator
+        from packages.orchestration.agi.consciousness.global_workspace import global_workspace
+        from packages.orchestration.agi.consciousness.neural_core_orchestrator import neural_core_orchestrator
         
         print("[OK] AGI 30.0 components imported successfully.")
         
