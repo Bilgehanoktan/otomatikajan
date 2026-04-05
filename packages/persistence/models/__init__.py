@@ -1,1 +1,1 @@
-# Generated __init__.py
+from .core_models import *
