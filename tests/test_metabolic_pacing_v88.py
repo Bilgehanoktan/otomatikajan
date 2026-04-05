@@ -24,24 +24,24 @@ def test_rolling_average_latency():
         
     # Now top 10 should be all 2.0
     assert stats.avg_latency == 2.0
-    assert len(stats.latencies_window) == 10
+    assert len(stats.latency_window) == 10
 
 def test_dynamic_quarantine_scaling():
     stats = ProviderStats("test", "test_key", "http://test", "test-model")
     
     # Case 1: Simple failure
-    stats.record_error("Generic Error")
+    stats.record_failure("Generic Error")
     # Base is 5 min (300s)
     assert 290 <= (stats.quarantine_until - time.time()) <= 310
     
     # Case 2: Consecutive failure
-    stats.record_error("Retry Error")
+    stats.record_failure("Retry Error")
     # Should scale (e.g. 10m - 600s)
     # Check if it increased
     assert (stats.quarantine_until - time.time()) > 310
     
     # Case 3: Rate Limit (429) should be immediate high penalty
-    stats.record_error("Rate Limit Error (429)")
+    stats.record_failure("Rate Limit Error (429)")
     # Should be capped or high
     assert (stats.quarantine_until - time.time()) >= 900 # >= 15m
 
