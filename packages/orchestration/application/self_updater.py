@@ -8,10 +8,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List
 
-from core.git_ops import GitOps
-from core.shadow_runner import ShadowRunner
-from core.system_indexer import SystemIndexer
-from core.update_registry import SystemUpdateRegistry
+from packages.shared.utils.git_ops import GitOps
+from packages.orchestration.application.shadow_runner import ShadowRunner
+from packages.orchestration.indexing.system_indexer import SystemIndexer
+from packages.orchestration.application.update_registry import SystemUpdateRegistry
 from llm.model_orchestrator import ModelOrchestrator
 from observability.logging import get_logger
 
@@ -240,7 +240,7 @@ class SelfUpdater:
         return "\n".join(diff[:max_lines])
 
     async def modify_system_file(self, target_file_path: str, instruction: str) -> str:
-        from core.rollback_manager import RollbackManager
+        from packages.orchestration.application.rollback_manager import RollbackManager
         rb_mgr = RollbackManager(str(self.project_root))
         
         snapshot_tag = None

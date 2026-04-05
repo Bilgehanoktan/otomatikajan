@@ -2,7 +2,7 @@ import asyncio
 from typing import List, Dict, Any, Optional
 from observability.logging import get_logger
 from llm.model_orchestrator import ModelOrchestrator
-from core.agi.schemas import ActionRecord, PlanStep
+from packages.orchestration.agi.schemas import ActionRecord, PlanStep
 
 _log = get_logger("agi_swarm_resolver")
 

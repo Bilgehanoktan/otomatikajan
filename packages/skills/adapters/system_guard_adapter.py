@@ -1,5 +1,5 @@
 from skills.base import BaseSkillAdapter, SkillRequest, SkillResult
-from core.safety_gate import safety_gate
+from packages.orchestration.governance.safety_gate import safety_gate
 
 class SystemGuardSkillAdapter(BaseSkillAdapter):
     skill_id = "system_guard"

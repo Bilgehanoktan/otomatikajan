@@ -1,7 +1,7 @@
 import json
 import re
 from typing import List, Optional, Dict, Any
-from core.agi.schemas import ExecutionPlan, PlanStep, RiskLevel, PlanProposal
+from packages.orchestration.agi.schemas import ExecutionPlan, PlanStep, RiskLevel, PlanProposal
 from core.agi.cognitive.red_team_agent import red_team
 from llm.model_orchestrator import ModelOrchestrator
 from observability.logging import get_logger
@@ -110,7 +110,7 @@ class ConsensusManager:
 
             # --- Phase 44 & 46: Collaborative Consensus (Governance Check & Refinement) ---
             from core.agi.governance.watchdog import governance_watchdog
-            from core.agi.task_governance import SubTask
+            from packages.orchestration.agi.task_governance import SubTask
             
             mock_subtask = SubTask(id="consensus_eval", agent_id="architect", prompt=data.get("hybrid_plan", ""))
             gov_violations = await governance_watchdog.predict_violations([mock_subtask])

@@ -25,7 +25,7 @@ from quality.reviewer import ReviewerAgent
 _log = get_logger("orchestrator")
 
 # ── 1. Durumlar ve Veri Yapıları ─────────────────────────────────
-from core.agi.task_governance import (
+from packages.orchestration.agi.task_governance import (
     SovereignGoal, GovernedTask, GovernanceStatus, TaskPlanner, TaskStateService, 
     ReportSynthesizer, ProjectTask, SubTask, TaskStatus
 )
@@ -90,7 +90,7 @@ class Orchestrator:
             
         # Self-Updater başlat (Faz 8 Infra)
         try:
-            from core.self_updater import SelfUpdater
+            from packages.orchestration.application.self_updater import SelfUpdater
             import os
             self.self_updater = SelfUpdater(
                 model_orch=self.model_orch,
@@ -304,7 +304,7 @@ class Orchestrator:
             st.structured = res
             
             if self._quality_enabled and any(kw in out.raw_output for kw in ["def ", "class ", "import "]):
-                from core.sandbox_runner import SandboxRunner
+                from packages.orchestration.application.sandbox_runner import SandboxRunner
                 sbox = SandboxRunner()
                 lint_res = await sbox.run_ruff_check(out.raw_output)
                 if not lint_res.success:
@@ -427,7 +427,7 @@ class Orchestrator:
 
     def load_self_updater(self):
         try:
-            from core.self_updater import SelfUpdater
+            from packages.orchestration.application.self_updater import SelfUpdater
             self.self_updater = SelfUpdater(model_orch=self.model_orch)
         except Exception as e:
             _log.error(f"SelfUpdater load failed: {e}")

@@ -1,6 +1,6 @@
 import json
 from typing import Optional, Dict, Any
-from core.agi.schemas import EpisodeRecord, VerificationReport
+from packages.orchestration.agi.schemas import EpisodeRecord, VerificationReport
 from llm.model_orchestrator import ModelOrchestrator
 from observability.logging import get_logger
 

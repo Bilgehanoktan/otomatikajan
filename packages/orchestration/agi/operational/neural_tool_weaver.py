@@ -2,9 +2,9 @@ import os
 import json
 import uuid
 from typing import Optional, List, Dict, Any
-from core.agi.schemas import ActionRecord
+from packages.orchestration.agi.schemas import ActionRecord
 from llm.model_orchestrator import ModelOrchestrator
-from core.sandbox_runner import get_sandbox_runner
+from packages.orchestration.application.sandbox_runner import get_sandbox_runner
 from core.agi.monitoring.nervous_system import nervous_system
 from observability.logging import get_logger
 

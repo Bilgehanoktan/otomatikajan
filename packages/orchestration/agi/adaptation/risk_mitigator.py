@@ -1,7 +1,7 @@
 import json
 from typing import List, Dict, Any, Optional
 from llm.model_orchestrator import ModelOrchestrator
-from core.agi.schemas import PlanProposal
+from packages.orchestration.agi.schemas import PlanProposal
 from observability.logging import get_logger
 
 _log = get_logger("agi_risk_mitigator")

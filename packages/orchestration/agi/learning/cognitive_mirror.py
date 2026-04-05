@@ -3,7 +3,7 @@ import uuid
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timezone
 
-from core.agi.schemas import EpisodeRecord, VerificationReport, ActionRecord
+from packages.orchestration.agi.schemas import EpisodeRecord, VerificationReport, ActionRecord
 from llm.model_orchestrator import ModelOrchestrator
 from observability.logging import get_logger
 

@@ -29,7 +29,7 @@ class Severity(str, Enum):
 
 if TYPE_CHECKING:
     from core.agi.cognitive.sovereign_cortex import SovereignCortex
-    from core.agi.task_governance import GovernedTask
+    from packages.orchestration.agi.task_governance import GovernedTask
 
 
 @dataclass
@@ -359,7 +359,7 @@ class SelfHealEngine:
         # Domain event bus'a yayınla (bağlantı varsa)
         try:
             import asyncio
-            from core.events import event_bus
+            from packages.orchestration.domain.events import event_bus
             coro = event_bus.emit(
                 f"heal.{severity}",
                 agent_id=agent_id, severity=severity, phase=phase,

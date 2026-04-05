@@ -11,7 +11,7 @@ class FileSearchSkillAdapter(BaseSkillAdapter):
 
     async def execute(self, req: SkillRequest) -> SkillResult:
         try:
-            from core.system_indexer import SystemIndexer
+            from packages.orchestration.indexing.system_indexer import SystemIndexer
 
             project_root = Path(".")
             indexer = SystemIndexer(project_root=str(project_root.absolute()))

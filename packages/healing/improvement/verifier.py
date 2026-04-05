@@ -8,7 +8,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict
 
-from core.sandbox_runner import SandboxRunner
+from packages.orchestration.application.sandbox_runner import SandboxRunner
 from observability.logging import get_logger
 
 logger = get_logger("improvement.verifier")

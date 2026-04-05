@@ -6,8 +6,8 @@ from typing import List, Optional
 
 from core.improvement.observer import ImprovementObserver
 from core.improvement.models import ImprovementOpportunity
-from core.self_updater import SelfUpdater
-from core.events import event_bus
+from packages.orchestration.application.self_updater import SelfUpdater
+from packages.orchestration.domain.events import event_bus
 from observability.logging import get_logger
 
 logger = get_logger("self_improvement")

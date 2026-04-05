@@ -2,7 +2,7 @@ import json
 import logging
 from typing import List, Dict, Any, Optional
 from llm.model_orchestrator import ModelOrchestrator
-from core.agi.task_governance import GovernedTask, GovernanceStatus, SubTask, TaskStatus
+from packages.orchestration.agi.task_governance import GovernedTask, GovernanceStatus, SubTask, TaskStatus
 import uuid
 import uuid
 from core.agi.cognitive.synaptic_cortex import synaptic_cortex

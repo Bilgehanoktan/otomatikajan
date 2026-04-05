@@ -16,7 +16,7 @@ from core.agi.operational.resource_manager import resource_manager
 from core.agi.consciousness.affective_core import affective_core
 from core.agi.operational.metabolic_governor import metabolic_governor, MetabolicMode
 
-from core.events import event_bus
+from packages.orchestration.domain.events import event_bus
 logger = logging.getLogger(__name__)
 
 
@@ -167,7 +167,7 @@ class ModelOrchestrator:
             raise RuntimeError(f"Ajan {agent_role} için bütçe/hız sınırı aşıldı.")
 
         # 3. Prompt Hazırlığı ve Dinamik Yama (Strategist + Empathy Tuner)
-        from core.prompt_manager import prompt_manager
+        from packages.orchestration.application.prompt_manager import prompt_manager
         from core.agi.adaptation.empathy_tuner import empathy_tuner
 
         system_prompt = prompt_manager.apply_patch(agent_role, system_prompt)

@@ -141,7 +141,7 @@ class DreamEngine:
             _log.info(f"[DREAM-CONSOLIDATE] '{category}' kategorisinde {len(memories)} anı birleştiriliyor.")
             
             # WisdomSynthesizer uyumlu mock task
-            from core.agi.task_governance import ProjectTask as GovernanceTask, SubTask as GovernanceSubTask, TaskStatus
+            from packages.orchestration.agi.task_governance import ProjectTask as GovernanceTask, SubTask as GovernanceSubTask, TaskStatus
             mock_task = GovernanceTask(
                 id=f"dream-merge-{category}",
                 title=f"Consolidated Memory: {category}",

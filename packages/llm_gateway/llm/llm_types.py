@@ -92,7 +92,7 @@ class ProviderStats:
         # Olay yayınla
         if was_quarantined or was_open:
             try:
-                from core.events import event_bus
+                from packages.orchestration.domain.events import event_bus
                 import asyncio
                 asyncio.create_task(event_bus.emit(
                     "provider.recovered",
@@ -129,7 +129,7 @@ class ProviderStats:
 
         # Karantina olayını yayınla
         try:
-            from core.events import event_bus
+            from packages.orchestration.domain.events import event_bus
             import asyncio
             asyncio.create_task(event_bus.emit(
                 "provider.quarantined",

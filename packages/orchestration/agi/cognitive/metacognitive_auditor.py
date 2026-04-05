@@ -14,7 +14,7 @@ from db.models import SkillExecutionLog, ImprovementOpportunity, Project, SubTas
 from db.repository import ProjectRepository, ApiMetricRepository
 from core.agi.cognitive.synaptic_cortex import synaptic_cortex
 from quality.reviewer import ReviewResult
-from core.system_indexer import SystemIndexer
+from packages.orchestration.indexing.system_indexer import SystemIndexer
 from quality.output_schema import AgentOutput
 from core.agency.loader import agency_loader
 from memory.watchdog import watchdog

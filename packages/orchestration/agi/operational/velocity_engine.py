@@ -14,9 +14,9 @@ from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, field
 
 from observability.logging import get_logger
-from core.agi.schemas import ActionRecord, RiskLevel, ExecutionPlan, PlanStep
+from packages.orchestration.agi.schemas import ActionRecord, RiskLevel, ExecutionPlan, PlanStep
 from llm.model_orchestrator import ModelOrchestrator
-from core.sandbox_runner import get_sandbox_runner
+from packages.orchestration.application.sandbox_runner import get_sandbox_runner
 from agents.agent_registry import build_agents
 from db.repository import SkillLogRepository
 from db.session import session_scope

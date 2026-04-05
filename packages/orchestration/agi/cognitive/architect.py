@@ -4,11 +4,11 @@ import os
 from sqlalchemy import select, func, desc, update, case
 from typing import List, Dict, Any, Optional
 from observability.logging import get_logger
-from core.system_indexer import SystemIndexer
+from packages.orchestration.indexing.system_indexer import SystemIndexer
 from llm.model_orchestrator import ModelOrchestrator
 from db.session import session_scope
 from db.repository import ImprovementRepository, EventLogRepository
-from core.self_updater import SelfUpdater
+from packages.orchestration.application.self_updater import SelfUpdater
 
 _log = get_logger("agi_architect")
 

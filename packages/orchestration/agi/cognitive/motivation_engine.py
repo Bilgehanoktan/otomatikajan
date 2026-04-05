@@ -1,5 +1,5 @@
 from typing import List, Optional, Dict, Any
-from core.agi.schemas import EpisodeRecord, AffectiveState, RiskLevel, ProblemFrame
+from packages.orchestration.agi.schemas import EpisodeRecord, AffectiveState, RiskLevel, ProblemFrame
 from observability.logging import get_logger
 
 _log = get_logger("agi_motivation_engine")

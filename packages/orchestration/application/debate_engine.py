@@ -25,7 +25,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from core.agency.loader import agency_loader
-from core.prompts import DEBATE_PROMPT_A, DEBATE_PROMPT_B, DEBATE_PROMPT_MOD, DEBATE_SYNTHESIS_PROMPT
+from packages.orchestration.application.prompts import DEBATE_PROMPT_A, DEBATE_PROMPT_B, DEBATE_PROMPT_MOD, DEBATE_SYNTHESIS_PROMPT
 from observability.logging import get_logger
 # Faz 12.1 Stability: Event-Driven UI Updates
 from packages.orchestration.domain.events import event_bus

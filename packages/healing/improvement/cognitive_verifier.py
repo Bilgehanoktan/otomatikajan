@@ -10,8 +10,8 @@ import json
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
-from core.sandbox_runner import SandboxRunner
-from core.debate_engine import DebateEngine
+from packages.orchestration.application.sandbox_runner import SandboxRunner
+from packages.orchestration.application.debate_engine import DebateEngine
 from llm.model_orchestrator import model_orchestrator
 from observability.logging import get_logger
 

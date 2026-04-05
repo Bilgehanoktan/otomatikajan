@@ -216,7 +216,7 @@ try:
             try:
                 from db.session import is_db_available
                 # core.heal_engine import'i circular import riski için içeride
-                from core.heal_engine import heal_engine
+                from packages.healing.application.heal_engine import heal_engine
                 db_ok = await is_db_available()
                 h_score = heal_engine.system_health_score()
                 

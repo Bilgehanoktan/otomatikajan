@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional
 from observability.logging import get_logger
 from llm.model_orchestrator import ModelOrchestrator
-from core.agi.schemas import ProblemFrame, ActionRecord, VerificationReport
+from packages.orchestration.agi.schemas import ProblemFrame, ActionRecord, VerificationReport
 
 _log = get_logger("agi_audit")
 
@@ -340,7 +340,7 @@ class AuditGate:
             )
             data = self._parse_json_from_response(response.content)
             
-            from core.policy_engine import policy_engine
+            from packages.orchestration.governance.policy_engine import policy_engine
             risk_threshold = policy_engine.thresholds.get("risk_score_max", 0.4)
             
             if data.get("is_safe", False) and data.get("risk_score", 1.0) < risk_threshold:

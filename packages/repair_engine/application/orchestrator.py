@@ -27,7 +27,7 @@ from repair.triage.triage_engine import TriageEngine, triage_engine
 from repair.memory.incident_memory import IncidentMemory, incident_memory
 from repair.memory.patch_memory import PatchMemory, PatchOutcome, patch_memory
 from repair.memory.architecture_memory import ArchitectureMemory, architecture_memory
-from core.policy_engine import PolicyEngine, policy_engine
+from packages.orchestration.governance.policy_engine import PolicyEngine, policy_engine
 from observability.logging import get_logger
 
 # Faz 12.1 Shared Events
@@ -93,7 +93,7 @@ def _get_metrics_store():
 
 def _get_policy_registry():
     try:
-        from core.policy_registry import get_policy_registry
+        from packages.orchestration.governance.policy_registry import get_policy_registry
         _register_capability("policy", True)
         return get_policy_registry()
     except Exception as e:
@@ -744,7 +744,7 @@ class RepairOrchestrator:
 
             if diff > threshold: return
 
-            from core.debate_engine import get_debate_engine
+            from packages.orchestration.application.debate_engine import get_debate_engine
             engine = get_debate_engine(model_orch=self.model_orch, max_rounds=2)
 
             h1_title = getattr(hypotheses[0], "title", str(hypotheses[0]))[:80]
@@ -913,7 +913,7 @@ class RepairOrchestrator:
             )
             # Event bus bildirimi
             try:
-                from core.events import event_bus
+                from packages.orchestration.domain.events import event_bus
                 await event_bus.emit(
                     "repair.canary_failed",
                     job_id=job.job_id,
@@ -936,7 +936,7 @@ class RepairOrchestrator:
     async def _step_sandbox_verify(self, job: RepairJob, patch, plan) -> bool:
         """Faz 12: Sandbox syntax check. (Geliştirildi: Gerçek syntax denetimi yapmaya çalışır)."""
         try:
-            from core.sandbox_runner import get_sandbox_runner
+            from packages.orchestration.application.sandbox_runner import get_sandbox_runner
             import os
             import ast
 

@@ -10,7 +10,7 @@ class DebuggingSkillAdapter(BaseSkillAdapter):
 
     async def execute(self, req: SkillRequest) -> SkillResult:
         try:
-            from core.repair_orchestrator import get_repair_orchestrator
+            from packages.repair_engine.application.orchestrator import get_repair_orchestrator
             from repair.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
 
             incident = IncidentRecord(

@@ -149,7 +149,7 @@ class MetricsCollector:
         success_proj = c.get("projects.success", 0)
         total_cost   = c.get("llm.cost.microdollars", 0) / 1_000_000
 
-        from core.heal_engine import heal_engine
+        from packages.healing.application.heal_engine import heal_engine
         return {
             "llm_success_rate_pct": round(success_llm / total_llm * 100, 1) if total_llm else 0.0,
             "project_success_rate_pct": round(success_proj / total_proj * 100, 1) if total_proj else 0.0,

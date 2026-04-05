@@ -3,8 +3,8 @@ import json
 import re
 from typing import Dict, Any, Optional, List, Tuple
 from llm.model_orchestrator import ModelOrchestrator
-from core.agi.task_governance import SubTask, TaskStatus
-from core.agi.schemas import ProblemFrame
+from packages.orchestration.agi.task_governance import SubTask, TaskStatus
+from packages.orchestration.agi.schemas import ProblemFrame
 
 _log = logging.getLogger("agi_reflective_synthesizer")
 

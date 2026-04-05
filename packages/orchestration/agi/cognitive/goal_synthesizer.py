@@ -8,7 +8,7 @@ from observability.logging import get_logger
 from llm.model_orchestrator import ModelOrchestrator
 from db.session import session_scope, get_db
 from db.repository import ImprovementRepository, ProjectRepository, EventLogRepository
-from core.agi.schemas import SourceType
+from packages.orchestration.agi.schemas import SourceType
 from core.agi.cognitive.synaptic_cortex import synaptic_cortex
 
 _log = get_logger("goal_synthesizer")
