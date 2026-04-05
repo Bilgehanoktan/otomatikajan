@@ -120,7 +120,7 @@ CLAUDE_PROXY_URL    = os.getenv("CLAUDE_PROXY_URL", "")
 DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
 
 # ── Memory Config ─────────────────────────────────────────
-MEMORY_DATABASE_URL = os.getenv("MEMORY_DATABASE_URL", "sqlite:///./data/memory.db")
+MEMORY_DATABASE_URL = os.getenv("MEMORY_DATABASE_URL", "sqlite:///./runtime/data/memory.db")
 MEMORY_MODE         = os.getenv("MEMORY_MODE", "inject")
 
 # ── Orkestrasyon & Ajanlar ──────────────────────────────────
@@ -163,8 +163,8 @@ N8N_WEBHOOK_URL          = os.getenv("N8N_WEBHOOK_URL", "")
 
 # ── Dosya Sistemleri ────────────────────────────────────────
 UPLOAD_DIR               = os.getenv("UPLOAD_DIR", "/app/uploads")
-DATA_DIR                 = os.getenv("DATA_DIR", "/app/data")
-LOG_DIR                  = os.getenv("LOG_DIR", "/app/logs")
+DATA_DIR                 = os.getenv("DATA_DIR", "./runtime/data")
+LOG_DIR                  = os.getenv("LOG_DIR", "./runtime/logs")
 
 LLM_TIMEOUT_S = float(os.getenv("LLM_TIMEOUT_S", "60"))
 LLM_MAX_RETRIES = int(os.getenv("LLM_MAX_RETRIES", "10"))
