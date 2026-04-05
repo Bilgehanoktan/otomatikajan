@@ -202,6 +202,16 @@ class ModelOrchestrator:
                 # Enerjiye göre 1.5 - 5.5 saniye arası dursa (drip-feed)
                 delay = 1.5 + (1.0 - affective_core.energy) * 4.0
                 logger.info(f"[METABOLISM-PACING] ECO Modu Aktif: {delay:.1f}s geciktirme uygulanıyor...")
+                
+                # Faz 12.1: Metabolic Transparency - Emit event for dashboard/telegram
+                await event_bus.emit(
+                    "system.metabolism.pacing",
+                    delay_s=round(delay, 2),
+                    energy=round(affective_core.energy, 2),
+                    agent=agent_role,
+                    mode="ECO"
+                )
+                
                 await asyncio.sleep(delay)
                 
             # Faz 48 & 64: Hibrit NAS ve Metabolizma Önceliği
