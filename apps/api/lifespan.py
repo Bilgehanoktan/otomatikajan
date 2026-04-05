@@ -218,7 +218,7 @@ async def _self_governor_sync_action(orch):
 
 async def system_watchdog_supervisor():
     """Arka plandaki kritik servislerin ve metabolizmanın hayatta kalmasını sağlar."""
-    from packages.observability.memory_governor import memory_governor
+    from packages.observability.memory_governor import packages.memory_governor
     
     tasks: dict[str, Any] = {
         "metabolism_loop": autonomous_metabolism_loop,
