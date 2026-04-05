@@ -277,10 +277,11 @@ async def lifespan(app: FastAPI):
     try:
         from db.session import init_db
         await init_db()
-        logger.info("Veritabani hazir.")
-        db_ready = True
+        # 1.1 Event Bus Bridging (Phase 12.1 Refactor)
+        register_event_listeners()
+        logger.info("Event Bus dinleyicileri (WS/DB/Telegram) aktif edildi.")
 
-        # 1.1 Reaper Service (Faz 12.1)
+        # 1.2 Reaper Service (Faz 12.1)
         await reaper.start()
     except Exception as e:
         logger.critical(f"KRITIK: DB baslatilamadi: {e}")
