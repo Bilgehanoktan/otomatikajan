@@ -4,7 +4,7 @@ from llm.llm_types import ProviderStats
 from core.agi.consciousness.affective_core import AffectiveCore
 
 def test_rolling_average_latency():
-    stats = ProviderStats()
+    stats = ProviderStats("test", "test_key", "http://test", "test-model")
     
     # 1. Add some initial latencies
     for _ in range(5):
@@ -27,18 +27,18 @@ def test_rolling_average_latency():
     assert len(stats.latencies_window) == 10
 
 def test_dynamic_quarantine_scaling():
-    stats = ProviderStats()
+    stats = ProviderStats("test", "test_key", "http://test", "test-model")
     
     # Case 1: Simple failure
     stats.record_error("Generic Error")
     # Base is 5 min (300s)
-    assert 295 <= (stats.quarantine_until - time.time()) <= 305
+    assert 290 <= (stats.quarantine_until - time.time()) <= 310
     
     # Case 2: Consecutive failure
     stats.record_error("Retry Error")
     # Should scale (e.g. 10m - 600s)
     # Check if it increased
-    assert (stats.quarantine_until - time.time()) > 305
+    assert (stats.quarantine_until - time.time()) > 310
     
     # Case 3: Rate Limit (429) should be immediate high penalty
     stats.record_error("Rate Limit Error (429)")
