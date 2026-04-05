@@ -17,6 +17,7 @@ from core.agi.monitoring.provenance_engine_45 import provenance_engine_45
 from db.models import Memory
 from core.agi.learning.specialist_forge import specialist_forge
 from core.agi.schemas import EpisodeRecord, CausalGraph
+from core.events import event_bus
 from observability.logging import get_logger
 
 logger = get_logger("agi.cognitive.evolution")
@@ -186,8 +187,13 @@ class SovereignEvolutionEngine:
                 "affective_state": affective_core.get_state_matrix()
             })
             
-            if orchestrator.ws_manager:
-                await orchestrator.ws_manager.broadcast({"event": "evolution_report", "message": msg, "auto": auto})
+            await event_bus.emit(
+                "evolution_report",
+                message=msg,
+                auto=auto,
+                finding_id=proposal["finding"]["id"],
+                confidence=proposal["confidence"]
+            )
         except Exception as e:
             logger.error(f"Reporting evolution failed: {e}")
 
