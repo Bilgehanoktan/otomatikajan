@@ -625,24 +625,26 @@ class CEOEngine:
             decision.decision_type = "auto_approve"
             decision.decision_summary = f"Auto-Approved {'Roadmap' if is_roadmap else 'Task'}: {execution_target.title}"
             
-            # --- ENQUEUE TO CELERY ---
+            # --- ENQUEUE TO JOB QUEUE (Faz 12.1 Unified Queue) ---
             try:
-                kwargs = {
-                    "workflow_template": "default",
-                    "quality_profile": "production",
-                    "acceptance_criteria": ["CEO Engine otomasyon projesinin hedefine ulaşması."]
-                }
-                celery_task = celery_app.send_task(
-                    "run_project_task",
-                    args=[str(proj_id), new_project.title, new_project.description],
-                    kwargs=kwargs
+                from core.job_queue import job_queue
+                
+                job = await job_queue.enqueue(
+                    "run_project",
+                    db_project_id=str(proj_id),
+                    title=new_project.title,
+                    description=new_project.description,
+                    user_id=agent_id,
+                    workflow_template="default",
+                    quality_profile="production",
+                    acceptance_criteria=["CEO Engine otomasyon projesinin hedefine ulaşması."]
                 )
                 new_project.status = "queued"
-                new_project.job_id = celery_task.id
+                new_project.job_id = job.id
                 
                 await TaskLogRepository.write(
-                db, proj_id, "queued",
-                    "Otomatik onaylanan görev Celery worker'a gönderildi.",
+                    db, proj_id, "queued",
+                    f"Otomatik olarak başlatıldı ve ortak kuyruğa atıldı. (İş ID: {job.id})",
                     agent_id="ceo_engine"
                 )
             except Exception as e:

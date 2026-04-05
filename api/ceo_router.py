@@ -3,7 +3,7 @@ CEO Router — Faz 8 Infra
 Exposes CEO Engine findings and status.
 """
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, BackgroundTasks
 from auth.jwt_auth import get_current_user
 from core.ceo_engine import get_ceo_engine
 
@@ -88,8 +88,8 @@ async def get_findings(current_user=Depends(get_current_user)):
         }
 
 @router.post("/scan")
-async def trigger_scan(current_user=Depends(get_current_user)):
-    """CEO scan'ini manuel tetikle."""
+async def trigger_scan(background_tasks: BackgroundTasks, current_user=Depends(get_current_user)):
+    """CEO scan'ini manuel olarak arka planda tetikle."""
     ceo = get_ceo_engine()
-    results = await ceo.run_scan()
-    return {"results": results}
+    background_tasks.add_task(ceo.run_scan)
+    return {"message": "CEO Scan arka planda başlatıldı."}

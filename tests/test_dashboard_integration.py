@@ -131,3 +131,23 @@ class TestDashboardIntegration:
         # 'status' should be under 'orchestrator' in services
         assert "orchestrator" in data["services"]
         assert data["services"]["orchestrator"]["status"] == "online"
+
+    @patch("api.monitoring_router._system_resources")
+    def test_monitoring_system_resilience(self, mock_sys, client):
+        """Verify that the system returns a valid schema even when low-level monitoring fails."""
+        app.dependency_overrides[get_current_user] = get_mock_user
+        
+        # Scenario: psutil missing/failed
+        mock_sys.return_value = {
+            "available": False,
+            "cpu_pct": None,
+            "ram_pct": None,
+            "note": "Mocked failure"
+        }
+        
+        response = client.get("/api/v1/monitoring/system")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["available"] is False
+        assert data["cpu_pct"] is None
+        assert "note" in data

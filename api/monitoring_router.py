@@ -445,12 +445,31 @@ def _system_resources() -> dict:
     if _SYS_CACHE["data"] and (now - _SYS_CACHE["timestamp"] < _SYS_CACHE_TTL):
         return _SYS_CACHE["data"]
 
-    result = {"available": False}
+    # Base schema for UI consistency
+    base_result = {
+        "available": False,
+        "cpu_pct": None,
+        "ram_pct": None,
+        "ram_used_gb": None,
+        "ram_total_gb": None,
+        "disk_pct": None,
+        "disk_used_gb": None,
+        "disk_total_gb": None,
+        "io": {
+            "read_mb": 0,
+            "write_mb": 0,
+            "net_sent_mb": 0,
+            "net_recv_mb": 0
+        },
+        "boot_time": None,
+        "cached_at": datetime.now(timezone.utc).isoformat()
+    }
+
     try:
         import psutil
         
-        # CPU & Mem
-        cpu   = psutil.cpu_percent(interval=None) # Non-blocking
+        # CPU & Mem (Non-blocking)
+        cpu   = psutil.cpu_percent(interval=None) 
         mem   = psutil.virtual_memory()
         
         # Disk Stats
@@ -460,7 +479,8 @@ def _system_resources() -> dict:
         # Net IO
         net_io = psutil.net_io_counters()
 
-        result = {
+        result = base_result.copy()
+        result.update({
             "available": True,
             "cpu_pct":   round(cpu, 1),
             "ram_total_gb":  round(mem.total / 1024**3, 1),
@@ -475,20 +495,20 @@ def _system_resources() -> dict:
                 "net_sent_mb": round(net_io.bytes_sent / 1024**2, 1) if net_io else 0,
                 "net_recv_mb": round(net_io.bytes_recv / 1024**2, 1) if net_io else 0,
             },
-            "boot_time": datetime.fromtimestamp(psutil.boot_time(), tz=timezone.utc).isoformat(),
-            "cached_at": datetime.now(timezone.utc).isoformat()
-        }
+            "boot_time": datetime.fromtimestamp(psutil.boot_time(), tz=timezone.utc).isoformat()
+        })
         
         # Cache Update
         _SYS_CACHE["data"] = result
         _SYS_CACHE["timestamp"] = now
+        return result
 
     except ImportError:
-        result = {"available": False, "note": "psutil kurulu değil"}
+        base_result["note"] = "psutil module missing"
+        return base_result
     except Exception as e:
-        result = {"available": False, "error": str(e)}
-        
-    return result
+        base_result["error"] = str(e)
+        return base_result
 
 
 

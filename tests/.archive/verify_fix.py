@@ -1,60 +1,39 @@
-
 import asyncio
 import os
 import sys
-from pathlib import Path
 
-# Add project root to sys.path
-project_root = Path(__file__).parent.parent
-sys.path.append(str(project_root))
+# Add project root to path
+sys.path.append(os.getcwd())
 
-async def verify_repair_api():
-    print("--- Checking Repair API Endpoints ---")
-    try:
-        from core.repair_orchestrator import get_repair_orchestrator
-        from repair.memory.incident_memory import incident_memory
-        
-        orch = get_repair_orchestrator()
-        stats = orch.stats()
-        print(f"[OK] Repair Stats: {stats}")
-        
-        incidents = list(incident_memory.list_open())
-        print(f"[OK] Open Incidents count: {len(incidents)}")
-        
-        from api.repair_router import list_incidents
-        # We can't easily call the route without a Request object, 
-        # but we can verify the underlying memory.
-        
-    except Exception as e:
-        print(f"[FAIL] Repair API verification failed: {e}")
-        return False
-    return True
+from db.session import AsyncSessionLocal
+from improve.observer import ImprovementObserver
 
-async def verify_task_creation():
-    print("\n--- Checking Task Creation Logic ---")
-    try:
-        from core.heal_engine import heal_engine
-        score = heal_engine.system_health_score()
-        print(f"[OK] System Health Score: {score}")
+async def verify_deterministic_ids():
+    print("Running first scan...")
+    async with AsyncSessionLocal() as db1:
+        observer1 = ImprovementObserver(db1)
+        scan1 = await observer1.scan()
+        ids1 = [o.id for o in scan1]
+    print(f"Scan 1 IDs: {ids1}")
+    
+    print("Running second scan...")
+    async with AsyncSessionLocal() as db2:
+        observer2 = ImprovementObserver(db2)
+        scan2 = await observer2.scan()
+        ids2 = [o.id for o in scan2]
+    print(f"Scan 2 IDs: {ids2}")
+    
+    if not ids1:
+        print("No opportunities found, verification incomplete (need data in metrics).")
+        return
         
-        if score < 0.35:
-            print("[WARN] Health score is low (< 0.35). Task creation might be blocked by Circuit Breaker.")
-        else:
-            print("[OK] Health score is sufficient for task creation.")
-            
-    except Exception as e:
-        print(f"[FAIL] Task logic verification failed: {e}")
-        return False
-    return True
+    if ids1 == ids2:
+        print("SUCCESS: IDs are deterministic!")
+    else:
+        print("FAILURE: IDs changed between scans!")
+        for i in range(min(len(ids1), len(ids2))):
+            if ids1[i] != ids2[i]:
+                print(f"Mismatch at index {i}: {ids1[i]} != {ids2[i]}")
 
 if __name__ == "__main__":
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    success = loop.run_until_complete(verify_repair_api())
-    success &= loop.run_until_complete(verify_task_creation())
-    
-    if success:
-        print("\n[SUCCESS] Backend verification passed.")
-    else:
-        print("\n[FAILURE] Backend verification failed.")
-        sys.exit(1)
+    asyncio.run(verify_deterministic_ids())

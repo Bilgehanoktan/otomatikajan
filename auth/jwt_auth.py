@@ -11,11 +11,14 @@ JWT Auth — Faz 3 + Güvenlik Revizyonu
 import os
 import secrets
 import time
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import AsyncGenerator, Any, Optional, Union, TYPE_CHECKING
 
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request, Cookie
+
+logger = logging.getLogger(__name__)
 
 # bcrypt lazy import — import-time crash önler; kurulu değilse hashlib.pbkdf2 fallback
 try:

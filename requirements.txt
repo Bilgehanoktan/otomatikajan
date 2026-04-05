@@ -1,52 +1,52 @@
 # ── Web Framework
-fastapi>=0.110.0
-uvicorn[standard]>=0.29.0
-gunicorn>=22.0.0
-python-multipart>=0.0.9
+fastapi==0.110.0
+uvicorn[standard]==0.29.0
+gunicorn==22.0.0
+python-multipart==0.0.9
 
 # ── HTTP Client
-httpx>=0.27.0
+httpx==0.27.0
 
 # ── Pydantic
-pydantic>=2.6.0
-pydantic[email]>=2.6.0
+pydantic==2.6.0
+pydantic[email]==2.6.0
 
 # ── Veritabanı
-sqlalchemy[asyncio]>=2.0.29
-asyncpg>=0.29.0
-pgvector>=0.2.5
-alembic>=1.13.1
-aiosqlite>=0.20.0
+sqlalchemy[asyncio]==2.0.29
+asyncpg==0.29.0
+pgvector==0.2.5
+alembic==1.13.1
+aiosqlite==0.20.0
 
 # ── Auth
-bcrypt>=4.1.2
-pyjwt>=2.8.0
+bcrypt==4.1.2
+pyjwt==2.8.0
 
 # ── Görev Kuyruğu
-celery[redis]>=5.3.6
-redis>=5.0.3
+celery[redis]==5.3.6
+redis==5.0.3
 
 # ── Numerik (MMR)
-numpy>=1.26.0
+numpy==1.26.0
 
 # ── Test
-pytest>=8.1.0
-pytest-asyncio>=0.23.6
-pytest-mock>=3.14.0
+pytest==8.1.0
+pytest-asyncio==0.23.6
+pytest-mock==3.14.0
 
 # ── Env
-python-dotenv>=1.0.0
-python-frontmatter>=1.1.0
+python-dotenv==1.0.0
+python-frontmatter==1.1.0
 
 # ── Monitoring (opsiyonel)
-psutil>=5.9.0
-nest_asyncio>=1.6.0
+psutil==5.9.0
+nest_asyncio==1.6.0
 
 # ── Telegram & Generative AI
-python-telegram-bot>=21.10
-google-generativeai>=0.8.0
+python-telegram-bot==21.10
+google-generativeai==0.8.0
 
 # ── Git & VCS Entegrasyonları
-PyGithub>=2.3.0
-playwright>=1.42.0
-pytest-playwright>=0.4.4
+PyGithub==2.3.0
+playwright==1.42.0
+pytest-playwright==0.4.4

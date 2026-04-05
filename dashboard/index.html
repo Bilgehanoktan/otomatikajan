@@ -28,11 +28,9 @@
         <div class="nav-item" onclick="showPage('repair-center')"><span class="icon">🔧</span> Onarım Merkezi</div>
         <div class="nav-item" onclick="showPage('debate')"><span class="icon">⚖️</span> Münazara Motoru</div>
         <div class="nav-item" onclick="showPage('ceo')"><span class="icon">👔</span> CEO Denetimi</div>
-        <div class="nav-item" onclick="showPage('sandbox')"><span class="icon">📦</span> Sandbox</div>
         <div class="nav-item" onclick="showPage('codegen')"><span class="icon">⚡</span> Kod Üretimi</div>
         <div class="nav-item" onclick="showPage('monitoring')"><span class="icon">📈</span> Sistem İzleme</div>
         <div class="nav-item" onclick="showPage('finance')"><span class="icon">💰</span> Maliyet Kontrolü</div>
-        <div class="nav-item" onclick="showPage('specialists')"><span class="icon">📂</span> Uzman Kütüphanesi haberi</div>
         <div class="nav-item" onclick="showPage('logs')"><span class="icon">📜</span> Sistem Kayıtları</div>
         <div id="nav-admin" class="nav-item" onclick="showPage('admin')" style="display:none;"><span class="icon">🛡️</span> Admin Paneli</div>
       </div>
@@ -759,31 +757,6 @@
           </div>
         </div>
         
-        <div id="page-sandbox" class="page">
-          <div class="card" style="padding:0; overflow:hidden;">
-             <div class="card-header" style="padding:18px 24px;">
-                <div style="display:flex; align-items:center; gap:12px;">
-                   <span class="card-title">📦 Python Sandbox Komuta</span>
-                   <span style="font-size:10px; color:var(--muted); font-family:var(--mono);">FAZ 12 ISOLATED</span>
-                </div>
-                <select id="sb-preset" class="btn btn-ghost btn-sm" onchange="loadSandboxPreset()" style="text-transform:none; border-color:var(--border2);"><option value="">Preset Seç...</option><option value="hello">Hello World</option><option value="math">Math</option></select>
-             </div>
-             <div style="display:grid; grid-template-columns: 1fr 1fr; border-top:1px solid var(--border);">
-               <div style="border-right:1px solid var(--border);">
-                 <div style="padding:8px 16px; font-size:10px; font-weight:700; color:var(--muted); background:rgba(255,255,255,0.02);">GİRDİ (CODE)</div>
-                 <textarea id="sb-code" style="width:100%; height:420px; background:transparent; border:none; border-bottom:1px solid var(--border); font-family:var(--mono); padding:16px; resize:none;" placeholder="print('Hello Antigravity')"></textarea>
-               </div>
-               <div>
-                 <div style="padding:8px 16px; font-size:10px; font-weight:700; color:var(--muted); background:rgba(255,255,255,0.02);">ÇIKTI (STDOUT)</div>
-                 <div id="sb-stdout" style="width:100%; height:420px; background:#000; font-family:var(--mono); padding:16px; color:var(--green); overflow-y:auto; font-size:13px;"></div>
-               </div>
-             </div>
-             <div class="card-footer" style="padding:10px 16px; background:rgba(255,255,255,0.01); display:flex; justify-content:space-between; align-items:center;">
-                <span id="sb-status" class="badge">HAZIR</span>
-                <button class="btn btn-primary" onclick="runSandbox()">⚡ Kodu Çalıştır</button>
-             </div>
-          </div>
-        </div>
 
       </div><!-- /.content -->
     </div><!-- /.main -->

@@ -101,7 +101,8 @@ class AffectiveCore:
             _log.warning(f"Affective Core: [URGENCY ARTIRILDI] Urgency: {self.state['urgency']:.2f}")
             
     def get_state_matrix(self) -> Dict[str, float]:
-        """Tüm içsel durumu ham veri olarak döner."""
+        """Tüm içsel durumu ham veri olarak döner. (Sovereign Metabolism triggers Phase 88)"""
+        self._apply_passive_metabolism()
         return self.state.copy()
 
     def get_current_mood(self) -> str:

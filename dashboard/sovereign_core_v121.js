@@ -159,8 +159,6 @@ function showPage(name) {
     monitoring: 'Sistem İzleme', telegram: 'Telegram', codegen: 'Kod Üretimi', logs: 'Sistem Kayıtları',
     'repair-center': 'Onarım Merkezi', 'repair-proposals': 'Onarım Teklifleri',
     'repair-metrics': 'Onarım Metrikleri', 'repair-policies': 'Politika Kuralları',
-    'specialists': 'Uzman Kütüphanesi', debate: 'Münazara Motoru',
-    'sandbox': 'Sandbox Çalıştırıcı', 'model-router': 'Model Yönlendirici',
     'vector-lessons': 'Vektör Belleği', ceo: 'CEO Denetimi',
     'self-update': 'Öz-Güncelleme', improvement: 'Sistem İyileştirme',
     'approvals': 'Onay Bekleyenler', 'admin': 'Yönetici Paneli',
@@ -187,11 +185,11 @@ function showPage(name) {
     case 'repair-metrics': loadRepairMetrics().catch(err => toast('Metrics yüklenemedi: ' + err.message, 'error')); break;
     case 'repair-policies': loadPolicies().catch(err => toast('Policies yüklenemedi: ' + err.message, 'error')); break;
     case 'debate': loadDebatePage().catch(err => toast('Debate yüklenemedi: ' + err.message, 'error')); break;
-    case 'sandbox': loadSandboxPage().catch(err => toast('Sandbox yüklenemedi: ' + err.message, 'error')); break;
+    case 'sandbox': toast('Önizleme Aşamasında', 'info'); break;
     case 'model-router': loadModelRouterPage().catch(err => toast('Router yüklenemedi: ' + err.message, 'error')); break;
     case 'vector-lessons': loadVectorLessonsPage().catch(err => toast('Lessons yüklenemedi: ' + err.message, 'error')); break;
     case 'admin': loadAdminUsers().catch(err => toast('Admin paneli yüklenemedi: ' + err.message, 'error')); break;
-    case 'specialists': renderLoading('specialist-grid'); loadSpecialists().catch(err => toast('Uzmanlar yüklenemedi: ' + err.message, 'error')); break;
+    case 'specialists': toast('Yakında Gelecek', 'info'); break;
     case 'ceo': renderLoading('ceo-findings-body'); loadCEOFindings().catch(err => toast('CEO bulguları yüklenemedi: ' + err.message, 'error')); break;
     case 'self-update': loadSelfUpdateHistory().catch(err => toast('Güncelleme geçmişi yüklenemedi: ' + err.message, 'error')); break;
     case 'approvals': renderLoading('approval-list'); loadApprovals().catch(err => toast('Onaylar yüklenemedi: ' + err.message, 'error')); break;
@@ -1447,11 +1445,12 @@ async function loadMonitoring() {
     if (resEl) {
       resEl.innerHTML = s.available ? `
         <div class="metric-hologram" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
-          <div class="agent-stat-item"><span class="agent-stat-label">CPU</span><span class="agent-stat-value">${s.cpu_pct}%</span></div>
-          <div class="agent-stat-item"><span class="agent-stat-label">RAM</span><span class="agent-stat-value">${s.ram_used_gb}GB</span></div>
-          <div class="agent-stat-item"><span class="agent-stat-label">DISK</span><span class="agent-stat-value">${s.disk_pct}%</span></div>
+          <div class="agent-stat-item"><span class="agent-stat-label">CPU</span><span class="agent-stat-value">${s.cpu_pct ?? '—'}%</span></div>
+          <div class="agent-stat-item"><span class="agent-stat-label">RAM</span><span class="agent-stat-value">${s.ram_used_gb ?? '—'}GB</span></div>
+          <div class="agent-stat-item"><span class="agent-stat-label">DISK</span><span class="agent-stat-value">${s.disk_pct ?? '—'}%</span></div>
+          <div class="agent-stat-item" style="grid-column: span 3;"><span class="agent-stat-label">Uptime</span><span class="agent-stat-value" style="font-size:12px;">${s.boot_time || '—'}</span></div>
         </div>
-      ` : '<div class="loading">Kaynak verisi alınamadı</div>';
+      ` : '<div style="color:var(--muted);text-align:center;padding:24px;font-size:11px;">🛠️ Sistem metrikleri şu an kullanılamıyor (psutil eksik)</div>';
     }
   } catch (e) { }
 }

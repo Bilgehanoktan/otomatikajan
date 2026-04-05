@@ -3,7 +3,7 @@ import os
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel
 import logging
 import httpx
@@ -302,6 +302,9 @@ class ModelOrchestrator:
                     
             latency = time.time() - t0
             provider.record_success(latency)
+            
+            # Phase 88: Systemic Recovery signal
+            affective_core.adjust_state("success", magnitude=0.05)
 
             # Yaklaşık token ve maliyet hesabı
             est_tokens = self._estimate_tokens(messages)
@@ -352,6 +355,8 @@ class ModelOrchestrator:
                 from observability.metrics import metrics
                 metrics.record_llm_call(provider=provider.name, latency_s=time.time() - t0, success=False)
                 metrics.record_error(f"llm.{provider.name}.{type(_exc).__name__}")
+                # Phase 88: Systemic Stress signal
+                affective_core.adjust_state("error", magnitude=0.05)
             except ImportError:
                 pass
             raise _exc
@@ -555,9 +560,11 @@ class ModelOrchestrator:
             
             latency = time.time() - t0
             provider.record_success(latency)
+            affective_core.adjust_state("success", magnitude=0.1)
             return text
         except Exception as e:
             provider.record_failure()
+            affective_core.adjust_state("error", magnitude=0.1)
             logger.error(f"Vision API call failed ({provider.name}): {e}")
             raise e
 
@@ -568,20 +575,24 @@ class ModelOrchestrator:
         scores = [p.health_score for p in self.providers.values()]
         return sum(scores) / len(scores)
 
-    def provider_stats(self) -> list[dict]:
-        """Arayüzde (Dashboard) devre kesici durumunu göstermek için."""
-        return [
-            {
-                "name":          p.name,
-                "health_score":  p.health_score,
-                "circuit":       p.circuit,
-                "quarantined":   p.quarantine_until > time.time(),
-                "success":       p.success,
-                "failure":       p.failure,
-                "avg_latency_s": p.avg_latency,
-            }
-            for p in self.providers.values()
-        ]
+    def provider_stats(self) -> Dict[str, Any]:
+        """Arayüzde (Dashboard) devre kesici durumunu göstermek için. (Faz 88 Observability)"""
+        return {
+            "metabolic_mode": metabolic_governor.get_mode(),
+            "metabolic_score": metabolic_governor.get_score(),
+            "providers": [
+                {
+                    "name":          p.name,
+                    "health_score":  p.health_score,
+                    "circuit":       p.circuit,
+                    "quarantined":   p.quarantine_until > time.time(),
+                    "success":       p.success,
+                    "failure":       p.failure,
+                    "avg_latency_s": p.avg_latency,
+                }
+                for p in self.providers.values()
+            ]
+        }
 
 # --- Singleton ---
 model_orchestrator = ModelOrchestrator()

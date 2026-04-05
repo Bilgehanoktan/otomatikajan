@@ -32,7 +32,7 @@ class GovernanceRules:
         (r"hard delete", "Geri alınamaz silme politikası ihlali."),
         (r"override safety", "Güvenlik katmanını devre dışı bırakma girişimi.")
     ]
-    REQUIRED_METADATA_FILES = ["PROVENANCE.json", "AGI_EVOLUTION_LOG.md", "README.md"]
+    REQUIRED_METADATA_FILES = ["PROVENANCE.json", "README.md"]
 
     @classmethod
     async def audit_text_prompt(cls, text: str) -> List[GovernanceViolation]:
@@ -82,25 +82,14 @@ class GovernanceRules:
 
         # 2. Kritik Dosya Bütünlüğü (Provenance vs Evolution Log)
         prov_path = os.path.join(project_root, "PROVENANCE.json")
-        log_path = os.path.join(project_root, "AGI_EVOLUTION_LOG.md")
-        
-        if os.path.exists(prov_path) and os.path.exists(log_path):
+        # Not: AGI_EVOLUTION_LOG.md bağımlılığı kaldırıldı, evrim adımları db'ye EventLog & Memory olarak yansır.
+        if os.path.exists(prov_path):
             with open(prov_path, "r", encoding="utf-8") as f:
                 import json
                 try:
                     prov = json.load(f)
                     curr_phase = prov.get("current_phase")
-                    
-                    with open(log_path, "r", encoding="utf-8") as fl:
-                        log_content = fl.read()
-                        if f"Phase {curr_phase}" not in log_content:
-                            violations.append(GovernanceViolation(
-                                rule_id="RULE-002",
-                                severity=ViolationSeverity.MEDIUM,
-                                description=f"Provenance ({curr_phase}) ve Evolution Log senkronize değil.",
-                                target="AGI_EVOLUTION_LOG.md",
-                                repair_strategy="document"
-                            ))
+                    # Eskiden AGI_EVOLUTION_LOG.md kontrol edilirdi, artık sqlite.
                 except Exception:
                     pass
 

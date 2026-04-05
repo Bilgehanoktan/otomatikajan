@@ -106,6 +106,13 @@ class VelocityEngine:
             # 4. Refleksif Analiz
             await self._reflect_and_log(agent_id, result, task_id)
             
+            # Phase 88: Project-level success boosts satisfaction and recovers energy
+            from core.agi.consciousness.affective_core import affective_core
+            if result.success:
+                affective_core.adjust_state("goal_reached", magnitude=0.15)
+            else:
+                affective_core.adjust_state("error", magnitude=0.1)
+            
             return result
         finally:
             # Faz 43: Slotu Bırak

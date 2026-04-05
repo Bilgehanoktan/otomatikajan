@@ -466,3 +466,8 @@ The system has achieved full cognitive sustainability. It now manages its own me
   - Security Guardrail Rigidity: MAXIMUM
   - AGI Index: 6.8 (Operational Honesty)
 - **Evidence:** `pytest tests/ --collect-only` confirming 404 tests without errors.
+
+## [2026-04-05] Phase 88: Sovereign Resilience & Metabolic Recovery
+- **Goal:** Eliminate " Sticky Restricted Mode\ by making the system more reactive and self-healing.
+- **Description:** Updated LLM latency to 10-call rolling average, implemented exponential backoff quarantine (5m-30m), balanced stress/success impact (1:1), and added passive metabolism decay/recovery during idle periods. Integrated affective signals into ModelOrchestrator and VelocityEngine.
+- **Evidence:** pytest tests/test_resilience.py and ests/test_metabolic_surge_v52.py pass. Status: COMPLETED.
