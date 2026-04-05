@@ -22,7 +22,7 @@ from core.agi.cognitive.thread_governor import thread_governor # Phase 63
 from db.session import session_scope
 
 # WorldModel Katman 9: Observability & Graph Context
-from core.agi.world import service_graph, task_state_graph, causal_error_graph
+from packages.orchestration.agi.world import service_graph, task_state_graph, causal_error_graph
 from db.repository import EventLogRepository # Faz 85: Cognitive Logging
 
 _log = get_logger("agi_central_executive")
