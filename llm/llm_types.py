@@ -134,7 +134,7 @@ class ProviderStats:
             asyncio.create_task(event_bus.emit(
                 "provider.quarantined",
                 provider=self.name,
-                duration=duration,
+                duration_s=duration,
                 reason=error_msg,
                 message=f"Sağlayıcı {self.name} karantinaya alındı ({duration}s). Neden: {error_msg}",
                 severity="warning"
