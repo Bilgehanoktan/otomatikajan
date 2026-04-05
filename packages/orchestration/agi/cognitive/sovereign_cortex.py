@@ -65,7 +65,7 @@ class SovereignCortex:
         self.prompt_synth = PromptSynthesizer(self.model_orch)
         self.self_updater = None # Faz 8 Infra
         self.watchdog    = governance_watchdog
-        self.ws_manager = None # Set by API layer (WS Endpoint)
+        self.event_bus = event_bus # Unified AGI Event System (V5)
         self._agents: dict = {}
         self._health: dict[str, float] = {}
         self._is_running = False
