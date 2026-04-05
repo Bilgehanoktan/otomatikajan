@@ -16,7 +16,9 @@ from core.agi.operational.resource_manager import resource_manager
 from core.agi.consciousness.affective_core import affective_core
 from core.agi.operational.metabolic_governor import metabolic_governor, MetabolicMode
 
+from core.events import event_bus
 logger = logging.getLogger(__name__)
+
 
 from llm.llm_types import LLMResponse, CircuitState, ProviderStats, PROVIDERS
 
