@@ -9,7 +9,9 @@ from core.sandbox_runner import get_sandbox_runner
 from agents.agent_registry import build_agents
 from db.repository import SkillLogRepository
 from db.session import session_scope
-from api.ws_manager import ws_manager
+# Faz 12.1 Stability: Event-Driven UI Updates
+from packages.orchestration.domain.events import event_bus
+from packages.contracts.events import EVENT_SKILL_TRACE
 
 _log = get_logger("agi_motor_subsystem")
 
@@ -163,13 +165,13 @@ except Exception as e:
                         },
                         duration_s=record.duration_s
                     )
-                await ws_manager.broadcast_skill_trace(
-                    job_id=str(p_id),
-                    skill_id=step.agent_id,
-                    success=record.success,
-                    summary=f"{step.agent_id} action completed",
-                    duration_s=round(record.duration_s, 3)
-                )
+                await event_bus.emit(EVENT_SKILL_TRACE, {
+                    "job_id": str(p_id),
+                    "skill_id": step.agent_id,
+                    "success": record.success,
+                    "summary": f"{step.agent_id} action completed",
+                    "duration_s": round(record.duration_s, 3)
+                })
             except Exception as e:
                 _log.warning(f"Motor log persistence failed: {e}")
 
