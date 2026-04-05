@@ -1088,6 +1088,8 @@ class TelegramNotifier:
         "repair.canary_failed":     "🐦 Canary Doğrulama Başarısız",
         "repair.duplicate_incident":"🔁 Tekrar Eden Incident",
         "repair.manual_escalation": "🔔 Manuel İnceleme Gerekiyor",
+        "provider.quarantined":     "📉 Sağlayıcı Karantinaya Alındı",
+        "provider.recovered":       "📈 Sağlayıcı İyileşti",
     }
 
     def __init__(self):
@@ -1131,6 +1133,12 @@ class TelegramNotifier:
             msg += f"📝 Neden: `{payload['feedback_code']}`\n"
         if payload.get("dashboard_url"):
             msg += f"\n🔗 [Dashboard]({payload['dashboard_url']})"
+
+        # LLM Sağlayıcı alanları
+        if payload.get("provider"):
+            msg += f"🤖 Sağlayıcı: `{payload['provider']}`\n"
+        if payload.get("reason"):
+            msg += f"❗ Neden: {payload['reason'][:100]}\n"
 
         reply_markup = None
         
