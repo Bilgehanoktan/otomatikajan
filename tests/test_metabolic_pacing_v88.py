@@ -47,21 +47,19 @@ def test_dynamic_quarantine_scaling():
 
 def test_passive_metabolism():
     core = AffectiveCore()
-    core.internal_stress = 0.8
-    core.energy = 0.2
+    core.state["internal_stress"] = 0.8
+    core.state["energy_reserve"] = 0.2
     
-    # Mocking time passing would be hard, so we just call the private method
-    # or ensure it reflects in get_state_matrix
-    
-    # Simulate some "idle" time by manually setting last_metabolism_check
-    core.last_metabolism_check = time.time() - 60 # 1 minute ago
+    # Simulate some "idle" time by manually setting last_decay_time
+    # _last_decay_time is internal, we need to bypass cooldown (10s)
+    core._last_decay_time = time.time() - 3600 # 1 hour ago
     
     state = core.get_state_matrix()
     
     # Stress should have decreased from 0.8
     assert state["internal_stress"] < 0.8
     # Energy should have increased from 0.2
-    assert state["energy"] > 0.2
+    assert state["energy_reserve"] > 0.2
 
 if __name__ == "__main__":
     test_rolling_average_latency()
