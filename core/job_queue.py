@@ -1,1 +1,1 @@
-from packages.core_services.job_queue import *
+﻿from packages.orchestration.application.job_queue import *
