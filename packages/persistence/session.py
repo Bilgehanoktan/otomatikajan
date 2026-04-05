@@ -70,7 +70,7 @@ def _get_engine():
                 except Exception as e:
                     logger.warning(f"SQLAlchemy: Ana DB (Postgres) bağlantısı kurulamadı: {e}. SQLite Fallback aktif ediliyor.")
                     # Fallback to Local SQLite
-                    sqlite_url = "sqlite+aiosqlite:///./cortex_local.db"
+                    sqlite_url = "sqlite+aiosqlite:///./runtime/data/cortex_local.db"
                     _engine = create_async_engine(sqlite_url)
                     # Explicitly track degraded state
                     global _DB_DEGRADED
@@ -202,7 +202,7 @@ async def init_db():
         _DB_ERROR = str(e)
         if "sqlite" not in str(_get_engine().url):
             logger.warning(f"Postgres bağlantısı başlatma sırasında başarısız oldu: {e}. SQLite'a zorlanıyor...")
-            sqlite_url = "sqlite+aiosqlite:///./cortex_local.db"
+            sqlite_url = "sqlite+aiosqlite:///./runtime/data/cortex_local.db"
             _engine = create_async_engine(sqlite_url)
             try:
                 await run_init(_engine)
