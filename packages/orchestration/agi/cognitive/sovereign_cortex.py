@@ -46,6 +46,7 @@ from packages.orchestration.agi.quality.sovereign_evaluator import sovereign_eva
 from packages.orchestration.agi.cognitive.cognitive_blackboard import get_blackboard
 from packages.orchestration.agi.operational.tool_grounder import get_grounded_tool_input
 from packages.orchestration.agi.quality.eval_harness import eval_harness
+from packages.orchestration.domain.events import event_bus
 
 _log = get_logger("agi_sovereign_cortex")
 
