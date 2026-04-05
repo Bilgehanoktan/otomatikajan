@@ -1090,6 +1090,8 @@ class TelegramNotifier:
         "repair.manual_escalation": "🔔 Manuel İnceleme Gerekiyor",
         "provider.quarantined":     "📉 Sağlayıcı Karantinaya Alındı",
         "provider.recovered":       "📈 Sağlayıcı İyileşti",
+        "system.metabolism.pacing": "🐢 Metabolizma Yavaşlatıldı (ECO)",
+        "system.metabolism.blackout": "🌑 Metabolik Kararma (Emergency)",
     }
 
     def __init__(self):
@@ -1139,6 +1141,14 @@ class TelegramNotifier:
             msg += f"🤖 Sağlayıcı: `{payload['provider']}`\n"
         if payload.get("reason"):
             msg += f"❗ Neden: {payload['reason'][:100]}\n"
+        if payload.get("agent"):
+            msg += f"🎭 Ajan: `{payload['agent']}`\n"
+        if payload.get("energy"):
+            msg += f"🔋 Enerji: `%{int(payload['energy'] * 100)}`\n"
+        if payload.get("delay_s"):
+            msg += f"⏳ Gecikme: `{payload['delay_s']}s`\n"
+        if payload.get("mode"):
+            msg += f"⚙️ Mod: *{payload['mode'].upper()}*\n"
 
         reply_markup = None
         
