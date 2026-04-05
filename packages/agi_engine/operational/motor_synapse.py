@@ -15,7 +15,9 @@ from core.agi.schemas import ExecutionPlan, PlanStep, ActionRecord, RiskLevel
 from core.sandbox_runner import get_sandbox_runner
 from db.repository import SkillLogRepository
 from db.session import session_scope
-from api.ws_manager import ws_manager
+# Faz 12.1 Stability: Event-Driven UI Updates
+from packages.orchestration.domain.events import event_bus
+from packages.contracts.events import EVENT_SKILL_TRACE
 
 _log = get_logger("agi_motor_synapse")
 
@@ -171,11 +173,11 @@ except Exception as e:
                     data={"input": record.input_data, "output": record.output_data, "errors": record.errors},
                     duration_s=record.duration_s
                 )
-            await ws_manager.broadcast_skill_trace(
-                job_id=str(p_id), skill_id=step.agent_id,
-                success=record.success, summary=f"Motor Synapse Pulse: {step.agent_id}",
-                duration_s=round(record.duration_s, 3)
-            )
+            await event_bus.emit(EVENT_SKILL_TRACE, {
+                "job_id": str(p_id), "skill_id": step.agent_id,
+                "success": record.success, "summary": f"Motor Synapse Pulse: {step.agent_id}",
+                "duration_s": round(record.duration_s, 3)
+            })
         except Exception as e:
             _log.warning(f"Motor synapse log persistence failed: {e}")
 
