@@ -72,6 +72,10 @@ class ProviderStats:
         return round(float(self.total_latency / total), 2) if total else 0.0
 
     def record_success(self, latency: float):
+        now = time.time()
+        was_quarantined = self.quarantine_until > now
+        was_open = self.circuit == CircuitState.OPEN
+
         self.success      += 1
         self.total_latency += latency
         self.penalty_multiplier = 1
@@ -84,6 +88,19 @@ class ProviderStats:
         if len(self.history) > self.WINDOW_SIZE:
             self.history.pop(0)
             self.latencies.pop(0)
+
+        # Olay yayınla
+        if was_quarantined or was_open:
+            try:
+                from core.events import event_bus
+                import asyncio
+                asyncio.create_task(event_bus.emit(
+                    "provider.recovered",
+                    provider=self.name,
+                    message=f"Sağlayıcı {self.name} başarıyla iyileşti ve tekrar aktif.",
+                    severity="info"
+                ))
+            except Exception: pass
 
     def record_failure(self, error_msg: str = ""):
         """FAZ 88: Dinamik karantina ve 429 hata yakalama."""
@@ -109,6 +126,20 @@ class ProviderStats:
             self.circuit = CircuitState.OPEN
             
         logger.warning(f"[AGI-METABOLISM] {self.name} failure recorded. Reason: {error_msg}. Quarantined for {duration}s.")
+
+        # Karantina olayını yayınla
+        try:
+            from core.events import event_bus
+            import asyncio
+            asyncio.create_task(event_bus.emit(
+                "provider.quarantined",
+                provider=self.name,
+                duration=duration,
+                reason=error_msg,
+                message=f"Sağlayıcı {self.name} karantinaya alındı ({duration}s). Neden: {error_msg}",
+                severity="warning"
+            ))
+        except Exception: pass
 
     def is_available(self) -> bool:
         now = time.time()
