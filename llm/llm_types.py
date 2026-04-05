@@ -75,37 +75,51 @@ class ProviderStats:
         self.success      += 1
         self.total_latency += latency
         self.penalty_multiplier = 1
+        self.latency_streak     = 0 # Reset streak on success
         self.circuit       = CircuitState.CLOSED
-        if latency > self.LATENCY_THRESHOLD:
-            self.latency_streak += 1
-            if self.latency_streak >= 3:
-                # Dynamically scale quarantine: 5 mins * multiplier (max 30 mins)
-                duration = min(300 * self.penalty_multiplier, 1800)
-                self.quarantine_until = time.time() + duration
-                logger.warning(f"[LLM-PACING] {self.name} yavaşlama nedeniyle {duration}s karantinaya alındı.")
-        else:
-            self.latency_streak = 0
+        self.quarantine_until = 0.0 # Clear quarantine on success
+        
         self.history.append(True)
         self.latencies.append(latency)
         if len(self.history) > self.WINDOW_SIZE:
             self.history.pop(0)
             self.latencies.pop(0)
 
-    def record_failure(self):
+    def record_failure(self, error_msg: str = ""):
+        """FAZ 88: Dinamik karantina ve 429 hata yakalama."""
         self.failure      += 1
         self.last_failure  = time.time()
         self.history.append(False)
         if len(self.history) > self.WINDOW_SIZE:
             self.history.pop(0)
-        # Hata durumunda multiplieri arttır (Geometrik Pacing)
+        
+        # 1. Multiplier artışı (Hatalar üst üste geldikçe bekleme süresi artar)
         self.penalty_multiplier = min(self.penalty_multiplier * 2, 32)
+        
+        # 2. Dinamik Karantina Süresi (5m - 30m arası)
+        is_rate_limit = "429" in str(error_msg) or "rate limit" in str(error_msg).lower()
+        
+        # 429 ise doğrudan yüksek penaltı (15m base), değilse 5m base
+        base_seconds = 900 if is_rate_limit else 300
+        duration = min(base_seconds * (self.penalty_multiplier // 2 + 1), 1800)
+        
+        self.quarantine_until = time.time() + duration
+        
         if self.history.count(False) >= self.OPEN_THRESHOLD:
             self.circuit = CircuitState.OPEN
+            
+        logger.warning(f"[AGI-METABOLISM] {self.name} failure recorded. Reason: {error_msg}. Quarantined for {duration}s.")
 
     def is_available(self) -> bool:
         now = time.time()
-        if self.quarantine_until > now: return False
-        if self.circuit in (CircuitState.CLOSED, CircuitState.HALF_OPEN): return True
+        # 1. Karantina kontrolü (Dinamik Phase 88)
+        if self.quarantine_until > now: 
+            return False
+            
+        # 2. Circuit Breaker kontrolü
+        if self.circuit in (CircuitState.CLOSED, CircuitState.HALF_OPEN): 
+            return True
+            
         cooldown = self.HALF_OPEN_AFTER * self.penalty_multiplier
         if self.circuit == CircuitState.OPEN and (now - self.last_failure > cooldown):
             self.circuit = CircuitState.HALF_OPEN
