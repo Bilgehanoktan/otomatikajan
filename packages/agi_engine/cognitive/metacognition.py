@@ -2,7 +2,7 @@
 Compatibility shim: metacognition → metacognitive_auditor
 [CONSOLIDATION] Bu modül metacognitive_auditor.py ile birleştirilmiştir.
 """
-from core.agi.cognitive.metacognitive_auditor import (
+from packages.orchestration.agi.cognitive.metacognitive_auditor import (
     MetacognitiveAuditor,
     metacognitive_auditor,
 )

@@ -161,14 +161,14 @@ class TaskPlanner:
 
     async def plan_sovereign(self, title: str, description: str, history: Optional[str] = None) -> list[SubTask]:
         """Faz 51 [Sovereign Evolution]: Rekürsif Stratejik Dekompozisyon destekli planlama."""
-        from core.agi.cognitive.recursive_decomposer import RecursiveDecomposer
+        from packages.orchestration.agi.cognitive.recursive_decomposer import RecursiveDecomposer
         decomposer = RecursiveDecomposer()
         
         # 1. Bilişsel Bağlam ve İnhibisyonları Yükle
         inhibitions = []
         monologue = ""
         try:
-            from core.agi.cognitive.synaptic_cortex import synaptic_cortex
+            from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
             from db.session import get_db
             async with get_db() as db:
                 inhibitions_data = await synaptic_cortex.get_architectural_inhibitions(db, limit=10)

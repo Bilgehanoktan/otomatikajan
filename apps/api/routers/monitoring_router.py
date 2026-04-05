@@ -22,8 +22,8 @@ from fastapi import APIRouter, Depends, Query
 
 from apps.api.routers.auth.jwt_auth import get_current_user, require_admin
 from observability.logging import get_logger
-from core.agi.consciousness.affective_core import affective_core
-from core.agi.cognitive.motivation_engine import motivation_engine
+from packages.orchestration.agi.consciousness.affective_core import affective_core
+from packages.orchestration.agi.cognitive.motivation_engine import motivation_engine
 
 logger = get_logger("api.monitoring")
 router = APIRouter(prefix="/monitoring", tags=["Monitoring"])
@@ -55,10 +55,10 @@ async def monitoring_overview(current_user=Depends(get_current_user)):
     try:
         # AGI Core (Phase 28/29)
         try:
-            from core.agi.operational.metabolic_governor import metabolic_governor
-            from core.agi.monitoring.nervous_system import nervous_system
-            from core.agi.governance.consensus_arbiter import consensus_arbiter
-            from core.agi.world.provenance_engine import provenance_engine
+            from packages.orchestration.agi.operational.metabolic_governor import metabolic_governor
+            from packages.orchestration.agi.monitoring.nervous_system import nervous_system
+            from packages.orchestration.agi.governance.consensus_arbiter import consensus_arbiter
+            from packages.orchestration.agi.world.provenance_engine import provenance_engine
             
             result["agi"] = {
                 "mood": affective_core.get_current_mood(),
@@ -78,7 +78,7 @@ async def monitoring_overview(current_user=Depends(get_current_user)):
             
             # Faz 43: Arbiter Stats
             try:
-                from core.agi.operational.kinetic_arbiter import kinetic_arbiter
+                from packages.orchestration.agi.operational.kinetic_arbiter import kinetic_arbiter
                 result["arbiter"] = {
                     "active_slots": kinetic_arbiter._active_slots,
                     "max_slots": kinetic_arbiter._max_total_slots,
@@ -657,8 +657,8 @@ async def cleanup_api_metrics(days: int = Query(7, ge=1, le=90)):
 async def agi_core_state(current_user=Depends(get_current_user)):
     """Sistemin 'Duygusal' ve 'Motivasyonel' durumunu döner."""
     try:
-        from core.agi.consciousness.affective_core import affective_core
-        from core.agi.cognitive.motivation_engine import motivation_engine
+        from packages.orchestration.agi.consciousness.affective_core import affective_core
+        from packages.orchestration.agi.cognitive.motivation_engine import motivation_engine
         
         aff_matrix = affective_core.get_state_matrix()
         mot_state  = motivation_engine.current_state
@@ -767,7 +767,7 @@ async def agi_metacognition_stats(limit: int = Query(50, ge=1, le=100), current_
 async def list_shadow_backups(current_user=Depends(get_current_user)):
     """.backup/ dizinindeki otonom yedekleri listeler."""
     try:
-        from core.agi.security.backup_service import backup_service
+        from packages.orchestration.agi.security.backup_service import backup_service
         backups = []
         if os.path.exists(backup_service.BACKUP_DIR):
             for root, _, files in os.walk(backup_service.BACKUP_DIR):

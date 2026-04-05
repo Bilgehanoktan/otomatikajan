@@ -2,7 +2,7 @@
 Compatibility shim: subconscious_cortex_45 → dream_engine
 [CONSOLIDATION] Bu modül dream_engine.py ile birleştirilmiştir.
 """
-from core.agi.cognitive.dream_engine import dream_engine
+from packages.orchestration.agi.cognitive.dream_engine import dream_engine
 
 # Legacy Aliases
 SubconsciousCortex45 = type(dream_engine)

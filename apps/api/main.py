@@ -60,8 +60,8 @@ if _ENV == "production":
         sys.exit(1)
 
 # ── Core singleton'ları ───────────────────────────────────
-from core.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
-from core.agi.governance.watchdog import governance_watchdog
+from packages.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
+from packages.orchestration.agi.governance.watchdog import governance_watchdog
 from packages.healing.application.heal_engine import heal_engine
 from packages.orchestration.domain.events import event_bus
 from packages.orchestration.application.job_queue import job_queue
@@ -165,7 +165,7 @@ async def websocket_logs(ws: WebSocket):
 @app.get("/api/v1/health", tags=["Sistem"], include_in_schema=False)
 async def health_check():
     from db.session import is_db_available, db_error
-    from core.agency.loader import agency_loader
+    from packages.orchestration.agency.loader import agency_loader
     from observability.memory_governor import memory_governor
     
     db_ok = await is_db_available()

@@ -6,7 +6,7 @@ from typing import List, Dict, Any, Optional
 from observability.logging import get_logger
 from llm.model_orchestrator import model_orchestrator, ModelOrchestrator
 from packages.orchestration.agi.schemas import PlanProposal
-from core.agi.consciousness.affective_core import affective_core
+from packages.orchestration.agi.consciousness.affective_core import affective_core
 
 _log = get_logger("agi_foresight")
 
@@ -27,7 +27,7 @@ class ForesightCortex:
         """
         import dataclasses
         from db.session import session_scope
-        from core.agi.cognitive.synaptic_cortex import synaptic_cortex
+        from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
         
         _log.info(f"[FORESIGHT] Yansımalı Plan Simülasyonu başlatılıyor...")
         

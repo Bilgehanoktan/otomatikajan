@@ -122,7 +122,7 @@ class AffectiveCore:
         Restart'lar arasında duygusal bağlamın korunmasını sağlar.
         """
         try:
-            from core.agi.cognitive.synaptic_cortex import synaptic_cortex
+            from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
             body = f"AffectiveState: {json.dumps(self.state)}"
             await synaptic_cortex.save(
                 db=db,
@@ -142,7 +142,7 @@ class AffectiveCore:
         Sistem başlangıcında çağrılmalıdır.
         """
         try:
-            from core.agi.cognitive.synaptic_cortex import synaptic_cortex
+            from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
             records = await synaptic_cortex.search(
                 db=db,
                 query="AffectiveState:",

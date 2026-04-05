@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from sqlalchemy import select, desc, func
 from db.models import Memory
 from observability.logging import get_logger
-from core.agi.consciousness.affective_core import affective_core
+from packages.orchestration.agi.consciousness.affective_core import affective_core
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession

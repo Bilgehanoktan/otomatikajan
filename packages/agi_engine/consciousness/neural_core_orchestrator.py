@@ -1,7 +1,7 @@
 import asyncio
 from typing import List, Dict, Any, Optional
 from observability.logging import get_logger
-from core.agi.consciousness.global_workspace import global_workspace
+from packages.orchestration.agi.consciousness.global_workspace import global_workspace
 
 _log = get_logger("agi_neural_core")
 
@@ -19,10 +19,10 @@ class NeuralCoreOrchestrator:
         
         # 0. Duygusal Çekirdek (Affective Core) [Katman 29] & Theory of Mind [Katman 30] & Bilinçaltı (Subconscious) [Katman 31]
         try:
-            from core.agi.consciousness.affective_core import affective_core
-            from core.agi.cognitive.theory_of_mind import theory_of_mind
-            from core.agi.cognitive.latency_mind_processor import latency_mind_processor
-            from core.agi.cognitive.synaptic_cortex import synaptic_cortex
+            from packages.orchestration.agi.consciousness.affective_core import affective_core
+            from packages.orchestration.agi.cognitive.theory_of_mind import theory_of_mind
+            from packages.orchestration.agi.cognitive.latency_mind_processor import latency_mind_processor
+            from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
             
             # Basit simülasyon: her döngüde hafif curiosity artışı (idle gibi)
             affective_core.adjust_state("idle", magnitude=0.01)
@@ -41,15 +41,15 @@ class NeuralCoreOrchestrator:
         
         # 1. Duyusal Veri Analizi (Sensory/Nervous System)
         try:
-            from core.agi.monitoring.nervous_system import nervous_system
+            from packages.orchestration.agi.monitoring.nervous_system import nervous_system
             health = await nervous_system.audit_health(db_session)
             global_workspace.broadcast("NervousSystem", health, importance=0.8)
         except Exception: pass
 
         # 2. Etik ve Değer Denetimi (Axiology Engine)
         try:
-            from core.agi.monitoring.value_auditor import value_auditor
-            from core.agi.cognitive.axiology_engine import axiology_engine
+            from packages.orchestration.agi.monitoring.value_auditor import value_auditor
+            from packages.orchestration.agi.cognitive.axiology_engine import axiology_engine
             report = await value_auditor.audit_system_drift(db_session)
             global_workspace.broadcast("Axiology", report, importance=0.9)
         except Exception: pass
@@ -57,8 +57,8 @@ class NeuralCoreOrchestrator:
         reflection = {}
         # 3. Öz-Farkındalık, Teşhis ve Strateji (Metacognitive & Diagnostic)
         try:
-            from core.agi.monitoring.meta_audit import meta_audit
-            from core.agi.cognitive.reflection_cortex import reflection_cortex
+            from packages.orchestration.agi.monitoring.meta_audit import meta_audit
+            from packages.orchestration.agi.cognitive.reflection_cortex import reflection_cortex
             
             # Perform Meta Audit
             reflection = await meta_audit.perform_self_reflection(db_session)
@@ -74,8 +74,8 @@ class NeuralCoreOrchestrator:
         # 4. Amaç ve Misyon Sentezi (Teleology Engine)
         missions = []
         try:
-            from core.agi.cognitive.teleology_engine import teleology_engine
-            from core.agi.cognitive.swarm_cortex import swarm_cortex
+            from packages.orchestration.agi.cognitive.teleology_engine import teleology_engine
+            from packages.orchestration.agi.cognitive.swarm_cortex import swarm_cortex
             import json
             
             # Bellek birleşimi (Hafıza koruması)
@@ -90,7 +90,7 @@ class NeuralCoreOrchestrator:
 
         # 5. Öngörü, Risk (Foresight Oracle) ve Eylem Çıkışı (Celery)
         try:
-            from core.agi.cognitive.foresight_oracle import foresight_oracle
+            from packages.orchestration.agi.cognitive.foresight_oracle import foresight_oracle
             from packages.orchestration.agi.schemas import PlanProposal
             from db.repository import ProjectRepository
             from db.models import ProjectStatus
@@ -148,8 +148,8 @@ class NeuralCoreOrchestrator:
 
         # 6. Multiversal Zaman Mesh (Chronos Mesh) [Katman 28]
         try:
-            from core.agi.cognitive.foresight_cortex import foresight_cortex
-            from core.agi.adaptation.timeline_selector import timeline_selector
+            from packages.orchestration.agi.cognitive.foresight_cortex import foresight_cortex
+            from packages.orchestration.agi.adaptation.timeline_selector import timeline_selector
             
             # Simüle edilmiş plan context (örnek)
             mock_plan = {"title": "AGI Self-Evolution", "content": "Recursive code expansion."}
@@ -161,8 +161,8 @@ class NeuralCoreOrchestrator:
 
         # 7. Uyku ve Rüya (Memory Consolidation / Semantic Wisdom) [Katman 45 - Sovereign]
         try:
-            from core.agi.cognitive.subconscious_cortex_45 import subconscious_cortex_45
-            from core.agi.adaptation.sovereign_evolution_45 import sovereign_evolution_45
+            from packages.orchestration.agi.cognitive.subconscious_cortex_45 import subconscious_cortex_45
+            from packages.orchestration.agi.adaptation.sovereign_evolution_45 import sovereign_evolution_45
             
             # Consolidate best practices and synthesize policies (v45 unified)
             await subconscious_cortex_45.dream(db_session)

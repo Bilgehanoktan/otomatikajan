@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 
 from observability.logging import get_logger
 from db.models import Project, ProjectStatus
-from core.agi.cognitive.sovereign_cortex import sovereign_cortex
+from packages.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex
 from db.session import AsyncSessionLocal
 
 _log = get_logger("agi_resilience_agent")

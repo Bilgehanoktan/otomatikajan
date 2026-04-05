@@ -1,7 +1,7 @@
 import asyncio
 import time
 from typing import List, Dict, Any, Optional
-from core.agi.governance.rules import GovernanceRules, GovernanceViolation
+from packages.orchestration.agi.governance.rules import GovernanceRules, GovernanceViolation
 from packages.orchestration.agi.schemas import PlanProposal
 from packages.healing.application.heal_engine import heal_engine
 from observability.logging import get_logger
@@ -98,7 +98,7 @@ class GovernanceWatchdog:
 
             # 3. Faz 42: Bilişsel Ketleme (Reinforcement Learning)
             try:
-                from core.agi.cognitive.synaptic_cortex import synaptic_cortex
+                from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
                 from db.session import get_db
                 async with get_db() as db:
                     await synaptic_cortex.save_architectural_inhibition(
@@ -112,7 +112,7 @@ class GovernanceWatchdog:
 
         # Update instinct count badge
         try:
-            from core.agi.cognitive.synaptic_cortex import synaptic_cortex
+            from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
             from db.session import get_db
             async with get_db() as db:
                 inhibs = await synaptic_cortex.get_architectural_inhibitions(db, limit=100)

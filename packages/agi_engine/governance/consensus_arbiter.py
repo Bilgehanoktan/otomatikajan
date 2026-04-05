@@ -5,7 +5,7 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 
 from packages.orchestration.agi.task_governance import GovernedTask, GovernanceStatus
-from core.agi.cognitive.consensus_manager import consensus_manager
+from packages.orchestration.agi.cognitive.consensus_manager import consensus_manager
 from packages.orchestration.agi.schemas import PlanProposal
 from llm.model_orchestrator import ModelOrchestrator
 from observability.logging import get_logger

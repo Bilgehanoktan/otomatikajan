@@ -26,7 +26,7 @@ class PerceptionUnit:
         # --- Faz 22: Proactive Recall (Hafıza Taraması) ---
         past_memories = []
         try:
-            from core.agi.cognitive.synaptic_cortex import synaptic_cortex
+            from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
             from db.session import session_scope
             async with session_scope() as db:
                 # Girdi içeriğiyle benzer geçmiş epizotları ara

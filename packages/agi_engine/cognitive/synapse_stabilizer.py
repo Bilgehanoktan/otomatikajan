@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from observability.logging import get_logger
 from db.session import session_scope
 from db.models import SkillExecutionLog, ImprovementOpportunity, Memory
-from core.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
+from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
 
 _log = get_logger("agi_synapse_stabilizer")
 
@@ -89,7 +89,7 @@ class SynapseStabilizer:
         await db.flush()
 
 async def start_synapse_stabilization_loop():
-    from core.agi.monitoring.token_budgeter import token_budgeter
+    from packages.orchestration.agi.monitoring.token_budgeter import token_budgeter
     stabilizer = SynapseStabilizer()
     
     while True:

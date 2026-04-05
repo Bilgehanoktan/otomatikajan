@@ -12,11 +12,11 @@ from llm.model_orchestrator import ModelOrchestrator
 from db.session import session_scope, AsyncSessionLocal
 from db.models import SkillExecutionLog, ImprovementOpportunity, Project, SubTask
 from db.repository import ProjectRepository, ApiMetricRepository
-from core.agi.cognitive.synaptic_cortex import synaptic_cortex
+from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
 from quality.reviewer import ReviewResult
 from packages.orchestration.indexing.system_indexer import SystemIndexer
 from quality.output_schema import AgentOutput
-from core.agency.loader import agency_loader
+from packages.orchestration.agency.loader import agency_loader
 from memory.watchdog import watchdog
 
 _log = get_logger("agi_metacognitive_auditor")
@@ -863,7 +863,7 @@ reflection_cortex = metacognitive_auditor
 
 # --- Background Task Definition ---
 async def start_reflection_loop():
-    from core.agi.monitoring.token_budgeter import token_budgeter
+    from packages.orchestration.agi.monitoring.token_budgeter import token_budgeter
     while True:
         try:
             health = await token_budgeter.check_health()

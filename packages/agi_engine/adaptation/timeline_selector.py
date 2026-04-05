@@ -20,7 +20,7 @@ class TimelineSelector:
         # Basit Skorlama Modeli: (Fayda * 0.4) + ((1-Risk) * 0.6)
         # Phase 32.0 (Affective Core): Duygu durumuna göre ağırlık modülasyonu
         try:
-            from core.agi.consciousness.affective_core import affective_core
+            from packages.orchestration.agi.consciousness.affective_core import affective_core
             mood_state = affective_core.state
             caution = mood_state.get('caution', 0.5)
             curiosity = mood_state.get('curiosity', 0.5)

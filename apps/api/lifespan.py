@@ -17,8 +17,8 @@ from typing import Any
 from fastapi import FastAPI
 
 from config import APP_ENV as _ENV
-from core.agi.cognitive.sovereign_cortex import nexus_orchestrator as orchestrator
-from core.agi.governance.resilience_agent import resilience_agent
+from packages.orchestration.agi.cognitive.sovereign_cortex import nexus_orchestrator as orchestrator
+from packages.orchestration.agi.governance.resilience_agent import resilience_agent
 from packages.healing.application.heal_engine import heal_engine
 from packages.orchestration.domain.events import event_bus
 from packages.orchestration.application.job_queue import job_queue
@@ -80,14 +80,14 @@ async def autonomous_metabolism_loop():
     Ayrı ayrı çalışan watchdog'ları tek bir döngüde, kendi periyotlarına göre yönetir.
     Bundan sonra 'AutonomousMetabolismLoop' (AML) olarak anılacaktır.
     """
-    from core.agi.cognitive.sovereign_cortex import nexus_orchestrator as _orch
+    from packages.orchestration.agi.cognitive.sovereign_cortex import nexus_orchestrator as _orch
     from packages.orchestration.ceo.engine import CEOEngine
-    from core.agi.monitoring.token_budgeter import token_budgeter
-    from core.agi.cognitive.evolution_engine import evolution_engine
-    from core.agi.cognitive.policy_evolution import start_policy_evolution_loop
-    from core.agi.cognitive.consolidator import start_consolidation_loop
-    from core.agi.cognitive.metacognitive_auditor import start_reflection_loop
-    from core.agi.cognitive.synapse_stabilizer import start_synapse_stabilization_loop
+    from packages.orchestration.agi.monitoring.token_budgeter import token_budgeter
+    from packages.orchestration.agi.cognitive.evolution_engine import evolution_engine
+    from packages.orchestration.agi.cognitive.policy_evolution import start_policy_evolution_loop
+    from packages.orchestration.agi.cognitive.consolidator import start_consolidation_loop
+    from packages.orchestration.agi.cognitive.metacognitive_auditor import start_reflection_loop
+    from packages.orchestration.agi.cognitive.synapse_stabilizer import start_synapse_stabilization_loop
     
     ceo = CEOEngine(_orch.model_orch)
     
@@ -150,7 +150,7 @@ async def autonomous_metabolism_loop():
             if health["health_score"] > 0.6:
                 if now - last_runs["consolidation"] >= PERIODS["consolidation"]:
                     try:
-                        from core.agi.cognitive.consolidator import consolidator
+                        from packages.orchestration.agi.cognitive.consolidator import consolidator
                         await consolidator.run_cycle()
                     except Exception as e:
                         logger.error(f"[AML] Consolidation failed: {e}")
@@ -158,7 +158,7 @@ async def autonomous_metabolism_loop():
                 
                 if now - last_runs["reflection"] >= PERIODS["reflection"]:
                     try:
-                        from core.agi.cognitive.reflection_cortex import reflection_cortex
+                        from packages.orchestration.agi.cognitive.reflection_cortex import reflection_cortex
                         await reflection_cortex.run_reflection_cycle()
                     except Exception as e:
                         logger.error(f"[AML] Reflection failed: {e}")
@@ -167,7 +167,7 @@ async def autonomous_metabolism_loop():
                 # 5. Self-Audit [FIX-7] — 24 saatte bir LLM tabanlı kod analizi
                 if now - last_runs["self_audit"] >= PERIODS["self_audit"]:
                     try:
-                        from core.agi.cognitive.self_audit import self_audit
+                        from packages.orchestration.agi.cognitive.self_audit import self_audit
                         await self_audit.run_cleanup()
                     except Exception as _sa_err:
                         logger.warning(f"[AML] Self-Audit hatası: {_sa_err}")
@@ -350,7 +350,7 @@ async def lifespan(app: FastAPI):
         
         # Phase 46: Subconscious Dream Handler
         async def _run_dream_cycle(**payload):
-            from core.agi.cognitive.subconscious_cortex_45 import subconscious_cortex_45
+            from packages.orchestration.agi.cognitive.subconscious_cortex_45 import subconscious_cortex_45
             from db.session import AsyncSessionLocal
             async with AsyncSessionLocal() as db:
                 return await subconscious_cortex_45.dream(db)
@@ -371,7 +371,7 @@ async def lifespan(app: FastAPI):
 
     # 4.1 Agency Agents
     try:
-        from core.agency.loader import agency_loader
+        from packages.orchestration.agency.loader import agency_loader
         agency_loader.load_agents()
         logger.info(f"Agency Library: {len(agency_loader.agents)} uzman ajan yuklendi.")
     except Exception as _age_err:
@@ -445,7 +445,7 @@ async def lifespan(app: FastAPI):
     if db_ready and _ENV != "test":
         try:
             from db.session import AsyncSessionLocal
-            from core.agi.consciousness.affective_core import affective_core
+            from packages.orchestration.agi.consciousness.affective_core import affective_core
             async with AsyncSessionLocal() as db:
                 restored = await affective_core.load_state(db)
             if restored:
@@ -455,7 +455,7 @@ async def lifespan(app: FastAPI):
 
     # 8. GlobalWorkspace — İlk Bilinç Yayını [FIX-6]
     try:
-        from core.agi.consciousness.global_workspace import global_workspace
+        from packages.orchestration.agi.consciousness.global_workspace import global_workspace
         from db.session import is_db_available as _is_db_ok
         db_status = "nominal" if await _is_db_ok() else "degraded"
         global_workspace.broadcast(

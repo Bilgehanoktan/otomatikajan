@@ -82,7 +82,7 @@ async def run_debate(body: DebateRequest, current_user=Depends(get_current_user)
     """Multi-agent debate başlat. İki ajan kritik bir karar üzerinde tartışır."""
     try:
         from packages.orchestration.application.debate_engine import get_debate_engine
-        from core.agi.cognitive.sovereign_cortex import sovereign_cortex as orch
+        from packages.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex as orch
 
         engine = get_debate_engine(model_orch=orch.model_orch, max_rounds=body.max_rounds)
         result = await engine.run_debate(
@@ -114,7 +114,7 @@ async def active_debates(current_user=Depends(get_current_user)):
 @router.get("/debate/personas")
 async def debate_personas(current_user=Depends(get_current_user)):
     """Tartışmaya katılabilecek ajan personallarını listele."""
-    from core.agency.loader import agency_loader
+    from packages.orchestration.agency.loader import agency_loader
     agents = agency_loader.list_agents()
     return {
         "personas": [

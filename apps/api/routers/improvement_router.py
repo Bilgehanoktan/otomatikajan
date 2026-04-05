@@ -5,9 +5,9 @@ from pydantic import BaseModel
 from apps.api.routers.auth.jwt_auth import get_current_user, require_admin
 from core.context import orchestrator
 from db.session import AsyncSessionLocal
-from core.improvement.cognitive_verifier import cognitive_verifier
-from core.agi.cognitive.sovereign_auditor import sovereign_auditor
-from core.agi.cognitive.evolution_engine import evolution_engine
+from packages.orchestration.experimental.cognitive_verifier import cognitive_verifier
+from packages.orchestration.agi.cognitive.sovereign_auditor import sovereign_auditor
+from packages.orchestration.agi.cognitive.evolution_engine import evolution_engine
 from observability.logging import get_logger
 
 router = APIRouter(prefix="/improvements", tags=["Self-Improvement"])

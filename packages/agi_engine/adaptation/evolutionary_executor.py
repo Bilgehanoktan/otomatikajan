@@ -2,7 +2,7 @@
 Compatibility shim: evolutionary_executor → evolution_engine
 [CONSOLIDATION] Bu modül evolution_engine.py ile birleştirilmiştir.
 """
-from core.agi.cognitive.evolution_engine import (
+from packages.orchestration.agi.cognitive.evolution_engine import (
     SovereignEvolutionEngine,
     evolution_engine,
 )

@@ -2,7 +2,7 @@ import json
 from typing import Optional, Dict, List, Any
 from packages.orchestration.agi.schemas import EpisodeRecord, PolicyProposal
 from llm.model_orchestrator import ModelOrchestrator
-from core.agi.consciousness.semantic_memory import semantic_memory
+from packages.orchestration.agi.consciousness.semantic_memory import semantic_memory
 from db.session import session_scope
 from observability.logging import get_logger
 

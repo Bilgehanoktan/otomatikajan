@@ -87,7 +87,7 @@ async def list_tasks(
 async def task_capabilities(current_user=Depends(get_current_user)):
     """Sistemin otonom olarak hangi uzmanlıklara sahip olduğunu döner."""
     try:
-        from core.agency.loader import agency_loader
+        from packages.orchestration.agency.loader import agency_loader
         agents = agency_loader.list_agents()
         return {
             "capabilities": [
