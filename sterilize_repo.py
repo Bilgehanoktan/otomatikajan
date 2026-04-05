@@ -31,6 +31,21 @@ def get_mappings(root_core):
                         match = re.search(r"from (packages\.[^ ]+) import", content)
                         if match:
                             mappings[core_module] = match.group(1)
+# Manual mappings for missed deep submodules (mostly AGI subdirs)
+    mapping["core.agi.world"] = "packages.orchestration.agi.world"
+    mapping["core.agi.cognitive"] = "packages.orchestration.agi.cognitive"
+    mapping["core.agi.consciousness"] = "packages.orchestration.agi.consciousness"
+    mapping["core.agi.governance"] = "packages.orchestration.agi.governance"
+    mapping["core.agi.learning"] = "packages.orchestration.agi.learning"
+    mapping["core.agi.monitoring"] = "packages.orchestration.agi.monitoring"
+    mapping["core.agi.operational"] = "packages.orchestration.agi.operational"
+    mapping["core.agi.quality"] = "packages.orchestration.agi.quality"
+    mapping["core.agi.roles"] = "packages.orchestration.agi.roles"
+    mapping["core.agi.security"] = "packages.orchestration.agi.security"
+    mapping["core.agi.adaptation"] = "packages.orchestration.agi.adaptation"
+    mapping["core.agency"] = "packages.orchestration.agency"
+    mapping["core.improvement"] = "packages.orchestration.experimental"
+
     return mappings
 
 def apply_replacements(target_dir, mapping):
