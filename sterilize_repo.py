@@ -74,5 +74,7 @@ for k, v in mapping.items():
 
 api_count = apply_replacements(r"e:/ai_company_faz12.1/apps/api/", mapping)
 pkg_count = apply_replacements(r"e:/ai_company_faz12.1/packages/", mapping)
+agent_count = apply_replacements(r"e:/ai_company_faz12.1/agents/", mapping)
+skill_count = apply_replacements(r"e:/ai_company_faz12.1/skills/", mapping)
 
-print(f"Sterilization complete. Updated {api_count} files in api/ and {pkg_count} files in packages/.")
+print(f"Sterilization complete. Updated {api_count} (api), {pkg_count} (pkg), {agent_count} (agents), {skill_count} (skills).")
