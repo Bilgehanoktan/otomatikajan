@@ -237,8 +237,10 @@ class ModelOrchestrator:
             # Fallback (Safety only)
              pass
 
+        # 5. Ana Döngü: Sağlayıcıları Dene
         last_error = None
         skipped_details = []
+        possible_emergency_candidates = []
         
         for provider_name in candidates:
             provider = self.providers.get(provider_name)
@@ -254,8 +256,11 @@ class ModelOrchestrator:
                 skipped_details.append(f"{provider_name} (Placeholder)")
                 continue
                 
+            # Acil durum adaylarını topla (Karantinada olsa bile anahtarı olanlar)
+            possible_emergency_candidates.append(provider)
+
             if not provider.is_available():
-                skipped_details.append(f"{provider_name} (Circuit Open)")
+                skipped_details.append(f"{provider_name} (Circuit Open/Quarantine)")
                 continue
 
             try:
@@ -280,7 +285,34 @@ class ModelOrchestrator:
                 err_summary = str(e)[:50]
                 skipped_details.append(f"{provider.name} (Hata: {err_summary}...)")
                 continue
-                
+        
+        # ── METABOLIC PANIC / BLACKOUT BYPASS (Faz 12.1) ──
+        # Eğer hiçbir sağlayıcı çalışmadıysa ve bazıları karantinadaysa (Blackout),
+        # en sağlıklı olanı acil durum modunda bir kez daha deniyoruz.
+        if possible_emergency_candidates:
+            # En az cezalı/en sağlıklı olanı bul (Karantinayı baypas etmek için)
+            # Not: is_available(force_emergency=True) burada dolaylı olarak health_score üzerinden etkiler
+            best_emergency = max(possible_emergency_candidates, key=lambda p: p.health_score if p.health_score > 0 else (1.0 / (p.quarantine_until or 1)))
+            
+            logger.warning(f"[METABOLIC-PANIC] Tüm sağlayıcılar devre dışı! {best_emergency.name} için acil durum baypası deneniyor...")
+            
+            # Blackout olayını yayınla
+            await event_bus.emit(
+                "system.metabolism.blackout",
+                provider=best_emergency.name,
+                agent=agent_role,
+                message=f"KRİTİK: Tüm servisler karantinada. {best_emergency.name} üzerinden acil durum baypası yapılıyor."
+            )
+            
+            try:
+                # force_emergency bayrağını ProviderStats üzerinden değil, doğrudan burada varsayıyoruz 
+                # çünkü _call metoduna parametre ekleyeceğiz.
+                result = await self._call(best_emergency, messages, max_tokens=2048, project_id=project_id, agent_role=agent_role, force_emergency=True)
+                return result
+            except Exception as blackout_err:
+                last_error = blackout_err
+                logger.error(f"[BLACKOUT-FAIL] Acil durum denemesi de başarısız: {blackout_err}")
+
         # Eğer tüm modeller başarısız olduysa veya atlandıysa açıklayıcı bir hata fırlat
         error_msg = f"Task {task_id} için tüm modeller başarısız oldu (Rol: {agent_role})."
         if skipped_details:
@@ -293,7 +325,7 @@ class ModelOrchestrator:
 
         raise RuntimeError(error_msg)
 
-    async def _call(self, provider: ProviderStats, messages: list[dict], max_tokens: int, project_id: str | None = None, agent_role: str = "general") -> LLMResponse:
+    async def _call(self, provider: ProviderStats, messages: list[dict], max_tokens: int, project_id: str | None = None, agent_role: str = "general", force_emergency: bool = False) -> LLMResponse:
         llm_timeout = float(os.getenv("LLM_TIMEOUT_S", "30"))
         t0 = time.time()
         
