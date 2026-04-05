@@ -1,41 +1,48 @@
 import os
 import re
 
-# ULTIMATE Repo Sterilization Script for Sovereign AGI (Faz 12.1)
-# Targets: Any legacy root-level shim module/package imports.
+# THE DEFINITIVE Repo Sterilization Script for Sovereign AGI (Faz 12.1)
+# Corrects all root-level shims and sub-package redirections.
 
 def get_mappings():
-    # Canonical mappings for root-level modules to packages
-    mappings = {
-        "core": "packages.orchestration", # Usually, or more specific sub-path
+    return {
+        "db.repository": "packages.persistence.repositories.repository",
+        "db.models": "packages.persistence.models",
+        "db.session": "packages.persistence.session",
         "db": "packages.persistence",
+        
+        "observability.logging": "packages.observability.logging",
+        "observability.metrics": "packages.observability.metrics",
         "observability": "packages.observability",
+        
+        "llm.model_orchestrator": "packages.llm_gateway.model_orchestrator",
+        "llm.model_router": "packages.llm_gateway.model_router",
         "llm": "packages.llm_gateway",
+        
+        "quality.reviewer": "packages.quality_assurance.reviewer",
+        "quality.output_schema": "packages.quality_assurance.output_schema",
         "quality": "packages.quality_assurance",
+        
+        "memory.watchdog": "packages.memory.watchdog",
+        "memory.synapse": "packages.memory.synapse",
+        "memory.retrieval": "packages.memory.retrieval",
         "memory": "packages.memory",
+        
+        "repair.core": "packages.repair_engine.core",
         "repair": "packages.repair_engine",
+        
         "healing": "packages.healing",
         "improve": "packages.improvement_engine",
-        "agi_engine": "packages.orchestration.agi"
+        "agi_engine": "packages.orchestration.agi",
+        "core": "packages.orchestration"
     }
-    
-    # Specific sub-mappings for deep 'core' locations (collected earlier)
-    # This ensures we don't just map core.agi to packages.orchestration.agi 
-    # but handle the nested world engine etc. correctly if they shifted.
-    # From previous check, mostly everything moved under orchestration/agi/
-    core_root = r"e:/ai_company_faz12.1/packages/orchestration"
-    # (We could dynamically build this, but simple prefixing works well with regex sub-capturing)
-    
-    return mappings
 
 def apply_replacements(target_dir, mapping):
-    # Sort mapping by length of key (longer first)
     sorted_prefixes = sorted(mapping.keys(), key=len, reverse=True)
-    
     count = 0
     file_count = 0
     for root, dirs, files in os.walk(target_dir):
-        if "__pycache__" in root or ".venv" in root or ".git" in root:
+        if any(exc in root for exc in ["__pycache__", ".venv", ".git"]):
             continue
         for name in files:
             if name.endswith(".py"):
@@ -45,12 +52,10 @@ def apply_replacements(target_dir, mapping):
                 
                 new_content = content
                 
-                # Sterilize each key prefix
                 for prefix in sorted_prefixes:
                     target = mapping[prefix]
                     
                     # Pattern 1: from [prefix].[suffix] import [X]
-                    # We match [prefix] as a top-level module
                     pattern_from = re.compile(r"from " + re.escape(prefix) + r"(\.[a-zA-Z0-9_\.]+)? import")
                     new_content = pattern_from.sub(r"from " + target + r"\1 import", new_content)
                     
@@ -67,29 +72,14 @@ def apply_replacements(target_dir, mapping):
 
 # EXECUTE
 mapping = get_mappings()
-
-print(f"Executing sterilization for {len(mapping)} root-level prefixes.")
-
-# target_dirs = [r"e:/ai_company_faz12.1/apps", r"e:/ai_company_faz12.1/packages", r"e:/ai_company_faz12.1/agents", r"e:/ai_company_faz12.1/skills"]
-# We also include 'integrations', 'dashboard/api' etc.
-# Actually, let's just scan THE WHOLE REPO except .git, packages/ (no, packages itself needs it for internal deps), apps/ etc.
-
-full_scan_dirs = [
-    r"e:/ai_company_faz12.1/apps",
-    r"e:/ai_company_faz12.1/packages",
-    r"e:/ai_company_faz12.1/agents",
-    r"e:/ai_company_faz12.1/skills",
-    r"e:/ai_company_faz12.1/integrations",
-    r"e:/ai_company_faz12.1/webhooks",
-    r"e:/ai_company_faz12.1/startup",
-    r"e:/ai_company_faz12.1/tools"
-]
+full_scan_dirs = ["apps", "packages", "agents", "skills", "integrations", "tools", "startup"]
 
 total_updated = 0
-for d in full_scan_dirs:
+for d_base in full_scan_dirs:
+    d = os.path.join("e:/ai_company_faz12.1/", d_base)
     if os.path.exists(d):
         updated, total = apply_replacements(d, mapping)
-        print(f"Sterilized {d}: Updated {updated}/{total} files.")
+        print(f"Sterilized {d_base}: Updated {updated}/{total} files.")
         total_updated += updated
 
-print(f"Ultimate Sterilization complete. Total files updated: {total_updated}")
+print(f"Definitive Sterilization complete. Total: {total_updated}")
