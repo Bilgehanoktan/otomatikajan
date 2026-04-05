@@ -1412,12 +1412,23 @@ async function loadMonitoring() {
     const pr = l.providers || {};
     const llmEl = document.getElementById('llm-stats');
     if (llmEl) {
+      const circuitInfo = l.circuit_status || {};
+      const providers = Array.isArray(circuitInfo) ? circuitInfo : (circuitInfo.providers || []);
+      const metabolicMode = circuitInfo.metabolic_mode || 'NORMAL';
+      const metabolicScore = circuitInfo.metabolic_score || 0;
+
       llmEl.innerHTML = `
         <div style="margin-bottom:16px;font-family:var(--mono);font-size:11px;">
           <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Top. Çağrı</span><span>${l.total_llm_calls || 0}</span></div>
-          <div style="display:flex;justify-content:space-between;"><span>Başarı %</span><span>${l.llm_success_rate || 0}%</span></div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Başarı %</span><span>${l.llm_success_rate || 0}%</span></div>
+          <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05);margin-top:4px;">
+            <span>Metabolizma</span>
+            <span class="badge ${metabolicMode === 'ECO' ? 'badge-error' : (metabolicMode === 'TURBO' ? 'badge-completed' : 'badge-neutral')}" style="font-size:9px;">
+              ${metabolicMode} (${(metabolicScore * 100).toFixed(0)}%)
+            </span>
+          </div>
         </div>
-        ${(l.circuit_status || []).map(cs => `
+        ${providers.map(cs => `
           <div style="background:rgba(255,255,255,0.02);padding:10px;margin-bottom:8px;border-radius:8px;border:1px solid ${cs.quarantined ? 'rgba(239,68,68,0.4)' : (cs.circuit === 'open' ? 'var(--yellow)' : 'var(--border)')};">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
               <span style="font-size:11px;font-weight:700;">${cs.name.toUpperCase()}</span>
@@ -1431,13 +1442,13 @@ async function loadMonitoring() {
             <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);font-family:var(--mono);">
                <span>Sağlık: ${(cs.health_score * 100).toFixed(0)}%</span>
                <span>Başarı: ${cs.success}</span>
-               <span>ms: ${cs.avg_latency_s.toFixed(2)}</span>
+               <span>ms: ${cs.avg_latency_s ? cs.avg_latency_s.toFixed(2) : '0.00'}</span>
             </div>
           </div>
         `).join('')}
       `;
     }
-  } catch (e) { }
+  } catch (e) { console.warn('LLM monitoring failed:', e); }
 
   try {
     const s = await api('/monitoring/system');
