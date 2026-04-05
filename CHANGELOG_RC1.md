@@ -264,3 +264,10 @@
 - **Test Suite Hygiene**: `tests/` dizinindeki 17 adet bozuk/legacy test dosyası (Orchestrator bağımlılıklı) `tests/.archive/` dizinine taşındı. `pytest` collection error sayısı 16'dan 0'a indirildi.
 - **Security Hardening**: `core/agi/cognitive/sovereign_cortex.py` içerisindeki `check_safety` mekanizması kritik blacklist (rm -rf, drop table, chmod 777) ile güçlendirildi.
 - **Verification**: `pytest tests/ --collect-only` ile tüm test altyapısının %100 sağlıklı olduğu doğrulandı.
+
+### RC1.2 Stabilization & Metabolic Resilience (2026-04-05)
+- **Metabolic Blackout Bypass**: " ModelOrchestrator\ iÃ§erisinde tÃ¼m provizyonlar karantinaya alÄ±ndÄ±ÄŸÄ±nda devreye giren otonom \bypass\ mekanizmasÄ± eklendi.
+- **Standardized Logger Pattern**: API router ve core modÃ¼llerdeki NameError: logger is not defined hatalarÄ± giderildi.
+- **Database Schema Sync**: Project ve Goal iliÅŸkisindeki senkronizasyon hatalarÄ± giderildi.
+- **Dashboard Task Visibility**: \Ã–nerilen GÃ¶revler\ verisi dashboardÃ¼zerinde gÃ¶rÃ¼nÃ¼r hale getirildi.
+- **Semantic Memory 2.0**: Otonom iÃ§gÃ¼dÃ¼ damÄ±tma dÃ¶ngÃ¼sÃ¼ tamamlandÄ±.
