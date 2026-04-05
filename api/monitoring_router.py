@@ -223,6 +223,13 @@ async def monitoring_overview(current_user=Depends(get_current_user)):
             "count":        orchestrator.agent_count(),
             "system_score": heal_engine.system_health_score(),
             "snapshots":    heal_engine.agent_snapshots(),
+            "health_details": {
+                "db_available":    heal_engine._db_available,
+                "redis_available": heal_engine._redis_available,
+                "disk_free_gb":    round(heal_engine._disk_free_gb, 2),
+                "error_rate":      round(heal_engine._error_rate, 3),
+                "is_degraded":     heal_engine.system_health_score() < 0.7
+            }
         }
     except Exception as _e:
         from observability.logging import get_logger
@@ -546,6 +553,12 @@ async def agents_monitoring(current_user=Depends(get_current_user)):
 
         return {
             "system_score":  heal_engine.system_health_score(),
+            "health_details": {
+                "db_available":    heal_engine._db_available,
+                "redis_available": heal_engine._redis_available,
+                "disk_free_gb":    round(heal_engine._disk_free_gb, 2),
+                "error_rate":      round(heal_engine._error_rate, 3),
+            },
             "agents":        agents_data,
             "recent_events": heal_engine.recent_events(20),
         }
