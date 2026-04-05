@@ -91,8 +91,11 @@ configure_middleware(app)
 register_routers(app)
 
 # ── Dashboard (Statik) ───────────────────────────────────
-_dash = os.path.join(os.path.dirname(__file__), "dashboard")
+_dash = os.path.join(ROOT_DIR, "apps", "dashboard")
 if os.path.isdir(_dash):
+    app.mount("/static", StaticFiles(directory=os.path.join(_dash, "css")), name="static_css")
+    # Javascript dosyalarını da /static/js olarak sunabiliriz veya kök dizinde dashboard yapısına uyabiliriz.
+    # Mevcut index.html /static/sovereign_v121.css bekliyor.
     app.mount("/static", StaticFiles(directory=_dash), name="static")
     _up = "uploads"
     if not os.path.exists(_up):
