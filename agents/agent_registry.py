@@ -401,9 +401,9 @@ def discover_and_build_specialists(project_root: Optional[str] = None) -> dict[s
     ECC 2.0 Skill Discovery entegrasyonu.
     .agent/skills/ klasöründeki her beceriyi bir 'Specialist' ajana dönüştürür.
     """
-    from core.agi.skill_discovery import skill_discovery
+    from packages.orchestration.agi.skill_discovery import skill_discovery
     if project_root:
-        from core.agi.skill_discovery import SkillDiscovery
+        from packages.orchestration.agi.skill_discovery import SkillDiscovery
         discovery = SkillDiscovery(project_root)
     else:
         discovery = skill_discovery
