@@ -349,7 +349,7 @@ class SovereignCortex:
         mood = self.affective.get_current_mood()
         
         # Katman 9: WorldModel Insights
-        from core.agi.world import service_graph, task_state_graph
+        from packages.orchestration.agi.world import service_graph, task_state_graph
         service_health = service_graph.get_summary()
         failure_patterns = task_state_graph.get_summary()
         
