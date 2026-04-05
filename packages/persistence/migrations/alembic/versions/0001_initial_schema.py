@@ -23,7 +23,8 @@ depends_on: str | None = None
 
 def upgrade() -> None:
     # ── pgvector extension (vector adıyla kurulur) ────────
-    op.execute("CREATE EXTENSION IF NOT EXISTS vector")
+    if op.get_bind().dialect.name == "postgresql":
+        op.execute("CREATE EXTENSION IF NOT EXISTS vector")
 
     # ── users ────────────────────────────────────────────
     op.create_table(
