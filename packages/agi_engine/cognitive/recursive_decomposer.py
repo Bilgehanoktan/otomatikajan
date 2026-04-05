@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from llm.model_orchestrator import ModelOrchestrator
 from observability.logging import get_logger
-from core.agi.task_governance import GovernedTask, GovernanceStatus
+from packages.orchestration.agi.task_governance import GovernedTask, GovernanceStatus
 
 _log = get_logger("agi_recursive_decomposer")
 

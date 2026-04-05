@@ -5,7 +5,7 @@ import os
 from typing import List, Dict, Any, Optional
 from observability.logging import get_logger
 from llm.model_orchestrator import model_orchestrator, ModelOrchestrator
-from core.agi.schemas import PlanProposal
+from packages.orchestration.agi.schemas import PlanProposal
 from core.agi.consciousness.affective_core import affective_core
 
 _log = get_logger("agi_foresight")

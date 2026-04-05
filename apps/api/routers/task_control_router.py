@@ -30,7 +30,7 @@ async def queue_capabilities(current_user=Depends(get_current_user)):
     Dashboard bu endpoint'i kullanarak pause/resume/cancel
     butonlarını dinamik olarak gösterir veya gizler.
     """
-    from core.job_queue import job_queue
+    from packages.orchestration.application.job_queue import job_queue
     caps = getattr(job_queue, "capabilities", None)
     if not caps:
         return {"backend_name": getattr(job_queue, "backend_name", "unknown")}
@@ -72,7 +72,7 @@ async def cancel_task(task_id: str, body: dict = Body(default={}), current_user=
             # In-process queue'da gerçek iptal sinyali gönder
             queue_job_id = p.job_id or task_id
             try:
-                from core.job_queue import job_queue
+                from packages.orchestration.application.job_queue import job_queue
                 _ensure_queue_capability(job_queue, "supports_cancel", "cancel")
                 job_queue.request_cancel(queue_job_id)
             except Exception as _qe:
@@ -86,7 +86,7 @@ async def cancel_task(task_id: str, body: dict = Body(default={}), current_user=
             )
             await db.commit()
 
-        from core.events import event_bus
+        from packages.orchestration.domain.events import event_bus
         await event_bus.emit(
             "project.failed",
             project_id=task_id, severity="warning",
@@ -141,7 +141,7 @@ async def retry_task(task_id: str, current_user=Depends(get_current_user)):
             proj_uuid  = p.id
 
         # Yeni job kuyruğa al — job.id = yeni canonical queue id
-        from core.job_queue import job_queue
+        from packages.orchestration.application.job_queue import job_queue
         job = await job_queue.enqueue(
             "run_project",
             db_project_id=str(proj_uuid),
@@ -183,7 +183,7 @@ async def stop_task(task_id: str, current_user=Depends(get_current_user)):
     """
     try:
         import uuid as _uuid
-        from core.job_queue import job_queue
+        from packages.orchestration.application.job_queue import job_queue
         from db.session import AsyncSessionLocal
         from db.repository import ProjectRepository, TaskLogRepository
 
@@ -252,7 +252,7 @@ async def stop_task(task_id: str, current_user=Depends(get_current_user)):
 async def pause_task(task_id: str, current_user=Depends(get_current_user)):
     try:
         import uuid as _uuid
-        from core.job_queue import job_queue
+        from packages.orchestration.application.job_queue import job_queue
         from db.session import AsyncSessionLocal
         from db.repository import ProjectRepository, TaskLogRepository
 
@@ -300,7 +300,7 @@ async def pause_task(task_id: str, current_user=Depends(get_current_user)):
 async def resume_task(task_id: str, current_user=Depends(get_current_user)):
     try:
         import uuid as _uuid
-        from core.job_queue import job_queue
+        from packages.orchestration.application.job_queue import job_queue
         from db.session import AsyncSessionLocal
         from db.repository import ProjectRepository, TaskLogRepository
 
@@ -391,7 +391,7 @@ async def copy_task(task_id: str, body: dict = Body(default={}), current_user=De
             copied_id  = str(new_p.id)
 
         # Job queue'ya ekle
-        from core.job_queue import job_queue
+        from packages.orchestration.application.job_queue import job_queue
         job = await job_queue.enqueue(
             "run_project",
             db_project_id=copied_id,

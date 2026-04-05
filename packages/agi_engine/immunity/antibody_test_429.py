@@ -42,7 +42,7 @@ class RateLimitAntibody:
         
         # Global Workspace'e veya Orchestrator'a sinyal gönderilebilir
         try:
-            from core.events import event_bus
+            from packages.orchestration.domain.events import event_bus
             await event_bus.emit(
                 "agi.cooldown_start", 
                 duration=duration_sec, 

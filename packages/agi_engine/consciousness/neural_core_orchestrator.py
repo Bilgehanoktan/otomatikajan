@@ -91,7 +91,7 @@ class NeuralCoreOrchestrator:
         # 5. Öngörü, Risk (Foresight Oracle) ve Eylem Çıkışı (Celery)
         try:
             from core.agi.cognitive.foresight_oracle import foresight_oracle
-            from core.agi.schemas import PlanProposal
+            from packages.orchestration.agi.schemas import PlanProposal
             from db.repository import ProjectRepository
             from db.models import ProjectStatus
             import uuid

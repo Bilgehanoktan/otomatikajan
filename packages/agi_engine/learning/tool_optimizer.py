@@ -1,5 +1,5 @@
 from typing import Optional, Any
-from core.agi.schemas import EpisodeRecord
+from packages.orchestration.agi.schemas import EpisodeRecord
 from llm.model_orchestrator import ModelOrchestrator
 from observability.logging import get_logger
 

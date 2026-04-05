@@ -1,6 +1,6 @@
 import json
 from typing import Optional, List, Dict, Any
-from core.agi.schemas import EpisodeRecord, CausalGraph, CausalLink
+from packages.orchestration.agi.schemas import EpisodeRecord, CausalGraph, CausalLink
 from llm.model_orchestrator import ModelOrchestrator
 from observability.logging import get_logger
 

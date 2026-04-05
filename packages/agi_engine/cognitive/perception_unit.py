@@ -3,7 +3,7 @@ import re
 from typing import Dict, Any, Optional
 from observability.logging import get_logger
 from llm.model_orchestrator import ModelOrchestrator
-from core.agi.schemas import UnifiedInput, ProblemFrame, TaskType, RiskLevel
+from packages.orchestration.agi.schemas import UnifiedInput, ProblemFrame, TaskType, RiskLevel
 
 _log = get_logger("agi_perception_unit")
 

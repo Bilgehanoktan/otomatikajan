@@ -136,7 +136,7 @@ async def monitoring_overview(current_user=Depends(get_current_user)):
 
     # Queue summary orchestrator'dan bağımsız toplanmalı
     try:
-        from core.job_queue import job_queue
+        from packages.orchestration.application.job_queue import job_queue
 
         q_stats = job_queue.stats()
         q_stats["supports_cancel"] = getattr(job_queue, "supports_cancel", False)
@@ -395,7 +395,7 @@ async def llm_monitoring(current_user=Depends(get_current_user)):
 @router.get("/queue", summary="Kuyruk yoğunluk metrikleri")
 async def queue_monitoring(current_user=Depends(require_admin)):
     try:
-        from core.job_queue import job_queue
+        from packages.orchestration.application.job_queue import job_queue
 
         stats = job_queue.stats()
         jobs = job_queue.list_jobs(50)
@@ -575,7 +575,7 @@ async def recent_errors(limit: int = Query(50, ge=1, le=200)):
 
     # 1. EventBus'tan kritik olaylar
     try:
-        from core.events import event_bus
+        from packages.orchestration.domain.events import event_bus
         all_events = event_bus.recent(200)
         for e in all_events:
             if e.get("severity") in ("critical", "warning"):

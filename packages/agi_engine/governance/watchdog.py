@@ -2,8 +2,8 @@ import asyncio
 import time
 from typing import List, Dict, Any, Optional
 from core.agi.governance.rules import GovernanceRules, GovernanceViolation
-from core.agi.schemas import PlanProposal
-from core.heal_engine import heal_engine
+from packages.orchestration.agi.schemas import PlanProposal
+from packages.healing.application.heal_engine import heal_engine
 from observability.logging import get_logger
 
 _log = get_logger("agi_governance_watchdog")
@@ -75,7 +75,7 @@ class GovernanceWatchdog:
         _log.warning(f"[GOVERNANCE] {len(violations)} kural ihlali tespit edildi! Sağlık Skoru: {self._last_audit_score:.2f}")
 
         # Her ihlal için RepairOrchestrator tetikle
-        from core.repair_orchestrator import get_repair_orchestrator
+        from packages.repair_engine.application.orchestrator import get_repair_orchestrator
         orch = get_repair_orchestrator(model_orch=self.model_orch)
         
         from repair.schemas.incident import IncidentRecord

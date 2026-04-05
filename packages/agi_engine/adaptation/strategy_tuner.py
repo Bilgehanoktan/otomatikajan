@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any
-from core.agi.schemas import EpisodeRecord, RiskLevel
+from packages.orchestration.agi.schemas import EpisodeRecord, RiskLevel
 from llm.model_orchestrator import ModelOrchestrator
 from core.agi.operational.resource_manager import resource_manager
 from observability.logging import get_logger

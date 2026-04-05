@@ -18,12 +18,12 @@ from observability.logging import get_logger
 from llm.model_orchestrator import ModelOrchestrator
 from memory.retrieval import context_builder
 from quality.output_schema import output_parser, AgentOutput
-from core.agi.task_governance import SovereignGoal, GovernedTask, GovernanceStatus, TaskPlanner, TaskStateService, ReportSynthesizer, TaskStatus, ProjectTask, SubTask
+from packages.orchestration.agi.task_governance import SovereignGoal, GovernedTask, GovernanceStatus, TaskPlanner, TaskStateService, ReportSynthesizer, TaskStatus, ProjectTask, SubTask
 from core.agi.cognitive.metacognitive_auditor import metacognitive_auditor
 from core.agi.cognitive.architect import Architect
 from core.agi.operational.scaffolder import scaffolder
 from core.agi.cognitive.memory_api import memory_api
-from core.agi.schemas import EpisodeRecord, ActionRecord, UnifiedInput, ProblemFrame, TaskType, RiskLevel, VerificationReport
+from packages.orchestration.agi.schemas import EpisodeRecord, ActionRecord, UnifiedInput, ProblemFrame, TaskType, RiskLevel, VerificationReport
 from core.agi.learning.cognitive_mirror import cognitive_mirror
 from core.agi.learning.distiller import skill_distiller
 from core.agi.cognitive.agi_goal_decomposer import agi_goal_decomposer
@@ -149,7 +149,7 @@ class SovereignCortex:
 
     def load_self_updater(self):
         try:
-            from core.self_updater import SelfUpdater
+            from packages.orchestration.application.self_updater import SelfUpdater
             self.self_updater = SelfUpdater(model_orch=self.model_orch)
         except Exception as e:
             _log.error(f"SelfUpdater load failed: {e}")
@@ -564,7 +564,7 @@ class SovereignCortex:
         ctx = getattr(self, "execution_context", {})
         if ctx.get("agi_subtasks"):
             _log.info(f"[RESUME] Proje {task_id} için mevcut plan yükleniyor.")
-            from core.agi.task_governance import SubTask
+            from packages.orchestration.agi.task_governance import SubTask
             subtasks = [SubTask(**st_data) for st_data in ctx["agi_subtasks"]]
             # Start from index if provided
             start_index = ctx.get("agi_current_index", 0)

@@ -81,7 +81,7 @@ async def save_active_debates(items: list[dict[str, Any]]) -> None:
 async def run_debate(body: DebateRequest, current_user=Depends(get_current_user)):
     """Multi-agent debate başlat. İki ajan kritik bir karar üzerinde tartışır."""
     try:
-        from core.debate_engine import get_debate_engine
+        from packages.orchestration.application.debate_engine import get_debate_engine
         from core.agi.cognitive.sovereign_cortex import sovereign_cortex as orch
 
         engine = get_debate_engine(model_orch=orch.model_orch, max_rounds=body.max_rounds)
@@ -133,7 +133,7 @@ async def debate_personas(current_user=Depends(get_current_user)):
 async def run_sandbox(body: SandboxRequest, current_user=Depends(require_admin)):
     """Python kodunu güvenli sandbox'ta çalıştır (admin only)."""
     try:
-        from core.sandbox_runner import get_sandbox_runner
+        from packages.orchestration.application.sandbox_runner import get_sandbox_runner
         # SRE Hardening: Kaynak sınırlarını API seviyesinde zorunlu kıl
         runner = get_sandbox_runner(use_docker=True)
         # Timeout kısıtlaması (API seviyesinde max 30s)
@@ -152,7 +152,7 @@ async def check_patch_sandbox(
     current_user=Depends(get_current_user),
 ):
     """Patch diff'ini sandbox syntax kontrolünden geçir."""
-    from core.sandbox_runner import get_sandbox_runner
+    from packages.orchestration.application.sandbox_runner import get_sandbox_runner
     runner = get_sandbox_runner(use_docker=False)
     lines  = diff.split("\n")
     added  = [l[1:] for l in lines if l.startswith("+") and not l.startswith("+++")]
@@ -171,7 +171,7 @@ async def ruff_check_sandbox(
     current_user=Depends(get_current_user),
 ):
     """Ruff linter kontrolü."""
-    from core.sandbox_runner import get_sandbox_runner
+    from packages.orchestration.application.sandbox_runner import get_sandbox_runner
     runner = get_sandbox_runner(use_docker=False)
     result = await runner.run_ruff_check(code)
     return result.to_dict()

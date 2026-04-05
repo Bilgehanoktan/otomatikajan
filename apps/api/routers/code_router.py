@@ -97,7 +97,7 @@ async def generate_code(
     Sonuç ZIP olarak indirilebilir.
     """
     from sovereign_codegen import get_code_engine, ProjectTemplate
-    from core.events import event_bus
+    from packages.orchestration.domain.events import event_bus
 
     engine = get_code_engine()
     if not engine:

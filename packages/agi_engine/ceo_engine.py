@@ -25,7 +25,7 @@ except ImportError:
     pass
 from core.agi.cognitive.sovereign_auditor import sovereign_auditor
 from llm.model_orchestrator import ModelOrchestrator
-from core.forecaster import CEOForecaster
+from packages.orchestration.ceo.forecaster import CEOForecaster
 from observability.logging import get_logger
 from tasks.celery_app import celery_app
 
@@ -241,7 +241,7 @@ class CEOEngine:
     def _get_repair_health_summary(self) -> Dict[str, Any]:
         """Faz 12: Onarım sisteminden anlık durum özeti alır."""
         try:
-            from core.repair_orchestrator import get_repair_orchestrator
+            from packages.repair_engine.application.orchestrator import get_repair_orchestrator
             orch = get_repair_orchestrator()
             stats = orch.stats()
             return {
@@ -441,7 +441,7 @@ class CEOEngine:
 
     async def _generate_suggestion_with_llm(self, op: ImprovementOpportunity) -> Dict[str, str]:
         """Uses LLM to delegate to a specific Specialist Agent from the library."""
-        from core.system_indexer import SystemIndexer
+        from packages.orchestration.indexing.system_indexer import SystemIndexer
         from core.agency.loader import agency_loader
         
         indexer = SystemIndexer()
@@ -452,7 +452,7 @@ class CEOEngine:
         specialists = agency_loader.list_agents()
         specialist_list_str = "\n".join([f"- {s['id']}: {s['description']}" for s in specialists[:50]]) # Limit for context size
 
-        from core.prompts import CEO_DELEGATION_PROMPT
+        from packages.orchestration.application.prompts import CEO_DELEGATION_PROMPT
         prompt = CEO_DELEGATION_PROMPT.format(
             title=op.title, source_type=op.source_type,
             severity=op.severity, description=op.description,
@@ -627,7 +627,7 @@ class CEOEngine:
             
             # --- ENQUEUE TO JOB QUEUE (Faz 12.1 Unified Queue) ---
             try:
-                from core.job_queue import job_queue
+                from packages.orchestration.application.job_queue import job_queue
                 
                 job = await job_queue.enqueue(
                     "run_project",

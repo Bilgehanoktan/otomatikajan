@@ -92,15 +92,15 @@ def _orch():
     return orchestrator
 
 def _heal():
-    from core.heal_engine import heal_engine
+    from packages.healing.application.heal_engine import heal_engine
     return heal_engine
 
 def _bus():
-    from core.events import event_bus
+    from packages.orchestration.domain.events import event_bus
     return event_bus
 
 def _queue():
-    from core.job_queue import job_queue
+    from packages.orchestration.application.job_queue import job_queue
     return job_queue
 
 def _metrics():
@@ -215,7 +215,7 @@ async def quality_summary():
 @router.get("/quality/workflows", summary="Sistemde tanimli is akislari ve kalite profilleri")
 async def get_workflows():
     try:
-        from core.task_templates import TaskTemplate, QUALITY_PROFILES
+        from packages.orchestration.application.task_templates import TaskTemplate, QUALITY_PROFILES
         return {
             "templates": [
                 {

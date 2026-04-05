@@ -9,7 +9,7 @@ from core.agi.operational.local_failsafe_engine import local_failsafe
 from agents.agent_registry import build_agents
 
 # Bilişsel Birimlerin (Cortex Mimarisi) İçe Aktarımı
-from core.agi.schemas import (
+from packages.orchestration.agi.schemas import (
     UnifiedInput, SourceType, EpisodeRecord, ContextPackage, RiskLevel, TaskType
 )
 from core.agi.cognitive.perception_unit import PerceptionUnit
@@ -243,7 +243,7 @@ class CentralExecutive:
                 )
                 
                 final_output = res.output_data
-                from core.agi.schemas import ActionRecord
+                from packages.orchestration.agi.schemas import ActionRecord
                 rec = ActionRecord(
                     plan_id=plan.plan_id, step_id="s1", tool_used=agent_id,
                     input_data=current_frame.objective, output_data=final_output,

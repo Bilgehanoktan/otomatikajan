@@ -3,7 +3,7 @@ import json
 import glob
 from typing import List, Dict, Any, Optional
 from observability.logging import get_logger
-from core.system_indexer import SystemIndexer
+from packages.orchestration.indexing.system_indexer import SystemIndexer
 from db.session import session_scope
 from db.repository import ProjectRepository
 

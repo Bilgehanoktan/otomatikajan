@@ -1,6 +1,6 @@
 import json
 from typing import Optional, Dict, List, Any
-from core.agi.schemas import ExecutionPlan, ProblemFrame, RiskLevel
+from packages.orchestration.agi.schemas import ExecutionPlan, ProblemFrame, RiskLevel
 from llm.model_orchestrator import ModelOrchestrator
 from observability.logging import get_logger
 

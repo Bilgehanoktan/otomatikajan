@@ -11,8 +11,8 @@ import json
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from observability.logging import get_logger
-from core.agi.schemas import ExecutionPlan, PlanStep, ActionRecord, RiskLevel
-from core.sandbox_runner import get_sandbox_runner
+from packages.orchestration.agi.schemas import ExecutionPlan, PlanStep, ActionRecord, RiskLevel
+from packages.orchestration.application.sandbox_runner import get_sandbox_runner
 from db.repository import SkillLogRepository
 from db.session import session_scope
 # Faz 12.1 Stability: Event-Driven UI Updates

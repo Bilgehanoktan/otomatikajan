@@ -1,6 +1,6 @@
 import json
 from typing import Optional, Dict, Any
-from core.agi.schemas import EpisodeRecord, SkillArtifact
+from packages.orchestration.agi.schemas import EpisodeRecord, SkillArtifact
 from llm.model_orchestrator import ModelOrchestrator
 from core.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
 from observability.logging import get_logger

@@ -5,7 +5,7 @@ Exposes CEO Engine findings and status.
 
 from fastapi import APIRouter, Depends, BackgroundTasks
 from apps.api.routers.auth.jwt_auth import get_current_user
-from core.ceo_engine import get_ceo_engine
+from packages.orchestration.ceo.engine import get_ceo_engine
 from observability.logging import get_logger
 
 logger = get_logger("api.ceo")

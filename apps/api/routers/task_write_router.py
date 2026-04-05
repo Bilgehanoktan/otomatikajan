@@ -16,11 +16,11 @@ from schemas import TaskState
 from db.models import ProjectStatus, Project
 from db.session import AsyncSessionLocal
 from db.repository import ProjectRepository, TaskLogRepository
-from core.task_routing import task_router
-from core.job_queue import job_queue
+from packages.orchestration.application.task_routing import task_router
+from packages.orchestration.application.job_queue import job_queue
 from skills.base import SkillRequest
 from skills.router import skill_router
-from core.events import event_bus
+from packages.orchestration.domain.events import event_bus
 from config import DEERFLOW_ROLES
 
 logger = get_logger("api.tasks.write")
@@ -33,7 +33,7 @@ router = APIRouter(prefix="/tasks", tags=["Görevler - Yazma"])
 async def create_task(req: TaskCreateRequest, current_user=Depends(get_current_user)):
     # 0. Circuit Breaker (Faz 12 Hardening)
     try:
-        from core.heal_engine import heal_engine
+        from packages.healing.application.heal_engine import heal_engine
         health_score = heal_engine.system_health_score()
         if health_score < 0.35:
             logger.warning(f"Circuit Breaker tetiklendi! Skor: {health_score}")

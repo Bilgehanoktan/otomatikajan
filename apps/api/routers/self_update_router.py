@@ -41,7 +41,7 @@ def _orch():
     return orchestrator
 
 def _queue():
-    from core.job_queue import job_queue
+    from packages.orchestration.application.job_queue import job_queue
     return job_queue
 
 # ─── Endpoint'ler ─────────────────────────────────────────

@@ -43,13 +43,13 @@ class FeedbackRequest(BaseModel):
 @router.get("/policies")
 async def list_policies(current_user=Depends(get_current_user)):
     """Tüm politika kurallarını listele."""
-    from core.policy_registry import get_policy_registry
+    from packages.orchestration.governance.policy_registry import get_policy_registry
     return {"policies": get_policy_registry().list_all()}
 
 
 @router.get("/policies/{policy_name}")
 async def get_policy(policy_name: str, current_user=Depends(get_current_user)):
-    from core.policy_registry import get_policy_registry
+    from packages.orchestration.governance.policy_registry import get_policy_registry
     rule = get_policy_registry().get(policy_name)
     if not rule:
         raise HTTPException(404, f"Policy bulunamadı: {policy_name}")
@@ -63,7 +63,7 @@ async def update_policy(
     current_user=Depends(require_admin),
 ):
     """Policy'yi güncelle (admin only)."""
-    from core.policy_registry import get_policy_registry
+    from packages.orchestration.governance.policy_registry import get_policy_registry
     rule = get_policy_registry().update(
         policy_name,
         enabled=body.enabled,
@@ -79,7 +79,7 @@ async def update_policy(
 @router.post("/policies")
 async def add_policy(body: PolicyAddRequest, current_user=Depends(require_admin)):
     """Yeni policy kural ekle (admin only)."""
-    from core.policy_registry import get_policy_registry, PolicyRule
+    from packages.orchestration.governance.policy_registry import get_policy_registry, PolicyRule
     rule = get_policy_registry().add(PolicyRule(
         name=body.name,
         description=body.description,
@@ -93,7 +93,7 @@ async def add_policy(body: PolicyAddRequest, current_user=Depends(require_admin)
 @router.get("/policies/export/json")
 async def export_policies(current_user=Depends(require_admin)):
     """Policy kurallarını JSON olarak dışa aktar."""
-    from core.policy_registry import get_policy_registry
+    from packages.orchestration.governance.policy_registry import get_policy_registry
     import json
     return {"json": get_policy_registry().export_json()}
 

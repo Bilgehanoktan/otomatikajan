@@ -5,7 +5,7 @@ import os
 import glob
 from typing import List, Dict, Any, Optional
 from llm.model_orchestrator import ModelOrchestrator
-from core.agi.task_governance import SubTask, TaskStatus
+from packages.orchestration.agi.task_governance import SubTask, TaskStatus
 from core.agi.cognitive.synaptic_cortex import synaptic_cortex
 from db.session import get_db
 

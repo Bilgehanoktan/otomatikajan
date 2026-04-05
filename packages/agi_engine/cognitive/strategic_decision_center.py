@@ -4,7 +4,7 @@ import asyncio
 from typing import List, Dict, Any, Optional
 from observability.logging import get_logger
 from llm.model_orchestrator import ModelOrchestrator
-from core.agi.schemas import (
+from packages.orchestration.agi.schemas import (
     ProblemFrame, ContextPackage, ExecutionPlan, PlanStep, RiskLevel, AffectiveState
 )
 from core.agi.cognitive.foresight_cortex import foresight_cortex

@@ -4,7 +4,7 @@ import logging
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 
-from core.agi.task_governance import ProjectTask, SubTask, TaskStatus
+from packages.orchestration.agi.task_governance import ProjectTask, SubTask, TaskStatus
 from llm.model_orchestrator import ModelOrchestrator
 from core.agi.cognitive.synaptic_cortex import synaptic_cortex
 

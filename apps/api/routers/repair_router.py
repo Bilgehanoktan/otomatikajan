@@ -30,8 +30,8 @@ from repair.triage.triage_engine import triage_engine
 from repair.memory.incident_memory import incident_memory
 from repair.memory.patch_memory import patch_memory
 from repair.memory.architecture_memory import architecture_memory
-from core.repair_orchestrator import get_repair_orchestrator
-from core.policy_engine import policy_engine
+from packages.repair_engine.application.orchestrator import get_repair_orchestrator
+from packages.orchestration.governance.policy_engine import policy_engine
 from repair.schemas.incident import IncidentSource, IncidentSeverity
 from observability.logging import get_logger
 
@@ -608,7 +608,7 @@ async def _get_proposal_from_db(pr_id: str) -> Optional[dict]:
 def _get_repair_project_root() -> str:
     """Repair orchestrator'la aynı project_root döndür (singleton uyumu)."""
     try:
-        from core.repair_orchestrator import get_repair_orchestrator
+        from packages.repair_engine.application.orchestrator import get_repair_orchestrator
         orch = get_repair_orchestrator()
         return getattr(orch, "project_root", ".")
     except Exception:
@@ -820,7 +820,7 @@ async def simulate_job(
 
     # Triage preview ile taktiksel önizleme
     from repair.triage.triage_engine import triage_engine as te
-    from core.policy_registry import get_policy_registry
+    from packages.orchestration.governance.policy_registry import get_policy_registry
     from repair.analysis.incident_fingerprint import build_fingerprint, get_similarity_engine
 
     ticket = te.triage(incident)

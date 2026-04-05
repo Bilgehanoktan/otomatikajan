@@ -16,7 +16,7 @@ from core.agi.security.audit_gate import audit_gate
 from core.agi.monitoring.provenance_engine_45 import provenance_engine_45
 from db.models import Memory
 from core.agi.learning.specialist_forge import specialist_forge
-from core.agi.schemas import EpisodeRecord, CausalGraph
+from packages.orchestration.agi.schemas import EpisodeRecord, CausalGraph
 from observability.logging import get_logger
 
 logger = get_logger("agi.cognitive.evolution")

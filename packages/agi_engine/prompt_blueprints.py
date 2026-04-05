@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from textwrap import dedent
 from typing import Iterable, Sequence
 
-from core.agi.schemas import ContextPackage, ProblemFrame
+from packages.orchestration.agi.schemas import ContextPackage, ProblemFrame
 
 
 @dataclass(frozen=True)

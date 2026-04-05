@@ -62,9 +62,9 @@ if _ENV == "production":
 # ── Core singleton'ları ───────────────────────────────────
 from core.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
 from core.agi.governance.watchdog import governance_watchdog
-from core.heal_engine import heal_engine
-from core.events import event_bus
-from core.job_queue import job_queue
+from packages.healing.application.heal_engine import heal_engine
+from packages.orchestration.domain.events import event_bus
+from packages.orchestration.application.job_queue import job_queue
 from apps.api.routers.ws_manager import ws_manager
 from observability.logging import get_logger
 from observability.metrics import metrics
@@ -278,7 +278,7 @@ def _get_process_memory() -> str:
 
 def _get_repair_health_summary() -> dict:
     try:
-        from core.repair_orchestrator import get_repair_orchestrator
+        from packages.repair_engine.application.orchestrator import get_repair_orchestrator
         orch = get_repair_orchestrator(model_orch=getattr(orchestrator, "model_orch", None))
         stats = orch.stats()
         return {
