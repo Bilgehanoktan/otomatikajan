@@ -101,7 +101,7 @@ class ProviderStats:
         
         # 429 ise doğrudan yüksek penaltı (15m base), değilse 5m base
         base_seconds = 900 if is_rate_limit else 300
-        duration = min(base_seconds * (self.penalty_multiplier // 2 + 1), 1800)
+        duration = min(base_seconds * (self.penalty_multiplier // 2), 1800)
         
         self.quarantine_until = time.time() + duration
         
