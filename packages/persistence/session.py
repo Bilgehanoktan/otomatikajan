@@ -20,7 +20,7 @@ logger = get_logger("db.session")
 
 # Repair modelleri Base.metadata'ya kayıt için import edilmeli
 try:
-    import packages.persistence.repair_models  # noqa: F401 — tablo tanımlarını Base'e ekler
+    import packages.persistence.models.repair_models  # noqa: F401 — tablo tanımlarını Base'e ekler
 except Exception as e:
     logger.warning(f"Repair modelleri yuklenemedi: {e}")
 
