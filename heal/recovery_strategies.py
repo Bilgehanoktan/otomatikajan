@@ -268,6 +268,57 @@ class PartialResultStrategy(RecoveryStrategy):
             )
 
 
+# ── 6. Veritabanı Kurtarma ────────────────────────────────
+class DatabaseRecoveryStrategy(RecoveryStrategy):
+    """
+    DB bağlantı sorunları varsa -> bağlantıyı test et ve gerekirse yenile.
+    """
+    name = "db_recovery"
+
+    async def execute(self, snapshot, subtask, orch) -> RecoveryResult:
+        t0 = self._timer()
+        try:
+            from db.session import is_db_available
+            healthy = await is_db_available()
+            if healthy:
+                return RecoveryResult(True, self.name, "Veritabanı zaten sağlıklı görünüyor.")
+            
+            # Burada oturumları temizlemek veya yeniden bağlanmak gibi bir işlem yapılabilir.
+            # Şimdilik bir ping/re-check yeterli.
+            await asyncio.sleep(2)
+            healthy_again = await is_db_available()
+            if healthy_again:
+                return RecoveryResult(True, self.name, "Veritabanı bağlantısı kendiliğinden düzeldi.")
+            
+            return RecoveryResult(False, self.name, "Veritabanı hala erişilemez durumda.")
+        except Exception as e:
+            return RecoveryResult(False, self.name, f"DB Kurtarma hatası: {e}")
+
+
+# ── 7. Bellek Temizleme ───────────────────────────────────
+class MemoryCleanupStrategy(RecoveryStrategy):
+    """
+    Yüksek bellek kullanımı varsa -> GC çalıştır ve önbellekleri boşalt.
+    """
+    name = "memory_cleanup"
+
+    async def execute(self, snapshot, subtask, orch) -> RecoveryResult:
+        t0 = self._timer()
+        import gc
+        try:
+            # 1. garbage collector'u zorla
+            collected = gc.collect()
+            # 2. (Varsa) caches'ları temizle
+            # orch.clear_caches() can be added later
+            return RecoveryResult(
+                True, self.name, 
+                f"Bellek temizlendi (GC: {collected} nesne toplandı).",
+                duration_s=time.time() - t0
+            )
+        except Exception as e:
+            return RecoveryResult(False, self.name, f"Bellek temizleme hatası: {e}")
+
+
 # ── Strateji Zinciri ─────────────────────────────────────
 def get_strategy_chain(error_type: str) -> list[RecoveryStrategy]:
     """
@@ -280,6 +331,9 @@ def get_strategy_chain(error_type: str) -> list[RecoveryStrategy]:
         "TimeoutError":       [CooldownStrategy(), ModelRotateStrategy(), WorkloadRedirectStrategy(), PartialResultStrategy()],
         "AuthError":          [ModelRotateStrategy(), WorkloadRedirectStrategy(), PartialResultStrategy()],
         "NetworkError":       [CooldownStrategy(), ModelRotateStrategy(), PartialResultStrategy()],
+        "DatabaseError":      [DatabaseRecoveryStrategy(), CooldownStrategy(), PartialResultStrategy()],
+        "MemoryPressure":     [MemoryCleanupStrategy(), CooldownStrategy(), PartialResultStrategy()],
+        "InternalError":      [PromptSimplifyStrategy(), ModelRotateStrategy(), PartialResultStrategy()],
         "unknown":            [PromptSimplifyStrategy(), ModelRotateStrategy(),
                                WorkloadRedirectStrategy(), CooldownStrategy(), PartialResultStrategy()],
     }
