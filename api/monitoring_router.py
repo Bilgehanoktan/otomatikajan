@@ -626,8 +626,7 @@ async def recent_errors(limit: int = Query(50, ge=1, le=200)):
                 "timestamp":  p.completed_at.isoformat() if p.completed_at else None,
             })
     except Exception as _e:
-        from observability.logging import get_logger
-        get_logger("monitoring").warning("İşlem hatası: %s", _e)
+        logger.warning("İşlem hatası: %s", _e)
         pass
 
     # Zaman sırasına göre sırala
