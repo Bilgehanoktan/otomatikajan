@@ -350,7 +350,7 @@ class ModelOrchestrator:
             )
 
         except Exception as _exc:
-            provider.record_failure()
+            provider.record_failure(str(_exc))
             try:
                 from observability.metrics import metrics
                 metrics.record_llm_call(provider=provider.name, latency_s=time.time() - t0, success=False)
@@ -563,7 +563,7 @@ class ModelOrchestrator:
             affective_core.adjust_state("success", magnitude=0.1)
             return text
         except Exception as e:
-            provider.record_failure()
+            provider.record_failure(str(e))
             affective_core.adjust_state("error", magnitude=0.1)
             logger.error(f"Vision API call failed ({provider.name}): {e}")
             raise e
