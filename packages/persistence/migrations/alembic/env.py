@@ -17,8 +17,8 @@ try:
 except ImportError:
     pass
 
-from db.models import Base
-import db.repair_models # Ensure all models are registered
+from packages.persistence.models.core_models import Base
+import packages.persistence.models.repair_models as _repair_models # Ensure all models are registered
 
 config = context.config
 
