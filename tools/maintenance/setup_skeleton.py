@@ -46,3 +46,19 @@ for d in directories:
         print(f"Created: {dir_path}")
     else:
         print(f"Exists: {dir_path}")
+    
+    # Create __init__.py if it doesn't exist
+    if "apps" in d or "packages" in d or d in ["apps", "packages", "tools", "external"]:
+        init_path = os.path.join(dir_path, "__init__.py")
+        if not os.path.exists(init_path):
+            with open(init_path, "w") as f:
+                f.write("# Generated __init__.py\n")
+            print(f"Created: {init_path}")
+
+# Add root level __init__.py for apps and packages if not in list
+for top in ["apps", "packages"]:
+    top_init = os.path.join("e:/ai_company_faz12.1", top, "__init__.py")
+    if not os.path.exists(top_init):
+        with open(top_init, "w") as f:
+            f.write("# Generated __init__.py\n")
+        print(f"Created: {top_init}")
