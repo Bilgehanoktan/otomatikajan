@@ -6,7 +6,7 @@ Yayıncılar (orchestrator, heal_engine) -> EventBus -> Aboneler (ws, webhook, l
 Olaylar:
   project.started      project.completed    project.failed
   subtask.started      subtask.done         subtask.failed        subtask.recovered
-  provider.degraded    provider.recovered   provider.circuit_open
+  provider.degraded    provider.recovered   provider.circuit_open  provider.quarantined
   heal.warning         heal.critical        heal.action           heal.resolved
   system.budget_warn   system.cascade_fail
 """
