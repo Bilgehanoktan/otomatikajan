@@ -1,85 +1,40 @@
 import os
 import re
 
-# THE DEFINITIVE Repo Sterilization Script for Sovereign AGI (Faz 12.1)
-# Corrects all root-level shims and sub-package redirections.
-
-def get_mappings():
-    return {
-        "db.repository": "packages.persistence.repositories.repository",
-        "db.models": "packages.persistence.models",
-        "db.session": "packages.persistence.session",
-        "db": "packages.persistence",
-        
-        "observability.logging": "packages.observability.logging",
-        "observability.metrics": "packages.observability.metrics",
-        "observability": "packages.observability",
-        
-        "llm.model_orchestrator": "packages.llm_gateway.model_orchestrator",
-        "llm.model_router": "packages.llm_gateway.model_router",
-        "llm": "packages.llm_gateway",
-        
-        "quality.reviewer": "packages.quality_assurance.reviewer",
-        "quality.output_schema": "packages.quality_assurance.output_schema",
-        "quality": "packages.quality_assurance",
-        
-        "memory.watchdog": "packages.memory.watchdog",
-        "memory.synapse": "packages.memory.synapse",
-        "memory.retrieval": "packages.memory.retrieval",
-        "memory": "packages.memory",
-        
-        "repair.core": "packages.repair_engine.core",
-        "repair": "packages.repair_engine",
-        
-        "healing": "packages.healing",
-        "improve": "packages.improvement_engine",
-        "agi_engine": "packages.orchestration.agi",
-        "core": "packages.orchestration"
+# THE REMEDIATOR: Fixes specific modular import errors introduced by early sterilization
+def remediation():
+    fixes = {
+        "packages.persistence.repository": "packages.persistence.repositories.repository",
+        "packages.persistence.models.repair_models": "packages.persistence.models.repair_models", # No change needed here if previous fix was manual
+        # Add other common mistranslations
+        "packages.orchestration.agi.world": "packages.orchestration.agi.world" # (Check if correct)
     }
-
-def apply_replacements(target_dir, mapping):
-    sorted_prefixes = sorted(mapping.keys(), key=len, reverse=True)
+    
     count = 0
-    file_count = 0
-    for root, dirs, files in os.walk(target_dir):
-        if any(exc in root for exc in ["__pycache__", ".venv", ".git"]):
-            continue
-        for name in files:
-            if name.endswith(".py"):
-                filepath = os.path.join(root, name)
-                with open(filepath, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                
-                new_content = content
-                
-                for prefix in sorted_prefixes:
-                    target = mapping[prefix]
+    full_scan_dirs = ["apps", "packages", "agents", "skills", "tools", "startup"]
+    for d_base in full_scan_dirs:
+        d = os.path.join("e:/ai_company_faz12.1/", d_base)
+        if not os.path.exists(d): continue
+        
+        for root, dirs, files in os.walk(d):
+            if any(exc in root for exc in ["__pycache__", ".venv", ".git"]): continue
+            for name in files:
+                if name.endswith(".py"):
+                    filepath = os.path.join(root, name)
+                    with open(filepath, 'r', encoding='utf-8') as f:
+                        content = f.read()
                     
-                    # Pattern 1: from [prefix].[suffix] import [X]
-                    pattern_from = re.compile(r"from " + re.escape(prefix) + r"(\.[a-zA-Z0-9_\.]+)? import")
-                    new_content = pattern_from.sub(r"from " + target + r"\1 import", new_content)
+                    new_content = content
+                    for src, target in fixes.items():
+                        new_content = new_content.replace(src, target)
+                        # Specific case for repository pluralization
+                        if "from packages.persistence.repository import" in new_content:
+                             new_content = new_content.replace("from packages.persistence.repository import", "from packages.persistence.repositories.repository import")
                     
-                    # Pattern 2: import [prefix].[suffix]
-                    pattern_import = re.compile(r"import " + re.escape(prefix) + r"(\.[a-zA-Z0-9_\.]+)?")
-                    new_content = pattern_import.sub(r"import " + target + r"\1", new_content)
-                
-                if new_content != content:
-                    with open(filepath, 'w', encoding='utf-8') as f:
-                        f.write(new_content)
-                    count += 1
-                file_count += 1
-    return count, file_count
+                    if new_content != content:
+                        with open(filepath, 'w', encoding='utf-8') as f:
+                            f.write(new_content)
+                        count += 1
+    return count
 
-# EXECUTE
-mapping = get_mappings()
-full_scan_dirs = ["apps", "packages", "agents", "skills", "integrations", "tools", "startup"]
-
-total_updated = 0
-for d_base in full_scan_dirs:
-    d = os.path.join("e:/ai_company_faz12.1/", d_base)
-    if os.path.exists(d):
-        updated, total = apply_replacements(d, mapping)
-        print(f"Sterilized {d_base}: Updated {updated}/{total} files.")
-        total_updated += updated
-
-print(f"Definitive Sterilization complete. Total: {total_updated}")
+print(f"Remediation complete. Updated {remediation()} files.")
