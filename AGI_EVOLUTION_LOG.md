@@ -471,3 +471,11 @@ The system has achieved full cognitive sustainability. It now manages its own me
 - **Goal:** Eliminate " Sticky Restricted Mode\ by making the system more reactive and self-healing.
 - **Description:** Updated LLM latency to 10-call rolling average, implemented exponential backoff quarantine (5m-30m), balanced stress/success impact (1:1), and added passive metabolism decay/recovery during idle periods. Integrated affective signals into ModelOrchestrator and VelocityEngine.
 - **Evidence:** pytest tests/test_resilience.py and ests/test_metabolic_surge_v52.py pass. Status: COMPLETED.
+
+ # #   P h a s e   8 8 :   M e t a b o l i c   R e s i l i e n c e   &   A d a p t i v e   P a c i n g   ( 2 0 2 6 - 0 4 - 0 5 ) 
+ -   * * R o l l i n g   A v e r a g e   L a t e n c y * * :   L L M   p r o v i d e r   s e Ã § i m i n e   1 0 ' l u k   h a r e k e t l i   o r t a l a m a   ( w i n d o w e d )   e k l e n d i ,   a n l Ä ± k   a Ä x  d e i _i m l e r i n e   t e p k i   s ü r e s i   a r t 1r 1l d 1. 
+ -   * * D y n a m i c   Q u a r a n t i n e * * :   4 2 9   h a t a l a r 1  i ç i n   3 0   d a k i k a l 1k   s a b i t   c e z a   y e r i n i   5 m - 3 0 m   a r a s 1  d i n a m i k   v e   k a t l a m a l 1  c e z a y a   b 1r a k t 1. 
+ -   * * P a s s i v e   M e t a b o l i s m * * :   S i s t e m   b o Å xt a y k e n   ( i d l e )   s t r e s i n   o t o n o m   o l a r a k   d Ã ¼ Å xm e s i   v e   e n e r j i n i n   t o p a r l a n m a s Ä ±   s a l a n d 1. 
+ -   * * A f f e c t i v e   S i g n a l i n g * * :   G o a l   c o m p l e t i o n   v e   A P I   s u c c e s s / e r r o r   d u r u m l a r 1  d o r u d a n   d u y g u   d u r u m u n a   ( s t r e s s / e n e r g y )   b a l a n d 1. 
+ -   * * D a s h b o a r d   O b s e r v a b i l i t y * * :   M o d e l   R o u t e r   e k r a n 1n a   r e a l - t i m e   M e t a b o l i z m a   M o d u   ( T U R B O / N O R M A L / E C O )   v e   S k o r   g Ã ¶ s t e r g e s i   e k l e n d i .  
+ 
