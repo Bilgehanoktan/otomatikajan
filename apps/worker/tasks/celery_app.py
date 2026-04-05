@@ -18,10 +18,10 @@ except ImportError:
     )
 
 # ── Import Yolu Ayarı (ÇOK KRİTİK!) ──
-# Celery worker process'leri bazen kök dizini ( /app ) görmeyebiliyor.
-_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-if _root not in sys.path:
-    sys.path.insert(0, _root)
+from pathlib import Path
+ROOT_DIR = str(Path(__file__).resolve().parents[3])
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
 
 logger = get_task_logger(__name__)
 
@@ -32,8 +32,8 @@ celery_app = Celery(
     broker=REDIS_URL,
     backend=REDIS_URL,
     include=[
-        "tasks.project_tasks",
-        "tasks.deerflow_tasks",
+        "apps.worker.tasks.project_tasks",
+        "apps.worker.tasks.deerflow_tasks",
     ],
 )
 
@@ -47,12 +47,12 @@ celery_app.conf.update(
 
     # Kuyruk önceliği
     task_routes={
-        "tasks.project_tasks.run_project_task":    {"queue": "default"},
-        "tasks.project_tasks.heal_check_task":     {"queue": "critical"},
-        "tasks.project_tasks.send_webhook_task":   {"queue": "background"},
-        "tasks.project_tasks.cleanup_memories":    {"queue": "background"},
-        "tasks.deerflow_tasks.run_deerflow_task": {"queue": "deerflow"},
-        "tasks.deerflow_tasks.run_deerflow_streaming_task": {"queue": "deerflow"},
+        "apps.worker.tasks.project_tasks.run_project_task":    {"queue": "default"},
+        "apps.worker.tasks.project_tasks.heal_check_task":     {"queue": "critical"},
+        "apps.worker.tasks.project_tasks.send_webhook_task":   {"queue": "background"},
+        "apps.worker.tasks.project_tasks.cleanup_memories":    {"queue": "background"},
+        "apps.worker.tasks.deerflow_tasks.run_deerflow_task": {"queue": "deerflow"},
+        "apps.worker.tasks.deerflow_tasks.run_deerflow_streaming_task": {"queue": "deerflow"},
     },
 
 # Yeniden deneme
