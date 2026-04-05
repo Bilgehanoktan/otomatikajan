@@ -141,10 +141,10 @@ class ProviderStats:
             ))
         except Exception: pass
 
-    def is_available(self) -> bool:
+    def is_available(self, force_emergency: bool = False) -> bool:
         now = time.time()
         # 1. Karantina kontrolü (Dinamik Phase 88)
-        if self.quarantine_until > now: 
+        if self.quarantine_until > now and not force_emergency: 
             return False
             
         # 2. Circuit Breaker kontrolü
