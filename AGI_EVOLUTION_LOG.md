@@ -479,3 +479,9 @@ The system has achieved full cognitive sustainability. It now manages its own me
  -   * * A f f e c t i v e   S i g n a l i n g * * :   G o a l   c o m p l e t i o n   v e   A P I   s u c c e s s / e r r o r   d u r u m l a r 1  d o r u d a n   d u y g u   d u r u m u n a   ( s t r e s s / e n e r g y )   b a l a n d 1. 
  -   * * D a s h b o a r d   O b s e r v a b i l i t y * * :   M o d e l   R o u t e r   e k r a n 1n a   r e a l - t i m e   M e t a b o l i z m a   M o d u   ( T U R B O / N O R M A L / E C O )   v e   S k o r   g Ã ¶ s t e r g e s i   e k l e n d i .  
  
+## Phase 88: Metabolic Resilience & Adaptive Pacing (2026-04-05)
+- **Rolling Average Latency**: LLM provider seçimine 10'luk hareketli ortalama (windowed) eklendi, anlýk að deðiþimlerine tepki süresi artýrýldý.
+- **Dynamic Quarantine**: 429 hatalarý için 30 dakikalýk sabit ceza yerini 5m-30m arasý dinamik ve katlamalý cezaya býraktý.
+- **Passive Metabolism**: Sistem boþtayken (idle) stresin otonom olarak düþmesi ve enerjinin toparlanmasý saðlandý.
+- **Affective Signaling**: Goal completion ve API success/error durumlarý doðrudan duygu durumuna (stress/energy) baðlandý.
+- **Dashboard Observability**: Model Router ekranýna real-time Metabolizma Modu (TURBO/NORMAL/ECO) ve Skor göstergesi eklendi.
