@@ -274,9 +274,16 @@ class AuthService:
         """Kullanıcının tüm aktif refresh token'larını iptal eder (logout all)."""
         from db.models import RefreshToken
         from sqlalchemy import update
+        import uuid
+        
+        try:
+            uid = uuid.UUID(user_id) if isinstance(user_id, str) else user_id
+        except ValueError:
+            return 0
+
         result = await db.execute(
             update(RefreshToken)
-            .where(RefreshToken.user_id == user_id, RefreshToken.revoked == False)  # noqa
+            .where(RefreshToken.user_id == uid, RefreshToken.revoked == False)  # noqa
             .values(revoked=True)
         )
         return result.rowcount
