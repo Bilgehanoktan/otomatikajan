@@ -24,7 +24,7 @@ def test_rolling_average_latency():
         
     # Now top 10 should be all 2.0
     assert stats.avg_latency == 2.0
-    assert len(stats.latency_window) == 10
+    assert len(stats.latencies) == 10
 
 def test_dynamic_quarantine_scaling():
     stats = ProviderStats("test", "test_key", "http://test", "test-model")
