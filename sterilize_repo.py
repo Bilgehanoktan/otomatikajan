@@ -31,6 +31,21 @@ def get_mappings(root_core):
                         match = re.search(r"from (packages\.[^ ]+) import", content)
                         if match:
                             mappings[core_module] = match.group(1)
+    
+    # Manual mappings for missed deep submodules (mostly AGI subdirs)
+    mappings["core.agi.world"] = "packages.orchestration.agi.world"
+    mappings["core.agi.cognitive"] = "packages.orchestration.agi.cognitive"
+    mappings["core.agi.consciousness"] = "packages.orchestration.agi.consciousness"
+    mappings["core.agi.governance"] = "packages.orchestration.agi.governance"
+    mappings["core.agi.learning"] = "packages.orchestration.agi.learning"
+    mappings["core.agi.monitoring"] = "packages.orchestration.agi.monitoring"
+    mappings["core.agi.operational"] = "packages.orchestration.agi.operational"
+    mappings["core.agi.quality"] = "packages.orchestration.agi.quality"
+    mappings["core.agi.roles"] = "packages.orchestration.agi.roles"
+    mappings["core.agi.security"] = "packages.orchestration.agi.security"
+    mappings["core.agi.adaptation"] = "packages.orchestration.agi.adaptation"
+    mappings["core.agency"] = "packages.orchestration.agency"
+    mappings["core.improvement"] = "packages.orchestration.experimental"
 
     return mappings
 
@@ -66,12 +81,7 @@ def apply_replacements(target_dir, mapping):
 core_root = r"e:/ai_company_faz12.1/core"
 mapping = get_mappings(core_root)
 
-# Correct manual overrides if shim was generic
-# mapping["core.agi.schemas"] = "packages.orchestration.agi.schemas"
-
 print(f"Discovered {len(mapping)} shim mappings.")
-for k, v in mapping.items():
-    print(f"  {k} -> {v}")
 
 api_count = apply_replacements(r"e:/ai_company_faz12.1/apps/api/", mapping)
 pkg_count = apply_replacements(r"e:/ai_company_faz12.1/packages/", mapping)
