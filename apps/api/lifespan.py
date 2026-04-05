@@ -22,7 +22,7 @@ from core.agi.governance.resilience_agent import resilience_agent
 from core.heal_engine import heal_engine
 from core.events import event_bus
 from core.job_queue import job_queue
-from api.ws_manager import ws_manager
+from apps.api.routers.ws_manager import ws_manager
 from core.reaper_service import reaper
 from observability.logging import configure_logging, get_logger
 from observability.metrics import metrics
