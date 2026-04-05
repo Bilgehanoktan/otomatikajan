@@ -42,12 +42,13 @@ async def test_metabolic_blackout_bypass():
         )
         
         # 4. Doğrulamalar
+        from unittest.mock import ANY
         # - system.metabolism.blackout olayı fırlatıldı mı?
         mock_emit.assert_any_call(
             "system.metabolism.blackout",
-            provider=pytest.any_str,
+            provider=ANY,
             agent="architect",
-            message=pytest.any_str
+            message=ANY
         )
         
         # - _call metodu force_emergency=True ile çağrıldı mı?
