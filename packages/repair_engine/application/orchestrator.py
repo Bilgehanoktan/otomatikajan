@@ -30,6 +30,10 @@ from repair.memory.architecture_memory import ArchitectureMemory, architecture_m
 from core.policy_engine import PolicyEngine, policy_engine
 from observability.logging import get_logger
 
+# Faz 12.1 Shared Events
+from packages.orchestration.domain.events import event_bus
+from packages.contracts.events import EVENT_JOB_PROGRESS, EVENT_LIVE_PATCH
+
 # DB Persistence (Faz 13)
 from db.session import AsyncSessionLocal
 from db.repair_repository import RepairJobRepo, RepairIncidentRepo
@@ -291,16 +295,15 @@ class RepairOrchestrator:
         """Durum geçişi yap ve DB'ye işle."""
         if job.transition(status, note=note):
             await self._persist_job(job)
-            # Canlı Yayın (WebSocket)
+            # Canlı Yayın (WebSocket — Event Driven Faz 12.1)
             try:
-                from api.ws_manager import ws_manager
-                await ws_manager.broadcast_job_progress(
-                    job_id=job.job_id,
-                    status=status.value,
-                    message=note
-                )
-            except Exception:
-                pass
+                await event_bus.emit(EVENT_JOB_PROGRESS, {
+                    "job_id": job.job_id,
+                    "status": status.value,
+                    "message": note
+                })
+            except Exception as e:
+                _log.debug(f"Event broadcast failure: {e}")
 
     def stats(self) -> dict:
         jobs = list(self._jobs_cache.values())
@@ -505,16 +508,16 @@ class RepairOrchestrator:
                 job.transition(RepairJobStatus.FAILED_PATCH_GENERATION, note="Diff üretilemedi veya geçersiz")
                 return None
             
-            # Canlı yayın (Faz 8 Infra - Live Preview)
+            # Canlı yayın (Faz 8 Infra - Live Preview — Event Driven Faz 12.1)
             try:
-                from api.ws_manager import ws_manager
-                asyncio.create_task(ws_manager.broadcast_patch(
-                    job_id=job.job_id,
-                    file_path=plan.target_files[0] if plan.target_files else "unknown",
-                    diff=patch.diff,
-                    status="generated"
-                ))
-            except Exception: pass
+                await event_bus.emit(EVENT_LIVE_PATCH, {
+                    "job_id": job.job_id,
+                    "file_path": plan.target_files[0] if plan.target_files else "unknown",
+                    "diff": patch.diff,
+                    "status": "generated"
+                })
+            except Exception as e:
+                _log.debug(f"Event broadcast failure (patch): {e}")
 
             job.diff = patch.diff
             job.transition(RepairJobStatus.PATCH_GENERATED, note=f"confidence={patch.confidence}%")
