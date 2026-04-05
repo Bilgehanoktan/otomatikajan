@@ -8,6 +8,13 @@ import asyncio
 import json
 import os
 import sys
+from pathlib import Path
+
+# Project root path (3 levels up from apps/api/main.py)
+ROOT_DIR = str(Path(__file__).resolve().parents[2])
+if ROOT_DIR not in sys.path:
+    sys.path.append(ROOT_DIR)
+
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -58,16 +65,16 @@ from core.agi.governance.watchdog import governance_watchdog
 from core.heal_engine import heal_engine
 from core.events import event_bus
 from core.job_queue import job_queue
-from api.ws_manager import ws_manager
+from apps.api.routers.ws_manager import ws_manager
 from observability.logging import get_logger
 from observability.metrics import metrics
 
 logger = get_logger("main")
 
 # ── Startup modülleri ─────────────────────────────────────
-from startup.lifespan import lifespan, register_event_listeners
-from startup.middleware import configure_middleware
-from startup.routers import register_routers
+from apps.api.lifespan import lifespan, register_event_listeners
+from apps.api.middleware import configure_middleware
+from apps.api.router_registry import register_routers
 
 # Event bus dinleyicilerini kaydet (modül yüklenirken)
 register_event_listeners()
