@@ -67,17 +67,17 @@ from celery.schedules import crontab
 celery_app.conf.beat_schedule = {
     # Her gün gece 03:00'te görsel denetim yap
     "visual-audit-daily": {
-        "task": "tasks.project_tasks.run_visual_audit_task",
+        "task": "apps.worker.tasks.project_tasks.run_visual_audit_task",
         "schedule": crontab(hour=3, minute=0),
     },
     # Her 6 saatte bir pazar istihbaratı tara
     "market-intel-6h": {
-        "task": "tasks.project_tasks.run_market_intelligence_task",
+        "task": "apps.worker.tasks.project_tasks.run_market_intelligence_task",
         "schedule": crontab(hour="*/6", minute=30),
     },
     # Her Pazar gece 04:00'te bellek temizliği
     "cleanup-memories-weekly": {
-        "task": "tasks.project_tasks.cleanup_memories",
+        "task": "apps.worker.tasks.project_tasks.cleanup_memories",
         "schedule": crontab(day_of_week=0, hour=4, minute=0),
     },
 }
