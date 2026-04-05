@@ -2,10 +2,14 @@
 Core Context — Global state and singleton access.
 Breaks circular dependencies between main.py and other modules.
 """
-from core.agi.cognitive.sovereign_cortex import nexus_orchestrator as orchestrator
-from core.heal_engine import heal_engine
-from core.events import event_bus
-from core.job_queue import job_queue
-from api.ws_manager import ws_manager
+# Centralized Core Artifacts (Faz 12.1 Refactored)
+from packages.orchestration.domain.events import event_bus
+from packages.orchestration.cognitive_runtime.sovereign_cortex import nexus_orchestrator as orchestrator
+from packages.healing.application.engine import heal_engine
+# job_queue ve diğerleri için de paket yollarını kullanın
+try:
+    from packages.orchestration.application.job_queue import job_queue
+except ImportError:
+    job_queue = None
 
-__all__ = ["orchestrator", "heal_engine", "event_bus", "job_queue", "ws_manager"]
+__all__ = ["orchestrator", "heal_engine", "event_bus", "job_queue"]
