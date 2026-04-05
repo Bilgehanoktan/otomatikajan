@@ -20,7 +20,9 @@ from core.sandbox_runner import get_sandbox_runner
 from agents.agent_registry import build_agents
 from db.repository import SkillLogRepository
 from db.session import session_scope
-from api.ws_manager import ws_manager
+# Faz 12.1 Stability: Event-Driven UI Updates
+from packages.orchestration.domain.events import event_bus
+from packages.contracts.events import EVENT_SKILL_TRACE
 from core.agi.world.provenance_engine import provenance_engine
 from core.agi.cognitive.metacognitive_auditor import MetacognitiveAuditor # Phase 65
 
@@ -262,13 +264,13 @@ class VelocityEngine:
                         agent_id=agent_id
                     )
 
-            await ws_manager.broadcast_skill_trace(
-                job_id=str(p_id),
-                skill_id=agent_id,
-                success=result.success,
-                summary=f"Velocity Pulse: {agent_id} finalized",
-                duration_s=round(result.duration_s, 3)
-            )
+            await event_bus.emit(EVENT_SKILL_TRACE, {
+                "job_id": str(p_id),
+                "skill_id": agent_id,
+                "success": result.success,
+                "summary": f"Velocity Pulse: {agent_id} finalized",
+                "duration_s": round(result.duration_s, 3)
+            })
         except Exception as e:
             _log.warning(f"[VELOCITY] Reflexive logging error: {e}")
 
