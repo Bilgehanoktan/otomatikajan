@@ -2,9 +2,7 @@ import os
 import re
 
 # Repo Sterilization Script for Sovereign AGI (Faz 12.1)
-# 1. Map shims from core/ to packages/
-# 2. Bulk replace in apps/api/ and packages/
-# 3. Handle subdirectories correctly
+# IMPROVED: Handles sub-imports (core.agi.world.engine -> packages.orchestration.agi.world.engine)
 
 def get_mappings(root_core):
     mappings = {}
@@ -14,43 +12,29 @@ def get_mappings(root_core):
                 file_path = os.path.join(root, name)
                 rel_path = os.path.relpath(file_path, root_core)
                 
-                # Module path in 'core'
                 core_module = "core." + rel_path.replace("\\", ".").replace("/", ".").replace(".py", "")
                 if core_module.endswith(".__init__"):
                     core_module = core_module[:-9]
                 
-                # Find shim destination
                 with open(file_path, 'r', encoding='utf-8') as f:
                     content = f.read()
-                    # Pattern: from packages... import *
                     match = re.search(r"from (packages\.[^ ]+) import \*", content)
                     if match:
                         mappings[core_module] = match.group(1)
                     else:
-                        # Fallback for complex shims
                         match = re.search(r"from (packages\.[^ ]+) import", content)
                         if match:
                             mappings[core_module] = match.group(1)
     
-    # Manual mappings for missed deep submodules (mostly AGI subdirs)
-    mappings["core.agi.world"] = "packages.orchestration.agi.world"
-    mappings["core.agi.cognitive"] = "packages.orchestration.agi.cognitive"
-    mappings["core.agi.consciousness"] = "packages.orchestration.agi.consciousness"
-    mappings["core.agi.governance"] = "packages.orchestration.agi.governance"
-    mappings["core.agi.learning"] = "packages.orchestration.agi.learning"
-    mappings["core.agi.monitoring"] = "packages.orchestration.agi.monitoring"
-    mappings["core.agi.operational"] = "packages.orchestration.agi.operational"
-    mappings["core.agi.quality"] = "packages.orchestration.agi.quality"
-    mappings["core.agi.roles"] = "packages.orchestration.agi.roles"
-    mappings["core.agi.security"] = "packages.orchestration.agi.security"
-    mappings["core.agi.adaptation"] = "packages.orchestration.agi.adaptation"
+    # Manual high-level mappings
+    mappings["core.agi"] = "packages.orchestration.agi"
     mappings["core.agency"] = "packages.orchestration.agency"
     mappings["core.improvement"] = "packages.orchestration.experimental"
 
     return mappings
 
 def apply_replacements(target_dir, mapping):
-    # Sort mapping by length of core_module (longest first) to prevent partial matching errors
+    # Sort mapping by length of core_module (longest first)
     sorted_core_modules = sorted(mapping.keys(), key=len, reverse=True)
     
     count = 0
@@ -67,9 +51,14 @@ def apply_replacements(target_dir, mapping):
                 for core_mod in sorted_core_modules:
                     target_mod = mapping[core_mod]
                     
-                    # Pattern 1: from core.something import X
-                    new_content = new_content.replace(f"from {core_mod} import", f"from {target_mod} import")
-                    new_content = new_content.replace(f"import {core_mod}", f"import {target_mod}")
+                    # Pattern 1: from core.X[.Y] import Z
+                    # We match core.X as a prefix
+                    pattern_from = re.compile(r"from " + re.escape(core_mod) + r"(\.[a-zA-Z0-9_\.]+)? import")
+                    new_content = pattern_from.sub(r"from " + target_mod + r"\1 import", new_content)
+                    
+                    # Pattern 2: import core.X[.Y]
+                    pattern_import = re.compile(r"import " + re.escape(core_mod) + r"(\.[a-zA-Z0-9_\.]+)?")
+                    new_content = pattern_import.sub(r"import " + target_mod + r"\1", new_content)
                 
                 if new_content != content:
                     with open(filepath, 'w', encoding='utf-8') as f:
