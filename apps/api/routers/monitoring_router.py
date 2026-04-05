@@ -279,7 +279,7 @@ async def _check_redis_heartbeat(key: str) -> str:
 async def api_stats(hours: int = Query(24, ge=1, le=168), current_user=Depends(get_current_user)):
     try:
         from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repository import ApiMetricRepository
+        from packages.persistence.repositories.repository import ApiMetricRepository
         async with AsyncSessionLocal() as db:
             stats = await ApiMetricRepository.endpoint_stats(db, hours=hours)
 
@@ -311,7 +311,7 @@ async def api_time_series(
 ):
     try:
         from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repository import ApiMetricRepository
+        from packages.persistence.repositories.repository import ApiMetricRepository
         async with AsyncSessionLocal() as db:
             series = await ApiMetricRepository.time_series(
                 db, hours=hours, bucket_minutes=bucket_minutes
@@ -325,7 +325,7 @@ async def api_time_series(
 async def slowest_endpoints(hours: int = Query(24, ge=1, le=168), limit: int = Query(10), current_user=Depends(require_admin)):
     try:
         from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repository import ApiMetricRepository
+        from packages.persistence.repositories.repository import ApiMetricRepository
         async with AsyncSessionLocal() as db:
             stats = await ApiMetricRepository.endpoint_stats(db, hours=hours)
         
@@ -611,7 +611,7 @@ async def recent_errors(limit: int = Query(50, ge=1, le=200)):
     # 3. DB'den başarısız görevler
     try:
         from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repository import ProjectRepository
+        from packages.persistence.repositories.repository import ProjectRepository
         from packages.persistence.models import ProjectStatus
         async with AsyncSessionLocal() as db:
             failed = await ProjectRepository.list_recent(db, limit=20, status=ProjectStatus.ERROR.value)
@@ -641,7 +641,7 @@ async def recent_errors(limit: int = Query(50, ge=1, le=200)):
 async def cleanup_api_metrics(days: int = Query(7, ge=1, le=90)):
     try:
         from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repository import ApiMetricRepository
+        from packages.persistence.repositories.repository import ApiMetricRepository
         async with AsyncSessionLocal() as db:
             deleted = await ApiMetricRepository.cleanup_old(db, days=days)
             await db.commit()

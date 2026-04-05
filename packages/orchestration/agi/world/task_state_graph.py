@@ -151,7 +151,7 @@ class TaskStateGraph:
         DB'deki son görev kayıtlarını yükler (startup hydration).
         """
         try:
-            from packages.persistence.repository import ProjectRepository, SubTaskRepository
+            from packages.persistence.repositories.repository import ProjectRepository, SubTaskRepository
             recent = await ProjectRepository.list_recent(db, limit=100)
             for p in recent:
                 task_id = str(p.id)

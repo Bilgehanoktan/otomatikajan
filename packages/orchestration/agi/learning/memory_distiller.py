@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 from packages.observability.logging import get_logger
 from packages.llm_gateway.model_orchestrator import ModelOrchestrator
-from packages.persistence.repository import MemoryRepository
+from packages.persistence.repositories.repository import MemoryRepository
 from packages.persistence.session import AsyncSessionLocal
 
 _log = get_logger("memory_distiller")
@@ -101,7 +101,7 @@ class MemoryDistiller:
         _log.info(f"İçerik: {instinct}")
 
         # 1. Domain Event olarak kaydet (Audit Trail)
-        from packages.persistence.repository import EventLogRepository
+        from packages.persistence.repositories.repository import EventLogRepository
         async with AsyncSessionLocal() as db:
             await EventLogRepository.write(
                 db=db,

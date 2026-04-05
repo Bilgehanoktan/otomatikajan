@@ -172,7 +172,7 @@ async def cost_summary():
     snap = met.snapshot()
     try:
         from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repository import CostRepository
+        from packages.persistence.repositories.repository import CostRepository
         async with AsyncSessionLocal() as db:
             total   = await CostRepository.total_cost(db)
             by_prov = await CostRepository.by_provider(db)

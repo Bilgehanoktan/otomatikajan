@@ -122,7 +122,7 @@ class JobQueue(BaseQueueCapabilities):
         _log.info("Hydrating standard tasks from DB...")
         try:
             from packages.persistence.session import AsyncSessionLocal
-            from packages.persistence.repository import ProjectRepository
+            from packages.persistence.repositories.repository import ProjectRepository
             
             async with AsyncSessionLocal() as db:
                 # Sadece aktif (tamamlanmamış) işleri çekelim
@@ -538,7 +538,7 @@ class CeleryJobQueue(BaseQueueCapabilities):
         _log.info("Hydrating standard tasks from DB for Celery backend...")
         try:
             from packages.persistence.session import AsyncSessionLocal
-            from packages.persistence.repository import ProjectRepository
+            from packages.persistence.repositories.repository import ProjectRepository
             
             async with AsyncSessionLocal() as db:
                 active_statuses = ["PENDING", "RUNNING", "QUEUED", "RETRYING", "PAUSED"]

@@ -107,7 +107,7 @@ class ResilienceAgent:
                 # Fallback: Mevcut coordinate_goal'u project_id ile çağır
                 from packages.persistence.session import AsyncSessionLocal
                 async with AsyncSessionLocal() as db:
-                    from packages.persistence.repository import ProjectRepository
+                    from packages.persistence.repositories.repository import ProjectRepository
                     p = await ProjectRepository.get(db, project_id)
                     if p:
                         await sovereign_cortex.coordinate_goal(

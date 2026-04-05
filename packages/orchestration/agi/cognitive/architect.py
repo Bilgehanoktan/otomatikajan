@@ -7,7 +7,7 @@ from packages.observability.logging import get_logger
 from packages.orchestration.indexing.system_indexer import SystemIndexer
 from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 from packages.persistence.session import session_scope
-from packages.persistence.repository import ImprovementRepository, EventLogRepository
+from packages.persistence.repositories.repository import ImprovementRepository, EventLogRepository
 from packages.orchestration.application.self_updater import SelfUpdater
 
 _log = get_logger("agi_architect")
@@ -110,7 +110,7 @@ class Architect:
     async def _report_architecture_opportunity(self, proposal: Dict[str, Any]):
         """Sentezlenen mimari planı İyileştirme Fırsatı olarak kaydeder."""
         async with session_scope() as db:
-            from packages.persistence.repository import ImprovementRepository
+            from packages.persistence.repositories.repository import ImprovementRepository
             
             opp = await ImprovementRepository.create(
                 db,

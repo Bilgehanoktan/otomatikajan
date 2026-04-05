@@ -68,7 +68,7 @@ Sana verilen istatistikleri ve olay loglarını incele.
         recent_errors = []
         try:
             from packages.persistence.session import AsyncSessionLocal
-            from packages.persistence.repository import EventLogRepository
+            from packages.persistence.repositories.repository import EventLogRepository
             async with AsyncSessionLocal() as db:
                 logs = await EventLogRepository.recent(db, n=20)
                 recent_errors = [f"[{l.severity}] {l.message}" for l in logs if l.severity in ("warning", "critical")]

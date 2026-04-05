@@ -14,7 +14,7 @@ async def verify_agi_evolution_v16():
         from packages.persistence.session import session_scope
         from packages.persistence.models import ImprovementOpportunity, CEOSuggestedTask, ProjectStatus
         from packages.orchestration.agi.consciousness.neural_core_orchestrator import neural_core_orchestrator
-        from packages.persistence.repository import ImprovementRepository
+        from packages.persistence.repositories.repository import ImprovementRepository
         
         print("\n[STEP 1] Testing Neural Core Orchestrator Taxonomy...")
         async with session_scope() as db:

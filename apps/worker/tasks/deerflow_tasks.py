@@ -8,7 +8,7 @@ from celery.utils.log import get_task_logger
 
 from packages.persistence.models import ProjectStatus  # type: ignore
 from packages.persistence.session import AsyncSessionLocal  # type: ignore
-from packages.persistence.repository import ProjectRepository, TaskLogRepository, SubTaskRepository  # type: ignore
+from packages.persistence.repositories.repository import ProjectRepository, TaskLogRepository, SubTaskRepository  # type: ignore
 from tasks.celery_app import celery_app  # type: ignore
 from integrations.deerflow_bridge import DeerFlowBridgeClient  # type: ignore
 from schemas import DeerFlowEventType  # type: ignore
@@ -121,7 +121,7 @@ def run_deerflow_task(
     """
     async def _execute():
         from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repository import ProjectRepository
+        from packages.persistence.repositories.repository import ProjectRepository
         from integrations.deerflow_bridge import DeerFlowBridgeClient
 
         async with AsyncSessionLocal() as db:
@@ -185,7 +185,7 @@ def run_deerflow_task(
     except Exception as exc:
         async def _set_failed():
             from packages.persistence.session import AsyncSessionLocal
-            from packages.persistence.repository import ProjectRepository
+            from packages.persistence.repositories.repository import ProjectRepository
             async with AsyncSessionLocal() as db:
                 p = await ProjectRepository.get(db, to_uuid(db_project_id))
                 if p:

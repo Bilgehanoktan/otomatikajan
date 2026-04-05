@@ -21,7 +21,7 @@ async def list_tasks(
 ):
     try:
         from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repository import ProjectRepository
+        from packages.persistence.repositories.repository import ProjectRepository
         from sqlalchemy import select, func
         from packages.persistence.models import Project
         async with AsyncSessionLocal() as db:
@@ -114,7 +114,7 @@ async def task_capabilities(current_user=Depends(get_current_user)):
 async def tasks_summary(current_user=Depends(get_current_user)):
     try:
         from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repository import ProjectRepository
+        from packages.persistence.repositories.repository import ProjectRepository
         async with AsyncSessionLocal() as db:
             counts = await ProjectRepository.counts_by_status(db)
             total_cost = await ProjectRepository.get_total_cost(db) # Get cost while session is open
@@ -174,7 +174,7 @@ async def tasks_summary(current_user=Depends(get_current_user)):
 async def get_task(task_id: str, current_user=Depends(get_current_user)):
     try:
         from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repository import ProjectRepository, SubTaskRepository, TaskLogRepository
+        from packages.persistence.repositories.repository import ProjectRepository, SubTaskRepository, TaskLogRepository
         from sqlalchemy import select
         from packages.persistence.models import Project
         import uuid as _uuid
@@ -228,7 +228,7 @@ async def task_logs(task_id: str, limit: int = Query(100, ge=1, le=500), current
     try:
         import uuid as _uuid
         from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repository import ProjectRepository, TaskLogRepository
+        from packages.persistence.repositories.repository import ProjectRepository, TaskLogRepository
 
         async with AsyncSessionLocal() as db:
             try:
@@ -267,7 +267,7 @@ async def task_subtasks(task_id: str, current_user=Depends(get_current_user)):
     try:
         import uuid as _uuid
         from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repository import ProjectRepository, SubTaskRepository
+        from packages.persistence.repositories.repository import ProjectRepository, SubTaskRepository
 
         async with AsyncSessionLocal() as db:
             try:
@@ -319,7 +319,7 @@ async def task_skill_traces(
     try:
         import uuid as _uuid
         from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repository import ProjectRepository, SkillLogRepository
+        from packages.persistence.repositories.repository import ProjectRepository, SkillLogRepository
 
         async with AsyncSessionLocal() as db:
             try:

@@ -155,7 +155,7 @@ class SelfHealEngine:
                 self._error_rate = 1.0
                 return
 
-            from packages.persistence.repository import ApiMetricRepository
+            from packages.persistence.repositories.repository import ApiMetricRepository
             async with AsyncSessionLocal() as db:
                 # Son 1 saatteki hata oranına bak
                 stats = await ApiMetricRepository.endpoint_stats(db, hours=1)

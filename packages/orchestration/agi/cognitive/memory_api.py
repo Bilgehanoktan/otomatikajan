@@ -5,7 +5,7 @@ from typing import List, Dict, Any, Optional
 from packages.observability.logging import get_logger
 from packages.orchestration.indexing.system_indexer import SystemIndexer
 from packages.persistence.session import session_scope
-from packages.persistence.repository import ProjectRepository
+from packages.persistence.repositories.repository import ProjectRepository
 
 _log = get_logger("agi_memory_api")
 

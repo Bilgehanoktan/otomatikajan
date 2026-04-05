@@ -7,7 +7,7 @@ from typing import List, Dict, Any, Optional
 from packages.observability.logging import get_logger
 from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 from packages.persistence.session import session_scope, get_db
-from packages.persistence.repository import ImprovementRepository, ProjectRepository, EventLogRepository
+from packages.persistence.repositories.repository import ImprovementRepository, ProjectRepository, EventLogRepository
 from packages.orchestration.agi.schemas import SourceType
 from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
 

@@ -11,7 +11,7 @@ from config import (
     TELEGRAM_BURST_LIMIT,
 )
 try:
-    from packages.persistence.repository import ProjectRepository
+    from packages.persistence.repositories.repository import ProjectRepository
 except ImportError:
     pass  # lazy — gerçek kullanımda method içinde import edilir
 try:

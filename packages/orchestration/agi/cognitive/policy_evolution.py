@@ -10,7 +10,7 @@ from packages.orchestration.agi.operational.velocity_engine import EngineResult
 from packages.orchestration.governance.policy_engine import policy_engine, AutomationLevel
 from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 from packages.persistence.session import session_scope
-from packages.persistence.repository import EventLogRepository
+from packages.persistence.repositories.repository import EventLogRepository
 from packages.orchestration.agi.schemas import ActionRecord
 from packages.orchestration.agi.cognitive.metacognitive_auditor import ReflectionCortex
 

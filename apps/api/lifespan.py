@@ -39,7 +39,7 @@ async def _persist_event(event):
     if event.payload.get("severity") in ("critical", "warning", "resolved"):
         try:
             from packages.persistence.session import AsyncSessionLocal
-            from packages.persistence.repository import EventLogRepository
+            from packages.persistence.repositories.repository import EventLogRepository
             async with AsyncSessionLocal() as db:
                 await EventLogRepository.write(
                     db,

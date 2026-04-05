@@ -11,7 +11,7 @@ from packages.observability.logging import get_logger
 from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 from packages.persistence.session import session_scope, AsyncSessionLocal
 from packages.persistence.models import SkillExecutionLog, ImprovementOpportunity, Project, SubTask
-from packages.persistence.repository import ProjectRepository, ApiMetricRepository
+from packages.persistence.repositories.repository import ProjectRepository, ApiMetricRepository
 from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
 from packages.quality_assurance.reviewer import ReviewResult
 from packages.orchestration.indexing.system_indexer import SystemIndexer

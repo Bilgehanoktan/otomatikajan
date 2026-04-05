@@ -10,7 +10,7 @@ from sqlalchemy import select, delete, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from packages.persistence.models import Memory, ProjectStatus, Project, SubTask
 from packages.persistence.session import session_scope
-from packages.persistence.repository import ProjectRepository
+from packages.persistence.repositories.repository import ProjectRepository
 from packages.orchestration.agi.learning.wisdom_synthesizer import wisdom_synthesizer
 from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 from packages.observability.logging import get_logger

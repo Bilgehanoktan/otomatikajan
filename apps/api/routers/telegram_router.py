@@ -191,7 +191,7 @@ async def register_commands():
 async def list_telegram_users():
     try:
         from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repository import TelegramRepository
+        from packages.persistence.repositories.repository import TelegramRepository
         async with AsyncSessionLocal() as db:
             users = await TelegramRepository.list_users(db)
         return [
@@ -218,7 +218,7 @@ async def authorize_user(telegram_id: str, body: dict = {}):
     is_admin = body.get("is_admin", False)
     try:
         from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repository import TelegramRepository
+        from packages.persistence.repositories.repository import TelegramRepository
         async with AsyncSessionLocal() as db:
             success = await TelegramRepository.authorize(db, telegram_id, is_admin=is_admin)
             await db.commit()

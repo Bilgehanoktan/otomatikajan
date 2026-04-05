@@ -2,7 +2,7 @@
 import asyncio
 import uuid
 from packages.persistence.session import AsyncSessionLocal
-from packages.persistence.repository import ProjectRepository
+from packages.persistence.repositories.repository import ProjectRepository
 from packages.orchestration.improvement.gate import packages.improvement_enginement_gate
 from packages.orchestration.improvement.observer import observer
 from packages.orchestration.orchestrator import orchestrator

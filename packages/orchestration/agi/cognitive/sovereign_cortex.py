@@ -176,7 +176,7 @@ class SovereignCortex:
 
         # Faz 45: Veritabanından mevcut projeyi yükle veya yeni oluştur
         from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repository import ProjectRepository
+        from packages.persistence.repositories.repository import ProjectRepository
         from packages.persistence.models import ProjectStatus
         
         async with AsyncSessionLocal() as db:
@@ -1036,7 +1036,7 @@ class SovereignCortex:
         """Kesintiye uğrayan bir hedefi DB'den yükler ve devam ettirir."""
         _log.info(f"[SOVEREIGN-RESUME] Proje kurtarma başlatıldı: {project_id}")
         from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repository import ProjectRepository
+        from packages.persistence.repositories.repository import ProjectRepository
         
         async with AsyncSessionLocal() as db:
             p = await ProjectRepository.get(db, project_id)

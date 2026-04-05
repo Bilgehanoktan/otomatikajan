@@ -92,7 +92,7 @@ class NeuralCoreOrchestrator:
         try:
             from packages.orchestration.agi.cognitive.foresight_oracle import foresight_oracle
             from packages.orchestration.agi.schemas import PlanProposal
-            from packages.persistence.repository import ProjectRepository
+            from packages.persistence.repositories.repository import ProjectRepository
             from packages.persistence.models import ProjectStatus
             import uuid
             

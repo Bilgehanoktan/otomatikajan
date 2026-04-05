@@ -67,7 +67,7 @@ class LatencyMindProcessor:
                 try:
                     data = self._parse_json(response.content)
                     if data:
-                        from packages.persistence.repository import ImprovementRepository
+                        from packages.persistence.repositories.repository import ImprovementRepository
                         await ImprovementRepository.create(
                             db=db,
                             source_type="latency_mind_dream",

@@ -78,7 +78,7 @@ def run_project_task(
     async def _execute_task():
         from packages.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
         from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repository import ProjectRepository
+        from packages.persistence.repositories.repository import ProjectRepository
         from packages.orchestration.agi.task_governance import GovernanceStatus as AGIStatus
 
         async with AsyncSessionLocal() as db:
@@ -133,7 +133,7 @@ def run_project_task(
         # DB'yi güncelle
         async def _mark_done():
             from packages.persistence.session import AsyncSessionLocal
-            from packages.persistence.repository import ProjectRepository
+            from packages.persistence.repositories.repository import ProjectRepository
             async with AsyncSessionLocal() as db:
                 p = await ProjectRepository.get(db, _uuid.UUID(db_project_id))
                 if p:
@@ -166,7 +166,7 @@ def run_project_task(
 
         async def _set_failed():
             from packages.persistence.session import AsyncSessionLocal
-            from packages.persistence.repository import ProjectRepository
+            from packages.persistence.repositories.repository import ProjectRepository
             async with AsyncSessionLocal() as db:
                 p = await ProjectRepository.get(db, _uuid.UUID(db_project_id))
                 if p:
@@ -305,7 +305,7 @@ def run_visual_audit_task():
         from packages.observability.visual_util import capture_screenshot
         from packages.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
         from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repository import ImprovementRepository
+        from packages.persistence.repositories.repository import ImprovementRepository
         
         try:
             # 1. Ekran görüntüsü al
@@ -352,7 +352,7 @@ def run_market_intelligence_task():
         from tools.web_search import get_web_search
         from packages.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
         from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repository import ImprovementRepository
+        from packages.persistence.repositories.repository import ImprovementRepository
         import json
         
         try:

@@ -336,7 +336,7 @@ class Orchestrator:
             if st.db_subtask_id:
                 try:
                     from packages.persistence.session import AsyncSessionLocal as get_db_session
-                    from packages.persistence.repository import SubTaskRepository
+                    from packages.persistence.repositories.repository import SubTaskRepository
                     async with get_db_session() as db:
                         await SubTaskRepository.mark_done(
                             db=db,
@@ -370,7 +370,7 @@ class Orchestrator:
             if st.db_subtask_id:
                 try:
                     from packages.persistence.session import AsyncSessionLocal as get_db_session
-                    from packages.persistence.repository import SubTaskRepository
+                    from packages.persistence.repositories.repository import SubTaskRepository
                     async with get_db_session() as db:
                         await SubTaskRepository.mark_failed(
                             db=db,

@@ -86,13 +86,13 @@ class DBLogHandler(logging.Handler):
         try:
             import asyncio
             from packages.persistence.session import AsyncSessionLocal
-            from packages.persistence.repository import EventLogRepository
+            from packages.persistence.repositories.repository import EventLogRepository
 
             async def _write():
                 try:
                     # 1. DB Log (Relational)
                     async with AsyncSessionLocal() as db:
-                        from packages.persistence.repository import EventLogRepository
+                        from packages.persistence.repositories.repository import EventLogRepository
                         await EventLogRepository.write(
                             db,
                             event_type=f"log.{record.levelname.lower()}",
@@ -244,7 +244,7 @@ try:
                 try:
                     import asyncio
                     from packages.persistence.session import AsyncSessionLocal
-                    from packages.persistence.repository import ApiMetricRepository
+                    from packages.persistence.repositories.repository import ApiMetricRepository
                     error_type = "" if not is_error else f"HTTP_{response.status_code}"
                     async def _write():
                         try:

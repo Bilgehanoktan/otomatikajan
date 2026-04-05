@@ -13,7 +13,7 @@ try:
 except ImportError:
     pass
 try:
-    from packages.persistence.repository import ProjectRepository, ApiMetricRepository, TaskLogRepository, CostRepository
+    from packages.persistence.repositories.repository import ProjectRepository, ApiMetricRepository, TaskLogRepository, CostRepository
 except ImportError:
     pass
 try:
@@ -47,7 +47,7 @@ class CEOEngine:
             # --- PHASE 12: Budget Check ---
             try:
                 from config import MONTHLY_BUDGET
-                from packages.persistence.repository import CostRepository
+                from packages.persistence.repositories.repository import CostRepository
                 
                 # Sadece repo ve metod varsa await et
                 if hasattr(CostRepository, 'total_cost'):
@@ -602,7 +602,7 @@ class CEOEngine:
             logger.info(f"CEO Engine: AUTO-EXECUTING {'first step of ' if is_roadmap else ''}task '{execution_target.title}'")
             
             from packages.persistence.models import Project
-            from packages.persistence.repository import TaskLogRepository
+            from packages.persistence.repositories.repository import TaskLogRepository
             
             proj_id = uuid.uuid4()
             new_project = Project(
@@ -813,7 +813,7 @@ class CEOEngine:
     async def _auto_approve_next_step(self, db, suggestion: CEOSuggestedTask, prev_project: Project):
         """Yol haritasındaki bir sonraki adımı otomatik olarak başlatır."""
         from packages.persistence.models import Project
-        from packages.persistence.repository import TaskLogRepository
+        from packages.persistence.repositories.repository import TaskLogRepository
         
         proj_id = uuid.uuid4()
         new_project = Project(

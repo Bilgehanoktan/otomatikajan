@@ -23,7 +23,7 @@ from packages.persistence.session import session_scope
 
 # WorldModel Katman 9: Observability & Graph Context
 from packages.orchestration.agi.world import service_graph, task_state_graph, causal_error_graph
-from packages.persistence.repository import EventLogRepository # Faz 85: Cognitive Logging
+from packages.persistence.repositories.repository import EventLogRepository # Faz 85: Cognitive Logging
 
 _log = get_logger("agi_central_executive")
 
