@@ -17,11 +17,31 @@ def fix_schema():
     
     with engine.connect() as conn:
         try:
-            conn.execute(text("ALTER TABLE projects ADD COLUMN IF NOT EXISTS budget_limit FLOAT DEFAULT 0.0"))
+            # 1. Ensure goal_id exists for Sovereign Goals (Faz 12.1)
+            # Use raw SQL as SQLite doesn't support 'IF NOT EXISTS' in some versions
+            try:
+                conn.execute(text("ALTER TABLE projects ADD COLUMN goal_id UUID"))
+                print("Added goal_id column to projects table.")
+            except Exception as e:
+                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                    print("goal_id column already exists.")
+                else:
+                    raise e
+            
+            # 2. Ensure budget_limit exists
+            try:
+                conn.execute(text("ALTER TABLE projects ADD COLUMN budget_limit FLOAT DEFAULT 0.0"))
+                print("Added budget_limit column to projects table.")
+            except Exception as e:
+                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                    print("budget_limit column already exists.")
+                else:
+                    raise e
+
             conn.commit()
-            print("Successfully ensured budget_limit column exists in projects table.")
+            print("Database schema synchronization complete.")
         except Exception as e:
-            print(f"Error checking/adding column: {e}")
+            print(f"Error checking/adding columns: {e}")
 
 if __name__ == "__main__":
     fix_schema()
