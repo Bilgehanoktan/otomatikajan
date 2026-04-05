@@ -24,7 +24,7 @@ def upgrade():
         sa.Column('skill_id', sa.String(length=64), nullable=False),
         sa.Column('success', sa.Boolean(), nullable=False),
         sa.Column('summary', sa.Text(), nullable=True),
-        sa.Column('data', postgresql.JSONB(), nullable=True),
+        sa.Column('data', sa.JSON(), nullable=True),
         sa.Column('duration_s', sa.Float(), nullable=True),
         sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
         sa.PrimaryKeyConstraint('id'),

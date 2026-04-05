@@ -21,7 +21,7 @@ def upgrade() -> None:
     # repair_jobs tablosuna meta sütununu ekle
     op.add_column(
         "repair_jobs",
-        sa.Column("meta", postgresql.JSONB(astext_type=sa.Text()), server_default="{}", nullable=True)
+        sa.Column("meta", sa.JSON(astext_type=sa.Text()), server_default="{}", nullable=True)
     )
 
 

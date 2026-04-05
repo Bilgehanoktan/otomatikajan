@@ -51,7 +51,7 @@ def upgrade() -> None:
         sa.Column("owner_agent_hint", sa.String(64)),
         sa.Column("status",           sa.String(32),  server_default="suggested"),
         sa.Column("reasoning_summary", sa.Text),
-        sa.Column("impact_projection", postgresql.JSONB, server_default="{}"),
+        sa.Column("impact_projection", sa.JSON, server_default="{}"),
         sa.Column("created_task_id",  postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("created_at",       sa.DateTime(timezone=True), nullable=False),
     )

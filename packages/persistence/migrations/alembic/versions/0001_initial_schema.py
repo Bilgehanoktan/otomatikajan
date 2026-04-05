@@ -66,7 +66,7 @@ def upgrade() -> None:
         sa.Column("source",         sa.String(32),  server_default="api", nullable=False),
         sa.Column("priority",       sa.String(16),  server_default="medium", nullable=False),
         sa.Column("progress_pct",   sa.Integer, server_default="0"),
-        sa.Column("tags",           postgresql.JSONB, server_default="[]"),
+        sa.Column("tags",           sa.JSON, server_default="[]"),
         sa.Column("deadline",       sa.DateTime(timezone=True), nullable=True),
         sa.Column("assigned_agent", sa.String(64), server_default=""),
         sa.Column("error_detail",   sa.Text, server_default=""),
@@ -138,7 +138,7 @@ def upgrade() -> None:
         sa.Column("severity",   sa.String(32),  server_default="info"),
         sa.Column("phase",      sa.String(64),  server_default=""),
         sa.Column("message",    sa.Text, server_default=""),
-        sa.Column("payload",    postgresql.JSONB, server_default="{}"),
+        sa.Column("payload",    sa.JSON, server_default="{}"),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
     )
     op.create_index("ix_domain_event_logs_event_type", "domain_event_logs", ["event_type"])
@@ -163,7 +163,7 @@ def upgrade() -> None:
         "webhook_subscriptions",
         sa.Column("id",         postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("url",        sa.Text, nullable=False),
-        sa.Column("events",     postgresql.JSONB, server_default="[]"),
+        sa.Column("events",     sa.JSON, server_default="[]"),
         sa.Column("secret",     sa.String(256), server_default=""),
         sa.Column("active",     sa.Boolean, server_default="true"),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
@@ -191,7 +191,7 @@ def upgrade() -> None:
         sa.Column("event",      sa.String(128), server_default=""),
         sa.Column("message",    sa.Text, server_default=""),
         sa.Column("agent_id",   sa.String(64), server_default=""),
-        sa.Column("payload",    postgresql.JSONB, server_default="{}"),
+        sa.Column("payload",    sa.JSON, server_default="{}"),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
     )
     op.create_index("ix_task_logs_project_id", "task_logs", ["project_id"])
@@ -248,9 +248,9 @@ def upgrade() -> None:
         sa.Column("content",     sa.Text, nullable=False),
         sa.Column("category",    sa.String(64), server_default="general"),
         sa.Column("importance",  sa.Float, server_default="1.0"),
-        sa.Column("metadata_",   postgresql.JSONB, server_default="{}"),
+        sa.Column("metadata_",   sa.JSON, server_default="{}"),
         sa.Column("expires_at",  sa.DateTime(timezone=True), nullable=True),
-        sa.Column("tags",        postgresql.JSONB, server_default="[]"),
+        sa.Column("tags",        sa.JSON, server_default="[]"),
         sa.Column("project_id",  sa.String(64), server_default=""),
         sa.Column("created_at",  sa.DateTime(timezone=True), nullable=False),
     )

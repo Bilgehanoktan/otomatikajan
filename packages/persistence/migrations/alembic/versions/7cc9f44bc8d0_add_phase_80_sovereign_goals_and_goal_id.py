@@ -23,14 +23,14 @@ def upgrade() -> None:
     sa.Column('vision_statement', sa.Text(), nullable=False),
     sa.Column('priority', sa.Integer(), nullable=True),
     sa.Column('status', sa.String(length=32), nullable=True),
-    sa.Column('kpis', postgresql.JSONB(astext_type=sa.Text()).with_variant(sa.JSON(), 'sqlite'), nullable=True),
+    sa.Column('kpis', sa.JSON(astext_type=sa.Text()).with_variant(sa.JSON(), 'sqlite'), nullable=True),
     sa.Column('target_date', sa.DateTime(timezone=True), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('achieved_at', sa.DateTime(timezone=True), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.add_column('ceo_suggested_tasks', sa.Column('parent_id', sa.UUID(), nullable=True))
-    op.add_column('ceo_suggested_tasks', sa.Column('plan_hierarchy', postgresql.JSONB(astext_type=sa.Text()).with_variant(sa.JSON(), 'sqlite'), nullable=True))
+    op.add_column('ceo_suggested_tasks', sa.Column('plan_hierarchy', sa.JSON(astext_type=sa.Text()).with_variant(sa.JSON(), 'sqlite'), nullable=True))
     op.add_column('ceo_suggested_tasks', sa.Column('goal_id', sa.UUID(), nullable=True))
     op.add_column('ceo_suggested_tasks', sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True))
     op.alter_column('ceo_suggested_tasks', 'priority',
@@ -52,7 +52,7 @@ def upgrade() -> None:
     op.create_foreign_key(None, 'projects', 'sovereign_goals', ['goal_id'], ['id'], ondelete='SET NULL')
     op.alter_column('subtasks', 'inhibition_signals',
                existing_type=postgresql.JSON(astext_type=sa.Text()),
-               type_=postgresql.JSONB(astext_type=sa.Text()).with_variant(sa.JSON(), 'sqlite'),
+               type_=sa.JSON(astext_type=sa.Text()).with_variant(sa.JSON(), 'sqlite'),
                existing_nullable=True)
     op.drop_constraint(op.f('subtasks_parent_id_fkey'), 'subtasks', type_='foreignkey')
     op.create_foreign_key(None, 'subtasks', 'subtasks', ['parent_id'], ['id'])
@@ -64,7 +64,7 @@ def downgrade() -> None:
     op.drop_constraint(None, 'subtasks', type_='foreignkey')
     op.create_foreign_key(op.f('subtasks_parent_id_fkey'), 'subtasks', 'subtasks', ['parent_id'], ['id'], ondelete='SET NULL')
     op.alter_column('subtasks', 'inhibition_signals',
-               existing_type=postgresql.JSONB(astext_type=sa.Text()).with_variant(sa.JSON(), 'sqlite'),
+               existing_type=sa.JSON(astext_type=sa.Text()).with_variant(sa.JSON(), 'sqlite'),
                type_=postgresql.JSON(astext_type=sa.Text()),
                existing_nullable=True)
     op.drop_constraint(None, 'projects', type_='foreignkey')
