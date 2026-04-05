@@ -8,6 +8,8 @@ directories = [
     "apps/dashboard/js",
     "apps/dashboard/css",
     "packages/contracts/dto",
+    "packages/shared",
+    "packages/observability",
     "packages/persistence/models",
     "packages/persistence/repositories",
     "packages/persistence/migrations/alembic",
