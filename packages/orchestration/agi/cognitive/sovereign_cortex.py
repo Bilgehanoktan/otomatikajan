@@ -13,7 +13,7 @@ from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 from schemas import SubtaskOutput
 
-from agents.agent_registry import build_agents
+from packages.orchestration.agi.agents.agent_registry import build_agents
 from packages.observability.logging import get_logger
 from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 from packages.memory.retrieval import context_builder
@@ -133,7 +133,7 @@ class SovereignCortex:
             # Architect ile uzmanlık promptu oluştur
             specialist_prompt = await self.architect.forge_specialist_prompt(role, subtask.title + " " + subtask.description)
             
-            from agents.agent_registry import Agent
+            from packages.orchestration.agi.agents.agent_registry import Agent
             new_agent = Agent(
                 id=role,
                 name=f"{role.capitalize()} Specialist",
@@ -486,7 +486,7 @@ class SovereignCortex:
             if m_safety["can_expand"]:
                 _log.info(f"[RECURSION] Derinleştirme aktif (Depth: {depth}): {st.id}")
                 
-                from agents.agent_registry import build_agents, discover_and_build_specialists
+                from packages.orchestration.agi.agents.agent_registry import build_agents, discover_and_build_specialists
                 all_agents = {**build_agents(), **discover_and_build_specialists()}
                 agents_list = [{"id": aid, "role": a.role, "name": a.name} for aid, a in all_agents.items()]
                 
@@ -538,12 +538,12 @@ class SovereignCortex:
 
     async def _execute_dialectic_planning(self, task_id: str, title: str, context: str, description: str, affective_state: Optional[Dict[str, float]] = None) -> list[SubTask]:
         """Birden fazla ajanın tartışıp konsensüse vardığı üst düzey planlama."""
-        from agents.agent_registry import build_agents
+        from packages.orchestration.agi.agents.agent_registry import build_agents
         
         _log.info(f"[DIALECTIC] Dinamik planlama ve dekompozisyon başlatılıyor: {title}")
         
         # 1. Mevcut ajan listesini al
-        from agents.agent_registry import build_agents, discover_and_build_specialists
+        from packages.orchestration.agi.agents.agent_registry import build_agents, discover_and_build_specialists
         all_agents = build_agents()
         all_agents.update(discover_and_build_specialists())
         
