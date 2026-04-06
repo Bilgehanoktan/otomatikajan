@@ -129,7 +129,7 @@ except Exception as e:
                         from packages.orchestration.agi.operational.neural_tool_weaver import neural_tool_weaver
                         weave_res = await neural_tool_weaver.weave_capability(f"Yeni motor gereksinimi: {step.agent_id}", step.agent_id)
                         if weave_res["status"] == "success":
-                            from agents.agent_registry import build_agents
+                            from packages.orchestration.agi.agents.agent_registry import build_agents
                             self.agents = build_agents()
                             agent = self.agents.get(step.agent_id)
                         
