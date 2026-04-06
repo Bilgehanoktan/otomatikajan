@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from heal.agent_state import AgentSnapshot
+    from packages.healing.domain.agent_state import AgentSnapshot
 
 
 # ── Hata Sınıflandırma ────────────────────────────────────
