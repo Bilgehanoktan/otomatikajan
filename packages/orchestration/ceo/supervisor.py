@@ -18,6 +18,10 @@ try:
     from packages.persistence.session import session_scope
 except ImportError:
     pass  # lazy — gerçek kullanımda method içinde import edilir
+if TYPE_CHECKING:
+    from packages.healing.domain.agent_state import AgentSnapshot
+    from packages.persistence.models.core_models import SubTask
+    from packages.orchestration.substrate.foundational_engine import FoundationalEngine as Orchestrator
 from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 from packages.observability.logging import get_logger
 from packages.quality_assurance.prompt_guard import enforce_output_contract
@@ -334,7 +338,7 @@ Tıkanmış projeler için sadece doğrudan, 1-2 cümlelik kesin eylem kararlar�
             )
 
         elif action == "requeue":
-            from tasks.celery_app import celery_app
+            from apps.worker.tasks.celery_app import celery_app
             
             kwargs = {}
             if hasattr(proj, "workflow_template"):
