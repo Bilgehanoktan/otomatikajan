@@ -47,13 +47,13 @@ class TestCoreParity(unittest.TestCase):
         from api.monitoring_router import monitoring_overview
         
         # Mocking db components to simulate failure
-        with patch('db.session.AsyncSessionLocal') as mock_session:
+        with patch('packages.persistence.session.AsyncSessionLocal') as mock_session:
             mock_session.side_effect = Exception("DB Connection Lost")
             
-            with patch('auth.jwt_auth.get_current_user', return_value={"id": 1}):
+            with patch('apps.api.routers.auth.jwt_auth.get_current_user', return_value={"id": 1}):
                 # Need to mock other services inside overview to prevent side effects
                 with patch('core.context.orchestrator', MagicMock()):
-                    with patch('core.job_queue.job_queue', MagicMock()):
+                    with patch('packages.orchestration.application.job_queue.job_queue', MagicMock()):
                         result = await monitoring_overview()
                         self.assertEqual(result["services"]["database"]["status"], "offline")
                         self.assertIn("DB Connection Lost", result["services"]["database"]["error"])

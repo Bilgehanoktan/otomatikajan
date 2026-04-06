@@ -6,9 +6,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import asyncio
 from core.debate_engine import DebateEngine, DebateResult, AGENT_PERSONAS, get_debate_engine
-from llm.model_router import ModelRouter, TaskComplexity, RoutingDecision, get_model_router
+from packages.llm_gateway.model_router import ModelRouter, TaskComplexity, RoutingDecision, get_model_router
 from core.sandbox_runner import SandboxRunner, SandboxResult, get_sandbox_runner
-from repair.memory.vector_lessons import VectorLessonsStore, VectorLesson, SimilarLesson, get_vector_lessons
+from packages.repair_engine.packages.memory.vector_lessons import VectorLessonsStore, VectorLesson, SimilarLesson, get_vector_lessons
 from core.repair_orchestrator import RepairOrchestrator
 
 PASS = 0

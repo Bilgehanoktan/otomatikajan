@@ -4,12 +4,12 @@ from datetime import datetime, timezone
 import uuid
 
 # Proje Yolları Config
-from repair.memory.incident_memory import incident_memory
-from repair.ingestion.incident_ingestor import incident_ingestor
+from packages.repair_engine.packages.memory.incident_memory import incident_memory
+from packages.repair_engine.ingestion.incident_ingestor import incident_ingestor
 from core.repair_orchestrator import get_repair_orchestrator
-from db.session import AsyncSessionLocal
-from db.repair_repository import RepairIncidentRepo, RepairJobRepo
-from db.repair_models import RepairIncident, RepairJobRecord
+from packages.persistence.session import AsyncSessionLocal
+from packages.persistence.repair_repository import RepairIncidentRepo, RepairJobRepo
+from packages.persistence.repair_models import RepairIncident, RepairJobRecord
 
 pytestmark = pytest.mark.asyncio
 
@@ -43,8 +43,8 @@ async def test_incident_memory_hydration():
             status="open",
             first_seen_at=datetime.now(timezone.utc)
         )
-        db.add(new_record)
-        await db.commit()
+        packages.persistence.add(new_record)
+        await packages.persistence.commit()
         
     # 2. Hydration Metodunu Çağır
     count = await incident_memory.hydrate_from_db()
@@ -70,7 +70,7 @@ async def test_repair_orchestrator_hydration():
             module="test_module", symptom="Test", status="open",
             first_seen_at=datetime.now(timezone.utc)
         )
-        db.add(new_inc)
+        packages.persistence.add(new_inc)
         
         new_job = RepairJobRecord(
             job_id=test_job_id,
@@ -80,8 +80,8 @@ async def test_repair_orchestrator_hydration():
             meta={"risk_score": 10, "test_field": True},  # Alembic revizyon 0008 meta alanı!
             created_at=datetime.now(timezone.utc)
         )
-        db.add(new_job)
-        await db.commit()
+        packages.persistence.add(new_job)
+        await packages.persistence.commit()
         
     # 2. Orchestrator Hydration Çağrısı (Startup LifeSpan davranışı)
     orch = get_repair_orchestrator()

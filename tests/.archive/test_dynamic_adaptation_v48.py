@@ -1,9 +1,9 @@
 import asyncio
 import logging
 import time
-from llm.model_orchestrator import ModelOrchestrator
-from core.agi.operational.metabolic_governor import metabolic_governor, MetabolicMode
-from core.agi.consciousness.affective_core import affective_core
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
+from packages.orchestration.agi.operational.metabolic_governor import metabolic_governor, MetabolicMode
+from packages.orchestration.agi.consciousness.affective_core import affective_core
 
 logging.basicConfig(level=logging.INFO)
 _log = logging.getLogger("VERIFY-V48")

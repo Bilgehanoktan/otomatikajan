@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from main import app
-from auth.jwt_auth import get_current_user
+from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user
 
 # 1. Provide a mock user to override authentication
 def override_get_current_user():
@@ -33,7 +33,7 @@ async def test_sovereign_auditor_check():
     """
     Faz 12.1 Verification: Test the core auditor engine behavior directly.
     """
-    from core.agi.cognitive.sovereign_auditor import sovereign_auditor
+    from packages.orchestration.agi.cognitive.sovereign_auditor import sovereign_auditor
     
     findings = await sovereign_auditor.run_full_audit()
     assert isinstance(findings, list), "Findings should be a list"
@@ -44,7 +44,7 @@ def test_sovereign_evolution_engine_ready():
     Faz 12.1 Verification: Ensure the Evolution Engine instance is correctly loaded.
     """
     try:
-        from core.agi.cognitive.evolution_engine import evolution_engine
+        from packages.orchestration.agi.cognitive.evolution_engine import evolution_engine
         assert evolution_engine is not None, "Evolution engine instance should not be None"
     except ImportError as e:
         pytest.fail(f"Evolution engine imports failed: {e}")

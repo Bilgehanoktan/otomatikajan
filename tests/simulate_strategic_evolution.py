@@ -3,10 +3,10 @@ import asyncio
 import uuid
 from datetime import datetime, timezone
 from sqlalchemy import select
-from db.session import session_scope
-from db.models import ImprovementOpportunity, CEOSuggestedTask, CEODecision
+from packages.persistence.session import session_scope
+from packages.persistence.models import ImprovementOpportunity, CEOSuggestedTask, CEODecision
 from core.ceo_engine import get_ceo_engine
-from observability.logging import get_logger
+from packages.packages.observability.logging import get_logger
 
 logger = get_logger("verify_strategic")
 
@@ -22,15 +22,15 @@ async def simulate_architecture_gap():
         phash = ImprovementOpportunity.generate_hash(source_type, source_ref)
         
         # Check if already exists to avoid duplicates
-        existing_res = await db.execute(select(ImprovementOpportunity).where(ImprovementOpportunity.pattern_hash == phash))
+        existing_res = await packages.persistence.execute(select(ImprovementOpportunity).where(ImprovementOpportunity.pattern_hash == phash))
         existing_op = existing_res.scalars().first()
         if existing_op:
             logger.info(f"Simulation: Found existing opportunity {existing_op.id}. Cleaning up...")
             # Delete suggestions first due to FK
             from sqlalchemy import delete
-            await db.execute(delete(CEOSuggestedTask).where(CEOSuggestedTask.opportunity_id == existing_op.id))
-            await db.execute(delete(ImprovementOpportunity).where(ImprovementOpportunity.id == existing_op.id))
-            await db.commit()
+            await packages.persistence.execute(delete(CEOSuggestedTask).where(CEOSuggestedTask.opportunity_id == existing_op.id))
+            await packages.persistence.execute(delete(ImprovementOpportunity).where(ImprovementOpportunity.id == existing_op.id))
+            await packages.persistence.commit()
             logger.info("Simulation: Cleanup complete.")
         
         op = ImprovementOpportunity(
@@ -48,8 +48,8 @@ async def simulate_architecture_gap():
             priority_score=82,
             status="open"
         )
-        db.add(op)
-        await db.commit()
+        packages.persistence.add(op)
+        await packages.persistence.commit()
         logger.info(f"--- Simulation: Mock Opportunity Created: {op.id} ---")
 
         # 2. Trigger CEO Engine Scan
@@ -62,7 +62,7 @@ async def simulate_architecture_gap():
         
         # 3. Verify Results
         # Check suggestions
-        res = await db.execute(
+        res = await packages.persistence.execute(
             select(CEOSuggestedTask)
             .where(CEOSuggestedTask.opportunity_id == op.id)
             .order_by(CEOSuggestedTask.created_at.desc())
@@ -88,7 +88,7 @@ async def simulate_architecture_gap():
                 print(f"  {status_icon} Step {step.plan_hierarchy.get('step_index')}: {step.title} ({step.status})")
 
             # Check for decisions
-            dec_res = await db.execute(select(CEODecision).where(CEODecision.opportunity_id == op.id))
+            dec_res = await packages.persistence.execute(select(CEODecision).where(CEODecision.opportunity_id == op.id))
             decisions = dec_res.scalars().all()
             for dec in decisions:
                 print(f"Decision: {dec.decision_type} - {dec.decision_summary}")

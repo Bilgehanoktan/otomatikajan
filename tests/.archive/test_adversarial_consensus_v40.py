@@ -3,9 +3,9 @@ import unittest
 from unittest.mock import AsyncMock, patch, MagicMock
 import json
 
-from core.agi.cognitive.consensus_manager import ConsensusManager
-from core.agi.schemas import PlanProposal
-from core.agi.cognitive.red_team_agent import VulnerabilityReport, Vulnerability
+from packages.orchestration.agi.cognitive.consensus_manager import ConsensusManager
+from packages.orchestration.agi.schemas import PlanProposal
+from packages.orchestration.agi.cognitive.red_team_agent import VulnerabilityReport, Vulnerability
 
 class TestAdversarialConsensusV40(unittest.IsolatedAsyncioTestCase):
     
@@ -48,7 +48,7 @@ class TestAdversarialConsensusV40(unittest.IsolatedAsyncioTestCase):
             # 1st call for original synthesis, 2nd for refinement
             mock_parse.side_effect = [initial_consensus, refined_consensus]
             
-            with patch("core.agi.cognitive.consensus_manager.red_team.attack_plan", new_callable=AsyncMock) as mock_attack:
+            with patch("packages.orchestration.agi.cognitive.consensus_manager.red_team.attack_plan", new_callable=AsyncMock) as mock_attack:
                 mock_attack.return_value = mock_red_report
                 
                 with patch.object(model_orch, "complete_task", new_callable=AsyncMock) as mock_complete:

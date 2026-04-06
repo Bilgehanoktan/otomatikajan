@@ -59,10 +59,10 @@ class TestDeerFlowIntegration(unittest.IsolatedAsyncioTestCase):
         mock_job.id = "job-id"
 
         # Patching EVERYTHING used inside create_task
-        with patch('db.session.AsyncSessionLocal') as mock_session_class, \
-             patch('db.repository.ProjectRepository', autospec=True) as mock_repo, \
-             patch('db.repository.TaskLogRepository', autospec=True) as mock_log_repo, \
-             patch('core.job_queue.job_queue.enqueue', new_callable=AsyncMock) as mock_enqueue, \
+        with patch('packages.persistence.session.AsyncSessionLocal') as mock_session_class, \
+             patch('packages.persistence.repository.ProjectRepository', autospec=True) as mock_repo, \
+             patch('packages.persistence.repository.TaskLogRepository', autospec=True) as mock_log_repo, \
+             patch('packages.orchestration.application.job_queue.job_queue.enqueue', new_callable=AsyncMock) as mock_enqueue, \
              patch('core.events.event_bus.emit', new_callable=AsyncMock) as mock_emit:
             
             # Setup session mock

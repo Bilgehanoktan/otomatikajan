@@ -12,9 +12,9 @@ def _fresh_import(module_name: str):
 
 
 def _fresh_import_pair():
-    sys.modules.pop("auth.jwt_auth", None)
+    sys.modules.pop("apps.api.routers.auth.jwt_auth", None)
     sys.modules.pop("config", None)
-    return importlib.import_module("auth.jwt_auth")
+    return importlib.import_module("apps.api.routers.auth.jwt_auth")
 
 
 def test_config_should_prefer_env_local_over_env(tmp_path, monkeypatch):

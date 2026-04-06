@@ -3,10 +3,10 @@ import asyncio
 from datetime import datetime, timedelta, timezone
 from fastapi.testclient import TestClient
 from unittest.mock import patch
-from auth.jwt_auth import _make_token
+from apps.api.routers.apps.api.routers.auth.jwt_auth import _make_token
 
 from main import app
-from core.job_queue import JobQueue, Job, JobStatus
+from packages.orchestration.application.job_queue import JobQueue, Job, JobStatus
 
 @pytest.mark.asyncio
 async def test_job_queue_zombie_sweeper():

@@ -1,7 +1,7 @@
 import time
 import pytest
-from llm.llm_types import ProviderStats
-from core.agi.consciousness.affective_core import AffectiveCore
+from packages.llm_gateway.llm_types import ProviderStats
+from packages.orchestration.agi.consciousness.affective_core import AffectiveCore
 
 def test_rolling_average_latency():
     stats = ProviderStats("test", "test_key", "http://test", "test-model")

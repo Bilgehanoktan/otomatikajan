@@ -3,9 +3,9 @@ import unittest
 from unittest.mock import AsyncMock, patch, MagicMock
 from datetime import datetime, timezone
 
-from core.agi.cognitive.sovereign_cortex import SovereignCortex
-from core.agi.task_governance import GovernedTask, SovereignGoal, GovernanceStatus
-from core.agi.operational.velocity_engine import EngineResult
+from packages.orchestration.agi.cognitive.sovereign_cortex import SovereignCortex
+from packages.orchestration.agi.task_governance import GovernedTask, SovereignGoal, GovernanceStatus
+from packages.orchestration.agi.operational.velocity_engine import EngineResult
 
 class TestCognitiveContinuityV42(unittest.IsolatedAsyncioTestCase):
     
@@ -26,7 +26,7 @@ class TestCognitiveContinuityV42(unittest.IsolatedAsyncioTestCase):
         parent = SovereignGoal(id="goal_1", title="Infrastructure", subtasks=[st])
         
         # 2. Mock ContextBuilder to verify injection
-        with patch("core.agi.cognitive.sovereign_cortex.context_builder.build_context", new_callable=AsyncMock) as mock_ctx:
+        with patch("packages.orchestration.agi.cognitive.sovereign_cortex.context_builder.build_context", new_callable=AsyncMock) as mock_ctx:
             mock_ctx.return_value = "Enriched Context Content"
             
             # 3. Mock VelocityEngine to verify capture
@@ -36,7 +36,7 @@ class TestCognitiveContinuityV42(unittest.IsolatedAsyncioTestCase):
                 reflection="Decided to use steel instead of concrete."
             )
             
-            with patch("core.agi.operational.velocity_engine.velocity_engine.simulate_and_execute", new_callable=AsyncMock) as mock_exec:
+            with patch("packages.orchestration.agi.operational.velocity_engine.velocity_engine.simulate_and_execute", new_callable=AsyncMock) as mock_exec:
                 mock_exec.return_value = mock_result
                 
                 # Execute node logic

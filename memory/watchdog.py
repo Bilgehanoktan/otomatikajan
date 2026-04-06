@@ -1,1 +1,1 @@
-﻿from packages.memory.watchdog import *
+﻿from packages.packages.memory.watchdog import *

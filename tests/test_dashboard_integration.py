@@ -8,8 +8,8 @@ from unittest.mock import MagicMock, AsyncMock, patch
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from main import app
-from auth.jwt_auth import get_current_user, require_admin
-from db.session import get_db_dep
+from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user, require_admin
+from packages.persistence.session import get_db_dep
 
 # Mock User for testing
 class MockUser:

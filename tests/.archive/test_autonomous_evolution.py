@@ -1,10 +1,10 @@
 import pytest
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
-from core.agi.cognitive.compactor import ContextCompactor
-from core.agi.operational.tool_weaver import ToolWeaver
-from core.agi.operational.motor_subsystem import MotorSubsystem
-from core.agi.schemas import ActionRecord, PlanStep, ExecutionPlan
+from packages.orchestration.agi.cognitive.compactor import ContextCompactor
+from packages.orchestration.agi.operational.tool_weaver import ToolWeaver
+from packages.orchestration.agi.operational.motor_subsystem import MotorSubsystem
+from packages.orchestration.agi.schemas import ActionRecord, PlanStep, ExecutionPlan
 
 @pytest.mark.asyncio
 async def test_context_compactor_logic():
@@ -63,7 +63,7 @@ async def test_motor_subsystem_local_retry():
     motor.sandbox.run_python = AsyncMock(side_effect=[mock_fail, mock_success])
     
     # Registry mock
-    from core.agi.operational.tool_weaver import tool_registry
+    from packages.orchestration.agi.operational.tool_weaver import tool_registry
     tool_registry.get_tool = MagicMock(return_value={"path": "dummy.py"})
     
     step = PlanStep(step_id="s1", agent_id="dynamic_tool", action="run", params={})
@@ -71,7 +71,7 @@ async def test_motor_subsystem_local_retry():
     # open() fonksiyonunu patch ile güvenli mock'la
     with patch("builtins.open", MagicMock()):
         # Mock'lanan open'ın read() dönüşünü ayarla
-        with patch("core.agi.operational.motor_subsystem.open") as mock_file_open:
+        with patch("packages.orchestration.agi.operational.motor_subsystem.open") as mock_file_open:
             mock_file_open.return_value.__enter__.return_value.read.return_value = "def main(p): pass"
             record = await motor._execute_motor_step(step, "plan-123")
             assert record.success is True

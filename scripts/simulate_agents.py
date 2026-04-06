@@ -10,9 +10,9 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from core.orchestrator import orchestrator
-from core.job_queue import job_queue
-from db.session import AsyncSessionLocal
-from db.models import ProjectStatus
+from packages.orchestration.application.job_queue import job_queue
+from packages.persistence.session import AsyncSessionLocal
+from packages.persistence.models import ProjectStatus
 
 async def simulate_agent_task():
     print("--- AJAN GÖREV SİMÜLASYONU BAŞLATILIYOR ---")

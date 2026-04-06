@@ -10,9 +10,9 @@ import asyncio
 # Add project root to sys.path
 sys.path.insert(0, os.getcwd())
 
-from db.session import get_db, _get_engine
-from db.repository import ProjectRepository
-from db.models import ProjectStatus, ProjectSource, Base
+from packages.persistence.session import get_db, _get_engine
+from packages.persistence.repository import ProjectRepository
+from packages.persistence.models import ProjectStatus, ProjectSource, Base
 
 async def test():
     print("Testing PARTIAL_COMPLETE state machine on SQLite...", flush=True)

@@ -246,7 +246,7 @@ def pytest_sessionfinish(session, exitstatus):
     """Tüm testler bittiğinde DB bağlantılarını temizle (Hardening)."""
     try:
         import asyncio
-        from db.session import close_db
+        from packages.persistence.session import close_db
         try:
             loop = asyncio.get_event_loop()
             if loop.is_running():

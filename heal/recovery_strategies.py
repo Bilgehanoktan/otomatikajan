@@ -278,7 +278,7 @@ class DatabaseRecoveryStrategy(RecoveryStrategy):
     async def execute(self, snapshot, subtask, orch) -> RecoveryResult:
         t0 = self._timer()
         try:
-            from db.session import is_db_available
+            from packages.persistence.session import is_db_available
             healthy = await is_db_available()
             if healthy:
                 return RecoveryResult(True, self.name, "Veritabanı zaten sağlıklı görünüyor.")

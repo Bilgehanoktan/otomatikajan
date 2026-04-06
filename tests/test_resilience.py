@@ -2,7 +2,7 @@ import pytest
 import time
 import asyncio
 from unittest.mock import MagicMock, patch
-from llm.model_orchestrator import ProviderStats, CircuitState
+from packages.llm_gateway.model_orchestrator import ProviderStats, CircuitState
 from api.resilience import CircuitBreaker, CircuitState as APICircuitState
 
 def test_llm_latency_quarantine():

@@ -27,10 +27,10 @@ def fail(name, err):
 # ─── 1. Agent Registry — temiz kod sözleşmesi ─────────────
 
 def test_agent_clean_code_contract():
-    from agents.agent_registry import build_agents
+    from packages.orchestration.agi.agent_registry import build_agents
     agents = build_agents()
     assert len(agents) == 8, f"8 ajan beklendi, {len(agents)} var"
-    for aid, agent in agents.items():
+    for aid, agent in packages.orchestration.agi.items():
         assert "ZORUNLU" in agent.system_prompt, f"{aid} temiz kod sözleşmesi eksik"
         assert "YASAK" in agent.system_prompt,   f"{aid} yasak listesi eksik"
         assert "eval" in agent.system_prompt,     f"{aid} eval uyarısı eksik"
@@ -185,7 +185,7 @@ def test_code_extractor_no_filepath():
 # ─── 4. AutoFixer ─────────────────────────────────────────
 
 def test_auto_fixer_bare_except():
-    from agents.code_reviewer import AutoFixer
+    from packages.orchestration.agi.code_reviewer import AutoFixer
     fixer = AutoFixer()
     code = """
 def foo():
@@ -201,7 +201,7 @@ def foo():
 
 
 def test_auto_fixer_print_to_logger():
-    from agents.code_reviewer import AutoFixer
+    from packages.orchestration.agi.code_reviewer import AutoFixer
     fixer = AutoFixer()
     code = 'def foo():\n    print("debug msg")\n    return 1\n'
     fixed, count = fixer.fix_python(code, [])
@@ -211,7 +211,7 @@ def test_auto_fixer_print_to_logger():
 
 
 def test_auto_fixer_typescript_var():
-    from agents.code_reviewer import AutoFixer
+    from packages.orchestration.agi.code_reviewer import AutoFixer
     fixer = AutoFixer()
     code = "var x = 1;\nvar y = 'hello';\n"
     fixed, count = fixer.fix_python(code, [])  # fix_typescript kullan
@@ -224,7 +224,7 @@ def test_auto_fixer_typescript_var():
 # ─── 5. PythonStaticAnalyzer ──────────────────────────────
 
 def test_static_analyzer_security():
-    from agents.code_reviewer import PythonStaticAnalyzer, FindingCategory, FindingSeverity
+    from packages.orchestration.agi.code_reviewer import PythonStaticAnalyzer, FindingCategory, FindingSeverity
     from code_engine import CodeFile, CodeLanguage
     analyzer = PythonStaticAnalyzer()
     code = CodeFile(path="s.py", language=CodeLanguage.PYTHON, content="""
@@ -242,7 +242,7 @@ h = hashlib.md5(b"password")
 
 
 def test_static_analyzer_function_quality():
-    from agents.code_reviewer import PythonStaticAnalyzer, FindingCategory
+    from packages.orchestration.agi.code_reviewer import PythonStaticAnalyzer, FindingCategory
     from code_engine import CodeFile, CodeLanguage
     analyzer = PythonStaticAnalyzer()
     # Tip annotation eksik, uzun fonksiyon
@@ -327,7 +327,7 @@ def test_code_result_stats():
 # ─── 8. FileReviewResult skoru ────────────────────────────
 
 def test_file_review_score():
-    from agents.code_reviewer import FileReviewResult, Finding, FindingSeverity, FindingCategory
+    from packages.orchestration.agi.code_reviewer import FileReviewResult, Finding, FindingSeverity, FindingCategory
     r = FileReviewResult(path="x.py", language="python")
     r.findings = [
         Finding(FindingCategory.SECURITY, FindingSeverity.CRITICAL, 1, "eval"),

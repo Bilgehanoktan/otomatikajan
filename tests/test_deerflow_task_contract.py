@@ -10,9 +10,9 @@ class MockTask:
         self.request.retries = 0
 
 @patch("tasks.deerflow_tasks.AsyncSessionLocal")
-@patch("db.repository.ProjectRepository.get")
-@patch("db.repository.ProjectRepository.mark_started")
-@patch("db.repository.ProjectRepository.mark_completed")
+@patch("packages.persistence.repository.ProjectRepository.get")
+@patch("packages.persistence.repository.ProjectRepository.mark_started")
+@patch("packages.persistence.repository.ProjectRepository.mark_completed")
 @patch("integrations.deerflow_bridge.DeerFlowBridgeClient.run")
 def test_deerflow_task_unit(mock_run, mock_completed, mock_started, mock_get, mock_db):
     """Celery görevinin bridge client'ı doğru çağırdığını test eder (Unit)."""
@@ -60,10 +60,10 @@ async def test_deerflow_integration_mock_bridge():
     assert result["result"] == "ok"
 
 @patch("tasks.deerflow_tasks.AsyncSessionLocal")
-@patch("db.repository.ProjectRepository.get")
-@patch("db.repository.ProjectRepository.mark_started")
-@patch("db.repository.ProjectRepository.mark_completed")
-@patch("db.repository.TaskLogRepository.write")
+@patch("packages.persistence.repository.ProjectRepository.get")
+@patch("packages.persistence.repository.ProjectRepository.mark_started")
+@patch("packages.persistence.repository.ProjectRepository.mark_completed")
+@patch("packages.persistence.repository.TaskLogRepository.write")
 @patch("integrations.deerflow_bridge.DeerFlowBridgeClient.stream_run")
 def test_deerflow_streaming_task_unit(mock_stream, mock_log_write, mock_completed, mock_started, mock_get, mock_db):
     """Streaming Celery görevinin bridge'i doğru tükettiğini test eder."""

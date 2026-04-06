@@ -22,9 +22,9 @@ import pytest
 # Module names that need to be mocked to break circular imports
 _MOCKED_MODULE_NAMES = [
     "deerflow.agents",
-    "deerflow.agents.thread_state",
-    "deerflow.agents.middlewares",
-    "deerflow.agents.middlewares.thread_data_middleware",
+    "deerflow.packages.orchestration.agi.thread_state",
+    "deerflow.packages.orchestration.agi.middlewares",
+    "deerflow.packages.orchestration.agi.middlewares.thread_data_middleware",
     "deerflow.sandbox",
     "deerflow.sandbox.middleware",
     "deerflow.models",

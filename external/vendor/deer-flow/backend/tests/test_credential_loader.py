@@ -123,7 +123,7 @@ def test_load_claude_code_credential_falls_back_to_default_file_when_override_is
 
 
 def test_load_codex_cli_credential_supports_nested_tokens_shape(tmp_path, monkeypatch):
-    auth_path = tmp_path / "auth.json"
+    auth_path = tmp_path / "apps.api.routers.auth.json"
     auth_path.write_text(
         json.dumps(
             {
@@ -145,7 +145,7 @@ def test_load_codex_cli_credential_supports_nested_tokens_shape(tmp_path, monkey
 
 
 def test_load_codex_cli_credential_supports_legacy_top_level_shape(tmp_path, monkeypatch):
-    auth_path = tmp_path / "auth.json"
+    auth_path = tmp_path / "apps.api.routers.auth.json"
     auth_path.write_text(json.dumps({"access_token": "legacy-access-token"}))
     monkeypatch.setenv("CODEX_AUTH_PATH", str(auth_path))
 

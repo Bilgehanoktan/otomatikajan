@@ -55,7 +55,7 @@ section("1 — ProviderStats Legacy Compat")
 # ══════════════════════════════════════════════════════════════
 
 try:
-    from llm.model_orchestrator import ProviderStats, CircuitState
+    from packages.llm_gateway.model_orchestrator import ProviderStats, CircuitState
     ok("ProviderStats import OK")
 except Exception as e:
     fail("Import", e); sys.exit(1)
@@ -190,7 +190,7 @@ section("4 — Cost Calc Saf Hesaplama (DB Olmadan)")
 # ══════════════════════════════════════════════════════════════
 
 try:
-    from llm.cost_calc import calculate_cost, estimate_tokens, format_cost, budget_check, PRICING
+    from packages.llm_gateway.cost_calc import calculate_cost, estimate_tokens, format_cost, budget_check, PRICING
     ok("cost_calc import OK — DB yok")
 except Exception as e:
     fail("Import", e); sys.exit(1)
@@ -268,16 +268,16 @@ def test_memory_store_no_heavy_toplevel():
     """memory/store.py import edilirken numpy/sqlalchemy yüklenmiyor olmalı."""
     import importlib, sys
     # Önceki import varsa geç
-    if "memory.store" in sys.modules:
-        ok("memory.store zaten yüklü (lazy zaten uygulandı)")
+    if "packages.memory.store" in sys.modules:
+        ok("packages.memory.store zaten yüklü (lazy zaten uygulandı)")
         return
     # Lazy import kontrolü — store import edilince ağır paket gelmemeli
     heavy = ["numpy", "sqlalchemy", "sqlalchemy.ext.asyncio"]
     before = set(sys.modules.keys())
     try:
-        import memory.store  # noqa
+        import packages.memory.store  # noqa
     except Exception:
-        ok("memory.store import hatası (ağır dep eksik — lazy doğru çalışıyor)")
+        ok("packages.memory.store import hatası (ağır dep eksik — lazy doğru çalışıyor)")
         return
     after = set(sys.modules.keys())
     newly_loaded = after - before
@@ -285,7 +285,7 @@ def test_memory_store_no_heavy_toplevel():
     if bad:
         fail(f"Lazy import başarısız — yüklenen: {bad}")
     else:
-        ok("memory.store import'u ağır paket yüklemedi")
+        ok("packages.memory.store import'u ağır paket yüklemedi")
 
 test_memory_store_no_heavy_toplevel()
 

@@ -1,1 +1,1 @@
-﻿from packages.memory.synapse import *
+﻿from packages.packages.memory.synapse import *

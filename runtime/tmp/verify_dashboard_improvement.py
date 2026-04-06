@@ -9,7 +9,7 @@ project_root = Path(__file__).resolve().parents[1]
 sys.path.append(str(project_root))
 
 from core.self_updater import SelfUpdater
-from llm.model_orchestrator import ModelOrchestrator
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 
 async def verify_dashboard_support():
     print("--- Dashboard Support Verification ---")

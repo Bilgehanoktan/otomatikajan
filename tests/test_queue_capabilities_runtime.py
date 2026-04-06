@@ -7,8 +7,8 @@ def test_celery_backend_capabilities_are_explicit(monkeypatch) -> None:
     monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
 
     # Force re-import or bypass lazy singleton for testing
-    import core.job_queue
-    from core.job_queue import CeleryJobQueue
+    import packages.orchestration.application.job_queue
+    from packages.orchestration.application.job_queue import CeleryJobQueue
 
     queue = CeleryJobQueue()
     assert queue.backend_name == "celery"
@@ -21,7 +21,7 @@ def test_inprocess_backend_capabilities_are_explicit(monkeypatch) -> None:
     monkeypatch.setenv("QUEUE_BACKEND", "inprocess")
     monkeypatch.delenv("REDIS_URL", raising=False)
 
-    from core.job_queue import JobQueue
+    from packages.orchestration.application.job_queue import JobQueue
 
     queue = JobQueue()
     assert queue.backend_name == "inprocess"

@@ -1,5 +1,5 @@
 import pytest
-from llm.cost_calc import calculate_cost, estimate_tokens, format_cost, budget_check
+from packages.llm_gateway.cost_calc import calculate_cost, estimate_tokens, format_cost, budget_check
 
 def test_calculate_cost_parity():
     """GPT-4o, Gemini ve Claude maliyetlerini kurshun geçirmezlik testi."""

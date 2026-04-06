@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 from fastapi.testclient import TestClient
 from main import app
-from auth.jwt_auth import _make_token
+from apps.api.routers.apps.api.routers.auth.jwt_auth import _make_token
 from datetime import timedelta
 from unittest.mock import patch, MagicMock
 
@@ -29,7 +29,7 @@ async def test_skill_log_traceability_api(auth_token):
     mock_log.created_at = datetime.now(timezone.utc)
     
     # Matching the API implementation: async with get_db_session() as db
-    with patch("db.session.AsyncSessionLocal") as mock_session_ctx:
+    with patch("packages.persistence.session.AsyncSessionLocal") as mock_session_ctx:
         mock_session = MagicMock()
         
         # Async context manager mock

@@ -61,7 +61,7 @@ def test_oauth_token_manager_fetches_and_caches_token(monkeypatch):
                     "url": "https://api.example.com/mcp",
                     "oauth": {
                         "enabled": True,
-                        "token_url": "https://auth.example.com/oauth/token",
+                        "token_url": "https://apps.api.routers.auth.example.com/oauth/token",
                         "grant_type": "client_credentials",
                         "client_id": "client-id",
                         "client_secret": "client-secret",
@@ -79,7 +79,7 @@ def test_oauth_token_manager_fetches_and_caches_token(monkeypatch):
     assert first == "Bearer token-123"
     assert second == "Bearer token-123"
     assert len(post_calls) == 1
-    assert post_calls[0]["url"] == "https://auth.example.com/oauth/token"
+    assert post_calls[0]["url"] == "https://apps.api.routers.auth.example.com/oauth/token"
     assert post_calls[0]["data"]["grant_type"] == "client_credentials"
 
 
@@ -108,7 +108,7 @@ def test_build_oauth_interceptor_injects_authorization_header(monkeypatch):
                     "url": "https://api.example.com/mcp",
                     "oauth": {
                         "enabled": True,
-                        "token_url": "https://auth.example.com/oauth/token",
+                        "token_url": "https://apps.api.routers.auth.example.com/oauth/token",
                         "grant_type": "client_credentials",
                         "client_id": "client-id",
                         "client_secret": "client-secret",
@@ -170,7 +170,7 @@ def test_get_initial_oauth_headers(monkeypatch):
                     "url": "https://api.example.com/mcp",
                     "oauth": {
                         "enabled": True,
-                        "token_url": "https://auth.example.com/oauth/token",
+                        "token_url": "https://apps.api.routers.auth.example.com/oauth/token",
                         "grant_type": "client_credentials",
                         "client_id": "client-id",
                         "client_secret": "client-secret",

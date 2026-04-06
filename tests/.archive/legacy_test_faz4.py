@@ -330,10 +330,10 @@ def test_existing_modules_intact():
     """Mevcut modüller bozulmamış mı?"""
     import importlib
     modules = [
-        "core.events", "core.job_queue", "core.orchestrator",
-        "observability.metrics", "observability.logging",
+        "core.events", "packages.orchestration.application.job_queue", "core.orchestrator",
+        "packages.observability.metrics", "packages.observability.logging",
         "api.rate_limiter", "api.ws_manager",
-        "db.models", "db.repository",
+        "packages.persistence.models", "packages.persistence.repository",
     ]
     for mod in modules:
         try:
@@ -343,7 +343,7 @@ def test_existing_modules_intact():
 
 
 def test_db_models_have_faz4_tables():
-    from db.models import (
+    from packages.persistence.models import (
         Project, TaskLog, ApiMetric,
         TelegramUser, TelegramCommandLog
     )
@@ -356,7 +356,7 @@ def test_db_models_have_faz4_tables():
 
 
 def test_project_model_faz4_fields():
-    from db.models import Project
+    from packages.persistence.models import Project
     cols = {c.name for c in Project.__table__.columns}
     faz4_fields = {"source", "priority", "progress_pct", "tags",
                    "deadline", "assigned_agent", "error_detail",
@@ -366,13 +366,13 @@ def test_project_model_faz4_fields():
 
 
 def test_repository_task_log_methods():
-    from db.repository import TaskLogRepository
+    from packages.persistence.repository import TaskLogRepository
     assert hasattr(TaskLogRepository, "write")
     assert hasattr(TaskLogRepository, "get_by_project")
 
 
 def test_repository_api_metric_methods():
-    from db.repository import ApiMetricRepository
+    from packages.persistence.repository import ApiMetricRepository
     assert hasattr(ApiMetricRepository, "write")
     assert hasattr(ApiMetricRepository, "endpoint_stats")
     assert hasattr(ApiMetricRepository, "time_series")
@@ -380,7 +380,7 @@ def test_repository_api_metric_methods():
 
 
 def test_repository_telegram_methods():
-    from db.repository import TelegramRepository
+    from packages.persistence.repository import TelegramRepository
     assert hasattr(TelegramRepository, "get_user")
     assert hasattr(TelegramRepository, "upsert_user")
     assert hasattr(TelegramRepository, "is_authorized")
@@ -390,7 +390,7 @@ def test_repository_telegram_methods():
 
 
 def test_project_repository_faz4_methods():
-    from db.repository import ProjectRepository
+    from packages.persistence.repository import ProjectRepository
     assert hasattr(ProjectRepository, "cancel")
     assert hasattr(ProjectRepository, "update_fields")
     assert hasattr(ProjectRepository, "set_error")

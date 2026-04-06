@@ -25,7 +25,7 @@ def test_monitoring_overview_should_populate_queue_independently_from_orchestrat
         if len(except_parts) > 1:
             # The code between first except and second try/except should NOT have the main job_queue block,
             # wait, it SHOULD be between them.
-            # Let's just verify that 'from core.job_queue import job_queue' is NOT indented
+            # Let's just verify that 'from packages.orchestration.application.job_queue import job_queue' is NOT indented
             # as if it were inside the first except block.
             assert '\n    except Exception as e:\n        services["orchestrator"] = {\n            "status": "offline",' in src
             # The next line after that block ends (dedented) should eventually be job_queue

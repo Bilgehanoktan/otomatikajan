@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from core.job_queue import JobQueue, Job, JobStatus
+from packages.orchestration.application.job_queue import JobQueue, Job, JobStatus
 
 
 @pytest.mark.asyncio
@@ -75,7 +75,7 @@ async def test_zombie_sweeper_should_cancel_only_stale_running_jobs(monkeypatch)
         queue._running = False
 
     monkeypatch.setattr(queue, "request_cancel", _record_cancel)
-    monkeypatch.setattr("core.job_queue.asyncio.sleep", _one_tick_sleep, raising=True)
+    monkeypatch.setattr("packages.orchestration.application.job_queue.asyncio.sleep", _one_tick_sleep, raising=True)
 
     await queue._zombie_sweeper()  # noqa: SLF001
 

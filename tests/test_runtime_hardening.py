@@ -1,7 +1,7 @@
 import asyncio
 import os
 import pytest
-from db.session import is_db_available
+from packages.persistence.session import is_db_available
 from config import load_dotenv
 
 @pytest.mark.asyncio

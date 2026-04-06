@@ -40,8 +40,8 @@ def smoke_import_test():
     
     critical_modules = [
         "main",
-        "core.agi.cognitive.sovereign_cortex",
-        "core.agi.task_governance",
+        "packages.orchestration.agi.cognitive.sovereign_cortex",
+        "packages.orchestration.agi.task_governance",
         "startup.lifespan",
         "core.context"
     ]

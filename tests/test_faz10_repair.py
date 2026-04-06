@@ -2,13 +2,13 @@
 Faz 10  Self-Repair Architecture Test Paketi
 
 Kapsam:
-  - repair.schemas    (incident, diagnosis, patch_plan, validation, repair_job)
-  - repair.ingestion  (incident ingestor)
-  - repair.triage     (triage engine)
-  - repair.planning   (patch planner)
-  - repair.review     (patch reviewer)
-  - repair.verification (syntax, security, architecture checks)
-  - repair.memory     (incident, patch, architecture memory)
+  - packages.repair_engine.schemas    (incident, diagnosis, patch_plan, validation, repair_job)
+  - packages.repair_engine.ingestion  (incident ingestor)
+  - packages.repair_engine.triage     (triage engine)
+  - packages.repair_engine.planning   (patch planner)
+  - packages.repair_engine.review     (patch reviewer)
+  - packages.repair_engine.verification (syntax, security, architecture checks)
+  - packages.repair_engine.memory     (incident, patch, architecture memory)
   - core.policy_engine
   - core.repair_orchestrator (state machine)
 """
@@ -71,7 +71,7 @@ print("\n 1. Schemas")
 
 @test("IncidentRecord  oluturma ve to_dict")
 def test_faz10_001():
-    from repair.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
+    from packages.repair_engine.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
     inc = IncidentRecord.create(
         source=IncidentSource.RUNTIME_LOG,
         severity=IncidentSeverity.HIGH,
@@ -88,7 +88,7 @@ if __name__ == "__main__": test_faz10_001()
 
 @test("RepairJob  durum makinesi geileri")
 def test_faz10_002():
-    from repair.schemas.repair_job import RepairJob, RepairJobStatus
+    from packages.repair_engine.schemas.repair_job import RepairJob, RepairJobStatus
     job = RepairJob.create("inc_test001")
     assert job.status == RepairJobStatus.NEW
     ok = job.transition(RepairJobStatus.INCIDENT_COLLECTED, note="test")
@@ -99,7 +99,7 @@ if __name__ == "__main__": test_faz10_002()
 
 @test("RepairJob  geersiz gei reddedilir")
 def test_faz10_003():
-    from repair.schemas.repair_job import RepairJob, RepairJobStatus
+    from packages.repair_engine.schemas.repair_job import RepairJob, RepairJobStatus
     job = RepairJob.create("inc_test002")
     ok = job.transition(RepairJobStatus.MERGED)   # NEW  MERGED geersiz
     assert not ok
@@ -107,7 +107,7 @@ if __name__ == "__main__": test_faz10_003()
 
 @test("RepairJob  terminal durumdan gei yok")
 def test_faz10_004():
-    from repair.schemas.repair_job import RepairJob, RepairJobStatus
+    from packages.repair_engine.schemas.repair_job import RepairJob, RepairJobStatus
     job = RepairJob.create("inc_test003")
     job.transition(RepairJobStatus.INCIDENT_COLLECTED)
     ok_rejected = job.transition(RepairJobStatus.REJECTED)  # INCIDENT_COLLECTED  REJECTED geerli
@@ -119,7 +119,7 @@ if __name__ == "__main__": test_faz10_004()
 
 @test("PatchPlan  safe_for_auto_patch mant")
 def test_faz10_005():
-    from repair.schemas.patch_plan import PatchPlan, PatchAction, ChangeType, RiskLevel
+    from packages.repair_engine.schemas.patch_plan import PatchPlan, PatchAction, ChangeType, RiskLevel
     plan = PatchPlan.create(
         ticket_id="diag_001",
         target_files=["main.py"],
@@ -135,7 +135,7 @@ if __name__ == "__main__": test_faz10_005()
 
 @test("ValidationReport  overall_passed mant")
 def test_faz10_006():
-    from repair.schemas.validation import ValidationReport, ValidationStatus
+    from packages.repair_engine.schemas.validation import ValidationReport, ValidationStatus
     rep = ValidationReport.create(patch_plan_id="plan_001")
     # Temel kaplar
     rep.syntax_ok = rep.lint_ok = rep.unit_tests_ok = rep.security_ok = rep.architecture_ok = True
@@ -176,7 +176,7 @@ print("\n 2. Ingestion")
 
 @test("IncidentIngestor  exception'dan incident retme")
 def test_faz10_007():
-    from repair.ingestion.incident_ingestor import IncidentIngestor
+    from packages.repair_engine.ingestion.incident_ingestor import IncidentIngestor
     ing = IncidentIngestor()
     try:
         raise ValueError("test error from orchestrator")
@@ -188,7 +188,7 @@ if __name__ == "__main__": test_faz10_007()
 
 @test("IncidentIngestor  log satrndan incident")
 def test_faz10_008():
-    from repair.ingestion.incident_ingestor import IncidentIngestor
+    from packages.repair_engine.ingestion.incident_ingestor import IncidentIngestor
     ing = IncidentIngestor()
     inc = ing.from_log_line(
         "ERROR 500 Internal Server Error on /api/v1/tasks unhandled exception",
@@ -200,7 +200,7 @@ if __name__ == "__main__": test_faz10_008()
 
 @test("IncidentIngestor  dk nem log  None dner")
 def test_faz10_009():
-    from repair.ingestion.incident_ingestor import IncidentIngestor
+    from packages.repair_engine.ingestion.incident_ingestor import IncidentIngestor
     ing = IncidentIngestor()
     result = ing.from_log_line("INFO request processed successfully", service="test")
     assert result is None
@@ -208,7 +208,7 @@ if __name__ == "__main__": test_faz10_009()
 
 @test("IncidentIngestor  deduplication (ayn semptom tekrarlanrsa)")
 def test_faz10_010():
-    from repair.ingestion.incident_ingestor import IncidentIngestor
+    from packages.repair_engine.ingestion.incident_ingestor import IncidentIngestor
     ing = IncidentIngestor()
     inc1 = ing.from_log_line("ERROR 500 unhandled exception", service="svc")
     inc2 = ing.from_log_line("ERROR 500 unhandled exception", service="svc")
@@ -218,7 +218,7 @@ if __name__ == "__main__": test_faz10_010()
 
 @test("IncidentIngestor  test failure'dan incident")
 def test_faz10_011():
-    from repair.ingestion.incident_ingestor import IncidentIngestor
+    from packages.repair_engine.ingestion.incident_ingestor import IncidentIngestor
     ing = IncidentIngestor()
     inc = ing.from_failed_test(
         test_name="test_task_creation",
@@ -236,14 +236,14 @@ print("\n 3. Triage Engine")
 
 @test("Triage  ImportError  import_error snf")
 def test_faz10_012():
-    from repair.ingestion.incident_ingestor import IncidentIngestor
-    from repair.triage.triage_engine import TriageEngine
-    from repair.schemas.diagnosis import ProblemClass, RepairMode
+    from packages.repair_engine.ingestion.incident_ingestor import IncidentIngestor
+    from packages.repair_engine.triage.triage_engine import TriageEngine
+    from packages.repair_engine.schemas.diagnosis import ProblemClass, RepairMode
     ing = IncidentIngestor()
     inc = ing.from_dict({
         "source": "runtime_log", "severity": "high",
         "service": "backend-api", "module": "main",
-        "symptom": "ImportError: cannot import name SubTaskModel from db.models",
+        "symptom": "ImportError: cannot import name SubTaskModel from packages.persistence.models",
         "stack_trace": 'File "main.py"\nImportError: cannot import name SubTaskModel',
     })
     engine = TriageEngine()
@@ -254,9 +254,9 @@ if __name__ == "__main__": test_faz10_012()
 
 @test("Triage  Auth hatas  manual_only")
 def test_faz10_013():
-    from repair.ingestion.incident_ingestor import IncidentIngestor
-    from repair.triage.triage_engine import TriageEngine
-    from repair.schemas.diagnosis import RepairMode
+    from packages.repair_engine.ingestion.incident_ingestor import IncidentIngestor
+    from packages.repair_engine.triage.triage_engine import TriageEngine
+    from packages.repair_engine.schemas.diagnosis import RepairMode
     ing = IncidentIngestor()
     inc = ing.from_dict({
         "source": "runtime_log", "severity": "high",
@@ -272,10 +272,10 @@ if __name__ == "__main__": test_faz10_013()
 
 @test("Triage  Critical severity  her zaman manual")
 def test_faz10_014():
-    from repair.ingestion.incident_ingestor import IncidentIngestor
-    from repair.triage.triage_engine import TriageEngine
-    from repair.schemas.incident import IncidentSeverity
-    from repair.schemas.diagnosis import RepairMode
+    from packages.repair_engine.ingestion.incident_ingestor import IncidentIngestor
+    from packages.repair_engine.triage.triage_engine import TriageEngine
+    from packages.repair_engine.schemas.incident import IncidentSeverity
+    from packages.repair_engine.schemas.diagnosis import RepairMode
     ing = IncidentIngestor()
     inc = ing.from_dict({
         "source": "runtime_log", "severity": "critical",
@@ -290,8 +290,8 @@ if __name__ == "__main__": test_faz10_014()
 
 @test("Triage  candidate dosyalar listeleniyor")
 def test_faz10_015():
-    from repair.ingestion.incident_ingestor import IncidentIngestor
-    from repair.triage.triage_engine import TriageEngine
+    from packages.repair_engine.ingestion.incident_ingestor import IncidentIngestor
+    from packages.repair_engine.triage.triage_engine import TriageEngine
     ing = IncidentIngestor()
     inc = ing.from_dict({
         "source": "runtime_log", "severity": "medium",
@@ -312,9 +312,9 @@ print("\n 4. Patch Planner")
 
 @test("PatchPlanner  low risk ImportError  plan retir")
 def test_faz10_016():
-    from repair.schemas.diagnosis import DiagnosisTicket, ProblemClass, RepairMode, RootCauseHypothesis
-    from repair.planning.patch_planner import PatchPlanner
-    from repair.schemas.patch_plan import RiskLevel
+    from packages.repair_engine.schemas.diagnosis import DiagnosisTicket, ProblemClass, RepairMode, RootCauseHypothesis
+    from packages.repair_engine.planning.patch_planner import PatchPlanner
+    from packages.repair_engine.schemas.patch_plan import RiskLevel
 
     ticket = DiagnosisTicket.create(
         incident_id="inc_001",
@@ -336,8 +336,8 @@ if __name__ == "__main__": test_faz10_016()
 
 @test("PatchPlanner  manual_only modda plan retmez")
 def test_faz10_017():
-    from repair.schemas.diagnosis import DiagnosisTicket, ProblemClass, RepairMode
-    from repair.planning.patch_planner import PatchPlanner
+    from packages.repair_engine.schemas.diagnosis import DiagnosisTicket, ProblemClass, RepairMode
+    from packages.repair_engine.planning.patch_planner import PatchPlanner
     ticket = DiagnosisTicket.create(
         incident_id="inc_002",
         classification=ProblemClass.AUTH_FAILURE,
@@ -351,8 +351,8 @@ if __name__ == "__main__": test_faz10_017()
 
 @test("PatchPlanner  hipotez yoksa plan retmez")
 def test_faz10_018():
-    from repair.schemas.diagnosis import DiagnosisTicket, ProblemClass, RepairMode
-    from repair.planning.patch_planner import PatchPlanner
+    from packages.repair_engine.schemas.diagnosis import DiagnosisTicket, ProblemClass, RepairMode
+    from packages.repair_engine.planning.patch_planner import PatchPlanner
     ticket = DiagnosisTicket.create(
         incident_id="inc_003",
         classification=ProblemClass.IMPORT_ERROR,
@@ -373,10 +373,10 @@ print("\n 5. Patch Reviewer")
 
 @test("Reviewer  bo diff  reject")
 def test_faz10_019():
-    from repair.review.patch_reviewer import PatchReviewer, ReviewDecisionType
-    from repair.generation.patch_generator import GeneratedPatch
-    from repair.schemas.patch_plan import PatchPlan, RiskLevel
-    from repair.schemas.diagnosis import DiagnosisTicket, ProblemClass, RepairMode
+    from packages.repair_engine.review.patch_reviewer import PatchReviewer, ReviewDecisionType
+    from packages.repair_engine.generation.patch_generator import GeneratedPatch
+    from packages.repair_engine.schemas.patch_plan import PatchPlan, RiskLevel
+    from packages.repair_engine.schemas.diagnosis import DiagnosisTicket, ProblemClass, RepairMode
 
     patch = GeneratedPatch(plan_id="plan_001", diff="", changed_files=[])
     plan  = PatchPlan.create("diag_001", risk=RiskLevel.LOW)
@@ -389,10 +389,10 @@ if __name__ == "__main__": test_faz10_019()
 
 @test("Reviewer  eval()  manual_review")
 def test_faz10_020():
-    from repair.review.patch_reviewer import PatchReviewer, ReviewDecisionType
-    from repair.generation.patch_generator import GeneratedPatch
-    from repair.schemas.patch_plan import PatchPlan, RiskLevel
-    from repair.schemas.diagnosis import DiagnosisTicket, ProblemClass, RepairMode, RootCauseHypothesis
+    from packages.repair_engine.review.patch_reviewer import PatchReviewer, ReviewDecisionType
+    from packages.repair_engine.generation.patch_generator import GeneratedPatch
+    from packages.repair_engine.schemas.patch_plan import PatchPlan, RiskLevel
+    from packages.repair_engine.schemas.diagnosis import DiagnosisTicket, ProblemClass, RepairMode, RootCauseHypothesis
 
     evil_diff = """--- a/main.py\n+++ b/main.py\n@@ -1,3 +1,4 @@\n import os\n+result = eval(user_input)\n def main():\n     pass"""
     patch = GeneratedPatch(plan_id="plan_001", diff=evil_diff, changed_files=["main.py"])
@@ -409,16 +409,16 @@ if __name__ == "__main__": test_faz10_020()
 
 @test("Reviewer  minimal geerli diff  approve")
 def test_faz10_021():
-    from repair.review.patch_reviewer import PatchReviewer, ReviewDecisionType
-    from repair.generation.patch_generator import GeneratedPatch
-    from repair.schemas.patch_plan import PatchPlan, RiskLevel
-    from repair.schemas.diagnosis import DiagnosisTicket, ProblemClass, RepairMode, RootCauseHypothesis
+    from packages.repair_engine.review.patch_reviewer import PatchReviewer, ReviewDecisionType
+    from packages.repair_engine.generation.patch_generator import GeneratedPatch
+    from packages.repair_engine.schemas.patch_plan import PatchPlan, RiskLevel
+    from packages.repair_engine.schemas.diagnosis import DiagnosisTicket, ProblemClass, RepairMode, RootCauseHypothesis
 
     valid_diff = (
         "--- a/main.py\n+++ b/main.py\n"
         "@@ -1,3 +1,4 @@\n"
         " import os\n"
-        "+from db.models import SubTaskModel\n"
+        "+from packages.persistence.models import SubTaskModel\n"
         " def main():\n"
         "     pass\n"
     )
@@ -442,15 +442,15 @@ print("\n 6. Verification Engine")
 
 @test("VerificationEngine  geerli diff syntax OK")
 def test_faz10_022():
-    from repair.verification.verification_engine import VerificationEngine
-    from repair.generation.patch_generator import GeneratedPatch
-    from repair.schemas.patch_plan import PatchPlan, RiskLevel
+    from packages.repair_engine.verification.verification_engine import VerificationEngine
+    from packages.repair_engine.generation.patch_generator import GeneratedPatch
+    from packages.repair_engine.schemas.patch_plan import PatchPlan, RiskLevel
 
     diff = (
         "--- a/main.py\n+++ b/main.py\n"
         "@@ -1,3 +1,4 @@\n"
         " import os\n"
-        "+from db.models import SubTaskModel\n"
+        "+from packages.persistence.models import SubTaskModel\n"
         " def main():\n    pass\n"
     )
     patch = GeneratedPatch(plan_id="p001", diff=diff, changed_files=["main.py"])
@@ -463,9 +463,9 @@ if __name__ == "__main__": test_faz10_022()
 
 @test("VerificationEngine  eval() gvenlik testi FAIL")
 def test_faz10_023():
-    from repair.verification.verification_engine import VerificationEngine
-    from repair.generation.patch_generator import GeneratedPatch
-    from repair.schemas.patch_plan import PatchPlan, RiskLevel
+    from packages.repair_engine.verification.verification_engine import VerificationEngine
+    from packages.repair_engine.generation.patch_generator import GeneratedPatch
+    from packages.repair_engine.schemas.patch_plan import PatchPlan, RiskLevel
 
     diff = (
         "--- a/main.py\n+++ b/main.py\n"
@@ -485,9 +485,9 @@ if __name__ == "__main__": test_faz10_023()
 
 @test("VerificationEngine  izinsiz dosya mimari kontrol")
 def test_faz10_024():
-    from repair.verification.verification_engine import VerificationEngine
-    from repair.generation.patch_generator import GeneratedPatch
-    from repair.schemas.patch_plan import PatchPlan, RiskLevel
+    from packages.repair_engine.verification.verification_engine import VerificationEngine
+    from packages.repair_engine.generation.patch_generator import GeneratedPatch
+    from packages.repair_engine.schemas.patch_plan import PatchPlan, RiskLevel
 
     diff = (
         "--- a/main.py\n+++ b/main.py\n"
@@ -509,9 +509,9 @@ if __name__ == "__main__": test_faz10_024()
 
 @test("VerificationEngine  confidence hesab 0-100 aralnda")
 def test_faz10_025():
-    from repair.verification.verification_engine import VerificationEngine
-    from repair.generation.patch_generator import GeneratedPatch
-    from repair.schemas.patch_plan import PatchPlan, RiskLevel
+    from packages.repair_engine.verification.verification_engine import VerificationEngine
+    from packages.repair_engine.generation.patch_generator import GeneratedPatch
+    from packages.repair_engine.schemas.patch_plan import PatchPlan, RiskLevel
 
     diff = "--- a/x.py\n+++ b/x.py\n@@ -1 +1 @@\n+pass\n"
     patch = GeneratedPatch(plan_id="p001", diff=diff, changed_files=["x.py"])
@@ -530,8 +530,8 @@ print("\n 7. Memory")
 
 @test("IncidentMemory  kayt ve istatistik")
 def test_faz10_026():
-    from repair.memory.incident_memory import IncidentMemory
-    from repair.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
+    from packages.repair_engine.packages.memory.incident_memory import IncidentMemory
+    from packages.repair_engine.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
     mem = IncidentMemory()
     inc = IncidentRecord.create(
         source=IncidentSource.RUNTIME_LOG,
@@ -547,8 +547,8 @@ if __name__ == "__main__": test_faz10_026()
 
 @test("IncidentMemory  hotspot modller hesaplanyor")
 def test_faz10_027():
-    from repair.memory.incident_memory import IncidentMemory
-    from repair.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
+    from packages.repair_engine.packages.memory.incident_memory import IncidentMemory
+    from packages.repair_engine.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
     mem = IncidentMemory()
     for i in range(5):
         inc = IncidentRecord.create(
@@ -563,8 +563,8 @@ if __name__ == "__main__": test_faz10_027()
 
 @test("IncidentMemory  resolve ve mean_time_to_resolve")
 def test_faz10_028():
-    from repair.memory.incident_memory import IncidentMemory
-    from repair.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
+    from packages.repair_engine.packages.memory.incident_memory import IncidentMemory
+    from packages.repair_engine.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
     mem = IncidentMemory()
     inc = IncidentRecord.create(
         source=IncidentSource.RUNTIME_LOG, severity=IncidentSeverity.LOW,
@@ -578,7 +578,7 @@ if __name__ == "__main__": test_faz10_028()
 
 @test("PatchMemory  success rate hesaplanyor")
 def test_faz10_029():
-    from repair.memory.patch_memory import PatchMemory, PatchOutcome
+    from packages.repair_engine.packages.memory.patch_memory import PatchMemory, PatchOutcome
     mem = PatchMemory()
     for i in range(4):
         mem.record(
@@ -595,7 +595,7 @@ if __name__ == "__main__": test_faz10_029()
 
 @test("PatchMemory  regresyon dosyas danger_files'a ekleniyor")
 def test_faz10_030():
-    from repair.memory.patch_memory import PatchMemory, PatchOutcome
+    from packages.repair_engine.packages.memory.patch_memory import PatchMemory, PatchOutcome
     mem = PatchMemory()
     mem.record(
         job_id="job_1", incident_id="inc_1",
@@ -610,7 +610,7 @@ if __name__ == "__main__": test_faz10_030()
 
 @test("ArchitectureMemory  kritik modl tespiti")
 def test_faz10_031():
-    from repair.memory.architecture_memory import ArchitectureMemory
+    from packages.repair_engine.packages.memory.architecture_memory import ArchitectureMemory
     mem = ArchitectureMemory()
     assert mem.is_critical_module("auth/jwt_auth.py")
     assert mem.is_critical_module("core/orchestrator.py")
@@ -619,7 +619,7 @@ if __name__ == "__main__": test_faz10_031()
 
 @test("ArchitectureMemory  forbidden pattern listesi dolu")
 def test_faz10_032():
-    from repair.memory.architecture_memory import ArchitectureMemory
+    from packages.repair_engine.packages.memory.architecture_memory import ArchitectureMemory
     mem = ArchitectureMemory()
     patterns = mem.get_forbidden_patterns()
     assert len(patterns) >= 5
@@ -629,7 +629,7 @@ if __name__ == "__main__": test_faz10_032()
 
 @test("ArchitectureMemory  ADR listesi")
 def test_faz10_033():
-    from repair.memory.architecture_memory import ArchitectureMemory
+    from packages.repair_engine.packages.memory.architecture_memory import ArchitectureMemory
     mem = ArchitectureMemory()
     adrs = mem.get_adrs()
     assert len(adrs) >= 3
@@ -645,9 +645,9 @@ print("\n  8. Policy Engine")
 @test("PolicyEngine  auth modl  blocked")
 def test_faz10_034():
     from core.policy_engine import PolicyEngine
-    from repair.schemas.diagnosis import DiagnosisTicket, ProblemClass, RepairMode
-    from repair.schemas.patch_plan import PatchPlan, RiskLevel
-    from repair.schemas.validation import ValidationReport
+    from packages.repair_engine.schemas.diagnosis import DiagnosisTicket, ProblemClass, RepairMode
+    from packages.repair_engine.schemas.patch_plan import PatchPlan, RiskLevel
+    from packages.repair_engine.schemas.validation import ValidationReport
 
     ticket = DiagnosisTicket.create("inc_001", ProblemClass.AUTH_FAILURE, "high",
                                     recommended_mode=RepairMode.AUTO_PATCH_PR)
@@ -665,9 +665,9 @@ if __name__ == "__main__": test_faz10_034()
 @test("PolicyEngine  low risk clean patch  create_pr")
 def test_faz10_035():
     from core.policy_engine import PolicyEngine
-    from repair.schemas.diagnosis import DiagnosisTicket, ProblemClass, RepairMode
-    from repair.schemas.patch_plan import PatchPlan, RiskLevel
-    from repair.schemas.validation import ValidationReport, ValidationStatus
+    from packages.repair_engine.schemas.diagnosis import DiagnosisTicket, ProblemClass, RepairMode
+    from packages.repair_engine.schemas.patch_plan import PatchPlan, RiskLevel
+    from packages.repair_engine.schemas.validation import ValidationReport, ValidationStatus
 
     ticket = DiagnosisTicket.create("inc_001", ProblemClass.IMPORT_ERROR, "medium",
                                     recommended_mode=RepairMode.AUTO_PATCH_PR)
@@ -689,7 +689,7 @@ if __name__ == "__main__": test_faz10_035()
 @test("PolicyEngine  triage'da security snf  blocked")
 def test_faz10_036():
     from core.policy_engine import PolicyEngine
-    from repair.schemas.diagnosis import DiagnosisTicket, ProblemClass, RepairMode
+    from packages.repair_engine.schemas.diagnosis import DiagnosisTicket, ProblemClass, RepairMode
 
     ticket = DiagnosisTicket.create("inc_001", ProblemClass.SECURITY_VIOLATION, "critical",
                                     recommended_mode=RepairMode.AUTO_PATCH_PR)
@@ -707,7 +707,7 @@ print("\n 9. Repair Orchestrator")
 @test("RepairOrchestrator  job oluturma")
 def test_faz10_037():
     from core.repair_orchestrator import RepairOrchestrator
-    from repair.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
+    from packages.repair_engine.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
 
     orch = RepairOrchestrator(model_orch=None, project_root=PROJECT_ROOT)
     inc = IncidentRecord.create(
@@ -741,8 +741,8 @@ if __name__ == "__main__": test_faz10_038()
 @test("RepairOrchestrator  security incident  manual review")
 def test_faz10_039():
     from core.repair_orchestrator import RepairOrchestrator
-    from repair.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
-    from repair.schemas.repair_job import RepairJobStatus
+    from packages.repair_engine.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
+    from packages.repair_engine.schemas.repair_job import RepairJobStatus
 
     orch = RepairOrchestrator(model_orch=None, project_root=PROJECT_ROOT)
     inc = IncidentRecord.create(
@@ -784,7 +784,7 @@ print("\n 9b. P0 Dzeltme Dorulama Testleri")
 
 @test("P0: _filter_safe_files  whitelist d dosya reddedilir")
 def test_faz10_040():
-    from repair.planning.patch_planner import PatchPlanner
+    from packages.repair_engine.planning.patch_planner import PatchPlanner
     planner = PatchPlanner()
     fake_candidates = ["db/session.py", "tests/test_faz4.py", "main.py"]
     result = planner._filter_safe_files(fake_candidates, PROJECT_ROOT)
@@ -795,7 +795,7 @@ if __name__ == "__main__": test_faz10_040()
 
 @test("P0: _filter_safe_files  auth/ her zaman reddedilir")
 def test_faz10_041():
-    from repair.planning.patch_planner import PatchPlanner
+    from packages.repair_engine.planning.patch_planner import PatchPlanner
     planner = PatchPlanner()
     result = planner._filter_safe_files(["auth/jwt_auth.py", "main.py"], PROJECT_ROOT)
     assert "auth/jwt_auth.py" not in result
@@ -804,9 +804,9 @@ if __name__ == "__main__": test_faz10_041()
 
 @test("P0: VerificationEngine  test yoksa gap kaydedilir ve recommendation drlr")
 def test_faz10_042():
-    from repair.verification.verification_engine import VerificationEngine
-    from repair.generation.patch_generator import GeneratedPatch
-    from repair.schemas.patch_plan import PatchPlan, RiskLevel
+    from packages.repair_engine.verification.verification_engine import VerificationEngine
+    from packages.repair_engine.generation.patch_generator import GeneratedPatch
+    from packages.repair_engine.schemas.patch_plan import PatchPlan, RiskLevel
     diff = "--- a/x.py\n+++ b/x.py\n@@ -1 +1 @@\n+pass\n"
     patch = GeneratedPatch(plan_id="p001", diff=diff, changed_files=["x.py"])
     plan  = PatchPlan.create("d001", target_files=["x.py"], risk=RiskLevel.LOW)
@@ -819,7 +819,7 @@ if __name__ == "__main__": test_faz10_042()
 
 @test("P0: ValidationReport  reproducer ncesi PASS ise overall_passed=False (bug yoktu)")
 def test_faz10_043():
-    from repair.schemas.validation import ValidationReport
+    from packages.repair_engine.schemas.validation import ValidationReport
     rep = ValidationReport.create(patch_plan_id="plan_reproducer")
     rep.syntax_ok = rep.lint_ok = rep.unit_tests_ok = rep.security_ok = rep.architecture_ok = True
     rep.patch_applied = True
@@ -833,7 +833,7 @@ if __name__ == "__main__": test_faz10_043()
 
 @test("P0: PRProposal.incident_id alan var ve set ediliyor")
 def test_faz10_044():
-    from repair.release.pr_creator import PRProposal
+    from packages.repair_engine.release.pr_creator import PRProposal
     p = PRProposal(pr_id="pr_t", job_id="job_t", branch_name="repair/t",
                    title="t", body="b", incident_id="inc_xyz")
     assert p.incident_id == "inc_xyz"
@@ -844,7 +844,7 @@ if __name__ == "__main__": test_faz10_044()
 
 @test("P0: PRCreator singleton  ayn root iin ayn instance")
 def test_faz10_045():
-    from repair.release.pr_creator import get_pr_creator
+    from packages.repair_engine.release.pr_creator import get_pr_creator
     c1 = get_pr_creator(PROJECT_ROOT)
     c2 = get_pr_creator(PROJECT_ROOT)
     assert c1 is c2, "Singleton dndrlmeli"

@@ -44,7 +44,7 @@ async def test_failure_learning_negative_synapse():
          patch("core.improvement.proposer.proposer.propose_fix", new_callable=AsyncMock) as mock_propose, \
          patch("core.improvement.cognitive_verifier.cognitive_verifier.verify_patch", new_callable=AsyncMock) as mock_verify:
         
-        mock_scan.return_value = [{"reason": "security_vulnerability", "agent_id": "api/auth.py"}]
+        mock_scan.return_value = [{"reason": "security_vulnerability", "agent_id": "api/apps.api.routers.auth.py"}]
         mock_propose.return_value = "unsafe patch"
         mock_verify.return_value = (False, 0.2, "Security agent rejected: Unsafe path.")
         

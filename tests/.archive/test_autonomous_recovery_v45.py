@@ -1,7 +1,7 @@
 import asyncio
 import pytest
-from core.job_queue import JobQueue, JobStatus
-from core.agi.cognitive.metacognitive_auditor import metacognitive_auditor
+from packages.orchestration.application.job_queue import JobQueue, JobStatus
+from packages.orchestration.agi.cognitive.metacognitive_auditor import metacognitive_auditor
 from unittest.mock import AsyncMock, patch
 
 @pytest.mark.asyncio
@@ -22,7 +22,7 @@ async def test_autonomous_job_recovery_logic():
     queue.register("test_recovery_job", mock_handler)
     
     # 3. Mock MetacognitiveAuditor to suggest recovery
-    with patch("core.job_queue.metacognitive_auditor.analyze_job_failure", new_callable=AsyncMock) as mock_audit:
+    with patch("packages.orchestration.application.job_queue.metacognitive_auditor.analyze_job_failure", new_callable=AsyncMock) as mock_audit:
         mock_audit.return_value = {
             "recoverable": True,
             "root_cause": "Context missing in initial payload",

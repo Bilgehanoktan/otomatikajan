@@ -2,7 +2,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import cast
 
-from deerflow.skills.validation import _validate_skill_frontmatter
+from deerflow.packages.skills.validation import _validate_skill_frontmatter
 
 VALIDATE_SKILL_FRONTMATTER = cast(
     Callable[[Path], tuple[bool, str, str | None]],

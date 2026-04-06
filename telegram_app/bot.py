@@ -17,9 +17,9 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from observability.logging import get_logger
+from packages.packages.observability.logging import get_logger
 from core.task_routing import task_router
-from core.job_queue import job_queue
+from packages.orchestration.application.job_queue import job_queue
 from core.events import event_bus
 
 logger = get_logger("telegram.bot")
@@ -51,8 +51,8 @@ async def _is_authorized(telegram_id: str) -> bool:
     if telegram_id in ALLOWED_IDS:
         return True
     try:
-        from db.session import AsyncSessionLocal
-        from db.repository import TelegramRepository
+        from packages.persistence.session import AsyncSessionLocal
+        from packages.persistence.repository import TelegramRepository
         async with AsyncSessionLocal() as db:
             return await TelegramRepository.is_authorized(db, telegram_id)
     except Exception:
@@ -63,8 +63,8 @@ async def _is_admin(telegram_id: str) -> bool:
     if telegram_id in ADMIN_IDS:
         return True
     try:
-        from db.session import AsyncSessionLocal
-        from db.repository import TelegramRepository
+        from packages.persistence.session import AsyncSessionLocal
+        from packages.persistence.repository import TelegramRepository
         async with AsyncSessionLocal() as db:
             user = await TelegramRepository.get_user(db, telegram_id)
             return user is not None and user.is_admin
@@ -81,25 +81,25 @@ async def _log_command(
     project_id=None,
 ):
     try:
-        from db.session import AsyncSessionLocal
-        from db.repository import TelegramRepository
+        from packages.persistence.session import AsyncSessionLocal
+        from packages.persistence.repository import TelegramRepository
         async with AsyncSessionLocal() as db:
             await TelegramRepository.log_command(
                 db, telegram_id, command, arguments,
                 response=response[:2000], success=success, project_id=project_id,
             )
-            await db.commit()
+            await packages.persistence.commit()
     except Exception:
         pass
 
 
 async def _upsert_user(telegram_id: str, username: str, full_name: str):
     try:
-        from db.session import AsyncSessionLocal
-        from db.repository import TelegramRepository
+        from packages.persistence.session import AsyncSessionLocal
+        from packages.persistence.repository import TelegramRepository
         async with AsyncSessionLocal() as db:
             await TelegramRepository.upsert_user(db, telegram_id, username, full_name)
-            await db.commit()
+            await packages.persistence.commit()
     except Exception:
         pass
 
@@ -160,8 +160,8 @@ class BotCommandHandler:
     async def cmd_status(self, tid: str, args: str) -> str:
         try:
             from core.context import orchestrator, heal_engine
-            from observability.metrics import metrics
-            from core.job_queue import job_queue
+            from packages.packages.observability.metrics import metrics
+            from packages.orchestration.application.job_queue import job_queue
 
             snap = metrics.snapshot()
             c    = snap["computed"]
@@ -209,8 +209,8 @@ class BotCommandHandler:
     async def cmd_tasks(self, tid: str, args: str) -> str:
         status_filter = args.strip() or None
         try:
-            from db.session import AsyncSessionLocal
-            from db.repository import ProjectRepository
+            from packages.persistence.session import AsyncSessionLocal
+            from packages.persistence.repository import ProjectRepository
             async with AsyncSessionLocal() as db:
                 projects = await ProjectRepository.list_recent(
                     db, limit=10, status=status_filter
@@ -264,13 +264,13 @@ class BotCommandHandler:
         if not task_id:
             return "❓ Kullanım: /task \\<görev\\_id\\>"
         try:
-            from db.session import AsyncSessionLocal
-            from db.repository import ProjectRepository, SubTaskRepository, TaskLogRepository
+            from packages.persistence.session import AsyncSessionLocal
+            from packages.persistence.repository import ProjectRepository, SubTaskRepository, TaskLogRepository
             from sqlalchemy import select
-            from db.models import Project
+            from packages.persistence.models import Project
             async with AsyncSessionLocal() as db:
                 # Kısmi ID ile de çalışsın
-                result = await db.execute(
+                result = await packages.persistence.execute(
                     select(Project).where(
                         Project.id.cast(str).startswith(task_id) |
                         (Project.job_id == task_id)
@@ -354,8 +354,8 @@ class BotCommandHandler:
 
             # DB'ye kaydet
             try:
-                from db.session import AsyncSessionLocal
-                from db.repository import ProjectRepository, TaskLogRepository
+                from packages.persistence.session import AsyncSessionLocal
+                from packages.persistence.repository import ProjectRepository, TaskLogRepository
                 async with AsyncSessionLocal() as db:
                     p = await ProjectRepository.create(
                         db, title, description,
@@ -368,7 +368,7 @@ class BotCommandHandler:
                         f"Telegram üzerinden oluşturuldu (kullanıcı: {tid})",
                         agent_id="telegram",
                     )
-                    await db.commit()
+                    await packages.persistence.commit()
                     db_project_id = str(p.id)
             except Exception:
                 pass
@@ -382,7 +382,7 @@ class BotCommandHandler:
                 logger.warning(f"Semantic routing failed in Telegram, falling back to run_project: {e}")
 
             # Job queue'ya ekle
-            from core.job_queue import job_queue
+            from packages.orchestration.application.job_queue import job_queue
             job = await job_queue.enqueue(
                 task_name,
                 project_id=job_id,
@@ -479,8 +479,8 @@ class BotCommandHandler:
     # ── /errors ────────────────────────────────────────────
     async def cmd_errors(self, tid: str, args: str) -> str:
         try:
-            from db.session import AsyncSessionLocal
-            from db.repository import ProjectRepository
+            from packages.persistence.session import AsyncSessionLocal
+            from packages.persistence.repository import ProjectRepository
             async with AsyncSessionLocal() as db:
                 failed = await ProjectRepository.list_recent(db, limit=10, status="failed")
 
@@ -502,7 +502,7 @@ class BotCommandHandler:
     # ── /queue ─────────────────────────────────────────────
     async def cmd_queue(self, tid: str, args: str) -> str:
         try:
-            from core.job_queue import job_queue
+            from packages.orchestration.application.job_queue import job_queue
             stats = job_queue.stats()
             jobs  = job_queue.list_jobs(10)
 
@@ -530,7 +530,7 @@ class BotCommandHandler:
     # ── /metrics ───────────────────────────────────────────
     async def cmd_metrics(self, tid: str, args: str) -> str:
         try:
-            from observability.metrics import metrics
+            from packages.packages.observability.metrics import metrics
             snap = metrics.snapshot()
             c    = snap["computed"]
             lat  = snap.get("latencies", {})
@@ -538,7 +538,7 @@ class BotCommandHandler:
             proj_lat = lat.get("projects.duration", {})
             llm_lat  = {}
             for provider in ("openai", "anthropic", "gemini"):
-                key = f"llm.{provider}.latency"
+                key = f"packages.llm_gateway.{provider}.latency"
                 if key in lat:
                     llm_lat[provider] = lat[key]
 
@@ -576,11 +576,11 @@ class BotCommandHandler:
         if not target_id:
             return "Kullanım: /authorize <telegram_id>"
         try:
-            from db.session import AsyncSessionLocal
-            from db.repository import TelegramRepository
+            from packages.persistence.session import AsyncSessionLocal
+            from packages.persistence.repository import TelegramRepository
             async with AsyncSessionLocal() as db:
                 result = await TelegramRepository.authorize(db, target_id)
-                await db.commit()
+                await packages.persistence.commit()
             if result:
                 return f"✅ `{target_id}` yetkilendirildi."
             else:
@@ -593,8 +593,8 @@ class BotCommandHandler:
         if not await _is_admin(tid):
             return "❌ Admin yetkisi gerekli."
         try:
-            from db.session import AsyncSessionLocal
-            from db.repository import TelegramRepository
+            from packages.persistence.session import AsyncSessionLocal
+            from packages.persistence.repository import TelegramRepository
             async with AsyncSessionLocal() as db:
                 users = await TelegramRepository.list_users(db)
             lines = [f"👥 *Telegram Kullanıcıları* ({len(users)})\n"]
@@ -616,7 +616,7 @@ class BotCommandHandler:
         if not await _is_authorized(tid):
             return "⛔ Yetki gerekiyor"
         try:
-            from repair.memory.incident_memory import incident_memory
+            from packages.repair_engine.packages.memory.incident_memory import incident_memory
             open_incidents = [i for i in incident_memory.get_open()][:10]
             if not open_incidents:
                 return "✅ Açık incident yok."
@@ -638,7 +638,7 @@ class BotCommandHandler:
         if not incident_id:
             return "Kullanım: /repair <incident_id>"
         try:
-            from repair.memory.incident_memory import incident_memory
+            from packages.repair_engine.packages.memory.incident_memory import incident_memory
             from core.repair_orchestrator import get_repair_orchestrator
             import os
             incident = incident_memory.get(incident_id)
@@ -659,7 +659,7 @@ class BotCommandHandler:
         if not await _is_authorized(tid):
             return "⛔ Yetki gerekiyor"
         try:
-            from quality.approval_gate import approval_gate
+            from packages.quality_assurance.approval_gate import approval_gate
             pending = approval_gate.pending_requests()
             if not pending:
                 return "✅ Onay bekleyen genel görev yok."
@@ -679,7 +679,7 @@ class BotCommandHandler:
         if not await _is_authorized(tid):
             return "⛔ Yetki gerekiyor"
         try:
-            from repair.release.pr_creator import get_pr_creator
+            from packages.repair_engine.release.pr_creator import get_pr_creator
             import os
             creator = get_pr_creator(os.getcwd())
             proposals = creator.list_proposals()
@@ -708,7 +708,7 @@ class BotCommandHandler:
         
         # 1. Önce genel onay kapısını dene
         try:
-            from quality.approval_gate import approval_gate
+            from packages.quality_assurance.approval_gate import approval_gate
             req = approval_gate.decide(req_id, True, decided_by=f"telegram:{tid}")
             if req:
                 from core.events import event_bus
@@ -748,7 +748,7 @@ class BotCommandHandler:
 
         # 1. Genel onay kapısı
         try:
-            from quality.approval_gate import approval_gate
+            from packages.quality_assurance.approval_gate import approval_gate
             req = approval_gate.decide(req_id, False, decided_by=f"telegram:{tid}", reason=reason)
             if req:
                 from core.events import event_bus
@@ -891,8 +891,8 @@ async def _handle_natural_language(tid: str, chat_id: int, text: str) -> Optiona
         job_id = str(uuid.uuid4())[:12]
         
         # DB Kaydı
-        from db.session import AsyncSessionLocal
-        from db.repository import ProjectRepository, TaskLogRepository
+        from packages.persistence.session import AsyncSessionLocal
+        from packages.persistence.repository import ProjectRepository, TaskLogRepository
         async with AsyncSessionLocal() as db:
             p = await ProjectRepository.create(
                 db, 
@@ -907,11 +907,11 @@ async def _handle_natural_language(tid: str, chat_id: int, text: str) -> Optiona
                 f"Telegram NLP üzerinden oluşturuldu (mod: {task_name})",
                 agent_id="telegram_nlp",
             )
-            await db.commit()
+            await packages.persistence.commit()
             db_project_id = str(p.id)
 
         # Kuyruğa ekle
-        from core.job_queue import job_queue
+        from packages.orchestration.application.job_queue import job_queue
         job = await job_queue.enqueue(
             task_name,
             project_id=job_id,
@@ -1080,14 +1080,14 @@ class TelegramNotifier:
         "system.cascade_fail":      "🚨 Sistem kaskat hatası",
         "approval.needed":          "⏳ Onay bekleniyor",
         # Faz 11 — Self-Repair olayları
-        "repair.incident_created":  "🚨 Yeni Incident",
-        "repair.job_started":       "⚙️ Repair Job Başladı",
-        "repair.proposal_ready":    "📋 PR Önerisi Hazır — İnsan Onayı Gerekiyor",
-        "repair.proposal_approved": "✅ PR Onaylandı",
-        "repair.proposal_rejected": "❌ PR Reddedildi",
-        "repair.canary_failed":     "🐦 Canary Doğrulama Başarısız",
-        "repair.duplicate_incident":"🔁 Tekrar Eden Incident",
-        "repair.manual_escalation": "🔔 Manuel İnceleme Gerekiyor",
+        "packages.repair_engine.incident_created":  "🚨 Yeni Incident",
+        "packages.repair_engine.job_started":       "⚙️ Repair Job Başladı",
+        "packages.repair_engine.proposal_ready":    "📋 PR Önerisi Hazır — İnsan Onayı Gerekiyor",
+        "packages.repair_engine.proposal_approved": "✅ PR Onaylandı",
+        "packages.repair_engine.proposal_rejected": "❌ PR Reddedildi",
+        "packages.repair_engine.canary_failed":     "🐦 Canary Doğrulama Başarısız",
+        "packages.repair_engine.duplicate_incident":"🔁 Tekrar Eden Incident",
+        "packages.repair_engine.manual_escalation": "🔔 Manuel İnceleme Gerekiyor",
         "provider.quarantined":     "📉 Sağlayıcı Karantinaya Alındı",
         "provider.recovered":       "📈 Sağlayıcı İyileşti",
         "system.metabolism.pacing": "🐢 Metabolizma Yavaşlatıldı (ECO)",
@@ -1154,7 +1154,7 @@ class TelegramNotifier:
         
         # Onay butonu ekle
         request_id = payload.get("request_id") or payload.get("pr_id")
-        if event_type in ("approval.needed", "repair.proposal_ready") and request_id:
+        if event_type in ("approval.needed", "packages.repair_engine.proposal_ready") and request_id:
             reply_markup = {
                 "inline_keyboard": [[
                     {"text": "✅ Onayla", "callback_data": f"approve:{request_id}"},
@@ -1174,7 +1174,7 @@ class TelegramNotifier:
         symptom:    str = "",
     ) -> None:
         """PR önerisi hazır — onay bildirimi."""
-        await self.notify_event("repair.proposal_ready", {
+        await self.notify_event("packages.repair_engine.proposal_ready", {
             "pr_id":               pr_id,
             "job_id":              job_id,
             "module":              module,
@@ -1187,7 +1187,7 @@ class TelegramNotifier:
         self, incident_id: str, module: str, count: int, symptom: str = ""
     ) -> None:
         """Tekrarlayan incident bildirimi."""
-        await self.notify_event("repair.duplicate_incident", {
+        await self.notify_event("packages.repair_engine.duplicate_incident", {
             "incident_id": incident_id,
             "module":      module,
             "symptom":     symptom,

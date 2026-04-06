@@ -3,7 +3,7 @@ import pytest
 from unittest.mock import MagicMock
 
 # Eski mimarideki core.orchestrator yerine güncel SovereignCortex kullanıyoruz
-from core.agi.cognitive.sovereign_cortex import SovereignCortex
+from packages.orchestration.agi.cognitive.sovereign_cortex import SovereignCortex
 
 @pytest.mark.asyncio
 async def test_sovereign_cortex_initialization():

@@ -9,7 +9,7 @@ sys.path.append(os.getcwd())
 # 1. Total Mocking Strategy
 # ModelOrchestrator'i ve tum network kutuphanelerini kescen sekilde patch'le
 with patch("httpx.AsyncClient"):
-    with patch("llm.model_orchestrator.ModelOrchestrator") as MockOrch:
+    with patch("packages.llm_gateway.model_orchestrator.ModelOrchestrator") as MockOrch:
         mock_inst = MockOrch.return_value
         
         # Mock Response Pattern
@@ -35,10 +35,10 @@ with patch("httpx.AsyncClient"):
 
         # 2. Components Import (After Mocking)
         try:
-            from core.agi.orchestrator import agi_orchestrator
-            from core.agi.schemas import SourceType
-            from core.agi.skill_discovery import skill_discovery
-            from agents.agent_registry import AgentRegistry
+            from packages.orchestration.agi.orchestrator import agi_orchestrator
+            from packages.orchestration.agi.schemas import SourceType
+            from packages.orchestration.agi.skill_discovery import skill_discovery
+            from packages.orchestration.agi.agent_registry import AgentRegistry
         except ImportError as e:
             print(f"Import Error (Expected in this env): {e}")
             sys.exit(0)
@@ -48,10 +48,10 @@ with patch("httpx.AsyncClient"):
             
             # 1. Skill Discovery Check
             skills = skill_discovery.discover()
-            print(f"[*] Keşfedilen Beceriler: {list(skills.keys())}")
+            print(f"[*] Keşfedilen Beceriler: {list(packages.skills.keys())}")
             
             # 2. Specialist Injection Check
-            from agents.agent_registry import discover_and_build_specialists
+            from packages.orchestration.agi.agent_registry import discover_and_build_specialists
             specialists = discover_and_build_specialists()
             print(f"[*] Sanallaştırılan Uzmanlar: {list(specialists.keys())}")
             

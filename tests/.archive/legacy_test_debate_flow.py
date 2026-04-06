@@ -88,8 +88,8 @@ def test_two_round_debate():
     assert result.consensus
     # LLM çağrılarını kontrol et
     # Her tur: agent_a, agent_b, moderator = 3 çağrı + final synthesis
-    assert len(llm.calls) >= 6  # 2 tur × 3 + synthesis
-    ok(f"2 tur debate — {len(llm.calls)} LLM çağrısı")
+    assert len(packages.llm_gateway.calls) >= 6  # 2 tur × 3 + synthesis
+    ok(f"2 tur debate — {len(packages.llm_gateway.calls)} LLM çağrısı")
 
 test_two_round_debate()
 
@@ -119,8 +119,8 @@ section("4 — Debate Tetikleme Mantığı (RC1)")
 
 def test_debate_triggers_on_close_scores():
     """±5% içindeki hipotezler debate tetiklemeli."""
-    from repair.schemas.repair_job import RepairJob
-    from repair.schemas.incident   import IncidentRecord
+    from packages.repair_engine.schemas.repair_job import RepairJob
+    from packages.repair_engine.schemas.incident   import IncidentRecord
 
     class _Hyp:
         def __init__(self, title, conf):
@@ -164,8 +164,8 @@ def test_debate_triggers_on_close_scores():
 
 def test_debate_no_trigger_on_distant_scores():
     """20+ puan farkındaki hipotezler debate tetiklememeli."""
-    from repair.schemas.repair_job import RepairJob
-    from repair.schemas.incident   import IncidentRecord
+    from packages.repair_engine.schemas.repair_job import RepairJob
+    from packages.repair_engine.schemas.incident   import IncidentRecord
 
     class _Hyp:
         def __init__(self, t, c): self.title=t; self.confidence=c
@@ -194,7 +194,7 @@ def test_debate_no_trigger_on_distant_scores():
     asyncio.run(orch._step_debate_if_needed(job, _Ticket(), inc))
 
     assert job.debate_triggered is False
-    assert len(llm.calls) == 0  # LLM çağrısı yapılmamalı
+    assert len(packages.llm_gateway.calls) == 0  # LLM çağrısı yapılmamalı
     ok("90% vs 40% — debate tetiklenmedi (doğru)")
 
 test_debate_triggers_on_close_scores()
@@ -207,8 +207,8 @@ section("5 — Debate Sonucu Job'a Yazılıyor")
 
 def test_debate_result_saved_to_job():
     """Debate sonucu job.debate_* alanlarına doğru yazılmalı."""
-    from repair.schemas.repair_job import RepairJob
-    from repair.schemas.incident   import IncidentRecord
+    from packages.repair_engine.schemas.repair_job import RepairJob
+    from packages.repair_engine.schemas.incident   import IncidentRecord
 
     class _Hyp:
         def __init__(self, t, c): self.title=t; self.confidence=c

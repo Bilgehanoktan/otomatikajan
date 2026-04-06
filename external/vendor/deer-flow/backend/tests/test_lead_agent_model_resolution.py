@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from deerflow.agents.lead_agent import agent as lead_agent_module
+from deerflow.packages.orchestration.agi.lead_agent import agent as lead_agent_module
 from deerflow.config.app_config import AppConfig
 from deerflow.config.model_config import ModelConfig
 from deerflow.config.sandbox_config import SandboxConfig

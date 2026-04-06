@@ -15,7 +15,7 @@ def test_ceo_findings_endpoint_discloses_fallback_source(monkeypatch) -> None:
         return {"email": "audit@example.com", "is_admin": True}
 
     # Mock dependencies - Auth and Repair ingestion
-    from auth import jwt_auth
+    from apps.api.routers.auth import jwt_auth
     app.dependency_overrides[jwt_auth.get_current_user] = _fake_user
 
     class FakeIngestor:
@@ -23,9 +23,9 @@ def test_ceo_findings_endpoint_discloses_fallback_source(monkeypatch) -> None:
             return []
 
     # Injecting module mock to avoid real dependencies if needed
-    mod = types.ModuleType("repair.ingestion.incident_ingestor")
+    mod = types.ModuleType("packages.repair_engine.ingestion.incident_ingestor")
     mod.incident_ingestor = FakeIngestor()
-    sys.modules["repair.ingestion.incident_ingestor"] = mod
+    sys.modules["packages.repair_engine.ingestion.incident_ingestor"] = mod
 
     client = TestClient(app)
     res = client.get("/api/v1/ceo/findings")

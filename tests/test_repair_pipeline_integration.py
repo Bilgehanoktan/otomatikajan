@@ -124,7 +124,7 @@ def _build_mock_orchestrator():
     orch._step_canary = _mock_canary
     orch._do_canary_run = _mock_canary
 
-    from repair.schemas.repair_job import RepairJobStatus
+    from packages.repair_engine.schemas.repair_job import RepairJobStatus
     async def _mock_transition(job, status, note=""):
         job.transition(status, note=note)
     orch._transition_and_persist = _mock_transition
@@ -139,8 +139,8 @@ def _build_mock_orchestrator():
 section("1 — Fingerprint + Duplicate Tespiti")
 
 def test_fingerprint_step():
-    from repair.schemas.repair_job import RepairJob
-    from repair.schemas.incident   import IncidentRecord
+    from packages.repair_engine.schemas.repair_job import RepairJob
+    from packages.repair_engine.schemas.incident   import IncidentRecord
 
     orch = _build_mock_orchestrator()
     job  = RepairJob.create("inc_fp_001")
@@ -163,7 +163,7 @@ section("2 — Vector RAG Context")
 
 def test_vector_rag_step():
     """Vector store'a lesson ekle, context çekmeyi test et."""
-    import repair.memory.vector_lessons as vl_mod
+    import packages.repair_engine.packages.memory.vector_lessons as vl_mod
     vl_mod._vector_lessons = None
     store = vl_mod.get_vector_lessons(use_db=False)
 
@@ -176,7 +176,7 @@ def test_vector_rag_step():
         incident_id="inc_past_001",
     )
 
-    from repair.schemas.incident import IncidentRecord
+    from packages.repair_engine.schemas.incident import IncidentRecord
     inc = IncidentRecord(
         incident_id="inc_rag_001",
         symptom="JWT decode error: signature mismatch",
@@ -203,8 +203,8 @@ def test_vector_rag_step():
 section("3 — Root Cause Ranker")
 
 def test_ranker_step():
-    from repair.schemas.repair_job import RepairJob
-    from repair.schemas.incident   import IncidentRecord
+    from packages.repair_engine.schemas.repair_job import RepairJob
+    from packages.repair_engine.schemas.incident   import IncidentRecord
 
     orch    = _build_mock_orchestrator()
     job     = RepairJob.create("inc_rnk_001")
@@ -233,8 +233,8 @@ section("4 — Debate Engine Tetikleme")
 
 def test_debate_triggered():
     """İki yakın hipotez varsa debate tetiklenmeli."""
-    from repair.schemas.repair_job import RepairJob
-    from repair.schemas.incident   import IncidentRecord
+    from packages.repair_engine.schemas.repair_job import RepairJob
+    from packages.repair_engine.schemas.incident   import IncidentRecord
 
     orch    = _build_mock_orchestrator()
     job     = RepairJob.create("inc_dbte_001")
@@ -265,8 +265,8 @@ def test_debate_triggered():
 section("5 — Generated Tests")
 
 def test_generated_tests_step():
-    from repair.schemas.repair_job import RepairJob
-    from repair.schemas.incident   import IncidentRecord
+    from packages.repair_engine.schemas.repair_job import RepairJob
+    from packages.repair_engine.schemas.incident   import IncidentRecord
 
     orch   = _build_mock_orchestrator()
     job    = RepairJob.create("inc_tgen_001")
@@ -292,7 +292,7 @@ def test_generated_tests_step():
 section("6 — Sandbox Verify")
 
 def test_sandbox_step():
-    from repair.schemas.repair_job import RepairJob
+    from packages.repair_engine.schemas.repair_job import RepairJob
 
     orch  = _build_mock_orchestrator()
     job   = RepairJob.create("inc_sb_001")
@@ -310,7 +310,7 @@ def test_sandbox_step():
 section("7 — Canary RC1")
 
 def test_canary_rc1():
-    from repair.schemas.repair_job import RepairJob
+    from packages.repair_engine.schemas.repair_job import RepairJob
 
     orch  = _build_mock_orchestrator()
     job   = RepairJob.create("inc_cnry_001")
@@ -324,7 +324,7 @@ def test_canary_rc1():
     ok(f"Canary RC1 adımı — sonuç: {result}")
 
 def test_canary_rc1_high_risk():
-    from repair.schemas.repair_job import RepairJob
+    from packages.repair_engine.schemas.repair_job import RepairJob
 
     orch  = _build_mock_orchestrator()
     job   = RepairJob.create("inc_cnry_002")
@@ -346,12 +346,12 @@ def test_canary_rc1_high_risk():
 section("8 — Vector Lesson Save")
 
 def test_lesson_save():
-    import repair.memory.vector_lessons as vl_mod
+    import packages.repair_engine.packages.memory.vector_lessons as vl_mod
     vl_mod._vector_lessons = None
     store = vl_mod.get_vector_lessons(use_db=False)
 
-    from repair.schemas.repair_job import RepairJob
-    from repair.schemas.incident   import IncidentRecord
+    from packages.repair_engine.schemas.repair_job import RepairJob
+    from packages.repair_engine.schemas.incident   import IncidentRecord
 
     orch = _build_mock_orchestrator()
     job  = RepairJob.create("inc_ls_001")
@@ -382,8 +382,8 @@ def test_lesson_save():
 section("9 — Metrics Collector")
 
 def test_metrics_step():
-    from repair.schemas.repair_job import RepairJob
-    from repair.schemas.incident   import IncidentRecord
+    from packages.repair_engine.schemas.repair_job import RepairJob
+    from packages.repair_engine.schemas.incident   import IncidentRecord
 
     orch = _build_mock_orchestrator()
     job  = RepairJob.create("inc_mtr_001")
@@ -407,7 +407,7 @@ def test_metrics_step():
 section("10 — Validation Report Store")
 
 def test_validation_report_store():
-    from repair.verification.verification_engine import (
+    from packages.repair_engine.verification.verification_engine import (
         save_validation_report, get_validation_report
     )
     job_id = f"job_vrs_{uuid.uuid4().hex[:6]}"
@@ -433,7 +433,7 @@ def test_validation_report_store():
     ok("Validation raporu kaydedildi ve doğru okundu")
 
 def test_validation_report_missing():
-    from repair.verification.verification_engine import get_validation_report
+    from packages.repair_engine.verification.verification_engine import get_validation_report
     result = get_validation_report("nonexistent_job_xyz")
     assert result is None
     ok("Olmayan job için None döndü")
@@ -444,7 +444,7 @@ def test_validation_report_missing():
 section("11 — RepairJob Yeni Alanlar")
 
 def test_new_job_fields():
-    from repair.schemas.repair_job import RepairJob, RepairJobStatus
+    from packages.repair_engine.schemas.repair_job import RepairJob, RepairJobStatus
 
     job = RepairJob.create("inc_fields_001")
 
@@ -463,7 +463,7 @@ def test_new_job_fields():
     ok(f"Tüm {len(required_fields)} RC1 alanı RepairJob'da mevcut")
 
     # Yeni state'ler
-    from repair.schemas.repair_job import RepairJobStatus
+    from packages.repair_engine.schemas.repair_job import RepairJobStatus
     new_states = [
         "VECTOR_CONTEXT_LOADED", "GENERATED_TESTS_READY",
         "SANDBOX_VERIFIED", "LESSON_SAVED",
@@ -473,7 +473,7 @@ def test_new_job_fields():
     ok(f"Tüm {len(new_states)} RC1 state RepairJobStatus'ta mevcut")
 
 def test_job_to_dict_complete():
-    from repair.schemas.repair_job import RepairJob
+    from packages.repair_engine.schemas.repair_job import RepairJob
     job = RepairJob.create("inc_dict_001")
     job.vector_context_used   = True
     job.debate_triggered      = True
@@ -495,9 +495,9 @@ def test_full_pipeline_sim():
     Gerçek _run_pipeline çağırmadan tüm adımları sırayla
     mock ile çalıştır ve job'un tüm alanların dolduğunu doğrula.
     """
-    from repair.schemas.repair_job import RepairJob, RepairJobStatus
-    from repair.schemas.incident   import IncidentRecord
-    import repair.memory.vector_lessons as vl_mod
+    from packages.repair_engine.schemas.repair_job import RepairJob, RepairJobStatus
+    from packages.repair_engine.schemas.incident   import IncidentRecord
+    import packages.repair_engine.packages.memory.vector_lessons as vl_mod
 
     # Temiz store
     vl_mod._vector_lessons = None

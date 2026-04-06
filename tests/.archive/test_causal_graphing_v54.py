@@ -7,9 +7,9 @@ import logging
 # Add project root to sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.agi.task_governance import ProjectTask, SubTask, TaskStatus
-from core.agi.learning.wisdom_synthesizer import wisdom_synthesizer
-from core.agi.world.causal_error_graph import causal_error_graph
+from packages.orchestration.agi.task_governance import ProjectTask, SubTask, TaskStatus
+from packages.orchestration.agi.learning.wisdom_synthesizer import wisdom_synthesizer
+from packages.orchestration.agi.world.causal_error_graph import causal_error_graph
 
 logging.basicConfig(level=logging.INFO)
 _log = logging.getLogger("VERIFY-V54")

@@ -1,8 +1,8 @@
 import pytest
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
-from core.agi.cognitive.sovereign_cortex import SovereignCortex
-from core.agi.schemas import PlanProposal
+from packages.orchestration.agi.cognitive.sovereign_cortex import SovereignCortex
+from packages.orchestration.agi.schemas import PlanProposal
 
 @pytest.mark.asyncio
 async def test_dialectic_planning_flow():
@@ -15,10 +15,10 @@ async def test_dialectic_planning_flow():
     cortex.planner.plan.return_value = [] # Subtasks
     
     # Mock Debate and Consensus
-    with patch("core.agi.cognitive.debate_manager.debate_manager.argue", new_callable=AsyncMock) as mock_debate:
+    with patch("packages.orchestration.agi.cognitive.debate_manager.debate_manager.argue", new_callable=AsyncMock) as mock_debate:
         mock_debate.return_value = [PlanProposal(agent_id="p1", content="plan 1")]
         
-        with patch("core.agi.cognitive.consensus_manager.consensus_manager.resolve", new_callable=AsyncMock) as mock_resolve:
+        with patch("packages.orchestration.agi.cognitive.consensus_manager.consensus_manager.resolve", new_callable=AsyncMock) as mock_resolve:
             mock_resolve.return_value = PlanProposal(
                 agent_id="consensus", 
                 content="final hybrid plan",
@@ -43,7 +43,7 @@ async def test_architectural_audit_rejection():
     cortex = SovereignCortex()
     
     # Simulate Audit Rejection
-    with patch("core.agi.security.audit_gate.audit_gate.verify_architecture_proposal", new_callable=AsyncMock) as mock_audit:
+    with patch("packages.orchestration.agi.security.audit_gate.audit_gate.verify_architecture_proposal", new_callable=AsyncMock) as mock_audit:
         mock_audit.return_value = False # REJECTED
         
         # Dialectic'i bypass et (Mock)

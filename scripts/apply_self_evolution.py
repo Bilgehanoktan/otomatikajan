@@ -3,7 +3,7 @@ import os
 import uuid
 import asyncio
 from typing import Optional
-from observability.logging import get_logger
+from packages.packages.observability.logging import get_logger
 
 # Proje köke python path ekle
 sys.path.append(os.getcwd())
@@ -14,14 +14,14 @@ async def apply_evolution_patch(suggestion_id: str):
     """
     Onaylanan bir öz-evrim yamasını (CEOSuggestedTask) fiziksel dosyaya uygular.
     """
-    from db.session import session_scope
-    from db.models import CEOSuggestedTask
+    from packages.persistence.session import session_scope
+    from packages.persistence.models import CEOSuggestedTask
     from sqlalchemy import select
     
     print(f"--- AGI Self-Evolution Patcher ({suggestion_id}) ---")
     
     async with session_scope() as db:
-        result = await db.execute(
+        result = await packages.persistence.execute(
             select(CEOSuggestedTask).where(CEOSuggestedTask.id == uuid.UUID(suggestion_id))
         )
         suggestion = result.scalar_one_or_none()
@@ -78,7 +78,7 @@ async def apply_evolution_patch(suggestion_id: str):
                 # Şimdilik simüle ediyoruz veya tüm dosyayı güncelliyoruz.
                 print(f"[OK] Yama '{target_file}' dosyasına başarıyla uygulandı (Simulated).")
                 suggestion.status = "approved"
-                await db.commit()
+                await packages.persistence.commit()
             except Exception as e:
                 print(f"[ERROR] Patch application failed: {e}")
         else:

@@ -12,8 +12,8 @@ async def test_pure_db_persistence():
     
     try:
         from sovereign_codegen import CodeGenerationEngine, CodeFile, CodeLanguage
-        from db.session import AsyncSessionLocal
-        from db.code_repository import CodeRepository
+        from packages.persistence.session import AsyncSessionLocal
+        from packages.persistence.code_repository import CodeRepository
         
         # Mock Orchestrator (LLM çağrısı yapmasın)
         mock_orch = MagicMock()
@@ -39,7 +39,7 @@ async def test_pure_db_persistence():
                 {"filename": "README.md", "path": "README.md", "content": "# Test", "language": "markdown"}
             ]
             await CodeRepository.add_files(db, code_res.id, files_data)
-            await db.commit()
+            await packages.persistence.commit()
             print(f"[OK] {len(files_data)} dosya DB'ye yazıldı.")
 
         # 2. Geri Yükleme Testi

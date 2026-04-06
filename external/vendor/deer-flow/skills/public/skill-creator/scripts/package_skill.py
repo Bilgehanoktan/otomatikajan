@@ -16,7 +16,7 @@ import zipfile
 from pathlib import Path
 from scripts.quick_validate import validate_skill
 
-# Patterns to exclude when packaging skills.
+# Patterns to exclude when packaging packages.skills.
 EXCLUDE_DIRS = {"__pycache__", "node_modules"}
 EXCLUDE_GLOBS = {"*.pyc"}
 EXCLUDE_FILES = {".DS_Store"}

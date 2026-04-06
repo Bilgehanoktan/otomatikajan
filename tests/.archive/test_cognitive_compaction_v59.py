@@ -8,10 +8,10 @@ from datetime import datetime, timedelta, timezone
 # Add project root to sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from db.models import Memory
-from db.session import AsyncSessionLocal
-from core.agi.cognitive.sovereign_cortex import sovereign_cortex
-from core.agi.consciousness.affective_core import affective_core
+from packages.persistence.models import Memory
+from packages.persistence.session import AsyncSessionLocal
+from packages.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex
+from packages.orchestration.agi.consciousness.affective_core import affective_core
 
 logging.basicConfig(level=logging.INFO)
 _log = logging.getLogger("VERIFY-V59")
@@ -33,7 +33,7 @@ async def verify_dream_cycle():
                 importance=0.1,
                 created_at=old_time
             )
-            db.add(m)
+            packages.persistence.add(m)
         
         # 3 adet benzer anı (Consolidate edilecek)
         for i in range(3):
@@ -43,9 +43,9 @@ async def verify_dream_cycle():
                 category="connection_errors",
                 importance=0.5
             )
-            db.add(m)
+            packages.persistence.add(m)
             
-        await db.commit()
+        await packages.persistence.commit()
     
     # 2. Enerjiyi düşür (ECO Modu tetikle)
     affective_core.state["energy_reserve"] = 0.1
@@ -68,14 +68,14 @@ async def verify_dream_cycle():
         
         # debug_logs kalmış mı? (0 olmalı)
         stmt_noise = select(func.count(Memory.id)).where(Memory.category == "debug_logs")
-        noise_count = (await db.execute(stmt_noise)).scalar()
+        noise_count = (await packages.persistence.execute(stmt_noise)).scalar()
         
         # connection_errors ne durumda? (0 olmalı, 1 adet semantic_wisdom oluşmuş olmalı)
         stmt_redundant = select(func.count(Memory.id)).where(Memory.category == "connection_errors")
-        redundant_count = (await db.execute(stmt_redundant)).scalar()
+        redundant_count = (await packages.persistence.execute(stmt_redundant)).scalar()
         
         stmt_wisdom = select(func.count(Memory.id)).where(Memory.category == "semantic_wisdom")
-        wisdom_count = (await db.execute(stmt_wisdom)).scalar()
+        wisdom_count = (await packages.persistence.execute(stmt_wisdom)).scalar()
 
         _log.info(f"Results:")
         _log.info(f"  > Noise Count (debug_logs): {noise_count} (Expected 0)")

@@ -5,8 +5,8 @@ import sys
 # Add project root to sys.path
 sys.path.append("e:/ai_company_faz12.1")
 
-from db.session import AsyncSessionLocal, init_db
-from db.models import Memory
+from packages.persistence.session import AsyncSessionLocal, init_db
+from packages.persistence.models import Memory
 
 async def record_shift():
     await init_db()
@@ -23,8 +23,8 @@ async def record_shift():
             },
             importance=1.0
         )
-        db.add(m)
-        await db.commit()
+        packages.persistence.add(m)
+        await packages.persistence.commit()
         print("SUCCESS: VERSION_SHIFT_45_RECORDED")
 
 if __name__ == "__main__":

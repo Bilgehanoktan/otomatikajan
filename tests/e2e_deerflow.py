@@ -2,9 +2,9 @@
 import asyncio
 import os
 import httpx
-from db.session import AsyncSessionLocal
-from db.repository import ProjectRepository
-from db.models import ProjectStatus
+from packages.persistence.session import AsyncSessionLocal
+from packages.persistence.repository import ProjectRepository
+from packages.persistence.models import ProjectStatus
 
 async def main():
     base_url = "http://localhost:8000/api/v1"

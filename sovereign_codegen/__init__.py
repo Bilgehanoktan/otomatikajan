@@ -27,13 +27,13 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
-from observability.logging import get_logger
+from packages.packages.observability.logging import get_logger
 logger = get_logger("sovereign_codegen")
 
-from db.session import AsyncSessionLocal
-from db.code_repository import CodeRepository
-from db.repository import ProjectRepository
-from core.agi.cognitive.sovereign_cortex import SovereignCortex
+from packages.persistence.session import AsyncSessionLocal
+from packages.persistence.code_repository import CodeRepository
+from packages.persistence.repository import ProjectRepository
+from packages.orchestration.agi.cognitive.sovereign_cortex import SovereignCortex
 
 
 # ════════════════════════════════════════════════════════
@@ -633,7 +633,7 @@ class CodeGenerationEngine:
                 technologies=[template.value] if template and template != ProjectTemplate.CUSTOM else [],
                 summary="Başlatılıyor..."
             )
-            await db.commit()
+            await packages.persistence.commit()
             real_project_id = str(project.id)
 
         result = CodeGenerationResult(
@@ -710,7 +710,7 @@ class CodeGenerationEngine:
                     summary=result.review_summary or f"{len(result.files)} dosya başarıyla üretildi."
                 )
                 await ProjectRepository.mark_completed(db, project.id, report=result.review_summary)
-                await db.commit()
+                await packages.persistence.commit()
 
             result.status = "completed"
             result.__post_init__()
@@ -730,7 +730,7 @@ class CodeGenerationEngine:
             async with AsyncSessionLocal() as db:
                 await CodeRepository.update_status(db, code_res.id, status="failed", summary=str(e))
                 await ProjectRepository.set_error(db, project.id, error=str(e))
-                await db.commit()
+                await packages.persistence.commit()
 
         return result
 
@@ -745,7 +745,7 @@ class CodeGenerationEngine:
     ) -> list[CodeFile]:
         """Tek ajan için kod üret."""
         agent_id   = task["agent_id"]
-        agent      = agents.get(agent_id) if agents else None
+        agent      = packages.orchestration.agi.get(agent_id) if agents else None
         system_msg = agent.system_prompt if agent else f"Sen {agent_id} rolünde bir uzman geliştiricisisin."
 
         prompt = (
@@ -858,7 +858,7 @@ def get_code_engine() -> CodeGenerationEngine | None:
                 pass
 
             # 2. Yol: Kendi ModelOrchestrator'ını oluştur (Bağımsız çalışabilsin)
-            from llm.model_orchestrator import ModelOrchestrator
+            from packages.llm_gateway.model_orchestrator import ModelOrchestrator
             return init_sovereign_codegen(ModelOrchestrator())
         except Exception as e:
             logger.error(f"Kod motoru otomatik başlatılamadı: {e}")

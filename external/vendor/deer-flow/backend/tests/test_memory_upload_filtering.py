@@ -9,8 +9,8 @@ persisting in long-term memory:
 
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
-from deerflow.agents.memory.updater import _strip_upload_mentions_from_memory
-from deerflow.agents.middlewares.memory_middleware import _filter_messages_for_memory
+from deerflow.packages.orchestration.agi.packages.memory.updater import _strip_upload_mentions_from_memory
+from deerflow.packages.orchestration.agi.middlewares.memory_middleware import _filter_messages_for_memory
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -77,7 +77,7 @@ class TestFilterMessagesForMemory:
         assert result[1].content == "The capital of France is Paris."
 
     def test_tool_messages_are_excluded(self):
-        """Intermediate tool messages must never reach memory."""
+        """Intermediate tool messages must never reach packages.memory."""
         msgs = [
             _human("Search for something"),
             _ai("Calling search tool", tool_calls=[{"name": "search", "id": "1", "args": {}}]),

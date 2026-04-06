@@ -23,7 +23,7 @@ if os.path.exists(".env.local"):
     load_dotenv(".env.local", override=True)
 
 from telegram_app.bot import handle_update, BOT_TOKEN, _tg_available
-from observability.logging import get_logger
+from packages.packages.observability.logging import get_logger
 
 logger = get_logger("telegram.polling")
 
@@ -41,7 +41,7 @@ import time
 
 async def heartbeat_loop():
     try:
-        from db.session import get_redis_client
+        from packages.persistence.session import get_redis_client
         redis = get_redis_client()
         while True:
             if redis is not None:

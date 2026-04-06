@@ -8,8 +8,8 @@ from typing import Dict, Any
 # Add project root to sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.agi.cognitive.sovereign_cortex import sovereign_cortex
-from core.agi.task_governance import ProjectTask, SubTask, TaskStatus
+from packages.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex
+from packages.orchestration.agi.task_governance import ProjectTask, SubTask, TaskStatus
 
 logging.basicConfig(level=logging.INFO)
 _log = logging.getLogger("VERIFY-V60")
@@ -40,7 +40,7 @@ async def verify_aebc_dissonance():
     _log.info("Testing: Will Evaluator detect that the file actually DOES NOT EXIST?")
 
     # Direk Evaluator'u test et
-    from core.agi.quality.sovereign_evaluator import sovereign_evaluator
+    from packages.orchestration.agi.packages.quality_assurance.sovereign_evaluator import sovereign_evaluator
     eval_report = await sovereign_evaluator.evaluate_task_outcome(mock_subtask)
     
     _log.info(f"Evaluation Score: {eval_report['score']}")

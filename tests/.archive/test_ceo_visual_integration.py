@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from core.ceo_engine import CEOEngine
-from db.models import ImprovementOpportunity
+from packages.persistence.models import ImprovementOpportunity
 
 @pytest.mark.asyncio
 async def test_ceo_engine_picks_up_visual_audit():
@@ -21,16 +21,16 @@ async def test_ceo_engine_picks_up_visual_audit():
     }
     
     # Mocking the session and scan
-    # CEOEngine uses session_scope from db.session
+    # CEOEngine uses session_scope from packages.persistence.session
     with patch("core.ceo_engine.session_scope") as mock_session_scope:
         mock_session = AsyncMock()
         mock_session_scope.return_value.__aenter__.return_value = mock_session
         
         # Mocking observers
-        with patch("improve.visual_observer.VisualUXObserver.scan", new_callable=AsyncMock) as mock_visual_scan:
+        with patch("packages.improvement_engine.visual_observer.VisualUXObserver.scan", new_callable=AsyncMock) as mock_visual_scan:
             mock_visual_scan.return_value = [mock_visual_op]
             
-            with patch("improve.observer.ImprovementObserver.scan", new_callable=AsyncMock) as mock_improve_scan:
+            with patch("packages.improvement_engine.observer.ImprovementObserver.scan", new_callable=AsyncMock) as mock_improve_scan:
                 mock_improve_scan.return_value = []
                 
                 # Mock everything below the scan to avoid database or other complex internal calls hanging

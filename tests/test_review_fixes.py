@@ -28,8 +28,8 @@ class TestAuthNegativeScenarios:
     def _make_db(self):
         """Sahte DB session."""
         db = AsyncMock()
-        db.__aenter__ = AsyncMock(return_value=db)
-        db.__aexit__  = AsyncMock(return_value=False)
+        packages.persistence.__aenter__ = AsyncMock(return_value=db)
+        packages.persistence.__aexit__  = AsyncMock(return_value=False)
         return db
 
     @pytest.mark.asyncio
@@ -37,7 +37,7 @@ class TestAuthNegativeScenarios:
         """Yanlış parola -> 401."""
         import bcrypt
         from fastapi import HTTPException
-        from auth.jwt_auth import AuthService
+        from apps.api.routers.apps.api.routers.auth.jwt_auth import AuthService
         from sqlalchemy import select
 
         hashed = bcrypt.hashpw(b"dogru_parola", bcrypt.gensalt(rounds=4)).decode()
@@ -50,7 +50,7 @@ class TestAuthNegativeScenarios:
         db = self._make_db()
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = mock_user
-        db.execute = AsyncMock(return_value=mock_result)
+        packages.persistence.execute = AsyncMock(return_value=mock_result)
 
         svc = AuthService()
         with pytest.raises(HTTPException) as exc:
@@ -62,12 +62,12 @@ class TestAuthNegativeScenarios:
     async def test_login_user_not_found(self):
         """Kullanıcı yok -> 401 (timing attack: yine de hash kontrol edilmeli)."""
         from fastapi import HTTPException
-        from auth.jwt_auth import AuthService
+        from apps.api.routers.apps.api.routers.auth.jwt_auth import AuthService
 
         db = self._make_db()
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = None
-        db.execute = AsyncMock(return_value=mock_result)
+        packages.persistence.execute = AsyncMock(return_value=mock_result)
 
         svc = AuthService()
         with pytest.raises(HTTPException) as exc:
@@ -79,7 +79,7 @@ class TestAuthNegativeScenarios:
         """Devre dışı kullanıcı -> 403."""
         import bcrypt
         from fastapi import HTTPException
-        from auth.jwt_auth import AuthService
+        from apps.api.routers.apps.api.routers.auth.jwt_auth import AuthService
 
         hashed = bcrypt.hashpw(b"parola", bcrypt.gensalt(rounds=4)).decode()
         mock_user = MagicMock()
@@ -89,7 +89,7 @@ class TestAuthNegativeScenarios:
         db = self._make_db()
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = mock_user
-        db.execute = AsyncMock(return_value=mock_result)
+        packages.persistence.execute = AsyncMock(return_value=mock_result)
 
         svc = AuthService()
         with pytest.raises(HTTPException) as exc:
@@ -100,12 +100,12 @@ class TestAuthNegativeScenarios:
     async def test_register_duplicate_email(self):
         """Mevcut e-posta -> 409."""
         from fastapi import HTTPException
-        from auth.jwt_auth import AuthService
+        from apps.api.routers.apps.api.routers.auth.jwt_auth import AuthService
 
         db = self._make_db()
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = MagicMock()  # mevcut kullanıcı
-        db.execute = AsyncMock(return_value=mock_result)
+        packages.persistence.execute = AsyncMock(return_value=mock_result)
 
         svc = AuthService()
         with pytest.raises(HTTPException) as exc:
@@ -116,12 +116,12 @@ class TestAuthNegativeScenarios:
     async def test_register_short_password(self):
         """Kısa parola -> 422."""
         from fastapi import HTTPException
-        from auth.jwt_auth import AuthService
+        from apps.api.routers.apps.api.routers.auth.jwt_auth import AuthService
 
         db = self._make_db()
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = None
-        db.execute = AsyncMock(return_value=mock_result)
+        packages.persistence.execute = AsyncMock(return_value=mock_result)
 
         svc = AuthService()
         with pytest.raises(HTTPException) as exc:
@@ -131,7 +131,7 @@ class TestAuthNegativeScenarios:
     def test_invalid_token_raises_401(self):
         """Geçersiz imzalı token -> 401."""
         from fastapi import HTTPException
-        from auth.jwt_auth import _decode_token
+        from apps.api.routers.apps.api.routers.auth.jwt_auth import _decode_token
         with pytest.raises(HTTPException) as exc:
             _decode_token("tamamen.gecersiz.token")
         assert exc.value.status_code == 401
@@ -141,7 +141,7 @@ class TestAuthNegativeScenarios:
         import jwt as pyjwt
         from datetime import datetime, timedelta, timezone
         from fastapi import HTTPException
-        from auth.jwt_auth import _decode_token, JWT_SECRET, JWT_ALGORITHM
+        from apps.api.routers.apps.api.routers.auth.jwt_auth import _decode_token, JWT_SECRET, JWT_ALGORITHM
 
         expired = pyjwt.encode(
             {
@@ -165,8 +165,8 @@ class TestRefreshTokenRotation:
 
     def _make_db(self):
         db = AsyncMock()
-        db.__aenter__ = AsyncMock(return_value=db)
-        db.__aexit__  = AsyncMock(return_value=False)
+        packages.persistence.__aenter__ = AsyncMock(return_value=db)
+        packages.persistence.__aexit__  = AsyncMock(return_value=False)
         return db
 
     @pytest.mark.asyncio
@@ -174,7 +174,7 @@ class TestRefreshTokenRotation:
         """Refresh sonrası eski token revoked=True olmalı."""
         import jwt as pyjwt
         from datetime import datetime, timedelta, timezone
-        from auth.jwt_auth import AuthService, JWT_SECRET, JWT_ALGORITHM, REFRESH_DAYS
+        from apps.api.routers.apps.api.routers.auth.jwt_auth import AuthService, JWT_SECRET, JWT_ALGORITHM, REFRESH_DAYS
 
         user = MagicMock()
         user.id       = uuid.uuid4()
@@ -210,9 +210,9 @@ class TestRefreshTokenRotation:
                 res.scalar_one_or_none.return_value = user
             return res
 
-        db.execute  = fake_execute
-        db.flush    = AsyncMock()
-        db.add      = MagicMock()
+        packages.persistence.execute  = fake_execute
+        packages.persistence.flush    = AsyncMock()
+        packages.persistence.add      = MagicMock()
 
         svc = AuthService()
         result = await svc.refresh(db, refresh_token)
@@ -231,7 +231,7 @@ class TestRefreshTokenRotation:
         import jwt as pyjwt
         from datetime import datetime, timedelta, timezone
         from fastapi import HTTPException
-        from auth.jwt_auth import AuthService, JWT_SECRET, JWT_ALGORITHM, REFRESH_DAYS
+        from apps.api.routers.apps.api.routers.auth.jwt_auth import AuthService, JWT_SECRET, JWT_ALGORITHM, REFRESH_DAYS
 
         refresh_token = pyjwt.encode(
             {
@@ -246,7 +246,7 @@ class TestRefreshTokenRotation:
         db = self._make_db()
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = None  # RT bulunamadı (revoked)
-        db.execute = AsyncMock(return_value=mock_result)
+        packages.persistence.execute = AsyncMock(return_value=mock_result)
 
         svc = AuthService()
         with pytest.raises(HTTPException) as exc:
@@ -259,7 +259,7 @@ class TestRefreshTokenRotation:
         import jwt as pyjwt
         from datetime import datetime, timedelta, timezone
         from fastapi import HTTPException
-        from auth.jwt_auth import AuthService, JWT_SECRET, JWT_ALGORITHM
+        from apps.api.routers.apps.api.routers.auth.jwt_auth import AuthService, JWT_SECRET, JWT_ALGORITHM
 
         access_token = pyjwt.encode(
             {
@@ -474,7 +474,7 @@ class TestLLMConfiguration:
 
     def test_provider_stats_post_init(self):
         """ProviderStats __post_init__ — _fail_streak başlangıçta 0."""
-        from llm.model_orchestrator import ProviderStats, CircuitState
+        from packages.llm_gateway.model_orchestrator import ProviderStats, CircuitState
         p = ProviderStats(
             name="test", api_key_env="TEST_KEY",
             base_url="https://api.test.com", model="test-model",
@@ -485,7 +485,7 @@ class TestLLMConfiguration:
 
     def test_circuit_breaker_opens_after_threshold(self):
         """3 ardışık hata sonrası devre açılır."""
-        from llm.model_orchestrator import ProviderStats, CircuitState
+        from packages.llm_gateway.model_orchestrator import ProviderStats, CircuitState
         p = ProviderStats(
             name="test", api_key_env="TEST_KEY",
             base_url="https://api.test.com", model="test-model",
@@ -497,7 +497,7 @@ class TestLLMConfiguration:
 
     def test_circuit_resets_on_success(self):
         """Başarılı çağrı sonrası fail_streak sıfırlanır, devre kapanır."""
-        from llm.model_orchestrator import ProviderStats, CircuitState
+        from packages.llm_gateway.model_orchestrator import ProviderStats, CircuitState
         p = ProviderStats(
             name="test", api_key_env="TEST_KEY",
             base_url="https://api.test.com", model="test-model",

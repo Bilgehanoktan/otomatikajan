@@ -4,8 +4,8 @@ import json
 import uuid
 from unittest.mock import MagicMock, AsyncMock
 
-from db.models import Project, ProjectStatus, SubTask
-from db.repository import ProjectRepository, SubTaskRepository
+from packages.persistence.models import Project, ProjectStatus, SubTask
+from packages.persistence.repository import ProjectRepository, SubTaskRepository
 from tasks.deerflow_tasks import run_deerflow_streaming_task
 
 @pytest.mark.asyncio
@@ -26,10 +26,10 @@ async def test_deerflow_planner_subtask_extraction(mocker):
     )
     
     # Mock Repository calls
-    mocker.patch("db.repository.ProjectRepository.get", return_value=mock_project)
-    mocker.patch("db.repository.ProjectRepository.mark_started", return_value=None)
-    mocker.patch("db.repository.ProjectRepository.mark_completed", return_value=None)
-    mocker.patch("db.repository.TaskLogRepository.write", return_value=None)
+    mocker.patch("packages.persistence.repository.ProjectRepository.get", return_value=mock_project)
+    mocker.patch("packages.persistence.repository.ProjectRepository.mark_started", return_value=None)
+    mocker.patch("packages.persistence.repository.ProjectRepository.mark_completed", return_value=None)
+    mocker.patch("packages.persistence.repository.TaskLogRepository.write", return_value=None)
     
     # 3. Mock Bridge Client
     mock_bridge = MagicMock()
@@ -52,7 +52,7 @@ async def test_deerflow_planner_subtask_extraction(mocker):
     mock_bridge.stream_run = mock_stream
 
     # 4. Mock SubTask Creation
-    mock_bulk_create = mocker.patch("db.repository.SubTaskRepository.bulk_create", return_value=[])
+    mock_bulk_create = mocker.patch("packages.persistence.repository.SubTaskRepository.bulk_create", return_value=[])
 
     # 5. Run the Task (Simulated Celery environment)
     # We call the inner function _execute logic by bypassing celery's delay()

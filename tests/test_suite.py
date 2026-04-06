@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import numpy as np
 import pytest
-from llm.model_orchestrator import LLMResponse
+from packages.llm_gateway.model_orchestrator import LLMResponse
 from schemas import SubtaskOutput, AgentStatus
 from datetime import datetime, timezone
 
@@ -50,7 +50,7 @@ class TestMMR:
 
     def test_mmr_selects_diverse_results(self):
         """MMR çeşitlilik sağlıyor mu?"""
-        from memory.store import _mmr, _cosine_sim
+        from packages.packages.memory.store import _mmr, _cosine_sim
 
         # 3 belge: A ve B çok benzer, C farklı
         q = [1.0, 0.0] + [0.0] * 8
@@ -73,7 +73,7 @@ class TestMMR:
 
     def test_mmr_lambda_1_pure_relevance(self):
         """λ=1.0 -> yalnızca alaka skoruna göre seç."""
-        from memory.store import _mmr
+        from packages.packages.memory.store import _mmr
         q = [1.0] + [0.0] * 9
         mem1 = MagicMock(embedding=[1.0] + [0.0]*9, body="hi")
         mem2 = MagicMock(embedding=[0.5] + [0.0]*9, body="hello")
@@ -88,7 +88,7 @@ class TestMMR:
 class TestCostTracker:
 
     def setup_method(self):
-        from llm.cost_tracker import CostTracker
+        from packages.llm_gateway.cost_tracker import CostTracker
         self.tracker = CostTracker()
 
     def test_known_model_cost(self):
@@ -136,7 +136,7 @@ class TestCostTracker:
 class TestCircuitBreaker:
 
     def setup_method(self):
-        from llm.model_orchestrator import ProviderStats, CircuitState
+        from packages.llm_gateway.model_orchestrator import ProviderStats, CircuitState
         self.ProviderStats = ProviderStats
         self.CircuitState = CircuitState
 
@@ -188,7 +188,7 @@ class TestOrchestrator:
         orch = Orchestrator()
         
         # Sahte ajanları yükle
-        from agents.agent_registry import build_agents
+        from packages.orchestration.agi.agent_registry import build_agents
         orch._agents = build_agents()
         # Ensure all agents from planner are in registry or handled
         orch._health = {aid: 1.0 for aid in orch._agents}
@@ -203,7 +203,7 @@ class TestOrchestrator:
         # LLM'i mockla
         orch.model_orch.generate = AsyncMock(return_value="LOW")
         
-        with patch("quality.approval_gate.approval_gate", mock_gate):
+        with patch("packages.quality_assurance.approval_gate.approval_gate", mock_gate):
             yield orch
 
     @pytest.mark.asyncio
@@ -225,7 +225,7 @@ class TestOrchestrator:
                 completed_at=datetime.now(timezone.utc)
             )
 
-        from agents.agent_registry import Agent
+        from packages.orchestration.agi.agent_registry import Agent
         with patch.object(Agent, "execute", side_effect=mock_execute):
             task = await orchestrator.run_project("Test Projesi", "Açıklama")
 
@@ -253,7 +253,7 @@ class TestOrchestrator:
                 completed_at=datetime.now(timezone.utc)
             )
 
-        from agents.agent_registry import Agent
+        from packages.orchestration.agi.agent_registry import Agent
         with patch.object(Agent, "execute", side_effect=flaky_execute):
             task = await orchestrator.run_project("Hatalı Proje", "Test")
 
@@ -264,7 +264,7 @@ class TestOrchestrator:
     @pytest.mark.asyncio
     async def test_health_decreases_on_failure(self, orchestrator):
         orchestrator._health["architect"] = 1.0
-        from agents.agent_registry import Agent
+        from packages.orchestration.agi.agent_registry import Agent
         with patch.object(
             Agent, "execute",
             new=AsyncMock(side_effect=RuntimeError("hata"))
@@ -326,17 +326,17 @@ class TestHealEngine:
 class TestAgentRegistry:
 
     def test_all_specialized_agents_present(self):
-        from agents.agent_registry import build_agents
+        from packages.orchestration.agi.agent_registry import build_agents
         agents = build_agents()
         expected = {
             "architect", "backend_dev", "frontend_dev", "qa_engineer",
             "devops", "security", "data_eng", "tech_writer",
             "visual_auditor", "strategist", "system_controller"
         }
-        assert set(agents.keys()) == expected
+        assert set(packages.orchestration.agi.keys()) == expected
 
     def test_agents_have_required_fields(self):
-        from agents.agent_registry import build_agents
+        from packages.orchestration.agi.agent_registry import build_agents
         for agent_id, agent in build_agents().items():
             assert agent.id == agent_id
             assert len(agent.name) > 0

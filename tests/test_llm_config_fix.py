@@ -6,7 +6,7 @@ from unittest.mock import patch
 # Proje kök dizinini path'e ekle
 sys.path.append(os.path.abspath("."))
 
-from llm.model_orchestrator import ModelOrchestrator
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 
 async def test_placeholder_detection():
     print("--- LLM Placeholder Tespiti Testi ---")

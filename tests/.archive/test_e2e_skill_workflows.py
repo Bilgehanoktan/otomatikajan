@@ -3,7 +3,7 @@ import asyncio
 from unittest.mock import AsyncMock, patch, MagicMock
 from core.orchestrator import Orchestrator
 from core.task_management import SubTask, TaskStatus
-from skills.base import SkillResult
+from packages.packages.skills.base import SkillResult
 
 @pytest.mark.asyncio
 async def test_e2e_01_bug_task_flow_triggers_debugging_skill():
@@ -25,8 +25,8 @@ async def test_e2e_01_bug_task_flow_triggers_debugging_skill():
     )
     
     # Mock skill preflight results
-    with patch("skills.router.SkillRouter.suggest", return_value=["optimization", "file_search"]), \
-         patch("skills.registry.SkillRegistry.get") as mock_get:
+    with patch("packages.skills.router.SkillRouter.suggest", return_value=["optimization", "file_search"]), \
+         patch("packages.skills.registry.SkillRegistry.get") as mock_get:
         
         # Mock file_search result
         mock_file_skill = MagicMock()
@@ -78,8 +78,8 @@ async def test_e2e_02_skill_suggestion_during_run_subtask():
     )
     
     # Real router but mocked registry
-    with patch("skills.router.SkillRouter.suggest", return_value=["file_search"]):
-        with patch("skills.registry.SkillRegistry.get") as mock_get:
+    with patch("packages.skills.router.SkillRouter.suggest", return_value=["file_search"]):
+        with patch("packages.skills.registry.SkillRegistry.get") as mock_get:
             mock_skill = MagicMock()
             mock_skill.execute = AsyncMock(return_value=SkillResult(
                 success=True, skill_id="file_search", summary="Scanned 5 files."

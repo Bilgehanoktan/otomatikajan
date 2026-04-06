@@ -1,8 +1,8 @@
 import pytest
 import asyncio
 from core.repair_orchestrator import RepairOrchestrator
-from repair.schemas.repair_job import RepairJob, RepairJobStatus
-from repair.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
+from packages.repair_engine.schemas.repair_job import RepairJob, RepairJobStatus
+from packages.repair_engine.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
 from datetime import datetime, timezone
 
 @pytest.mark.asyncio

@@ -1,8 +1,8 @@
 import asyncio
 import json
 import logging
-from core.agi.cognitive.agi_goal_decomposer import GoalDecomposer
-from core.agi.task_governance import SubTask
+from packages.orchestration.agi.cognitive.agi_goal_decomposer import GoalDecomposer
+from packages.orchestration.agi.task_governance import SubTask
 
 logging.basicConfig(level=logging.INFO)
 _log = logging.getLogger("VERIFY-V49")
