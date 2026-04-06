@@ -310,7 +310,7 @@ Tıkanmış projeler için sadece doğrudan, 1-2 cümlelik kesin eylem kararlar�
             await ProjectRepository.update_fields(db, proj.id, is_paused=True, status=ProjectStatus.PAUSED.value)
 
         elif action == "retry":
-            from tasks.celery_app import celery_app
+            from apps.worker.tasks.celery_app import celery_app
 
             new_count = getattr(proj, "retry_count", 0) + 1
             kwargs = {}
