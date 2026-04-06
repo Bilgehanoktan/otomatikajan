@@ -16,7 +16,7 @@ logger = get_logger("api.tasks")
 
 # ── DB bağımlılık ──────────────────────────────────────────
 async def _db_session():
-    from packages.persistence.session import AsyncSessionLocal
+    from db.session import AsyncSessionLocal
     async with AsyncSessionLocal() as db:
         yield db
 

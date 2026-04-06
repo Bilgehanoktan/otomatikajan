@@ -13,9 +13,9 @@ from packages.observability.logging import get_logger
 
 # V2 Mimarisi İçe Aktarımları
 from schemas import TaskState
-from packages.persistence.models import ProjectStatus, Project
-from packages.persistence.session import AsyncSessionLocal
-from packages.persistence.repositories.repository import ProjectRepository, TaskLogRepository
+from db.models import ProjectStatus, Project
+from db.session import AsyncSessionLocal
+from db.repositories.repository import ProjectRepository, TaskLogRepository
 from packages.orchestration.application.task_routing import task_router
 from packages.orchestration.application.job_queue import job_queue
 from packages.skills.base import SkillRequest
@@ -83,7 +83,7 @@ async def create_task(req: TaskCreateRequest, current_user=Depends(get_current_u
                 agent_id=str(current_user.id) if current_user else "dashboard",
                 payload={"source": req.source, "priority": req.priority},
             )
-            await packages.persistence.commit()
+            await db.commit()
             project_dict = _project_to_dict(p)
             
     except Exception as e:
@@ -167,7 +167,7 @@ async def create_task(req: TaskCreateRequest, current_user=Depends(get_current_u
                         ctx = dict(p_to_update.execution_context or {})
                         ctx["suggested_skills"] = suggested_skills
                         await ProjectRepository.update_fields(db, pid, execution_context=ctx)
-                        await packages.persistence.commit()
+                        await db.commit()
                         logger.debug(f"Task {db_project_id} context güncellendi (suggested_skills).")
             except Exception as ctx_err:
                 logger.warning(f"Skill context yazımı başarısız (atlandı): {ctx_err}")
@@ -198,7 +198,7 @@ async def create_task(req: TaskCreateRequest, current_user=Depends(get_current_u
                     "suggested_skills": suggested_skills,
                 },
             )
-            await packages.persistence.commit()
+            await db.commit()
         project_dict["job_id"] = job.id
         project_dict["status"] = TaskState.QUEUED.value
 
@@ -215,7 +215,7 @@ async def create_task(req: TaskCreateRequest, current_user=Depends(get_current_u
                     agent_id="system",
                     payload={"error": str(e), "failed_at": "enqueue"}
                 )
-                await packages.persistence.commit()
+                await db.commit()
         
         raise HTTPException(
             status_code=500, 
@@ -267,7 +267,7 @@ async def update_task(task_id: str, req: TaskUpdateRequest, current_user=Depends
                 agent_id=str(current_user.id) if current_user else "dashboard",
                 payload=update_data,
             )
-            await packages.persistence.commit()
+            await db.commit()
 
         return {"updated": True, "fields": list(update_data.keys())}
     except HTTPException:
@@ -292,8 +292,8 @@ async def delete_task(task_id: str, current_user=Depends(get_current_user)):
                 pid = p.id
 
             from sqlalchemy import delete as sql_delete
-            await packages.persistence.execute(sql_delete(Project).where(Project.id == pid))
-            await packages.persistence.commit()
+            await db.execute(sql_delete(Project).where(Project.id == pid))
+            await db.commit()
 
         return {"deleted": True, "id": task_id}
     except HTTPException:

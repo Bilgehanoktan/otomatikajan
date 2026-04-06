@@ -14,8 +14,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.api.routers.auth.jwt_auth import get_current_user
-from packages.persistence.models import User, WebhookSubscription
-from packages.persistence.session import get_db_dep
+from db.models import User, WebhookSubscription
+from db.session import get_db_dep
 
 router = APIRouter(prefix="/webhooks", tags=["Webhooks"])
 
@@ -55,8 +55,8 @@ async def create_webhook(
         events=body.events,
         secret=secrets.token_hex(32),
     )
-    packages.persistence.add(sub)
-    await packages.persistence.flush()
+    db.add(sub)
+    await db.flush()
     return WebhookOut(id=str(sub.id), url=sub.url, events=sub.events, is_active=sub.is_active)
 
 
@@ -65,7 +65,7 @@ async def list_webhooks(
     user: User = Depends(get_current_user),
     db:   AsyncSession = Depends(get_db_dep),
 ):
-    subs = (await packages.persistence.execute(
+    subs = (await db.execute(
         select(WebhookSubscription).where(WebhookSubscription.owner_id == user.id)
     )).scalars().all()
     return [WebhookOut(id=str(s.id), url=s.url, events=s.events, is_active=s.is_active) for s in subs]
@@ -77,7 +77,7 @@ async def delete_webhook(
     user: User = Depends(get_current_user),
     db:   AsyncSession = Depends(get_db_dep),
 ):
-    sub = (await packages.persistence.execute(
+    sub = (await db.execute(
         select(WebhookSubscription)
         .where(WebhookSubscription.id == webhook_id)
         .where(WebhookSubscription.owner_id == user.id)
@@ -136,9 +136,9 @@ class WebhookRouter:
     async def dispatch(self, db, event_type: str, payload: dict):
         """Tüm aktif aboneliklere event gönder."""
         from sqlalchemy import select
-        from packages.persistence.models import WebhookSubscription
+        from db.models import WebhookSubscription
 
-        subs = (await packages.persistence.execute(
+        subs = (await db.execute(
             select(WebhookSubscription).where(
                 WebhookSubscription.is_active == True,
             )

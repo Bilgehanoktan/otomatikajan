@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Response, Request, HTTPException, status
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
-from packages.persistence.session import get_db_dep
+from db.session import get_db_dep
 from apps.api.routers.auth.jwt_auth import get_current_user
 
 router = APIRouter()
