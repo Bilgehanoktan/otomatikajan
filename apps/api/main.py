@@ -130,7 +130,7 @@ async def websocket_logs(ws: WebSocket):
         return
 
     try:
-        from auth.jwt_auth import _decode_token
+        from apps.api.routers.auth.jwt_auth import _decode_token
         payload = _decode_token(token)
         if payload.get("type") != "access":
             await ws.accept()
@@ -166,7 +166,7 @@ async def websocket_logs(ws: WebSocket):
 async def health_check():
     from packages.persistence.session import is_db_available, db_error
     from packages.orchestration.agency.loader import agency_loader
-    from packages.observability.memory_governor import packages.memory_governor
+    from packages.observability.memory_governor import memory_governor
     
     db_ok = await is_db_available()
     current_agents = len(orchestrator._agents) if hasattr(orchestrator, "_agents") else 0
