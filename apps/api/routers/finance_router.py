@@ -10,7 +10,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, List
 
 from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user
-from packages.packages.observability.logging import get_logger
+from packages.observability.logging import get_logger
 from config import BUDGET_USD
 
 logger = get_logger("api.finance")
@@ -19,7 +19,7 @@ router = APIRouter(prefix="/finance", tags=["Finance"])
 @router.get("/status", summary="Finansal durum ve bütçe analizi")
 async def get_finance_status(current_user=Depends(get_current_user)):
     try:
-        from packages.packages.observability.metrics import metrics
+        from packages.observability.metrics import metrics
         from packages.llm_gateway.cost_calc import budget_check, format_cost
         
         snap = metrics.snapshot()

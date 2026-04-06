@@ -8,7 +8,7 @@ from packages.persistence.session import AsyncSessionLocal
 from packages.orchestration.experimental.cognitive_verifier import cognitive_verifier
 from packages.orchestration.agi.cognitive.sovereign_auditor import sovereign_auditor
 from packages.orchestration.agi.cognitive.evolution_engine import evolution_engine
-from packages.packages.observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 router = APIRouter(prefix="/improvements", tags=["Self-Improvement"])
 logger = get_logger("api.improvement")

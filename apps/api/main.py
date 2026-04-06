@@ -62,12 +62,12 @@ if _ENV == "production":
 # ── Core singleton'ları ───────────────────────────────────
 from packages.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
 from packages.orchestration.agi.governance.watchdog import governance_watchdog
-from packages.packages.healing.application.heal_engine import heal_engine
+from packages.healing.application.heal_engine import heal_engine
 from packages.orchestration.domain.events import event_bus
 from packages.orchestration.application.job_queue import job_queue
 from apps.api.routers.ws_manager import ws_manager
-from packages.packages.observability.logging import get_logger
-from packages.packages.observability.metrics import metrics
+from packages.observability.logging import get_logger
+from packages.observability.metrics import metrics
 
 logger = get_logger("main")
 
@@ -166,7 +166,7 @@ async def websocket_logs(ws: WebSocket):
 async def health_check():
     from packages.persistence.session import is_db_available, db_error
     from packages.orchestration.agency.loader import agency_loader
-    from packages.packages.observability.memory_governor import memory_governor
+    from packages.observability.memory_governor import memory_governor
     
     db_ok = await is_db_available()
     current_agents = len(orchestrator._agents) if hasattr(orchestrator, "_agents") else 0

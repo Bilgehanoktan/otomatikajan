@@ -19,13 +19,13 @@ from fastapi import FastAPI
 from config import APP_ENV as _ENV
 from packages.orchestration.agi.cognitive.sovereign_cortex import nexus_orchestrator as orchestrator
 from packages.orchestration.agi.governance.resilience_agent import resilience_agent
-from packages.packages.healing.application.heal_engine import heal_engine
+from packages.healing.application.heal_engine import heal_engine
 from packages.orchestration.domain.events import event_bus
 from packages.orchestration.application.job_queue import job_queue
 from apps.api.routers.ws_manager import ws_manager
 from packages.repair_engine.reaper_service import reaper
-from packages.packages.observability.logging import configure_logging, get_logger
-from packages.packages.observability.metrics import metrics
+from packages.observability.logging import configure_logging, get_logger
+from packages.observability.metrics import metrics
 
 logger = get_logger("startup.lifespan")
 
@@ -218,7 +218,7 @@ async def _self_governor_sync_action(orch):
 
 async def system_watchdog_supervisor():
     """Arka plandaki kritik servislerin ve metabolizmanın hayatta kalmasını sağlar."""
-    from packages.packages.observability.memory_governor import packages.memory_governor
+    from packages.observability.memory_governor import packages.memory_governor
     
     tasks: dict[str, Any] = {
         "metabolism_loop": autonomous_metabolism_loop,
