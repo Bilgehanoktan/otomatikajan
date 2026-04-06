@@ -1,0 +1,1 @@
+﻿E:\ai_company_faz12.1\packages\persistence\migrations\alembic.ini
