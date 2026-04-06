@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Any
 
-from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user
+from apps.api.routers.auth.jwt_auth import get_current_user
 from packages.skills.base import SkillRequest
 from packages.skills.registry import skill_registry
 from packages.skills.router import skill_router

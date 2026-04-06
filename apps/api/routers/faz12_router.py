@@ -2,7 +2,7 @@ import json
 from typing import Optional, Any
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user, require_admin
+from apps.api.routers.auth.jwt_auth import get_current_user, require_admin
 from packages.observability.logging import get_logger
 from apps.api.routers.resilience import circuit_breaker
 

@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 from packages.persistence.session import get_db_dep
-from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user
+from apps.api.routers.auth.jwt_auth import get_current_user
 
 router = APIRouter()
 
@@ -21,7 +21,7 @@ def _svc():
     - circular import riskini düşürür
     - import-time patlamaları azaltır
     """
-    from apps.api.routers.apps.api.routers.auth.jwt_auth import (
+    from apps.api.routers.auth.jwt_auth import (
         auth_service,
         RegisterRequest,
         LoginRequest,

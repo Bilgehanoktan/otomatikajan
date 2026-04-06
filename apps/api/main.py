@@ -130,7 +130,7 @@ async def websocket_logs(ws: WebSocket):
         return
 
     try:
-        from apps.api.routers.apps.api.routers.auth.jwt_auth import _decode_token
+        from apps.api.routers.auth.jwt_auth import _decode_token
         payload = _decode_token(token)
         if payload.get("type") != "access":
             await ws.accept()

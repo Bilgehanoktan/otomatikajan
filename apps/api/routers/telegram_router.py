@@ -14,7 +14,7 @@ import hmac
 from fastapi import APIRouter, Depends, HTTPException, Request, Header
 from typing import Optional
 
-from apps.api.routers.apps.api.routers.auth.jwt_auth import require_admin, optional_admin, get_optional_user
+from apps.api.routers.auth.jwt_auth import require_admin, optional_admin, get_optional_user
 from packages.observability.logging import get_logger
 
 logger = get_logger("api.telegram")

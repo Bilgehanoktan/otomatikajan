@@ -13,7 +13,7 @@ from pydantic import BaseModel, HttpUrl
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user
+from apps.api.routers.auth.jwt_auth import get_current_user
 from packages.persistence.models import User, WebhookSubscription
 from packages.persistence.session import get_db_dep
 

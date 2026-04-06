@@ -20,7 +20,7 @@ from typing import Dict, Any, Optional
 
 from fastapi import APIRouter, Depends, Query
 
-from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user, require_admin
+from apps.api.routers.auth.jwt_auth import get_current_user, require_admin
 from packages.observability.logging import get_logger
 from packages.orchestration.agi.consciousness.affective_core import affective_core
 from packages.orchestration.agi.cognitive.motivation_engine import motivation_engine

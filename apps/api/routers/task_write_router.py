@@ -7,7 +7,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user, get_optional_user
+from apps.api.routers.auth.jwt_auth import get_current_user, get_optional_user
 from ._task_shared import _db_session, _project_to_dict, TaskCreateRequest, TaskUpdateRequest
 from packages.observability.logging import get_logger
 

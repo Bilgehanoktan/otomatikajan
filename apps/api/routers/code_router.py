@@ -16,7 +16,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from typing import Optional
 
-from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user, get_optional_user
+from apps.api.routers.auth.jwt_auth import get_current_user, get_optional_user
 from packages.observability.logging import get_logger
 
 router = APIRouter(prefix="/code", tags=["Code Generation"])

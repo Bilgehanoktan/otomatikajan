@@ -3,7 +3,7 @@ Specialists Router — Faz 8 Infra
 Exposes loaded agency specialists to the UI.
 """
 from fastapi import APIRouter, Depends
-from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user
+from apps.api.routers.auth.jwt_auth import get_current_user
 from packages.orchestration.agency.loader import get_agency_loader
 
 router = APIRouter(prefix="/specialists", tags=["Agency"])

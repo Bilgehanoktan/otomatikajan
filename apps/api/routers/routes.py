@@ -16,7 +16,7 @@ from packages.orchestration.agi.packages.quality_assurance.eval_harness import e
 
 from fastapi.concurrency import run_in_threadpool
 from apps.api.routers.rate_limiter import rate_limit
-from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user
+from apps.api.routers.auth.jwt_auth import get_current_user
 from apps.api.routers.mcp_router import router as mcp_router
 
 router = APIRouter()

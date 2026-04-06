@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from typing import List, Optional, Any
 from pydantic import BaseModel
 
-from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user, require_admin
+from apps.api.routers.auth.jwt_auth import get_current_user, require_admin
 from packages.orchestration.context import orchestrator
 from packages.persistence.session import AsyncSessionLocal
 from packages.orchestration.experimental.cognitive_verifier import cognitive_verifier
