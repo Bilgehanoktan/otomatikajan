@@ -119,7 +119,7 @@ class JobQueue(BaseQueueCapabilities):
 
     async def hydrate_from_db(self):
         """DB'deki açık projeleri (Task) belleğe yükler (Faz 12.1 Persistence Fix)."""
-        _log.info("Hydrating standard tasks from DB...")
+        _log.info("Hydrating standard tasks from packages.persistence...")
         try:
             from packages.persistence.session import AsyncSessionLocal
             from packages.persistence.repositories.repository import ProjectRepository
