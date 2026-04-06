@@ -1,4 +1,4 @@
-﻿"""
+"""
 startup/lifespan.py â€” Uygulama yaÅŸam dÃ¶ngÃ¼sÃ¼, arka plan gÃ¶revleri ve event bus yapÄ±landÄ±rmasÄ±.
 
 main.py'den Ã§Ä±karÄ±lmÄ±ÅŸtÄ±r. TÃ¼m watchdog loop'larÄ±, event dinleyicileri
@@ -50,7 +50,7 @@ async def _persist_event(event):
                     message=event.payload.get("message", ""),
                     payload=event.payload,
                 )
-                await packages.persistence.commit()
+                await db.commit()
         except Exception as e:
             import logging
             logging.getLogger("event_bus").error(f"Event DB'ye yazÄ±lÄ±rken hata: {e}")
@@ -200,8 +200,8 @@ async def _reaper_sync_action():
             error_detail="GÃ¶rev zaman aÅŸÄ±mÄ± (Timeout) nedeniyle durduruldu.",
             updated_at=datetime.now(timezone.utc)
         )
-        res = await packages.persistence.execute(zombie_query)
-        await packages.persistence.commit()
+        res = await db.execute(zombie_query)
+        await db.commit()
         if res.rowcount > 0:
             logger.warning(f"[AML] Reaper: {res.rowcount} zombi temizlendi.")
 
@@ -258,8 +258,8 @@ async def _analyze_interrupted_tasks():
                     error_detail="Sistem kesintiye uÄŸradÄ±. Otonom dayanÄ±klÄ±lÄ±k (Resilience) analizi bekleniyor.",
                 )
             )
-            res = await packages.persistence.execute(interrupted_query)
-            await packages.persistence.commit()
+            res = await db.execute(interrupted_query)
+            await db.commit()
             if res.rowcount and res.rowcount > 0:
                 logger.warning(f"Kesinti Analizi: {res.rowcount} gorev INTERRUPTED durumuna cekildi.")
     except Exception as e:
