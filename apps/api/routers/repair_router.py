@@ -535,7 +535,7 @@ async def _persist_job_status(job) -> None:
         from packages.persistence.session import AsyncSessionLocal, is_db_available
         if not await is_db_available():
             return
-        from packages.persistence.repair_repository import RepairJobRepo
+        from packages.persistence.repositories.repair_repository import RepairJobRepo
         async with AsyncSessionLocal() as db:
             await RepairJobRepo.upsert(db, job)
             await db.commit()
@@ -549,7 +549,7 @@ async def _list_proposals_from_db() -> list[dict]:
         from packages.persistence.session import AsyncSessionLocal, is_db_available
         if not await is_db_available():
             return []
-        from packages.persistence.repair_repository import RepairProposalRepo
+        from packages.persistence.repositories.repair_repository import RepairProposalRepo
         async with AsyncSessionLocal() as db:
             rows = await RepairProposalRepo.list_pending(db)
             return [
@@ -621,7 +621,7 @@ async def _persist_incident(incident) -> None:
         from packages.persistence.session import AsyncSessionLocal, is_db_available
         if not await is_db_available():
             return
-        from packages.persistence.repair_repository import RepairIncidentRepo
+        from packages.persistence.repositories.repair_repository import RepairIncidentRepo
         async with AsyncSessionLocal() as db:
             await RepairIncidentRepo.upsert(db, incident)
             await db.commit()
@@ -635,7 +635,7 @@ async def _persist_proposal_decision(pr_id: str, decision: str, decided_by: str)
         from packages.persistence.session import AsyncSessionLocal, is_db_available
         if not await is_db_available():
             return
-        from packages.persistence.repair_repository import RepairProposalRepo
+        from packages.persistence.repositories.repair_repository import RepairProposalRepo
         async with AsyncSessionLocal() as db:
             await RepairProposalRepo.decide(db, pr_id, decision, decided_by)
             await db.commit()
@@ -880,4 +880,5 @@ async def architecture_guard_check(
     from packages.repair_engine.review.architecture_guard import get_architecture_guard
     result = get_architecture_guard().check_diff(diff)
     return result.to_dict()
+
 

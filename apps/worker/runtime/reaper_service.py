@@ -1,8 +1,8 @@
-"""
-Reaper Service — Zombie Job Clean-up (Phase 6)
-─────────────────────────────────────────────
-Sistem üzerinde asılı kalan (zombi), zaman aşımına uğramış veya 
-kapanmamış işleri (RepairJob) tespit eder ve temizler.
+﻿"""
+Reaper Service â€” Zombie Job Clean-up (Phase 6)
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+Sistem Ã¼zerinde asÄ±lÄ± kalan (zombi), zaman aÅŸÄ±mÄ±na uÄŸramÄ±ÅŸ veya 
+kapanmamÄ±ÅŸ iÅŸleri (RepairJob) tespit eder ve temizler.
 """
 
 import asyncio
@@ -23,7 +23,7 @@ class ReaperService:
         if self._running: return
         self._running = True
         self._task = asyncio.create_task(self._run_loop())
-        _log.info(f"Reaper Service başlatıldı. (Interval: {self.check_interval}s, Timeout: {self.timeout_hours}h)")
+        _log.info(f"Reaper Service baÅŸlatÄ±ldÄ±. (Interval: {self.check_interval}s, Timeout: {self.timeout_hours}h)")
 
     async def stop(self):
         self._running = False
@@ -38,44 +38,45 @@ class ReaperService:
             try:
                 await self.reap()
             except Exception as e:
-                _log.error(f"Reaper döngüsünde hata: {e}", exc_info=True)
+                _log.error(f"Reaper dÃ¶ngÃ¼sÃ¼nde hata: {e}", exc_info=True)
             await asyncio.sleep(self.check_interval)
 
     async def reap(self):
-        """Asılı kalan işleri DB üzerinden tespit et ve temizle."""
+        """AsÄ±lÄ± kalan iÅŸleri DB Ã¼zerinden tespit et ve temizle."""
         from packages.persistence.session import AsyncSessionLocal, is_db_available
         if not await is_db_available():
             return
 
-        from packages.persistence.repair_repository import RepairJobRepo
+        from packages.persistence.repositories.repair_repository import RepairJobRepo
         from packages.orchestration.repair_orchestrator import get_repair_orchestrator
 
         orch = get_repair_orchestrator()
         
         async with AsyncSessionLocal() as db:
-            # 1. Zombi işleri bul
+            # 1. Zombi iÅŸleri bul
             zombies = await RepairJobRepo.find_zombies(db, threshold_hours=self.timeout_hours)
             if not zombies:
                 return
 
-            _log.warning(f"🧟 {len(zombies)} adet zombi iş tespit edildi. Temizleniyor...")
+            _log.warning(f"ğŸ§Ÿ {len(zombies)} adet zombi iÅŸ tespit edildi. Temizleniyor...")
             
             job_ids = [z.job_id for z in zombies]
             
-            # 2. Toplu olarak FAILED durumuna çek
+            # 2. Toplu olarak FAILED durumuna Ã§ek
             reason = f"Reaper: Job exceeded {self.timeout_hours}h limit and was marked as zombie."
             count = await RepairJobRepo.bulk_fail(db, job_ids, reason)
             
             await packages.persistence.commit()
-            _log.info(f"Reaper: {count} iş temizlendi.")
+            _log.info(f"Reaper: {count} iÅŸ temizlendi.")
 
-            # 3. Orchestrator cache'ini güncelle (varsa)
+            # 3. Orchestrator cache'ini gÃ¼ncelle (varsa)
             for jid in job_ids:
                 if jid in orch._jobs_cache:
                     job = orch._jobs_cache[jid]
                     job.status = job.status.__class__.FAILED_VALIDATION  # Fallback terminal state
                     job.error_detail = reason
-                    # Cache'ten uçurmak yerine terminale çekmek daha güvenli
+                    # Cache'ten uÃ§urmak yerine terminale Ã§ekmek daha gÃ¼venli
                     
 # Singleton
 reaper = ReaperService(check_interval_m=30, timeout_hours=1)
+
