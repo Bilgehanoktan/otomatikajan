@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, Optional
 
-from agents.agent_registry import build_agents
+from packages.orchestration.agi.agents.agent_registry import build_agents
 from packages.observability.logging import get_logger
 from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 from packages.quality_assurance.approval_gate import approval_gate, RiskLevel
@@ -226,7 +226,7 @@ class Orchestrator:
                 from packages.orchestration.agency.loader import agency_loader
                 spec_data = agency_loader.get_agent(st.agent_id)
                 if spec_data:
-                    from agents.agent_registry import Agent
+                    from packages.orchestration.agi.agents.agent_registry import Agent
                     agent = Agent(
                         id=spec_data["id"],
                         name=spec_data["name"],
@@ -241,7 +241,7 @@ class Orchestrator:
                         factory = get_specialist_factory(self.model_orch)
                         spec_data = await factory.build_specialist(st.agent_id, st.prompt)
                         if spec_data:
-                            from agents.agent_registry import Agent
+                            from packages.orchestration.agi.agents.agent_registry import Agent
                             agent = Agent(
                                 id=spec_data["id"],
                                 name=spec_data["name"],
