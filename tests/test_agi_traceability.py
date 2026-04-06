@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 from fastapi.testclient import TestClient
 from main import app
-from apps.api.routers.apps.api.routers.auth.jwt_auth import _make_token
+from apps.api.routers.auth.jwt_auth import _make_token
 from datetime import timedelta
 from unittest.mock import patch, MagicMock
 

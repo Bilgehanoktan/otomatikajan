@@ -3,7 +3,7 @@ import asyncio
 from datetime import datetime, timedelta, timezone
 from fastapi.testclient import TestClient
 from unittest.mock import patch
-from apps.api.routers.apps.api.routers.auth.jwt_auth import _make_token
+from apps.api.routers.auth.jwt_auth import _make_token
 
 from main import app
 from packages.orchestration.application.job_queue import JobQueue, Job, JobStatus
