@@ -14,9 +14,9 @@ from typing import TYPE_CHECKING
 
 from enum import Enum
 
-from heal.agent_state import AgentSnapshot, AgentState, SCORE_THRESHOLDS
-from heal.recovery_strategies import get_strategy_chain, RecoveryResult
-from heal.root_cause import RootCauseAnalyzer
+from packages.healing.domain.agent_state import AgentSnapshot, AgentState, SCORE_THRESHOLDS
+from packages.healing.domain.recovery_strategies import get_strategy_chain, RecoveryResult
+from packages.healing.domain.root_cause import RootCauseAnalyzer
 
 
 class Severity(str, Enum):
