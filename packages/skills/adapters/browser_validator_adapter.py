@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 from typing import Any
 
-from skills.base import BaseSkillAdapter, SkillRequest, SkillResult
+from packages.skills.base import BaseSkillAdapter, SkillRequest, SkillResult
 
 
 class BrowserValidatorSkillAdapter(BaseSkillAdapter):

@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from skills.base import BaseSkillAdapter, SkillRequest, SkillResult
+from packages.skills.base import BaseSkillAdapter, SkillRequest, SkillResult
 
 
 class SkillCreatorSkillAdapter(BaseSkillAdapter):

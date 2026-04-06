@@ -2,7 +2,7 @@ import asyncio
 import os
 from typing import Any, List
 
-from skills.base import BaseSkillAdapter, SkillRequest, SkillResult
+from packages.skills.base import BaseSkillAdapter, SkillRequest, SkillResult
 
 
 class BrowserResearchSkillAdapter(BaseSkillAdapter):

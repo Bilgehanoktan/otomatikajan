@@ -1,4 +1,4 @@
-from skills.base import BaseSkillAdapter, SkillRequest, SkillResult
+from packages.skills.base import BaseSkillAdapter, SkillRequest, SkillResult
 from packages.orchestration.governance.safety_gate import safety_gate
 
 class SystemGuardSkillAdapter(BaseSkillAdapter):
