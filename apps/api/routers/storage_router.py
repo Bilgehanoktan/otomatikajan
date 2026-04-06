@@ -3,7 +3,7 @@ import os
 import uuid
 import shutil
 from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user
-from packages.packages.observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 logger = get_logger("api.storage")
 router = APIRouter(prefix="/storage", tags=["Sistem Depolama"])

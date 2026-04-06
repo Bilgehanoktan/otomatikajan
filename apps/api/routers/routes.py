@@ -92,7 +92,7 @@ def _orch():
     return orchestrator
 
 def _heal():
-    from packages.packages.healing.application.heal_engine import heal_engine
+    from packages.healing.application.heal_engine import heal_engine
     return heal_engine
 
 def _bus():
@@ -104,7 +104,7 @@ def _queue():
     return job_queue
 
 def _metrics():
-    from packages.packages.observability.metrics import metrics
+    from packages.observability.metrics import metrics
     return metrics
 
 
@@ -190,7 +190,7 @@ def _gate():
     return approval_gate
 
 def _mem():
-    from packages.packages.memory.retrieval import _fallback_store
+    from packages.memory.retrieval import _fallback_store
     return _fallback_store
 
 
@@ -342,6 +342,6 @@ async def memory_search(body: dict):
 @router.delete("/memory/clear", summary="Bellek sıfırla (dev)",
                dependencies=[Depends(rate_limit("memory_clear"))])
 async def clear_memory(current_user=Depends(get_current_user)):
-    from packages.packages.memory.retrieval import _fallback_store
+    from packages.memory.retrieval import _fallback_store
     _fallback_store._entries.clear()
     return {"cleared": True}

@@ -21,7 +21,7 @@ from typing import Dict, Any, Optional
 from fastapi import APIRouter, Depends, Query
 
 from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user, require_admin
-from packages.packages.observability.logging import get_logger
+from packages.observability.logging import get_logger
 from packages.orchestration.agi.consciousness.affective_core import affective_core
 from packages.orchestration.agi.cognitive.motivation_engine import motivation_engine
 
@@ -200,7 +200,7 @@ async def monitoring_overview(current_user=Depends(get_current_user)):
 
     # ── Metrikler ─────────────────────────────────────────
     try:
-        from packages.packages.observability.metrics import metrics
+        from packages.observability.metrics import metrics
         snap = metrics.snapshot()
         result["metrics"] = {
             "uptime_hms":        snap["uptime_hms"],
@@ -212,7 +212,7 @@ async def monitoring_overview(current_user=Depends(get_current_user)):
             },
         }
     except Exception as _e:
-        from packages.packages.observability.logging import get_logger
+        from packages.observability.logging import get_logger
         get_logger("monitoring").warning("İşlem hatası: %s", _e)
         pass
 
@@ -232,7 +232,7 @@ async def monitoring_overview(current_user=Depends(get_current_user)):
             }
         }
     except Exception as _e:
-        from packages.packages.observability.logging import get_logger
+        from packages.observability.logging import get_logger
         get_logger("monitoring").warning("İşlem hatası: %s", _e)
         pass
 
@@ -348,7 +348,7 @@ async def llm_monitoring(current_user=Depends(get_current_user)):
         provider_stats = []
 
     try:
-        from packages.packages.observability.metrics import metrics
+        from packages.observability.metrics import metrics
         snap     = metrics.snapshot()
         counters = snap["counters"]
         latencies= snap["latencies"]
@@ -526,7 +526,7 @@ def _system_resources() -> dict:
 async def agents_monitoring(current_user=Depends(get_current_user)):
     try:
         from packages.orchestration.context import orchestrator, heal_engine
-        from packages.packages.observability.metrics import metrics
+        from packages.observability.metrics import metrics
 
         snap     = metrics.snapshot()
         counters = snap["counters"]
@@ -588,13 +588,13 @@ async def recent_errors(limit: int = Query(50, ge=1, le=200)):
                     "timestamp": e.get("timestamp"),
                 })
     except Exception as _e:
-        from packages.packages.observability.logging import get_logger
+        from packages.observability.logging import get_logger
         get_logger("monitoring").warning("İşlem hatası: %s", _e)
         pass
 
     # 2. In-memory metrik hataları
     try:
-        from packages.packages.observability.metrics import metrics
+        from packages.observability.metrics import metrics
         snap   = metrics.snapshot()
         for err_type, count in snap.get("errors", {}).items():
             errors.append({
@@ -604,7 +604,7 @@ async def recent_errors(limit: int = Query(50, ge=1, le=200)):
                 "severity":"warning",
             })
     except Exception as _e:
-        from packages.packages.observability.logging import get_logger
+        from packages.observability.logging import get_logger
         get_logger("monitoring").warning("İşlem hatası: %s", _e)
         pass
 

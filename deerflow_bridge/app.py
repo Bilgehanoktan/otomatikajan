@@ -14,7 +14,7 @@ from prometheus_client import Counter, Summary, generate_latest, CONTENT_TYPE_LA
 
 from deerflow.client import DeerFlowClient  # type: ignore
 from deerflow.config.paths import get_paths  # type: ignore
-from packages.packages.observability.logging import get_logger, configure_logging
+from packages.observability.logging import get_logger, configure_logging
 
 logger = get_logger("deerflow_bridge", force_db=True)
 

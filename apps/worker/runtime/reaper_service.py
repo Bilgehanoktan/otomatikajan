@@ -8,7 +8,7 @@ kapanmamış işleri (RepairJob) tespit eder ve temizler.
 import asyncio
 import time
 from datetime import datetime, timezone
-from packages.packages.observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 _log = get_logger("core.reaper")
 

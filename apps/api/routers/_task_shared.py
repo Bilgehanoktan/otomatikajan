@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Query, Body, Depends
 from pydantic import BaseModel, Field
 
 from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user
-from packages.packages.observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 logger = get_logger("api.tasks")
 

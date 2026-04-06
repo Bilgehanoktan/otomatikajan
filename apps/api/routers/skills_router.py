@@ -2,9 +2,9 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Any
 
 from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user
-from packages.packages.skills.base import SkillRequest
-from packages.packages.skills.registry import skill_registry
-from packages.packages.skills.router import skill_router
+from packages.skills.base import SkillRequest
+from packages.skills.registry import skill_registry
+from packages.skills.router import skill_router
 
 router = APIRouter(prefix="/skills", tags=["Beceriler (Skills)"])
 

@@ -302,7 +302,7 @@ def run_self_update_task(target_file_path: str, instruction: str):
 def run_visual_audit_task():
     """Arayüzü periyodik olarak denetler ve iyileştirme önerileri sunar."""
     async def _execute():
-        from packages.packages.observability.visual_util import capture_screenshot
+        from packages.observability.visual_util import capture_screenshot
         from packages.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
         from packages.persistence.session import AsyncSessionLocal
         from packages.persistence.repositories.repository import ImprovementRepository

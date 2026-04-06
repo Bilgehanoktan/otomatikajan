@@ -33,7 +33,7 @@ from packages.repair_engine.packages.memory.architecture_memory import architect
 from packages.repair_engine.application.orchestrator import get_repair_orchestrator
 from packages.orchestration.governance.policy_engine import policy_engine
 from packages.repair_engine.schemas.incident import IncidentSource, IncidentSeverity
-from packages.packages.observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 _log = get_logger("api.repair")
 

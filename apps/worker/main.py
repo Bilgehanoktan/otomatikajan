@@ -9,7 +9,7 @@ if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
 from packages.orchestration.application.job_queue import JobQueue
-from packages.packages.observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 logger = get_logger("worker")
 
