@@ -17,8 +17,9 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from heal.agent_state import AgentSnapshot
-    from core.orchestrator import Orchestrator, SubTask
+    from packages.healing.domain.agent_state import AgentSnapshot
+    from packages.persistence.models.core_models import SubTask
+    from packages.orchestration.substrate.foundational_engine import FoundationalEngine as Orchestrator
 
 
 @dataclass
