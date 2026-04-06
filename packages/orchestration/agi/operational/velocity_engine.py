@@ -17,7 +17,7 @@ from packages.observability.logging import get_logger
 from packages.orchestration.agi.schemas import ActionRecord, RiskLevel, ExecutionPlan, PlanStep
 from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 from packages.orchestration.application.sandbox_runner import get_sandbox_runner
-from agents.agent_registry import build_agents
+from packages.orchestration.agi.agents.agent_registry import build_agents
 from packages.persistence.repositories.repository import SkillLogRepository
 from packages.persistence.session import session_scope
 # Faz 12.1 Stability: Event-Driven UI Updates
