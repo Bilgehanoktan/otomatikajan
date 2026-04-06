@@ -1,1 +1,1 @@
-﻿from packages.packages.skills.base import *
+from packages.skills.base import *

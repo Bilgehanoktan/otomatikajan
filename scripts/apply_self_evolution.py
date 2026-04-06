@@ -3,7 +3,7 @@ import os
 import uuid
 import asyncio
 from typing import Optional
-from packages.packages.observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 # Proje köke python path ekle
 sys.path.append(os.getcwd())

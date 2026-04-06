@@ -9,7 +9,7 @@ if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
 from core.task_routing import task_router
-from packages.packages.observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 logger = get_logger("tests.routing_demo")
 

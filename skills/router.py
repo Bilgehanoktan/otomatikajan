@@ -1,1 +1,1 @@
-﻿from packages.packages.skills.router import *
+from packages.skills.router import *

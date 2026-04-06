@@ -6,9 +6,9 @@ from pathlib import Path
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
 
-from packages.packages.skills.base import SkillRequest
-from packages.packages.skills.registry import skill_registry
-from packages.packages.skills.router import skill_router
+from packages.skills.base import SkillRequest
+from packages.skills.registry import skill_registry
+from packages.skills.router import skill_router
 
 async def main():
     print("--- Skills Registry Test ---")

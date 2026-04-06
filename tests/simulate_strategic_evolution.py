@@ -6,7 +6,7 @@ from sqlalchemy import select
 from packages.persistence.session import session_scope
 from packages.persistence.models import ImprovementOpportunity, CEOSuggestedTask, CEODecision
 from core.ceo_engine import get_ceo_engine
-from packages.packages.observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 logger = get_logger("verify_strategic")
 

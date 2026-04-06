@@ -1,1 +1,1 @@
-﻿from packages.quality_assurance import *
+from packages.quality_assurance import *

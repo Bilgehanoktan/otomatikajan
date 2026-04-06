@@ -27,7 +27,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
-from packages.packages.observability.logging import get_logger
+from packages.observability.logging import get_logger
 logger = get_logger("sovereign_codegen")
 
 from packages.persistence.session import AsyncSessionLocal

@@ -17,7 +17,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from packages.packages.observability.logging import get_logger
+from packages.observability.logging import get_logger
 from core.task_routing import task_router
 from packages.orchestration.application.job_queue import job_queue
 from core.events import event_bus
@@ -160,7 +160,7 @@ class BotCommandHandler:
     async def cmd_status(self, tid: str, args: str) -> str:
         try:
             from core.context import orchestrator, heal_engine
-            from packages.packages.observability.metrics import metrics
+            from packages.observability.metrics import metrics
             from packages.orchestration.application.job_queue import job_queue
 
             snap = metrics.snapshot()
@@ -530,7 +530,7 @@ class BotCommandHandler:
     # ── /metrics ───────────────────────────────────────────
     async def cmd_metrics(self, tid: str, args: str) -> str:
         try:
-            from packages.packages.observability.metrics import metrics
+            from packages.observability.metrics import metrics
             snap = metrics.snapshot()
             c    = snap["computed"]
             lat  = snap.get("latencies", {})

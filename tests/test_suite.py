@@ -50,7 +50,7 @@ class TestMMR:
 
     def test_mmr_selects_diverse_results(self):
         """MMR çeşitlilik sağlıyor mu?"""
-        from packages.packages.memory.store import _mmr, _cosine_sim
+        from packages.memory.store import _mmr, _cosine_sim
 
         # 3 belge: A ve B çok benzer, C farklı
         q = [1.0, 0.0] + [0.0] * 8
@@ -73,7 +73,7 @@ class TestMMR:
 
     def test_mmr_lambda_1_pure_relevance(self):
         """λ=1.0 -> yalnızca alaka skoruna göre seç."""
-        from packages.packages.memory.store import _mmr
+        from packages.memory.store import _mmr
         q = [1.0] + [0.0] * 9
         mem1 = MagicMock(embedding=[1.0] + [0.0]*9, body="hi")
         mem2 = MagicMock(embedding=[0.5] + [0.0]*9, body="hello")

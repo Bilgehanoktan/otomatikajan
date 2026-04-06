@@ -1,1 +1,1 @@
-﻿from packages.packages.skills.registry import *
+from packages.skills.registry import *
