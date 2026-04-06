@@ -3,11 +3,11 @@ import os
 import json
 import uuid
 from datetime import datetime, timezone, timedelta
-from core.agi.monitoring.token_budgeter import token_budgeter
-from core.agi.monitoring.nervous_system import nervous_system
-from llm.model_orchestrator import ModelOrchestrator
-from db.session import session_scope
-from db.models import LLMCostLog
+from packages.orchestration.agi.monitoring.token_budgeter import token_budgeter
+from packages.orchestration.agi.monitoring.nervous_system import nervous_system
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
+from packages.persistence.session import session_scope
+from packages.persistence.models import LLMCostLog
 
 async def verify_biological_equilibrium():
     print("--- Phase 24 Biological Equilibrium Verification ---")
@@ -34,8 +34,8 @@ async def verify_biological_equilibrium():
             success=True,
             created_at=datetime.now(timezone.utc)
         )
-        db.add(log)
-        await db.commit()
+        packages.persistence.add(log)
+        await packages.persistence.commit()
 
         # 3. Verify Token Budgeter (Background Rejection)
         print("[*] Verifying Token Budgeter Background Rejection...")
@@ -68,8 +68,8 @@ async def verify_biological_equilibrium():
 
         # Cleanup mock log
         print("[*] Cleaning up verification data...")
-        await db.delete(log)
-        await db.commit()
+        await packages.persistence.delete(log)
+        await packages.persistence.commit()
 
     print("\n[PHASE 24] BIOLOGICAL EQUILIBRIUM VERIFIED.")
 

@@ -10,7 +10,7 @@ sys.path.append(os.getcwd())
 
 async def test_orchestrator_throttle():
     print("--- Testing ModelOrchestrator Global Throttle ---")
-    from llm.model_orchestrator import ModelOrchestrator, CircuitState
+    from packages.llm_gateway.model_orchestrator import ModelOrchestrator, CircuitState
     
     orch = ModelOrchestrator()
     
@@ -48,7 +48,7 @@ async def test_orchestrator_throttle():
 
 async def test_self_governor_init():
     print("\n--- Testing SelfGovernorAgent Initialization ---")
-    from agents.self_governor import SelfGovernorAgent
+    from packages.orchestration.agi.self_governor import SelfGovernorAgent
     
     agent = SelfGovernorAgent()
     print(f"Agent Name: {agent.name}")
@@ -61,7 +61,7 @@ async def test_self_governor_init():
 
 async def test_empty_prompt_protection():
     print("\n--- Testing Empty Prompt Protection ---")
-    from llm.model_orchestrator import ModelOrchestrator
+    from packages.llm_gateway.model_orchestrator import ModelOrchestrator
     orch = ModelOrchestrator()
     
     # Boş prompt testi

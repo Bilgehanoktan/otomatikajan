@@ -7,11 +7,11 @@ import os
 # Root ekle
 sys.path.append(os.getcwd())
 
-from core.agi.cognitive.cognitive_blackboard import get_blackboard
-from core.agi.operational.tool_grounder import get_grounded_tool_input
-from core.agi.quality.eval_harness import eval_harness
-from core.agi.cognitive.architect import Architect
-from llm.model_orchestrator import ModelOrchestrator
+from packages.orchestration.agi.cognitive.cognitive_blackboard import get_blackboard
+from packages.orchestration.agi.operational.tool_grounder import get_grounded_tool_input
+from packages.orchestration.agi.packages.quality_assurance.eval_harness import eval_harness
+from packages.orchestration.agi.cognitive.architect import Architect
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("agi_verify_v14")

@@ -1,8 +1,8 @@
 import asyncio
 import uuid
-from core.agi.central_executive import central_executive
-from core.agi.schemas import SourceType
-from observability.logging import get_logger
+from packages.orchestration.agi.central_executive import central_executive
+from packages.orchestration.agi.schemas import SourceType
+from packages.packages.observability.logging import get_logger
 
 _log = get_logger("verify_phase_51")
 

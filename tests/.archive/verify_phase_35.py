@@ -1,9 +1,9 @@
 import asyncio
 import logging
-from core.agi.cognitive.sovereign_cortex import SovereignCortex
-from core.agi.consciousness.affective_core import affective_core
-from core.agi.learning.knowledge_distiller import knowledge_distiller
-from core.agi.quality.agi_evaluator import agi_evaluator
+from packages.orchestration.agi.cognitive.sovereign_cortex import SovereignCortex
+from packages.orchestration.agi.consciousness.affective_core import affective_core
+from packages.orchestration.agi.learning.knowledge_distiller import knowledge_distiller
+from packages.orchestration.agi.packages.quality_assurance.agi_evaluator import agi_evaluator
 
 logging.basicConfig(level=logging.INFO)
 _log = logging.getLogger("phase_35_verif")
@@ -29,7 +29,7 @@ async def verify_phase_35():
     
     # 2. Test Collaborative Consult
     _log.info("[TEST-B] Collaborative Reasoning (Consultation) simülasyonu...")
-    from core.agi.cognitive.collaborative_node import collaborative_node
+    from packages.orchestration.agi.cognitive.collaborative_node import collaborative_node
     ans = await collaborative_node.consult(
         requesting_agent="backend_dev",
         target_specialist="security",

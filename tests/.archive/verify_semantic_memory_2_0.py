@@ -3,10 +3,10 @@ import logging
 import uuid
 from datetime import datetime, timezone
 
-from core.agi.cognitive.synaptic_cortex import synaptic_cortex
-from core.agi.learning.memory_distiller import memory_distiller
-from db.session import AsyncSessionLocal
-from db.repository import MemoryRepository
+from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
+from packages.orchestration.agi.learning.memory_distiller import memory_distiller
+from packages.persistence.session import AsyncSessionLocal
+from packages.persistence.repository import MemoryRepository
 
 logging.basicConfig(level=logging.INFO)
 _log = logging.getLogger("verify_memory_2_0")
@@ -23,7 +23,7 @@ async def test_synergetic_retrieval():
             category="lesson",
             tags=["regex", "paths"]
         )
-        await db.commit()
+        await packages.persistence.commit()
         
         # Test search
         results = await synaptic_cortex.search_synergetic(db, "regex", top_k=3)
@@ -48,7 +48,7 @@ async def test_rule_distillation():
                 importance=0.6,
                 tags=["path_error"]
             )
-        await db.commit()
+        await packages.persistence.commit()
 
     # 2. Run distillation cycle
     _log.info("Running distillation cycle...")

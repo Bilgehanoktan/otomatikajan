@@ -11,9 +11,9 @@ async def verify_codegen_persistence():
     
     try:
         from sovereign_codegen import init_sovereign_codegen, get_code_engine
-        from llm.model_orchestrator import ModelOrchestrator
-        from db.session import AsyncSessionLocal
-        from db.models import Project, SovereignCodeResult
+        from packages.llm_gateway.model_orchestrator import ModelOrchestrator
+        from packages.persistence.session import AsyncSessionLocal
+        from packages.persistence.models import Project, SovereignCodeResult
         from sqlalchemy import select
         
         orch = ModelOrchestrator()
@@ -38,7 +38,7 @@ async def verify_codegen_persistence():
         async with AsyncSessionLocal() as db:
             # Proje kontrolü
             proj_stmt = select(Project).where(Project.id == uuid.UUID(project_id))
-            proj = (await db.execute(proj_stmt)).scalar_one_or_none()
+            proj = (await packages.persistence.execute(proj_stmt)).scalar_one_or_none()
             
             if proj:
                 print(f"[OK] Proje veritabanında bulundu: {proj.title}")
@@ -48,7 +48,7 @@ async def verify_codegen_persistence():
             
             # Kod sonucu kontrolü
             res_stmt = select(SovereignCodeResult).where(SovereignCodeResult.project_id == proj.id)
-            code_res = (await db.execute(res_stmt)).scalar_one_or_none()
+            code_res = (await packages.persistence.execute(res_stmt)).scalar_one_or_none()
             
             if code_res:
                 print(f"[OK] Kod üretim kaydı bulundu: {code_res.status}, Dosya sayısı: {code_res.total_files}")

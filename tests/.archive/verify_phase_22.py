@@ -4,11 +4,11 @@ import uuid
 import json
 from datetime import datetime, timezone, timedelta
 from sqlalchemy import select
-from core.agi.cognitive.synapse_stabilizer import SynapseStabilizer
-from core.agi.central_executive import CentralExecutive
-from db.session import session_scope
-from db.models import SkillExecutionLog, ImprovementOpportunity, Memory
-from core.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
+from packages.orchestration.agi.cognitive.synapse_stabilizer import SynapseStabilizer
+from packages.orchestration.agi.central_executive import CentralExecutive
+from packages.persistence.session import session_scope
+from packages.persistence.models import SkillExecutionLog, ImprovementOpportunity, Memory
+from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
 
 async def verify_synapse_evolution():
     print("--- Phase 22 Biological Synapse Evolution Verification ---")
@@ -26,8 +26,8 @@ async def verify_synapse_evolution():
             status="resolved",
             created_at=datetime.now(timezone.utc) - timedelta(hours=2)
         )
-        db.add(opp)
-        await db.flush()
+        packages.persistence.add(opp)
+        await packages.persistence.flush()
         
         # Add a Synapse Memory for this repair
         mem = await memory_store.save(
@@ -48,8 +48,8 @@ async def verify_synapse_evolution():
                 success=True,
                 created_at=datetime.now(timezone.utc) - timedelta(minutes=30)
             )
-            db.add(log)
-        await db.commit()
+            packages.persistence.add(log)
+        await packages.persistence.commit()
 
     # 3. Run Synapse Stabilizer
     print("[*] Running Synapse Stabilizer (Hardening Loop)...")
@@ -60,7 +60,7 @@ async def verify_synapse_evolution():
     print("[*] Verifying Synapse hardening results...")
     async with session_scope() as db:
         mem_q = select(Memory).where(Memory.metadata_["opportunity_id"].astext == str(opp_id))
-        res = await db.execute(mem_q)
+        res = await packages.persistence.execute(mem_q)
         hardened_mem = res.scalar_one_or_none()
         
         if hardened_mem and hardened_mem.importance == 1.0 and "innate" in hardened_mem.tags:

@@ -6,9 +6,9 @@ from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
-from core.agi.cognitive.evolution_engine import evolution_engine
-from agents.agent_registry import discover_and_build_specialists
-from db.models import Base, SubTask, Project, User
+from packages.orchestration.agi.cognitive.evolution_engine import evolution_engine
+from packages.orchestration.agi.agent_registry import discover_and_build_specialists
+from packages.persistence.models import Base, SubTask, Project, User
 
 # Mock DB for Test
 DB_URL = "sqlite+aiosqlite:///:memory:"
@@ -25,12 +25,12 @@ async def verify_phase_52():
     async with async_session() as db:
         # 1. Mock Veri Hazırla (Başarılı bir desen)
         user = User(email="test@faz52.agi", hashed_password="...")
-        db.add(user)
-        await db.commit()
+        packages.persistence.add(user)
+        await packages.persistence.commit()
         
         project = Project(title="Test Project 52", owner_id=user.id)
-        db.add(project)
-        await db.commit()
+        packages.persistence.add(project)
+        await packages.persistence.commit()
         
         # Specialist Forge >= 0.9 skorlu görevlere bakar
         subtask = SubTask(
@@ -42,8 +42,8 @@ async def verify_phase_52():
             quality_score=0.98,
             completed_at=datetime.now(timezone.utc)
         )
-        db.add(subtask)
-        await db.commit()
+        packages.persistence.add(subtask)
+        await packages.persistence.commit()
         
         print("[+] Mock başarılı görev deseni oluşturuldu (Score: 0.98).")
 

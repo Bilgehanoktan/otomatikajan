@@ -1,9 +1,9 @@
 import asyncio
 import os
 import tempfile
-from core.agi.cognitive.symbolic_prover import symbolic_prover
-from core.agi.security.symbolic_engine import symbolic_engine
-from core.agi.cognitive.swarm_resolver import SwarmResolver
+from packages.orchestration.agi.cognitive.symbolic_prover import symbolic_prover
+from packages.orchestration.agi.security.symbolic_engine import symbolic_engine
+from packages.orchestration.agi.cognitive.swarm_resolver import SwarmResolver
 
 # Mocking ModelOrchestrator to simulate agent repairs
 class MockModelOrchestrator:

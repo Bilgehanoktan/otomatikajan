@@ -7,9 +7,9 @@ import json
 # Root ekle
 sys.path.append(os.getcwd())
 
-from core.agi.cognitive.sovereign_cortex import SovereignCortex
-from core.agi.cognitive.metacognitive_auditor import MetacognitiveAuditor
-from llm.model_orchestrator import ModelOrchestrator
+from packages.orchestration.agi.cognitive.sovereign_cortex import SovereignCortex
+from packages.orchestration.agi.cognitive.metacognitive_auditor import MetacognitiveAuditor
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 
 logging.basicConfig(level=logging.INFO)
 _log = logging.getLogger("verify_reflective_audit")

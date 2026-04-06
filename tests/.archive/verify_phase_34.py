@@ -1,7 +1,7 @@
 import asyncio
 import logging
-from core.agi.cognitive.sovereign_cortex import SovereignCortex
-from core.agi.quality.agi_evaluator import agi_evaluator
+from packages.orchestration.agi.cognitive.sovereign_cortex import SovereignCortex
+from packages.orchestration.agi.packages.quality_assurance.agi_evaluator import agi_evaluator
 
 logging.basicConfig(level=logging.INFO)
 _log = logging.getLogger("phase_34_verif")
@@ -18,10 +18,10 @@ async def verify_phase_34():
     task = await cortex._execute_dialectic_planning("verif-34", title, "", description)
     
     _log.info(f"Dynamic Plan Steps: {[st.agent_id for st in task.subtasks]}")
-    if len(task.subtasks) < 8: # Static plan was 9-11 agents. Dynamic should be fewer for this task.
+    if len(task.subtasks) < 8: # Static plan was 9-11 packages.orchestration.agi. Dynamic should be fewer for this task.
         _log.info("SUCCESS: Dynamic Planning reduced task redundancy.")
     else:
-        _log.warning("WARNING: Dynamic Planning still produced many agents. Check logic.")
+        _log.warning("WARNING: Dynamic Planning still produced many packages.orchestration.agi. Check logic.")
 
     # 2. Test AGI Evaluator
     _log.info("Testing AGI Evaluator...")

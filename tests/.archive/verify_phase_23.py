@@ -2,11 +2,11 @@ import asyncio
 import os
 import json
 from datetime import datetime, timezone, timedelta
-from core.agi.cognitive.architect import Architect
-from core.agi.operational.source_refactor import SourceRefactorNode
-from agents.agent_registry import build_agents
-from db.session import session_scope
-from db.models import SkillExecutionLog, ImprovementOpportunity
+from packages.orchestration.agi.cognitive.architect import Architect
+from packages.orchestration.agi.operational.source_refactor import SourceRefactorNode
+from packages.orchestration.agi.agent_registry import build_agents
+from packages.persistence.session import session_scope
+from packages.persistence.models import SkillExecutionLog, ImprovementOpportunity
 
 async def verify_recursive_self_optimization():
     print("--- Phase 23 Recursive Cognitive Self-Optimization Verification ---")
@@ -36,8 +36,8 @@ class Agent:
                 success=False,
                 created_at=datetime.now(timezone.utc) - timedelta(minutes=5)
             )
-            db.add(log)
-        await db.commit()
+            packages.persistence.add(log)
+        await packages.persistence.commit()
 
     # 3. Run Architect (Cognitive Scan) -> Skip LLM if rate limited, inject manually
     print("[*] Running Architect Cognitive Scan (Injecting Manual Proposal for Test)...")
@@ -62,8 +62,8 @@ class Agent:
             evidence_detail=json.dumps(evidence),
             status="open"
         )
-        db.add(opp)
-        await db.commit()
+        packages.persistence.add(opp)
+        await packages.persistence.commit()
 
     # 4. Run Source Refactor Node
     print("[*] Running Source Refactor Node...")

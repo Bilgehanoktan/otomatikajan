@@ -3,10 +3,10 @@ import uuid
 import logging
 from datetime import datetime, timezone
 from sqlalchemy import select, delete
-from db.session import AsyncSessionLocal, _get_engine as get_engine
-from db.models import LLMCostLog, SovereignModelPolicy, Base, Project, SubTask
-from core.agi.operational.nas_optimizer import nas_optimizer
-from llm.model_orchestrator import ModelOrchestrator
+from packages.persistence.session import AsyncSessionLocal, _get_engine as get_engine
+from packages.persistence.models import LLMCostLog, SovereignModelPolicy, Base, Project, SubTask
+from packages.orchestration.agi.operational.nas_optimizer import nas_optimizer
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("VerifyPhase64")
@@ -15,12 +15,12 @@ async def setup_mock_data():
     """Mock performans verileri oluştur (Gemini kazanmalı)."""
     async with AsyncSessionLocal() as db:
         # Eski verileri temizle (opsiyonel)
-        await db.execute(delete(LLMCostLog))
-        await db.execute(delete(SovereignModelPolicy))
+        await packages.persistence.execute(delete(LLMCostLog))
+        await packages.persistence.execute(delete(SovereignModelPolicy))
         
         # 1. Gemini: Hızlı, Ucuz, Başarılı (Architect rolü için)
         for _ in range(10):
-            db.add(LLMCostLog(
+            packages.persistence.add(LLMCostLog(
                 provider="gemini",
                 model="gemini-1.5-flash",
                 agent_role="architect",
@@ -33,7 +33,7 @@ async def setup_mock_data():
             
         # 2. OpenAI: Yavaş, Pahalı (Architect rolü için)
         for _ in range(5):
-            db.add(LLMCostLog(
+            packages.persistence.add(LLMCostLog(
                 provider="openai",
                 model="gpt-4o",
                 agent_role="architect",
@@ -44,7 +44,7 @@ async def setup_mock_data():
                 output_tokens=100
             ))
             
-        await db.commit()
+        await packages.persistence.commit()
     logger.info("Mock veriler yüklendi: Gemini (Hızlı/Ucuz) vs OpenAI (Yavaş/Pahalı)")
 
 async def verify_nas():
@@ -60,7 +60,7 @@ async def verify_nas():
     
     # 3. DB'de politikanın oluştuğunu kontrol et
     async with AsyncSessionLocal() as db:
-        res = await db.execute(select(SovereignModelPolicy).where(SovereignModelPolicy.agent_role == "architect"))
+        res = await packages.persistence.execute(select(SovereignModelPolicy).where(SovereignModelPolicy.agent_role == "architect"))
         policy = res.scalar_one_or_none()
         
         if not policy:

@@ -2,9 +2,9 @@ import asyncio
 import json
 import uuid
 from typing import Dict, Any
-from core.agi.cognitive.sovereign_cortex import nexus_orchestrator
-from core.agi.consciousness.affective_core import affective_core
-from core.agi.cognitive.motivation_engine import motivation_engine
+from packages.orchestration.agi.cognitive.sovereign_cortex import nexus_orchestrator
+from packages.orchestration.agi.consciousness.affective_core import affective_core
+from packages.orchestration.agi.cognitive.motivation_engine import motivation_engine
 from core.task_management import TaskStatus
 
 async def verify_resilience_loop():
@@ -21,7 +21,7 @@ async def verify_resilience_loop():
     affective_core.adjust_state("error", magnitude=0.2)
     
     # 3. Motivasyon Yeniden Kalibrasyonu
-    from core.agi.schemas import ProblemFrame, TaskType, RiskLevel
+    from packages.orchestration.agi.schemas import ProblemFrame, TaskType, RiskLevel
     frame = ProblemFrame(task_type=TaskType.OPERATION, objective="Stress Test", risk_level=RiskLevel.HIGH)
     mot_state = await motivation_engine.recalibrate_state([], frame)
     

@@ -2,10 +2,10 @@ import asyncio
 import uuid
 import logging
 from datetime import datetime, timezone
-from core.agi.cognitive.synaptic_cortex import synaptic_cortex
-from core.agi.learning.wisdom_synthesizer import wisdom_synthesizer
-from core.agi.task_governance import ProjectTask, TaskStatus
-from db.session import AsyncSessionLocal
+from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
+from packages.orchestration.agi.learning.wisdom_synthesizer import wisdom_synthesizer
+from packages.orchestration.agi.task_governance import ProjectTask, TaskStatus
+from packages.persistence.session import AsyncSessionLocal
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("verify_ase")
@@ -54,7 +54,7 @@ async def test_wisdom_saturation():
             category="semantic_wisdom",
             importance=0.8
         )
-        await db.commit()
+        await packages.persistence.commit()
 
     # Saturation kontrolü yap
     is_saturated, _ = await wisdom_synthesizer._check_saturation(task)

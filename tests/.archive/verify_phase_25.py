@@ -3,9 +3,9 @@ import json
 import uuid
 from typing import Dict, Any, List
 from datetime import datetime, timezone
-from core.agi.central_executive import CentralExecutive
-from core.agi.schemas import SourceType, RiskLevel, ProblemFrame, TaskType
-from db.session import session_scope
+from packages.orchestration.agi.central_executive import CentralExecutive
+from packages.orchestration.agi.schemas import SourceType, RiskLevel, ProblemFrame, TaskType
+from packages.persistence.session import session_scope
 
 # Mocking ModelOrchestrator to simulate different agent responses
 class MockModelOrchestrator:
@@ -44,11 +44,11 @@ async def verify_swarm_cognition():
     # Manually trigger a thought cycle with a mock high-risk frame logic
     # (Since perception is complex to mock, we'll test the SwarmResolver directly first)
     
-    from core.agi.cognitive.swarm_resolver import SwarmResolver
+    from packages.orchestration.agi.cognitive.swarm_resolver import SwarmResolver
     resolver = SwarmResolver(model_orch=mock_orch)
     
     task_context = {"objective": "Secure Database Connection"}
-    initial_output = "db.execute(f'SELECT * FROM users WHERE id={id}')"
+    initial_output = "packages.persistence.execute(f'SELECT * FROM users WHERE id={id}')"
     
     print(f"Initial Output (Vulnerable): {initial_output}")
     
@@ -70,7 +70,7 @@ async def verify_swarm_cognition():
 
     # 2. Test Workspace Propagation (MotorSynapse Integration)
     print("\n[*] Testing Workspace Propagation (Motor Synapse)...")
-    from core.agi.schemas import ExecutionPlan, PlanStep
+    from packages.orchestration.agi.schemas import ExecutionPlan, PlanStep
     
     plan = ExecutionPlan(
         goal="Collaborative Step Test",
@@ -82,7 +82,7 @@ async def verify_swarm_cognition():
     )
     
     # Mock some agents in MotorSynapse
-    from core.agi.operational.motor_synapse import MotorSynapse
+    from packages.orchestration.agi.operational.motor_synapse import MotorSynapse
     
     class MockAgent:
         async def execute(self, task_id, subtask_id, context):

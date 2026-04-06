@@ -1,9 +1,9 @@
 import asyncio
 import uuid
 import json
-from core.agi.central_executive import central_executive
-from core.agi.schemas import UnifiedInput, ContextPackage
-from observability.logging import get_logger
+from packages.orchestration.agi.central_executive import central_executive
+from packages.orchestration.agi.schemas import UnifiedInput, ContextPackage
+from packages.packages.observability.logging import get_logger
 
 logger = get_logger("test_phase_66_67")
 
@@ -22,7 +22,7 @@ async def test_agi_evolution():
     # Not: Gerçek LLM yerine mock-logic tetiklemek zor olduğu için, 
     # motor_synapse üzerinden direkt kontrol edeceğiz.
     
-    from core.agi.operational.velocity_engine import velocity_engine
+    from packages.orchestration.agi.operational.velocity_engine import velocity_engine
     
     agent_id = "architect"
     task_id = str(input_id)

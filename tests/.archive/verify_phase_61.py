@@ -1,7 +1,7 @@
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
-from core.agi.governance.consensus_arbiter import ConsensusArbiter
-from core.agi.task_governance import GovernedTask, GovernanceStatus
+from packages.orchestration.agi.governance.consensus_arbiter import ConsensusArbiter
+from packages.orchestration.agi.task_governance import GovernedTask, GovernanceStatus
 
 async def verify_consensus_gate():
     print("--- Phase 61 Verification: Consensus Arbiter ---")
@@ -17,8 +17,8 @@ async def verify_consensus_gate():
     arbiter = ConsensusArbiter()
     arbiter.model_orch = MagicMock()
     
-    from core.agi.cognitive.consensus_manager import consensus_manager
-    from core.agi.cognitive.synaptic_cortex import synaptic_cortex
+    from packages.orchestration.agi.cognitive.consensus_manager import consensus_manager
+    from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
     
     consensus_manager.model_orch = MagicMock()
     synaptic_cortex.search = AsyncMock(return_value=[]) # Mock memory retrieval

@@ -7,9 +7,9 @@ from datetime import datetime, timezone
 # Add current directory to path
 sys.path.append(os.getcwd())
 
-from core.agi.cognitive.synaptic_cortex import synaptic_cortex
-from db.session import AsyncSessionLocal
-from db.models import Project, SubTask, TaskPriority, Memory
+from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
+from packages.persistence.session import AsyncSessionLocal
+from packages.persistence.models import Project, SubTask, TaskPriority, Memory
 
 async def run_integration_test():
     print("--- [FAZ 70-72] ENTEGRASYON TESTİ V2: DERİN BELLEK VE HATA ÖĞRENİMİ ---")
@@ -28,7 +28,7 @@ async def run_integration_test():
             importance=0.9,
             metadata={"source": "v12.1-legacy-crash"}
         )
-        await db.commit()
+        await packages.persistence.commit()
         print("   [BAŞARILI] Geçmiş ders hafızaya işlendi.")
 
         # 2. AYNI KONUYLA İLGİLİ YENİ BİR GÖREV SİMÜLASYONU

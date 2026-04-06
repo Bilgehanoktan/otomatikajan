@@ -3,11 +3,11 @@ import uuid
 import pytest
 from datetime import datetime
 from sqlalchemy import select
-from db.session import session_scope
-from db.models import SovereignGoal, Project, ProjectStatus
-from core.agi.central_executive import CentralExecutive
-from llm.model_orchestrator import ModelOrchestrator
-from core.agi.operational.metabolic_governor import metabolic_governor, MetabolicMode
+from packages.persistence.session import session_scope
+from packages.persistence.models import SovereignGoal, Project, ProjectStatus
+from packages.orchestration.agi.central_executive import CentralExecutive
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
+from packages.orchestration.agi.operational.metabolic_governor import metabolic_governor, MetabolicMode
 
 async def verify_strategic_escalation():
     """
@@ -27,8 +27,8 @@ async def verify_strategic_escalation():
             priority=100,
             status="active"
         )
-        db.add(goal)
-        await db.commit()
+        packages.persistence.add(goal)
+        await packages.persistence.commit()
         print(f"[TEST] North Star Goal oluşturuldu: {goal.title}")
 
     # 2. Metabolic Mode Ayarla (Phase 81)
@@ -51,9 +51,9 @@ async def verify_strategic_escalation():
 
     # 4. Veritabanı Doğrulaması (Phase 85)
     async with session_scope() as db:
-        from db.models import DomainEventLog
+        from packages.persistence.models import DomainEventLog
         stmt = select(DomainEventLog).where(DomainEventLog.event_type == "cognitive_escalation").order_by(DomainEventLog.created_at.desc())
-        res = await db.execute(stmt)
+        res = await packages.persistence.execute(stmt)
         escalations = res.scalars().all()
         
         # Eğer test ortamında model mock'lu değilse ve gerçek hata alıyorsak escalation loglanmış olmalı.

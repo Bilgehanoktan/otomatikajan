@@ -5,8 +5,8 @@ import sys
 # Add project root to path
 sys.path.append(os.getcwd())
 
-from db.session import AsyncSessionLocal
-from improve.observer import ImprovementObserver
+from packages.persistence.session import AsyncSessionLocal
+from packages.improvement_engine.observer import ImprovementObserver
 
 async def verify_deterministic_ids():
     print("Running first scan...")

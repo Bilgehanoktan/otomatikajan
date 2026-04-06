@@ -11,7 +11,7 @@ async def verify_nexus_quantum_sync():
     
     # 1. Singleton Sync Check
     try:
-        from core.agi.cognitive.sovereign_cortex import nexus_orchestrator
+        from packages.orchestration.agi.cognitive.sovereign_cortex import nexus_orchestrator
         from core.context import orchestrator as context_orch
         
         print("[-] Checking Singleton Integrity...")
@@ -44,7 +44,7 @@ async def verify_nexus_quantum_sync():
         
     # 3. Quantum Executor Simulation Check
     try:
-        from core.agi.operational.velocity_engine import velocity_engine
+        from packages.orchestration.agi.operational.velocity_engine import velocity_engine
         print("[-] Testing Quantum Executor 'Look-Ahead' Grounding...")
         
         # Test a safe file read simulation

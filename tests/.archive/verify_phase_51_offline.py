@@ -2,11 +2,11 @@ import asyncio
 import uuid
 import json
 from unittest.mock import patch, MagicMock
-from core.agi.central_executive import central_executive
-from core.agi.schemas import SourceType
-from llm.llm_types import LLMResponse
+from packages.orchestration.agi.central_executive import central_executive
+from packages.orchestration.agi.schemas import SourceType
+from packages.llm_gateway.llm_types import LLMResponse
 
-from observability.logging import get_logger
+from packages.packages.observability.logging import get_logger
 
 _log = get_logger("verify_phase_51_offline")
 
@@ -67,7 +67,7 @@ async def test_recursive_decomposition_offline():
     description = "DAG ve Recursion testi için mock veriler kullanılacak."
     
     # ModelOrchestrator.complete_task metodunu yamala (429/402 engeline karşı)
-    with patch("llm.model_orchestrator.ModelOrchestrator.complete_task", side_effect=mock_complete_task):
+    with patch("packages.llm_gateway.model_orchestrator.ModelOrchestrator.complete_task", side_effect=mock_complete_task):
         try:
             episode = await central_executive.execute_thought_cycle(
                 raw_input=f"HEDEF: {test_goal}\nAÇIKLAMA: {description}",

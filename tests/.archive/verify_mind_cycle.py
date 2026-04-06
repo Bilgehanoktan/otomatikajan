@@ -1,10 +1,10 @@
 import asyncio
 import uuid
 import os
-from core.agi.consciousness.neural_core_orchestrator import neural_core_orchestrator
-from db.session import session_scope
-from db.models import SkillExecutionLog, Project, ProjectStatus
-from observability.logging import get_logger
+from packages.orchestration.agi.consciousness.neural_core_orchestrator import neural_core_orchestrator
+from packages.persistence.session import session_scope
+from packages.persistence.models import SkillExecutionLog, Project, ProjectStatus
+from packages.packages.observability.logging import get_logger
 
 _log = get_logger("verify_mind_cycle")
 
@@ -16,16 +16,16 @@ async def test_full_mind_cycle():
     async with session_scope() as db:
         agent_id = "mind_cycle_test_agent"
         from sqlalchemy import delete
-        await db.execute(delete(SkillExecutionLog).where(SkillExecutionLog.agent_id == agent_id))
+        await packages.persistence.execute(delete(SkillExecutionLog).where(SkillExecutionLog.agent_id == agent_id))
         
         for _ in range(4):
-            db.add(SkillExecutionLog(
+            packages.persistence.add(SkillExecutionLog(
                 agent_id=agent_id,
                 skill_id="reasoning_v1",
                 success=False,
                 summary="Test failure for mind cycle verification."
             ))
-        await db.commit()
+        await packages.persistence.commit()
 
     # 1. Run the Cycle
     print("[*] Starting Mind Cycle...")
@@ -37,7 +37,7 @@ async def test_full_mind_cycle():
     
     # 2. Verify Diagnostic Output
     async with session_scope() as db_verify:
-        from db.models import ImprovementOpportunity
+        from packages.persistence.models import ImprovementOpportunity
         from sqlalchemy import select
         
         stmt = select(ImprovementOpportunity).where(ImprovementOpportunity.source_ref.like(f"{agent_id}:%"))

@@ -2,8 +2,8 @@ import asyncio
 import os
 import shutil
 from pathlib import Path
-from core.agi.cognitive.sovereign_cortex import nexus_orchestrator as nexus_orchestrator
-from core.agi.operational.scaffolder import scaffolder
+from packages.orchestration.agi.cognitive.sovereign_cortex import nexus_orchestrator as nexus_orchestrator
+from packages.orchestration.agi.operational.scaffolder import scaffolder
 
 async def verify_self_building_layer():
     print("--- Phase 19 Self-Building Verification ---")

@@ -4,9 +4,9 @@ import logging
 import json
 from datetime import datetime, timezone
 from dataclasses import asdict
-from core.agi.cognitive.sovereign_cortex import sovereign_cortex
-from core.agi.task_governance import SovereignGoal, GovernedTask, GovernanceStatus
-from core.agi.operational.velocity_engine import velocity_engine
+from packages.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex
+from packages.orchestration.agi.task_governance import SovereignGoal, GovernedTask, GovernanceStatus
+from packages.orchestration.agi.operational.velocity_engine import velocity_engine
 from unittest.mock import AsyncMock, patch, MagicMock
 
 logging.basicConfig(level=logging.INFO)
@@ -70,7 +70,7 @@ async def verify_phase_36():
     _log.info("Testing Metacognition API endpoint...")
     from api.monitoring_router import agi_metacognition_stats
     
-    # Mocking DB chain: await db.execute() -> result.scalars().all()
+    # Mocking DB chain: await packages.persistence.execute() -> result.scalars().all()
     mock_db = AsyncMock()
     mock_result = AsyncMock()
     mock_scalars = MagicMock()
@@ -86,8 +86,8 @@ async def verify_phase_36():
     mock_result.scalars.return_value = mock_scalars
     mock_db.execute.return_value = mock_result
 
-    with patch("db.session.AsyncSessionLocal", return_value=mock_db), \
-         patch("auth.jwt_auth.get_current_user"):
+    with patch("packages.persistence.session.AsyncSessionLocal", return_value=mock_db), \
+         patch("apps.api.routers.auth.jwt_auth.get_current_user"):
         
         try:
             # Pass limit explicitly because we are calling it outside FastAPI context

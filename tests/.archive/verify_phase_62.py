@@ -1,9 +1,9 @@
 import asyncio
 import uuid
-from core.agi.operational.velocity_engine import VelocityEngine, EngineResult
-from core.agi.world.provenance_engine import provenance_engine
-from db.session import AsyncSessionLocal
-from db.models import SovereignCodeFile, SovereignCodeResult
+from packages.orchestration.agi.operational.velocity_engine import VelocityEngine, EngineResult
+from packages.orchestration.agi.world.provenance_engine import provenance_engine
+from packages.persistence.session import AsyncSessionLocal
+from packages.persistence.models import SovereignCodeFile, SovereignCodeResult
 from sqlalchemy import select
 
 async def verify_provenance_chain():
@@ -16,15 +16,15 @@ async def verify_provenance_chain():
     agent_id = "provenance_tester"
     
     # Mock Database entry for Project (required by FK)
-    from db.models import Project, ProjectStatus
+    from packages.persistence.models import Project, ProjectStatus
     async with AsyncSessionLocal() as db:
         new_proj = Project(
             id=project_id,
             title="Provenance Test Project",
             status="RUNNING"
         )
-        db.add(new_proj)
-        await db.commit()
+        packages.persistence.add(new_proj)
+        await packages.persistence.commit()
     
     # Mock result with the 'FILE:' marker that our engine now scans for
     mock_result = EngineResult(
@@ -42,14 +42,14 @@ async def verify_provenance_chain():
     async with AsyncSessionLocal() as db:
         # Check Result
         res_stmt = select(SovereignCodeResult).where(SovereignCodeResult.project_id == uuid.UUID(task_id))
-        result_rec = (await db.execute(res_stmt)).scalar_one_or_none()
+        result_rec = (await packages.persistence.execute(res_stmt)).scalar_one_or_none()
         
         assert result_rec is not None
         print(f"✅ SovereignCodeResult found: {result_rec.id}")
         
         # Check File & ProvenanceID
         file_stmt = select(SovereignCodeFile).where(SovereignCodeFile.result_id == result_rec.id)
-        file_rec = (await db.execute(file_stmt)).scalar_one_or_none()
+        file_rec = (await packages.persistence.execute(file_stmt)).scalar_one_or_none()
         
         assert file_rec is not None
         assert file_rec.path == "core/test_file_62.py"

@@ -3,8 +3,8 @@ import os
 import json
 import uuid
 from core.policy_engine import policy_engine, AutomationLevel
-from core.agi.cognitive.policy_evolution import PolicyEvolutionEngine
-from core.agi.cognitive.goal_synthesizer import GoalSynthesizer
+from packages.orchestration.agi.cognitive.policy_evolution import PolicyEvolutionEngine
+from packages.orchestration.agi.cognitive.goal_synthesizer import GoalSynthesizer
 
 async def verify_metacognitive_layer():
     print("--- Phase 18 Metacognitive Verification ---")
@@ -30,8 +30,8 @@ async def verify_metacognitive_layer():
     print("[SUCCESS] GoalSynthesizer initialization OK.")
 
     # 4. AuditGate Link Check
-    from core.agi.security.audit_gate import AuditGate
-    from llm.model_orchestrator import ModelOrchestrator
+    from packages.orchestration.agi.security.audit_gate import AuditGate
+    from packages.llm_gateway.model_orchestrator import ModelOrchestrator
     gate = AuditGate(ModelOrchestrator())
     # This just checks if it imports and accesses correctly without crashing
     print("[SUCCESS] AuditGate cross-link OK.")

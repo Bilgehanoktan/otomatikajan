@@ -1,8 +1,8 @@
 import asyncio
 import logging
-from core.agi.cognitive.sovereign_cortex import sovereign_cortex
-from core.agi.cognitive.agi_goal_decomposer import agi_goal_decomposer
-from core.agi.cognitive.metacognitive_auditor import metacognitive_auditor
+from packages.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex
+from packages.orchestration.agi.cognitive.agi_goal_decomposer import agi_goal_decomposer
+from packages.orchestration.agi.cognitive.metacognitive_auditor import metacognitive_auditor
 
 logging.basicConfig(level=logging.INFO)
 _log = logging.getLogger("VERIFY-V47")

@@ -6,11 +6,11 @@ import sys
 # Proje kök dizinini ekle
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from db.session import AsyncSessionLocal
-from db.models import Project, ProjectStatus
-from db.repository import ProjectRepository
+from packages.persistence.session import AsyncSessionLocal
+from packages.persistence.models import Project, ProjectStatus
+from packages.persistence.repository import ProjectRepository
 from startup.lifespan import _analyze_interrupted_tasks
-from core.agi.governance.resilience_agent import resilience_agent
+from packages.orchestration.agi.governance.resilience_agent import resilience_agent
 
 async def test_resilience_flow():
     print("AGI Resilience Testi baslatiliyor...")
@@ -25,8 +25,8 @@ async def test_resilience_flow():
             status=ProjectStatus.RUNNING,
             execution_context={"test_mark": "persistent"}
         )
-        db.add(p)
-        await db.commit()
+        packages.persistence.add(p)
+        await packages.persistence.commit()
         print(f"Hazirlik: '{project_id}' id'li RUNNING projesi olusturuldu.")
 
     # 2. Adım: Lifespan restart simülasyonu (_analyze_interrupted_tasks)

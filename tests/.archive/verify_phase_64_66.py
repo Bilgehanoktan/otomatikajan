@@ -4,9 +4,9 @@ import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 # Mock modules to avoid DB/Env issues
-sys.modules['observability.logging'] = MagicMock()
-sys.modules['db.session'] = MagicMock()
-sys.modules['db.repository'] = MagicMock()
+sys.modules['packages.observability.logging'] = MagicMock()
+sys.modules['packages.persistence.session'] = MagicMock()
+sys.modules['packages.persistence.repository'] = MagicMock()
 sys.modules['api.ws_manager'] = MagicMock()
 
 async def mock_complete_task(*args, **kwargs):
@@ -21,7 +21,7 @@ class TestAGIEvolutionPhases(unittest.IsolatedAsyncioTestCase):
     async def test_phase_64_nas_hybrid_routing(self):
         """Phase 64: NAS & Health Hybrid Routing Test."""
         print("\n--- Phase 64 Verification: NAS & Health Routing ---")
-        from llm.model_orchestrator import ModelOrchestrator
+        from packages.llm_gateway.model_orchestrator import ModelOrchestrator
         
         orch = ModelOrchestrator()
         orch.providers = {
@@ -33,7 +33,7 @@ class TestAGIEvolutionPhases(unittest.IsolatedAsyncioTestCase):
         candidates = ["p1", "p2", "p3"]
         
         # Corrected patch path for metabolic_governor
-        with patch('llm.metabolic_governor.MetabolicGovernor.get_optimal_provider', return_value="p1"):
+        with patch('packages.llm_gateway.metabolic_governor.MetabolicGovernor.get_optimal_provider', return_value="p1"):
             # Simulate the sorting logic
             candidates.sort(key=lambda p: orch.providers.get(p).health_score, reverse=True)
             if "p1" in candidates:
@@ -49,9 +49,9 @@ class TestAGIEvolutionPhases(unittest.IsolatedAsyncioTestCase):
     async def test_phase_65_reflective_reasoning(self):
         """Phase 65: Reflective Reasoning Loop Test."""
         print("\n--- Phase 65 Verification: Reflective Reasoning ---")
-        from core.agi.cognitive.sovereign_cortex import SovereignCortex
+        from packages.orchestration.agi.cognitive.sovereign_cortex import SovereignCortex
         # Corrected import for ProjectTask
-        from core.agi.task_governance import ProjectTask
+        from packages.orchestration.agi.task_governance import ProjectTask
 
         cortex = SovereignCortex()
         cortex.planner = MagicMock()
@@ -77,7 +77,7 @@ class TestAGIEvolutionPhases(unittest.IsolatedAsyncioTestCase):
     async def test_phase_66_tool_grounding(self):
         """Phase 66: Tool Grounding (Path Blocking) Test."""
         print("\n--- Phase 66 Verification: Tool Grounding ---")
-        from core.agi.operational.tool_grounder import ToolGrounder
+        from packages.orchestration.agi.operational.tool_grounder import ToolGrounder
         
         blackboard = MagicMock()
         blackboard.get_working_context = AsyncMock(return_value={

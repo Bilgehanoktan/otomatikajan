@@ -2,8 +2,8 @@ import asyncio
 import logging
 import json
 from unittest.mock import AsyncMock, patch, MagicMock
-from core.agi.cognitive.sovereign_cortex import SovereignCortex
-from core.agi.task_governance import SovereignGoal, GovernedTask, TaskStatus, TaskPlanner, GovernanceStatus
+from packages.orchestration.agi.cognitive.sovereign_cortex import SovereignCortex
+from packages.orchestration.agi.task_governance import SovereignGoal, GovernedTask, TaskStatus, TaskPlanner, GovernanceStatus
 
 logging.basicConfig(level=logging.INFO)
 _log = logging.getLogger("phase_39_verif")
@@ -46,11 +46,11 @@ async def test_sovereign_consensus_flow():
     mock_result.success = True
     mock_result.output_data = "Executed Consensus Plan."
     
-    with patch("core.agi.cognitive.consensus_manager.consensus_manager.resolve", AsyncMock(return_value=mock_consensus)), \
-         patch("core.agi.operational.velocity_engine.velocity_engine.simulate_and_execute", AsyncMock(return_value=mock_result)), \
-         patch("core.agi.cognitive.sovereign_cortex.synaptic_cortex.save_episode"), \
-         patch("core.agi.cognitive.synaptic_cortex.synaptic_cortex.save"), \
-         patch("core.agi.learning.cognitive_mirror.cognitive_mirror.reflect"):
+    with patch("packages.orchestration.agi.cognitive.consensus_manager.consensus_manager.resolve", AsyncMock(return_value=mock_consensus)), \
+         patch("packages.orchestration.agi.operational.velocity_engine.velocity_engine.simulate_and_execute", AsyncMock(return_value=mock_result)), \
+         patch("packages.orchestration.agi.cognitive.sovereign_cortex.synaptic_cortex.save_episode"), \
+         patch("packages.orchestration.agi.cognitive.synaptic_cortex.synaptic_cortex.save"), \
+         patch("packages.orchestration.agi.learning.cognitive_mirror.cognitive_mirror.reflect"):
         
         # Test just the execute_subtask_nexus for one high-risk task
         test_task = high_risk_tasks[0]

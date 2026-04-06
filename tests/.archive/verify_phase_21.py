@@ -2,10 +2,10 @@ import asyncio
 import os
 import uuid
 import json
-from core.agi.cognitive.reflection_cortex import ReflectionCortex
-from core.agi.operational.self_patcher import self_patcher
-from db.session import session_scope
-from db.models import SkillExecutionLog, ImprovementOpportunity
+from packages.orchestration.agi.cognitive.reflection_cortex import ReflectionCortex
+from packages.orchestration.agi.operational.self_patcher import self_patcher
+from packages.persistence.session import session_scope
+from packages.persistence.models import SkillExecutionLog, ImprovementOpportunity
 from pathlib import Path
 
 async def verify_cognitive_layer():
@@ -30,8 +30,8 @@ async def verify_cognitive_layer():
                 success=False,
                 summary="Error: Token limit exceeded. Model failed to respond correctly."
             )
-            db.add(log)
-        await db.commit()
+            packages.persistence.add(log)
+        await packages.persistence.commit()
     
     # 2. Run Diagnostic Node
     print("[*] Running Cognitive Diagnostic...")
@@ -40,7 +40,7 @@ async def verify_cognitive_layer():
         await diag.run_diagnostic_cycle(db)
         
         # 3. Check for ImprovementOpportunity
-        opps = await db.execute(
+        opps = await packages.persistence.execute(
             ImprovementOpportunity.__table__.select().where(
                 ImprovementOpportunity.source_type == "cognitive_diagnostic"
             )
@@ -60,9 +60,9 @@ async def verify_cognitive_layer():
     success = self_patcher.patch_agent_prompt(agent_id, "You are a concise agent. Avoid token limits.")
     
     if success:
-        print("[SUCCESS] SelfPatcher applied the cognitive repair.")
+        print("[SUCCESS] SelfPatcher applied the cognitive packages.repair_engine.")
     else:
-        print("[FAILURE] SelfPatcher failed to apply the repair.")
+        print("[FAILURE] SelfPatcher failed to apply the packages.repair_engine.")
         return
 
     # 5. Verify Filesystem Reality

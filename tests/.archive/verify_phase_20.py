@@ -1,12 +1,12 @@
 import asyncio
 import os
 import uuid
-from core.agi.cognitive.consolidator import Consolidator
-from core.agi.cognitive.memory_api import memory_api
-from db.session import session_scope
-from db.repository import ProjectRepository
+from packages.orchestration.agi.cognitive.consolidator import Consolidator
+from packages.orchestration.agi.cognitive.memory_api import memory_api
+from packages.persistence.session import session_scope
+from packages.persistence.repository import ProjectRepository
 
-from db.models import ProjectStatus
+from packages.persistence.models import ProjectStatus
 
 async def verify_knowledge_layer():
     print("--- Phase 20 Knowledge Consolidation Verification ---")
@@ -24,7 +24,7 @@ async def verify_knowledge_layer():
             project.id, 
             report="SUCCESS: All legacy files were moved and indexes updated. Anti-pattern: Don't use absolute paths in scripts."
         )
-        await db.commit()
+        await packages.persistence.commit()
         project_id = project.id
     
     print(f"[*] Created mock project: {project_id}")

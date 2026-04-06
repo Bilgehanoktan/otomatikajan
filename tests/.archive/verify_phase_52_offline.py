@@ -6,9 +6,9 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from unittest.mock import MagicMock, AsyncMock
 
-from core.agi.learning.specialist_forge import SpecialistForge
-from agents.agent_registry import discover_and_build_specialists
-from db.models import Base, SubTask, Project, User
+from packages.orchestration.agi.learning.specialist_forge import SpecialistForge
+from packages.orchestration.agi.agent_registry import discover_and_build_specialists
+from packages.persistence.models import Base, SubTask, Project, User
 
 # Mock DB for Test
 DB_URL = "sqlite+aiosqlite:///:memory:"
@@ -49,12 +49,12 @@ async def verify_phase_52_offline():
     async with async_session() as db:
         # 3. Başarılı bir görev deseni ekle
         user = User(email="mock@faz52.agi", hashed_password="...")
-        db.add(user)
-        await db.commit()
+        packages.persistence.add(user)
+        await packages.persistence.commit()
         
         project = Project(title="Mock Project", owner_id=user.id)
-        db.add(project)
-        await db.commit()
+        packages.persistence.add(project)
+        await packages.persistence.commit()
         
         subtask = SubTask(
             project_id=project.id,
@@ -63,8 +63,8 @@ async def verify_phase_52_offline():
             result="Done.",
             quality_score=0.99
         )
-        db.add(subtask)
-        await db.commit()
+        packages.persistence.add(subtask)
+        await packages.persistence.commit()
         
         # 4. Forge İşlemini Çalıştır
         print("[*] Uzman Sentezi (Forge) çalıştırılıyor...")
