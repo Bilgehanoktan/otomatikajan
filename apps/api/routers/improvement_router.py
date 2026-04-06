@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+﻿from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from typing import List, Optional, Any
 from pydantic import BaseModel
 
@@ -6,7 +6,7 @@ from apps.api.routers.auth.jwt_auth import get_current_user, require_admin
 from apps.worker.tasks.celery_app import celery_app  # type: ignore
 from packages.orchestration.agi.cognitive.sovereign_cortex import nexus_orchestrator as orchestrator
 from packages.persistence.session import AsyncSessionLocal, get_db_dep
-from packages.orchestration.experimental.cognitive_verifier import cognitive_verifier
+from packages.improvement_engine.cognitive_verifier import cognitive_verifier
 from packages.orchestration.agi.cognitive.sovereign_auditor import sovereign_auditor
 from packages.orchestration.agi.cognitive.evolution_engine import evolution_engine
 from packages.persistence.models import User
@@ -39,7 +39,7 @@ async def scan_for_improvements(background_tasks: BackgroundTasks, current_user=
     try:
         proposals: List[Any] = await evolution_engine.get_active_proposals()
         
-        # Eğer aktif öneri yoksa, bir döngü tetikle (Arka planda)
+        # EÄŸer aktif Ã¶neri yoksa, bir dÃ¶ngÃ¼ tetikle (Arka planda)
         if not proposals:
             background_tasks.add_task(evolution_engine.run_evolution_cycle)
             return []
@@ -59,8 +59,8 @@ async def scan_for_improvements(background_tasks: BackgroundTasks, current_user=
             for p in proposals
         ]
     except Exception as e:
-        logger.error(f"Improvement scan hatası: {e}")
-        raise HTTPException(status_code=500, detail=f"Scan başarısız: {e}")
+        logger.error(f"Improvement scan hatasÄ±: {e}")
+        raise HTTPException(status_code=500, detail=f"Scan baÅŸarÄ±sÄ±z: {e}")
 
 
 @router.post("/apply-proposal/{proposal_id}")
@@ -74,16 +74,16 @@ async def apply_autonomous_proposal(
         proposal = next((p for p in proposals if p["id"] == proposal_id), None)
         
         if not proposal:
-            raise HTTPException(status_code=404, detail=f"İyileştirme ID {proposal_id} bulunamadı.")
+            raise HTTPException(status_code=404, detail=f"Ä°yileÅŸtirme ID {proposal_id} bulunamadÄ±.")
 
         background_tasks.add_task(evolution_engine.apply_evolution, proposal)
-        return {"status": "started", "message": f"Evrim adımı {proposal_id} uygulanmaya başlandı."}
+        return {"status": "started", "message": f"Evrim adÄ±mÄ± {proposal_id} uygulanmaya baÅŸlandÄ±."}
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Proposal uygulama hatası: {e}")
-        raise HTTPException(status_code=500, detail=f"Sistem hatası: {str(e)}")
+        logger.error(f"Proposal uygulama hatasÄ±: {e}")
+        raise HTTPException(status_code=500, detail=f"Sistem hatasÄ±: {str(e)}")
 
 @router.post("/apply-patch")
 async def apply_custom_patch(
@@ -92,7 +92,7 @@ async def apply_custom_patch(
     current_user=Depends(require_admin),
 ):
     if not orchestrator.self_updater:
-        raise HTTPException(status_code=503, detail="Self-Updater modülü yüklenmemiş.")
+        raise HTTPException(status_code=503, detail="Self-Updater modÃ¼lÃ¼ yÃ¼klenmemiÅŸ.")
 
     background_tasks.add_task(
         orchestrator.self_updater.modify_system_file,
@@ -103,7 +103,7 @@ async def apply_custom_patch(
     return {
         "status": "started",
         "target": request.target_path,
-        "message": "Patch işlemi arka planda başlatıldı.",
+        "message": "Patch iÅŸlemi arka planda baÅŸlatÄ±ldÄ±.",
     }
 
 
@@ -124,3 +124,4 @@ async def get_improvement_state(current_user=Depends(get_current_user)):
         "is_autonomous": False,
         "high_risk_paths": list(getattr(orchestrator.self_updater, "HIGH_RISK_PATHS", [])),
     }
+
