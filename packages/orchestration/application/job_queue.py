@@ -458,8 +458,8 @@ class CeleryJobQueue(BaseQueueCapabilities):
             listing_scope="process_local",
         )
         try:
-            from tasks.celery_app import celery_app  # type: ignore
-            from tasks.project_tasks import run_project_task  # type: ignore
+            from apps.worker.tasks.celery_app import celery_app  # type: ignore
+            from apps.worker.tasks.project_tasks import run_project_task  # type: ignore
             self._celery = celery_app
             self._run_task = run_project_task
             self._available = True
