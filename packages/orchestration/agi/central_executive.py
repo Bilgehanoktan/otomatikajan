@@ -6,7 +6,7 @@ from sqlalchemy import select, desc # Faz 82-85: Strategic Query
 from packages.observability.logging import get_logger
 from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 from packages.orchestration.agi.operational.local_failsafe_engine import local_failsafe
-from agents.agent_registry import build_agents
+from packages.orchestration.agi.agents.agent_registry import build_agents
 
 # Bilişsel Birimlerin (Cortex Mimarisi) İçe Aktarımı
 from packages.orchestration.agi.schemas import (
@@ -37,7 +37,7 @@ class CentralExecutive:
         self.agents = build_agents()
         
         # Uzman Ajanların (ECC 2.0 Skills) Keşfi
-        from agents.agent_registry import discover_and_build_specialists
+        from packages.orchestration.agi.agents.agent_registry import discover_and_build_specialists
         self.specialists = discover_and_build_specialists()
         self.all_agents = {**self.agents, **self.specialists}
         
@@ -67,6 +67,8 @@ class CentralExecutive:
             _log.info(f"[THREAD-LOADED] Mevcut Monolog: {active_thread[:80]}...")
             
             # Phase 82: North Star Goal Alignment (Executive Context)
+            from apps.worker.tasks.celery_app import celery_app  # type: ignore
+            from apps.worker.tasks.project_tasks import run_project_task  # type: ignore
             from packages.persistence.models import SovereignGoal
             stmt = select(SovereignGoal).where(SovereignGoal.status == "active").order_by(desc(SovereignGoal.priority))
             res = await db.execute(stmt)
