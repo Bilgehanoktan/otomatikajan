@@ -29,8 +29,8 @@ from packages.orchestration.agi.task_governance import (
     SovereignGoal, GovernedTask, GovernanceStatus, TaskPlanner, TaskStateService, 
     ReportSynthesizer, ProjectTask, SubTask, TaskStatus
 )
-from skills.base import SkillRequest
-from skills.registry import skill_registry
+from packages.skills.base import SkillRequest
+from packages.skills.registry import skill_registry
 
 # ── 2. DAG (Bağımlılık) Haritası ─────────────────────────────────
 DAG_WORKFLOW = {
@@ -433,7 +433,7 @@ class Orchestrator:
             _log.error(f"SelfUpdater load failed: {e}")
 
     async def _run_skill_preflight(self, req: SkillRequest) -> str:
-        from skills.router import skill_router
+        from packages.skills.router import skill_router
         suggested_ids = skill_router.suggest(req)
         insights = []
         for sid in suggested_ids:
