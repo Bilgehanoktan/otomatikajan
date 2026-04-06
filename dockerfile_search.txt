@@ -1,0 +1,5 @@
+﻿E:\ai_company_faz12.1\Dockerfile
+E:\ai_company_faz12.1\external\everything_claude_code\node_modules\sql.js\.devcontainer\Dockerfile
+E:\ai_company_faz12.1\external\vendor\deer-flow\backend\Dockerfile
+E:\ai_company_faz12.1\external\vendor\deer-flow\docker\provisioner\Dockerfile
+E:\ai_company_faz12.1\external\vendor\deer-flow\frontend\Dockerfile
