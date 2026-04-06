@@ -130,7 +130,7 @@ class NeuralCoreOrchestrator:
                     )
                     await db_session.commit()
                     
-                    from tasks.celery_app import celery_app
+                    from apps.worker.tasks.celery_app import celery_app
                     celery_app.send_task(
                         "tasks.project_tasks.run_project_task",
                         kwargs={
