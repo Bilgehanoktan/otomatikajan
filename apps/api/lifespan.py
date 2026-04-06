@@ -19,13 +19,13 @@ from fastapi import FastAPI
 from config import APP_ENV as _ENV
 from packages.orchestration.agi.cognitive.sovereign_cortex import nexus_orchestrator as orchestrator
 from packages.orchestration.agi.governance.resilience_agent import resilience_agent
-from packages.healing.application.heal_engine import heal_engine
+from packages.packages.healing.application.heal_engine import heal_engine
 from packages.orchestration.domain.events import event_bus
 from packages.orchestration.application.job_queue import job_queue
 from apps.api.routers.ws_manager import ws_manager
 from packages.repair_engine.reaper_service import reaper
-from packages.observability.logging import configure_logging, get_logger
-from packages.observability.metrics import metrics
+from packages.packages.observability.logging import configure_logging, get_logger
+from packages.packages.observability.metrics import metrics
 
 logger = get_logger("startup.lifespan")
 
@@ -50,7 +50,7 @@ async def _persist_event(event):
                     message=event.payload.get("message", ""),
                     payload=event.payload,
                 )
-                await db.commit()
+                await packages.persistence.commit()
         except Exception as e:
             import logging
             logging.getLogger("event_bus").error(f"Event DB'ye yazılırken hata: {e}")
@@ -200,8 +200,8 @@ async def _reaper_sync_action():
             error_detail="Görev zaman aşımı (Timeout) nedeniyle durduruldu.",
             updated_at=datetime.now(timezone.utc)
         )
-        res = await db.execute(zombie_query)
-        await db.commit()
+        res = await packages.persistence.execute(zombie_query)
+        await packages.persistence.commit()
         if res.rowcount > 0:
             logger.warning(f"[AML] Reaper: {res.rowcount} zombi temizlendi.")
 
@@ -218,7 +218,7 @@ async def _self_governor_sync_action(orch):
 
 async def system_watchdog_supervisor():
     """Arka plandaki kritik servislerin ve metabolizmanın hayatta kalmasını sağlar."""
-    from packages.observability.memory_governor import packages.memory_governor
+    from packages.packages.observability.memory_governor import packages.memory_governor
     
     tasks: dict[str, Any] = {
         "metabolism_loop": autonomous_metabolism_loop,
@@ -258,8 +258,8 @@ async def _analyze_interrupted_tasks():
                     error_detail="Sistem kesintiye uğradı. Otonom dayanıklılık (Resilience) analizi bekleniyor.",
                 )
             )
-            res = await db.execute(interrupted_query)
-            await db.commit()
+            res = await packages.persistence.execute(interrupted_query)
+            await packages.persistence.commit()
             if res.rowcount and res.rowcount > 0:
                 logger.warning(f"Kesinti Analizi: {res.rowcount} gorev INTERRUPTED durumuna cekildi.")
     except Exception as e:
@@ -390,7 +390,7 @@ async def lifespan(app: FastAPI):
         # 5.1 Hydration (Faz 12.1 Stabilizasyon)
         if db_ready and _ENV != "test":
             logger.info("Self-Repair Veri Hydration baslatiliyor...")
-            from packages.repair_engine.memory.incident_memory import incident_memory
+            from packages.repair_engine.packages.memory.incident_memory import incident_memory
             from packages.repair_engine.ingestion.incident_ingestor import incident_ingestor
             
             # Paralel hydration

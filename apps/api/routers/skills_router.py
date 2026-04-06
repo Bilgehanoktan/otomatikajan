@@ -1,10 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Any
 
-from apps.api.routers.auth.jwt_auth import get_current_user
-from skills.base import SkillRequest
-from skills.registry import skill_registry
-from skills.router import skill_router
+from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user
+from packages.packages.skills.base import SkillRequest
+from packages.packages.skills.registry import skill_registry
+from packages.packages.skills.router import skill_router
 
 router = APIRouter(prefix="/skills", tags=["Beceriler (Skills)"])
 
@@ -28,7 +28,7 @@ async def get_skill_logs(project_id: str | None = None, current_user=Depends(get
         if project_id:
             stmt = stmt.filter(SkillExecutionLog.project_id == project_id)
             
-        result = await db.execute(stmt)
+        result = await packages.persistence.execute(stmt)
         logs = result.scalars().all()
         
         return [

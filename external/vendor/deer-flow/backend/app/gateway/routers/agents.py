@@ -1,4 +1,4 @@
-"""CRUD API for custom agents."""
+"""CRUD API for custom packages.orchestration.agi."""
 
 import logging
 import re
@@ -28,7 +28,7 @@ class AgentResponse(BaseModel):
 
 
 class AgentsListResponse(BaseModel):
-    """Response model for listing all custom agents."""
+    """Response model for listing all custom packages.orchestration.agi."""
 
     agents: list[AgentResponse]
 
@@ -95,7 +95,7 @@ def _agent_config_to_response(agent_cfg: AgentConfig, include_soul: bool = False
     description="List all custom agents available in the agents directory.",
 )
 async def list_agents() -> AgentsListResponse:
-    """List all custom agents.
+    """List all custom packages.orchestration.agi.
 
     Returns:
         List of all custom agents with their metadata (without soul content).
@@ -307,7 +307,7 @@ class UserProfileUpdateRequest(BaseModel):
     "/user-profile",
     response_model=UserProfileResponse,
     summary="Get User Profile",
-    description="Read the global USER.md file that is injected into all custom agents.",
+    description="Read the global USER.md file that is injected into all custom packages.orchestration.agi.",
 )
 async def get_user_profile() -> UserProfileResponse:
     """Return the current USER.md content.
@@ -330,7 +330,7 @@ async def get_user_profile() -> UserProfileResponse:
     "/user-profile",
     response_model=UserProfileResponse,
     summary="Update User Profile",
-    description="Write the global USER.md file that is injected into all custom agents.",
+    description="Write the global USER.md file that is injected into all custom packages.orchestration.agi.",
 )
 async def update_user_profile(request: UserProfileUpdateRequest) -> UserProfileResponse:
     """Create or overwrite the global USER.md.

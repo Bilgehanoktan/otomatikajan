@@ -14,8 +14,8 @@ import hmac
 from fastapi import APIRouter, Depends, HTTPException, Request, Header
 from typing import Optional
 
-from apps.api.routers.auth.jwt_auth import require_admin, optional_admin, get_optional_user
-from packages.observability.logging import get_logger
+from apps.api.routers.apps.api.routers.auth.jwt_auth import require_admin, optional_admin, get_optional_user
+from packages.packages.observability.logging import get_logger
 
 logger = get_logger("api.telegram")
 router = APIRouter(prefix="/telegram", tags=["Telegram"])
@@ -221,7 +221,7 @@ async def authorize_user(telegram_id: str, body: dict = {}):
         from packages.persistence.repositories.repository import TelegramRepository
         async with AsyncSessionLocal() as db:
             success = await TelegramRepository.authorize(db, telegram_id, is_admin=is_admin)
-            await db.commit()
+            await packages.persistence.commit()
         if not success:
             raise HTTPException(
                 status_code=404,

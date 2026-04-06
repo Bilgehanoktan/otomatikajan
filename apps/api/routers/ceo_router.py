@@ -4,9 +4,9 @@ Exposes CEO Engine findings and status.
 """
 
 from fastapi import APIRouter, Depends, BackgroundTasks
-from apps.api.routers.auth.jwt_auth import get_current_user
+from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user
 from packages.orchestration.ceo.engine import get_ceo_engine
-from packages.observability.logging import get_logger
+from packages.packages.observability.logging import get_logger
 
 logger = get_logger("api.ceo")
 router = APIRouter(prefix="/ceo", tags=["CEO Engine"])
@@ -27,7 +27,7 @@ async def get_findings(current_user=Depends(get_current_user)):
         
         async with session_scope() as db:
             # 1. Açık fırsatları getir
-            res_ops = await db.execute(
+            res_ops = await packages.persistence.execute(
                 select(ImprovementOpportunity)
                 .where(ImprovementOpportunity.status == "open")
                 .order_by(ImprovementOpportunity.priority_score.desc())
@@ -35,7 +35,7 @@ async def get_findings(current_user=Depends(get_current_user)):
             ops = res_ops.scalars().all()
             
             # 2. Önerilen görevleri getir
-            res_sug = await db.execute(
+            res_sug = await packages.persistence.execute(
                 select(CEOSuggestedTask)
                 .where(CEOSuggestedTask.status == "suggested")
             )

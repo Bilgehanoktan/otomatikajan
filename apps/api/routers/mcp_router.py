@@ -12,8 +12,8 @@ from typing import List, Dict, Any
 import os
 from pathlib import Path
 
-from apps.api.routers.auth.jwt_auth import optional_admin
-from packages.observability.logging import get_logger
+from apps.api.routers.apps.api.routers.auth.jwt_auth import optional_admin
+from packages.packages.observability.logging import get_logger
 
 logger = get_logger("api.mcp")
 
@@ -86,7 +86,7 @@ async def read_resource(uri: str, request: Request):
 # ── Tools ──────────────────────────────────────────────────
 @router.get("/tools", summary="List MCP Tools")
 async def list_tools() -> List[MCPTool]:
-    """Exposes internal system tools to external AI agents."""
+    """Exposes internal system tools to external AI packages.orchestration.agi."""
     return [
         MCPTool(
             name="visual_sentinel_check",

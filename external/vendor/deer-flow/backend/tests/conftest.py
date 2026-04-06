@@ -14,8 +14,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 # Break the circular import chain that exists in production code:
 #   deerflow.subagents.__init__
 #     -> .executor (SubagentExecutor, SubagentResult)
-#       -> deerflow.agents.thread_state
-#         -> deerflow.agents.__init__
+#       -> deerflow.packages.orchestration.agi.thread_state
+#         -> deerflow.packages.orchestration.agi.__init__
 #           -> lead_agent.agent
 #             -> subagent_limit_middleware
 #               -> deerflow.subagents.executor  <-- circular!

@@ -7,7 +7,7 @@ MAPPINGS = {
     r'\bdb\.': 'packages.persistence.',
     
     r'\bfrom observability\b': 'from packages.observability',
-    r'\bobservability\.': 'packages.observability.',
+    r'\bobservability\.': 'packages.packages.observability.',
     
     r'\bfrom llm\b': 'from packages.llm_gateway',
     r'\bllm\.': 'packages.llm_gateway.',
@@ -16,13 +16,13 @@ MAPPINGS = {
     r'\bquality\.': 'packages.quality_assurance.',
     
     r'\bfrom memory\b': 'from packages.memory',
-    r'\bmemory\.': 'packages.memory.',
+    r'\bmemory\.': 'packages.packages.memory.',
     
     r'\bfrom repair\b': 'from packages.repair_engine',
     r'\brepair\.': 'packages.repair_engine.',
     
     r'\bfrom healing\b': 'from packages.healing',
-    r'\bhealing\.': 'packages.healing.',
+    r'\bhealing\.': 'packages.packages.healing.',
     
     r'\bfrom improve\b': 'from packages.improvement_engine',
     r'\bimprove\.': 'packages.improvement_engine.',
@@ -31,10 +31,10 @@ MAPPINGS = {
     r'\bagents\.': 'packages.orchestration.agi.',
     
     r'\bfrom skills\b': 'from packages.skills',
-    r'\bskills\.': 'packages.skills.',
+    r'\bskills\.': 'packages.packages.skills.',
     
     r'\bfrom auth\b': 'from apps.api.routers.auth',
-    r'\bauth\.': 'apps.api.routers.auth.',
+    r'\bauth\.': 'apps.api.routers.apps.api.routers.auth.',
 
     r'\bcore\.agi\b': 'packages.orchestration.agi',
     r'\bcore\.job_queue\b': 'packages.orchestration.application.job_queue',

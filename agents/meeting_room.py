@@ -5,9 +5,9 @@ from datetime import datetime, timezone
 import json
 import re
 
-from agents.agent_registry import build_agents, Agent
+from packages.orchestration.agi.agent_registry import build_agents, Agent
 from packages.llm_gateway.model_orchestrator import ModelOrchestrator
-from packages.observability.logging import get_logger
+from packages.packages.observability.logging import get_logger
 
 logger = get_logger("meeting_room")
 
@@ -24,7 +24,7 @@ class MeetingRoom:
 
     async def hold_meeting(self, proposal: str, participant_ids: List[str] = ["architect", "qa_engineer", "security"]) -> Dict[str, Any]:
         """
-        Runs a structured debate between selected agents.
+        Runs a structured debate between selected packages.orchestration.agi.
         """
         logger.info(f"MeetingRoom: Starting meeting for proposal: {proposal[:100]}...")
         

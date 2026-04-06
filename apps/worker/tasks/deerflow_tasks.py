@@ -141,7 +141,7 @@ def run_deerflow_task(
                 return {"status": "skipped", "reason": "already_processed"}
 
             await ProjectRepository.mark_started(db, p.id)
-            await db.commit()
+            await packages.persistence.commit()
 
         # Prompt hazırlığı
         prompt = (
@@ -171,7 +171,7 @@ def run_deerflow_task(
                     report=deerflow_result.get("result", ""),
                     status=ProjectStatus.COMPLETED.value,
                 )
-                await db.commit()
+                await packages.persistence.commit()
 
         return {"status": "success", "result": deerflow_result}
 
@@ -193,7 +193,7 @@ def run_deerflow_task(
                         await ProjectRepository.set_error(db, p.id, str(exc))
                     else:
                         await ProjectRepository.mark_completed(db, p.id, report=f"Error: {exc}", status="error")
-                    await db.commit()
+                    await packages.persistence.commit()
 
         run_async(_set_failed())
         raise self.retry(exc=exc)
@@ -235,7 +235,7 @@ def run_deerflow_streaming_task(
                 f"Streaming task başlatıldı (rol: {deerflow_role}).",
                 payload={"deerflow_role": deerflow_role},
             )
-            await db.commit()
+            await packages.persistence.commit()
 
         # Prompt builder: görev tipine göre prompt oluştur
         try:
@@ -331,7 +331,7 @@ def run_deerflow_streaming_task(
                         )
                         final_result += content + "\n"
 
-                    await db.commit()
+                    await packages.persistence.commit()
 
             # Eğer hata kodu 401, 429 veya "Invalid API Key" ise ve başka provider varsa dön
             if has_error:
@@ -400,7 +400,7 @@ def run_deerflow_streaming_task(
                     "Görev tamamlandı.",
                     payload=completion_payload,
                 )
-            await db.commit()
+            await packages.persistence.commit()
 
         return {
             "status": "error" if has_error else "success",

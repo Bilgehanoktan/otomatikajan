@@ -1,8 +1,8 @@
 """Görev Kontrol Router — cancel, retry, stop, copy"""
 from fastapi import APIRouter, HTTPException, Body, Depends
-from apps.api.routers.auth.jwt_auth import get_current_user
+from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user
 from ._task_shared import _db_session, _project_to_dict
-from packages.observability.logging import get_logger
+from packages.packages.observability.logging import get_logger
 import uuid
 
 logger = get_logger("api.tasks.control")
@@ -84,7 +84,7 @@ async def cancel_task(task_id: str, body: dict = Body(default={}), current_user=
                 f"İptal edildi: {cancelled_by} (queue_job={queue_job_id})",
                 level="warning", agent_id=cancelled_by,
             )
-            await db.commit()
+            await packages.persistence.commit()
 
         from packages.orchestration.domain.events import event_bus
         await event_bus.emit(
@@ -135,7 +135,7 @@ async def retry_task(task_id: str, current_user=Depends(get_current_user)):
                 f"Retry #{p.retry_count + 1} başlatıldı",
                 level="info", agent_id="dashboard",
             )
-            await db.commit()
+            await packages.persistence.commit()
             proj_title = p.title
             proj_desc  = p.description
             proj_uuid  = p.id
@@ -227,7 +227,7 @@ async def stop_task(task_id: str, current_user=Depends(get_current_user)):
                     f"Durduruldu (queue_job={queue_job_id})",
                     level="warning", agent_id="dashboard",
                 )
-                await db.commit()
+                await packages.persistence.commit()
                 logger.info(f"[STOP] Task {pid} marked as CANCELLED in DB.")
             else:
                 logger.warning(f"[STOP] Task {pid} DB sync skipped (already finished/error).")
@@ -280,7 +280,7 @@ async def pause_task(task_id: str, current_user=Depends(get_current_user)):
                     f"Duraklatıldı (queue_job={queue_job_id})",
                     level="info", agent_id="dashboard",
                 )
-                await db.commit()
+                await packages.persistence.commit()
                 logger.info(f"[PAUSE] Task {pid} successfully paused.")
             else:
                 logger.warning(f"[PAUSE] Kuyruk işlemi reddetti (zaten PAUSED veya bitmiş olabilir): {queue_job_id}")
@@ -325,7 +325,7 @@ async def resume_task(task_id: str, current_user=Depends(get_current_user)):
                     f"Devam ettirildi (queue_job={queue_job_id})",
                     level="info", agent_id="dashboard",
                 )
-                await db.commit()
+                await packages.persistence.commit()
                 logger.info(f"[RESUME] Task {pid} successfully resumed.")
             else:
                 logger.warning(f"[RESUME] Kuyruk işlemi reddetti: {queue_job_id}")
@@ -387,7 +387,7 @@ async def copy_task(task_id: str, body: dict = Body(default={}), current_user=De
                 f"{task_id} görevinden kopyalandı",
                 agent_id="dashboard",
             )
-            await db.commit()
+            await packages.persistence.commit()
             copied_id  = str(new_p.id)
 
         # Job queue'ya ekle

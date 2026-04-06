@@ -763,7 +763,7 @@ def cmd_export(args) -> int:
 # ─────────────────────────────────────────────
 
 def cmd_evolve(args) -> int:
-    """Analyze instincts and suggest evolutions to skills/commands/agents."""
+    """Analyze instincts and suggest evolutions to skills/commands/packages.orchestration.agi."""
     project = detect_project()
     instincts = load_all_instincts(project)
 

@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 
-from agents.base import BaseAgent
+from packages.orchestration.agi.base import BaseAgent
 from schemas import SubtaskOutput, AgentStatus, Artifact, ArtifactType
 from typing import Dict, Any, Optional
 from datetime import datetime, timezone
@@ -45,7 +45,7 @@ class Agent(BaseAgent):
         if context:
             full_prompt = f"### ÖNCEKİ ÇIKTILAR (BAĞLAM):\n{context}\n\n### YENİ GÖREV:\n{prompt}"
         
-        return await self.llm.complete_task(
+        return await self.packages.llm_gateway.complete_task(
             agent_role=self.id,
             prompt=full_prompt,
             system_prompt=self.system_prompt
@@ -72,7 +72,7 @@ class Agent(BaseAgent):
             if not self.llm:
                 raise ValueError(f"Agent {self.id} için LLM orchestrator atanmamış.")
 
-            llm_response = await self.llm.complete_task(
+            llm_response = await self.packages.llm_gateway.complete_task(
                 agent_role=self.id,
                 prompt=user_prompt,
                 system_prompt=self.system_prompt,
@@ -411,7 +411,7 @@ def discover_and_build_specialists(project_root: Optional[str] = None) -> dict[s
     skills = discovery.discover()
     specialists = {}
 
-    for skill_id, meta in skills.items():
+    for skill_id, meta in packages.skills.items():
         # Her skill için bir Agent wrapper'ı oluştur
         specialists[skill_id] = Agent(
             id=skill_id,

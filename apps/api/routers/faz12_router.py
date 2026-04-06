@@ -2,8 +2,8 @@ import json
 from typing import Optional, Any
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from apps.api.routers.auth.jwt_auth import get_current_user, require_admin
-from packages.observability.logging import get_logger
+from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user, require_admin
+from packages.packages.observability.logging import get_logger
 from apps.api.routers.resilience import circuit_breaker
 
 router = APIRouter(prefix="/faz12", tags=["Faz12-AI-Engine"])
@@ -223,7 +223,7 @@ async def search_vector_lessons(
     current_user=Depends(get_current_user)
 ):
     """Benzer geçmiş çözümleri semantic search ile bul."""
-    from packages.repair_engine.memory.vector_lessons import get_vector_lessons
+    from packages.repair_engine.packages.memory.vector_lessons import get_vector_lessons
     store   = get_vector_lessons()
     results = store.find_similar(symptom, module=module, limit=limit)
     return {
@@ -242,7 +242,7 @@ async def save_vector_lesson(
     current_user=Depends(get_current_user)
 ):
     """Başarılı bir onarımı hafızaya kaydet."""
-    from packages.repair_engine.memory.vector_lessons import get_vector_lessons
+    from packages.repair_engine.packages.memory.vector_lessons import get_vector_lessons
     lesson = get_vector_lessons().save_lesson(
         symptom=symptom, module=module, resolution=resolution,
         job_id=job_id, incident_id=incident_id
@@ -252,12 +252,12 @@ async def save_vector_lesson(
 @router.get("/vector-lessons/stats")
 async def vector_lessons_stats(current_user=Depends(get_current_user)):
     """Vektör veritabanı istatistikleri."""
-    from packages.repair_engine.memory.vector_lessons import get_vector_lessons
+    from packages.repair_engine.packages.memory.vector_lessons import get_vector_lessons
     return get_vector_lessons().stats()
 
 @router.get("/vector-lessons/module/{module_name}")
 async def lessons_by_module(module_name: str, current_user=Depends(get_current_user)):
     """Modül bazlı çözümleri listele."""
-    from packages.repair_engine.memory.vector_lessons import get_vector_lessons
+    from packages.repair_engine.packages.memory.vector_lessons import get_vector_lessons
     lessons = get_vector_lessons().find_similar_by_module(module_name)
     return {"module": module_name, "lessons": [l.to_dict() for l in lessons]}

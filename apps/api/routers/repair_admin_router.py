@@ -8,8 +8,8 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
-from apps.api.routers.auth.jwt_auth import get_current_user, require_admin
-from packages.observability.logging import get_logger
+from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user, require_admin
+from packages.packages.observability.logging import get_logger
 
 router = APIRouter(prefix="/repair/admin", tags=["Self-Repair-Admin"])
 _log  = get_logger("api.repair_admin")
@@ -136,7 +136,7 @@ async def metrics_top_modules(
 @router.post("/feedback")
 async def record_feedback(body: FeedbackRequest, current_user=Depends(get_current_user)):
     """İnsan reviewer geri bildirimini kaydet."""
-    from packages.repair_engine.memory.lessons_store import get_lessons_store, FEEDBACK_CODES
+    from packages.repair_engine.packages.memory.lessons_store import get_lessons_store, FEEDBACK_CODES
     if body.feedback_code not in FEEDBACK_CODES:
         raise HTTPException(422, f"Geçersiz feedback_code. Geçerliler: {FEEDBACK_CODES}")
     rec = get_lessons_store().record(
@@ -158,19 +158,19 @@ async def list_recent_feedback(
     limit: int = Query(20, ge=1, le=100),
     current_user=Depends(get_current_user),
 ):
-    from packages.repair_engine.memory.lessons_store import get_lessons_store
+    from packages.repair_engine.packages.memory.lessons_store import get_lessons_store
     return {"feedback": get_lessons_store().list_recent(limit)}
 
 
 @router.get("/feedback/stats")
 async def feedback_stats(current_user=Depends(get_current_user)):
-    from packages.repair_engine.memory.lessons_store import get_lessons_store
+    from packages.repair_engine.packages.memory.lessons_store import get_lessons_store
     return get_lessons_store().stats()
 
 
 @router.get("/feedback/module/{module_name:path}")
 async def module_feedback(module_name: str, current_user=Depends(get_current_user)):
-    from packages.repair_engine.memory.lessons_store import get_lessons_store
+    from packages.repair_engine.packages.memory.lessons_store import get_lessons_store
     return get_lessons_store().module_feedback_summary(module_name)
 
 
@@ -181,13 +181,13 @@ async def module_feedback(module_name: str, current_user=Depends(get_current_use
 @router.get("/lessons")
 async def list_lessons(limit: int = 20, current_user=Depends(get_current_user)):
     """RC1 Alias: /feedback/recent ile aynı — lessons store listesi."""
-    from packages.repair_engine.memory.lessons_store import get_lessons_store
+    from packages.repair_engine.packages.memory.lessons_store import get_lessons_store
     return {"lessons": get_lessons_store().list_recent(limit)}
 
 @router.get("/lessons/stats")
 async def lessons_stats(current_user=Depends(get_current_user)):
     """Lessons store istatistikleri."""
-    from packages.repair_engine.memory.lessons_store import get_lessons_store
+    from packages.repair_engine.packages.memory.lessons_store import get_lessons_store
     store = get_lessons_store()
     records = store.list_recent(1000)
     return {"total": len(records), "recent": records[:5]}

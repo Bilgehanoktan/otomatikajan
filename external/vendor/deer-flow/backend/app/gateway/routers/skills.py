@@ -12,8 +12,8 @@ from pydantic import BaseModel, Field
 from app.gateway.path_utils import resolve_thread_virtual_path
 from deerflow.config.extensions_config import ExtensionsConfig, SkillStateConfig, get_extensions_config, reload_extensions_config
 from deerflow.skills import Skill, load_skills
-from deerflow.skills.loader import get_skills_root_path
-from deerflow.skills.validation import _validate_skill_frontmatter
+from deerflow.packages.skills.loader import get_skills_root_path
+from deerflow.packages.skills.validation import _validate_skill_frontmatter
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +100,7 @@ class SkillResponse(BaseModel):
 
 
 class SkillsListResponse(BaseModel):
-    """Response model for listing all skills."""
+    """Response model for listing all packages.skills."""
 
     skills: list[SkillResponse]
 
@@ -157,7 +157,7 @@ def _skill_to_response(skill: Skill) -> SkillResponse:
     description="Retrieve a list of all available skills from both public and custom directories.",
 )
 async def list_skills() -> SkillsListResponse:
-    """List all available skills.
+    """List all available packages.skills.
 
     Returns all skills regardless of their enabled status.
 
@@ -303,7 +303,7 @@ async def update_skill(skill_name: str, request: SkillUpdateRequest) -> SkillRes
         # Convert to JSON format (preserve MCP servers config)
         config_data = {
             "mcpServers": {name: server.model_dump() for name, server in extensions_config.mcp_servers.items()},
-            "skills": {name: {"enabled": skill_config.enabled} for name, skill_config in extensions_config.skills.items()},
+            "skills": {name: {"enabled": skill_config.enabled} for name, skill_config in extensions_config.packages.skills.items()},
         }
 
         # Write the configuration to file

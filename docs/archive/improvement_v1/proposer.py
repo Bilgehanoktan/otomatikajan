@@ -91,7 +91,7 @@ class PatchProposer:
             "Sadece unified diff formatında yama döndür, açıklama ekleme."
         )
         try:
-            from llm.model_orchestrator import ModelOrchestrator
+            from packages.llm_gateway.model_orchestrator import ModelOrchestrator
             orch = ModelOrchestrator()
             result = await orch.complete(
                 messages=[{"role": "user", "content": prompt}],

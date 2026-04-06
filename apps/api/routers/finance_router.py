@@ -9,8 +9,8 @@ from fastapi import APIRouter, Depends, Query
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, List
 
-from apps.api.routers.auth.jwt_auth import get_current_user
-from packages.observability.logging import get_logger
+from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user
+from packages.packages.observability.logging import get_logger
 from config import BUDGET_USD
 
 logger = get_logger("api.finance")
@@ -19,7 +19,7 @@ router = APIRouter(prefix="/finance", tags=["Finance"])
 @router.get("/status", summary="Finansal durum ve bütçe analizi")
 async def get_finance_status(current_user=Depends(get_current_user)):
     try:
-        from packages.observability.metrics import metrics
+        from packages.packages.observability.metrics import metrics
         from packages.llm_gateway.cost_calc import budget_check, format_cost
         
         snap = metrics.snapshot()
@@ -62,7 +62,7 @@ async def get_finance_history(days: int = Query(7, ge=1, le=30), current_user=De
                 GROUP BY DATE(created_at)
                 ORDER BY DATE(created_at) ASC
             """)
-            result = await db.execute(query, {"days": days})
+            result = await packages.persistence.execute(query, {"days": days})
             history = [
                 {"date": str(row.date), "cost": float(row.total_cost), "calls": row.call_count}
                 for row in result
@@ -89,7 +89,7 @@ async def get_top_costly_tasks(limit: int = 5, current_user=Depends(get_current_
                 ORDER BY total_cost DESC
                 LIMIT :limit
             """)
-            result = await db.execute(query, {"limit": limit})
+            result = await packages.persistence.execute(query, {"limit": limit})
             return [
                 {"id": str(row.id), "title": row.title, "cost": float(row.total_cost)}
                 for row in result

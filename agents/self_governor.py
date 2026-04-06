@@ -62,7 +62,7 @@ Sana verilen istatistikleri ve olay loglarını incele.
             )
             
         # 1. Canlı İstatistikler ve Olay Loglarını Topla
-        stats = self.llm.provider_stats()
+        stats = self.packages.llm_gateway.provider_stats()
         
         # 2. Son Hataları DB'den Çek (AGI: State Awareness)
         recent_errors = []
@@ -92,7 +92,7 @@ Lütfen kök neden analizi yaparak sistem politikalarını güncelle."""
         
         try:
             # 3. Muhakeme ve Karar Süreci
-            llm_response = await self.llm.complete_task(
+            llm_response = await self.packages.llm_gateway.complete_task(
                 agent_role=self.role,
                 prompt=user_prompt,
                 system_prompt=self.system_prompt,

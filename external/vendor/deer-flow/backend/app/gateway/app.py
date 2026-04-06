@@ -156,10 +156,10 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
     app.include_router(mcp.router)
 
     # Memory API is mounted at /api/memory
-    app.include_router(memory.router)
+    app.include_router(packages.memory.router)
 
     # Skills API is mounted at /api/skills
-    app.include_router(skills.router)
+    app.include_router(packages.skills.router)
 
     # Artifacts API is mounted at /api/threads/{thread_id}/artifacts
     app.include_router(artifacts.router)
@@ -168,7 +168,7 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
     app.include_router(uploads.router)
 
     # Agents API is mounted at /api/agents
-    app.include_router(agents.router)
+    app.include_router(packages.orchestration.agi.router)
 
     # Suggestions API is mounted at /api/threads/{thread_id}/suggestions
     app.include_router(suggestions.router)

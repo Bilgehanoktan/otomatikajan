@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
 from typing import List, Optional, Any
 import uuid
-from apps.api.routers.auth.jwt_auth import get_current_user, require_admin
+from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user, require_admin
 
 router = APIRouter(prefix="/self-update", tags=["Self-Update"])
 

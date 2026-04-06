@@ -7,9 +7,9 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from apps.api.routers.auth.jwt_auth import get_current_user, get_optional_user
+from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user, get_optional_user
 from ._task_shared import _db_session, _project_to_dict, TaskCreateRequest, TaskUpdateRequest
-from packages.observability.logging import get_logger
+from packages.packages.observability.logging import get_logger
 
 # V2 Mimarisi İçe Aktarımları
 from schemas import TaskState
@@ -18,8 +18,8 @@ from packages.persistence.session import AsyncSessionLocal
 from packages.persistence.repositories.repository import ProjectRepository, TaskLogRepository
 from packages.orchestration.application.task_routing import task_router
 from packages.orchestration.application.job_queue import job_queue
-from skills.base import SkillRequest
-from skills.router import skill_router
+from packages.packages.skills.base import SkillRequest
+from packages.packages.skills.router import skill_router
 from packages.orchestration.domain.events import event_bus
 from config import DEERFLOW_ROLES
 
@@ -33,7 +33,7 @@ router = APIRouter(prefix="/tasks", tags=["Görevler - Yazma"])
 async def create_task(req: TaskCreateRequest, current_user=Depends(get_current_user)):
     # 0. Circuit Breaker (Faz 12 Hardening)
     try:
-        from packages.healing.application.heal_engine import heal_engine
+        from packages.packages.healing.application.heal_engine import heal_engine
         health_score = heal_engine.system_health_score()
         if health_score < 0.35:
             logger.warning(f"Circuit Breaker tetiklendi! Skor: {health_score}")
@@ -83,7 +83,7 @@ async def create_task(req: TaskCreateRequest, current_user=Depends(get_current_u
                 agent_id=str(current_user.id) if current_user else "dashboard",
                 payload={"source": req.source, "priority": req.priority},
             )
-            await db.commit()
+            await packages.persistence.commit()
             project_dict = _project_to_dict(p)
             
     except Exception as e:
@@ -167,7 +167,7 @@ async def create_task(req: TaskCreateRequest, current_user=Depends(get_current_u
                         ctx = dict(p_to_update.execution_context or {})
                         ctx["suggested_skills"] = suggested_skills
                         await ProjectRepository.update_fields(db, pid, execution_context=ctx)
-                        await db.commit()
+                        await packages.persistence.commit()
                         logger.debug(f"Task {db_project_id} context güncellendi (suggested_skills).")
             except Exception as ctx_err:
                 logger.warning(f"Skill context yazımı başarısız (atlandı): {ctx_err}")
@@ -198,7 +198,7 @@ async def create_task(req: TaskCreateRequest, current_user=Depends(get_current_u
                     "suggested_skills": suggested_skills,
                 },
             )
-            await db.commit()
+            await packages.persistence.commit()
         project_dict["job_id"] = job.id
         project_dict["status"] = TaskState.QUEUED.value
 
@@ -215,7 +215,7 @@ async def create_task(req: TaskCreateRequest, current_user=Depends(get_current_u
                     agent_id="system",
                     payload={"error": str(e), "failed_at": "enqueue"}
                 )
-                await db.commit()
+                await packages.persistence.commit()
         
         raise HTTPException(
             status_code=500, 
@@ -267,7 +267,7 @@ async def update_task(task_id: str, req: TaskUpdateRequest, current_user=Depends
                 agent_id=str(current_user.id) if current_user else "dashboard",
                 payload=update_data,
             )
-            await db.commit()
+            await packages.persistence.commit()
 
         return {"updated": True, "fields": list(update_data.keys())}
     except HTTPException:
@@ -292,8 +292,8 @@ async def delete_task(task_id: str, current_user=Depends(get_current_user)):
                 pid = p.id
 
             from sqlalchemy import delete as sql_delete
-            await db.execute(sql_delete(Project).where(Project.id == pid))
-            await db.commit()
+            await packages.persistence.execute(sql_delete(Project).where(Project.id == pid))
+            await packages.persistence.commit()
 
         return {"deleted": True, "id": task_id}
     except HTTPException:

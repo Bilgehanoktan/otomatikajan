@@ -1,8 +1,8 @@
 """Görev Okuma Router — GET endpoints"""
 from fastapi import APIRouter, HTTPException, Query, Depends
-from apps.api.routers.auth.jwt_auth import get_current_user
+from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user
 from ._task_shared import _db_session, _project_to_dict
-from packages.observability.logging import get_logger
+from packages.packages.observability.logging import get_logger
 
 from typing import Optional, List, Dict, Any
 
@@ -51,7 +51,7 @@ async def list_tasks(
                 count_q = count_q.where(Project.priority == priority)
             if search:
                 count_q = count_q.where(Project.title.ilike(f"%{search}%"))
-            total_result = await db.execute(count_q)
+            total_result = await packages.persistence.execute(count_q)
             total = total_result.scalar() or 0
 
         return {
@@ -207,7 +207,7 @@ async def get_task(task_id: str, current_user=Depends(get_current_user)):
                 Memory.category == "episode_record"
             ).order_by(Memory.created_at.desc()).limit(1)
             
-            agi_res = await db.execute(agi_q)
+            agi_res = await packages.persistence.execute(agi_q)
             agi_mem = agi_res.scalar_one_or_none()
             if agi_mem:
                 agi_metadata = agi_mem.metadata_

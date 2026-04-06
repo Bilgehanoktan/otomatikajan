@@ -20,8 +20,8 @@ from typing import Dict, Any, Optional
 
 from fastapi import APIRouter, Depends, Query
 
-from apps.api.routers.auth.jwt_auth import get_current_user, require_admin
-from packages.observability.logging import get_logger
+from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user, require_admin
+from packages.packages.observability.logging import get_logger
 from packages.orchestration.agi.consciousness.affective_core import affective_core
 from packages.orchestration.agi.cognitive.motivation_engine import motivation_engine
 
@@ -94,13 +94,13 @@ async def monitoring_overview(current_user=Depends(get_current_user)):
                 from sqlalchemy import select, func
                 from packages.persistence.models import SubTask, Project, ProjectStatus
                 async with AsyncSessionLocal() as db:
-                    monologue_count = await db.scalar(select(func.count(SubTask.id)).where(SubTask.internal_monologue != None))
+                    monologue_count = await packages.persistence.scalar(select(func.count(SubTask.id)).where(SubTask.internal_monologue != None))
                     # Phase 55 Safety Stats
-                    rejected_count = await db.scalar(select(func.count(Project.id)).where(Project.status == ProjectStatus.ERROR, Project.error_detail.contains("GÜVENLİK İHLALİ")))
-                    flagged_count = await db.scalar(select(func.count(Project.id)).where(Project.status == ProjectStatus.PENDING_APPROVAL))
+                    rejected_count = await packages.persistence.scalar(select(func.count(Project.id)).where(Project.status == ProjectStatus.ERROR, Project.error_detail.contains("GÜVENLİK İHLALİ")))
+                    flagged_count = await packages.persistence.scalar(select(func.count(Project.id)).where(Project.status == ProjectStatus.PENDING_APPROVAL))
                     
                     result["agi"]["safety"] = {
-                        "total_audits": await db.scalar(select(func.count(Project.id))) or 0,
+                        "total_audits": await packages.persistence.scalar(select(func.count(Project.id))) or 0,
                         "rejected_goals": rejected_count or 0,
                         "flagged_goals": flagged_count or 0,
                         "status": "SECURE" if rejected_count == 0 else "INTERVENTION_ACTIVE"
@@ -108,7 +108,7 @@ async def monitoring_overview(current_user=Depends(get_current_user)):
 
                     result["cognitive_continuity"] = {
                         "persisted_monologues": monologue_count,
-                        "recovery_attempts": await db.scalar(select(func.count(SubTask.id)).where(SubTask.status == "error")) or 0 # Simplified recovery count
+                        "recovery_attempts": await packages.persistence.scalar(select(func.count(SubTask.id)).where(SubTask.status == "error")) or 0 # Simplified recovery count
                     }
             except Exception as e:
                 logger.error(f"Safety/Continuity Audit failed: {e}")
@@ -161,7 +161,7 @@ async def monitoring_overview(current_user=Depends(get_current_user)):
         
         # Connection check
         async with AsyncSessionLocal() as db:
-            await db.execute(text("SELECT 1"))
+            await packages.persistence.execute(text("SELECT 1"))
         
         # Pool stats
         engine = _get_engine()
@@ -200,7 +200,7 @@ async def monitoring_overview(current_user=Depends(get_current_user)):
 
     # ── Metrikler ─────────────────────────────────────────
     try:
-        from packages.observability.metrics import metrics
+        from packages.packages.observability.metrics import metrics
         snap = metrics.snapshot()
         result["metrics"] = {
             "uptime_hms":        snap["uptime_hms"],
@@ -208,11 +208,11 @@ async def monitoring_overview(current_user=Depends(get_current_user)):
             **snap["computed"],
             "llm_latencies":     {
                 k: v for k, v in snap.get("latencies", {}).items()
-                if k.startswith("llm.")
+                if k.startswith("packages.llm_gateway.")
             },
         }
     except Exception as _e:
-        from packages.observability.logging import get_logger
+        from packages.packages.observability.logging import get_logger
         get_logger("monitoring").warning("İşlem hatası: %s", _e)
         pass
 
@@ -232,7 +232,7 @@ async def monitoring_overview(current_user=Depends(get_current_user)):
             }
         }
     except Exception as _e:
-        from packages.observability.logging import get_logger
+        from packages.packages.observability.logging import get_logger
         get_logger("monitoring").warning("İşlem hatası: %s", _e)
         pass
 
@@ -348,7 +348,7 @@ async def llm_monitoring(current_user=Depends(get_current_user)):
         provider_stats = []
 
     try:
-        from packages.observability.metrics import metrics
+        from packages.packages.observability.metrics import metrics
         snap     = metrics.snapshot()
         counters = snap["counters"]
         latencies= snap["latencies"]
@@ -356,11 +356,11 @@ async def llm_monitoring(current_user=Depends(get_current_user)):
 
         providers_detail: Dict[str, Any] = {}
         for provider in ("openai", "anthropic", "gemini"):
-            key_total   = f"llm.{provider}.calls.total"
-            key_success = f"llm.{provider}.calls.success"
-            key_fail    = f"llm.{provider}.calls.failure"
-            key_tokens  = f"llm.{provider}.tokens"
-            lat_key     = f"llm.{provider}.latency"
+            key_total   = f"packages.llm_gateway.{provider}.calls.total"
+            key_success = f"packages.llm_gateway.{provider}.calls.success"
+            key_fail    = f"packages.llm_gateway.{provider}.calls.failure"
+            key_tokens  = f"packages.llm_gateway.{provider}.tokens"
+            lat_key     = f"packages.llm_gateway.{provider}.latency"
 
             total   = counters.get(key_total, 0)
             success = counters.get(key_success, 0)
@@ -526,7 +526,7 @@ def _system_resources() -> dict:
 async def agents_monitoring(current_user=Depends(get_current_user)):
     try:
         from packages.orchestration.context import orchestrator, heal_engine
-        from packages.observability.metrics import metrics
+        from packages.packages.observability.metrics import metrics
 
         snap     = metrics.snapshot()
         counters = snap["counters"]
@@ -588,13 +588,13 @@ async def recent_errors(limit: int = Query(50, ge=1, le=200)):
                     "timestamp": e.get("timestamp"),
                 })
     except Exception as _e:
-        from packages.observability.logging import get_logger
+        from packages.packages.observability.logging import get_logger
         get_logger("monitoring").warning("İşlem hatası: %s", _e)
         pass
 
     # 2. In-memory metrik hataları
     try:
-        from packages.observability.metrics import metrics
+        from packages.packages.observability.metrics import metrics
         snap   = metrics.snapshot()
         for err_type, count in snap.get("errors", {}).items():
             errors.append({
@@ -604,7 +604,7 @@ async def recent_errors(limit: int = Query(50, ge=1, le=200)):
                 "severity":"warning",
             })
     except Exception as _e:
-        from packages.observability.logging import get_logger
+        from packages.packages.observability.logging import get_logger
         get_logger("monitoring").warning("İşlem hatası: %s", _e)
         pass
 
@@ -644,7 +644,7 @@ async def cleanup_api_metrics(days: int = Query(7, ge=1, le=90)):
         from packages.persistence.repositories.repository import ApiMetricRepository
         async with AsyncSessionLocal() as db:
             deleted = await ApiMetricRepository.cleanup_old(db, days=days)
-            await db.commit()
+            await packages.persistence.commit()
         return {"deleted": deleted, "older_than_days": days}
     except Exception as e:
         return {"error": str(e)}
@@ -694,7 +694,7 @@ async def agi_evolution_monitoring(limit: int = Query(20, ge=1, le=100), current
         
         async with AsyncSessionLocal() as db:
             stmt = select(Memory).where(Memory.category == "evolution_provenance").order_by(Memory.created_at.desc()).limit(limit)
-            result = await db.execute(stmt)
+            result = await packages.persistence.execute(stmt)
             provenance_records = result.scalars().all()
         
         return [
@@ -725,7 +725,7 @@ async def agi_metacognition_stats(limit: int = Query(50, ge=1, le=100), current_
         
         async with AsyncSessionLocal() as db:
             stmt = select(Memory).where(Memory.category == "cognitive_lesson").order_by(Memory.created_at.desc()).limit(limit)
-            result = await db.execute(stmt)
+            result = await packages.persistence.execute(stmt)
             records = result.scalars().all()
             
         scores = [float(r.metadata_.get("metacognitive_score", 0.0)) for r in records if r.metadata_ and "metacognitive_score" in r.metadata_]

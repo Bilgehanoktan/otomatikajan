@@ -11,7 +11,7 @@ def register_routers(app: FastAPI) -> None:
     """Tüm API router'larını uygulamaya kaydet."""
     from apps.api.routers.admin_router import router as admin_router
     from apps.api.routers.routes import router as main_router
-    from apps.api.routers.auth.router import router as auth_router
+    from apps.api.routers.apps.api.routers.auth.router import router as auth_router
     from apps.api.routers.webhooks.router import router as webhook_router
     from apps.api.routers.storage_router import router as storage_router
     from apps.api.routers.task_read_router import router as task_read_router

@@ -8,7 +8,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 async def init_tables():
     print("--- [FAZ 12.1: VERİTABANI ŞEMA GÜNCELLEME] ---")
     try:
-        from db.session import init_db, verify_db_connection
+        from packages.persistence.session import init_db, verify_db_connection
         
         print("DB bağlantısı kontrol ediliyor...")
         if await verify_db_connection():

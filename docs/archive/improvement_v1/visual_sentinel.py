@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional
 from playwright.async_api import async_playwright
 try:
-    from observability.logging import get_logger
+    from packages.packages.observability.logging import get_logger
 except ImportError:
     import logging
     logging.basicConfig(level=logging.INFO)

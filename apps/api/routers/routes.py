@@ -12,11 +12,11 @@ from fastapi import APIRouter, HTTPException, Depends, Header, Request, Query
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 from packages.orchestration.agi.cognitive.cognitive_blackboard import get_blackboard
-from packages.orchestration.agi.quality.eval_harness import eval_harness
+from packages.orchestration.agi.packages.quality_assurance.eval_harness import eval_harness
 
 from fastapi.concurrency import run_in_threadpool
 from apps.api.routers.rate_limiter import rate_limit
-from apps.api.routers.auth.jwt_auth import get_current_user
+from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user
 from apps.api.routers.mcp_router import router as mcp_router
 
 router = APIRouter()
@@ -92,7 +92,7 @@ def _orch():
     return orchestrator
 
 def _heal():
-    from packages.healing.application.heal_engine import heal_engine
+    from packages.packages.healing.application.heal_engine import heal_engine
     return heal_engine
 
 def _bus():
@@ -104,7 +104,7 @@ def _queue():
     return job_queue
 
 def _metrics():
-    from packages.observability.metrics import metrics
+    from packages.packages.observability.metrics import metrics
     return metrics
 
 
@@ -190,7 +190,7 @@ def _gate():
     return approval_gate
 
 def _mem():
-    from packages.memory.retrieval import _fallback_store
+    from packages.packages.memory.retrieval import _fallback_store
     return _fallback_store
 
 
@@ -318,7 +318,7 @@ async def memory_stats():
         from sqlalchemy import select, func
         from packages.persistence.models import Memory
         async with AsyncSessionLocal() as db:
-            result = await db.execute(select(func.count(Memory.id)))
+            result = await packages.persistence.execute(select(func.count(Memory.id)))
             db_stats = {"db_total": result.scalar() or 0}
     except Exception:
         pass
@@ -342,6 +342,6 @@ async def memory_search(body: dict):
 @router.delete("/memory/clear", summary="Bellek sıfırla (dev)",
                dependencies=[Depends(rate_limit("memory_clear"))])
 async def clear_memory(current_user=Depends(get_current_user)):
-    from packages.memory.retrieval import _fallback_store
+    from packages.packages.memory.retrieval import _fallback_store
     _fallback_store._entries.clear()
     return {"cleared": True}

@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from sqlalchemy import text
-from db.session import _get_engine
+from packages.persistence.session import _get_engine
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("NAS_Migration")

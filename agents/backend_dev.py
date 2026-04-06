@@ -38,7 +38,7 @@ Senden istenen görevleri yerine getir ve çıktıyı SADECE aşağıdaki JSON f
         
         try:
             # 2. ModelOrchestrator üzerinden (güvenli, fallback'li) LLM'i çağır
-            llm_response = await self.llm.complete_task(
+            llm_response = await self.packages.llm_gateway.complete_task(
                 agent_role=self.role,
                 prompt=user_prompt,
                 system_prompt=self.system_prompt,

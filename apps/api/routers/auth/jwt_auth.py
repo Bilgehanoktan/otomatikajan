@@ -144,7 +144,7 @@ class AuthService:
 
     async def register(self, db: AsyncSession, email: str, password: str) -> "User":
         from packages.persistence.models import User
-        existing = await db.execute(select(User).where(User.email == email))
+        existing = await packages.persistence.execute(select(User).where(User.email == email))
         if existing.scalar_one_or_none():
             raise HTTPException(status_code=409, detail="Bu e-posta zaten kayıtlı")
 
@@ -161,13 +161,13 @@ class AuthService:
         assert _bcrypt is not None
         hashed = _bcrypt.hashpw(password.encode(), _bcrypt.gensalt(rounds=12)).decode()
         user = User(email=email, hashed_password=hashed)
-        db.add(user)
-        await db.flush()
+        packages.persistence.add(user)
+        await packages.persistence.flush()
         return user
 
     async def login(self, db: AsyncSession, email: str, password: str) -> TokenResponse:
         from packages.persistence.models import User, RefreshToken
-        result = await db.execute(select(User).where(User.email == email))
+        result = await packages.persistence.execute(select(User).where(User.email == email))
         user   = result.scalar_one_or_none()
 
         # Zamanlama saldırısını önle — her zaman hash kontrol et
@@ -198,7 +198,7 @@ class AuthService:
             expires_at=datetime.now(timezone.utc) + timedelta(days=REFRESH_DAYS),
             revoked=False,
         )
-        db.add(rt)
+        packages.persistence.add(rt)
         roles = ["admin"] if user.is_admin else ["user"]
         return TokenResponse(
             access_token=access,
@@ -223,7 +223,7 @@ class AuthService:
             raise HTTPException(status_code=401, detail="Geçersiz token tipi")
 
         # DB'de geçerli mi kontrol et (revocation)
-        result = await db.execute(
+        result = await packages.persistence.execute(
             select(RefreshToken).where(
                 RefreshToken.token  == refresh_token,
                 RefreshToken.revoked == False,       # noqa: E712
@@ -238,10 +238,10 @@ class AuthService:
 
         # Token rotasyonu: eski token'ı iptal et
         rt.revoked = True
-        await db.flush()
+        await packages.persistence.flush()
 
         # Kullanıcıyı al ve yeni çift üret
-        user_res = await db.execute(select(User).where(User.id == rt.user_id))
+        user_res = await packages.persistence.execute(select(User).where(User.id == rt.user_id))
         user = user_res.scalar_one_or_none()
         if not user or not user.is_active:
             raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı veya devre dışı")
@@ -261,7 +261,7 @@ class AuthService:
             expires_at=datetime.now(timezone.utc) + timedelta(days=REFRESH_DAYS),
             revoked=False,
         )
-        db.add(new_rt)
+        packages.persistence.add(new_rt)
         roles = ["admin"] if user.is_admin else ["user"]
         return TokenResponse(
             access_token=access,
@@ -281,7 +281,7 @@ class AuthService:
         except ValueError:
             return 0
 
-        result = await db.execute(
+        result = await packages.persistence.execute(
             update(RefreshToken)
             .where(RefreshToken.user_id == uid, RefreshToken.revoked == False)  # noqa
             .values(revoked=True)
@@ -307,7 +307,7 @@ class AuthService:
         except ValueError:
             raise HTTPException(status_code=401, detail="Geçersiz kullanıcı ID formatı")
 
-        result = await db.execute(select(User).where(User.id == user_id))
+        result = await packages.persistence.execute(select(User).where(User.id == user_id))
         user   = result.scalar_one_or_none()
         if not user or not user.is_active:
             raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı veya devre dışı")

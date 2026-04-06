@@ -3,7 +3,7 @@
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
-from deerflow.agents.memory.updater import get_memory_data, reload_memory_data
+from deerflow.packages.orchestration.agi.packages.memory.updater import get_memory_data, reload_memory_data
 from deerflow.config.memory_config import get_memory_config
 
 router = APIRouter(prefix="/api", tags=["memory"])
@@ -151,7 +151,7 @@ async def get_memory_config_endpoint() -> MemoryConfigResponse:
         ```json
         {
             "enabled": true,
-            "storage_path": ".deer-flow/memory.json",
+            "storage_path": ".deer-flow/packages.memory.json",
             "debounce_seconds": 30,
             "max_facts": 100,
             "fact_confidence_threshold": 0.7,

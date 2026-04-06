@@ -16,8 +16,8 @@ from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from typing import Optional
 
-from apps.api.routers.auth.jwt_auth import get_current_user, get_optional_user
-from packages.observability.logging import get_logger
+from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user, get_optional_user
+from packages.packages.observability.logging import get_logger
 
 router = APIRouter(prefix="/code", tags=["Code Generation"])
 logger = get_logger("code_router")
@@ -110,7 +110,7 @@ async def generate_code(
 
     # Ajan registry'den al
     try:
-        from agents.agent_registry import build_agents
+        from packages.orchestration.agi.agent_registry import build_agents
         agents = build_agents()
     except Exception:
         agents = None

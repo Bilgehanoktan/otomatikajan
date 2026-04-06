@@ -24,16 +24,16 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from apps.api.routers.auth.jwt_auth import get_current_user, require_admin
+from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user, require_admin
 from packages.repair_engine.ingestion.incident_ingestor import incident_ingestor
 from packages.repair_engine.triage.triage_engine import triage_engine
-from packages.repair_engine.memory.incident_memory import incident_memory
-from packages.repair_engine.memory.patch_memory import patch_memory
-from packages.repair_engine.memory.architecture_memory import architecture_memory
+from packages.repair_engine.packages.memory.incident_memory import incident_memory
+from packages.repair_engine.packages.memory.patch_memory import patch_memory
+from packages.repair_engine.packages.memory.architecture_memory import architecture_memory
 from packages.repair_engine.application.orchestrator import get_repair_orchestrator
 from packages.orchestration.governance.policy_engine import policy_engine
 from packages.repair_engine.schemas.incident import IncidentSource, IncidentSeverity
-from packages.observability.logging import get_logger
+from packages.packages.observability.logging import get_logger
 
 _log = get_logger("api.repair")
 
@@ -503,7 +503,7 @@ async def _update_job_on_proposal_decision(pr_id: str, decision: str, decided_by
                 from packages.persistence.models.repair_models import RepairProposal as RepairProposalModel
                 async with AsyncSessionLocal() as db:
                     stmt = select(RepairProposalModel.job_id).where(RepairProposalModel.pr_id == pr_id)
-                    result = await db.execute(stmt)
+                    result = await packages.persistence.execute(stmt)
                     row = result.scalar_one_or_none()
                     if row:
                         job_id = str(row)
@@ -538,7 +538,7 @@ async def _persist_job_status(job) -> None:
         from packages.persistence.repair_repository import RepairJobRepo
         async with AsyncSessionLocal() as db:
             await RepairJobRepo.upsert(db, job)
-            await db.commit()
+            await packages.persistence.commit()
     except Exception as e:
         _log.debug(f"Job status DB yazma hatası (ignore): {e}")
 
@@ -582,7 +582,7 @@ async def _get_proposal_from_db(pr_id: str) -> Optional[dict]:
         async with AsyncSessionLocal() as db:
             from sqlalchemy import select
             stmt = select(RepairProposal).where(RepairProposal.pr_id == pr_id)
-            result = await db.execute(stmt)
+            result = await packages.persistence.execute(stmt)
             row = result.scalar_one_or_none()
             if not row:
                 return None
@@ -624,7 +624,7 @@ async def _persist_incident(incident) -> None:
         from packages.persistence.repair_repository import RepairIncidentRepo
         async with AsyncSessionLocal() as db:
             await RepairIncidentRepo.upsert(db, incident)
-            await db.commit()
+            await packages.persistence.commit()
     except Exception as e:
         _log.warning(f"Incident DB yazma hatası (ignore): {e}")
 
@@ -638,7 +638,7 @@ async def _persist_proposal_decision(pr_id: str, decision: str, decided_by: str)
         from packages.persistence.repair_repository import RepairProposalRepo
         async with AsyncSessionLocal() as db:
             await RepairProposalRepo.decide(db, pr_id, decision, decided_by)
-            await db.commit()
+            await packages.persistence.commit()
     except Exception as e:
         _log.warning(f"Proposal karar DB yazma hatası (ignore): {e}")
 

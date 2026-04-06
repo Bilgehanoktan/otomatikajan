@@ -8,7 +8,7 @@ kapanmamış işleri (RepairJob) tespit eder ve temizler.
 import asyncio
 import time
 from datetime import datetime, timezone
-from packages.observability.logging import get_logger
+from packages.packages.observability.logging import get_logger
 
 _log = get_logger("core.reaper")
 
@@ -66,7 +66,7 @@ class ReaperService:
             reason = f"Reaper: Job exceeded {self.timeout_hours}h limit and was marked as zombie."
             count = await RepairJobRepo.bulk_fail(db, job_ids, reason)
             
-            await db.commit()
+            await packages.persistence.commit()
             _log.info(f"Reaper: {count} iş temizlendi.")
 
             # 3. Orchestrator cache'ini güncelle (varsa)
