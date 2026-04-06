@@ -52,7 +52,7 @@ ACTIVE_DEBATES_KEY = "faz12:active_debates"
 
 
 async def load_active_debates() -> list[dict[str, Any]]:
-    from db.session import get_redis_client
+    from packages.persistence.session import get_redis_client
     redis = get_redis_client()
     if redis is None:
         return []
@@ -68,7 +68,7 @@ async def load_active_debates() -> list[dict[str, Any]]:
 
 
 async def save_active_debates(items: list[dict[str, Any]]) -> None:
-    from db.session import get_redis_client
+    from packages.persistence.session import get_redis_client
     redis = get_redis_client()
     if redis is None:
         return

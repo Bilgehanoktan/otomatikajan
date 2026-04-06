@@ -26,7 +26,7 @@ router.include_router(mcp_router)
 @router.get("/system/health", summary="Sistem Altyapı Sağlığı (Faz 12.1)")
 async def system_health():
     import time
-    from db.session import get_redis_client
+    from packages.persistence.session import get_redis_client
     from config import REDIS_URL
     
     redis = get_redis_client()
@@ -171,8 +171,8 @@ async def cost_summary():
     met = _metrics()
     snap = met.snapshot()
     try:
-        from db.session import AsyncSessionLocal
-        from db.repositories.repository import CostRepository
+        from packages.persistence.session import AsyncSessionLocal
+        from packages.persistence.repositories.repository import CostRepository
         async with AsyncSessionLocal() as db:
             total   = await CostRepository.total_cost(db)
             by_prov = await CostRepository.by_provider(db)
@@ -314,9 +314,9 @@ async def memory_stats():
     store = _mem()
     db_stats = None
     try:
-        from db.session import AsyncSessionLocal
+        from packages.persistence.session import AsyncSessionLocal
         from sqlalchemy import select, func
-        from db.models import Memory
+        from packages.persistence.models import Memory
         async with AsyncSessionLocal() as db:
             result = await db.execute(select(func.count(Memory.id)))
             db_stats = {"db_total": result.scalar() or 0}

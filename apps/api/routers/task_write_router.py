@@ -13,9 +13,9 @@ from packages.observability.logging import get_logger
 
 # V2 Mimarisi İçe Aktarımları
 from schemas import TaskState
-from db.models import ProjectStatus, Project
-from db.session import AsyncSessionLocal
-from db.repositories.repository import ProjectRepository, TaskLogRepository
+from packages.persistence.models import ProjectStatus, Project
+from packages.persistence.session import AsyncSessionLocal
+from packages.persistence.repositories.repository import ProjectRepository, TaskLogRepository
 from packages.orchestration.application.task_routing import task_router
 from packages.orchestration.application.job_queue import job_queue
 from packages.skills.base import SkillRequest

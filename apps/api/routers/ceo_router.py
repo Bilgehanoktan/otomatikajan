@@ -21,8 +21,8 @@ async def get_overview(current_user=Depends(get_current_user)):
 async def get_findings(current_user=Depends(get_current_user)):
     """CEO Engine tarafından bulunan iyileştirme fırsatlarını ve önerileri getir."""
     try:
-        from db.session import session_scope
-        from db.models import ImprovementOpportunity, CEOSuggestedTask
+        from packages.persistence.session import session_scope
+        from packages.persistence.models import ImprovementOpportunity, CEOSuggestedTask
         from sqlalchemy import select
         
         async with session_scope() as db:
