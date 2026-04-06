@@ -7,8 +7,10 @@ from dataclasses import dataclass
 from typing import Any
 
 
-from packages.orchestration.agi.base import BaseAgent
-from schemas import SubtaskOutput, AgentStatus, Artifact, ArtifactType
+from .base import BaseAgent
+from packages.contracts.agents import SubtaskOutput
+from packages.contracts.states import AgentStatus
+from packages.contracts.artifacts import Artifact, ArtifactType
 from typing import Dict, Any, Optional
 from datetime import datetime, timezone
 import logging
