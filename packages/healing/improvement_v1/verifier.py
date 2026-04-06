@@ -1,8 +1,8 @@
-"""
+﻿"""
 [CONSOLIDATION SHIM] improvement_v1/verifier.py -> core/improvement/cognitive_verifier.py
 Legacy import redirection.
 """
-from packages.orchestration.experimental.cognitive_verifier import (
+from packages.improvement_engine.cognitive_verifier import (
     CognitiveVerifier,
     VerificationReport,
 )
@@ -12,3 +12,4 @@ ImprovementVerifier = CognitiveVerifier
 verifier = CognitiveVerifier()
 
 __all__ = ["ImprovementVerifier", "verifier", "VerificationReport"]
+
