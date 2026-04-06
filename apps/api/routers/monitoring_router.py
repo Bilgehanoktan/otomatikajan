@@ -1,15 +1,15 @@
-"""
-Monitoring & Metrik API — Faz 4
-• GET /monitoring/overview     — Genel sistem sağlık özeti
-• GET /monitoring/api/stats    — Endpoint bazlı istatistik
-• GET /monitoring/api/series   — Zaman serisi trafik
-• GET /monitoring/api/slowest  — En yavaş endpointler
-• GET /monitoring/llm          — LLM provider istatistik
-• GET /monitoring/queue        — Queue yoğunluğu
-• GET /monitoring/system       — CPU/RAM/disk
-• GET /monitoring/agents       — Ajan sağlık metrikleri
-• GET /monitoring/errors       — Son hatalar
-• POST /monitoring/api/cleanup — Eski kayıtları temizle (admin)
+﻿"""
+Monitoring & Metrik API â€” Faz 4
+â€¢ GET /monitoring/overview     â€” Genel sistem saÄŸlÄ±k Ã¶zeti
+â€¢ GET /monitoring/api/stats    â€” Endpoint bazlÄ± istatistik
+â€¢ GET /monitoring/api/series   â€” Zaman serisi trafik
+â€¢ GET /monitoring/api/slowest  â€” En yavaÅŸ endpointler
+â€¢ GET /monitoring/llm          â€” LLM provider istatistik
+â€¢ GET /monitoring/queue        â€” Queue yoÄŸunluÄŸu
+â€¢ GET /monitoring/system       â€” CPU/RAM/disk
+â€¢ GET /monitoring/agents       â€” Ajan saÄŸlÄ±k metrikleri
+â€¢ GET /monitoring/errors       â€” Son hatalar
+â€¢ POST /monitoring/api/cleanup â€” Eski kayÄ±tlarÄ± temizle (admin)
 """
 
 import os
@@ -28,18 +28,18 @@ from packages.orchestration.agi.cognitive.motivation_engine import motivation_en
 logger = get_logger("api.monitoring")
 router = APIRouter(prefix="/monitoring", tags=["Monitoring"])
 
-# ── Performance Optimization: System Metrics Cache ─────────
+# â”€â”€ Performance Optimization: System Metrics Cache â”€â”€â”€â”€â”€â”€â”€â”€â”€
 _SYS_CACHE: Dict[str, Any] = {"data": None, "timestamp": 0}
 _SYS_CACHE_TTL = 3.0  # 3 saniye cache
 
 
 
-# ════════════════════════════════════════════════════════
-# OVERVIEW — Tek bakışta sistem durumu
-# ════════════════════════════════════════════════════════
-@router.get("/overview", summary="Sistem genel sağlık durumu")
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# OVERVIEW â€” Tek bakÄ±ÅŸta sistem durumu
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+@router.get("/overview", summary="Sistem genel saÄŸlÄ±k durumu")
 async def monitoring_overview(current_user=Depends(get_current_user)):
-    """Dashboard'un ana özet kartları için."""
+    """Dashboard'un ana Ã¶zet kartlarÄ± iÃ§in."""
     result: dict = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "services":  {},
@@ -49,7 +49,7 @@ async def monitoring_overview(current_user=Depends(get_current_user)):
         "system":    {},
     }
 
-    # ── Servis durumları ──────────────────────────────────
+    # â”€â”€ Servis durumlarÄ± â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     services: Dict[str, Any] = {}
 
     try:
@@ -96,7 +96,7 @@ async def monitoring_overview(current_user=Depends(get_current_user)):
                 async with AsyncSessionLocal() as db:
                     monologue_count = await db.scalar(select(func.count(SubTask.id)).where(SubTask.internal_monologue != None))
                     # Phase 55 Safety Stats
-                    rejected_count = await db.scalar(select(func.count(Project.id)).where(Project.status == ProjectStatus.ERROR, Project.error_detail.contains("GÜVENLİK İHLALİ")))
+                    rejected_count = await db.scalar(select(func.count(Project.id)).where(Project.status == ProjectStatus.ERROR, Project.error_detail.contains("GÃœVENLÄ°K Ä°HLALÄ°")))
                     flagged_count = await db.scalar(select(func.count(Project.id)).where(Project.status == ProjectStatus.PENDING_APPROVAL))
                     
                     result["agi"]["safety"] = {
@@ -120,7 +120,7 @@ async def monitoring_overview(current_user=Depends(get_current_user)):
 
         # Orchestrator & Agents Status
         try:
-            from packages.orchestration.context import orchestrator
+            from packages.orchestration.application.context import orchestrator
             services["orchestrator"] = {
                 "status": "online",
                 "agents": orchestrator.agent_count()
@@ -134,7 +134,7 @@ async def monitoring_overview(current_user=Depends(get_current_user)):
     except Exception as e:
         logger.error(f"Monitoring aggregate failure: {e}")
 
-    # Queue summary orchestrator'dan bağımsız toplanmalı
+    # Queue summary orchestrator'dan baÄŸÄ±msÄ±z toplanmalÄ±
     try:
         from packages.orchestration.application.job_queue import job_queue
 
@@ -198,7 +198,7 @@ async def monitoring_overview(current_user=Depends(get_current_user)):
 
     result["services"] = services
 
-    # ── Metrikler ─────────────────────────────────────────
+    # â”€â”€ Metrikler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     try:
         from packages.observability.metrics import metrics
         snap = metrics.snapshot()
@@ -213,12 +213,12 @@ async def monitoring_overview(current_user=Depends(get_current_user)):
         }
     except Exception as _e:
         from packages.observability.logging import get_logger
-        get_logger("monitoring").warning("İşlem hatası: %s", _e)
+        get_logger("monitoring").warning("Ä°ÅŸlem hatasÄ±: %s", _e)
         pass
 
-    # ── Ajan sağlığı ─────────────────────────────────────
+    # â”€â”€ Ajan saÄŸlÄ±ÄŸÄ± â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     try:
-        from packages.orchestration.context import orchestrator, heal_engine
+        from packages.orchestration.application.context import orchestrator, heal_engine
         result["agents"] = {
             "count":        orchestrator.agent_count(),
             "system_score": heal_engine.system_health_score(),
@@ -233,22 +233,22 @@ async def monitoring_overview(current_user=Depends(get_current_user)):
         }
     except Exception as _e:
         from packages.observability.logging import get_logger
-        get_logger("monitoring").warning("İşlem hatası: %s", _e)
+        get_logger("monitoring").warning("Ä°ÅŸlem hatasÄ±: %s", _e)
         pass
 
-    # ── Sistem kaynakları ─────────────────────────────────
+    # â”€â”€ Sistem kaynaklarÄ± â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     result["system"] = _system_resources()
 
-    # ── Sistem Bütünlüğü (Faz 12.1 Integrity Patch) ──────
+    # â”€â”€ Sistem BÃ¼tÃ¼nlÃ¼ÄŸÃ¼ (Faz 12.1 Integrity Patch) â”€â”€â”€â”€â”€â”€
     try:
-        from packages.orchestration.context import orchestrator
+        from packages.orchestration.application.context import orchestrator
         if hasattr(orchestrator, "repair_orch"):
             result["integrity"] = orchestrator.repair_orch.get_capability_status()
     except Exception:
         pass
 
-    # ── Sentinel: Opsiyonel Servis Takibi (Faz 14.1) ──────
-    # Docker ortamında psutil diğer container'ları göremez. Redis heartbeat kullanıyoruz.
+    # â”€â”€ Sentinel: Opsiyonel Servis Takibi (Faz 14.1) â”€â”€â”€â”€â”€â”€
+    # Docker ortamÄ±nda psutil diÄŸer container'larÄ± gÃ¶remez. Redis heartbeat kullanÄ±yoruz.
     result["optional_services"] = {
         "telegram_bot": await _check_redis_heartbeat("faz12:telegram_heartbeat"),
         "watchdog":     await _check_redis_heartbeat("faz12:watchdog_heartbeat"),
@@ -259,7 +259,7 @@ async def monitoring_overview(current_user=Depends(get_current_user)):
 
 
 async def _check_redis_heartbeat(key: str) -> str:
-    """Redis üzerindeki heartbeat kaydına bakarak servis durumunu döner."""
+    """Redis Ã¼zerindeki heartbeat kaydÄ±na bakarak servis durumunu dÃ¶ner."""
     try:
         from packages.persistence.session import get_redis_client
         redis = get_redis_client()
@@ -272,10 +272,10 @@ async def _check_redis_heartbeat(key: str) -> str:
     return "offline"
 
 
-# ════════════════════════════════════════════════════════
-# API İSTATİSTİKLERİ
-# ════════════════════════════════════════════════════════
-@router.get("/api/stats", summary="Endpoint bazlı API istatistikleri")
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# API Ä°STATÄ°STÄ°KLERÄ°
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+@router.get("/api/stats", summary="Endpoint bazlÄ± API istatistikleri")
 async def api_stats(hours: int = Query(24, ge=1, le=168), current_user=Depends(get_current_user)):
     try:
         from packages.persistence.session import AsyncSessionLocal
@@ -283,7 +283,7 @@ async def api_stats(hours: int = Query(24, ge=1, le=168), current_user=Depends(g
         async with AsyncSessionLocal() as db:
             stats = await ApiMetricRepository.endpoint_stats(db, hours=hours)
 
-        # Toplam özet
+        # Toplam Ã¶zet
         total_requests = sum(s["total"] for s in stats)
         total_errors   = sum(s["errors"] for s in stats)
         avg_ms         = (
@@ -303,7 +303,7 @@ async def api_stats(hours: int = Query(24, ge=1, le=168), current_user=Depends(g
         return {"error": str(e), "endpoints": [], "total_requests": 0}
 
 
-@router.get("/api/series", summary="Zaman bazlı trafik serisi")
+@router.get("/api/series", summary="Zaman bazlÄ± trafik serisi")
 async def api_time_series(
     hours:          int = Query(6, ge=1, le=48),
     bucket_minutes: int = Query(5, ge=1, le=60),
@@ -321,7 +321,7 @@ async def api_time_series(
         return {"error": str(e), "series": []}
 
 
-@router.get("/api/slowest", summary="En yavaş endpointler")
+@router.get("/api/slowest", summary="En yavaÅŸ endpointler")
 async def slowest_endpoints(hours: int = Query(24, ge=1, le=168), limit: int = Query(10), current_user=Depends(require_admin)):
     try:
         from packages.persistence.session import AsyncSessionLocal
@@ -336,13 +336,13 @@ async def slowest_endpoints(hours: int = Query(24, ge=1, le=168), limit: int = Q
         return {"error": str(e)}
 
 
-# ════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # LLM PROVIDER
-# ════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 @router.get("/llm", summary="LLM provider istatistikleri")
 async def llm_monitoring(current_user=Depends(get_current_user)):
     try:
-        from packages.orchestration.context import orchestrator
+        from packages.orchestration.application.context import orchestrator
         provider_stats = orchestrator.model_orch.provider_stats()
     except Exception:
         provider_stats = []
@@ -389,10 +389,10 @@ async def llm_monitoring(current_user=Depends(get_current_user)):
         return {"error": str(e), "providers": {}, "circuit_status": provider_stats}
 
 
-# ════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # QUEUE
-# ════════════════════════════════════════════════════════
-@router.get("/queue", summary="Kuyruk yoğunluk metrikleri")
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+@router.get("/queue", summary="Kuyruk yoÄŸunluk metrikleri")
 async def queue_monitoring(current_user=Depends(require_admin)):
     try:
         from packages.orchestration.application.job_queue import job_queue
@@ -413,8 +413,8 @@ async def queue_monitoring(current_user=Depends(require_admin)):
             "supports_pause": getattr(job_queue, "supports_pause", False),
             "supports_resume": getattr(job_queue, "supports_resume", False),
             "listing_scope": getattr(getattr(job_queue, "capabilities", None), "listing_scope", "unknown"),
-            "done": stats.get("completed", 0),      # geçici alias
-            "failed": stats.get("error", 0),        # geçici alias
+            "done": stats.get("completed", 0),      # geÃ§ici alias
+            "failed": stats.get("error", 0),        # geÃ§ici alias
             "throughput_last_hour": recent_done,
             "dead_letter_count": len(dead),
             "recent_jobs": [
@@ -436,19 +436,19 @@ async def queue_monitoring(current_user=Depends(require_admin)):
 
 
 
-# ════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # SYSTEM RESOURCES
-# ════════════════════════════════════════════════════════
-@router.get("/system", summary="Sistem kaynakları (CPU/RAM)")
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+@router.get("/system", summary="Sistem kaynaklarÄ± (CPU/RAM)")
 async def system_resources(current_user=Depends(get_current_user)):
     return _system_resources()
 
 
 def _system_resources() -> dict:
-    """Sistem kaynaklarını getirir (Cache destekli & Disk IO detaylı)."""
+    """Sistem kaynaklarÄ±nÄ± getirir (Cache destekli & Disk IO detaylÄ±)."""
     now = time.time()
     
-    # ── Performance: Cache Check ────────────────────────
+    # â”€â”€ Performance: Cache Check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if _SYS_CACHE["data"] and (now - _SYS_CACHE["timestamp"] < _SYS_CACHE_TTL):
         return _SYS_CACHE["data"]
 
@@ -519,13 +519,13 @@ def _system_resources() -> dict:
 
 
 
-# ════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # AGENTS MONITORING
-# ════════════════════════════════════════════════════════
-@router.get("/agents", summary="Ajan sağlık ve performans metrikleri")
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+@router.get("/agents", summary="Ajan saÄŸlÄ±k ve performans metrikleri")
 async def agents_monitoring(current_user=Depends(get_current_user)):
     try:
-        from packages.orchestration.context import orchestrator, heal_engine
+        from packages.orchestration.application.context import orchestrator, heal_engine
         from packages.observability.metrics import metrics
 
         snap     = metrics.snapshot()
@@ -566,9 +566,9 @@ async def agents_monitoring(current_user=Depends(get_current_user)):
         return {"error": str(e), "agents": {}}
 
 
-# ════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # ERRORS
-# ════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 @router.get("/errors", summary="Son hatalar ve kritik olaylar")
 async def recent_errors(limit: int = Query(50, ge=1, le=200)):
     errors = []
@@ -589,10 +589,10 @@ async def recent_errors(limit: int = Query(50, ge=1, le=200)):
                 })
     except Exception as _e:
         from packages.observability.logging import get_logger
-        get_logger("monitoring").warning("İşlem hatası: %s", _e)
+        get_logger("monitoring").warning("Ä°ÅŸlem hatasÄ±: %s", _e)
         pass
 
-    # 2. In-memory metrik hataları
+    # 2. In-memory metrik hatalarÄ±
     try:
         from packages.observability.metrics import metrics
         snap   = metrics.snapshot()
@@ -605,10 +605,10 @@ async def recent_errors(limit: int = Query(50, ge=1, le=200)):
             })
     except Exception as _e:
         from packages.observability.logging import get_logger
-        get_logger("monitoring").warning("İşlem hatası: %s", _e)
+        get_logger("monitoring").warning("Ä°ÅŸlem hatasÄ±: %s", _e)
         pass
 
-    # 3. DB'den başarısız görevler
+    # 3. DB'den baÅŸarÄ±sÄ±z gÃ¶revler
     try:
         from packages.persistence.session import AsyncSessionLocal
         from packages.persistence.repositories.repository import ProjectRepository
@@ -626,18 +626,18 @@ async def recent_errors(limit: int = Query(50, ge=1, le=200)):
                 "timestamp":  p.completed_at.isoformat() if p.completed_at else None,
             })
     except Exception as _e:
-        logger.warning("İşlem hatası: %s", _e)
+        logger.warning("Ä°ÅŸlem hatasÄ±: %s", _e)
         pass
 
-    # Zaman sırasına göre sırala
+    # Zaman sÄ±rasÄ±na gÃ¶re sÄ±rala
     errors.sort(key=lambda x: str(x.get("timestamp") or ""), reverse=True)
     return list(errors)[:limit]
 
 
-# ════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # CLEANUP (admin)
-# ════════════════════════════════════════════════════════
-@router.post("/api/cleanup", summary="Eski API metrik kayıtlarını temizle", dependencies=[Depends(require_admin)])
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+@router.post("/api/cleanup", summary="Eski API metrik kayÄ±tlarÄ±nÄ± temizle", dependencies=[Depends(require_admin)])
 async def cleanup_api_metrics(days: int = Query(7, ge=1, le=90)):
     try:
         from packages.persistence.session import AsyncSessionLocal
@@ -650,12 +650,12 @@ async def cleanup_api_metrics(days: int = Query(7, ge=1, le=90)):
         return {"error": str(e)}
 
 
-# ════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # AGI CORE MONITORING (Faz 28/29)
-# ════════════════════════════════════════════════════════
-@router.get("/agi/state", summary="AGI İçsel Durum ve Motivasyon Matrisi")
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+@router.get("/agi/state", summary="AGI Ä°Ã§sel Durum ve Motivasyon Matrisi")
 async def agi_core_state(current_user=Depends(get_current_user)):
-    """Sistemin 'Duygusal' ve 'Motivasyonel' durumunu döner."""
+    """Sistemin 'Duygusal' ve 'Motivasyonel' durumunu dÃ¶ner."""
     try:
         from packages.orchestration.agi.consciousness.affective_core import affective_core
         from packages.orchestration.agi.cognitive.motivation_engine import motivation_engine
@@ -684,9 +684,9 @@ async def agi_core_state(current_user=Depends(get_current_user)):
         return {"error": str(e)}
 
 
-@router.get("/agi/evolution", summary="AGI Öz-Evrim ve Provenance Kayıtları")
+@router.get("/agi/evolution", summary="AGI Ã–z-Evrim ve Provenance KayÄ±tlarÄ±")
 async def agi_evolution_monitoring(limit: int = Query(20, ge=1, le=100), current_user=Depends(get_current_user)):
-    """AGI'nin kendi kodunu iyileştirme (Self-Patching) geçmişini getirir."""
+    """AGI'nin kendi kodunu iyileÅŸtirme (Self-Patching) geÃ§miÅŸini getirir."""
     try:
         from packages.persistence.session import AsyncSessionLocal
         from packages.persistence.models import Memory
@@ -715,9 +715,9 @@ async def agi_evolution_monitoring(limit: int = Query(20, ge=1, le=100), current
         return {"error": str(e)}
 
 
-@router.get("/agi/metacognition", summary="Bilişsel Yansıma ve Rezonans Analizi")
+@router.get("/agi/metacognition", summary="BiliÅŸsel YansÄ±ma ve Rezonans Analizi")
 async def agi_metacognition_stats(limit: int = Query(50, ge=1, le=100), current_user=Depends(get_current_user)):
-    """Sistemin kendi akıl yürütme kalitesini (Metacognitive Score) ve rezonansını getirir."""
+    """Sistemin kendi akÄ±l yÃ¼rÃ¼tme kalitesini (Metacognitive Score) ve rezonansÄ±nÄ± getirir."""
     try:
         from packages.persistence.session import AsyncSessionLocal
         from packages.persistence.models import Memory
@@ -760,10 +760,10 @@ async def agi_metacognition_stats(limit: int = Query(50, ge=1, le=100), current_
         return {"error": str(e)}
 
 
-# ════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # SHADOW BACKUPS (Phase 35)
-# ════════════════════════════════════════════════════════
-@router.get("/backups", summary="Gölge Yedekleme Listesi")
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+@router.get("/backups", summary="GÃ¶lge Yedekleme Listesi")
 async def list_shadow_backups(current_user=Depends(get_current_user)):
     """.backup/ dizinindeki otonom yedekleri listeler."""
     try:
@@ -781,8 +781,9 @@ async def list_shadow_backups(current_user=Depends(get_current_user)):
                             "size": stat.st_size,
                             "created_at": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat()
                         })
-        # Son yedekler en üstte
+        # Son yedekler en Ã¼stte
         backups.sort(key=lambda x: x["created_at"], reverse=True)
         return backups[:50]
     except Exception as e:
         return {"error": str(e), "backups": []}
+

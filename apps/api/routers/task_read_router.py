@@ -1,4 +1,4 @@
-"""Görev Okuma Router — GET endpoints"""
+﻿"""GÃ¶rev Okuma Router â€” GET endpoints"""
 from fastapi import APIRouter, HTTPException, Query, Depends
 from apps.api.routers.auth.jwt_auth import get_current_user
 from ._task_shared import _db_session, _project_to_dict
@@ -7,14 +7,14 @@ from packages.observability.logging import get_logger
 from typing import Optional, List, Dict, Any
 
 logger = get_logger("api.tasks.read")
-router = APIRouter(prefix="/tasks", tags=["Görevler - Okuma"])
+router = APIRouter(prefix="/tasks", tags=["GÃ¶revler - Okuma"])
 
-@router.get("", summary="Görev listesi")
+@router.get("", summary="GÃ¶rev listesi")
 async def list_tasks(
     status:   str | None = Query(None, enum=["PENDING", "QUEUED", "RUNNING", "PENDING_APPROVAL", "COMPLETED", "PARTIAL_COMPLETE", "ERROR", "CANCELLED", "PAUSED", "RETRYING"]),
     source:   Optional[str] = Query(None, description="manual|api|telegram|scheduled"),
     priority: Optional[str] = Query(None),
-    search:   Optional[str] = Query(None, description="Başlıkta arama"),
+    search:   Optional[str] = Query(None, description="BaÅŸlÄ±kta arama"),
     limit:    int = Query(50, ge=1, le=200),
     offset:   int = Query(0, ge=0),
     current_user=Depends(get_current_user),
@@ -25,7 +25,7 @@ async def list_tasks(
         from sqlalchemy import select, func
         from packages.persistence.models import Project
         async with AsyncSessionLocal() as db:
-            # ── Faz 12.1A: Compatibility Shim ───────────────
+            # â”€â”€ Faz 12.1A: Compatibility Shim â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             status_map = {
                 "done": "COMPLETED",
                 "failed": "ERROR",
@@ -63,10 +63,10 @@ async def list_tasks(
             "source_of_truth": "database"
         }
     except Exception as e:
-        logger.warning(f"DB görev listesi başarısız, fallback: {e}")
+        logger.warning(f"DB gÃ¶rev listesi baÅŸarÄ±sÄ±z, fallback: {e}")
         # in-memory fallback
         try:
-            from packages.orchestration.context import orchestrator
+            from packages.orchestration.application.context import orchestrator
             tasks = orchestrator.list_tasks()
             return {
                 "total":  len(tasks),
@@ -85,7 +85,7 @@ async def list_tasks(
 
 @router.get("/capabilities", summary="Sistemin otonom yetenek ve uzman ajan listesi")
 async def task_capabilities(current_user=Depends(get_current_user)):
-    """Sistemin otonom olarak hangi uzmanlıklara sahip olduğunu döner."""
+    """Sistemin otonom olarak hangi uzmanlÄ±klara sahip olduÄŸunu dÃ¶ner."""
     try:
         from packages.orchestration.agency.loader import agency_loader
         agents = agency_loader.list_agents()
@@ -107,10 +107,10 @@ async def task_capabilities(current_user=Depends(get_current_user)):
         return {"capabilities": [], "total_specialists": 0, "error": str(e)}
 
 
-# ════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # CREATE
-# ════════════════════════════════════════════════════════
-@router.get("/stats/summary", summary="Görev istatistik özeti")
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+@router.get("/stats/summary", summary="GÃ¶rev istatistik Ã¶zeti")
 async def tasks_summary(current_user=Depends(get_current_user)):
     try:
         from packages.persistence.session import AsyncSessionLocal
@@ -140,14 +140,14 @@ async def tasks_summary(current_user=Depends(get_current_user)):
             
             "cost":      total_cost,
 
-            # Kaynak-bazlı backward compatibility
+            # Kaynak-bazlÄ± backward compatibility
             "failed":    errored,
             "is_fallback": False,
             "source_of_truth": "database"
         }
     except Exception:
         try:
-            from packages.orchestration.context import orchestrator
+            from packages.orchestration.application.context import orchestrator
             tasks = orchestrator.list_tasks()
             from collections import Counter
             c = Counter(str(t.status) for t in tasks)
@@ -170,7 +170,7 @@ async def tasks_summary(current_user=Depends(get_current_user)):
             return {"total": 0, "pending": 0, "running": 0, "completed": 0, "error": 0, "done": 0, "failed": 0, "is_fallback": True, "source_of_truth": "empty_fallback"}
 
 
-@router.get("/{task_id}", summary="Görev detayı")
+@router.get("/{task_id}", summary="GÃ¶rev detayÄ±")
 async def get_task(task_id: str, current_user=Depends(get_current_user)):
     try:
         from packages.persistence.session import AsyncSessionLocal
@@ -192,16 +192,16 @@ async def get_task(task_id: str, current_user=Depends(get_current_user)):
                 p = await ProjectRepository.get_by_job_id(db, task_id)
 
             if not p:
-                raise HTTPException(status_code=404, detail="Görev bulunamadı")
+                raise HTTPException(status_code=404, detail="GÃ¶rev bulunamadÄ±")
 
             subtasks = await SubTaskRepository.get_by_project(db, p.id)
             logs     = await TaskLogRepository.get_by_project(db, p.id, limit=100)
 
-            # --- AGI Entegrasyonu (Gelişmiş Episode Verisi) ---
+            # --- AGI Entegrasyonu (GeliÅŸmiÅŸ Episode Verisi) ---
             from packages.persistence.models import Memory
             from sqlalchemy import select
             agi_metadata = None
-            # Project ID ile eşleşen en son episode kaydını al
+            # Project ID ile eÅŸleÅŸen en son episode kaydÄ±nÄ± al
             agi_q = select(Memory).where(
                 Memory.project_id == str(p.id),
                 Memory.category == "episode_record"
@@ -217,13 +217,13 @@ async def get_task(task_id: str, current_user=Depends(get_current_user)):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Görev detayı alınamadı: {e}")
+        raise HTTPException(status_code=500, detail=f"GÃ¶rev detayÄ± alÄ±namadÄ±: {e}")
 
 
-# ════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # UPDATE
-# ════════════════════════════════════════════════════════
-@router.get("/{task_id}/logs", summary="Görev log geçmişi")
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+@router.get("/{task_id}/logs", summary="GÃ¶rev log geÃ§miÅŸi")
 async def task_logs(task_id: str, limit: int = Query(100, ge=1, le=500), current_user=Depends(get_current_user)):
     try:
         import uuid as _uuid
@@ -236,7 +236,7 @@ async def task_logs(task_id: str, limit: int = Query(100, ge=1, le=500), current
             except ValueError:
                 p   = await ProjectRepository.get_by_job_id(db, task_id)
                 if not p:
-                    raise HTTPException(status_code=404, detail="Görev bulunamadı")
+                    raise HTTPException(status_code=404, detail="GÃ¶rev bulunamadÄ±")
                 pid = p.id
 
             logs = await TaskLogRepository.get_by_project(db, pid, offset=0, limit=limit)
@@ -259,10 +259,10 @@ async def task_logs(task_id: str, limit: int = Query(100, ge=1, le=500), current
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # SUBTASKS
-# ════════════════════════════════════════════════════════
-@router.get("/{task_id}/subtasks", summary="Alt görev listesi")
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+@router.get("/{task_id}/subtasks", summary="Alt gÃ¶rev listesi")
 async def task_subtasks(task_id: str, current_user=Depends(get_current_user)):
     try:
         import uuid as _uuid
@@ -275,7 +275,7 @@ async def task_subtasks(task_id: str, current_user=Depends(get_current_user)):
             except ValueError:
                 p   = await ProjectRepository.get_by_job_id(db, task_id)
                 if not p:
-                    raise HTTPException(status_code=404, detail="Görev bulunamadı")
+                    raise HTTPException(status_code=404, detail="GÃ¶rev bulunamadÄ±")
                 pid = p.id
 
             subtasks = await SubTaskRepository.get_by_project(db, pid)
@@ -294,7 +294,7 @@ async def task_subtasks(task_id: str, current_user=Depends(get_current_user)):
                 "output_tokens":s.output_tokens,
                 "cost_usd":     s.cost_usd,
                 "latency_s":    s.latency_s,
-                "result_preview": (s.result[:500] + "…") if s.result and len(s.result) > 500 else (s.result or ""),
+                "result_preview": (s.result[:500] + "â€¦") if s.result and len(s.result) > 500 else (s.result or ""),
                 "created_at":   s.created_at.isoformat() if s.created_at else None,
                 "completed_at": s.completed_at.isoformat() if s.completed_at else None,
             }
@@ -306,16 +306,16 @@ async def task_subtasks(task_id: str, current_user=Depends(get_current_user)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # TRACEABILITY (Faz 13)
-# ════════════════════════════════════════════════════════
-@router.get("/{task_id}/skill-traces", summary="Beceri çalıştırılma izleri (Trace)")
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+@router.get("/{task_id}/skill-traces", summary="Beceri Ã§alÄ±ÅŸtÄ±rÄ±lma izleri (Trace)")
 async def task_skill_traces(
     task_id: str,
     limit: int = Query(100, ge=1, le=500),
     current_user=Depends(get_current_user)
 ):
-    """Her beceri yürütme adımının detaylı kaydını döndürür."""
+    """Her beceri yÃ¼rÃ¼tme adÄ±mÄ±nÄ±n detaylÄ± kaydÄ±nÄ± dÃ¶ndÃ¼rÃ¼r."""
     try:
         import uuid as _uuid
         from packages.persistence.session import AsyncSessionLocal
@@ -327,7 +327,7 @@ async def task_skill_traces(
             except ValueError:
                 p = await ProjectRepository.get_by_job_id(db, task_id)
                 if not p:
-                    raise HTTPException(status_code=404, detail="Görev bulunamadı")
+                    raise HTTPException(status_code=404, detail="GÃ¶rev bulunamadÄ±")
                 pid = p.id
 
             logs = await SkillLogRepository.get_by_project(db, pid, limit=limit)
@@ -349,3 +349,4 @@ async def task_skill_traces(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
