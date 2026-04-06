@@ -27,7 +27,7 @@ from packages.orchestration.agi.cognitive.sovereign_auditor import sovereign_aud
 from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 from packages.orchestration.ceo.forecaster import CEOForecaster
 from packages.observability.logging import get_logger
-from tasks.celery_app import celery_app
+from apps.worker.tasks.celery_app import celery_app
 
 logger = get_logger("ceo_engine")
 
@@ -834,8 +834,8 @@ class CEOEngine:
         suggestion.created_task_id = proj_id
         
         # Enqueue Logic (Celery app globalden gelmeli)
-        try:
-            from tasks.celery_app import celery_app
+        elif action == "requeue":
+            from apps.worker.tasks.celery_app import celery_app
             celery_task = celery_app.send_task(
                 "run_project_task",
                 args=[str(proj_id), new_project.title, new_project.description],
