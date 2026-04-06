@@ -1,4 +1,4 @@
-
+﻿
 import sys
 import os
 
@@ -8,7 +8,7 @@ import asyncio
 from core.debate_engine import DebateEngine, DebateResult, AGENT_PERSONAS, get_debate_engine
 from packages.llm_gateway.model_router import ModelRouter, TaskComplexity, RoutingDecision, get_model_router
 from core.sandbox_runner import SandboxRunner, SandboxResult, get_sandbox_runner
-from packages.repair_engine.packages.memory.vector_lessons import VectorLessonsStore, VectorLesson, SimilarLesson, get_vector_lessons
+from packages.repair_engine.memory.vector_lessons import VectorLessonsStore, VectorLesson, SimilarLesson, get_vector_lessons
 from core.repair_orchestrator import RepairOrchestrator
 
 PASS = 0
@@ -29,7 +29,7 @@ async def test_agent_personas():
     assert "architect" in AGENT_PERSONAS
     assert "security"  in AGENT_PERSONAS
     assert len(AGENT_PERSONAS) >= 6
-    ok("AGENT_PERSONAS tanımlı ve eksiksiz")
+    ok("AGENT_PERSONAS tanÄ±mlÄ± ve eksiksiz")
 
 async def test_debate_engine_mock():
     engine = DebateEngine(model_orch=None, max_rounds=2)
@@ -46,13 +46,13 @@ async def test_debate_early_agreement():
     class FakeOrch:
         async def complete(self, messages, preferred_agent="general", **kwargs):
             if preferred_agent == "architect":
-                return "[UZLAŞI] Tamam."
-            return "Argüman."
+                return "[UZLAÅI] Tamam."
+            return "ArgÃ¼man."
 
     engine = DebateEngine(model_orch=FakeOrch(), max_rounds=3)
     result = await engine.run_debate(topic="Test", agent_a="backend_dev", agent_b="devops")
     assert result.agreement_reached is True
-    ok("Erken uzlaşı OK")
+    ok("Erken uzlaÅŸÄ± OK")
 
 async def test_debate_to_dict():
     engine = DebateEngine(model_orch=None, max_rounds=1)
@@ -72,7 +72,7 @@ async def test_role_based_routing():
     router = ModelRouter()
     d = router.route("Test", "architect")
     assert d.complexity in (TaskComplexity.HIGH, TaskComplexity.CRITICAL)
-    ok("Rol bazlı routing OK")
+    ok("Rol bazlÄ± routing OK")
 
 # ---- SANDBOX RUNNER ----
 
@@ -108,25 +108,26 @@ async def test_faz12_methods_bound():
 # ---- STANDALONE MAIN ----
 
 async def main():
-    section("1 — Debate Engine")
+    section("1 â€” Debate Engine")
     await test_agent_personas()
     await test_debate_engine_mock()
     await test_debate_early_agreement()
     await test_debate_to_dict()
 
-    section("2 — Model Router")
+    section("2 â€” Model Router")
     await test_complexity_critical_keywords()
     await test_role_based_routing()
 
-    section("3 — Sandbox Runner")
+    section("3 â€” Sandbox Runner")
     await test_sandbox_hello_world()
     await test_sandbox_ast_block_exec()
 
-    section("4 — Vector Lessons")
+    section("4 â€” Vector Lessons")
     await test_save_and_find()
 
-    section("5 — Orchestrator")
+    section("5 â€” Orchestrator")
     await test_faz12_methods_bound()
 
 if __name__ == "__main__":
     asyncio.run(main())
+

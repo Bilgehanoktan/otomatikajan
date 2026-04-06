@@ -1,4 +1,4 @@
-"""
+﻿"""
 Faz 10  Self-Repair Architecture Test Paketi
 
 Kapsam:
@@ -530,7 +530,7 @@ print("\n 7. Memory")
 
 @test("IncidentMemory  kayt ve istatistik")
 def test_faz10_026():
-    from packages.repair_engine.packages.memory.incident_memory import IncidentMemory
+    from packages.repair_engine.memory.incident_memory import IncidentMemory
     from packages.repair_engine.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
     mem = IncidentMemory()
     inc = IncidentRecord.create(
@@ -547,7 +547,7 @@ if __name__ == "__main__": test_faz10_026()
 
 @test("IncidentMemory  hotspot modller hesaplanyor")
 def test_faz10_027():
-    from packages.repair_engine.packages.memory.incident_memory import IncidentMemory
+    from packages.repair_engine.memory.incident_memory import IncidentMemory
     from packages.repair_engine.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
     mem = IncidentMemory()
     for i in range(5):
@@ -563,7 +563,7 @@ if __name__ == "__main__": test_faz10_027()
 
 @test("IncidentMemory  resolve ve mean_time_to_resolve")
 def test_faz10_028():
-    from packages.repair_engine.packages.memory.incident_memory import IncidentMemory
+    from packages.repair_engine.memory.incident_memory import IncidentMemory
     from packages.repair_engine.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
     mem = IncidentMemory()
     inc = IncidentRecord.create(
@@ -578,7 +578,7 @@ if __name__ == "__main__": test_faz10_028()
 
 @test("PatchMemory  success rate hesaplanyor")
 def test_faz10_029():
-    from packages.repair_engine.packages.memory.patch_memory import PatchMemory, PatchOutcome
+    from packages.repair_engine.memory.patch_memory import PatchMemory, PatchOutcome
     mem = PatchMemory()
     for i in range(4):
         mem.record(
@@ -595,7 +595,7 @@ if __name__ == "__main__": test_faz10_029()
 
 @test("PatchMemory  regresyon dosyas danger_files'a ekleniyor")
 def test_faz10_030():
-    from packages.repair_engine.packages.memory.patch_memory import PatchMemory, PatchOutcome
+    from packages.repair_engine.memory.patch_memory import PatchMemory, PatchOutcome
     mem = PatchMemory()
     mem.record(
         job_id="job_1", incident_id="inc_1",
@@ -610,7 +610,7 @@ if __name__ == "__main__": test_faz10_030()
 
 @test("ArchitectureMemory  kritik modl tespiti")
 def test_faz10_031():
-    from packages.repair_engine.packages.memory.architecture_memory import ArchitectureMemory
+    from packages.repair_engine.memory.architecture_memory import ArchitectureMemory
     mem = ArchitectureMemory()
     assert mem.is_critical_module("auth/jwt_auth.py")
     assert mem.is_critical_module("core/orchestrator.py")
@@ -619,7 +619,7 @@ if __name__ == "__main__": test_faz10_031()
 
 @test("ArchitectureMemory  forbidden pattern listesi dolu")
 def test_faz10_032():
-    from packages.repair_engine.packages.memory.architecture_memory import ArchitectureMemory
+    from packages.repair_engine.memory.architecture_memory import ArchitectureMemory
     mem = ArchitectureMemory()
     patterns = mem.get_forbidden_patterns()
     assert len(patterns) >= 5
@@ -629,7 +629,7 @@ if __name__ == "__main__": test_faz10_032()
 
 @test("ArchitectureMemory  ADR listesi")
 def test_faz10_033():
-    from packages.repair_engine.packages.memory.architecture_memory import ArchitectureMemory
+    from packages.repair_engine.memory.architecture_memory import ArchitectureMemory
     mem = ArchitectureMemory()
     adrs = mem.get_adrs()
     assert len(adrs) >= 3
@@ -1012,3 +1012,4 @@ print(f"\n{' Tm testler geti!' if failed == 0 else f'  {failed} test baarsz.'}")
 if __name__ == "__main__":
     if failed > 0:
         print(f"FAILED tests: {failed}")
+

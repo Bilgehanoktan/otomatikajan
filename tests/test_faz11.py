@@ -1,7 +1,7 @@
-"""
-Faz 11 Test Suite — "Güvenilir Repair Platformu"
+﻿"""
+Faz 11 Test Suite â€” "GÃ¼venilir Repair Platformu"
 
-Test grupları:
+Test gruplarÄ±:
   - Incident Fingerprint & Similarity
   - Root Cause Ranker
   - Test Generator
@@ -18,9 +18,9 @@ import sys, os, asyncio
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# NOT: fastapi/pydantic stub'ları tests/conftest.py içinde yönetilir.
-# Bu dosya pytest dışında da çalışabilmesi için conftest olmadan da çalışabilmeli.
-# admin router / repair_router testleri AST veya dosya bazlı — runtime import yok.
+# NOT: fastapi/pydantic stub'larÄ± tests/conftest.py iÃ§inde yÃ¶netilir.
+# Bu dosya pytest dÄ±ÅŸÄ±nda da Ã§alÄ±ÅŸabilmesi iÃ§in conftest olmadan da Ã§alÄ±ÅŸabilmeli.
+# admin router / repair_router testleri AST veya dosya bazlÄ± â€” runtime import yok.
 
 _PASS = 0
 _FAIL = 0
@@ -40,22 +40,22 @@ def run_all():
                 asyncio.run(fn())
             else:
                 fn()
-            print(f"  ✅ {name}")
+            print(f"  âœ… {name}")
             _PASS += 1
         except Exception as e:
-            print(f"  ❌ {name}: {e}")
+            print(f"  âŒ {name}: {e}")
             _FAIL += 1
-    print(f"\n📊 SONUÇ: {_PASS}/{_PASS+_FAIL} test geçti")
+    print(f"\nğŸ“Š SONUÃ‡: {_PASS}/{_PASS+_FAIL} test geÃ§ti")
     if _FAIL:
         if __name__ == "__main__":
             sys.exit(1)
 
 
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # 1) Incident Fingerprint & Similarity
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-@test("IncidentFingerprint — build_fingerprint temel alanlar")
+@test("IncidentFingerprint â€” build_fingerprint temel alanlar")
 def test_faz11_001():
     from packages.repair_engine.analysis.incident_fingerprint import build_fingerprint, IncidentFingerprint
     from packages.repair_engine.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
@@ -74,28 +74,28 @@ def test_faz11_001():
     assert len(fp.exact_hash) == 16
     assert fp.error_type == "NameError"
     assert fp.module == "task_router"
-    assert fp.symptom_norm  # normalized olmalı
+    assert fp.symptom_norm  # normalized olmalÄ±
     assert fp.to_dict()["error_type"] == "NameError"
 
 
-@test("IncidentFingerprint — normalize_stack_trace dinamik değerleri temizler")
+@test("IncidentFingerprint â€” normalize_stack_trace dinamik deÄŸerleri temizler")
 def test_faz11_002():
     from packages.repair_engine.analysis.incident_fingerprint import _normalize_stack_trace
     raw = 'File "api/tasks.py", line 42, in process\n  obj = 0x7f3a9b12c0\n  id=abc12345-1234-1234-1234-abcdef123456'
     norm = _normalize_stack_trace(raw)
-    assert "42" not in norm, "Satır no temizlenmeli"
+    assert "42" not in norm, "SatÄ±r no temizlenmeli"
     assert "0x7f3a9b12c0" not in norm
     assert "abc12345" not in norm
 
 
-@test("IncidentSimilarityEngine — exact duplicate tespiti")
+@test("IncidentSimilarityEngine â€” exact duplicate tespiti")
 def test_faz11_003():
     from packages.repair_engine.analysis.incident_fingerprint import build_fingerprint, IncidentSimilarityEngine
     from packages.repair_engine.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
 
     engine = IncidentSimilarityEngine()
 
-    # Aynı stack trace ile iki incident
+    # AynÄ± stack trace ile iki incident
     stack = "File \"heal/engine.py\", line 10, in run\nAttributeError: NoneType"
     inc1 = IncidentRecord.create(IncidentSource.MANUAL, IncidentSeverity.MEDIUM, service="heal_engine", module="heal_engine", symptom="AttributeError on run")
     inc1.stack_trace = stack
@@ -110,7 +110,7 @@ def test_faz11_003():
     assert dup_id == inc1.incident_id, f"Duplicate tespit edilmeli, got: {dup_id}"
 
 
-@test("IncidentSimilarityEngine — module+error_type benzerliği")
+@test("IncidentSimilarityEngine â€” module+error_type benzerliÄŸi")
 def test_faz11_004():
     from packages.repair_engine.analysis.incident_fingerprint import build_fingerprint, IncidentSimilarityEngine
     from packages.repair_engine.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
@@ -126,20 +126,20 @@ def test_faz11_004():
     engine.add(fp1)
 
     similars = engine.find_similar(fp2, limit=5, min_similarity=0.4)
-    assert similars, "Benzer incident bulunmalı"
+    assert similars, "Benzer incident bulunmalÄ±"
     found = next((s for s in similars if s.incident_id == inc1.incident_id), None)
-    assert found, "inc1 benzerler arasında olmalı"
+    assert found, "inc1 benzerler arasÄ±nda olmalÄ±"
     assert found.match_type == "module_error"
 
 
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # 2) Root Cause Ranker
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-@test("RootCauseRanker — kural bonusu uygulanıyor")
+@test("RootCauseRanker â€” kural bonusu uygulanÄ±yor")
 def test_faz11_005():
     from packages.repair_engine.analysis.root_cause_ranker import RootCauseRanker, LessonRecord
-    # Sadece ranker'ın stats ve record_lesson metodlarını test et (schema bağımsız)
+    # Sadece ranker'Ä±n stats ve record_lesson metodlarÄ±nÄ± test et (schema baÄŸÄ±msÄ±z)
     ranker = RootCauseRanker()
     ranker.record_lesson("route_error", "task_router", "route endpoint eksik", "success")
     ranker.record_lesson("route_error", "task_router", "route endpoint eksik", "success")
@@ -149,7 +149,7 @@ def test_faz11_005():
     assert stats["rejection_count"] >= 1, "En az 1 rejection bekleniyor"
 
 
-@test("RootCauseRanker — rejection cezası azaltma")
+@test("RootCauseRanker â€” rejection cezasÄ± azaltma")
 def test_faz11_006():
     from packages.repair_engine.analysis.root_cause_ranker import RootCauseRanker
     from packages.repair_engine.schemas.diagnosis import DiagnosisTicket, ProblemClass, RepairMode
@@ -161,7 +161,7 @@ except ImportError:
     import uuid
 
     ranker = RootCauseRanker()
-    # Aynı tipi 2 kez reddet
+    # AynÄ± tipi 2 kez reddet
     ranker.record_lesson("route_error", "task_router", "route endpoint eksik", "rejected", "wrong_root_cause")
     ranker.record_lesson("route_error", "task_router", "route endpoint eksik", "rejected", "wrong_root_cause")
 
@@ -170,7 +170,7 @@ except ImportError:
     assert len(stats["penalized_patterns"]) >= 1
 
 
-@test("RootCauseRanker — geçmiş başarı bonusu")
+@test("RootCauseRanker â€” geÃ§miÅŸ baÅŸarÄ± bonusu")
 def test_faz11_007():
     from packages.repair_engine.analysis.root_cause_ranker import RootCauseRanker
     ranker = RootCauseRanker()
@@ -180,11 +180,11 @@ def test_faz11_007():
     assert stats["success_lessons"] == 2
 
 
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # 3) Test Generator
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-@test("TestGenerator — API incident -> api test üretir")
+@test("TestGenerator â€” API incident -> api test Ã¼retir")
 def test_faz11_008():
     from packages.repair_engine.generation.test_generator import get_test_generator
     from packages.repair_engine.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
@@ -203,7 +203,7 @@ def test_faz11_008():
     assert test.to_dict()["test_type"] == "api"
 
 
-@test("TestGenerator — Unit test üretimi (generic incident)")
+@test("TestGenerator â€” Unit test Ã¼retimi (generic incident)")
 def test_faz11_009():
     from packages.repair_engine.generation.test_generator import get_test_generator
     from packages.repair_engine.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
@@ -219,7 +219,7 @@ def test_faz11_009():
     assert "regression" in t.description.lower() or "smoke" in t.description.lower()
 
 
-@test("TestGenerator — Import incident -> smoke test üretir")
+@test("TestGenerator â€” Import incident -> smoke test Ã¼retir")
 def test_faz11_010():
     from packages.repair_engine.generation.test_generator import get_test_generator
     from packages.repair_engine.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
@@ -241,11 +241,11 @@ def test_faz11_010():
     assert t.test_type == "smoke", f"Import error -> smoke bekleniyor, got: {t.test_type}"
 
 
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # 4) Canary Runner
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-@test("CanaryRunner — temel akış (syntax + regression + import)")
+@test("CanaryRunner â€” temel akÄ±ÅŸ (syntax + regression + import)")
 async def test_faz11_011():
     from packages.repair_engine.verification.canary_runner import get_canary_runner, CanaryStatus
 
@@ -263,7 +263,7 @@ async def test_faz11_011():
     assert result.to_dict()["status"]
 
 
-@test("CanaryRunner — eval() tespiti -> failed")
+@test("CanaryRunner â€” eval() tespiti -> failed")
 async def test_faz11_012():
     from packages.repair_engine.verification.canary_runner import get_canary_runner, CanaryStatus
 
@@ -272,11 +272,11 @@ async def test_faz11_012():
     result = await runner.run("rjob_evil", diff, ["api/routes.py"])
     # regression_signal check failed
     reg_check = next((c for c in result.checks if c.name == "regression_signal"), None)
-    assert reg_check and not reg_check.passed, "eval() tespiti başarısız olmali"
+    assert reg_check and not reg_check.passed, "eval() tespiti baÅŸarÄ±sÄ±z olmali"
     assert runner.should_block_pr(result), "eval() olan patch bloke edilmeli"
 
 
-@test("CanaryRunner — temiz diff -> passed")
+@test("CanaryRunner â€” temiz diff -> passed")
 async def test_faz11_013():
     from packages.repair_engine.verification.canary_runner import get_canary_runner, CanaryStatus
 
@@ -284,14 +284,14 @@ async def test_faz11_013():
     runner = get_canary_runner()
     result = await runner.run("rjob_clean", diff, [])
     reg_check = next((c for c in result.checks if c.name == "regression_signal"), None)
-    assert reg_check and reg_check.passed, "Temiz diff regression_signal geçmeli"
+    assert reg_check and reg_check.passed, "Temiz diff regression_signal geÃ§meli"
 
 
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # 5) Metrics Collector
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-@test("RepairMetricsStore — kayıt ve summary")
+@test("RepairMetricsStore â€” kayÄ±t ve summary")
 def test_faz11_014():
     from packages.repair_engine.verification.metrics_collector import RepairMetricsStore, make_metric
 
@@ -310,7 +310,7 @@ def test_faz11_014():
     assert s["rejection_rate"] == round(2/8*100, 1)
 
 
-@test("RepairMetricsStore — trends boş -> liste döner")
+@test("RepairMetricsStore â€” trends boÅŸ -> liste dÃ¶ner")
 def test_faz11_015():
     from packages.repair_engine.verification.metrics_collector import RepairMetricsStore
     store = RepairMetricsStore()
@@ -318,7 +318,7 @@ def test_faz11_015():
     assert isinstance(trends, list)
 
 
-@test("RepairMetricsStore — top_modules sıralama")
+@test("RepairMetricsStore â€” top_modules sÄ±ralama")
 def test_faz11_016():
     from packages.repair_engine.verification.metrics_collector import RepairMetricsStore, make_metric
 
@@ -328,26 +328,26 @@ def test_faz11_016():
             store.record(make_metric("j","i","cls", mod, "success", confidence=80))
 
     top = store.top_modules(top_n=3)
-    assert top[0]["module"] == "task_router", "En çok incident alan modül başta gelmeli"
+    assert top[0]["module"] == "task_router", "En Ã§ok incident alan modÃ¼l baÅŸta gelmeli"
 
 
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # 6) Policy Registry
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-@test("PolicyRegistry — varsayılan kurallar yüklü")
+@test("PolicyRegistry â€” varsayÄ±lan kurallar yÃ¼klÃ¼")
 def test_faz11_017():
     from core.policy_registry import get_policy_registry
     reg = get_policy_registry()
     rules = reg.list_all()
-    assert len(rules) >= 9, f"En az 9 varsayılan kural bekleniyor, got: {len(rules)}"
+    assert len(rules) >= 9, f"En az 9 varsayÄ±lan kural bekleniyor, got: {len(rules)}"
     names = {r["name"] for r in rules}
     assert "block_auth_module"          in names
     assert "max_diff_lines_for_auto_pr" in names
     assert "min_confidence_for_auto_pr" in names
 
 
-@test("PolicyRegistry — is_module_blocked auth tespit eder")
+@test("PolicyRegistry â€” is_module_blocked auth tespit eder")
 def test_faz11_018():
     from core.policy_registry import get_policy_registry
     reg = get_policy_registry()
@@ -355,7 +355,7 @@ def test_faz11_018():
     assert not reg.is_module_blocked("api/task_router.py")
 
 
-@test("PolicyRegistry — is_high_risk_file tanıdık dosyalar")
+@test("PolicyRegistry â€” is_high_risk_file tanÄ±dÄ±k dosyalar")
 def test_faz11_019():
     from core.policy_registry import get_policy_registry
     reg = get_policy_registry()
@@ -364,7 +364,7 @@ def test_faz11_019():
     assert not reg.is_high_risk_file("api/task_read_router.py")
 
 
-@test("PolicyRegistry — update ve export/import JSON döngüsü")
+@test("PolicyRegistry â€” update ve export/import JSON dÃ¶ngÃ¼sÃ¼")
 def test_faz11_020():
     from core.policy_registry import PolicyRegistry, PolicyRule
     reg = PolicyRegistry()
@@ -378,7 +378,7 @@ def test_faz11_020():
     assert reg2.min_confidence() == 75
 
 
-@test("PolicyRegistry — yeni kural ekleme")
+@test("PolicyRegistry â€” yeni kural ekleme")
 def test_faz11_021():
     from core.policy_registry import PolicyRegistry, PolicyRule
     reg = PolicyRegistry()
@@ -387,11 +387,11 @@ def test_faz11_021():
     assert reg.get_value("test_custom_rule") == "test"
 
 
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # 7) Architecture Guard
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-@test("ArchitectureGuard — temiz diff -> passed")
+@test("ArchitectureGuard â€” temiz diff -> passed")
 def test_faz11_022():
     from packages.repair_engine.review.architecture_guard import get_architecture_guard
 
@@ -402,10 +402,10 @@ def test_faz11_022():
  from fastapi import APIRouter
 """
     result = get_architecture_guard().check_diff(diff)
-    assert result.passed, f"Temiz diff geçmeli, violations: {result.violations}"
+    assert result.passed, f"Temiz diff geÃ§meli, violations: {result.violations}"
 
 
-@test("ArchitectureGuard — api -> packages.persistence.models direkt import -> error")
+@test("ArchitectureGuard â€” api -> packages.persistence.models direkt import -> error")
 def test_faz11_023():
     from packages.repair_engine.review.architecture_guard import get_architecture_guard
 
@@ -413,13 +413,13 @@ def test_faz11_023():
 +from packages.persistence.models import Task
 """
     result = get_architecture_guard().check_diff(diff)
-    assert not result.passed, "api/ -> packages.persistence.models import 'error' violation olmalı"
+    assert not result.passed, "api/ -> packages.persistence.models import 'error' violation olmalÄ±"
     errors = [v for v in result.violations if v.severity == "error"]
     assert errors, "En az bir error violation bekleniyor"
     assert any("api_direct_db_model" == v.rule for v in errors)
 
 
-@test("ArchitectureGuard — eval() -> repair direct write -> error")
+@test("ArchitectureGuard â€” eval() -> repair direct write -> error")
 def test_faz11_024():
     from packages.repair_engine.review.architecture_guard import get_architecture_guard
 
@@ -431,7 +431,7 @@ def test_faz11_024():
     assert any(v.rule == "repair_direct_write" for v in errors)
 
 
-@test("ArchitectureGuard — to_dict alanları tam")
+@test("ArchitectureGuard â€” to_dict alanlarÄ± tam")
 def test_faz11_025():
     from packages.repair_engine.review.architecture_guard import get_architecture_guard
     diff = "+++ b/api/routes.py\n+pass\n"
@@ -442,11 +442,11 @@ def test_faz11_025():
     assert "checked_files" in d
 
 
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # 8) Report Generator
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-@test("ReportGenerator — markdown rapor temel alanları içerir")
+@test("ReportGenerator â€” markdown rapor temel alanlarÄ± iÃ§erir")
 def test_faz11_026():
     from packages.repair_engine.reporting.report_generator import generate_markdown_report
     from packages.repair_engine.schemas.repair_job import RepairJob
@@ -456,14 +456,14 @@ def test_faz11_026():
     inc = IncidentRecord.create(IncidentSource.MANUAL, IncidentSeverity.HIGH, service="task_router", module="task_router", symptom="500 on POST /tasks")
 
     md = generate_markdown_report(job, inc, decision="rejected", feedback_code="wrong_root_cause")
-    assert "# " in md              # başlık
+    assert "# " in md              # baÅŸlÄ±k
     assert job.job_id in md
     assert inc.module in md
     assert "REJECTED" in md
     assert "wrong_root_cause" in md
 
 
-@test("ReportGenerator — html rapor DOCTYPE içerir")
+@test("ReportGenerator â€” html rapor DOCTYPE iÃ§erir")
 def test_faz11_027():
     from packages.repair_engine.reporting.report_generator import generate_html_report
     from packages.repair_engine.schemas.repair_job import RepairJob
@@ -476,13 +476,13 @@ def test_faz11_027():
     assert job.job_id in html
 
 
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # 9) Lessons Store
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-@test("LessonsStore — feedback kayıt ve istatistik")
+@test("LessonsStore â€” feedback kayÄ±t ve istatistik")
 def test_faz11_028():
-    from packages.repair_engine.packages.memory.lessons_store import LessonsStore
+    from packages.repair_engine.memory.lessons_store import LessonsStore
 
     store = LessonsStore()
     for code, decision in [("correct_fix","approved"),("wrong_root_cause","rejected"),("too_broad_patch","rejected")]:
@@ -499,17 +499,17 @@ def test_faz11_028():
     assert "wrong_root_cause" in stats["top_reject_reasons"]
 
 
-@test("LessonsStore — geçersiz feedback_code -> other'a normalize")
+@test("LessonsStore â€” geÃ§ersiz feedback_code -> other'a normalize")
 def test_faz11_029():
-    from packages.repair_engine.packages.memory.lessons_store import LessonsStore
+    from packages.repair_engine.memory.lessons_store import LessonsStore
     store = LessonsStore()
     rec = store.record("j","p","u","rejected","invalid_code_xyz","","mod","cls")
     assert rec.feedback_code == "other"
 
 
-@test("LessonsStore — module_feedback_summary")
+@test("LessonsStore â€” module_feedback_summary")
 def test_faz11_030():
-    from packages.repair_engine.packages.memory.lessons_store import LessonsStore
+    from packages.repair_engine.memory.lessons_store import LessonsStore
     store = LessonsStore()
     for _ in range(3):
         store.record("j","p","u","approved","correct_fix","","auth","cls")
@@ -518,11 +518,11 @@ def test_faz11_030():
     assert summary["approval_rate"] == 100.0
 
 
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # 10) RepairJob Canary State Machine
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-@test("RepairJob — VERIFIED -> CANARY_PENDING geçişi")
+@test("RepairJob â€” VERIFIED -> CANARY_PENDING geÃ§iÅŸi")
 def test_faz11_031():
     from packages.repair_engine.schemas.repair_job import RepairJob, RepairJobStatus
     job = RepairJob.create("inc_canary_sm")
@@ -544,11 +544,11 @@ def test_faz11_031():
     ]
     for status in transitions:
         ok = job.transition(status)
-        assert ok, f"Geçiş başarısız: -> {status.value} (şu an: {job.status.value})"
+        assert ok, f"GeÃ§iÅŸ baÅŸarÄ±sÄ±z: -> {status.value} (ÅŸu an: {job.status.value})"
     assert job.status == RepairJobStatus.MERGED
 
 
-@test("RepairJob — CANARY_FAILED -> REQUIRES_MANUAL_REVIEW")
+@test("RepairJob â€” CANARY_FAILED -> REQUIRES_MANUAL_REVIEW")
 def test_faz11_032():
     from packages.repair_engine.schemas.repair_job import RepairJob, RepairJobStatus
     job = RepairJob.create("inc_canary_fail")
@@ -561,12 +561,12 @@ def test_faz11_032():
         RepairJobStatus.CANARY_FAILED,
     ]:
         ok = job.transition(s)
-        assert ok, f"Geçiş başarısız: {s.value}"
+        assert ok, f"GeÃ§iÅŸ baÅŸarÄ±sÄ±z: {s.value}"
     assert job.transition(RepairJobStatus.REQUIRES_MANUAL_REVIEW)
     assert job.is_terminal()
 
 
-@test("RepairJob — Faz 11 alanları mevcut")
+@test("RepairJob â€” Faz 11 alanlarÄ± mevcut")
 def test_faz11_033():
     from packages.repair_engine.schemas.repair_job import RepairJob
     job = RepairJob.create("inc_faz11_fields")
@@ -583,11 +583,11 @@ def test_faz11_033():
     assert len(d["generated_tests"]) == 1
 
 
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # 11) API Router imports
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-@test("repair_admin_router — import OK")
+@test("repair_admin_router â€” import OK")
 def test_faz11_034():
     # Check that file is syntactically valid and has router
     import ast
@@ -598,12 +598,12 @@ def test_faz11_034():
     assert "router = APIRouter" in src or "router=APIRouter" in src or "APIRouter(" in src
 
 
-@test("core.policy_registry — singleton tekil")
+@test("core.policy_registry â€” singleton tekil")
 def test_faz11_035():
     from core.policy_registry import get_policy_registry
     r1 = get_policy_registry()
     r2 = get_policy_registry()
-    assert r1 is r2, "Singleton aynı instance döndürmeli"
+    assert r1 is r2, "Singleton aynÄ± instance dÃ¶ndÃ¼rmeli"
 
 
 @test("repair_router Faz 11 endpoint'leri mevcut")
@@ -622,3 +622,4 @@ def test_faz11_036():
 if __name__ == "__main__":
     print("\n=== Faz 11 Test Suite ===\n")
     run_all()
+

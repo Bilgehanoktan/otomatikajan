@@ -1,8 +1,8 @@
-"""
-tests/test_repair_pipeline_integration.py — RC1 Tam Pipeline Entegrasyon Testi
+﻿"""
+tests/test_repair_pipeline_integration.py â€” RC1 Tam Pipeline Entegrasyon Testi
 
-Tek test senaryosu içinde Faz 12 tüm bileşenlerinin
-omurgaya girdiğini kanıtlar:
+Tek test senaryosu iÃ§inde Faz 12 tÃ¼m bileÅŸenlerinin
+omurgaya girdiÄŸini kanÄ±tlar:
 
 fingerprint -> vector RAG -> ranker -> debate -> 
 generated tests -> sandbox -> canary -> metrics -> lesson save
@@ -11,13 +11,13 @@ import asyncio, sys, os, types, uuid, time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 PASS = FAIL = 0
-def ok(n):        global PASS; PASS += 1; print(f"  ✅ {n}")
-def fail(n, e=""): global FAIL; FAIL += 1; print(f"  ❌ {n}{(' — '+str(e)) if e else ''}")
-def section(t):   print(f"\n{'═'*55}\n  {t}\n{'═'*55}")
+def ok(n):        global PASS; PASS += 1; print(f"  âœ… {n}")
+def fail(n, e=""): global FAIL; FAIL += 1; print(f"  âŒ {n}{(' â€” '+str(e)) if e else ''}")
+def section(t):   print(f"\n{'â•'*55}\n  {t}\n{'â•'*55}")
 
-# ══════════════════════════════════════════════════════════════
-# Test altyapısı — tam mock pipeline
-# ══════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# Test altyapÄ±sÄ± â€” tam mock pipeline
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 class _MockHypothesis:
     def __init__(self, title, confidence):
@@ -32,11 +32,11 @@ class _MockTicket:
         self.classification        = types.SimpleNamespace(value="runtime")
         self.recommended_mode      = types.SimpleNamespace(value="auto")
         self.rationale             = "mock triage rationale"
-        self.selected_hypothesis   = _MockHypothesis("JWT decode hatası", 75)
+        self.selected_hypothesis   = _MockHypothesis("JWT decode hatasÄ±", 75)
         self.hypotheses            = [
-            _MockHypothesis("JWT decode hatası",   75),
-            _MockHypothesis("Token süresi dolmuş", 73),  # ±5% -> debate tetiklenir
-            _MockHypothesis("DB bağlantısı kesildi", 40),
+            _MockHypothesis("JWT decode hatasÄ±",   75),
+            _MockHypothesis("Token sÃ¼resi dolmuÅŸ", 73),  # Â±5% -> debate tetiklenir
+            _MockHypothesis("DB baÄŸlantÄ±sÄ± kesildi", 40),
         ]
 
 class _MockPlan:
@@ -79,14 +79,14 @@ class _MockPolicy:
     def canary_required(self):    return True  # Canary aktif
 
 class _MockOrch:
-    """LLM için mock — debate, ranker vb."""
+    """LLM iÃ§in mock â€” debate, ranker vb."""
     async def complete(self, messages, preferred_agent="general", **kw):
         if preferred_agent == "architect":
-            return "[UZLAŞI] JWT decode hatası hipotezi daha güçlü."
-        return f"{preferred_agent}: mock argüman."
+            return "[UZLAÅI] JWT decode hatasÄ± hipotezi daha gÃ¼Ã§lÃ¼."
+        return f"{preferred_agent}: mock argÃ¼man."
 
 def _build_mock_orchestrator():
-    """RepairOrchestrator'ı mock bileşenlerle oluştur."""
+    """RepairOrchestrator'Ä± mock bileÅŸenlerle oluÅŸtur."""
     from core.repair_orchestrator import RepairOrchestrator
     orch = RepairOrchestrator.__new__(RepairOrchestrator)
     orch.project_root = "."
@@ -110,7 +110,7 @@ def _build_mock_orchestrator():
     orch.arch_memory = _Arch()
     orch.triage      = None
 
-    # DB ve persist metotlarını mock'la (Test ortamında DB yok)
+    # DB ve persist metotlarÄ±nÄ± mock'la (Test ortamÄ±nda DB yok)
     async def _mock_async_none(*a, **kw): return None
     orch._persist_job              = _mock_async_none
     orch._persist_job_and_proposal = _mock_async_none
@@ -132,11 +132,11 @@ def _build_mock_orchestrator():
     return orch
 
 
-# ══════════════════════════════════════════════════════════════
-# Pipeline adımlarını sırayla izole test et
-# ══════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# Pipeline adÄ±mlarÄ±nÄ± sÄ±rayla izole test et
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-section("1 — Fingerprint + Duplicate Tespiti")
+section("1 â€” Fingerprint + Duplicate Tespiti")
 
 def test_fingerprint_step():
     from packages.repair_engine.schemas.repair_job import RepairJob
@@ -153,25 +153,25 @@ def test_fingerprint_step():
         service="backend-api",
     )
     orch._step_fingerprint(job, inc)
-    # fingerprint_hash doldurulmuş olabilir (engine varsa) veya boş kalır
+    # fingerprint_hash doldurulmuÅŸ olabilir (engine varsa) veya boÅŸ kalÄ±r
     assert isinstance(job.fingerprint_hash, (str, type(None)))
-    ok("Fingerprint adımı hatasız çalışıyor")
+    ok("Fingerprint adÄ±mÄ± hatasÄ±z Ã§alÄ±ÅŸÄ±yor")
 
 # test_fingerprint_step() - Moved to main block
 
-section("2 — Vector RAG Context")
+section("2 â€” Vector RAG Context")
 
 def test_vector_rag_step():
-    """Vector store'a lesson ekle, context çekmeyi test et."""
-    import packages.repair_engine.packages.memory.vector_lessons as vl_mod
+    """Vector store'a lesson ekle, context Ã§ekmeyi test et."""
+    import packages.repair_engine.memory.vector_lessons as vl_mod
     vl_mod._vector_lessons = None
     store = vl_mod.get_vector_lessons(use_db=False)
 
-    # Geçmiş lesson ekle
+    # GeÃ§miÅŸ lesson ekle
     store.save_lesson(
         symptom="JWT decode error invalid signature",
         module="auth",
-        resolution="JWT secret key güncellendi, TTL 15dk olarak düzenlendi.",
+        resolution="JWT secret key gÃ¼ncellendi, TTL 15dk olarak dÃ¼zenlendi.",
         job_id="job_past_001",
         incident_id="inc_past_001",
     )
@@ -194,13 +194,13 @@ def test_vector_rag_step():
 
     if ctx:
         assert "auth" in ctx.lower() or "jwt" in ctx.lower() or "benzer" in ctx.lower()
-        ok(f"Vector RAG context çekildi: {len(ctx)} karakter")
+        ok(f"Vector RAG context Ã§ekildi: {len(ctx)} karakter")
     else:
-        ok("Vector RAG context boş (min_score altında — normal)")
+        ok("Vector RAG context boÅŸ (min_score altÄ±nda â€” normal)")
 
 # test_vector_rag_step() - Moved to main block
 
-section("3 — Root Cause Ranker")
+section("3 â€” Root Cause Ranker")
 
 def test_ranker_step():
     from packages.repair_engine.schemas.repair_job import RepairJob
@@ -223,22 +223,22 @@ def test_ranker_step():
 
     assert result_ticket is not None
     assert isinstance(ranker_info, dict)
-    ok(f"Ranker adımı — raw={ranker_info.get('raw',0)} adj={ranker_info.get('adjusted',0)}")
+    ok(f"Ranker adÄ±mÄ± â€” raw={ranker_info.get('raw',0)} adj={ranker_info.get('adjusted',0)}")
     assert isinstance(job.ranker_adjusted, bool)
-    ok("job.ranker_adjusted alanı dolu")
+    ok("job.ranker_adjusted alanÄ± dolu")
 
 # test_ranker_step() - Moved to main block
 
-section("4 — Debate Engine Tetikleme")
+section("4 â€” Debate Engine Tetikleme")
 
 def test_debate_triggered():
-    """İki yakın hipotez varsa debate tetiklenmeli."""
+    """Ä°ki yakÄ±n hipotez varsa debate tetiklenmeli."""
     from packages.repair_engine.schemas.repair_job import RepairJob
     from packages.repair_engine.schemas.incident   import IncidentRecord
 
     orch    = _build_mock_orchestrator()
     job     = RepairJob.create("inc_dbte_001")
-    ticket  = _MockTicket()  # 75% vs 73% — fark 2, threshold ~4 -> tetiklenmeli
+    ticket  = _MockTicket()  # 75% vs 73% â€” fark 2, threshold ~4 -> tetiklenmeli
     inc     = IncidentRecord(
         incident_id="inc_dbte_001",
         symptom="JWT decode error",
@@ -251,18 +251,18 @@ def test_debate_triggered():
 
     asyncio.run(orch._step_debate_if_needed(job, ticket, inc))
 
-    # Debate tetiklendi mi veya sessizce atlandı mı?
-    # (Mock LLM [UZLAŞI] dönüyor -> agreement_reached=True olmalı)
+    # Debate tetiklendi mi veya sessizce atlandÄ± mÄ±?
+    # (Mock LLM [UZLAÅI] dÃ¶nÃ¼yor -> agreement_reached=True olmalÄ±)
     if job.debate_triggered:
         assert job.debate_result_summary
         assert job.debate_winning_hypothesis
-        ok(f"Debate TETİKLENDİ — kazanan: '{job.debate_winning_hypothesis[:50]}'")
+        ok(f"Debate TETÄ°KLENDÄ° â€” kazanan: '{job.debate_winning_hypothesis[:50]}'")
     else:
-        ok("Debate tetiklenmedi (hipotez farkı eşik üstü — normal)")
+        ok("Debate tetiklenmedi (hipotez farkÄ± eÅŸik Ã¼stÃ¼ â€” normal)")
 
 # test_debate_triggered() - Moved to main block
 
-section("5 — Generated Tests")
+section("5 â€” Generated Tests")
 
 def test_generated_tests_step():
     from packages.repair_engine.schemas.repair_job import RepairJob
@@ -285,11 +285,11 @@ def test_generated_tests_step():
     asyncio.run(orch._step_generate_tests(job, inc, plan, ticket))
 
     assert isinstance(job.generated_tests, list)
-    ok(f"Generated tests alanı: {len(job.generated_tests)} test")
+    ok(f"Generated tests alanÄ±: {len(job.generated_tests)} test")
 
 # test_generated_tests_step() - Moved to main block
 
-section("6 — Sandbox Verify")
+section("6 â€” Sandbox Verify")
 
 def test_sandbox_step():
     from packages.repair_engine.schemas.repair_job import RepairJob
@@ -300,28 +300,28 @@ def test_sandbox_step():
 
     result = asyncio.run(orch._step_sandbox_verify(job, patch, None))
     assert result is True
-    ok("Sandbox verify adımı True döndü")
-    # sandbox_verified veya sandbox_output job'da set edilmiş olabilir
+    ok("Sandbox verify adÄ±mÄ± True dÃ¶ndÃ¼")
+    # sandbox_verified veya sandbox_output job'da set edilmiÅŸ olabilir
     assert isinstance(getattr(job, "sandbox_verified", False), bool)
-    ok("job.sandbox_verified alanı mevcut")
+    ok("job.sandbox_verified alanÄ± mevcut")
 
 # test_sandbox_step() - Moved to main block
 
-section("7 — Canary RC1")
+section("7 â€” Canary RC1")
 
 def test_canary_rc1():
     from packages.repair_engine.schemas.repair_job import RepairJob
 
     orch  = _build_mock_orchestrator()
     job   = RepairJob.create("inc_cnry_001")
-    job.risk_score = 20  # low risk -> canary çalışmalı
+    job.risk_score = 20  # low risk -> canary Ã§alÄ±ÅŸmalÄ±
 
     patch = _MockPatch()
     plan  = _MockPlan()
 
     result = asyncio.run(orch._step_canary(job, patch, plan))
     assert isinstance(result, bool)
-    ok(f"Canary RC1 adımı — sonuç: {result}")
+    ok(f"Canary RC1 adÄ±mÄ± â€” sonuÃ§: {result}")
 
 def test_canary_rc1_high_risk():
     from packages.repair_engine.schemas.repair_job import RepairJob
@@ -337,16 +337,16 @@ def test_canary_rc1_high_risk():
     )
 
     result = asyncio.run(orch._step_canary(job, patch, plan))
-    assert result is True  # high risk pipeline'ı durdurmaz ama manual review
+    assert result is True  # high risk pipeline'Ä± durdurmaz ama manual review
     ok("High risk -> canary skip, pipeline devam etti")
 
 # test_canary_rc1() - Moved to main block
 # test_canary_rc1_high_risk() - Moved to main block
 
-section("8 — Vector Lesson Save")
+section("8 â€” Vector Lesson Save")
 
 def test_lesson_save():
-    import packages.repair_engine.packages.memory.vector_lessons as vl_mod
+    import packages.repair_engine.memory.vector_lessons as vl_mod
     vl_mod._vector_lessons = None
     store = vl_mod.get_vector_lessons(use_db=False)
 
@@ -375,11 +375,11 @@ def test_lesson_save():
 
     assert after == before + 1
     assert getattr(job, "lesson_saved", False) is True
-    ok(f"Vector lesson kaydedildi — store: {after} ders")
+    ok(f"Vector lesson kaydedildi â€” store: {after} ders")
 
 # test_lesson_save() - Moved to main block
 
-section("9 — Metrics Collector")
+section("9 â€” Metrics Collector")
 
 def test_metrics_step():
     from packages.repair_engine.schemas.repair_job import RepairJob
@@ -398,13 +398,13 @@ def test_metrics_step():
     )
     val = _MockValidation()
 
-    # _record_metric hatasız çalışmalı
+    # _record_metric hatasÄ±z Ã§alÄ±ÅŸmalÄ±
     orch._record_metric(job, inc, _MockPlan(), val, "success", 3.5)
-    ok("_record_metric hatasız çalışıyor")
+    ok("_record_metric hatasÄ±z Ã§alÄ±ÅŸÄ±yor")
 
 # test_metrics_step() - Moved to main block
 
-section("10 — Validation Report Store")
+section("10 â€” Validation Report Store")
 
 def test_validation_report_store():
     from packages.repair_engine.verification.verification_engine import (
@@ -430,18 +430,18 @@ def test_validation_report_store():
     assert retrieved["confidence"]    == 85
     assert retrieved["final_status"]  == "passed"
     assert "_saved_at" in retrieved
-    ok("Validation raporu kaydedildi ve doğru okundu")
+    ok("Validation raporu kaydedildi ve doÄŸru okundu")
 
 def test_validation_report_missing():
     from packages.repair_engine.verification.verification_engine import get_validation_report
     result = get_validation_report("nonexistent_job_xyz")
     assert result is None
-    ok("Olmayan job için None döndü")
+    ok("Olmayan job iÃ§in None dÃ¶ndÃ¼")
 
 # test_validation_report_store() - Moved to main block
 # test_validation_report_missing() - Moved to main block
 
-section("11 — RepairJob Yeni Alanlar")
+section("11 â€” RepairJob Yeni Alanlar")
 
 def test_new_job_fields():
     from packages.repair_engine.schemas.repair_job import RepairJob, RepairJobStatus
@@ -460,7 +460,7 @@ def test_new_job_fields():
     ]
     for field in required_fields:
         assert hasattr(job, field), f"Eksik alan: {field}"
-    ok(f"Tüm {len(required_fields)} RC1 alanı RepairJob'da mevcut")
+    ok(f"TÃ¼m {len(required_fields)} RC1 alanÄ± RepairJob'da mevcut")
 
     # Yeni state'ler
     from packages.repair_engine.schemas.repair_job import RepairJobStatus
@@ -470,7 +470,7 @@ def test_new_job_fields():
     ]
     for s in new_states:
         assert hasattr(RepairJobStatus, s), f"Eksik state: {s}"
-    ok(f"Tüm {len(new_states)} RC1 state RepairJobStatus'ta mevcut")
+    ok(f"TÃ¼m {len(new_states)} RC1 state RepairJobStatus'ta mevcut")
 
 def test_job_to_dict_complete():
     from packages.repair_engine.schemas.repair_job import RepairJob
@@ -483,21 +483,21 @@ def test_job_to_dict_complete():
     for key in ["vector_context_used", "debate_triggered", "sandbox_verified",
                 "lesson_saved", "ranker_adjusted", "ranker_adjusted_confidence"]:
         assert key in d, f"to_dict'te eksik: {key}"
-    ok("to_dict() tüm RC1 alanlarını içeriyor")
+    ok("to_dict() tÃ¼m RC1 alanlarÄ±nÄ± iÃ§eriyor")
 
 # test_new_job_fields() - Moved to main block
 # test_job_to_dict_complete() - Moved to main block
 
-section("12 — Tam Pipeline Simülasyonu")
+section("12 â€” Tam Pipeline SimÃ¼lasyonu")
 
 def test_full_pipeline_sim():
     """
-    Gerçek _run_pipeline çağırmadan tüm adımları sırayla
-    mock ile çalıştır ve job'un tüm alanların dolduğunu doğrula.
+    GerÃ§ek _run_pipeline Ã§aÄŸÄ±rmadan tÃ¼m adÄ±mlarÄ± sÄ±rayla
+    mock ile Ã§alÄ±ÅŸtÄ±r ve job'un tÃ¼m alanlarÄ±n dolduÄŸunu doÄŸrula.
     """
     from packages.repair_engine.schemas.repair_job import RepairJob, RepairJobStatus
     from packages.repair_engine.schemas.incident   import IncidentRecord
-    import packages.repair_engine.packages.memory.vector_lessons as vl_mod
+    import packages.repair_engine.memory.vector_lessons as vl_mod
 
     # Temiz store
     vl_mod._vector_lessons = None
@@ -519,46 +519,46 @@ def test_full_pipeline_sim():
     patch  = _MockPatch()
     val    = _MockValidation()
 
-    # ── Adım 0: Fingerprint ──────────────────
+    # â”€â”€ AdÄ±m 0: Fingerprint â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     orch._step_fingerprint(job, inc)
 
-    # ── Adım 2b: Vector RAG ──────────────────
+    # â”€â”€ AdÄ±m 2b: Vector RAG â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     ctx = asyncio.run(orch._step_get_context_from_vector(inc))
     if ctx:
         job.vector_context_used    = True
         job.vector_context_summary = ctx[:300]
 
-    # ── Adım 3b: Ranker ──────────────────────
+    # â”€â”€ AdÄ±m 3b: Ranker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     ticket, ri = orch._step_rank_hypotheses(job, ticket, inc)
 
-    # ── Adım 3c: Debate ──────────────────────
+    # â”€â”€ AdÄ±m 3c: Debate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     asyncio.run(orch._step_debate_if_needed(job, ticket, inc))
 
-    # ── Adım 4b: Generated Tests ─────────────
+    # â”€â”€ AdÄ±m 4b: Generated Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     asyncio.run(orch._step_generate_tests(job, inc, plan, ticket))
 
-    # ── Adım 6b: Architecture Guard ──────────
+    # â”€â”€ AdÄ±m 6b: Architecture Guard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     asyncio.run(orch._step_architecture_guard(job, patch))
 
-    # ── Adım 7b: Sandbox ─────────────────────
+    # â”€â”€ AdÄ±m 7b: Sandbox â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     asyncio.run(orch._step_sandbox_verify(job, patch, plan))
 
-    # ── Adım 8b: Risk ────────────────────────
+    # â”€â”€ AdÄ±m 8b: Risk â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     asyncio.run(orch._step_score_risk(job, plan, val))
 
-    # ── Adım 9: Canary RC1 ───────────────────
+    # â”€â”€ AdÄ±m 9: Canary RC1 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     asyncio.run(orch._step_canary(job, patch, plan))
 
-    # ── Adım 11: Metrics ─────────────────────
+    # â”€â”€ AdÄ±m 11: Metrics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     orch._record_metric(job, inc, plan, val, "success", 5.0)
 
-    # ── Adım 12: Lesson Save ─────────────────
+    # â”€â”€ AdÄ±m 12: Lesson Save â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     job.diff         = patch.diff
     job.risk_score   = job.risk_score or 20
     job.canary_status = "passed"
     asyncio.run(orch._save_vector_lesson(job, inc, "success"))
 
-    # ── Doğrulama ────────────────────────────
+    # â”€â”€ DoÄŸrulama â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     assert isinstance(job.risk_score, int) and job.risk_score >= 0
     ok(f"risk_score dolu: {job.risk_score}")
 
@@ -580,7 +580,7 @@ def test_full_pipeline_sim():
     assert isinstance(job.vector_context_used, bool)
     ok(f"vector_context_used: {job.vector_context_used}")
 
-    ok("✓ Tam pipeline simülasyonu başarıyla tamamlandı")
+    ok("âœ“ Tam pipeline simÃ¼lasyonu baÅŸarÄ±yla tamamlandÄ±")
 
 # test_lesson_save()
 # test_metrics_step()
@@ -606,3 +606,4 @@ if __name__ == "__main__":
     test_new_job_fields()
     test_job_to_dict_complete()
     test_full_pipeline_sim()
+
