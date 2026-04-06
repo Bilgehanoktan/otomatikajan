@@ -171,8 +171,8 @@ services:
   # ── DeerFlow Bridge ───────────────────────────────────────
   deerflow-bridge:
     build:
-      context: .
-      dockerfile: ./external/vendor/deer-flow/backend/Dockerfile
+      context: ./external/vendor/deer-flow
+      dockerfile: ./backend/Dockerfile
     container_name: deerflow-bridge
     restart: unless-stopped
     env_file:
