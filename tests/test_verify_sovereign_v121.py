@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from main import app
-from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user
+from apps.api.routers.auth.jwt_auth import get_current_user
 
 # 1. Provide a mock user to override authentication
 def override_get_current_user():

@@ -17,7 +17,7 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from main import app
-from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user
+from apps.api.routers.auth.jwt_auth import get_current_user
 
 # --- MOCK USER ---
 class MockUser:

@@ -37,7 +37,7 @@ class TestAuthNegativeScenarios:
         """Yanlış parola -> 401."""
         import bcrypt
         from fastapi import HTTPException
-        from apps.api.routers.apps.api.routers.auth.jwt_auth import AuthService
+        from apps.api.routers.auth.jwt_auth import AuthService
         from sqlalchemy import select
 
         hashed = bcrypt.hashpw(b"dogru_parola", bcrypt.gensalt(rounds=4)).decode()
@@ -62,7 +62,7 @@ class TestAuthNegativeScenarios:
     async def test_login_user_not_found(self):
         """Kullanıcı yok -> 401 (timing attack: yine de hash kontrol edilmeli)."""
         from fastapi import HTTPException
-        from apps.api.routers.apps.api.routers.auth.jwt_auth import AuthService
+        from apps.api.routers.auth.jwt_auth import AuthService
 
         db = self._make_db()
         mock_result = MagicMock()
@@ -79,7 +79,7 @@ class TestAuthNegativeScenarios:
         """Devre dışı kullanıcı -> 403."""
         import bcrypt
         from fastapi import HTTPException
-        from apps.api.routers.apps.api.routers.auth.jwt_auth import AuthService
+        from apps.api.routers.auth.jwt_auth import AuthService
 
         hashed = bcrypt.hashpw(b"parola", bcrypt.gensalt(rounds=4)).decode()
         mock_user = MagicMock()
@@ -100,7 +100,7 @@ class TestAuthNegativeScenarios:
     async def test_register_duplicate_email(self):
         """Mevcut e-posta -> 409."""
         from fastapi import HTTPException
-        from apps.api.routers.apps.api.routers.auth.jwt_auth import AuthService
+        from apps.api.routers.auth.jwt_auth import AuthService
 
         db = self._make_db()
         mock_result = MagicMock()
@@ -116,7 +116,7 @@ class TestAuthNegativeScenarios:
     async def test_register_short_password(self):
         """Kısa parola -> 422."""
         from fastapi import HTTPException
-        from apps.api.routers.apps.api.routers.auth.jwt_auth import AuthService
+        from apps.api.routers.auth.jwt_auth import AuthService
 
         db = self._make_db()
         mock_result = MagicMock()
@@ -131,7 +131,7 @@ class TestAuthNegativeScenarios:
     def test_invalid_token_raises_401(self):
         """Geçersiz imzalı token -> 401."""
         from fastapi import HTTPException
-        from apps.api.routers.apps.api.routers.auth.jwt_auth import _decode_token
+        from apps.api.routers.auth.jwt_auth import _decode_token
         with pytest.raises(HTTPException) as exc:
             _decode_token("tamamen.gecersiz.token")
         assert exc.value.status_code == 401
@@ -141,7 +141,7 @@ class TestAuthNegativeScenarios:
         import jwt as pyjwt
         from datetime import datetime, timedelta, timezone
         from fastapi import HTTPException
-        from apps.api.routers.apps.api.routers.auth.jwt_auth import _decode_token, JWT_SECRET, JWT_ALGORITHM
+        from apps.api.routers.auth.jwt_auth import _decode_token, JWT_SECRET, JWT_ALGORITHM
 
         expired = pyjwt.encode(
             {
@@ -174,7 +174,7 @@ class TestRefreshTokenRotation:
         """Refresh sonrası eski token revoked=True olmalı."""
         import jwt as pyjwt
         from datetime import datetime, timedelta, timezone
-        from apps.api.routers.apps.api.routers.auth.jwt_auth import AuthService, JWT_SECRET, JWT_ALGORITHM, REFRESH_DAYS
+        from apps.api.routers.auth.jwt_auth import AuthService, JWT_SECRET, JWT_ALGORITHM, REFRESH_DAYS
 
         user = MagicMock()
         user.id       = uuid.uuid4()
@@ -231,7 +231,7 @@ class TestRefreshTokenRotation:
         import jwt as pyjwt
         from datetime import datetime, timedelta, timezone
         from fastapi import HTTPException
-        from apps.api.routers.apps.api.routers.auth.jwt_auth import AuthService, JWT_SECRET, JWT_ALGORITHM, REFRESH_DAYS
+        from apps.api.routers.auth.jwt_auth import AuthService, JWT_SECRET, JWT_ALGORITHM, REFRESH_DAYS
 
         refresh_token = pyjwt.encode(
             {
@@ -259,7 +259,7 @@ class TestRefreshTokenRotation:
         import jwt as pyjwt
         from datetime import datetime, timedelta, timezone
         from fastapi import HTTPException
-        from apps.api.routers.apps.api.routers.auth.jwt_auth import AuthService, JWT_SECRET, JWT_ALGORITHM
+        from apps.api.routers.auth.jwt_auth import AuthService, JWT_SECRET, JWT_ALGORITHM
 
         access_token = pyjwt.encode(
             {
