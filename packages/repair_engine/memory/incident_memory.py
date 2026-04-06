@@ -1,10 +1,10 @@
-"""
-Incident Memory — Operational Memory Layer
-Geçmiş incident'leri, pattern'leri ve tekrar eden hataları saklar.
+﻿"""
+Incident Memory â€” Operational Memory Layer
+GeÃ§miÅŸ incident'leri, pattern'leri ve tekrar eden hatalarÄ± saklar.
 
-Hafıza iki seviyede çalışır:
-1. In-memory (hızlı erişim, process içi)
-2. DB kalıcı (RepairIncidentRecord tablosu)
+HafÄ±za iki seviyede Ã§alÄ±ÅŸÄ±r:
+1. In-memory (hÄ±zlÄ± eriÅŸim, process iÃ§i)
+2. DB kalÄ±cÄ± (RepairIncidentRecord tablosu)
 """
 
 import time
@@ -21,7 +21,7 @@ _log = get_logger("repair.memory.incident")
 
 @dataclass
 class IncidentPattern:
-    """Tekrar eden incident örüntüsü."""
+    """Tekrar eden incident Ã¶rÃ¼ntÃ¼sÃ¼."""
     module:         str
     symptom_prefix: str
     count:          int
@@ -39,20 +39,20 @@ class IncidentPattern:
 
 @dataclass
 class ModuleHealthProfile:
-    """Modül bazlı sağlık istatistikleri."""
+    """ModÃ¼l bazlÄ± saÄŸlÄ±k istatistikleri."""
     module:          str
     total_incidents: int = 0
     open_incidents:  int = 0
     resolved:        int = 0
     avg_severity:    str = "low"
     last_incident:   Optional[str] = None
-    hotspot_score:   float = 0.0   # 0-1, 1 = en sık bozulan
+    hotspot_score:   float = 0.0   # 0-1, 1 = en sÄ±k bozulan
 
 
 class IncidentMemory:
     """
-    Tüm incident geçmişini tutar.
-    Pattern tespiti, hotspot analizi, tekrar oranı sağlar.
+    TÃ¼m incident geÃ§miÅŸini tutar.
+    Pattern tespiti, hotspot analizi, tekrar oranÄ± saÄŸlar.
     """
 
     MAX_INCIDENTS = 1000   # bellek limiti
@@ -64,7 +64,7 @@ class IncidentMemory:
         self._resolution_times: list[float] = []   # saniye cinsinden
         self._hydrated = False
 
-    # ── Yazma ──────────────────────────────────────────────
+    # â”€â”€ Yazma â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     def record(self, incident: IncidentRecord) -> None:
         """Yeni incident kaydet."""
         if len(self._incidents) >= self.MAX_INCIDENTS:
@@ -83,7 +83,7 @@ class IncidentMemory:
         _log.info(f"Incident kaydedildi: {incident.incident_id} ({incident.module})")
 
     def mark_resolved(self, incident_id: str, duration_s: float = 0.0) -> bool:
-        """Incident'i çözümlendi olarak işaretle."""
+        """Incident'i Ã§Ã¶zÃ¼mlendi olarak iÅŸaretle."""
         inc = self._incidents.get(incident_id)
         if not inc:
             return False
@@ -93,14 +93,14 @@ class IncidentMemory:
         return True
 
     def mark_rejected(self, incident_id: str) -> bool:
-        """Incident'i reddedildi olarak işaretle."""
+        """Incident'i reddedildi olarak iÅŸaretle."""
         inc = self._incidents.get(incident_id)
         if not inc:
             return False
         inc.status = "rejected"
         return True
 
-    # ── Okuma ──────────────────────────────────────────────
+    # â”€â”€ Okuma â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     def get(self, incident_id: str) -> Optional[IncidentRecord]:
         return self._incidents.get(incident_id)
 
@@ -112,7 +112,7 @@ class IncidentMemory:
         return [self._incidents[i] for i in ids if i in self._incidents]
 
     def get_similar(self, symptom: str, module: str, limit: int = 5) -> list[IncidentRecord]:
-        """Benzer semptomlara sahip geçmiş incident'leri bul."""
+        """Benzer semptomlara sahip geÃ§miÅŸ incident'leri bul."""
         symptom_lower = symptom.lower()[:50]
         results = []
         for inc in self._incidents.values():
@@ -120,9 +120,9 @@ class IncidentMemory:
                 results.append(inc)
         return sorted(results, key=lambda i: i.last_seen_at, reverse=True)[:limit]
 
-    # ── Analiz ─────────────────────────────────────────────
+    # â”€â”€ Analiz â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     def hotspot_modules(self, top_n: int = 5) -> list[ModuleHealthProfile]:
-        """En sık bozulan modülleri döner."""
+        """En sÄ±k bozulan modÃ¼lleri dÃ¶ner."""
         module_counts = {
             module: len(ids)
             for module, ids in self._by_module.items()
@@ -147,7 +147,7 @@ class IncidentMemory:
         return profiles
 
     def detect_patterns(self) -> list[IncidentPattern]:
-        """Tekrar eden örüntüleri tespit et."""
+        """Tekrar eden Ã¶rÃ¼ntÃ¼leri tespit et."""
         symptom_groups: defaultdict[str, list[IncidentRecord]] = defaultdict(list)
         for inc in self._incidents.values():
             key = f"{inc.module}::{inc.symptom[:40]}"
@@ -174,7 +174,7 @@ class IncidentMemory:
         return sorted(patterns, key=lambda p: p.count, reverse=True)
 
     def mean_time_to_resolve(self) -> float:
-        """Ortalama çözüm süresi (saniye)."""
+        """Ortalama Ã§Ã¶zÃ¼m sÃ¼resi (saniye)."""
         if not self._resolution_times:
             return 0.0
         return round(sum(self._resolution_times) / len(self._resolution_times), 1)
@@ -198,19 +198,19 @@ class IncidentMemory:
 
     async def hydrate_from_db(self, db_session=None) -> int:
         """
-        Veritabanındaki açık (open) olayları belleğe yükle.
-        Sistem başlangıcında (lifespan) çağrılmalıdır.
+        VeritabanÄ±ndaki aÃ§Ä±k (open) olaylarÄ± belleÄŸe yÃ¼kle.
+        Sistem baÅŸlangÄ±cÄ±nda (lifespan) Ã§aÄŸrÄ±lmalÄ±dÄ±r.
         """
         if self._hydrated:
             return 0
 
-        _log.info("IncidentMemory: Veritabanından geri yükleme (hydration) başlatılıyor...")
+        _log.info("IncidentMemory: VeritabanÄ±ndan geri yÃ¼kleme (hydration) baÅŸlatÄ±lÄ±yor...")
         count = 0
         try:
             if not db_session:
                 from packages.persistence.session import AsyncSessionLocal, is_db_available
                 if not await is_db_available():
-                    _log.warning("Hydration atlandı: DB hazır değil.")
+                    _log.warning("Hydration atlandÄ±: DB hazÄ±r deÄŸil.")
                     return 0
                 
                 async with AsyncSessionLocal() as db:
@@ -219,22 +219,22 @@ class IncidentMemory:
                 count = await self._do_hydrate(db_session)
                 
             self._hydrated = True
-            _log.info(f"IncidentMemory: {count} olay geri yüklendi.")
+            _log.info(f"IncidentMemory: {count} olay geri yÃ¼klendi.")
             return count
         except Exception as e:
-            _log.error(f"Hydration hatası: {e}")
+            _log.error(f"Hydration hatasÄ±: {e}")
             return 0
 
     async def _do_hydrate(self, db) -> int:
-        from packages.persistence.repair_repository import RepairIncidentRepo
+        from packages.persistence.repositories.repair_repository import RepairIncidentRepo
         from packages.repair_engine.schemas.incident import IncidentSource, IncidentSeverity
         
-        # Sadece 'open' olanları belleğe al
+        # Sadece 'open' olanlarÄ± belleÄŸe al
         records = await RepairIncidentRepo.get_open(db, limit=self.MAX_INCIDENTS)
         count = 0
         for rec in records:
             try:
-                # DB modelini Schema nesnesine dönüştür
+                # DB modelini Schema nesnesine dÃ¶nÃ¼ÅŸtÃ¼r
                 inc = IncidentRecord(
                     incident_id=rec.incident_id,
                     source=IncidentSource(rec.source),
@@ -255,10 +255,11 @@ class IncidentMemory:
                 self.record(inc)
                 count += 1
             except ValueError as ve:
-                _log.warning(f"Hydration: Geçersiz kayıt atlandı ({rec.incident_id}): {ve}")
+                _log.warning(f"Hydration: GeÃ§ersiz kayÄ±t atlandÄ± ({rec.incident_id}): {ve}")
                 continue
         return count
 
 
 # Singleton
 incident_memory = IncidentMemory()
+

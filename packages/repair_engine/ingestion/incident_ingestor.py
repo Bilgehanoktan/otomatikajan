@@ -1,14 +1,14 @@
-"""
+﻿"""
 Incident Ingestion Layer
-Farklı kaynaklardan gelen hata sinyallerini IncidentRecord'a normalize eder.
+FarklÄ± kaynaklardan gelen hata sinyallerini IncidentRecord'a normalize eder.
 
 Kaynaklar:
-- runtime exception logları (FastAPI exception handler)
-- worker/celery logları
-- failed test sonuçları
-- health check başarısızlıkları
-- kullanıcı geri bildirimi (Telegram /error komutu)
-- CI/CD pipeline başarısızlıkları
+- runtime exception loglarÄ± (FastAPI exception handler)
+- worker/celery loglarÄ±
+- failed test sonuÃ§larÄ±
+- health check baÅŸarÄ±sÄ±zlÄ±klarÄ±
+- kullanÄ±cÄ± geri bildirimi (Telegram /error komutu)
+- CI/CD pipeline baÅŸarÄ±sÄ±zlÄ±klarÄ±
 """
 
 import re
@@ -19,7 +19,7 @@ from typing import Optional, List
 from packages.repair_engine.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
 
 
-# ── Kaynak Tespiti ────────────────────────────────────────
+# â”€â”€ Kaynak Tespiti â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 _SEVERITY_KEYWORDS = {
     IncidentSeverity.CRITICAL: ["critical", "fatal", "panic", "system exit", "oom", "segfault"],
     IncidentSeverity.HIGH:     ["500", "unhandled exception", "database error", "connection refused",
@@ -58,10 +58,10 @@ def _detect_module(text: str) -> str:
 
 
 def _extract_file_paths(text: str) -> list[str]:
-    """Stack trace'den dosya yollarını çıkarır."""
+    """Stack trace'den dosya yollarÄ±nÄ± Ã§Ä±karÄ±r."""
     pattern = r'File "([^"]+\.py)"'
     paths = re.findall(pattern, text)
-    # Sadece proje dosyaları (site-packages değil)
+    # Sadece proje dosyalarÄ± (site-packages deÄŸil)
     return list(dict.fromkeys([
         p for p in paths
         if "site-packages" not in p and "lib/python" not in p
@@ -69,15 +69,15 @@ def _extract_file_paths(text: str) -> list[str]:
 
 
 def _extract_exception_type(stack_trace: str) -> str:
-    """Son exception tipini çıkarır."""
+    """Son exception tipini Ã§Ä±karÄ±r."""
     match = re.search(r'(\w+Error|\w+Exception):', stack_trace)
     return match.group(1) if match else ""
 
 
 class IncidentIngestor:
     """
-    Farklı giriş kaynaklarından IncidentRecord üretir.
-    Tekrar eden hataları gruplar (deduplication).
+    FarklÄ± giriÅŸ kaynaklarÄ±ndan IncidentRecord Ã¼retir.
+    Tekrar eden hatalarÄ± gruplar (deduplication).
     """
 
     def __init__(self):
@@ -85,7 +85,7 @@ class IncidentIngestor:
         self._hydrated = False
 
     def _fingerprint(self, symptom: str, module: str) -> str:
-        """Aynı hata tekrar gelirse incident güncellenir, yeni üretilmez."""
+        """AynÄ± hata tekrar gelirse incident gÃ¼ncellenir, yeni Ã¼retilmez."""
         return f"{module}::{symptom[:80]}"
 
     def from_exception(
@@ -118,10 +118,10 @@ class IncidentIngestor:
         log_line: str,
         service: str = "backend-api",
     ) -> Optional[IncidentRecord]:
-        """Tek bir log satırından incident üretmeyi dene."""
+        """Tek bir log satÄ±rÄ±ndan incident Ã¼retmeyi dene."""
         severity = _detect_severity(log_line)
         if severity == IncidentSeverity.LOW:
-            return None   # düşük önemlileri ignore et
+            return None   # dÃ¼ÅŸÃ¼k Ã¶nemlileri ignore et
         module = _detect_module(log_line)
         return self._get_or_create(
             source=IncidentSource.RUNTIME_LOG,
@@ -137,7 +137,7 @@ class IncidentIngestor:
         test_output: str,
         service: str = "tests",
     ) -> IncidentRecord:
-        """pytest başarısızlığından incident."""
+        """pytest baÅŸarÄ±sÄ±zlÄ±ÄŸÄ±ndan incident."""
         module = _detect_module(test_output)
         severity = _detect_severity(test_output)
         files = _extract_file_paths(test_output)
@@ -146,7 +146,7 @@ class IncidentIngestor:
             severity=severity,
             service=service,
             module=module,
-            symptom=f"Test başarısız: {test_name}",
+            symptom=f"Test baÅŸarÄ±sÄ±z: {test_name}",
             stack_trace=test_output,
             suspected_files=files,
             failing_tests=[test_name],
@@ -157,17 +157,17 @@ class IncidentIngestor:
         failing_service: str,
         detail: str,
     ) -> IncidentRecord:
-        """Health check başarısızlığından incident."""
+        """Health check baÅŸarÄ±sÄ±zlÄ±ÄŸÄ±ndan incident."""
         return self._get_or_create(
             source=IncidentSource.HEALTH_CHECK,
             severity=IncidentSeverity.HIGH,
             service=failing_service,
             module=_detect_module(detail),
-            symptom=f"Health check başarısız: {failing_service} — {detail[:100]}",
+            symptom=f"Health check baÅŸarÄ±sÄ±z: {failing_service} â€” {detail[:100]}",
         )
 
     def from_dict(self, data: dict) -> IncidentRecord:
-        """API üzerinden manuel oluşturma."""
+        """API Ã¼zerinden manuel oluÅŸturma."""
         return self._get_or_create(
             source=IncidentSource(data.get("source", "manual")),
             severity=IncidentSeverity(data.get("severity", "medium")),
@@ -195,7 +195,7 @@ class IncidentIngestor:
         return [i for i in self._seen.values() if i.status.lower() == "open"]
 
     async def hydrate_from_db(self, db_session=None) -> int:
-        """Veritabanındaki açık olayları parmak izi (fingerprint) belleğine yükle."""
+        """VeritabanÄ±ndaki aÃ§Ä±k olaylarÄ± parmak izi (fingerprint) belleÄŸine yÃ¼kle."""
         if self._hydrated:
             return 0
 
@@ -216,7 +216,7 @@ class IncidentIngestor:
             return 0
 
     async def _do_hydrate(self, db) -> int:
-        from packages.persistence.repair_repository import RepairIncidentRepo
+        from packages.persistence.repositories.repair_repository import RepairIncidentRepo
         from packages.repair_engine.schemas.incident import IncidentSource, IncidentSeverity, IncidentRecord
         
         records = await RepairIncidentRepo.get_open(db, limit=500)
@@ -225,7 +225,7 @@ class IncidentIngestor:
             try:
                 fp = self._fingerprint(rec.symptom, rec.module)
                 if fp not in self._seen:
-                    # DB'den gelen inci Schema'ya çevir
+                    # DB'den gelen inci Schema'ya Ã§evir
                     inc = IncidentRecord(
                         incident_id=rec.incident_id,
                         source=IncidentSource(rec.source),
@@ -252,3 +252,4 @@ class IncidentIngestor:
 
 # Singleton
 incident_ingestor = IncidentIngestor()
+
