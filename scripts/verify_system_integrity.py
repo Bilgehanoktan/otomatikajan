@@ -39,10 +39,10 @@ def smoke_import_test():
     sys.path.append(str(project_root))
     
     critical_modules = [
-        "main",
+        "apps.api.main",
+        "apps.api.lifespan",
+        "apps.worker.tasks.celery_app",
         "packages.orchestration.agi.cognitive.sovereign_cortex",
-        "packages.orchestration.agi.task_governance",
-        "startup.lifespan",
         "packages.persistence.session"
     ]
     
