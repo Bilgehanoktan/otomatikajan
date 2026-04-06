@@ -1,13 +1,14 @@
 import os
 import re
 
-# THE REMEDIATOR: Fixes specific modular import errors introduced by early sterilization
-def remediation():
+# THE DEFINITIVE REMEDIATOR: Phase 12.1 Final Fixes
+def definitive_remediation():
+    # Use accurate mappings for the newly moved modules
     fixes = {
-        "packages.persistence.repository": "packages.persistence.repositories.repository",
-        "packages.persistence.models.repair_models": "packages.persistence.models.repair_models", # No change needed here if previous fix was manual
-        # Add other common mistranslations
-        "packages.orchestration.agi.world": "packages.orchestration.agi.world" # (Check if correct)
+        "from packages.persistence.repair_models": "from packages.persistence.models.repair_models",
+        "import packages.persistence.repair_models": "import packages.persistence.models.repair_models",
+        "from packages.persistence.repository": "from packages.persistence.repositories.repository",
+        "import packages.persistence.repository": "import packages.persistence.repositories.repository",
     }
     
     count = 0
@@ -27,9 +28,6 @@ def remediation():
                     new_content = content
                     for src, target in fixes.items():
                         new_content = new_content.replace(src, target)
-                        # Specific case for repository pluralization
-                        if "from packages.persistence.repository import" in new_content:
-                             new_content = new_content.replace("from packages.persistence.repository import", "from packages.persistence.repositories.repository import")
                     
                     if new_content != content:
                         with open(filepath, 'w', encoding='utf-8') as f:
@@ -37,4 +35,4 @@ def remediation():
                         count += 1
     return count
 
-print(f"Remediation complete. Updated {remediation()} files.")
+print(f"Definitive Remediation complete. Updated {definitive_remediation()} files.")
