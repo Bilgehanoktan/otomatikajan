@@ -28,12 +28,12 @@ async def verify():
 
         # 2. Auditor & Evolution Engine Check
         try:
-            from core.agi.cognitive.sovereign_auditor import sovereign_auditor
+            from packages.orchestration.agi.cognitive.sovereign_auditor import sovereign_auditor
             print("[2/3] Testing SovereignCortexAuditor...")
             findings = await sovereign_auditor.run_full_audit()
             print(f"Found {len(findings)} initial audit findings.")
             
-            from core.agi.cognitive.evolution_engine import evolution_engine
+            from packages.orchestration.agi.cognitive.evolution_engine import evolution_engine
             print("[3/3] Testing SovereignEvolutionEngine...")
             # Just verify instance and methods
             print(f"Evolution Engine instance: {evolution_engine}")

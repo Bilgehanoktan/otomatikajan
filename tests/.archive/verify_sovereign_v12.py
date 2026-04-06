@@ -8,11 +8,11 @@ from unittest.mock import AsyncMock, patch, MagicMock
 # Base paths
 sys.path.append(os.getcwd())
 
-from core.agi.cognitive.sovereign_cortex import SovereignCortex
-from core.agi.task_governance import GovernedTask, SovereignGoal, GovernanceStatus
-from core.agi.operational.velocity_engine import EngineResult
-from core.agi.operational.kinetic_arbiter import kinetic_arbiter, ArbiterRequest
-from core.agi.governance.watchdog import GovernanceWatchdog
+from packages.orchestration.agi.cognitive.sovereign_cortex import SovereignCortex
+from packages.orchestration.agi.task_governance import GovernedTask, SovereignGoal, GovernanceStatus
+from packages.orchestration.agi.operational.velocity_engine import EngineResult
+from packages.orchestration.agi.operational.kinetic_arbiter import kinetic_arbiter, ArbiterRequest
+from packages.orchestration.agi.governance.watchdog import GovernanceWatchdog
 
 class SovereignMasterVerification(unittest.IsolatedAsyncioTestCase):
     """
@@ -45,14 +45,14 @@ class SovereignMasterVerification(unittest.IsolatedAsyncioTestCase):
         parent = SovereignGoal(id="master_goal", title="System Optimization", subtasks=[st])
 
         # Mocking for all layers
-        with patch("core.agi.operational.velocity_engine.velocity_engine.simulate_and_execute", new_callable=AsyncMock) as mock_exec:
+        with patch("packages.orchestration.agi.operational.velocity_engine.velocity_engine.simulate_and_execute", new_callable=AsyncMock) as mock_exec:
             mock_exec.return_value = EngineResult(
                 success=True, 
                 output_data="Kernel optimized.",
                 reflection="Used pool-based allocation instead of direct malloc."
             )
             
-            with patch("core.agi.cognitive.consensus_manager.ConsensusManager.resolve", new_callable=AsyncMock) as mock_consensus:
+            with patch("packages.orchestration.agi.cognitive.consensus_manager.ConsensusManager.resolve", new_callable=AsyncMock) as mock_consensus:
                 mock_consensus.return_value = (True, "Consensus reached with Red-Team audit.")
                 
                 # Execute node nexus
@@ -104,11 +104,11 @@ class SovereignMasterVerification(unittest.IsolatedAsyncioTestCase):
     async def test_03_governance_watchdog_integrity(self):
         """Watchdog'un otonom kural denetimi testi."""
         print("\n[STEP 3] Governance Watchdog & Persistence")
-        from core.agi.governance.rules import GovernanceRules
+        from packages.orchestration.agi.governance.rules import GovernanceRules
         watchdog = GovernanceWatchdog()
         
         # Mock actual audit logic
-        with patch("core.agi.governance.rules.GovernanceRules.audit_project_structure", new_callable=AsyncMock) as mock_audit:
+        with patch("packages.orchestration.agi.governance.rules.GovernanceRules.audit_project_structure", new_callable=AsyncMock) as mock_audit:
             mock_audit.return_value = [] # No violations
             
             await watchdog.audit_and_repair()

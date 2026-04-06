@@ -3,9 +3,9 @@ import uuid
 import logging
 from datetime import datetime, timezone
 from sqlalchemy import select
-from db.session import AsyncSessionLocal, init_db
-from db.models import ImprovementOpportunity
-from core.agi.cognitive.metacognitive_auditor import metacognitive_auditor
+from packages.persistence.session import AsyncSessionLocal, init_db
+from packages.persistence.models import ImprovementOpportunity
+from packages.orchestration.agi.cognitive.metacognitive_auditor import metacognitive_auditor
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("test_resilience")
@@ -28,17 +28,17 @@ async def test_auditor_upsert():
         # 1. First record
         logger.info("Inserting first record...")
         await metacognitive_auditor._create_improvement_opportunity(db, data, bn)
-        await db.commit()
+        await packages.persistence.commit()
         
         # 2. Duplicate record (different data, same hash)
         logger.info("Attempting duplicate record (UPSERT branch)...")
         data["root_cause"] = "Updated Root Cause"
         await metacognitive_auditor._create_improvement_opportunity(db, data, bn)
-        await db.commit()
+        await packages.persistence.commit()
         
         # 3. Verify
         p_hash = ImprovementOpportunity.generate_hash("cog_diag", f"{agent_id}:{skill_id}")
-        result = await db.execute(select(ImprovementOpportunity).where(ImprovementOpportunity.pattern_hash == p_hash))
+        result = await packages.persistence.execute(select(ImprovementOpportunity).where(ImprovementOpportunity.pattern_hash == p_hash))
         opps = result.scalars().all()
         
         logger.info(f"Opportunities found for hash: {len(opps)}")

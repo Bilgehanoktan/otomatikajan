@@ -17,8 +17,8 @@ async def insert_test_log():
             duration_s=1.23,
             created_at=datetime.utcnow()
         )
-        db.add(log)
-        await db.commit()
+        packages.persistence.add(log)
+        await packages.persistence.commit()
         print(f"Inserted test log ID: {log.id}")
 
 if __name__ == "__main__":

@@ -18,7 +18,7 @@ async def test_improvement_system():
             status="error"
         )
         await ProjectRepository.set_error(db, test_project.id, "Connection timeout to LLM provider")
-        await db.commit()
+        await packages.persistence.commit()
         print(f"Mock proje oluşturuldu: {test_project.id}")
 
     print("\n--- 2. ImprovementGate Manuel Tetikleme ---")

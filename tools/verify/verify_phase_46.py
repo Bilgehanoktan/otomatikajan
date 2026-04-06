@@ -29,8 +29,8 @@ async def test_consensus_refinement():
     mock_red = AsyncMock()
     mock_red.attack_plan.return_value = MagicMock(threat_score=0.1, vulnerabilities=[])
     
-    with patch("core.agi.governance.watchdog.governance_watchdog", mock_watchdog), \
-         patch("core.agi.cognitive.consensus_manager.red_team", mock_red):
+    with patch("packages.orchestration.agi.governance.watchdog.governance_watchdog", mock_watchdog), \
+         patch("packages.orchestration.agi.cognitive.consensus_manager.red_team", mock_red):
         consensus_manager.model_orch = mock_orch
         proposals = [
             PlanProposal(agent_id="test", content="rm -rf /", confidence=0.5),
@@ -50,8 +50,8 @@ async def test_strategic_retrieval():
     mock_cortex = AsyncMock()
     mock_cortex.search.return_value = [{"body": "Successful Plan A"}]
     
-    with patch("core.agi.cognitive.goal_decomposer.synaptic_cortex", mock_cortex):
-        with patch("core.agi.cognitive.goal_decomposer.get_db") as mock_db:
+    with patch("packages.orchestration.agi.cognitive.goal_decomposer.synaptic_cortex", mock_cortex):
+        with patch("packages.orchestration.agi.cognitive.goal_decomposer.get_db") as mock_db:
              goal_decomposer.model_orch = AsyncMock()
              goal_decomposer.model_orch.complete_task.return_value = MagicMock(content='{"plan": []}')
              
@@ -102,11 +102,11 @@ async def test_resilience_recovery():
     mock_cortex_local.motivation = AsyncMock()
     mock_cortex_local.planner = AsyncMock()
     
-    with patch("core.agi.cognitive.sovereign_cortex.goal_decomposer", mock_decomposer):
+    with patch("packages.orchestration.agi.cognitive.sovereign_cortex.goal_decomposer", mock_decomposer):
         with patch.object(mock_cortex_local, "_execute_dialectic_planning", AsyncMock(return_value=task)):
-            with patch("core.agi.cognitive.sovereign_cortex.synaptic_cortex", AsyncMock()):
-                with patch("core.agi.cognitive.sovereign_cortex.foresight_cortex", AsyncMock()):
-                    with patch("core.agi.cognitive.sovereign_cortex.memory_api", AsyncMock()):
+            with patch("packages.orchestration.agi.cognitive.sovereign_cortex.synaptic_cortex", AsyncMock()):
+                with patch("packages.orchestration.agi.cognitive.sovereign_cortex.foresight_cortex", AsyncMock()):
+                    with patch("packages.orchestration.agi.cognitive.sovereign_cortex.memory_api", AsyncMock()):
                         await mock_cortex_local.coordinate_goal("Test Recovery", "Desc")
 
     print(f"Final status: {task.status}")

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from core.agi.world.repo_graph import RepoGraph
+from packages.orchestration.agi.world.repo_graph import RepoGraph
 
 
 def test_repo_graph_detects_local_edges_and_unresolved_imports(tmp_path: Path):

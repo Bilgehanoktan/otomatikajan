@@ -41,7 +41,7 @@ async def verify_agi_evolution():
         # 4. Check if an Autonomous project was created
         print("\n[STEP 3] Verifying Database for Autonomous Project...")
         async with AsyncSessionLocal() as db:
-            result = await db.execute(select(Project).where(Project.source == "agi_teleology"))
+            result = await packages.persistence.execute(select(Project).where(Project.source == "agi_teleology"))
             projs = result.scalars().all()
             print(f"[OK] Found {len(projs)} active Autonomous Projects in DB.")
             for p in projs[-3:]: # latest 3

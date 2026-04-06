@@ -2,8 +2,8 @@ import asyncio
 import unittest
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
-from core.agi.central_executive import CentralExecutive
-from core.agi.schemas import SourceType, TaskType, RiskLevel
+from packages.orchestration.agi.central_executive import CentralExecutive
+from packages.orchestration.agi.schemas import SourceType, TaskType, RiskLevel
 
 class TestCognitiveArchitecture(unittest.IsolatedAsyncioTestCase):
     """
@@ -23,8 +23,8 @@ class TestCognitiveArchitecture(unittest.IsolatedAsyncioTestCase):
         )
 
         # 2. Logic Mocks (ModelOrchestrator levels)
-        self.patcher_orch_task = patch("llm.model_orchestrator.ModelOrchestrator.complete_task", AsyncMock())
-        self.patcher_orch_gen = patch("llm.model_orchestrator.ModelOrchestrator.generate", AsyncMock())
+        self.patcher_orch_task = patch("packages.llm_gateway.model_orchestrator.ModelOrchestrator.complete_task", AsyncMock())
+        self.patcher_orch_gen = patch("packages.llm_gateway.model_orchestrator.ModelOrchestrator.generate", AsyncMock())
         self.mock_complete = self.patcher_orch_task.start()
         self.mock_generate = self.patcher_orch_gen.start()
 
@@ -50,18 +50,18 @@ class TestCognitiveArchitecture(unittest.IsolatedAsyncioTestCase):
         mock_ctx.__aexit__ = AsyncMock()
         
         self.session_patchers = [
-            patch("core.agi.central_executive.session_scope", return_value=mock_ctx),
-            patch("core.agi.operational.action_cortex.session_scope", return_value=mock_ctx),
-            patch("core.agi.adaptation.policy_engine.session_scope", return_value=mock_ctx)
+            patch("packages.orchestration.agi.central_executive.session_scope", return_value=mock_ctx),
+            patch("packages.orchestration.agi.operational.action_cortex.session_scope", return_value=mock_ctx),
+            patch("packages.orchestration.agi.adaptation.policy_engine.session_scope", return_value=mock_ctx)
         ]
         for p in self.session_patchers: p.start()
 
         # 4. Other Logic Patcher
         self.logic_patchers = [
-            patch("core.agi.consciousness.semantic_memory.get_embedding", AsyncMock(return_value=[0.1]*1536)),
-            patch("core.agi.consciousness.semantic_memory.semantic_memory.memory_write_gate", AsyncMock(return_value=True)),
-            patch("core.agi.consciousness.semantic_memory.semantic_memory.save_episode", AsyncMock()),
-            patch("core.agi.consciousness.semantic_memory.semantic_memory.get_recent", AsyncMock(return_value=[])),
+            patch("packages.orchestration.agi.consciousness.semantic_memory.get_embedding", AsyncMock(return_value=[0.1]*1536)),
+            patch("packages.orchestration.agi.consciousness.semantic_memory.semantic_memory.memory_write_gate", AsyncMock(return_value=True)),
+            patch("packages.orchestration.agi.consciousness.semantic_memory.semantic_memory.save_episode", AsyncMock()),
+            patch("packages.orchestration.agi.consciousness.semantic_memory.semantic_memory.get_recent", AsyncMock(return_value=[])),
             patch("api.ws_manager.ws_manager.broadcast_skill_trace", AsyncMock())
         ]
         for p in self.logic_patchers: p.start()

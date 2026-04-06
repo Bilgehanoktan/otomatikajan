@@ -22,7 +22,7 @@ def test_search_by_symbol_exact_match(tmp_path: Path):
                 "path": "skills/router.py",
                 "summary": "router file",
                 "symbols": ["SkillRouter", "TaskRouter"],
-                "imports": ["skills.registry"],
+                "imports": ["packages.skills.registry"],
             }
         ]
     }
@@ -79,19 +79,19 @@ def test_impact_analysis_returns_related_candidates(tmp_path: Path, monkeypatch)
             "path": "core/orchestrator.py",
             "summary": "orchestrator uses SkillRouter and task flow",
             "symbols": ["Orchestrator"],
-            "imports": ["skills.router"],
+            "imports": ["packages.skills.router"],
         },
         {
             "path": "skills/router.py",
             "summary": "router file",
             "symbols": ["SkillRouter"],
-            "imports": ["skills.registry"],
+            "imports": ["packages.skills.registry"],
         },
         {
             "path": "api/task_write_router.py",
             "summary": "task write calls orchestrator",
             "symbols": ["create_task"],
-            "imports": ["skills.router"],
+            "imports": ["packages.skills.router"],
         },
     ]
 

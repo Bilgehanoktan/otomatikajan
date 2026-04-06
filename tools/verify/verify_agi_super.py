@@ -11,7 +11,7 @@ async def verify_agi_super_intelligence():
     try:
         from packages.orchestration.agi.operational.agent_weaver import agent_weaver
         from packages.orchestration.agi.proactive_agent import proactive_agent
-        from agents.agent_registry import discover_and_build_specialists
+        from packages.orchestration.agi.agent_registry import discover_and_build_specialists
         
         print("[OK] AGI 14.0/15.0 components imported successfully.")
         

@@ -11,7 +11,7 @@ from packages.persistence.session import AsyncSessionLocal, init_db
 from packages.persistence.models import Memory
 from packages.orchestration.agi.adaptation.sovereign_evolution_45 import sovereign_evolution_45
 from packages.orchestration.agi.operational.patching_sandbox import patching_sandbox
-from packages.observability.logging import get_logger
+from packages.packages.observability.logging import get_logger
 
 _log = get_logger("agi_self_patch_verify")
 
@@ -36,7 +36,7 @@ async def inject_policy_proposal(db):
     
     # Eskileri temizle (opsiyonel)
     # stmt = select(Memory).where(Memory.category == "policy_proposal")
-    # result = await db.execute(stmt)
+    # result = await packages.persistence.execute(stmt)
     
     new_mem = Memory(
         agent_id="test_evolution",
@@ -45,8 +45,8 @@ async def inject_policy_proposal(db):
         metadata_=policy_data,
         importance=0.9
     )
-    db.add(new_mem)
-    await db.commit()
+    packages.persistence.add(new_mem)
+    await packages.persistence.commit()
     _log.info("Test politikası veritabanına enjekte edildi.")
 
 async def verify_patch_result():

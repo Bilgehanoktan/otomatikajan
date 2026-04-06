@@ -1,11 +1,11 @@
 import pytest
 from pathlib import Path
 from unittest.mock import MagicMock, patch, AsyncMock
-from skills.adapters.optimization_adapter import OptimizationSkillAdapter
-from skills.adapters.vault_memory_adapter import VaultMemorySkillAdapter
-from skills.adapters.debugging_adapter import DebuggingSkillAdapter
-from skills.adapters.skill_creator_adapter import SkillCreatorSkillAdapter
-from skills.base import SkillRequest
+from packages.packages.skills.adapters.optimization_adapter import OptimizationSkillAdapter
+from packages.packages.skills.adapters.vault_memory_adapter import VaultMemorySkillAdapter
+from packages.packages.skills.adapters.debugging_adapter import DebuggingSkillAdapter
+from packages.packages.skills.adapters.skill_creator_adapter import SkillCreatorSkillAdapter
+from packages.packages.skills.base import SkillRequest
 
 @pytest.mark.asyncio
 async def test_ut07_optimization_adapter_trims_context():
@@ -103,7 +103,7 @@ def test_ut13_debugging_adapter_can_handle():
 @pytest.mark.asyncio
 async def test_ut14_debugging_adapter_calls_repair_orch():
     """UT-14 — Debugging adapter repair orchestrator’ı çağırıyor"""
-    from repair.schemas.incident import IncidentSource
+    from packages.repair_engine.schemas.incident import IncidentSource
     adapter = DebuggingSkillAdapter()
     
     mock_orch = AsyncMock()

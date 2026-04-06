@@ -43,19 +43,19 @@ def verify_consolidation():
     print("\n[BÖLÜM 2: Kritik Modül Importları]")
     modules = [
         "schemas",
-        "core.agi.cognitive.metacognitive_auditor",
-        "core.agi.cognitive.evolution_engine",
-        "core.agi.cognitive.dream_engine",
+        "packages.orchestration.agi.cognitive.metacognitive_auditor",
+        "packages.orchestration.agi.cognitive.evolution_engine",
+        "packages.orchestration.agi.cognitive.dream_engine",
     ]
     modules_ok = all([check_import(m) for m in modules])
     
     print("\n[BÖLÜM 3: Shim Doğrulaması]")
     # Shims should point to masters and have aliases
     shim_test_cases = [
-        ("core.agi.cognitive.sovereign_auditor", "SovereignCortexAuditor"),
-        ("core.agi.cognitive.self_audit", "SelfAuditAgent"),
-        ("core.agi.cognitive.memory_pruner", "MemoryPruner"),
-        ("core.agi.adaptation.sovereign_evolution_45", "SovereignEvolution45"),
+        ("packages.orchestration.agi.cognitive.sovereign_auditor", "SovereignCortexAuditor"),
+        ("packages.orchestration.agi.cognitive.self_audit", "SelfAuditAgent"),
+        ("packages.orchestration.agi.cognitive.memory_pruner", "MemoryPruner"),
+        ("packages.orchestration.agi.adaptation.sovereign_evolution_45", "SovereignEvolution45"),
     ]
     
     shims_ok = True

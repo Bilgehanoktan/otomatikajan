@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from skills.base import SkillRequest
-from skills.adapters.skill_creator_adapter import SkillCreatorSkillAdapter
+from packages.packages.skills.base import SkillRequest
+from packages.packages.skills.adapters.skill_creator_adapter import SkillCreatorSkillAdapter
 
 
 @pytest.mark.asyncio

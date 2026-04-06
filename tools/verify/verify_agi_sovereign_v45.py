@@ -37,7 +37,7 @@ async def verify_v45_sovereign():
                 "reason": "Test Phase 45 Traceability"
             }
         )
-        await db.commit()
+        await packages.persistence.commit()
         print(f"[*] Mock Policy created for {test_file}")
 
         # 3. Evolve tetikle
@@ -50,7 +50,7 @@ async def verify_v45_sovereign():
 
         # 4. Provenance Kaydını Doğrula
         stmt = select(Memory).where(Memory.category == "evolution_provenance").order_by(Memory.created_at.desc()).limit(1)
-        res = await db.execute(stmt)
+        res = await packages.persistence.execute(stmt)
         prov = res.scalar_one_or_none()
 
         if prov:
@@ -71,9 +71,9 @@ async def verify_v45_sovereign():
                 policy_id="VERIFY-999",
                 reason="Manual surgical verification of Provenance Layer"
             )
-            await db.commit()
+            await packages.persistence.commit()
             
-            res_retry = await db.execute(stmt)
+            res_retry = await packages.persistence.execute(stmt)
             prov_retry = res_retry.scalar_one_or_none()
             if prov_retry:
                 print("[SUCCESS] Direct Provenance test passed!")

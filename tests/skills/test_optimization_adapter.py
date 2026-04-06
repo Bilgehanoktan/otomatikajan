@@ -1,7 +1,7 @@
 import pytest
 
-from skills.base import SkillRequest
-from skills.adapters.optimization_adapter import OptimizationSkillAdapter
+from packages.packages.skills.base import SkillRequest
+from packages.packages.skills.adapters.optimization_adapter import OptimizationSkillAdapter
 
 
 @pytest.mark.asyncio

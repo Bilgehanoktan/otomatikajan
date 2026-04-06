@@ -3,7 +3,7 @@ import os
 import sys
 from datetime import datetime, timezone
 from sqlalchemy import text
-from db.session import AsyncSessionLocal, is_db_available
+from packages.persistence.session import AsyncSessionLocal, is_db_available
 
 async def diagnose():
     print("--- [SEARCH] SOVEREIGN SYSTEM DIAGNOSTIC (Faz 12.1) ---")
@@ -14,11 +14,11 @@ async def diagnose():
     
     # 2. Latest Errors in ApiMetric
     try:
-        from db.models import ApiMetric
+        from packages.persistence.models import ApiMetric
         from sqlalchemy import select, desc
         async with AsyncSessionLocal() as db:
             stmt = select(ApiMetric).where(ApiMetric.status_code >= 400).order_by(ApiMetric.created_at.desc()).limit(5)
-            res = await db.execute(stmt)
+            res = await packages.persistence.execute(stmt)
             errors = res.scalars().all()
             print(f"\nRecent API Errors ({len(errors)}):")
             for e in errors:
@@ -28,9 +28,9 @@ async def diagnose():
 
     # 3. Cognitive Audit Integrity
     try:
-        from db.models import ImprovementOpportunity
+        from packages.persistence.models import ImprovementOpportunity
         async with AsyncSessionLocal() as db:
-            count = await db.scalar(text("SELECT count(*) FROM improvement_opportunities"))
+            count = await packages.persistence.scalar(text("SELECT count(*) FROM improvement_opportunities"))
             print(f"\nImprovement Opportunities: {count}")
     except Exception as e:
         print(f"Error reading audits: {e}")

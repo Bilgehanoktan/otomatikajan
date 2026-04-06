@@ -26,8 +26,8 @@ async def verify_phase_42():
         # Önceki test verilerini temizle (Opsiyonel ama temizlik iyidir)
         from sqlalchemy import delete
         from packages.persistence.models import Memory
-        await db.execute(delete(Memory).where(Memory.category == "arch_inhibition"))
-        await db.commit()
+        await packages.persistence.execute(delete(Memory).where(Memory.category == "arch_inhibition"))
+        await packages.persistence.commit()
         
         # Manuel engel kaydı (Watchdog'un yapacağı işi simüle et)
         await synaptic_cortex.save_architectural_inhibition(
@@ -36,7 +36,7 @@ async def verify_phase_42():
             target=violation_path,
             description="Yasaklı legacy dizini kullanımı."
         )
-        await db.commit()
+        await packages.persistence.commit()
     
     print("[2/4] Bilişsel Ketleme (Inhibition) kaydedildi.")
     

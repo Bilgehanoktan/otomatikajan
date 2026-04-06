@@ -2,8 +2,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from skills.base import SkillRequest
-from skills.adapters.debugging_adapter import DebuggingSkillAdapter
+from packages.packages.skills.base import SkillRequest
+from packages.packages.skills.adapters.debugging_adapter import DebuggingSkillAdapter
 
 
 class _FakeRepairOrchestrator:

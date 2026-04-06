@@ -16,7 +16,7 @@ from packages.persistence.session import AsyncSessionLocal, init_db
 from packages.persistence.models import Memory
 from packages.orchestration.agi.cognitive.subconscious_cortex_45 import subconscious_cortex_45
 from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
-from packages.observability.logging import get_logger
+from packages.packages.observability.logging import get_logger
 
 _log = get_logger("agi_dreamer_verify")
 
@@ -39,13 +39,13 @@ async def verify_dreamer():
             )
             test_ids.append(str(entry.id))
         
-        await db.commit()
+        await packages.persistence.commit()
         _log.info(f"{len(test_ids)} adet benzer hata kaydı oluşturuldu.")
 
         # 2. Dreamer'ı Tetikle
         _log.info("Subconscious Cortex (Düşleme) süreci manuel olarak başlatılıyor...")
         await subconscious_cortex_45.dream(db, limit=10)
-        await db.commit()
+        await packages.persistence.commit()
 
         # 3. Sonuçları Kontrol Et
         # a) Yeni bir reflection_log (Evrensel Ders) oluştu mu?
@@ -61,7 +61,7 @@ async def verify_dreamer():
         # Not: LLM'in bu ID'leri tam olarak döndürmesi garanti değil ama en az birini bulmasını bekliyoruz.
         marked_redundant = 0
         for tid in test_ids:
-            m = await db.get(Memory, uuid.UUID(tid))
+            m = await packages.persistence.get(Memory, uuid.UUID(tid))
             if m and "consolidated_redundant" in (m.tags or []):
                 marked_redundant += 1
         

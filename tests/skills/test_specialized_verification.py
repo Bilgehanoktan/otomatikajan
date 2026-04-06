@@ -1,10 +1,10 @@
 import pytest
-from skills.adapters.vault_memory_adapter import VaultMemorySkillAdapter
-from skills.adapters.debugging_adapter import DebuggingSkillAdapter
-from skills.adapters.skill_creator_adapter import SkillCreatorSkillAdapter
-from skills.base import SkillRequest
+from packages.packages.skills.adapters.vault_memory_adapter import VaultMemorySkillAdapter
+from packages.packages.skills.adapters.debugging_adapter import DebuggingSkillAdapter
+from packages.packages.skills.adapters.skill_creator_adapter import SkillCreatorSkillAdapter
+from packages.packages.skills.base import SkillRequest
 from unittest.mock import MagicMock, patch, AsyncMock
-from repair.schemas.incident import IncidentSource, IncidentSeverity
+from packages.repair_engine.schemas.incident import IncidentSource, IncidentSeverity
 
 def test_vlt_extreme_slugification():
     """VLT-01 — Vault slugification extreme karakterleri temizliyor"""

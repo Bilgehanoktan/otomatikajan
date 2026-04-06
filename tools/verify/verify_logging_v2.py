@@ -10,7 +10,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 try:
-    from packages.observability.logging import get_logger, configure_logging
+    from packages.packages.observability.logging import get_logger, configure_logging
     from packages.persistence.session import AsyncSessionLocal
     from sqlalchemy import select
     from packages.persistence.models import DomainEventLog
@@ -42,7 +42,7 @@ async def verify():
     # 4. DB'den Kontrol Et
     try:
         async with AsyncSessionLocal() as db:
-            result = await db.execute(
+            result = await packages.persistence.execute(
                 select(DomainEventLog).where(DomainEventLog.message == unique_msg)
             )
             row = result.scalar_one_or_none()

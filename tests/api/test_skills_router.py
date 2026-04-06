@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from api.skills_router import router
-from auth.jwt_auth import get_current_user
+from apps.api.routers.apps.api.routers.auth.jwt_auth import get_current_user
 
 def mock_get_current_user():
     return {"id": "test-user", "role": "admin"}

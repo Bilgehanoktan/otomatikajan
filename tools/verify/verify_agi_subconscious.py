@@ -10,7 +10,7 @@ from packages.persistence.session import AsyncSessionLocal, init_db
 from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
 from packages.orchestration.agi.cognitive.motivation_engine import motivation_engine
 from packages.persistence.models import Memory, Project
-from packages.observability.logging import get_logger
+from packages.packages.observability.logging import get_logger
 
 _log = get_logger("agi_subconscious_audit")
 
@@ -23,11 +23,11 @@ async def audit_subconscious():
     
     async with AsyncSessionLocal() as db:
         # 1. Hafıza İstatistikleri
-        memory_count = await db.scalar(select(func.count()).select_from(Memory))
+        memory_count = await packages.persistence.scalar(select(func.count()).select_from(Memory))
         _log.info(f"Toplam Hafıza Kaydı (Episodes/Memories): {memory_count}")
         
         # 2. Episode Dağılımı (Kategori Bazlı)
-        categories = await db.execute(
+        categories = await packages.persistence.execute(
             select(Memory.category, func.count()).group_by(Memory.category)
         )
         _log.info("Kategori Dağılımı:")
@@ -35,13 +35,13 @@ async def audit_subconscious():
             _log.info(f"  - {cat}: {cnt}")
         
         # 3. Politika (Policy) Durumu
-        policies = await db.scalar(
+        policies = await packages.persistence.scalar(
             select(func.count()).select_from(Memory).where(Memory.category == "policy")
         )
         _log.info(f"Aktif/Önerilen Politikalar: {policies}")
         
         # 4. Nedensellik (Causal) Bağlantıları
-        all_memories = await db.execute(select(Memory))
+        all_memories = await packages.persistence.execute(select(Memory))
         causal_count = 0
         for m in all_memories.scalars():
             if m.metadata_ and "failure_diagnostics" in m.metadata_:
@@ -49,7 +49,7 @@ async def audit_subconscious():
         _log.info(f"Nedensel Analiz İçeren Kayıt Sayısı: {causal_count}")
         
         # 5. Proje Bütünlüğü
-        projects = await db.scalar(select(func.count()).select_from(Project))
+        projects = await packages.persistence.scalar(select(func.count()).select_from(Project))
         _log.info(f"Toplam Takip Edilen Proje: {projects}")
         
         # 6. Affective Core (Motivation) Durumu

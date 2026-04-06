@@ -1,9 +1,9 @@
-from core.agi.prompt_blueprints import (
+from packages.orchestration.agi.prompt_blueprints import (
     build_backend_agi_prompt,
     build_planner_execution_contract,
     build_ui_agi_prompt,
 )
-from core.agi.schemas import ContextPackage, ProblemFrame, RiskLevel, TaskType
+from packages.orchestration.agi.schemas import ContextPackage, ProblemFrame, RiskLevel, TaskType
 
 
 def test_backend_prompt_contains_memory_preservation_rule():

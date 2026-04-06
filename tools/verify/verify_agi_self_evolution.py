@@ -20,7 +20,7 @@ async def verify_agi_self_evolution():
         async with session_scope() as db:
             # Delete old ones to ensure our mock is picked up
             from sqlalchemy import delete
-            await db.execute(delete(ImprovementOpportunity))
+            await packages.persistence.execute(delete(ImprovementOpportunity))
             
             # Create a mock opportunity for Evolutionary Architect to pick up
             opp = await ImprovementRepository.create(
@@ -41,7 +41,7 @@ async def verify_agi_self_evolution():
             # 3. Verify CEO Suggestion
             print("[STEP 3] Verifying CEO Suggested Tasks for Evolution patches...")
             from sqlalchemy import select
-            result = await db.execute(
+            result = await packages.persistence.execute(
                 select(CEOSuggestedTask).where(CEOSuggestedTask.opportunity_id == opp.id)
             )
             suggestion = result.scalar_one_or_none()

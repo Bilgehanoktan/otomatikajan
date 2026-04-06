@@ -1,8 +1,8 @@
 import pytest
 from unittest.mock import MagicMock, patch, AsyncMock
-from skills.registry import skill_registry
-from skills.base import SkillRequest, SkillResult
-from db.models import SkillExecutionLog
+from packages.packages.skills.registry import skill_registry
+from packages.packages.skills.base import SkillRequest, SkillResult
+from packages.persistence.models import SkillExecutionLog
 
 @pytest.mark.asyncio
 async def test_skill_execution_logging_persistence():
@@ -24,7 +24,7 @@ async def test_skill_execution_logging_persistence():
     
     with patch.object(skill_registry, "get", return_value=mock_adapter):
         # Mock the DB session to avoid real DB dependency in unit level
-        with patch("skills.logger.get_db_session") as mock_session_cm:
+        with patch("packages.skills.logger.get_db_session") as mock_session_cm:
             mock_session = MagicMock()
             mock_session_cm.return_value.__aenter__.return_value = mock_session
             
@@ -33,7 +33,7 @@ async def test_skill_execution_logging_persistence():
             assert res.success
             assert res.summary == "Persistence verified"
             
-            # Verify db.add was called with SkillExecutionLog
+            # Verify packages.persistence.add was called with SkillExecutionLog
             assert mock_session.add.called
             log_entry = mock_session.add.call_args[0][0]
             assert isinstance(log_entry, SkillExecutionLog)

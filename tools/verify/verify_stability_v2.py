@@ -11,18 +11,18 @@ if project_root not in sys.path:
 async def verify_components():
     print("--- [CHECK] Bileşen Kararlılık Testi (SRE Hardening) ---")
     
-    # 1. db.session Hardening
+    # 1. packages.persistence.session Hardening
     try:
         from packages.persistence.session import _verify_core
         # engine=None testi
         res = await _verify_core() 
-        print(f"[OK] db.session._verify_core (None Engine test): {res}")
+        print(f"[OK] packages.persistence.session._verify_core (None Engine test): {res}")
     except Exception as e:
-        print(f"[ERR] db.session._verify_core Hatası: {e}")
+        print(f"[ERR] packages.persistence.session._verify_core Hatası: {e}")
 
-    # 2. agents.agent_registry AGENT_COUNT
+    # 2. packages.orchestration.agi.agent_registry AGENT_COUNT
     try:
-        from agents.agent_registry import build_agents
+        from packages.orchestration.agi.agent_registry import build_agents
         agents = build_agents()
         print(f"[OK] agent_registry: {len(agents)} ajan başarıyla yüklendi.")
     except Exception as e:

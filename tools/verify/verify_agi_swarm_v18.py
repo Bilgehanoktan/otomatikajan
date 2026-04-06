@@ -21,8 +21,8 @@ async def verify_agi_swarm_v18():
     
     p_id = uuid.uuid4()
     async with AsyncSessionLocal() as db:
-        db.add(Project(id=p_id, title="Swarm Verification Project"))
-        await db.commit()
+        packages.persistence.add(Project(id=p_id, title="Swarm Verification Project"))
+        await packages.persistence.commit()
     
     # Complex goal that SHOULD decompose into independent tasks
     objective = "Verify and optimize both 'core/agi/schemas.py' and 'core/agi/operational/velocity_engine.py' simultaneously."

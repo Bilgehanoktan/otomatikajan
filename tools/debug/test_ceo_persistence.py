@@ -26,7 +26,7 @@ async def test_persistence():
     
     # 2. Verify DB
     async with session_scope() as db:
-        res = await db.execute(select(func.count(ImprovementOpportunity.id)).where(ImprovementOpportunity.status == "open"))
+        res = await packages.persistence.execute(select(func.count(ImprovementOpportunity.id)).where(ImprovementOpportunity.status == "open"))
         count = res.scalar()
         print(f"Double Check: ImprovementOpportunity table count (open): {count}")
         

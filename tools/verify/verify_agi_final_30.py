@@ -14,7 +14,7 @@ from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
 from packages.orchestration.agi.operational.resource_manager import resource_manager
 from packages.orchestration.agi.operational.local_failsafe_engine import local_failsafe
 from packages.persistence.session import session_scope, init_db
-from packages.observability.logging import get_logger
+from packages.packages.observability.logging import get_logger
 
 _log = get_logger("verify_agi_30")
 
@@ -24,7 +24,7 @@ async def verify_stitching():
         # Önce birkaç yüksek önem dereceli memory ekleyelim (Simülasyon)
         await synaptic_cortex.save(db, "test_agent", "Kritik Güvenlik Kuralı: Şifreleri asla loglama.", category="policy_proposal", importance=0.95)
         await synaptic_cortex.save(db, "test_agent", "Performans Dersi: Büyük dosyaları chunk bazlı oku.", category="reflection_log", importance=0.85)
-        await db.commit()
+        await packages.persistence.commit()
         
         # Stitching tetikle
         await synaptic_cortex.synthesize_global_knowledge(db)

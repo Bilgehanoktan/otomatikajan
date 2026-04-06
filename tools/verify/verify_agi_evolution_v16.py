@@ -56,7 +56,7 @@ async def verify_agi_evolution_v16():
                     print(f"  -> Path: {t}")
             else:
                 # If LLM didn't return a tool yet, check the DB for analyzed status
-                await db.refresh(opp)
+                await packages.persistence.refresh(opp)
                 if opp.status == "synthesized":
                     print("[SUCCESS] Opportunity marked as 'synthesized'. Tool creation logic was triggered.")
                 else:
