@@ -64,7 +64,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 
 CMD ["sh", "-c", \
     "alembic upgrade head && \
-     gunicorn main:app \
+     gunicorn apps.api.main:app \
         --worker-class uvicorn.workers.UvicornWorker \
         --workers ${WORKERS:-2} \
         --bind 0.0.0.0:8000 \
@@ -84,4 +84,4 @@ RUN apt-get -o Acquire::Retries=3 update && apt-get -o Acquire::Retries=3 instal
 # Playwright browser'ları zaten base-runtime'da kurulu.
 
 USER appuser
-CMD ["celery", "-A", "tasks.celery_app", "worker", "--loglevel=info", "--queues=critical,default,background", "--concurrency=2"]
+CMD ["celery", "-A", "apps.worker.tasks.celery_app", "worker", "--loglevel=info", "--queues=critical,default,background", "--concurrency=2"]
