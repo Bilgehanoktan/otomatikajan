@@ -43,7 +43,7 @@ def smoke_import_test():
         "packages.orchestration.agi.cognitive.sovereign_cortex",
         "packages.orchestration.agi.task_governance",
         "startup.lifespan",
-        "core.context"
+        "packages.persistence.session"
     ]
     
     success = True
