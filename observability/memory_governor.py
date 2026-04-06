@@ -1,1 +1,1 @@
-from packages.packages.observability.memory_governor import *
+from packages.observability.memory_governor import *

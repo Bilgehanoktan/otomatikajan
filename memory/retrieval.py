@@ -1,1 +1,1 @@
-﻿from packages.packages.memory.retrieval import *
+from packages.memory.retrieval import *

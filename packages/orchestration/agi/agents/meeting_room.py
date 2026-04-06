@@ -7,7 +7,7 @@ import re
 
 from packages.orchestration.agi.agent_registry import build_agents, Agent
 from packages.llm_gateway.model_orchestrator import ModelOrchestrator
-from packages.packages.observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 logger = get_logger("meeting_room")
 
