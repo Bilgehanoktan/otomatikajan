@@ -41,7 +41,7 @@ class MemoryEntry:
         return min(1.0, overlap / len(q_words))
 
 
-from packages.observability.memory_governor import packages.memory_governor
+from packages.observability.memory_governor import memory_governor
 
 class InMemoryStore:
     """Hafif in-process bellek — DB bağımlılığı yok."""

@@ -44,7 +44,7 @@ async def get_embedding(text_: str) -> list[float] | None:
         return None
 
 from collections import deque
-from packages.observability.memory_governor import packages.memory_governor
+from packages.observability.memory_governor import memory_governor
 
 class UnifiedGalacticCortex:
     """
