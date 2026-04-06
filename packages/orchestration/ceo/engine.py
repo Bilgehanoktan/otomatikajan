@@ -834,7 +834,7 @@ class CEOEngine:
         suggestion.created_task_id = proj_id
         
         # Enqueue Logic (Celery app globalden gelmeli)
-        elif action == "requeue":
+        try:
             from apps.worker.tasks.celery_app import celery_app
             celery_task = celery_app.send_task(
                 "run_project_task",
