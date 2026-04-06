@@ -172,7 +172,7 @@ services:
   deerflow-bridge:
     build:
       context: .
-      dockerfile: ./deerflow_bridge/Dockerfile
+      dockerfile: ./external/vendor/deer-flow/backend/Dockerfile
     container_name: deerflow-bridge
     restart: unless-stopped
     env_file:
@@ -190,7 +190,7 @@ services:
     ports:
       - "8010:8010"
     volumes:
-      - ./vendor/deer-flow:/opt/deerflow
+      - ./external/vendor/deer-flow:/opt/deerflow
       # Sadece Docker sandbox kullanacaksan:
       # - /var/run/docker.sock:/var/run/docker.sock
     healthcheck:
