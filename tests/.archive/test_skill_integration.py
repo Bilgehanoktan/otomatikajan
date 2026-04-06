@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch, AsyncMock
 from api.task_write_router import create_task
 from api._task_shared import TaskCreateRequest
 from core.orchestrator import Orchestrator
-from packages.packages.skills.base import SkillRequest
+from packages.skills.base import SkillRequest
 
 @pytest.mark.asyncio
 async def test_tsk01_tsk05_create_task_adds_suggested_skills_to_payload():

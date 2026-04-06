@@ -4,7 +4,7 @@ import os
 from packages.orchestration.agi.consciousness.neural_core_orchestrator import neural_core_orchestrator
 from packages.persistence.session import session_scope
 from packages.persistence.models import SkillExecutionLog, Project, ProjectStatus
-from packages.packages.observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 _log = get_logger("verify_mind_cycle")
 

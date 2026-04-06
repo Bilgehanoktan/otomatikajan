@@ -49,7 +49,7 @@ async def test_reality_grounding_injection():
     """
     ContextBuilder'ın gerçek dünya (FS tree) bilgisini prompt'a enjekte ettiğini doğrular.
     """
-    from packages.packages.memory.retrieval import context_builder
+    from packages.memory.retrieval import context_builder
     
     context = await context_builder.build_context(
         agent_id="test",
