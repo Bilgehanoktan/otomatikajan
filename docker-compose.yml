@@ -89,7 +89,7 @@ services:
       PYTHONPATH: /app
     # Komut Dockerfile'a taşındı, burada override edilebilir
     healthcheck:
-      test: [ "CMD-SHELL", "celery -A tasks.celery_app inspect ping || exit 1" ]
+      test: [ "CMD-SHELL", "celery -A apps.worker.tasks.celery_app inspect ping || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -121,13 +121,13 @@ services:
       DEERFLOW_BRIDGE_URL: http://deerflow-bridge:8010
       PYTHONPATH: /app
     command: >
-      celery -A tasks.celery_app worker
+      celery -A apps.worker.tasks.celery_app worker
         --queues=deerflow
         --concurrency=2
         --loglevel=info
         --hostname=deerflow-worker@%h
     healthcheck:
-      test: [ "CMD-SHELL", "celery -A tasks.celery_app inspect ping || exit 1" ]
+      test: [ "CMD-SHELL", "celery -A apps.worker.tasks.celery_app inspect ping || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -158,7 +158,7 @@ services:
       REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
       PYTHONPATH: /app
     command: >
-      celery -A tasks.celery_app beat
+      celery -A apps.worker.tasks.celery_app beat
         --loglevel=info
     healthcheck:
       disable: true
