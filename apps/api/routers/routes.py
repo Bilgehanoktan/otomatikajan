@@ -12,7 +12,7 @@ from fastapi import APIRouter, HTTPException, Depends, Header, Request, Query
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 from packages.orchestration.agi.cognitive.cognitive_blackboard import get_blackboard
-from packages.quality_assurance.eval_harness import eval_harness
+from packages.orchestration.agi.quality.eval_harness import eval_harness
 
 from fastapi.concurrency import run_in_threadpool
 from apps.api.routers.rate_limiter import rate_limit
