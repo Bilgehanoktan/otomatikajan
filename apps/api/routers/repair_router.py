@@ -500,7 +500,7 @@ async def _update_job_on_proposal_decision(pr_id: str, decision: str, decided_by
             from packages.persistence.session import AsyncSessionLocal, is_db_available
             if await is_db_available():
                 from sqlalchemy import select
-                from packages.persistence.repair_models import RepairProposal as RepairProposalModel
+                from packages.persistence.models.repair_models import RepairProposal as RepairProposalModel
                 async with AsyncSessionLocal() as db:
                     stmt = select(RepairProposalModel.job_id).where(RepairProposalModel.pr_id == pr_id)
                     result = await db.execute(stmt)
@@ -578,7 +578,7 @@ async def _get_proposal_from_db(pr_id: str) -> Optional[dict]:
         if not await is_db_available():
             return None
         from sqlalchemy import select
-        from packages.persistence.repair_models import RepairProposal
+        from packages.persistence.models.repair_models import RepairProposal
         async with AsyncSessionLocal() as db:
             from sqlalchemy import select
             stmt = select(RepairProposal).where(RepairProposal.pr_id == pr_id)

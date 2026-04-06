@@ -7,7 +7,7 @@ from typing import Optional
 from sqlalchemy import select, update, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from packages.persistence.repair_models import RepairIncident, RepairJobRecord, RepairProposal, RepairPatchLog
+from packages.persistence.models.repair_models import RepairIncident, RepairJobRecord, RepairProposal, RepairPatchLog
 from packages.repair_engine.schemas.incident import IncidentRecord
 from packages.repair_engine.schemas.repair_job import RepairJob
 from packages.repair_engine.release.pr_creator import PRProposal

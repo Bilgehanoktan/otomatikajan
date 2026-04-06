@@ -22,7 +22,7 @@ from packages.repair_engine.schemas.diagnosis import DiagnosisTicket, RepairMode
 from packages.repair_engine.schemas.patch_plan import PatchPlan
 from packages.repair_engine.schemas.validation import ValidationStatus
 from packages.repair_engine.ingestion.incident_ingestor import IncidentIngestor, incident_ingestor
-from packages.persistence.repair_models import RepairJobRecord
+from packages.persistence.models.repair_models import RepairJobRecord
 from packages.repair_engine.triage.triage_engine import TriageEngine, triage_engine
 from packages.repair_engine.memory.incident_memory import IncidentMemory, incident_memory
 from packages.repair_engine.memory.patch_memory import PatchMemory, PatchOutcome, patch_memory

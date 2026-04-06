@@ -230,7 +230,7 @@ class VectorLessonsStore:
         try:
             from packages.persistence.session import AsyncSessionLocal, is_db_available
             if not await is_db_available(): return
-            from packages.persistence.repair_models import VectorLessonModel
+            from packages.persistence.models.repair_models import VectorLessonModel
             async with AsyncSessionLocal() as db:
                 model = VectorLessonModel(
                     lesson_id=lesson.lesson_id,
@@ -253,7 +253,7 @@ class VectorLessonsStore:
         try:
             from packages.persistence.session import AsyncSessionLocal, is_db_available
             if not await is_db_available(): return
-            from packages.persistence.repair_models import VectorLessonModel
+            from packages.persistence.models.repair_models import VectorLessonModel
             from sqlalchemy import select
             async with AsyncSessionLocal() as db:
                 result = await db.execute(select(VectorLessonModel))

@@ -187,7 +187,7 @@ async def init_db():
                     logger.warning(f"pgvector uzantısı oluşturulamadı: {e}")
 
             import packages.persistence.models
-            import packages.persistence.repair_models
+            import packages.persistence.models.repair_models
             await conn.run_sync(Base.metadata.create_all)
             _log_msg = "SQLite Fallback Hazır" if is_sqlite else "Postgres Hazır"
             logger.info(f"OK: Veritabanı tabloları hazır ({APP_ENV} - {_log_msg}).")
