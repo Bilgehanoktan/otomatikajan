@@ -10,7 +10,7 @@ from celery import Task
 from celery.utils.log import get_task_logger
 
 from packages.persistence.models import ProjectStatus
-from tasks.celery_app import celery_app
+from apps.worker.tasks.celery_app import celery_app
 
 logger = get_task_logger(__name__)
 
