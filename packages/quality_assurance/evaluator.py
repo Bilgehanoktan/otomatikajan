@@ -6,7 +6,7 @@ Ajan çıktısını (LLMResponse) alır, parse eder ve QualityScorer ile puanlar
 from typing import Tuple
 from packages.llm_gateway.model_orchestrator import LLMResponse, ModelOrchestrator
 from packages.quality_assurance.output_schema import output_parser, AgentOutput
-from packages.quality_assurance.scorer import packages.quality_assurance_scorer, QualityReport
+from packages.quality_assurance.scorer import quality_assurance_scorer, QualityReport
 
 class QualityEvaluator:
     def __init__(self, model_orch: ModelOrchestrator):

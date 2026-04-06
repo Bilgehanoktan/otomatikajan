@@ -53,7 +53,7 @@ class ReviewerAgent:
         acceptance_criteria: list[str] = None,
     ) -> ReviewResult:
         from packages.quality_assurance.output_schema import output_parser, OUTPUT_FORMAT_INSTRUCTION
-        from packages.quality_assurance.scorer import packages.quality_assurance_scorer
+        from packages.quality_assurance.scorer import quality_assurance_scorer
 
         best_output = output
         best_score  = report.overall

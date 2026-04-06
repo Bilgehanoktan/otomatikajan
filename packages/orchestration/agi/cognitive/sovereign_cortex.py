@@ -22,7 +22,7 @@ from packages.orchestration.agi.task_governance import SovereignGoal, GovernedTa
 from packages.orchestration.agi.cognitive.metacognitive_auditor import metacognitive_auditor
 from packages.orchestration.agi.cognitive.architect import Architect
 from packages.orchestration.agi.operational.scaffolder import scaffolder
-from packages.orchestration.agi.cognitive.memory_api import packages.memory_api
+from packages.orchestration.agi.cognitive.memory_api import memory_api
 from packages.orchestration.agi.schemas import EpisodeRecord, ActionRecord, UnifiedInput, ProblemFrame, TaskType, RiskLevel, VerificationReport
 from packages.orchestration.agi.learning.cognitive_mirror import cognitive_mirror
 from packages.orchestration.agi.learning.distiller import skill_distiller
@@ -34,14 +34,14 @@ from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
 from packages.orchestration.agi.cognitive.motivation_engine import motivation_engine
 from packages.orchestration.agi.consciousness.affective_core import affective_core
 from packages.orchestration.agi.cognitive.foresight_cortex import foresight_cortex
-from packages.orchestration.agi.learning.memory_gate import packages.memory_gate
+from packages.orchestration.agi.learning.memory_gate import memory_gate
 from packages.orchestration.agi.governance.watchdog import governance_watchdog
 from packages.orchestration.agi.governance.consensus_arbiter import consensus_arbiter
 from packages.orchestration.agi.cognitive.reflective_synthesizer import reflective_synthesizer
 from packages.orchestration.agi.cognitive.axiology_engine import axiology_engine
 from packages.orchestration.agi.operational.metabolic_governor import metabolic_governor
 from packages.orchestration.agi.learning.wisdom_synthesizer import wisdom_synthesizer
-from packages.orchestration.agi.cognitive.memory_pruner import packages.memory_pruner
+from packages.orchestration.agi.cognitive.memory_pruner import memory_pruner
 from packages.orchestration.agi.quality.sovereign_evaluator import sovereign_evaluator
 from packages.orchestration.agi.cognitive.cognitive_blackboard import get_blackboard
 from packages.orchestration.agi.operational.tool_grounder import get_grounded_tool_input
@@ -1025,7 +1025,7 @@ class SovereignCortex:
             asyncio.create_task(synthesizer.run_synthesis_cycle())
 
             # Phase 73: Memory Distiller Entegrasyonu (Faz 86 Stabilizasyonu)
-            from packages.orchestration.agi.learning.memory_distiller import packages.memory_distiller
+            from packages.orchestration.agi.learning.memory_distiller import memory_distiller
             asyncio.create_task(memory_distiller.run_distillation_cycle())
             
             _log.info("[SOVEREIGN] Self-Evolution and Memory Distillation cycles started in background.")
