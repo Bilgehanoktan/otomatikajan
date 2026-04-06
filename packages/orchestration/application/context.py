@@ -4,8 +4,8 @@ Breaks circular dependencies between main.py and other modules.
 """
 # Centralized Core Artifacts (Faz 12.1 Refactored)
 from packages.orchestration.domain.events import event_bus
-from packages.orchestration.cognitive_runtime.sovereign_cortex import nexus_orchestrator as orchestrator
-from packages.healing.application.engine import heal_engine
+from packages.orchestration.agi.cognitive.sovereign_cortex import nexus_orchestrator as orchestrator
+from packages.healing.application.heal_engine import heal_engine
 # job_queue ve diğerleri için de paket yollarını kullanın
 try:
     from packages.orchestration.application.job_queue import job_queue
