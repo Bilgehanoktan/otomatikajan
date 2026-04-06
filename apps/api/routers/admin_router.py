@@ -7,8 +7,8 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.api.routers.auth.jwt_auth import require_admin
-from packages.persistence.models import User
-from packages.persistence.session import get_db_dep
+from db.models import User
+from db.session import get_db_dep
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -18,7 +18,7 @@ async def list_users(
     current_user=Depends(require_admin)
 ):
     """Sistemdeki tüm kayıtlı kullanıcıları döner."""
-    result = await packages.persistence.execute(select(User).order_by(User.created_at.desc()))
+    result = await db.execute(select(User).order_by(User.created_at.desc()))
     users = result.scalars().all()
     return [
         {
@@ -42,13 +42,13 @@ async def toggle_admin(
     if user_id == current_user.id:
         raise HTTPException(status_code=400, detail="Kendi admin yetkinizi kaldıramazsınız.")
 
-    result = await packages.persistence.execute(select(User).where(User.id == user_id))
+    result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
 
     user.is_admin = not user.is_admin
-    await packages.persistence.commit()
+    await db.commit()
     
     return {
         "id": str(user.id),

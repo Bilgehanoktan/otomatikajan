@@ -19,8 +19,8 @@ async def list_skills(current_user=Depends(get_current_user)):
 
 @router.get("/logs", summary="Becerilerin yürütme loglarını listele")
 async def get_skill_logs(project_id: str | None = None, current_user=Depends(get_current_user)):
-    from packages.persistence.session import AsyncSessionLocal as get_db_session
-    from packages.persistence.models import SkillExecutionLog
+    from db.session import AsyncSessionLocal as get_db_session
+    from db.models import SkillExecutionLog
     from sqlalchemy import select
     
     async with get_db_session() as db:
@@ -28,7 +28,7 @@ async def get_skill_logs(project_id: str | None = None, current_user=Depends(get
         if project_id:
             stmt = stmt.filter(SkillExecutionLog.project_id == project_id)
             
-        result = await packages.persistence.execute(stmt)
+        result = await db.execute(stmt)
         logs = result.scalars().all()
         
         return [

@@ -21,13 +21,13 @@ async def get_overview(current_user=Depends(get_current_user)):
 async def get_findings(current_user=Depends(get_current_user)):
     """CEO Engine tarafından bulunan iyileştirme fırsatlarını ve önerileri getir."""
     try:
-        from packages.persistence.session import session_scope
-        from packages.persistence.models import ImprovementOpportunity, CEOSuggestedTask
+        from db.session import session_scope
+        from db.models import ImprovementOpportunity, CEOSuggestedTask
         from sqlalchemy import select
         
         async with session_scope() as db:
             # 1. Açık fırsatları getir
-            res_ops = await packages.persistence.execute(
+            res_ops = await db.execute(
                 select(ImprovementOpportunity)
                 .where(ImprovementOpportunity.status == "open")
                 .order_by(ImprovementOpportunity.priority_score.desc())
@@ -35,7 +35,7 @@ async def get_findings(current_user=Depends(get_current_user)):
             ops = res_ops.scalars().all()
             
             # 2. Önerilen görevleri getir
-            res_sug = await packages.persistence.execute(
+            res_sug = await db.execute(
                 select(CEOSuggestedTask)
                 .where(CEOSuggestedTask.status == "suggested")
             )

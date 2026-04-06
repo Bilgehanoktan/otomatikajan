@@ -46,7 +46,7 @@ async def get_finance_status(current_user=Depends(get_current_user)):
 @router.get("/history", summary="Günlük maliyet geçmişi")
 async def get_finance_history(days: int = Query(7, ge=1, le=30), current_user=Depends(get_current_user)):
     try:
-        from packages.persistence.session import AsyncSessionLocal
+        from db.session import AsyncSessionLocal
         from sqlalchemy import text
         
         # Bu kısım normalde LLMCostLog tablosundan gruplanarak çekilir.
@@ -62,7 +62,7 @@ async def get_finance_history(days: int = Query(7, ge=1, le=30), current_user=De
                 GROUP BY DATE(created_at)
                 ORDER BY DATE(created_at) ASC
             """)
-            result = await packages.persistence.execute(query, {"days": days})
+            result = await db.execute(query, {"days": days})
             history = [
                 {"date": str(row.date), "cost": float(row.total_cost), "calls": row.call_count}
                 for row in result
@@ -76,7 +76,7 @@ async def get_finance_history(days: int = Query(7, ge=1, le=30), current_user=De
 @router.get("/top-tasks", summary="En maliyetli projeler")
 async def get_top_costly_tasks(limit: int = 5, current_user=Depends(get_current_user)):
     try:
-        from packages.persistence.session import AsyncSessionLocal
+        from db.session import AsyncSessionLocal
         from sqlalchemy import text
         
         async with AsyncSessionLocal() as db:
@@ -89,7 +89,7 @@ async def get_top_costly_tasks(limit: int = 5, current_user=Depends(get_current_
                 ORDER BY total_cost DESC
                 LIMIT :limit
             """)
-            result = await packages.persistence.execute(query, {"limit": limit})
+            result = await db.execute(query, {"limit": limit})
             return [
                 {"id": str(row.id), "title": row.title, "cost": float(row.total_cost)}
                 for row in result

@@ -90,17 +90,17 @@ async def monitoring_overview(current_user=Depends(get_current_user)):
 
             # Faz 42 & 55: Continuity & Safety Stats
             try:
-                from packages.persistence.session import AsyncSessionLocal
+                from db.session import AsyncSessionLocal
                 from sqlalchemy import select, func
-                from packages.persistence.models import SubTask, Project, ProjectStatus
+                from db.models import SubTask, Project, ProjectStatus
                 async with AsyncSessionLocal() as db:
-                    monologue_count = await packages.persistence.scalar(select(func.count(SubTask.id)).where(SubTask.internal_monologue != None))
+                    monologue_count = await db.scalar(select(func.count(SubTask.id)).where(SubTask.internal_monologue != None))
                     # Phase 55 Safety Stats
-                    rejected_count = await packages.persistence.scalar(select(func.count(Project.id)).where(Project.status == ProjectStatus.ERROR, Project.error_detail.contains("GÜVENLİK İHLALİ")))
-                    flagged_count = await packages.persistence.scalar(select(func.count(Project.id)).where(Project.status == ProjectStatus.PENDING_APPROVAL))
+                    rejected_count = await db.scalar(select(func.count(Project.id)).where(Project.status == ProjectStatus.ERROR, Project.error_detail.contains("GÜVENLİK İHLALİ")))
+                    flagged_count = await db.scalar(select(func.count(Project.id)).where(Project.status == ProjectStatus.PENDING_APPROVAL))
                     
                     result["agi"]["safety"] = {
-                        "total_audits": await packages.persistence.scalar(select(func.count(Project.id))) or 0,
+                        "total_audits": await db.scalar(select(func.count(Project.id))) or 0,
                         "rejected_goals": rejected_count or 0,
                         "flagged_goals": flagged_count or 0,
                         "status": "SECURE" if rejected_count == 0 else "INTERVENTION_ACTIVE"
@@ -108,7 +108,7 @@ async def monitoring_overview(current_user=Depends(get_current_user)):
 
                     result["cognitive_continuity"] = {
                         "persisted_monologues": monologue_count,
-                        "recovery_attempts": await packages.persistence.scalar(select(func.count(SubTask.id)).where(SubTask.status == "error")) or 0 # Simplified recovery count
+                        "recovery_attempts": await db.scalar(select(func.count(SubTask.id)).where(SubTask.status == "error")) or 0 # Simplified recovery count
                     }
             except Exception as e:
                 logger.error(f"Safety/Continuity Audit failed: {e}")
@@ -156,12 +156,12 @@ async def monitoring_overview(current_user=Depends(get_current_user)):
 
     # DB & Pool Stats
     try:
-        from packages.persistence.session import AsyncSessionLocal, _get_engine
+        from db.session import AsyncSessionLocal, _get_engine
         from sqlalchemy import text
         
         # Connection check
         async with AsyncSessionLocal() as db:
-            await packages.persistence.execute(text("SELECT 1"))
+            await db.execute(text("SELECT 1"))
         
         # Pool stats
         engine = _get_engine()
@@ -261,7 +261,7 @@ async def monitoring_overview(current_user=Depends(get_current_user)):
 async def _check_redis_heartbeat(key: str) -> str:
     """Redis üzerindeki heartbeat kaydına bakarak servis durumunu döner."""
     try:
-        from packages.persistence.session import get_redis_client
+        from db.session import get_redis_client
         redis = get_redis_client()
         if redis:
             hb = await redis.get(key)
@@ -278,8 +278,8 @@ async def _check_redis_heartbeat(key: str) -> str:
 @router.get("/api/stats", summary="Endpoint bazlı API istatistikleri")
 async def api_stats(hours: int = Query(24, ge=1, le=168), current_user=Depends(get_current_user)):
     try:
-        from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repositories.repository import ApiMetricRepository
+        from db.session import AsyncSessionLocal
+        from db.repositories.repository import ApiMetricRepository
         async with AsyncSessionLocal() as db:
             stats = await ApiMetricRepository.endpoint_stats(db, hours=hours)
 
@@ -310,8 +310,8 @@ async def api_time_series(
     current_user=Depends(get_current_user),
 ):
     try:
-        from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repositories.repository import ApiMetricRepository
+        from db.session import AsyncSessionLocal
+        from db.repositories.repository import ApiMetricRepository
         async with AsyncSessionLocal() as db:
             series = await ApiMetricRepository.time_series(
                 db, hours=hours, bucket_minutes=bucket_minutes
@@ -324,8 +324,8 @@ async def api_time_series(
 @router.get("/api/slowest", summary="En yavaş endpointler")
 async def slowest_endpoints(hours: int = Query(24, ge=1, le=168), limit: int = Query(10), current_user=Depends(require_admin)):
     try:
-        from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repositories.repository import ApiMetricRepository
+        from db.session import AsyncSessionLocal
+        from db.repositories.repository import ApiMetricRepository
         async with AsyncSessionLocal() as db:
             stats = await ApiMetricRepository.endpoint_stats(db, hours=hours)
         
@@ -610,9 +610,9 @@ async def recent_errors(limit: int = Query(50, ge=1, le=200)):
 
     # 3. DB'den başarısız görevler
     try:
-        from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repositories.repository import ProjectRepository
-        from packages.persistence.models import ProjectStatus
+        from db.session import AsyncSessionLocal
+        from db.repositories.repository import ProjectRepository
+        from db.models import ProjectStatus
         async with AsyncSessionLocal() as db:
             failed = await ProjectRepository.list_recent(db, limit=20, status=ProjectStatus.ERROR.value)
         for p in failed:
@@ -640,11 +640,11 @@ async def recent_errors(limit: int = Query(50, ge=1, le=200)):
 @router.post("/api/cleanup", summary="Eski API metrik kayıtlarını temizle", dependencies=[Depends(require_admin)])
 async def cleanup_api_metrics(days: int = Query(7, ge=1, le=90)):
     try:
-        from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repositories.repository import ApiMetricRepository
+        from db.session import AsyncSessionLocal
+        from db.repositories.repository import ApiMetricRepository
         async with AsyncSessionLocal() as db:
             deleted = await ApiMetricRepository.cleanup_old(db, days=days)
-            await packages.persistence.commit()
+            await db.commit()
         return {"deleted": deleted, "older_than_days": days}
     except Exception as e:
         return {"error": str(e)}
@@ -688,13 +688,13 @@ async def agi_core_state(current_user=Depends(get_current_user)):
 async def agi_evolution_monitoring(limit: int = Query(20, ge=1, le=100), current_user=Depends(get_current_user)):
     """AGI'nin kendi kodunu iyileştirme (Self-Patching) geçmişini getirir."""
     try:
-        from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.models import Memory
+        from db.session import AsyncSessionLocal
+        from db.models import Memory
         from sqlalchemy import select
         
         async with AsyncSessionLocal() as db:
             stmt = select(Memory).where(Memory.category == "evolution_provenance").order_by(Memory.created_at.desc()).limit(limit)
-            result = await packages.persistence.execute(stmt)
+            result = await db.execute(stmt)
             provenance_records = result.scalars().all()
         
         return [
@@ -719,13 +719,13 @@ async def agi_evolution_monitoring(limit: int = Query(20, ge=1, le=100), current
 async def agi_metacognition_stats(limit: int = Query(50, ge=1, le=100), current_user=Depends(get_current_user)):
     """Sistemin kendi akıl yürütme kalitesini (Metacognitive Score) ve rezonansını getirir."""
     try:
-        from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.models import Memory
+        from db.session import AsyncSessionLocal
+        from db.models import Memory
         from sqlalchemy import select
         
         async with AsyncSessionLocal() as db:
             stmt = select(Memory).where(Memory.category == "cognitive_lesson").order_by(Memory.created_at.desc()).limit(limit)
-            result = await packages.persistence.execute(stmt)
+            result = await db.execute(stmt)
             records = result.scalars().all()
             
         scores = [float(r.metadata_.get("metacognitive_score", 0.0)) for r in records if r.metadata_ and "metacognitive_score" in r.metadata_]

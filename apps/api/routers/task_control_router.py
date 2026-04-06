@@ -50,8 +50,8 @@ async def cancel_task(task_id: str, body: dict = Body(default={}), current_user=
     cancelled_by = str(body.get("cancelled_by", "dashboard"))
     try:
         import uuid as _uuid
-        from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repositories.repository import ProjectRepository, TaskLogRepository
+        from db.session import AsyncSessionLocal
+        from db.repositories.repository import ProjectRepository, TaskLogRepository
 
         async with AsyncSessionLocal() as db:
             try:
@@ -84,7 +84,7 @@ async def cancel_task(task_id: str, body: dict = Body(default={}), current_user=
                 f"İptal edildi: {cancelled_by} (queue_job={queue_job_id})",
                 level="warning", agent_id=cancelled_by,
             )
-            await packages.persistence.commit()
+            await db.commit()
 
         from packages.orchestration.domain.events import event_bus
         await event_bus.emit(
@@ -107,8 +107,8 @@ async def cancel_task(task_id: str, body: dict = Body(default={}), current_user=
 async def retry_task(task_id: str, current_user=Depends(get_current_user)):
     try:
         import uuid as _uuid
-        from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repositories.repository import ProjectRepository, TaskLogRepository
+        from db.session import AsyncSessionLocal
+        from db.repositories.repository import ProjectRepository, TaskLogRepository
 
         async with AsyncSessionLocal() as db:
             try:
@@ -135,7 +135,7 @@ async def retry_task(task_id: str, current_user=Depends(get_current_user)):
                 f"Retry #{p.retry_count + 1} başlatıldı",
                 level="info", agent_id="dashboard",
             )
-            await packages.persistence.commit()
+            await db.commit()
             proj_title = p.title
             proj_desc  = p.description
             proj_uuid  = p.id
@@ -157,8 +157,8 @@ async def retry_task(task_id: str, current_user=Depends(get_current_user)):
         # DB'deki job_id alanını yeni job ile senkronize et
         try:
             import uuid as _uuid2
-            from packages.persistence.session import AsyncSessionLocal as _ASL
-            from packages.persistence.repositories.repository import ProjectRepository as _PR2
+            from db.session import AsyncSessionLocal as _ASL
+            from db.repositories.repository import ProjectRepository as _PR2
             async with _ASL() as _db2:
                 await _PR2.set_job_id(_db2, proj_uuid, job.id)
                 await _db2.commit()
@@ -184,8 +184,8 @@ async def stop_task(task_id: str, current_user=Depends(get_current_user)):
     try:
         import uuid as _uuid
         from packages.orchestration.application.job_queue import job_queue
-        from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repositories.repository import ProjectRepository, TaskLogRepository
+        from db.session import AsyncSessionLocal
+        from db.repositories.repository import ProjectRepository, TaskLogRepository
 
         async with AsyncSessionLocal() as db:
             try:
@@ -227,7 +227,7 @@ async def stop_task(task_id: str, current_user=Depends(get_current_user)):
                     f"Durduruldu (queue_job={queue_job_id})",
                     level="warning", agent_id="dashboard",
                 )
-                await packages.persistence.commit()
+                await db.commit()
                 logger.info(f"[STOP] Task {pid} marked as CANCELLED in DB.")
             else:
                 logger.warning(f"[STOP] Task {pid} DB sync skipped (already finished/error).")
@@ -253,8 +253,8 @@ async def pause_task(task_id: str, current_user=Depends(get_current_user)):
     try:
         import uuid as _uuid
         from packages.orchestration.application.job_queue import job_queue
-        from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repositories.repository import ProjectRepository, TaskLogRepository
+        from db.session import AsyncSessionLocal
+        from db.repositories.repository import ProjectRepository, TaskLogRepository
 
         async with AsyncSessionLocal() as db:
             try:
@@ -280,7 +280,7 @@ async def pause_task(task_id: str, current_user=Depends(get_current_user)):
                     f"Duraklatıldı (queue_job={queue_job_id})",
                     level="info", agent_id="dashboard",
                 )
-                await packages.persistence.commit()
+                await db.commit()
                 logger.info(f"[PAUSE] Task {pid} successfully paused.")
             else:
                 logger.warning(f"[PAUSE] Kuyruk işlemi reddetti (zaten PAUSED veya bitmiş olabilir): {queue_job_id}")
@@ -301,8 +301,8 @@ async def resume_task(task_id: str, current_user=Depends(get_current_user)):
     try:
         import uuid as _uuid
         from packages.orchestration.application.job_queue import job_queue
-        from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repositories.repository import ProjectRepository, TaskLogRepository
+        from db.session import AsyncSessionLocal
+        from db.repositories.repository import ProjectRepository, TaskLogRepository
 
         async with AsyncSessionLocal() as db:
             try:
@@ -325,7 +325,7 @@ async def resume_task(task_id: str, current_user=Depends(get_current_user)):
                     f"Devam ettirildi (queue_job={queue_job_id})",
                     level="info", agent_id="dashboard",
                 )
-                await packages.persistence.commit()
+                await db.commit()
                 logger.info(f"[RESUME] Task {pid} successfully resumed.")
             else:
                 logger.warning(f"[RESUME] Kuyruk işlemi reddetti: {queue_job_id}")
@@ -350,8 +350,8 @@ async def copy_task(task_id: str, body: dict = Body(default={}), current_user=De
     new_priority = body.get("priority", "")
     try:
         import uuid as _uuid
-        from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repositories.repository import ProjectRepository, TaskLogRepository
+        from db.session import AsyncSessionLocal
+        from db.repositories.repository import ProjectRepository, TaskLogRepository
 
         async with AsyncSessionLocal() as db:
             try:
@@ -387,7 +387,7 @@ async def copy_task(task_id: str, body: dict = Body(default={}), current_user=De
                 f"{task_id} görevinden kopyalandı",
                 agent_id="dashboard",
             )
-            await packages.persistence.commit()
+            await db.commit()
             copied_id  = str(new_p.id)
 
         # Job queue'ya ekle
@@ -408,8 +408,8 @@ async def copy_task(task_id: str, body: dict = Body(default={}), current_user=De
         # job_id'yi DB'ye geri yaz (queue job.id = canonical id — create/retry ile tutarlı)
         try:
             import uuid as _uuid2
-            from packages.persistence.session import AsyncSessionLocal as _ASL
-            from packages.persistence.repositories.repository import ProjectRepository as _PR
+            from db.session import AsyncSessionLocal as _ASL
+            from db.repositories.repository import ProjectRepository as _PR
             async with _ASL() as _db2:
                 await _PR.set_job_id(_db2, _uuid2.UUID(copied_id), job.id)
                 await _db2.commit()

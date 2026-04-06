@@ -497,13 +497,13 @@ async def _update_job_on_proposal_decision(pr_id: str, decision: str, decided_by
     # In-memory bulunamazsa DB'den job_id çek
     if not job_id:
         try:
-            from packages.persistence.session import AsyncSessionLocal, is_db_available
+            from db.session import AsyncSessionLocal, is_db_available
             if await is_db_available():
                 from sqlalchemy import select
-                from packages.persistence.models.repair_models import RepairProposal as RepairProposalModel
+                from db.models.repair_models import RepairProposal as RepairProposalModel
                 async with AsyncSessionLocal() as db:
                     stmt = select(RepairProposalModel.job_id).where(RepairProposalModel.pr_id == pr_id)
-                    result = await packages.persistence.execute(stmt)
+                    result = await db.execute(stmt)
                     row = result.scalar_one_or_none()
                     if row:
                         job_id = str(row)
@@ -532,13 +532,13 @@ async def _update_job_on_proposal_decision(pr_id: str, decision: str, decided_by
 async def _persist_job_status(job) -> None:
     """Job durumunu DB'ye yaz (sessiz hata)."""
     try:
-        from packages.persistence.session import AsyncSessionLocal, is_db_available
+        from db.session import AsyncSessionLocal, is_db_available
         if not await is_db_available():
             return
-        from packages.persistence.repair_repository import RepairJobRepo
+        from db.repair_repository import RepairJobRepo
         async with AsyncSessionLocal() as db:
             await RepairJobRepo.upsert(db, job)
-            await packages.persistence.commit()
+            await db.commit()
     except Exception as e:
         _log.debug(f"Job status DB yazma hatası (ignore): {e}")
 
@@ -546,10 +546,10 @@ async def _persist_job_status(job) -> None:
 async def _list_proposals_from_db() -> list[dict]:
     """DB'deki tüm proposal'ları getir (sessiz hata)."""
     try:
-        from packages.persistence.session import AsyncSessionLocal, is_db_available
+        from db.session import AsyncSessionLocal, is_db_available
         if not await is_db_available():
             return []
-        from packages.persistence.repair_repository import RepairProposalRepo
+        from db.repair_repository import RepairProposalRepo
         async with AsyncSessionLocal() as db:
             rows = await RepairProposalRepo.list_pending(db)
             return [
@@ -574,15 +574,15 @@ async def _list_proposals_from_db() -> list[dict]:
 async def _get_proposal_from_db(pr_id: str) -> Optional[dict]:
     """Tekil proposal'ı DB'den getir (sessiz hata)."""
     try:
-        from packages.persistence.session import AsyncSessionLocal, is_db_available
+        from db.session import AsyncSessionLocal, is_db_available
         if not await is_db_available():
             return None
         from sqlalchemy import select
-        from packages.persistence.models.repair_models import RepairProposal
+        from db.models.repair_models import RepairProposal
         async with AsyncSessionLocal() as db:
             from sqlalchemy import select
             stmt = select(RepairProposal).where(RepairProposal.pr_id == pr_id)
-            result = await packages.persistence.execute(stmt)
+            result = await db.execute(stmt)
             row = result.scalar_one_or_none()
             if not row:
                 return None
@@ -618,13 +618,13 @@ def _get_repair_project_root() -> str:
 async def _persist_incident(incident) -> None:
     """Incident'i DB'ye kaydet (sessiz hata)."""
     try:
-        from packages.persistence.session import AsyncSessionLocal, is_db_available
+        from db.session import AsyncSessionLocal, is_db_available
         if not await is_db_available():
             return
-        from packages.persistence.repair_repository import RepairIncidentRepo
+        from db.repair_repository import RepairIncidentRepo
         async with AsyncSessionLocal() as db:
             await RepairIncidentRepo.upsert(db, incident)
-            await packages.persistence.commit()
+            await db.commit()
     except Exception as e:
         _log.warning(f"Incident DB yazma hatası (ignore): {e}")
 
@@ -632,13 +632,13 @@ async def _persist_incident(incident) -> None:
 async def _persist_proposal_decision(pr_id: str, decision: str, decided_by: str) -> None:
     """PR kararını DB'ye kaydet (sessiz hata)."""
     try:
-        from packages.persistence.session import AsyncSessionLocal, is_db_available
+        from db.session import AsyncSessionLocal, is_db_available
         if not await is_db_available():
             return
-        from packages.persistence.repair_repository import RepairProposalRepo
+        from db.repair_repository import RepairProposalRepo
         async with AsyncSessionLocal() as db:
             await RepairProposalRepo.decide(db, pr_id, decision, decided_by)
-            await packages.persistence.commit()
+            await db.commit()
     except Exception as e:
         _log.warning(f"Proposal karar DB yazma hatası (ignore): {e}")
 
