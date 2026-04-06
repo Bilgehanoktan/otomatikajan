@@ -3,7 +3,7 @@ import uuid
 import json
 from packages.orchestration.agi.central_executive import central_executive
 from packages.orchestration.agi.schemas import UnifiedInput, ContextPackage
-from packages.packages.observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 logger = get_logger("test_phase_66_67")
 

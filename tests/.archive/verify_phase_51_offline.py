@@ -6,7 +6,7 @@ from packages.orchestration.agi.central_executive import central_executive
 from packages.orchestration.agi.schemas import SourceType
 from packages.llm_gateway.llm_types import LLMResponse
 
-from packages.packages.observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 _log = get_logger("verify_phase_51_offline")
 
