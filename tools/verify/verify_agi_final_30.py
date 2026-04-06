@@ -14,7 +14,7 @@ from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
 from packages.orchestration.agi.operational.resource_manager import resource_manager
 from packages.orchestration.agi.operational.local_failsafe_engine import local_failsafe
 from packages.persistence.session import session_scope, init_db
-from packages.packages.observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 _log = get_logger("verify_agi_30")
 

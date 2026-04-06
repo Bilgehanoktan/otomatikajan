@@ -7,7 +7,7 @@ import os
 # Import yolunu ayarla
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from packages.packages.observability.logging import get_logger, configure_logging
+from packages.observability.logging import get_logger, configure_logging
 from packages.persistence.session import AsyncSessionLocal
 from sqlalchemy import select
 from packages.persistence.models import DomainEventLog

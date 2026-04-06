@@ -1,8 +1,8 @@
 import pytest
 
-from packages.packages.skills.base import SkillRequest
-from packages.packages.skills.router import skill_router
-from packages.packages.skills.registry import skill_registry
+from packages.skills.base import SkillRequest
+from packages.skills.router import skill_router
+from packages.skills.registry import skill_registry
 
 
 @pytest.mark.asyncio

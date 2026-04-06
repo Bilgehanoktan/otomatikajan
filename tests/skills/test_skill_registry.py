@@ -1,4 +1,4 @@
-from packages.packages.skills.registry import skill_registry
+from packages.skills.registry import skill_registry
 
 
 def test_skill_registry_contains_expected_skills():

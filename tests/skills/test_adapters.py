@@ -1,11 +1,11 @@
 import pytest
 from pathlib import Path
 from unittest.mock import MagicMock, patch, AsyncMock
-from packages.packages.skills.adapters.optimization_adapter import OptimizationSkillAdapter
-from packages.packages.skills.adapters.vault_memory_adapter import VaultMemorySkillAdapter
-from packages.packages.skills.adapters.debugging_adapter import DebuggingSkillAdapter
-from packages.packages.skills.adapters.skill_creator_adapter import SkillCreatorSkillAdapter
-from packages.packages.skills.base import SkillRequest
+from packages.skills.adapters.optimization_adapter import OptimizationSkillAdapter
+from packages.skills.adapters.vault_memory_adapter import VaultMemorySkillAdapter
+from packages.skills.adapters.debugging_adapter import DebuggingSkillAdapter
+from packages.skills.adapters.skill_creator_adapter import SkillCreatorSkillAdapter
+from packages.skills.base import SkillRequest
 
 @pytest.mark.asyncio
 async def test_ut07_optimization_adapter_trims_context():

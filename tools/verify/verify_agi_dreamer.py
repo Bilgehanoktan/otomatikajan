@@ -16,7 +16,7 @@ from packages.persistence.session import AsyncSessionLocal, init_db
 from packages.persistence.models import Memory
 from packages.orchestration.agi.cognitive.subconscious_cortex_45 import subconscious_cortex_45
 from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
-from packages.packages.observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 _log = get_logger("agi_dreamer_verify")
 

@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch, AsyncMock
-from packages.packages.skills.registry import skill_registry
-from packages.packages.skills.base import SkillRequest, SkillResult
+from packages.skills.registry import skill_registry
+from packages.skills.base import SkillRequest, SkillResult
 from packages.persistence.models import SkillExecutionLog
 
 @pytest.mark.asyncio

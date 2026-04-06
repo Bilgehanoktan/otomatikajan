@@ -1,7 +1,7 @@
 import pytest
 
-from packages.packages.skills.base import SkillRequest
-from packages.packages.skills.adapters.file_search_adapter import FileSearchSkillAdapter
+from packages.skills.base import SkillRequest
+from packages.skills.adapters.file_search_adapter import FileSearchSkillAdapter
 
 
 class _FakeIndexer:

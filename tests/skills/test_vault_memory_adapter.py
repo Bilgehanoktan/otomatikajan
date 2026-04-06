@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from packages.packages.skills.base import SkillRequest
-from packages.packages.skills.adapters.vault_memory_adapter import VaultMemorySkillAdapter
+from packages.skills.base import SkillRequest
+from packages.skills.adapters.vault_memory_adapter import VaultMemorySkillAdapter
 
 
 @pytest.mark.asyncio

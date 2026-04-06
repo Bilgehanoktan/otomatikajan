@@ -1,5 +1,5 @@
-from packages.packages.skills.base import SkillRequest
-from packages.packages.skills.router import skill_router
+from packages.skills.base import SkillRequest
+from packages.skills.router import skill_router
 
 
 def test_skill_router_bug_task_suggests_debugging_file_search_vault():

@@ -1,8 +1,8 @@
 import pytest
-from packages.packages.skills.adapters.vault_memory_adapter import VaultMemorySkillAdapter
-from packages.packages.skills.adapters.debugging_adapter import DebuggingSkillAdapter
-from packages.packages.skills.adapters.skill_creator_adapter import SkillCreatorSkillAdapter
-from packages.packages.skills.base import SkillRequest
+from packages.skills.adapters.vault_memory_adapter import VaultMemorySkillAdapter
+from packages.skills.adapters.debugging_adapter import DebuggingSkillAdapter
+from packages.skills.adapters.skill_creator_adapter import SkillCreatorSkillAdapter
+from packages.skills.base import SkillRequest
 from unittest.mock import MagicMock, patch, AsyncMock
 from packages.repair_engine.schemas.incident import IncidentSource, IncidentSeverity
 

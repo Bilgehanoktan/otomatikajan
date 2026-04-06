@@ -10,7 +10,7 @@ from packages.persistence.session import AsyncSessionLocal, init_db
 from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
 from packages.orchestration.agi.cognitive.motivation_engine import motivation_engine
 from packages.persistence.models import Memory, Project
-from packages.packages.observability.logging import get_logger
+from packages.observability.logging import get_logger
 
 _log = get_logger("agi_subconscious_audit")
 
