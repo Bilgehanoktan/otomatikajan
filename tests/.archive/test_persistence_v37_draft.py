@@ -39,7 +39,7 @@ async def test_long_horizon_persistence_v37():
     cortex._update_project_context = AsyncMock()
     
     # Mocking the repository get call (if needed) or directly setting current_task
-    # In real execution, current_task.project is loaded from DB.
+    # In real execution, current_task.project is loaded from packages.persistence.
     from packages.orchestration.agi.cognitive.sovereign_cortex import ProjectTask
     mock_task = ProjectTask(
         project_id=str(mock_project_id),
