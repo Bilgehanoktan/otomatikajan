@@ -596,8 +596,8 @@ class RepairOrchestrator:
     async def _step_browser_qa(self, job: "RepairJob", incident: "IncidentRecord") -> bool:
         """Adım 8: GStack Otonom Browser QA."""
         try:
-            from skills.registry import skill_registry
-            from skills.base import SkillRequest
+            from packages.skills.registry import skill_registry
+            from packages.skills.base import SkillRequest
             
             url = incident.context.get("url")
             selector = incident.context.get("selector")
