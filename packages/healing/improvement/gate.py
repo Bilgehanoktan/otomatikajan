@@ -4,9 +4,9 @@ Self-Improvement: Gate
 """
 import asyncio
 from typing import List, Dict
-from packages.orchestration.experimental.observer import observer
-from packages.orchestration.experimental.proposer import proposer
-from packages.orchestration.experimental.verifier import verifier
+from .observer import observer
+from .proposer import proposer
+from .verifier import verifier
 from packages.observability.logging import get_logger
 
 logger = get_logger("improvement.gate")
