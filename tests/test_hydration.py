@@ -8,7 +8,7 @@ from packages.repair_engine.memory.incident_memory import incident_memory
 from packages.repair_engine.ingestion.incident_ingestor import incident_ingestor
 from core.repair_orchestrator import get_repair_orchestrator
 from packages.persistence.session import AsyncSessionLocal
-from packages.persistence.repair_repository import RepairIncidentRepo, RepairJobRepo
+from packages.persistence.repositories.repair_repository import RepairIncidentRepo, RepairJobRepo
 from packages.persistence.repair_models import RepairIncident, RepairJobRecord
 
 pytestmark = pytest.mark.asyncio
@@ -96,4 +96,5 @@ async def test_repair_orchestrator_hydration():
     
     assert found_job is not None, "Job listelemede gelmeli"
     assert found_job.status.value == "new"
+
 
