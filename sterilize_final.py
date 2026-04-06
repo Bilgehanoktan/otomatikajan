@@ -34,7 +34,7 @@ MAPPINGS = {
     r'\bskills\.': 'packages.skills.',
     
     r'\bfrom auth\b': 'from apps.api.routers.auth',
-    r'\bauth\.': 'apps.api.routers.apps.api.routers.auth.',
+    r'\bauth\.': 'apps.api.routers.auth.',
 
     r'\bcore\.agi\b': 'packages.orchestration.agi',
     r'\bcore\.job_queue\b': 'packages.orchestration.application.job_queue',
