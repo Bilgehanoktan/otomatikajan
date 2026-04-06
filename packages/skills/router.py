@@ -1,5 +1,5 @@
-from skills.base import SkillRequest
-from skills.registry import skill_registry
+from packages.skills.base import SkillRequest
+from packages.skills.registry import skill_registry
 
 
 class SkillRouter:
