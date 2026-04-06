@@ -3,7 +3,7 @@ import asyncio
 from unittest.mock import AsyncMock, patch, MagicMock
 from core.orchestrator import Orchestrator
 from core.task_management import SubTask, TaskStatus
-from packages.packages.skills.base import SkillResult
+from packages.skills.base import SkillResult
 
 @pytest.mark.asyncio
 async def test_e2e_01_bug_task_flow_triggers_debugging_skill():

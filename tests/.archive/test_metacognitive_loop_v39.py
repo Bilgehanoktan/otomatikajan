@@ -9,7 +9,7 @@ from packages.orchestration.agi.task_governance import SovereignGoal, GovernedTa
 from packages.quality_assurance.output_schema import AgentOutput
 from packages.quality_assurance.reviewer import ReviewResult
 from packages.orchestration.agi.cognitive.subconscious.metacognitive_auditor import metacognitive_auditor
-from packages.packages.memory.retrieval import context_builder
+from packages.memory.retrieval import context_builder
 
 class TestMetacognitiveLoopV39(unittest.IsolatedAsyncioTestCase):
     
