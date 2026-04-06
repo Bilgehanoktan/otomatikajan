@@ -1,21 +1,21 @@
-"""
-Repair Router — Self-Repair sistemi için REST API.
+﻿"""
+Repair Router â€” Self-Repair sistemi iÃ§in REST API.
 
 Endpoint'ler:
-  POST   /repair/incidents              -> Incident oluştur
-  GET    /repair/incidents              -> Açık incident listesi
-  GET    /repair/incidents/{id}         -> Incident detayı
-  POST   /repair/jobs                  -> Repair job başlat
+  POST   /repair/incidents              -> Incident oluÅŸtur
+  GET    /repair/incidents              -> AÃ§Ä±k incident listesi
+  GET    /repair/incidents/{id}         -> Incident detayÄ±
+  POST   /repair/jobs                  -> Repair job baÅŸlat
   GET    /repair/jobs                  -> Job listesi
-  GET    /repair/jobs/{id}             -> Job detayı
+  GET    /repair/jobs/{id}             -> Job detayÄ±
   GET    /repair/jobs/{id}/validation  -> Validation raporu
-  GET    /repair/jobs/{id}/diff        -> Önerilen diff
-  POST   /repair/jobs/{id}/create-pr   -> PR önerisi oluştur (dry-run)
-  POST   /repair/jobs/{id}/decision    -> İnsan kararı (approve/reject)
+  GET    /repair/jobs/{id}/diff        -> Ã–nerilen diff
+  POST   /repair/jobs/{id}/create-pr   -> PR Ã¶nerisi oluÅŸtur (dry-run)
+  POST   /repair/jobs/{id}/decision    -> Ä°nsan kararÄ± (approve/reject)
   GET    /repair/proposals             -> Bekleyen PR listesi
-  POST   /repair/proposals/{id}/decide -> PR kararı ver
-  GET    /repair/stats                 -> İstatistikler + hafıza özeti
-  GET    /repair/architecture          -> Mimari hafızayı görüntüle
+  POST   /repair/proposals/{id}/decide -> PR kararÄ± ver
+  GET    /repair/stats                 -> Ä°statistikler + hafÄ±za Ã¶zeti
+  GET    /repair/architecture          -> Mimari hafÄ±zayÄ± gÃ¶rÃ¼ntÃ¼le
 """
 
 from datetime import datetime, timezone
@@ -27,9 +27,9 @@ from pydantic import BaseModel, Field
 from apps.api.routers.auth.jwt_auth import get_current_user, require_admin
 from packages.repair_engine.ingestion.incident_ingestor import incident_ingestor
 from packages.repair_engine.triage.triage_engine import triage_engine
-from packages.repair_engine.packages.memory.incident_memory import incident_memory
-from packages.repair_engine.packages.memory.patch_memory import patch_memory
-from packages.repair_engine.packages.memory.architecture_memory import architecture_memory
+from packages.repair_engine.memory.incident_memory import incident_memory
+from packages.repair_engine.memory.patch_memory import patch_memory
+from packages.repair_engine.memory.architecture_memory import architecture_memory
 from packages.repair_engine.application.orchestrator import get_repair_orchestrator
 from packages.orchestration.governance.policy_engine import policy_engine
 from packages.repair_engine.schemas.incident import IncidentSource, IncidentSeverity
@@ -40,7 +40,7 @@ _log = get_logger("api.repair")
 router = APIRouter(prefix="/repair", tags=["Self-Repair"])
 
 
-# ── Request / Response Modelleri ────────────────────────────
+# â”€â”€ Request / Response Modelleri â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class IncidentCreateRequest(BaseModel):
     source:            str = Field(default="manual")
@@ -84,19 +84,19 @@ class QARunRequest(BaseModel):
     model_config = {"extra": "ignore"}
 
 
-# ── Incident Endpoint'leri ───────────────────────────────────
+# â”€â”€ Incident Endpoint'leri â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @router.post("/incidents", status_code=201)
 async def create_incident(
     body: IncidentCreateRequest,
     current_user = Depends(get_current_user),
 ):
-    """Manuel incident oluştur. Sistem otomatik triage başlatır."""
+    """Manuel incident oluÅŸtur. Sistem otomatik triage baÅŸlatÄ±r."""
     try:
         source   = IncidentSource(body.source)
         severity = IncidentSeverity(body.severity)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=f"Geçersiz değer: {e}")
+        raise HTTPException(status_code=422, detail=f"GeÃ§ersiz deÄŸer: {e}")
 
     incident = incident_ingestor.from_dict({
         "source":            source.value,
@@ -124,10 +124,10 @@ async def list_incidents(
     limit:  int           = Query(default=20, le=100),
     current_user = Depends(get_current_user),
 ):
-    """Açık veya filtreli incident listesi."""
+    """AÃ§Ä±k veya filtreli incident listesi."""
     incidents = list(incident_ingestor.list_open())
     if status and status != "open":
-        # Hafızada tüm status için tarama
+        # HafÄ±zada tÃ¼m status iÃ§in tarama
         incidents = [i for i in incident_memory._incidents.values() if i.status == status]
     if module:
         incidents = [i for i in incidents if i.module == module]
@@ -142,27 +142,27 @@ async def get_incident(
     incident_id: str,
     current_user = Depends(get_current_user),
 ):
-    """Incident detayı."""
+    """Incident detayÄ±."""
     inc = incident_memory.get(incident_id)
     if not inc:
-        raise HTTPException(status_code=404, detail="Incident bulunamadı")
+        raise HTTPException(status_code=404, detail="Incident bulunamadÄ±")
     return {
         **inc.to_dict(),
         "similar": [s.to_dict() for s in incident_memory.get_similar(inc.symptom, inc.module)][:3],
     }
 
 
-# ── Job Endpoint'leri ────────────────────────────────────────
+# â”€â”€ Job Endpoint'leri â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @router.post("/jobs", status_code=201)
 async def start_repair_job(
     body: JobStartRequest,
     current_user = Depends(get_current_user),
 ):
-    """Bir incident için repair pipeline başlat."""
+    """Bir incident iÃ§in repair pipeline baÅŸlat."""
     inc = incident_memory.get(body.incident_id)
     if not inc:
-        raise HTTPException(status_code=404, detail="Incident bulunamadı")
+        raise HTTPException(status_code=404, detail="Incident bulunamadÄ±")
 
     orchestrator = get_repair_orchestrator()
     job = await orchestrator.start_repair(inc)
@@ -170,7 +170,7 @@ async def start_repair_job(
     return {
         "job_id":    job.job_id,
         "status":    job.status.value,
-        "message":   "Repair pipeline başlatıldı. Pipeline asenkron çalışır.",
+        "message":   "Repair pipeline baÅŸlatÄ±ldÄ±. Pipeline asenkron Ã§alÄ±ÅŸÄ±r.",
         **job.to_dict(),
     }
 
@@ -181,7 +181,7 @@ async def list_jobs(
     status: Optional[str] = Query(default=None),
     current_user = Depends(get_current_user),
 ):
-    """Son repair job'ları listele."""
+    """Son repair job'larÄ± listele."""
     orchestrator = get_repair_orchestrator()
     # `RepairOrchestrator.list_jobs` is an async coroutine.  It must be awaited
     # otherwise Python will return a coroutine object and the route will
@@ -201,14 +201,14 @@ async def get_job(
     job_id: str,
     current_user = Depends(get_current_user),
 ):
-    """Job detayı ve durum geçiş geçmişi."""
+    """Job detayÄ± ve durum geÃ§iÅŸ geÃ§miÅŸi."""
     orchestrator = get_repair_orchestrator()
-    # `RepairOrchestrator.get_job` returns a coroutine – await it to get the
+    # `RepairOrchestrator.get_job` returns a coroutine â€“ await it to get the
     # actual job instance. Without awaiting, the router would return a
     # coroutine object rather than the job data, leading to 500 errors.
     job = await orchestrator.get_job(job_id)
     if not job:
-        raise HTTPException(status_code=404, detail="Job bulunamadı")
+        raise HTTPException(status_code=404, detail="Job bulunamadÄ±")
     return job.to_dict()
 
 
@@ -217,18 +217,18 @@ async def get_job_diff(
     job_id: str,
     current_user = Depends(get_current_user),
 ):
-    """Üretilen patch diff'ini görüntüle."""
+    """Ãœretilen patch diff'ini gÃ¶rÃ¼ntÃ¼le."""
     orchestrator = get_repair_orchestrator()
     job = await orchestrator.get_job(job_id)
     if not job:
-        raise HTTPException(status_code=404, detail="Job bulunamadı")
+        raise HTTPException(status_code=404, detail="Job bulunamadÄ±")
     if not job.diff:
-        raise HTTPException(status_code=404, detail="Bu job için diff henüz üretilmedi")
+        raise HTTPException(status_code=404, detail="Bu job iÃ§in diff henÃ¼z Ã¼retilmedi")
     return {
         "job_id":      job.job_id,
         "branch_name": job.branch_name,
         "diff":        job.diff,
-        "warning":     "Bu diff henüz uygulanmamıştır. PR onayı gereklidir.",
+        "warning":     "Bu diff henÃ¼z uygulanmamÄ±ÅŸtÄ±r. PR onayÄ± gereklidir.",
     }
 
 
@@ -238,20 +238,20 @@ async def job_decision(
     body:   JobDecisionRequest,
     current_user = Depends(require_admin),   # Sadece admin karar verebilir
 ):
-    """İnsan kararını kaydet (approve/reject)."""
+    """Ä°nsan kararÄ±nÄ± kaydet (approve/reject)."""
     orchestrator = get_repair_orchestrator()
     job = await orchestrator.get_job(job_id)
     if not job:
-        raise HTTPException(status_code=404, detail="Job bulunamadı")
+        raise HTTPException(status_code=404, detail="Job bulunamadÄ±")
 
     if body.decision not in ("approve", "reject"):
-        raise HTTPException(status_code=422, detail="decision: 'approve' veya 'reject' olmalı")
+        raise HTTPException(status_code=422, detail="decision: 'approve' veya 'reject' olmalÄ±")
 
     from packages.repair_engine.schemas.repair_job import RepairJobStatus
     if body.decision == "reject":
-        job.transition(RepairJobStatus.REJECTED, note=f"İnsan kararı: {body.reason[:100]}")
+        job.transition(RepairJobStatus.REJECTED, note=f"Ä°nsan kararÄ±: {body.reason[:100]}")
     else:
-        job.transition(RepairJobStatus.MERGED, note=f"İnsan onayı: {body.decided_by}")
+        job.transition(RepairJobStatus.MERGED, note=f"Ä°nsan onayÄ±: {body.decided_by}")
 
     return {"job_id": job_id, "new_status": job.status.value, "decided_by": body.decided_by}
 
@@ -262,18 +262,18 @@ async def run_job_qa(
     body:   Optional[QARunRequest] = None,
     current_user = Depends(get_current_user),
 ):
-    """Manüel olarak Browser QA doğrulamasını tetikle."""
+    """ManÃ¼el olarak Browser QA doÄŸrulamasÄ±nÄ± tetikle."""
     orchestrator = get_repair_orchestrator()
     job = await orchestrator.get_job(job_id)
     if not job:
-        raise HTTPException(status_code=404, detail="Job bulunamadı")
+        raise HTTPException(status_code=404, detail="Job bulunamadÄ±")
 
-    # Incident'ı bul (url bilgisi için)
+    # Incident'Ä± bul (url bilgisi iÃ§in)
     inc = incident_memory.get(job.incident_id)
     if not inc:
-         raise HTTPException(status_code=404, detail="Bağlı incident bulunamadı")
+         raise HTTPException(status_code=404, detail="BaÄŸlÄ± incident bulunamadÄ±")
 
-    # Eğer istekte URL/selector varsa context'i geçici olarak güncelle
+    # EÄŸer istekte URL/selector varsa context'i geÃ§ici olarak gÃ¼ncelle
     if body:
         if body.url:
             inc.context["url"] = body.url
@@ -281,34 +281,34 @@ async def run_job_qa(
             inc.context["selector"] = body.selector
 
     if not inc.context.get("url"):
-        raise HTTPException(status_code=422, detail="QA için bir URL belirtilmemiş (incident context veya request body)")
+        raise HTTPException(status_code=422, detail="QA iÃ§in bir URL belirtilmemiÅŸ (incident context veya request body)")
 
     success = await orchestrator._step_browser_qa(job, inc)
     
     return {
         "job_id": job_id,
         "success": success,
-        "summary": "QA doğrulama tamamlandı" if success else "QA doğrulama başarısız oldu",
+        "summary": "QA doÄŸrulama tamamlandÄ±" if success else "QA doÄŸrulama baÅŸarÄ±sÄ±z oldu",
         "logs": job.logs[-2:] if job.logs else []
     }
 
 
-# ── PR Önerileri ─────────────────────────────────────────────
+# â”€â”€ PR Ã–nerileri â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @router.get("/proposals")
 async def list_proposals(
     current_user = Depends(get_current_user),
 ):
-    """Bekleyen PR önerileri — DB + in-memory birleşik liste."""
-    # Önce in-memory (güncel session)
+    """Bekleyen PR Ã¶nerileri â€” DB + in-memory birleÅŸik liste."""
+    # Ã–nce in-memory (gÃ¼ncel session)
     from packages.repair_engine.release.pr_creator import get_pr_creator
     creator   = get_pr_creator(_get_repair_project_root())
     mem_props = creator.list_proposals()
 
-    # DB'den de al (restart sonrası kalıcı kayıtlar)
+    # DB'den de al (restart sonrasÄ± kalÄ±cÄ± kayÄ±tlar)
     db_props = await _list_proposals_from_db()
 
-    # Birleştir — pr_id'ye göre deduplicate (memory öncelikli)
+    # BirleÅŸtir â€” pr_id'ye gÃ¶re deduplicate (memory Ã¶ncelikli)
     combined: dict[str, dict] = {p["pr_id"]: p for p in db_props}
     for p in mem_props:
         combined[p.pr_id] = p.to_dict()
@@ -317,7 +317,7 @@ async def list_proposals(
     return {
         "total":     len(result),
         "proposals": result,
-        "note":      "Otomatik merge kapalıdır. Merge için git üzerinden insan onayı gerekir.",
+        "note":      "Otomatik merge kapalÄ±dÄ±r. Merge iÃ§in git Ã¼zerinden insan onayÄ± gerekir.",
     }
 
 
@@ -326,7 +326,7 @@ async def get_proposal(
     pr_id: str,
     current_user = Depends(get_current_user),
 ):
-    """PR önerisi detayı (diff dahil). In-memory veya DB'den okur."""
+    """PR Ã¶nerisi detayÄ± (diff dahil). In-memory veya DB'den okur."""
     from packages.repair_engine.release.pr_creator import get_pr_creator
     creator  = get_pr_creator(_get_repair_project_root())
     proposal = creator.get_proposal(pr_id)
@@ -338,10 +338,10 @@ async def get_proposal(
         # DB'den dene
         data = await _get_proposal_from_db(pr_id)
         if not data:
-            raise HTTPException(status_code=404, detail="PR önerisi bulunamadı")
+            raise HTTPException(status_code=404, detail="PR Ã¶nerisi bulunamadÄ±")
 
     data["auto_merge"]    = False
-    data["merge_warning"] = "Merge etmeden önce diff'i inceleyiniz."
+    data["merge_warning"] = "Merge etmeden Ã¶nce diff'i inceleyiniz."
     return data
 
 
@@ -352,25 +352,25 @@ async def decide_proposal(
     body:  ProposalDecisionRequest,
     current_user = Depends(require_admin),
 ):
-    """PR kararını kaydet ve ilgili job statüsünü güncelle."""
+    """PR kararÄ±nÄ± kaydet ve ilgili job statÃ¼sÃ¼nÃ¼ gÃ¼ncelle."""
     if body.decision not in ("approved", "rejected", "merged"):
-        raise HTTPException(status_code=422, detail="Geçersiz karar değeri")
+        raise HTTPException(status_code=422, detail="GeÃ§ersiz karar deÄŸeri")
 
     # DB'ye kaydet
     await _persist_proposal_decision(pr_id, body.decision, body.decided_by)
 
-    # İlgili job statüsünü güncelle — in-memory + DB fallback
+    # Ä°lgili job statÃ¼sÃ¼nÃ¼ gÃ¼ncelle â€” in-memory + DB fallback
     await _update_job_on_proposal_decision(pr_id, body.decision, body.decided_by)
 
     return {
         "pr_id":      pr_id,
         "decision":   body.decision,
         "decided_by": body.decided_by,
-        "note":       "Karar kaydedildi. Gerçek merge işlemi git üzerinden yapılmalıdır.",
+        "note":       "Karar kaydedildi. GerÃ§ek merge iÅŸlemi git Ã¼zerinden yapÄ±lmalÄ±dÄ±r.",
     }
 
 
-# ── Durum & İstatistik ───────────────────────────────────────
+# â”€â”€ Durum & Ä°statistik â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @router.get("/stats")
 async def get_stats(
@@ -426,7 +426,7 @@ async def get_stats(
 async def get_architecture_memory(
     current_user = Depends(get_current_user),
 ):
-    """Sistemin mimari hafızasını görüntüle (patch planlarını yönlendirir)."""
+    """Sistemin mimari hafÄ±zasÄ±nÄ± gÃ¶rÃ¼ntÃ¼le (patch planlarÄ±nÄ± yÃ¶nlendirir)."""
     return {
         "contracts": [
             {
@@ -455,7 +455,7 @@ async def triage_preview(
     module:  str = Query(default="unknown"),
     current_user = Depends(get_current_user),
 ):
-    """Gerçek incident oluşturmadan triage sonucunu önizle."""
+    """GerÃ§ek incident oluÅŸturmadan triage sonucunu Ã¶nizle."""
     from packages.repair_engine.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
     inc = IncidentRecord.create(
         source=IncidentSource.MANUAL,
@@ -472,19 +472,19 @@ async def triage_preview(
         "candidate_files":   ticket.candidate_files,
         "requires_human":    ticket.requires_human,
         "policy_decision":   policy.to_dict(),
-        "note":              "Bu önizleme — gerçek incident veya job oluşturulmadı.",
+        "note":              "Bu Ã¶nizleme â€” gerÃ§ek incident veya job oluÅŸturulmadÄ±.",
     }
 
 
-# ── Yardımcı Fonksiyonlar ────────────────────────────────────
+# â”€â”€ YardÄ±mcÄ± Fonksiyonlar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async def _update_job_on_proposal_decision(pr_id: str, decision: str, decided_by: str) -> None:
-    """Proposal kararına göre linked job durumunu güncelle.
+    """Proposal kararÄ±na gÃ¶re linked job durumunu gÃ¼ncelle.
     In-memory bulunamazsa DB'den job_id lookup yapar."""
     from packages.repair_engine.schemas.repair_job import RepairJobStatus
     job_id = None
 
-    # Önce in-memory dene
+    # Ã–nce in-memory dene
     try:
         from packages.repair_engine.release.pr_creator import get_pr_creator
         creator  = get_pr_creator(_get_repair_project_root())
@@ -494,7 +494,7 @@ async def _update_job_on_proposal_decision(pr_id: str, decision: str, decided_by
     except Exception:
         pass
 
-    # In-memory bulunamazsa DB'den job_id çek
+    # In-memory bulunamazsa DB'den job_id Ã§ek
     if not job_id:
         try:
             from packages.persistence.session import AsyncSessionLocal, is_db_available
@@ -508,25 +508,25 @@ async def _update_job_on_proposal_decision(pr_id: str, decision: str, decided_by
                     if row:
                         job_id = str(row)
         except Exception as e:
-            _log.debug(f"Proposal job_id DB lookup hatası: {e}")
+            _log.debug(f"Proposal job_id DB lookup hatasÄ±: {e}")
 
     if not job_id:
-        _log.warning(f"Proposal {pr_id} için job_id bulunamadı — job status güncellenemiyor")
+        _log.warning(f"Proposal {pr_id} iÃ§in job_id bulunamadÄ± â€” job status gÃ¼ncellenemiyor")
         return
 
-    # Job status güncelle (in-memory)
+    # Job status gÃ¼ncelle (in-memory)
     try:
         orch = get_repair_orchestrator()
         job  = await orch.get_job(job_id)
         if job:
             if decision in ("approved", "merged"):
-                job.transition(RepairJobStatus.MERGED, note=f"İnsan onayı: {decided_by}")
+                job.transition(RepairJobStatus.MERGED, note=f"Ä°nsan onayÄ±: {decided_by}")
             elif decision == "rejected":
-                job.transition(RepairJobStatus.REJECTED, note=f"İnsan reddi: {decided_by}")
+                job.transition(RepairJobStatus.REJECTED, note=f"Ä°nsan reddi: {decided_by}")
             # DB'ye de yaz
             await _persist_job_status(job)
     except Exception as e:
-        _log.warning(f"Job status güncelleme hatası: {e}")
+        _log.warning(f"Job status gÃ¼ncelleme hatasÄ±: {e}")
 
 
 async def _persist_job_status(job) -> None:
@@ -540,11 +540,11 @@ async def _persist_job_status(job) -> None:
             await RepairJobRepo.upsert(db, job)
             await db.commit()
     except Exception as e:
-        _log.debug(f"Job status DB yazma hatası (ignore): {e}")
+        _log.debug(f"Job status DB yazma hatasÄ± (ignore): {e}")
 
 
 async def _list_proposals_from_db() -> list[dict]:
-    """DB'deki tüm proposal'ları getir (sessiz hata)."""
+    """DB'deki tÃ¼m proposal'larÄ± getir (sessiz hata)."""
     try:
         from packages.persistence.session import AsyncSessionLocal, is_db_available
         if not await is_db_available():
@@ -567,12 +567,12 @@ async def _list_proposals_from_db() -> list[dict]:
                 for r in rows
             ]
     except Exception as e:
-        _log.warning(f"Proposal DB okuma hatası (ignore): {e}")
+        _log.warning(f"Proposal DB okuma hatasÄ± (ignore): {e}")
         return []
 
 
 async def _get_proposal_from_db(pr_id: str) -> Optional[dict]:
-    """Tekil proposal'ı DB'den getir (sessiz hata)."""
+    """Tekil proposal'Ä± DB'den getir (sessiz hata)."""
     try:
         from packages.persistence.session import AsyncSessionLocal, is_db_available
         if not await is_db_available():
@@ -601,12 +601,12 @@ async def _get_proposal_from_db(pr_id: str) -> Optional[dict]:
                 "created_at":          row.created_at.isoformat() if row.created_at else "",
             }
     except Exception as e:
-        _log.warning(f"Proposal detay DB okuma hatası (ignore): {e}")
+        _log.warning(f"Proposal detay DB okuma hatasÄ± (ignore): {e}")
         return None
 
 
 def _get_repair_project_root() -> str:
-    """Repair orchestrator'la aynı project_root döndür (singleton uyumu)."""
+    """Repair orchestrator'la aynÄ± project_root dÃ¶ndÃ¼r (singleton uyumu)."""
     try:
         from packages.repair_engine.application.orchestrator import get_repair_orchestrator
         orch = get_repair_orchestrator()
@@ -626,11 +626,11 @@ async def _persist_incident(incident) -> None:
             await RepairIncidentRepo.upsert(db, incident)
             await db.commit()
     except Exception as e:
-        _log.warning(f"Incident DB yazma hatası (ignore): {e}")
+        _log.warning(f"Incident DB yazma hatasÄ± (ignore): {e}")
 
 
 async def _persist_proposal_decision(pr_id: str, decision: str, decided_by: str) -> None:
-    """PR kararını DB'ye kaydet (sessiz hata)."""
+    """PR kararÄ±nÄ± DB'ye kaydet (sessiz hata)."""
     try:
         from packages.persistence.session import AsyncSessionLocal, is_db_available
         if not await is_db_available():
@@ -640,12 +640,12 @@ async def _persist_proposal_decision(pr_id: str, decision: str, decided_by: str)
             await RepairProposalRepo.decide(db, pr_id, decision, decided_by)
             await db.commit()
     except Exception as e:
-        _log.warning(f"Proposal karar DB yazma hatası (ignore): {e}")
+        _log.warning(f"Proposal karar DB yazma hatasÄ± (ignore): {e}")
 
 
-# ─────────────────────────────────────────────────────────────
-# Faz 11 — Yeni endpoint'ler
-# ─────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# Faz 11 â€” Yeni endpoint'ler
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @router.get("/incidents/{incident_id}/similar")
 async def get_similar_incidents(
@@ -654,11 +654,11 @@ async def get_similar_incidents(
     min_similarity: float = Query(0.5, ge=0.1, le=1.0),
     current_user=Depends(get_current_user),
 ):
-    """Benzer incident'leri döndür (Faz 11 — Similarity Engine)."""
+    """Benzer incident'leri dÃ¶ndÃ¼r (Faz 11 â€” Similarity Engine)."""
     from packages.repair_engine.analysis.incident_fingerprint import build_fingerprint, get_similarity_engine
     incident = incident_memory.get(incident_id)
     if not incident:
-        raise HTTPException(404, "Incident bulunamadı")
+        raise HTTPException(404, "Incident bulunamadÄ±")
     fp = build_fingerprint(incident)
     similars = get_similarity_engine().find_similar(fp, limit=limit, min_similarity=min_similarity)
     return {
@@ -676,15 +676,15 @@ async def get_similar_incidents(
 @router.get("/jobs/{job_id}/validation")
 async def get_job_validation(job_id: str, current_user=Depends(get_current_user)):
     """
-    Job doğrulama sonuçlarını döndür — RC1 Gerçek Kanıt Zinciri.
-    Önce kalıcı store'dan gerçek raporu çek; yoksa job'dan türet.
+    Job doÄŸrulama sonuÃ§larÄ±nÄ± dÃ¶ndÃ¼r â€” RC1 GerÃ§ek KanÄ±t Zinciri.
+    Ã–nce kalÄ±cÄ± store'dan gerÃ§ek raporu Ã§ek; yoksa job'dan tÃ¼ret.
     """
     orchestrator = get_repair_orchestrator(_get_repair_project_root())
     job = await orchestrator.get_job(job_id)
     if not job:
-        raise HTTPException(404, "Job bulunamadı")
+        raise HTTPException(404, "Job bulunamadÄ±")
 
-    # 1. Gerçek validation raporunu store'dan çek (RC1)
+    # 1. GerÃ§ek validation raporunu store'dan Ã§ek (RC1)
     try:
         from packages.repair_engine.verification.verification_engine import get_validation_report
         real_report = get_validation_report(job_id) or get_validation_report(job.validation_id or "")
@@ -699,12 +699,12 @@ async def get_job_validation(job_id: str, current_user=Depends(get_current_user)
                 "generated_tests":  getattr(job, "generated_tests", []),
                 "job_status":       job.status.value,
                 "confidence":       real_report.get("confidence", "high"),
-                "summary":          real_report.get("summary", "Doğrulama motoru tarafından onaylandı (yüksek güven)."),
+                "summary":          real_report.get("summary", "DoÄŸrulama motoru tarafÄ±ndan onaylandÄ± (yÃ¼ksek gÃ¼ven)."),
             }
     except Exception:
         pass
 
-    # 2. Fallback: job state'den türet (henüz verify olmamışsa)
+    # 2. Fallback: job state'den tÃ¼ret (henÃ¼z verify olmamÄ±ÅŸsa)
     verified_states = ("verified", "canary_pending", "canary_running",
                        "canary_passed", "canary_failed",
                        "pr_created", "awaiting_approval", "merged")
@@ -728,10 +728,10 @@ async def get_job_validation(job_id: str, current_user=Depends(get_current_user)
         "verification_gaps": [],
         "architecture_notes": [],
         "confidence":       "low",
-        "summary":          "Resmi doğrulama henüz tamamlanmadı; durum verilerinden türetildi (düşük güven).",
+        "summary":          "Resmi doÄŸrulama henÃ¼z tamamlanmadÄ±; durum verilerinden tÃ¼retildi (dÃ¼ÅŸÃ¼k gÃ¼ven).",
     }
 
-    # Architecture guard canlı kontrol
+    # Architecture guard canlÄ± kontrol
     if job.diff:
         try:
             from packages.repair_engine.review.architecture_guard import get_architecture_guard
@@ -749,11 +749,11 @@ async def get_job_validation(job_id: str, current_user=Depends(get_current_user)
 
 @router.get("/jobs/{job_id}/generated-tests")
 async def get_generated_tests(job_id: str, current_user=Depends(get_current_user)):
-    """Job için üretilen test dosyalarını döndür (Faz 11 — Test Generator)."""
+    """Job iÃ§in Ã¼retilen test dosyalarÄ±nÄ± dÃ¶ndÃ¼r (Faz 11 â€” Test Generator)."""
     orchestrator = get_repair_orchestrator(_get_repair_project_root())
     job = await orchestrator.get_job(job_id)
     if not job:
-        raise HTTPException(404, "Job bulunamadı")
+        raise HTTPException(404, "Job bulunamadÄ±")
     return {
         "job_id":   job_id,
         "tests":    job.generated_tests,
@@ -763,11 +763,11 @@ async def get_generated_tests(job_id: str, current_user=Depends(get_current_user
 
 @router.get("/jobs/{job_id}/canary")
 async def get_canary_result(job_id: str, current_user=Depends(get_current_user)):
-    """Job'ın canary doğrulama sonucunu döndür (Faz 11)."""
+    """Job'Ä±n canary doÄŸrulama sonucunu dÃ¶ndÃ¼r (Faz 11)."""
     orchestrator = get_repair_orchestrator(_get_repair_project_root())
     job = await orchestrator.get_job(job_id)
     if not job:
-        raise HTTPException(404, "Job bulunamadı")
+        raise HTTPException(404, "Job bulunamadÄ±")
     return {
         "job_id":       job_id,
         "canary_id":    job.canary_id,
@@ -782,17 +782,17 @@ async def get_job_report(
     fmt: str = Query("markdown", pattern="^(markdown|html)$"),
     current_user=Depends(get_current_user),
 ):
-    """Job raporu döndür — markdown veya html (Faz 11)."""
+    """Job raporu dÃ¶ndÃ¼r â€” markdown veya html (Faz 11)."""
     from fastapi.responses import PlainTextResponse, HTMLResponse
     from packages.repair_engine.reporting.report_generator import generate_markdown_report, generate_html_report
 
     orchestrator = get_repair_orchestrator(_get_repair_project_root())
     job = await orchestrator.get_job(job_id)
     if not job:
-        raise HTTPException(404, "Job bulunamadı")
+        raise HTTPException(404, "Job bulunamadÄ±")
     incident = incident_memory.get(job.incident_id)
     if not incident:
-        raise HTTPException(404, "Incident bulunamadı")
+        raise HTTPException(404, "Incident bulunamadÄ±")
 
     if fmt == "html":
         report = generate_html_report(job, incident)
@@ -807,18 +807,18 @@ async def simulate_job(
     current_user=Depends(get_current_user),
 ):
     """
-    Simülasyon modu — gerçek patch üretmeden pipeline'ı çalıştır.
-    Tahmini risk, validation beklentisi ve hangi dosyaların etkileneceğini döndürür.
+    SimÃ¼lasyon modu â€” gerÃ§ek patch Ã¼retmeden pipeline'Ä± Ã§alÄ±ÅŸtÄ±r.
+    Tahmini risk, validation beklentisi ve hangi dosyalarÄ±n etkileneceÄŸini dÃ¶ndÃ¼rÃ¼r.
     """
     orchestrator = get_repair_orchestrator(_get_repair_project_root())
     job = await orchestrator.get_job(job_id)
     if not job:
-        raise HTTPException(404, "Job bulunamadı")
+        raise HTTPException(404, "Job bulunamadÄ±")
     incident = incident_memory.get(job.incident_id)
     if not incident:
-        raise HTTPException(404, "Incident bulunamadı")
+        raise HTTPException(404, "Incident bulunamadÄ±")
 
-    # Triage preview ile taktiksel önizleme
+    # Triage preview ile taktiksel Ã¶nizleme
     from packages.repair_engine.triage.triage_engine import triage_engine as te
     from packages.orchestration.governance.policy_registry import get_policy_registry
     from packages.repair_engine.analysis.incident_fingerprint import build_fingerprint, get_similarity_engine
@@ -859,7 +859,7 @@ async def simulate_job(
 
 
 def _expected_flow(ticket, policy) -> list[str]:
-    """Simülasyon — tahmini pipeline adımları."""
+    """SimÃ¼lasyon â€” tahmini pipeline adÄ±mlarÄ±."""
     steps = ["INCIDENT_COLLECTED", "TRIAGED", "CONTEXT_BUILT", "ROOT_CAUSE_ANALYZED",
              "PATCH_PLANNED", "PATCH_GENERATED", "REVIEWED", "VERIFIED"]
     if policy.canary_required():
@@ -876,7 +876,8 @@ async def architecture_guard_check(
     diff: str = Query(..., description="Kontrol edilecek unified diff metni"),
     current_user=Depends(get_current_user),
 ):
-    """Bir diff metnini architecture guard'dan geçir (Faz 11)."""
+    """Bir diff metnini architecture guard'dan geÃ§ir (Faz 11)."""
     from packages.repair_engine.review.architecture_guard import get_architecture_guard
     result = get_architecture_guard().check_diff(diff)
     return result.to_dict()
+

@@ -1,4 +1,4 @@
-import json
+﻿import json
 from typing import Optional, Any
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -10,9 +10,9 @@ router = APIRouter(prefix="/faz12", tags=["Faz12-AI-Engine"])
 _log   = get_logger("api.faz12")
 
 
-# ══════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # Request Models
-# ══════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 class DebateRequest(BaseModel):
     topic:      str        = Field(..., min_length=10)
@@ -23,7 +23,7 @@ class DebateRequest(BaseModel):
     max_rounds: int        = Field(default=3, ge=1, le=5)
 
 class SandboxRequest(BaseModel):
-    code:    str = Field(..., description="Çalıştırılacak Python kodu")
+    code:    str = Field(..., description="Ã‡alÄ±ÅŸtÄ±rÄ±lacak Python kodu")
     timeout: int = Field(default=10, ge=1, le=30)
 
 class VectorLessonSaveRequest(BaseModel):
@@ -44,9 +44,9 @@ class DebateOutcome(BaseModel):
     rounds: list[dict]
 
 
-# ══════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # Debate Engine Endpoints
-# ══════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 ACTIVE_DEBATES_KEY = "faz12:active_debates"
 
@@ -79,7 +79,7 @@ async def save_active_debates(items: list[dict[str, Any]]) -> None:
 @router.post("/debate/run", response_model=DebateOutcome)
 @circuit_breaker(name="debate_engine", fail_threshold=3, recovery_timeout=60.0)
 async def run_debate(body: DebateRequest, current_user=Depends(get_current_user)):
-    """Multi-agent debate başlat. İki ajan kritik bir karar üzerinde tartışır."""
+    """Multi-agent debate baÅŸlat. Ä°ki ajan kritik bir karar Ã¼zerinde tartÄ±ÅŸÄ±r."""
     try:
         from packages.orchestration.application.debate_engine import get_debate_engine
         from packages.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex as orch
@@ -100,50 +100,50 @@ async def run_debate(body: DebateRequest, current_user=Depends(get_current_user)
 
         return DebateOutcome(**data)
     except Exception as e:
-        _log.error(f"Debate Engine hatası: {e}")
-        raise HTTPException(status_code=500, detail=f"Debate başlatılamadı: {str(e)}")
+        _log.error(f"Debate Engine hatasÄ±: {e}")
+        raise HTTPException(status_code=500, detail=f"Debate baÅŸlatÄ±lamadÄ±: {str(e)}")
 
 
 @router.get("/debate/active")
 async def active_debates(current_user=Depends(get_current_user)):
-    """Aktif veya son yapılan tartışmaları listele."""
+    """Aktif veya son yapÄ±lan tartÄ±ÅŸmalarÄ± listele."""
     active = await load_active_debates()
     return {"active_debates": active}
 
 
 @router.get("/debate/personas")
 async def debate_personas(current_user=Depends(get_current_user)):
-    """Tartışmaya katılabilecek ajan personallarını listele."""
+    """TartÄ±ÅŸmaya katÄ±labilecek ajan personallarÄ±nÄ± listele."""
     from packages.orchestration.agency.loader import agency_loader
     agents = agency_loader.list_agents()
     return {
         "personas": [
-            {"id": a["id"], "name": a["name"], "emoji": a.get("emoji", "🤖")}
+            {"id": a["id"], "name": a["name"], "emoji": a.get("emoji", "ğŸ¤–")}
             for a in agents
         ]
     }
 
 
-# ══════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # Sandbox Endpoints
-# ══════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 @router.post("/sandbox/run")
 @circuit_breaker(name="sandbox_runner", fail_threshold=5, recovery_timeout=30.0)
 async def run_sandbox(body: SandboxRequest, current_user=Depends(require_admin)):
-    """Python kodunu güvenli sandbox'ta çalıştır (admin only)."""
+    """Python kodunu gÃ¼venli sandbox'ta Ã§alÄ±ÅŸtÄ±r (admin only)."""
     try:
         from packages.orchestration.application.sandbox_runner import get_sandbox_runner
-        # SRE Hardening: Kaynak sınırlarını API seviyesinde zorunlu kıl
+        # SRE Hardening: Kaynak sÄ±nÄ±rlarÄ±nÄ± API seviyesinde zorunlu kÄ±l
         runner = get_sandbox_runner(use_docker=True)
-        # Timeout kısıtlaması (API seviyesinde max 30s)
+        # Timeout kÄ±sÄ±tlamasÄ± (API seviyesinde max 30s)
         safe_timeout = min(body.timeout, 30)
         
         result = await runner.run_python(body.code, timeout=safe_timeout)
         return result.to_dict()
     except Exception as e:
-        _log.error(f"Sandbox hatası: {e}")
-        raise HTTPException(status_code=500, detail=f"Sandbox yürütme hatası: {str(e)}")
+        _log.error(f"Sandbox hatasÄ±: {e}")
+        raise HTTPException(status_code=500, detail=f"Sandbox yÃ¼rÃ¼tme hatasÄ±: {str(e)}")
 
 
 @router.post("/sandbox/check-patch")
@@ -151,14 +151,14 @@ async def check_patch_sandbox(
     diff:    str = Query(..., description="Unified diff metni"),
     current_user=Depends(get_current_user),
 ):
-    """Patch diff'ini sandbox syntax kontrolünden geçir."""
+    """Patch diff'ini sandbox syntax kontrolÃ¼nden geÃ§ir."""
     from packages.orchestration.application.sandbox_runner import get_sandbox_runner
     runner = get_sandbox_runner(use_docker=False)
     lines  = diff.split("\n")
     added  = [l[1:] for l in lines if l.startswith("+") and not l.startswith("+++")]
     code   = "\n".join(added)
     if not code.strip():
-        return {"success": True, "message": "Eklenen satır yok"}
+        return {"success": True, "message": "Eklenen satÄ±r yok"}
     result = await runner.run_python(
         f"import ast\nast.parse({repr(code)})\nprint('OK')", timeout=5
     )
@@ -170,16 +170,16 @@ async def ruff_check_sandbox(
     code: str = Query(...),
     current_user=Depends(get_current_user),
 ):
-    """Ruff linter kontrolü."""
+    """Ruff linter kontrolÃ¼."""
     from packages.orchestration.application.sandbox_runner import get_sandbox_runner
     runner = get_sandbox_runner(use_docker=False)
     result = await runner.run_ruff_check(code)
     return result.to_dict()
 
 
-# ══════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # Model Router Endpoints
-# ══════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 @router.get("/model-router/route")
 async def get_routing_decision(
@@ -188,7 +188,7 @@ async def get_routing_decision(
     task_type:  Optional[str] = Query(default=None),
     current_user=Depends(get_current_user),
 ):
-    """Bir prompt için model routing kararını önizle."""
+    """Bir prompt iÃ§in model routing kararÄ±nÄ± Ã¶nizle."""
     from packages.llm_gateway.model_router import get_model_router
     decision = get_model_router().route(prompt, agent_role=agent_role, task_type=task_type)
     return decision.to_dict()
@@ -203,7 +203,7 @@ async def model_router_stats(current_user=Depends(get_current_user)):
 
 @router.get("/model-router/complexity-map")
 async def complexity_map(current_user=Depends(get_current_user)):
-    """Karmaşıklık -> model eşlemesini göster."""
+    """KarmaÅŸÄ±klÄ±k -> model eÅŸlemesini gÃ¶ster."""
     from packages.llm_gateway.model_router import _MODEL_MAP, TaskComplexity
     result = {}
     for provider, mapping in _MODEL_MAP.items():
@@ -211,9 +211,9 @@ async def complexity_map(current_user=Depends(get_current_user)):
     return {"complexity_map": result}
 
 
-# ══════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # Vector Lessons Endpoints
-# ══════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 @router.get("/vector-lessons/search")
 async def search_vector_lessons(
@@ -222,8 +222,8 @@ async def search_vector_lessons(
     limit:   int = Query(default=3, ge=1, le=10),
     current_user=Depends(get_current_user)
 ):
-    """Benzer geçmiş çözümleri semantic search ile bul."""
-    from packages.repair_engine.packages.memory.vector_lessons import get_vector_lessons
+    """Benzer geÃ§miÅŸ Ã§Ã¶zÃ¼mleri semantic search ile bul."""
+    from packages.repair_engine.memory.vector_lessons import get_vector_lessons
     store   = get_vector_lessons()
     results = store.find_similar(symptom, module=module, limit=limit)
     return {
@@ -241,8 +241,8 @@ async def save_vector_lesson(
     job_id: str = "", incident_id: str = "",
     current_user=Depends(get_current_user)
 ):
-    """Başarılı bir onarımı hafızaya kaydet."""
-    from packages.repair_engine.packages.memory.vector_lessons import get_vector_lessons
+    """BaÅŸarÄ±lÄ± bir onarÄ±mÄ± hafÄ±zaya kaydet."""
+    from packages.repair_engine.memory.vector_lessons import get_vector_lessons
     lesson = get_vector_lessons().save_lesson(
         symptom=symptom, module=module, resolution=resolution,
         job_id=job_id, incident_id=incident_id
@@ -251,13 +251,14 @@ async def save_vector_lesson(
 
 @router.get("/vector-lessons/stats")
 async def vector_lessons_stats(current_user=Depends(get_current_user)):
-    """Vektör veritabanı istatistikleri."""
-    from packages.repair_engine.packages.memory.vector_lessons import get_vector_lessons
+    """VektÃ¶r veritabanÄ± istatistikleri."""
+    from packages.repair_engine.memory.vector_lessons import get_vector_lessons
     return get_vector_lessons().stats()
 
 @router.get("/vector-lessons/module/{module_name}")
 async def lessons_by_module(module_name: str, current_user=Depends(get_current_user)):
-    """Modül bazlı çözümleri listele."""
-    from packages.repair_engine.packages.memory.vector_lessons import get_vector_lessons
+    """ModÃ¼l bazlÄ± Ã§Ã¶zÃ¼mleri listele."""
+    from packages.repair_engine.memory.vector_lessons import get_vector_lessons
     lessons = get_vector_lessons().find_similar_by_module(module_name)
     return {"module": module_name, "lessons": [l.to_dict() for l in lessons]}
+

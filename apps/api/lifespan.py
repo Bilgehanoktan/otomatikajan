@@ -1,8 +1,8 @@
-"""
-startup/lifespan.py — Uygulama yaşam döngüsü, arka plan görevleri ve event bus yapılandırması.
+﻿"""
+startup/lifespan.py â€” Uygulama yaÅŸam dÃ¶ngÃ¼sÃ¼, arka plan gÃ¶revleri ve event bus yapÄ±landÄ±rmasÄ±.
 
-main.py'den çıkarılmıştır. Tüm watchdog loop'ları, event dinleyicileri
-ve startup/shutdown mantığı burada yaşar.
+main.py'den Ã§Ä±karÄ±lmÄ±ÅŸtÄ±r. TÃ¼m watchdog loop'larÄ±, event dinleyicileri
+ve startup/shutdown mantÄ±ÄŸÄ± burada yaÅŸar.
 """
 
 import asyncio
@@ -30,7 +30,7 @@ from packages.observability.metrics import metrics
 logger = get_logger("startup.lifespan")
 
 
-# ─── Event Bus Dinleyicileri ──────────────────────────────
+# â”€â”€â”€ Event Bus Dinleyicileri â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async def _forward_to_ws(event):
     await ws_manager.broadcast({"event": event.type, "timestamp": event.timestamp, **event.payload})
 
@@ -53,7 +53,7 @@ async def _persist_event(event):
                 await packages.persistence.commit()
         except Exception as e:
             import logging
-            logging.getLogger("event_bus").error(f"Event DB'ye yazılırken hata: {e}")
+            logging.getLogger("event_bus").error(f"Event DB'ye yazÄ±lÄ±rken hata: {e}")
 
 
 async def _forward_to_telegram(event):
@@ -63,7 +63,7 @@ async def _forward_to_telegram(event):
         await telegram_notifier.notify_event(event.type, event.payload)
     except Exception as e:
         import logging
-        logging.getLogger("telegram").warning(f"Telegram bildirimi gönderilemedi: {e}")
+        logging.getLogger("telegram").warning(f"Telegram bildirimi gÃ¶nderilemedi: {e}")
 
 
 def register_event_listeners():
@@ -73,12 +73,12 @@ def register_event_listeners():
     event_bus.on_any(_forward_to_telegram)
 
 
-# ─── Watchdog Loop'ları ───────────────────────────────────
+# â”€â”€â”€ Watchdog Loop'larÄ± â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async def autonomous_metabolism_loop():
     """
-    Faz 30: Birleşik Bilişsel Metabolizma Döngüsü.
-    Ayrı ayrı çalışan watchdog'ları tek bir döngüde, kendi periyotlarına göre yönetir.
-    Bundan sonra 'AutonomousMetabolismLoop' (AML) olarak anılacaktır.
+    Faz 30: BirleÅŸik BiliÅŸsel Metabolizma DÃ¶ngÃ¼sÃ¼.
+    AyrÄ± ayrÄ± Ã§alÄ±ÅŸan watchdog'larÄ± tek bir dÃ¶ngÃ¼de, kendi periyotlarÄ±na gÃ¶re yÃ¶netir.
+    Bundan sonra 'AutonomousMetabolismLoop' (AML) olarak anÄ±lacaktÄ±r.
     """
     from packages.orchestration.agi.cognitive.sovereign_cortex import nexus_orchestrator as _orch
     from packages.orchestration.ceo.engine import CEOEngine
@@ -99,7 +99,7 @@ async def autonomous_metabolism_loop():
         "consolidation": 3600,
         "reflection": 7200,
         "stabilization": 3600 * 4,
-        "self_audit": 3600 * 24,   # [FIX-7] 24 saatte bir öz-denetim
+        "self_audit": 3600 * 24,   # [FIX-7] 24 saatte bir Ã¶z-denetim
         "evolution": 600,          # 10 dakikada bir otonom evrim
         "dream": 14400,            # Phase 46: 4 saatte bir 'Dream' (Wisdom Consolidation)
     }
@@ -107,7 +107,7 @@ async def autonomous_metabolism_loop():
     
     last_runs = {k: 0.0 for k in PERIODS}
     
-    logger.info("[AML] Otonom Metabolizma Döngüsü başlatıldı.")
+    logger.info("[AML] Otonom Metabolizma DÃ¶ngÃ¼sÃ¼ baÅŸlatÄ±ldÄ±.")
     
     while True:
         now = asyncio.get_event_loop().time()
@@ -164,28 +164,28 @@ async def autonomous_metabolism_loop():
                         logger.error(f"[AML] Reflection failed: {e}")
                     last_runs["reflection"] = now
 
-                # 5. Self-Audit [FIX-7] — 24 saatte bir LLM tabanlı kod analizi
+                # 5. Self-Audit [FIX-7] â€” 24 saatte bir LLM tabanlÄ± kod analizi
                 if now - last_runs["self_audit"] >= PERIODS["self_audit"]:
                     try:
                         from packages.orchestration.agi.cognitive.self_audit import self_audit
                         await self_audit.run_cleanup()
                     except Exception as _sa_err:
-                        logger.warning(f"[AML] Self-Audit hatası: {_sa_err}")
+                        logger.warning(f"[AML] Self-Audit hatasÄ±: {_sa_err}")
                     last_runs["self_audit"] = now
                 
                 # Phase 46: System Dream (Wisdom Synthesis)
                 if now - last_runs["dream"] >= PERIODS["dream"]:
                     try:
-                        logger.info("[AML] Periyodik Dream Cycle (Bilinçaltı Konsolidasyon) kuyruğa ekleniyor...")
+                        logger.info("[AML] Periyodik Dream Cycle (BilinÃ§altÄ± Konsolidasyon) kuyruÄŸa ekleniyor...")
                         await job_queue.enqueue("system_dream")
                     except Exception as _dr_err:
-                        logger.warning(f"[AML] Dream tetikleme hatası: {_dr_err}")
+                        logger.warning(f"[AML] Dream tetikleme hatasÄ±: {_dr_err}")
                     last_runs["dream"] = now
 
         except Exception as e:
-            logger.error(f"[AML] Döngü hatası: {e}")
+            logger.error(f"[AML] DÃ¶ngÃ¼ hatasÄ±: {e}")
         
-        await asyncio.sleep(30) # Metabolizma hızı
+        await asyncio.sleep(30) # Metabolizma hÄ±zÄ±
 
 async def _reaper_sync_action():
     from sqlalchemy import update, or_
@@ -197,7 +197,7 @@ async def _reaper_sync_action():
             or_(Project.status == ProjectStatus.RUNNING, Project.status == ProjectStatus.QUEUED)
         ).where(Project.updated_at < timeout_limit).values(
             status=ProjectStatus.ERROR,
-            error_detail="Görev zaman aşımı (Timeout) nedeniyle durduruldu.",
+            error_detail="GÃ¶rev zaman aÅŸÄ±mÄ± (Timeout) nedeniyle durduruldu.",
             updated_at=datetime.now(timezone.utc)
         )
         res = await packages.persistence.execute(zombie_query)
@@ -217,7 +217,7 @@ async def _self_governor_sync_action(orch):
     await event_bus.emit("system.audit", message=out.summary, severity="info", agent_id="self_governor")
 
 async def system_watchdog_supervisor():
-    """Arka plandaki kritik servislerin ve metabolizmanın hayatta kalmasını sağlar."""
+    """Arka plandaki kritik servislerin ve metabolizmanÄ±n hayatta kalmasÄ±nÄ± saÄŸlar."""
     from packages.observability.memory_governor import memory_governor
     
     tasks: dict[str, Any] = {
@@ -234,7 +234,7 @@ async def system_watchdog_supervisor():
         while True:
             for name, task in list(running_tasks.items()):
                 if task.done():
-                    logger.error(f"[AML-SUPERVISOR] {name} çöktü! Yeniden başlatılıyor...")
+                    logger.error(f"[AML-SUPERVISOR] {name} Ã§Ã¶ktÃ¼! Yeniden baÅŸlatÄ±lÄ±yor...")
                     running_tasks[name] = asyncio.create_task(tasks[name](), name=name)
             await asyncio.sleep(20)
     finally:
@@ -242,9 +242,9 @@ async def system_watchdog_supervisor():
             if not task.done(): task.cancel()
 
 
-# ─── Yardımcı Fonksiyonlar ─────────────────────────────────
+# â”€â”€â”€ YardÄ±mcÄ± Fonksiyonlar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async def _analyze_interrupted_tasks():
-    """Önceki oturumdan kalan 'queued' veya 'running' görevleri 'INTERRUPTED' durumuna çek."""
+    """Ã–nceki oturumdan kalan 'queued' veya 'running' gÃ¶revleri 'INTERRUPTED' durumuna Ã§ek."""
     try:
         from packages.persistence.session import AsyncSessionLocal
         from packages.persistence.models import Project, ProjectStatus
@@ -255,7 +255,7 @@ async def _analyze_interrupted_tasks():
                 .where(Project.status.in_([ProjectStatus.QUEUED, ProjectStatus.RUNNING]))
                 .values(
                     status=ProjectStatus.INTERRUPTED,
-                    error_detail="Sistem kesintiye uğradı. Otonom dayanıklılık (Resilience) analizi bekleniyor.",
+                    error_detail="Sistem kesintiye uÄŸradÄ±. Otonom dayanÄ±klÄ±lÄ±k (Resilience) analizi bekleniyor.",
                 )
             )
             res = await packages.persistence.execute(interrupted_query)
@@ -263,16 +263,16 @@ async def _analyze_interrupted_tasks():
             if res.rowcount and res.rowcount > 0:
                 logger.warning(f"Kesinti Analizi: {res.rowcount} gorev INTERRUPTED durumuna cekildi.")
     except Exception as e:
-        logger.error(f"Kesinti analizi başarısız: {e}")
+        logger.error(f"Kesinti analizi baÅŸarÄ±sÄ±z: {e}")
 
 
-# ─── Lifespan Context Manager ─────────────────────────────
+# â”€â”€â”€ Lifespan Context Manager â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     configure_logging()
     logger.info("AI Yazilim Sirketi V2 - Faz 3 baslatiliyor...", extra={"env": _ENV})
 
-    # 1. Veritabanı
+    # 1. VeritabanÄ±
     db_ready = False
     try:
         from packages.persistence.session import init_db
@@ -288,7 +288,7 @@ async def lifespan(app: FastAPI):
         if _ENV != "test":
             sys.exit(1)
 
-    # 1.5 Kesinti Analizi ve Kurtarma Hazırlığı
+    # 1.5 Kesinti Analizi ve Kurtarma HazÄ±rlÄ±ÄŸÄ±
     if db_ready and _ENV != "test":
         await _analyze_interrupted_tasks()
 
@@ -300,7 +300,7 @@ async def lifespan(app: FastAPI):
 
     # 3. Job queue workers
     if getattr(job_queue, "supports_registration", False):
-        # Nexus için coordinate_goal'u task_write/job_queue beklediği run_project formatına bağla
+        # Nexus iÃ§in coordinate_goal'u task_write/job_queue beklediÄŸi run_project formatÄ±na baÄŸla
         async def _run_project_wrapper(**payload):
             return await orchestrator.coordinate_goal(
                 title=payload.get("title", "Unnamed Goal"),
@@ -364,7 +364,7 @@ async def lifespan(app: FastAPI):
     else:
         logger.info(
             f"Queue backend={getattr(job_queue, 'backend_name', 'unknown')} | "
-            "local handler registration atlandı (supports_registration=False)."
+            "local handler registration atlandÄ± (supports_registration=False)."
         )
 
     # 4. Watchdog Supervisor
@@ -390,7 +390,7 @@ async def lifespan(app: FastAPI):
         # 5.1 Hydration (Faz 12.1 Stabilizasyon)
         if db_ready and _ENV != "test":
             logger.info("Self-Repair Veri Hydration baslatiliyor...")
-            from packages.repair_engine.packages.memory.incident_memory import incident_memory
+            from packages.repair_engine.memory.incident_memory import incident_memory
             from packages.repair_engine.ingestion.incident_ingestor import incident_ingestor
             
             # Paralel hydration
@@ -402,9 +402,9 @@ async def lifespan(app: FastAPI):
             logger.info("Self-Repair Hydration tamamlandi.")
 
     except Exception as _rep_err:
-        logger.warning(f"Self-Repair baslatılamadi (devam): {_rep_err}")
+        logger.warning(f"Self-Repair baslatÄ±lamadi (devam): {_rep_err}")
 
-    # 6. Onay Kapısı → Event Bus
+    # 6. Onay KapÄ±sÄ± â†’ Event Bus
     try:
         from packages.quality_assurance.approval_gate import approval_gate
 
@@ -422,9 +422,9 @@ async def lifespan(app: FastAPI):
             )
 
         approval_gate.add_notifier(_notify_approval_needed)
-        logger.info("Onay Kapısı bildirimleri aktif edildi.")
+        logger.info("Onay KapÄ±sÄ± bildirimleri aktif edildi.")
     except Exception as _gate_err:
-        logger.warning(f"Onay Kapısı bildirim bağlantısı başarısız: {_gate_err}")
+        logger.warning(f"Onay KapÄ±sÄ± bildirim baÄŸlantÄ±sÄ± baÅŸarÄ±sÄ±z: {_gate_err}")
 
     # Degrade Mode Visibility
     from packages.persistence.session import is_db_available
@@ -434,7 +434,7 @@ async def lifespan(app: FastAPI):
     if not db_ok or h_score < 0.8:
         await event_bus.emit(
             "system.degraded",
-            message=f"Sistem kısıtlı modda (degraded) baslatildi. DB: {'OK' if db_ok else 'HATA'}, Health: {h_score}",
+            message=f"Sistem kÄ±sÄ±tlÄ± modda (degraded) baslatildi. DB: {'OK' if db_ok else 'HATA'}, Health: {h_score}",
             severity="warning",
             agent_id="system",
             phase="startup",
@@ -442,7 +442,7 @@ async def lifespan(app: FastAPI):
 
     await event_bus.emit("system.started", message="Sistem hazir.", severity="info", agent_id="system", phase="startup")
 
-    # 7. Affective Core Hydration [FIX-4] — Önceki duygusal bağlamı yükle
+    # 7. Affective Core Hydration [FIX-4] â€” Ã–nceki duygusal baÄŸlamÄ± yÃ¼kle
     if db_ready and _ENV != "test":
         try:
             from packages.persistence.session import AsyncSessionLocal
@@ -452,9 +452,9 @@ async def lifespan(app: FastAPI):
             if restored:
                 logger.info(f"[STARTUP] Affective Core hydrated. Mood: {affective_core.get_current_mood()}")
         except Exception as _aff_err:
-            logger.warning(f"[STARTUP] Affective Core hydration atlandı: {_aff_err}")
+            logger.warning(f"[STARTUP] Affective Core hydration atlandÄ±: {_aff_err}")
 
-    # 8. GlobalWorkspace — İlk Bilinç Yayını [FIX-6]
+    # 8. GlobalWorkspace â€” Ä°lk BilinÃ§ YayÄ±nÄ± [FIX-6]
     try:
         from packages.orchestration.agi.consciousness.global_workspace import global_workspace
         from packages.persistence.session import is_db_available as _is_db_ok
@@ -464,12 +464,12 @@ async def lifespan(app: FastAPI):
             thought={"event": "system_initialized", "db_status": db_status, "env": _ENV},
             importance=1.0
         )
-        logger.info("[STARTUP] GlobalWorkspace ilk yayın yapıldı.")
+        logger.info("[STARTUP] GlobalWorkspace ilk yayÄ±n yapÄ±ldÄ±.")
     except Exception as _gw_err:
-        logger.warning(f"[STARTUP] GlobalWorkspace broadcast atlandı: {_gw_err}")
+        logger.warning(f"[STARTUP] GlobalWorkspace broadcast atlandÄ±: {_gw_err}")
 
 
-    yield  # ← Uygulama çalışıyor
+    yield  # â† Uygulama Ã§alÄ±ÅŸÄ±yor
 
     logger.info("Sistem kapatiliyor...")
     supervisor_task.cancel()
@@ -488,4 +488,5 @@ async def lifespan(app: FastAPI):
         await event_bus.shutdown()
     except Exception:
         pass
-    logger.info("Temiz kapanış tamamlandi.")
+    logger.info("Temiz kapanÄ±ÅŸ tamamlandi.")
+

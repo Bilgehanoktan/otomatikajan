@@ -1,6 +1,6 @@
-"""
-Repair Admin Router — Faz 11
-Policy yönetimi, benchmark metrikleri, lessons store endpoint'leri.
+﻿"""
+Repair Admin Router â€” Faz 11
+Policy yÃ¶netimi, benchmark metrikleri, lessons store endpoint'leri.
 """
 from datetime import datetime, timezone
 from typing import Optional
@@ -15,7 +15,7 @@ router = APIRouter(prefix="/repair/admin", tags=["Self-Repair-Admin"])
 _log  = get_logger("api.repair_admin")
 
 
-# ── Request Models ─────────────────────────────────────────────
+# â”€â”€ Request Models â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class PolicyUpdateRequest(BaseModel):
     enabled: Optional[bool] = None
@@ -38,11 +38,11 @@ class FeedbackRequest(BaseModel):
     hypothesis_used: str  = ""
 
 
-# ── Policy Endpoints ───────────────────────────────────────────
+# â”€â”€ Policy Endpoints â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @router.get("/policies")
 async def list_policies(current_user=Depends(get_current_user)):
-    """Tüm politika kurallarını listele."""
+    """TÃ¼m politika kurallarÄ±nÄ± listele."""
     from packages.orchestration.governance.policy_registry import get_policy_registry
     return {"policies": get_policy_registry().list_all()}
 
@@ -52,7 +52,7 @@ async def get_policy(policy_name: str, current_user=Depends(get_current_user)):
     from packages.orchestration.governance.policy_registry import get_policy_registry
     rule = get_policy_registry().get(policy_name)
     if not rule:
-        raise HTTPException(404, f"Policy bulunamadı: {policy_name}")
+        raise HTTPException(404, f"Policy bulunamadÄ±: {policy_name}")
     return rule.to_dict()
 
 
@@ -62,7 +62,7 @@ async def update_policy(
     body: PolicyUpdateRequest,
     current_user=Depends(require_admin),
 ):
-    """Policy'yi güncelle (admin only)."""
+    """Policy'yi gÃ¼ncelle (admin only)."""
     from packages.orchestration.governance.policy_registry import get_policy_registry
     rule = get_policy_registry().update(
         policy_name,
@@ -71,8 +71,8 @@ async def update_policy(
         updated_by=current_user.username if hasattr(current_user, "username") else "admin",
     )
     if not rule:
-        raise HTTPException(404, f"Policy bulunamadı: {policy_name}")
-    _log.info(f"Policy güncellendi: {policy_name} by {getattr(current_user, 'username', 'admin')}")
+        raise HTTPException(404, f"Policy bulunamadÄ±: {policy_name}")
+    _log.info(f"Policy gÃ¼ncellendi: {policy_name} by {getattr(current_user, 'username', 'admin')}")
     return {"updated": rule.to_dict()}
 
 
@@ -92,20 +92,20 @@ async def add_policy(body: PolicyAddRequest, current_user=Depends(require_admin)
 
 @router.get("/policies/export/json")
 async def export_policies(current_user=Depends(require_admin)):
-    """Policy kurallarını JSON olarak dışa aktar."""
+    """Policy kurallarÄ±nÄ± JSON olarak dÄ±ÅŸa aktar."""
     from packages.orchestration.governance.policy_registry import get_policy_registry
     import json
     return {"json": get_policy_registry().export_json()}
 
 
-# ── Metrics Endpoints ──────────────────────────────────────────
+# â”€â”€ Metrics Endpoints â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @router.get("/metrics/summary")
 async def metrics_summary(
     last_days: int = Query(30, ge=1, le=365),
     current_user=Depends(get_current_user),
 ):
-    """Repair benchmark özeti."""
+    """Repair benchmark Ã¶zeti."""
     from packages.repair_engine.verification.metrics_collector import get_metrics_store
     return await get_metrics_store().summary(last_days=last_days)
 
@@ -126,19 +126,19 @@ async def metrics_top_modules(
     top_n: int = Query(10, ge=1, le=50),
     current_user=Depends(get_current_user),
 ):
-    """En çok incident alan modüller."""
+    """En Ã§ok incident alan modÃ¼ller."""
     from packages.repair_engine.verification.metrics_collector import get_metrics_store
     return {"modules": await get_metrics_store().top_modules(top_n)}
 
 
-# ── Lessons / Feedback Endpoints ───────────────────────────────
+# â”€â”€ Lessons / Feedback Endpoints â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @router.post("/feedback")
 async def record_feedback(body: FeedbackRequest, current_user=Depends(get_current_user)):
-    """İnsan reviewer geri bildirimini kaydet."""
-    from packages.repair_engine.packages.memory.lessons_store import get_lessons_store, FEEDBACK_CODES
+    """Ä°nsan reviewer geri bildirimini kaydet."""
+    from packages.repair_engine.memory.lessons_store import get_lessons_store, FEEDBACK_CODES
     if body.feedback_code not in FEEDBACK_CODES:
-        raise HTTPException(422, f"Geçersiz feedback_code. Geçerliler: {FEEDBACK_CODES}")
+        raise HTTPException(422, f"GeÃ§ersiz feedback_code. GeÃ§erliler: {FEEDBACK_CODES}")
     rec = get_lessons_store().record(
         job_id          = body.job_id,
         pr_id           = body.pr_id,
@@ -158,36 +158,36 @@ async def list_recent_feedback(
     limit: int = Query(20, ge=1, le=100),
     current_user=Depends(get_current_user),
 ):
-    from packages.repair_engine.packages.memory.lessons_store import get_lessons_store
+    from packages.repair_engine.memory.lessons_store import get_lessons_store
     return {"feedback": get_lessons_store().list_recent(limit)}
 
 
 @router.get("/feedback/stats")
 async def feedback_stats(current_user=Depends(get_current_user)):
-    from packages.repair_engine.packages.memory.lessons_store import get_lessons_store
+    from packages.repair_engine.memory.lessons_store import get_lessons_store
     return get_lessons_store().stats()
 
 
 @router.get("/feedback/module/{module_name:path}")
 async def module_feedback(module_name: str, current_user=Depends(get_current_user)):
-    from packages.repair_engine.packages.memory.lessons_store import get_lessons_store
+    from packages.repair_engine.memory.lessons_store import get_lessons_store
     return get_lessons_store().module_feedback_summary(module_name)
 
 
-# ── Ranker Stats ───────────────────────────────────────────────
+# â”€â”€ Ranker Stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 
 @router.get("/lessons")
 async def list_lessons(limit: int = 20, current_user=Depends(get_current_user)):
-    """RC1 Alias: /feedback/recent ile aynı — lessons store listesi."""
-    from packages.repair_engine.packages.memory.lessons_store import get_lessons_store
+    """RC1 Alias: /feedback/recent ile aynÄ± â€” lessons store listesi."""
+    from packages.repair_engine.memory.lessons_store import get_lessons_store
     return {"lessons": get_lessons_store().list_recent(limit)}
 
 @router.get("/lessons/stats")
 async def lessons_stats(current_user=Depends(get_current_user)):
     """Lessons store istatistikleri."""
-    from packages.repair_engine.packages.memory.lessons_store import get_lessons_store
+    from packages.repair_engine.memory.lessons_store import get_lessons_store
     store = get_lessons_store()
     records = store.list_recent(1000)
     return {"total": len(records), "recent": records[:5]}
@@ -197,3 +197,4 @@ async def ranker_stats(current_user=Depends(get_current_user)):
     """Root cause ranker istatistikleri."""
     from packages.repair_engine.analysis.root_cause_ranker import get_root_cause_ranker
     return get_root_cause_ranker().stats()
+
