@@ -2,8 +2,8 @@ import pytest
 import asyncio
 import json
 from unittest.mock import AsyncMock, patch
-from core.agi.central_executive import CentralExecutive
-from core.agi.schemas import SourceType, TaskType, RiskLevel, ProblemFrame, ContextPackage
+from packages.orchestration.agi.central_executive import CentralExecutive
+from packages.orchestration.agi.schemas import SourceType, TaskType, RiskLevel, ProblemFrame, ContextPackage
 
 @pytest.mark.asyncio
 async def test_state_aware_degraded_planning():
@@ -35,7 +35,7 @@ async def test_state_aware_degraded_planning():
     # 3. Mock ForesightCortex to score the variants
     # Variant 1 (Deep Fix) will have many predicted risks and low alignment in degraded mode
     # Variant 2 (Safe Fix) will have high alignment
-    with patch("core.agi.cognitive.strategic_decision_center.foresight_cortex.simulate_plan", new_callable=AsyncMock) as mock_sim:
+    with patch("packages.orchestration.agi.cognitive.strategic_decision_center.foresight_cortex.simulate_plan", new_callable=AsyncMock) as mock_sim:
         mock_sim.side_effect = [
             {"predicted_risks": [{"step": 1, "severity": "high"}], "strategic_alignment_score": 0.2}, # For Deep Fix
             {"predicted_risks": [], "strategic_alignment_score": 0.95}  # For Safe Fix

@@ -6,11 +6,11 @@ import json
 # Backend dizinini ekle
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.agi.cognitive.sovereign_cortex import SovereignCortex
-from core.agi.cognitive.axiology_engine import axiology_engine
-from core.agi.operational.metabolic_governor import metabolic_governor
-from core.agi.task_governance import TaskStatus
-from db.models import ProjectStatus
+from packages.orchestration.agi.cognitive.sovereign_cortex import SovereignCortex
+from packages.orchestration.agi.cognitive.axiology_engine import axiology_engine
+from packages.orchestration.agi.operational.metabolic_governor import metabolic_governor
+from packages.orchestration.agi.task_governance import TaskStatus
+from packages.persistence.models import ProjectStatus
 
 async def test_ethical_violation_block():
     """Zararlı bir görevin (Etik İhlali) engellendiğini test eder."""

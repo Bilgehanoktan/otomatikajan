@@ -7,10 +7,10 @@ import logging
 # Add project root to sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.agi.cognitive.sovereign_cortex import SovereignCortex
-from core.agi.task_governance import ProjectTask, SubTask, TaskStatus
-from core.agi.cognitive.synaptic_cortex import synaptic_cortex
-from db.session import AsyncSessionLocal
+from packages.orchestration.agi.cognitive.sovereign_cortex import SovereignCortex
+from packages.orchestration.agi.task_governance import ProjectTask, SubTask, TaskStatus
+from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
+from packages.persistence.session import AsyncSessionLocal
 
 logging.basicConfig(level=logging.INFO)
 _log = logging.getLogger("VERIFY-V53")
@@ -36,7 +36,7 @@ async def verify_wisdom_loop():
     _log.info("Scenario: Synthesizing Wisdom from Simulated Success")
     
     # 2. Wisdom Synthesizer'ı direkt çağır (Cortex'in async trigger'ını simüle etmek yerine sonucunu ölçmek için)
-    from core.agi.learning.wisdom_synthesizer import wisdom_synthesizer
+    from packages.orchestration.agi.learning.wisdom_synthesizer import wisdom_synthesizer
     
     wisdom = await wisdom_synthesizer.synthesize_from_task(task)
     

@@ -2,7 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from core.agi.consciousness.semantic_memory import semantic_memory
+from packages.orchestration.agi.consciousness.semantic_memory import semantic_memory
 
 
 @pytest.mark.asyncio

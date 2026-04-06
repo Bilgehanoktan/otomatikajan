@@ -7,9 +7,9 @@ import logging
 # Add project root to sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.agi.cognitive.sovereign_cortex import SovereignCortex
-from core.agi.cognitive.agi_goal_decomposer import agi_goal_decomposer
-from core.agi.task_governance import TaskStatus
+from packages.orchestration.agi.cognitive.sovereign_cortex import SovereignCortex
+from packages.orchestration.agi.cognitive.agi_goal_decomposer import agi_goal_decomposer
+from packages.orchestration.agi.task_governance import TaskStatus
 
 logging.basicConfig(level=logging.INFO)
 _log = logging.getLogger("VERIFY-V51")

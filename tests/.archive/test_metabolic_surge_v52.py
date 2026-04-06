@@ -7,8 +7,8 @@ import time
 # Project root to sys.path
 sys.path.append(os.getcwd())
 
-from llm.model_orchestrator import PROVIDERS, ProviderStats, CircuitState, LLMResponse
-from core.agi.operational.metabolic_governor import metabolic_governor
+from packages.llm_gateway.model_orchestrator import PROVIDERS, ProviderStats, CircuitState, LLMResponse
+from packages.orchestration.agi.operational.metabolic_governor import metabolic_governor
 
 logging.basicConfig(level=logging.INFO)
 _log = logging.getLogger("test_v52")

@@ -8,9 +8,9 @@ from unittest.mock import MagicMock, AsyncMock
 # Add project root to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from core.agi.cognitive.sovereign_cortex import SovereignCortex, SovereignGoal
-from core.agi.task_governance import GovernedTask, GovernanceStatus
-from db.models import Project, ProjectStatus
+from packages.orchestration.agi.cognitive.sovereign_cortex import SovereignCortex, SovereignGoal
+from packages.orchestration.agi.task_governance import GovernedTask, GovernanceStatus
+from packages.persistence.models import Project, ProjectStatus
 
 async def test_long_horizon_resume_v37():
     print("\n--- Phase 37: Long-Horizon Execution Persistence Test ---")

@@ -1,8 +1,8 @@
 import asyncio
 import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
-from core.agi.orchestrator import AGIOrchestrator
-from core.agi.schemas import SourceType, TaskType, RiskLevel
+from packages.orchestration.agi.orchestrator import AGIOrchestrator
+from packages.orchestration.agi.schemas import SourceType, TaskType, RiskLevel
 
 class TestAGIPipeline(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
@@ -12,13 +12,13 @@ class TestAGIPipeline(unittest.IsolatedAsyncioTestCase):
         
         # Mock DB
         self.mock_db = AsyncMock()
-        self.patcher_session = unittest.mock.patch("db.session.session_scope", return_value=MagicMock(__aenter__=AsyncMock(return_value=self.mock_db), __aexit__=AsyncMock()))
+        self.patcher_session = unittest.mock.patch("packages.persistence.session.session_scope", return_value=MagicMock(__aenter__=AsyncMock(return_value=self.mock_db), __aexit__=AsyncMock()))
         self.patcher_session.start()
 
-        self.patcher_store = unittest.mock.patch("memory.store.memory_store.memory_write_gate", AsyncMock(return_value=True))
+        self.patcher_store = unittest.mock.patch("packages.memory.store.memory_store.memory_write_gate", AsyncMock(return_value=True))
         self.patcher_store.start()
         
-        self.patcher_save = unittest.mock.patch("memory.store.memory_store.save_episode", AsyncMock())
+        self.patcher_save = unittest.mock.patch("packages.memory.store.memory_store.save_episode", AsyncMock())
         self.patcher_save.start()
 
         # Interpreter Mock Response

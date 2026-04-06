@@ -1,8 +1,8 @@
 import pytest
 import os
 import asyncio
-from core.agi.security.backup_service import backup_service
-from core.agi.cognitive.sovereign_cortex import SovereignCortex
+from packages.orchestration.agi.security.backup_service import backup_service
+from packages.orchestration.agi.cognitive.sovereign_cortex import SovereignCortex
 from core.task_management import ProjectTask, SubTask, TaskStatus
 from unittest.mock import AsyncMock, patch, MagicMock
 
@@ -54,7 +54,7 @@ async def test_sovereign_pre_execution_backup_trigger():
     )
     
     # Velocity engine'i mock'la (Yürütmeyi simüle et ama asıl yazmayı yapmasın)
-    with patch("core.agi.operational.velocity_engine.velocity_engine.simulate_and_execute", new_callable=AsyncMock) as mock_exec:
+    with patch("packages.orchestration.agi.operational.velocity_engine.velocity_engine.simulate_and_execute", new_callable=AsyncMock) as mock_exec:
         mock_exec.return_value = MagicMock(success=True)
         
         # 1. Yürütme

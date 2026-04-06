@@ -5,7 +5,7 @@ import pytest
 
 from core.task_management import TaskPlanner, SubTask, TaskStatus
 from core.orchestrator import Orchestrator, DAG_WORKFLOW
-from quality.approval_gate import RiskLevel
+from packages.quality_assurance.approval_gate import RiskLevel
 
 
 def test_task_planner_should_embed_contract_fields_in_every_prompt():

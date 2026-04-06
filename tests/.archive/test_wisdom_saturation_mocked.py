@@ -1,8 +1,8 @@
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
-from core.agi.learning.wisdom_synthesizer import WisdomSynthesizer
-from core.agi.task_governance import SovereignGoal, GovernedTask, GovernanceStatus
-from core.agi.operational.metabolic_governor import MetabolicMode
+from packages.orchestration.agi.learning.wisdom_synthesizer import WisdomSynthesizer
+from packages.orchestration.agi.task_governance import SovereignGoal, GovernedTask, GovernanceStatus
+from packages.orchestration.agi.operational.metabolic_governor import MetabolicMode
 
 async def test_saturation_mocked():
     print("--- Phase 60.6 Verification: Wisdom Saturation (MOCKED) ---")
@@ -33,7 +33,7 @@ async def test_saturation_mocked():
     
     # 3. Scenario A: No saturation (First call)
     print("\n[SCENARIO A] First Synthesis...")
-    with patch("core.agi.learning.wisdom_synthesizer.synaptic_cortex.search", AsyncMock(return_value=[])):
+    with patch("packages.orchestration.agi.learning.wisdom_synthesizer.synaptic_cortex.search", AsyncMock(return_value=[])):
         res1 = await synthesizer.synthesize_from_task(task)
         print(f"Result 1: {res1}")
         assert res1 == "New Wisdom"
@@ -47,8 +47,8 @@ async def test_saturation_mocked():
         "importance": 0.8
     }
     
-    with patch("core.agi.learning.wisdom_synthesizer.synaptic_cortex.search", AsyncMock(return_value=[mock_memory])):
-        with patch("core.agi.learning.wisdom_synthesizer.metabolic_governor.get_mode", return_value=MetabolicMode.NORMAL):
+    with patch("packages.orchestration.agi.learning.wisdom_synthesizer.synaptic_cortex.search", AsyncMock(return_value=[mock_memory])):
+        with patch("packages.orchestration.agi.learning.wisdom_synthesizer.metabolic_governor.get_mode", return_value=MetabolicMode.NORMAL):
             # Similarity should be 1.0
             res2 = await synthesizer.synthesize_from_task(task)
             print(f"Result 2: {res2}")

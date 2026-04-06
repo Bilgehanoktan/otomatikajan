@@ -1,7 +1,7 @@
 import pytest
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
-from improve.visual_observer import VisualUXObserver
+from packages.improvement_engine.visual_observer import VisualUXObserver
 
 @pytest.mark.asyncio
 async def test_visual_observer_analyze_logic():

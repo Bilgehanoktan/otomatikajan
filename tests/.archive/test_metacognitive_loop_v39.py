@@ -4,12 +4,12 @@ import unittest
 from unittest.mock import AsyncMock, patch, MagicMock
 from datetime import datetime, timezone
 
-from core.agi.cognitive.sovereign_cortex import SovereignCortex
-from core.agi.task_governance import SovereignGoal, GovernedTask, GovernanceStatus
-from quality.output_schema import AgentOutput
-from quality.reviewer import ReviewResult
-from core.agi.cognitive.subconscious.metacognitive_auditor import metacognitive_auditor
-from memory.retrieval import context_builder
+from packages.orchestration.agi.cognitive.sovereign_cortex import SovereignCortex
+from packages.orchestration.agi.task_governance import SovereignGoal, GovernedTask, GovernanceStatus
+from packages.quality_assurance.output_schema import AgentOutput
+from packages.quality_assurance.reviewer import ReviewResult
+from packages.orchestration.agi.cognitive.subconscious.metacognitive_auditor import metacognitive_auditor
+from packages.packages.memory.retrieval import context_builder
 
 class TestMetacognitiveLoopV39(unittest.IsolatedAsyncioTestCase):
     
@@ -58,7 +58,7 @@ class TestMetacognitiveLoopV39(unittest.IsolatedAsyncioTestCase):
         with patch.object(metacognitive_auditor.model_orch, "complete_task", new_callable=AsyncMock) as mock_llm:
             mock_llm.return_value = MagicMock(content=f"```json\n{json.dumps(mock_lesson_json)}\n```")
             
-            with patch("core.agi.cognitive.synaptic_cortex.synaptic_cortex.save_negative_lesson", new_callable=AsyncMock) as mock_save:
+            with patch("packages.orchestration.agi.cognitive.synaptic_cortex.synaptic_cortex.save_negative_lesson", new_callable=AsyncMock) as mock_save:
                 await metacognitive_auditor.audit_and_learn(
                     db=db,
                     agent_id="test_agent",

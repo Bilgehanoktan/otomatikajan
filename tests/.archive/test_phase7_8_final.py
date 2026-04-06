@@ -2,10 +2,10 @@ import pytest
 import asyncio
 import os
 from core.orchestrator import Orchestrator
-from db.models import Project, ProjectStatus
-from db.session import AsyncSessionLocal
+from packages.persistence.models import Project, ProjectStatus
+from packages.persistence.session import AsyncSessionLocal
 from sqlalchemy import select
-from llm.model_orchestrator import ModelOrchestrator
+from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 
 @pytest.mark.asyncio
 async def test_budget_guardrail_enforcement():
@@ -19,13 +19,13 @@ async def test_budget_guardrail_enforcement():
     desc = "This should fail because of low budget."
     
     async with AsyncSessionLocal() as db:
-        from db.models import Project
+        from packages.persistence.models import Project
         from sqlalchemy import insert
         import uuid
         
         project_id_raw = uuid.uuid4()
         
-        await db.execute(
+        await packages.persistence.execute(
             insert(Project).values(
                 id=project_id_raw,
                 title=title,
@@ -35,7 +35,7 @@ async def test_budget_guardrail_enforcement():
                 total_cost=0.5
             )
         )
-        await db.commit()
+        await packages.persistence.commit()
         project_id = str(project_id_raw)
 
     # Orkestratoru calistir
@@ -93,8 +93,8 @@ async def test_dynamic_specialist_creation():
         mock_gen.return_value = mock_response
         
         # Mock Agent.execute to avoid real subtask run after creation
-        from agents.agent_registry import Agent
-        from llm.model_orchestrator import LLMResponse
+        from packages.orchestration.agi.agent_registry import Agent
+        from packages.llm_gateway.model_orchestrator import LLMResponse
         
         with patch.object(Agent, "execute", new_callable=AsyncMock) as mock_exec:
             mock_exec.return_value = LLMResponse(

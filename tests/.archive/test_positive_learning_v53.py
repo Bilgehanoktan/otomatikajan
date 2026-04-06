@@ -27,9 +27,9 @@ async def test_positive_learning():
     logger.info("Testing Autonomous Skill Synthesis (Phase 53)...")
     
     # 1. MetacognitiveAuditor import (Actual implementation)
-    from core.agi.cognitive.metacognitive_auditor import metacognitive_auditor
-    from core.agi.cognitive.synaptic_cortex import synaptic_cortex
-    from db.session import session_scope
+    from packages.orchestration.agi.cognitive.metacognitive_auditor import metacognitive_auditor
+    from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
+    from packages.persistence.session import session_scope
     
     # 2. Mock a successful complex task
     mock_subtasks = [
@@ -70,7 +70,7 @@ async def test_positive_learning():
                 logger.error("Wisdom body format mismatch.")
                 exit(1)
         else:
-            logger.error("FAILURE: No Strategic Wisdom found in memory.")
+            logger.error("FAILURE: No Strategic Wisdom found in packages.memory.")
             exit(1)
 
 if __name__ == "__main__":

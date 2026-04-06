@@ -1,8 +1,8 @@
 import pytest
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
-from core.agi.cognitive.sovereign_cortex import SovereignCortex
-from core.agi.cognitive.synaptic_cortex import synaptic_cortex
+from packages.orchestration.agi.cognitive.sovereign_cortex import SovereignCortex
+from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
 from core.task_management import SubTask, ProjectTask, TaskStatus
 
 @pytest.mark.asyncio
@@ -25,7 +25,7 @@ async def test_reflective_retry_mechanism():
     # Mock diagnostic reflection response
     mock_diag_response = MagicMock(content="Dosya ağacını kontrol et ve yolu düzelt.")
     
-    with patch("core.agi.operational.velocity_engine.velocity_engine.simulate_and_execute") as mock_exec:
+    with patch("packages.orchestration.agi.operational.velocity_engine.velocity_engine.simulate_and_execute") as mock_exec:
         mock_exec.side_effect = [mock_result_fail, mock_result_success]
         
         with patch.object(cortex, "_diagnostic_reflection", new_callable=AsyncMock) as mock_diag:
@@ -49,7 +49,7 @@ async def test_reality_grounding_injection():
     """
     ContextBuilder'ın gerçek dünya (FS tree) bilgisini prompt'a enjekte ettiğini doğrular.
     """
-    from memory.retrieval import context_builder
+    from packages.packages.memory.retrieval import context_builder
     
     context = await context_builder.build_context(
         agent_id="test",

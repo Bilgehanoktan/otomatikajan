@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch, AsyncMock
 from api.task_write_router import create_task
 from api._task_shared import TaskCreateRequest
 from core.orchestrator import Orchestrator
-from skills.base import SkillRequest
+from packages.packages.skills.base import SkillRequest
 
 @pytest.mark.asyncio
 async def test_tsk01_tsk05_create_task_adds_suggested_skills_to_payload():
@@ -24,12 +24,12 @@ async def test_tsk01_tsk05_create_task_adds_suggested_skills_to_payload():
     mock_job = MagicMock()
     mock_job.id = "job-456"
     
-    with patch("db.session.AsyncSessionLocal") as mock_session, \
-         patch("db.repository.ProjectRepository.create", new_callable=AsyncMock) as mock_p_create, \
-         patch("db.repository.TaskLogRepository.write", new_callable=AsyncMock) as mock_log_write, \
-         patch("core.job_queue.job_queue.enqueue", new_callable=AsyncMock) as mock_enqueue, \
-         patch("db.repository.ProjectRepository.set_job_id", new_callable=AsyncMock), \
-         patch("db.repository.ProjectRepository.update_fields", new_callable=AsyncMock):
+    with patch("packages.persistence.session.AsyncSessionLocal") as mock_session, \
+         patch("packages.persistence.repository.ProjectRepository.create", new_callable=AsyncMock) as mock_p_create, \
+         patch("packages.persistence.repository.TaskLogRepository.write", new_callable=AsyncMock) as mock_log_write, \
+         patch("packages.orchestration.application.job_queue.job_queue.enqueue", new_callable=AsyncMock) as mock_enqueue, \
+         patch("packages.persistence.repository.ProjectRepository.set_job_id", new_callable=AsyncMock), \
+         patch("packages.persistence.repository.ProjectRepository.update_fields", new_callable=AsyncMock):
         
         mock_session.return_value.__aenter__.return_value = mock_db
         mock_p_create.return_value = MagicMock(id="550e8400-e29b-41d4-a716-446655440000")
@@ -76,8 +76,8 @@ async def test_orc01_orc05_orchestrator_injects_skills_into_prompt():
         with patch.object(orch, "_evaluate_risk_semantically", return_value="LOW"), \
              patch("core.orchestrator.output_parser.parse") as mock_parse, \
              patch.object(orch, "_check_quality", return_value=(0.9, MagicMock())), \
-             patch("db.session.AsyncSessionLocal"), \
-             patch("db.repository.SubTaskRepository.mark_done", new_callable=AsyncMock):
+             patch("packages.persistence.session.AsyncSessionLocal"), \
+             patch("packages.persistence.repository.SubTaskRepository.mark_done", new_callable=AsyncMock):
             
             mock_parse.return_value = MagicMock(summary="ok", agent_id="backend_dev")
             

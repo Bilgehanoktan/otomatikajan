@@ -1,9 +1,9 @@
 import pytest
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
-from core.agi.cognitive.goal_synthesizer import GoalSynthesizer
-from core.agi.cognitive.synaptic_cortex import synaptic_cortex
-from db.repository import ImprovementRepository
+from packages.orchestration.agi.cognitive.goal_synthesizer import GoalSynthesizer
+from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
+from packages.persistence.repository import ImprovementRepository
 
 @pytest.mark.asyncio
 async def test_memory_driven_opportunity_extraction():
@@ -38,7 +38,7 @@ async def test_memory_driven_opportunity_extraction():
         with patch.object(synthesizer.model_orch, "complete_task", new_callable=AsyncMock) as mock_complete:
             mock_complete.return_value = mock_llm_response
             
-            with patch("db.repository.ImprovementRepository.create", new_callable=AsyncMock) as mock_create:
+            with patch("packages.persistence.repository.ImprovementRepository.create", new_callable=AsyncMock) as mock_create:
                 await synthesizer._extract_evolution_opportunities_from_memory()
                 
                 # 2. Doğrulama
@@ -53,7 +53,7 @@ async def test_low_health_evolution_trigger():
     """
     SovereignCortex'in düşük bilişsel skor durumunda evrim döngüsünü tetiklediğini doğrular.
     """
-    from core.agi.cognitive.sovereign_cortex import SovereignCortex
+    from packages.orchestration.agi.cognitive.sovereign_cortex import SovereignCortex
     cortex = SovereignCortex()
     
     with patch.object(cortex, "trigger_self_evolution", new_callable=AsyncMock) as mock_trigger:

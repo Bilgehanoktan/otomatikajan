@@ -1,8 +1,8 @@
 import pytest
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
-from core.agi.cognitive.synaptic_cortex import synaptic_cortex
-from core.agi.consciousness.affective_core import affective_core
+from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
+from packages.orchestration.agi.consciousness.affective_core import affective_core
 
 @pytest.mark.asyncio
 async def test_emotional_memory_injection():
@@ -25,7 +25,7 @@ async def test_emotional_memory_injection():
     )
     
     # 3. Metadata kontrolü
-    metadata = memory.metadata_
+    metadata = packages.memory.metadata_
     assert "affective_context" in metadata
     assert metadata["affective_context"]["curiosity"] == 0.9
     assert metadata["affective_context"]["internal_stress"] == 0.1
@@ -36,7 +36,7 @@ async def test_stress_aware_foresight():
     """
     Yüksek stres altında ForesightCortex'in risk algısının değiştiğini doğrular.
     """
-    from core.agi.cognitive.foresight_cortex import foresight_cortex
+    from packages.orchestration.agi.cognitive.foresight_cortex import foresight_cortex
     
     # 1. Düşük Stres Durumu
     affective_core.state["internal_stress"] = 0.1

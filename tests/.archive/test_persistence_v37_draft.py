@@ -8,9 +8,9 @@ from unittest.mock import MagicMock, AsyncMock
 # Add project root to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from core.agi.cognitive.sovereign_cortex import SovereignCortex
-from core.agi.cognitive.goal_decomposer import SubTaskPlan
-from db.models import Project, ProjectStatus
+from packages.orchestration.agi.cognitive.sovereign_cortex import SovereignCortex
+from packages.orchestration.agi.cognitive.goal_decomposer import SubTaskPlan
+from packages.persistence.models import Project, ProjectStatus
 
 async def test_long_horizon_persistence_v37():
     print("\n--- Phase 37: Long-Horizon Persistence Test ---")
@@ -40,7 +40,7 @@ async def test_long_horizon_persistence_v37():
     
     # Mocking the repository get call (if needed) or directly setting current_task
     # In real execution, current_task.project is loaded from DB.
-    from core.agi.cognitive.sovereign_cortex import ProjectTask
+    from packages.orchestration.agi.cognitive.sovereign_cortex import ProjectTask
     mock_task = ProjectTask(
         project_id=str(mock_project_id),
         goal="Simulated Long Horizon Goal",

@@ -3,8 +3,8 @@ import unittest
 import time
 from unittest.mock import AsyncMock, patch, MagicMock
 
-from core.agi.operational.kinetic_arbiter import kinetic_arbiter, ArbiterRequest
-from core.agi.consciousness.affective_core import affective_core
+from packages.orchestration.agi.operational.kinetic_arbiter import kinetic_arbiter, ArbiterRequest
+from packages.orchestration.agi.consciousness.affective_core import affective_core
 
 class TestKineticArbitrationV43(unittest.IsolatedAsyncioTestCase):
     

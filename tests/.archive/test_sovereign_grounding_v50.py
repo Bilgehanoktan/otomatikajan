@@ -1,7 +1,7 @@
 import asyncio
 import os
 import logging
-from core.agi.cognitive.agi_goal_decomposer import GoalDecomposer
+from packages.orchestration.agi.cognitive.agi_goal_decomposer import GoalDecomposer
 
 logging.basicConfig(level=logging.INFO)
 _log = logging.getLogger("VERIFY-V50")
