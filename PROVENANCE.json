@@ -75,6 +75,15 @@
           "version": "v12.12.4-BETA",
           "verification_ref": "tests/test_dynamic_adaptation_v48.py",
           "change_summary": "Implemented metabolic scaling to adjust compute intensity based on task complexity and system energy reserves."
+        },
+        {
+          "phase": 49,
+          "title": "Architectural Consolidation & Phase 2 Cutover",
+          "timestamp": "2026-04-08T01:50:00Z",
+          "status": "STABLE",
+          "version": "v4.0.0-RC1.5",
+          "verification_ref": "scripts/verify_system_integrity.py",
+          "change_summary": "Completed Phase 2 modularization. Purged legacy root directories (api, core, memory, etc.), normalized entrypoints to apps/, migrated legacy stores, and decoupled ws_manager from core logic via event bus."
         }
     ],
     "system_integrity": {
