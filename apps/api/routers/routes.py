@@ -50,7 +50,7 @@ async def system_health():
             if (QUEUE_BACKEND or "auto").lower() == "inprocess":
                 return "NOT_CONFIGURED"
                 
-            from tasks.celery_app import celery_app
+            from apps.worker.tasks.celery_app import celery_app
             from config import REDIS_URL
             if REDIS_URL:
                 celery_app.conf.broker_url = REDIS_URL
