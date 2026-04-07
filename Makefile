@@ -34,7 +34,7 @@ install:
 
 # ── Geliştirme ─────────────────────────────────────────────
 dev:
-	uvicorn main:app --reload --host 0.0.0.0 --port 8000 \
+	uvicorn apps.api.main:app --reload --host 0.0.0.0 --port 8000 \
 	    --log-level debug
 
 # ── Testler ────────────────────────────────────────────────
@@ -88,16 +88,16 @@ migrate-rollback:
 
 # ── Celery ─────────────────────────────────────────────────
 celery:
-	celery -A tasks.celery_app worker \
+	celery -A apps.worker.tasks.celery_app worker \
 	    --loglevel=info \
 	    --queues=critical,default,background \
 	    --concurrency=2
 
 celery-beat:
-	celery -A tasks.celery_app beat --loglevel=info
+	celery -A apps.worker.tasks.celery_app beat --loglevel=info
 
 celery-monitor:
-	celery -A tasks.celery_app events
+	celery -A apps.worker.tasks.celery_app events
 
 # ── Yardımcı ───────────────────────────────────────────────
 secret:
@@ -124,9 +124,9 @@ async def main():\n\
     try:\n\
         from dotenv import load_dotenv; load_dotenv('.env',override=False)\n\
     except ImportError: pass\n\
-    from db.session import AsyncSessionLocal,init_db\n\
-    from auth.jwt_auth import AuthService\n\
-    from db.models import User\n\
+    from packages.persistence.session import AsyncSessionLocal,init_db\n\
+    from packages.persistence.auth.jwt_auth import AuthService\n\
+    from packages.persistence.models import User\n\
     from sqlalchemy import update\n\
     await init_db()\n\
     email=input('Admin e-posta: ')\n\
@@ -138,10 +138,11 @@ async def main():\n\
             await db.commit()\n\
             print(f'✅ Admin oluşturuldu: {email}')\n\
         except Exception as e: print(f'Hata: {e}')\n\
-asyncio.run(main())"
+async def run_it(): asyncio.run(main())\n\
+run_it()"
 
 run:
-	uvicorn main:app --reload --host 0.0.0.0 --port 8000
+	uvicorn apps.api.main:app --reload --host 0.0.0.0 --port 8000
 
 run-prod:
-	gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+	gunicorn apps.api.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
