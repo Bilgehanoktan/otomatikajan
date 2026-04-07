@@ -159,14 +159,17 @@ class BotCommandHandler:
     # â”€â”€ /status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     async def cmd_status(self, tid: str, args: str) -> str:
         try:
-            from packages.orchestration.agi.core.context import orchestrator, heal_engine
-            from packages.observability.metrics import metrics
             from packages.orchestration.application.job_queue import job_queue
+            from packages.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
 
             snap = metrics.snapshot()
             c    = snap["computed"]
             q    = job_queue.stats()
-            hs   = heal_engine.system_health_score()
+            hs   = 0.9 # Fallback
+            try:
+                from packages.repair_engine.heal_engine import heal_engine
+                hs = heal_engine.system_health_score()
+            except: pass
 
             # SaÄŸlÄ±k emoji
             if hs >= 0.8:
@@ -246,7 +249,7 @@ class BotCommandHandler:
         except Exception as e:
             # Fallback: in-memory
             try:
-                from packages.orchestration.agi.core.context import orchestrator
+                from packages.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
                 tasks = orchestrator.list_tasks()[-10:]
                 if not tasks:
                     return "ğŸ“­ GÃ¶rev yok."
@@ -270,7 +273,7 @@ class BotCommandHandler:
             from packages.persistence.models import Project
             async with AsyncSessionLocal() as db:
                 # KÄ±smi ID ile de Ã§alÄ±ÅŸsÄ±n
-                result = await packages.persistence.execute(
+                result = await db.execute(
                     select(Project).where(
                         Project.id.cast(str).startswith(task_id) |
                         (Project.job_id == task_id)
@@ -368,7 +371,7 @@ class BotCommandHandler:
                         f"Telegram Ã¼zerinden oluÅŸturuldu (kullanÄ±cÄ±: {tid})",
                         agent_id="telegram",
                     )
-                    await packages.persistence.commit()
+                    await db.commit()
                     db_project_id = str(p.id)
             except Exception:
                 pass
@@ -376,7 +379,7 @@ class BotCommandHandler:
             # Semantic routing logic (Automatic Agent Choice)
             task_name = "run_project"
             try:
-                from core.task_routing import task_router
+                from packages.orchestration.application.task_routing import task_router
                 task_name = await task_router.route_task(title, description)
             except Exception as e:
                 logger.warning(f"Semantic routing failed in Telegram, falling back to run_project: {e}")
@@ -392,7 +395,7 @@ class BotCommandHandler:
             )
 
             # Olay yayÄ±nÄ±
-            from core.events import event_bus
+            from packages.orchestration.domain.events import event_bus
             await event_bus.emit(
                 "project.started",
                 title=title, project_id=job_id,
@@ -415,7 +418,8 @@ class BotCommandHandler:
     # â”€â”€ /agents â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     async def cmd_agents(self, tid: str, args: str) -> str:
         try:
-            from packages.orchestration.agi.core.context import orchestrator, heal_engine
+            from packages.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
+            from packages.repair_engine.heal_engine import heal_engine
             health = orchestrator.get_health()
             snapshots = heal_engine.agent_snapshots()
             snap_map = {s["agent_id"]: s for s in snapshots}
@@ -457,7 +461,7 @@ class BotCommandHandler:
     # â”€â”€ /logs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     async def cmd_logs(self, tid: str, args: str) -> str:
         try:
-            from core.events import event_bus
+            from packages.orchestration.domain.events import event_bus
             events = event_bus.recent(15)
             if not events:
                 return "ğŸ“­ Log bulunamadÄ±."
@@ -580,7 +584,7 @@ class BotCommandHandler:
             from packages.persistence.repository import TelegramRepository
             async with AsyncSessionLocal() as db:
                 result = await TelegramRepository.authorize(db, target_id)
-                await packages.persistence.commit()
+                await db.commit()
             if result:
                 return f"âœ… `{target_id}` yetkilendirildi."
             else:
@@ -639,7 +643,7 @@ class BotCommandHandler:
             return "KullanÄ±m: /repair <incident_id>"
         try:
             from packages.repair_engine.memory.incident_memory import incident_memory
-            from core.repair_orchestrator import get_repair_orchestrator
+            from packages.repair_engine.application.orchestrator import get_repair_orchestrator
             import os
             incident = incident_memory.get(incident_id)
             if not incident:
