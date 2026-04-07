@@ -219,7 +219,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/ai_company
       REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
       PYTHONPATH: /app
-    command: ["python", "-m", "telegram_app.polling"]
+    command: ["python", "-m", "apps.telegram_bot.polling"]
     depends_on:
       db:
         condition: service_healthy
