@@ -1,9 +1,13 @@
+import os
 import sys
-import logging
+from pathlib import Path
 
-# Redirect 'telegram_app' to 'apps.telegram_bot'
-try:
-    import apps.telegram_bot
-    sys.modules['telegram_app'] = apps.telegram_bot
-except ImportError as e:
-    logging.warning(f"Failed to create shim for 'telegram_app': {e}")
+# Redirect 'telegram_app' to 'apps/telegram_bot'
+_base_dir = Path(__file__).parent.parent
+_new_path = _base_dir / "apps" / "telegram_bot"
+
+if _new_path.exists():
+    __path__ = [str(_new_path)]
+else:
+    import logging
+    logging.warning(f"Telegram App shim: New path {_new_path} does not exist.")
