@@ -180,3 +180,7 @@ TELEGRAM_BURST_LIMIT      = int(os.getenv("TELEGRAM_BURST_LIMIT", "30"))
 QUALITY_PASS_THRESHOLD            = float(os.getenv("QUALITY_PASS_THRESHOLD", "0.85"))
 ENABLE_AUTONOMOUS_IMPROVEMENT     = os.getenv("ENABLE_AUTONOMOUS_IMPROVEMENT", "true").lower() == "true"
 IMPROVEMENT_AUTO_APPLY_THRESHOLD  = float(os.getenv("IMPROVEMENT_AUTO_APPLY_THRESHOLD", "0.8"))
+
+# ── Version & Revision ──────────────────────────────────────
+VERSION  = "4.0.0-RC1.5"
+REVISION = "Phase 2 Final - Modular Cutover"
