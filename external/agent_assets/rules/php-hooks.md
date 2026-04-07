@@ -1,11 +1,14 @@
 ---
-description: "PHP hooks extending common rules"
-globs: ["**/*.php", "**/composer.json", "**/phpstan.neon", "**/phpstan.neon.dist", "**/psalm.xml"]
-alwaysApply: false
+paths:
+  - "**/*.php"
+  - "**/composer.json"
+  - "**/phpstan.neon"
+  - "**/phpstan.neon.dist"
+  - "**/psalm.xml"
 ---
 # PHP Hooks
 
-> This file extends the common hooks rule with PHP specific content.
+> This file extends [common/hooks.md](../common/hooks.md) with PHP specific content.
 
 ## PostToolUse Hooks
 
