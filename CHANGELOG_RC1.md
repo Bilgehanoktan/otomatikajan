@@ -269,5 +269,13 @@
 - **Metabolic Blackout Bypass**: " ModelOrchestrator\ iÃ§erisinde tÃ¼m provizyonlar karantinaya alÄ±ndÄ±ÄŸÄ±nda devreye giren otonom \bypass\ mekanizmasÄ± eklendi.
 - **Standardized Logger Pattern**: API router ve core modÃ¼llerdeki NameError: logger is not defined hatalarÄ± giderildi.
 - **Database Schema Sync**: Project ve Goal iliÅŸkisindeki senkronizasyon hatalarÄ± giderildi.
-- **Dashboard Task Visibility**: \Ã–nerilen GÃ¶revler\ verisi dashboardÃ¼zerinde gÃ¶rÃ¼nÃ¼r hale getirildi.
+- **Dashboard Task Visibility**: \Ã–nerilen GÃ¶revler\ verisi dashboardÃ¼zerinde gÃ¼rÃ¼nÃ¼r hale getirildi.
 - **Semantic Memory 2.0**: Otonom iÃ§gÃ¼dÃ¼ damÄ±tma dÃ¶ngÃ¼sÃ¼ tamamlandÄ±.
+
+### Sprint 17 - Modular Monolith & Final Cutover (2026-04-07)
+- **Structural Consolidation**: Established `apps/` and `packages/` as the primary directory structure.
+- **Legacy Purge**: Root-level `api/`, `core/`, `integrations/`, `memory/`, and `auth/` directories moved to `backups/legacy/`.
+- **Memory Store Migration**: `ChannelStore` migrated to `packages/memory/store.py` with `ImportGuard` for vendor safety.
+- **Event-Driven UI**: Core logic decoupled from `ws_manager` via `event_bus` integration in `ImprovementGate`.
+- **Normalized Deployment**: `Dockerfile`, `docker-compose.yml`, and `Makefile` updated to use standardized entrypoints (`apps.api.main`, `apps.worker.tasks`).
+- **Verification**: `scripts/verify_system_integrity.py` passed with 100% success rate.
