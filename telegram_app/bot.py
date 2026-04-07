@@ -1,4 +1,4 @@
-﻿"""
+"""
 Telegram Bot â€” Faz 4
 â€¢ /start /help /status /tasks /task /newtask /agents /logs /errors /queue /metrics
 â€¢ KullanÄ±cÄ± yetkilendirme (is_authorized DB kontrolÃ¼)
@@ -18,9 +18,9 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from packages.observability.logging import get_logger
-from core.task_routing import task_router
+from packages.orchestration.application.task_routing import task_router
 from packages.orchestration.application.job_queue import job_queue
-from core.events import event_bus
+from packages.orchestration.domain.events import event_bus
 
 logger = get_logger("telegram.bot")
 
@@ -159,7 +159,7 @@ class BotCommandHandler:
     # â”€â”€ /status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     async def cmd_status(self, tid: str, args: str) -> str:
         try:
-            from core.context import orchestrator, heal_engine
+            from packages.orchestration.agi.core.context import orchestrator, heal_engine
             from packages.observability.metrics import metrics
             from packages.orchestration.application.job_queue import job_queue
 
@@ -246,7 +246,7 @@ class BotCommandHandler:
         except Exception as e:
             # Fallback: in-memory
             try:
-                from core.context import orchestrator
+                from packages.orchestration.agi.core.context import orchestrator
                 tasks = orchestrator.list_tasks()[-10:]
                 if not tasks:
                     return "ğŸ“­ GÃ¶rev yok."
@@ -415,7 +415,7 @@ class BotCommandHandler:
     # â”€â”€ /agents â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     async def cmd_agents(self, tid: str, args: str) -> str:
         try:
-            from core.context import orchestrator, heal_engine
+            from packages.orchestration.agi.core.context import orchestrator, heal_engine
             health = orchestrator.get_health()
             snapshots = heal_engine.agent_snapshots()
             snap_map = {s["agent_id"]: s for s in snapshots}
