@@ -79,14 +79,12 @@ skip-magic-trailing-comma = false
 targets   = ["main.py", "api", "auth", "core", "llm", "db"]
 skips     = ["B101", "B601"]  # assert, shell=False
 
-# ── Quality Gates & Self-Improvement (Faz 12.1) ──────────────
-QUALITY_PASS_THRESHOLD            = float(os.getenv("QUALITY_PASS_THRESHOLD", "0.85"))
-ENABLE_AUTONOMOUS_IMPROVEMENT     = os.getenv("ENABLE_AUTONOMOUS_IMPROVEMENT", "true").lower() == "true"
-IMPROVEMENT_AUTO_APPLY_THRESHOLD  = float(os.getenv("IMPROVEMENT_AUTO_APPLY_THRESHOLD", "0.8"))
-
-# ── Version & Revision ──────────────────────────────────────
-VERSION  = "4.0.0-RC1.5"
-REVISION = "Phase 2 Final - Modular Cutover"
+# ── MyPy ─────────────────────────────────────────────────
+[tool.mypy]
+python_version         = "3.12"
+ignore_missing_imports = true
+warn_return_any        = false
+disallow_untyped_defs  = false   # aşamalı tip ekleme
 
 # ── Pytest ───────────────────────────────────────────────
 [tool.pytest.ini_options]
