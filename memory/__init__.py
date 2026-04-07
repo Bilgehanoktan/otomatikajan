@@ -11,12 +11,3 @@ if _new_path.exists():
 else:
     import logging
     logging.warning(f"Memory shim: New path {_new_path} does not exist.")
-
-# Redirect 'api' to 'apps/api'
-_api_path = _base_dir / "apps" / "api"
-
-if _api_path.exists():
-    __path__.append(str(_api_path))
-else:
-    import logging
-    logging.warning(f"API shim: New path {_api_path} does not exist.")
