@@ -693,13 +693,12 @@ async function loadCEOFindings() {
   if (!tableBody) return;
   
   try {
-    // 1. Özet metrikler ve manifesto (Yeni endpoint)
+    // 1. Özet metrikler ve manifesto
     try {
       const overview = await api('/ceo/overview');
       safeSetText('ceo-open-ops', overview.open_opportunity_count || 0);
       safeSetText('ceo-suggested', overview.suggested_task_count || 0);
       
-      // Tahmini skor (riskten türetilme)
       const riskScore = overview.strategic_outlook?.risk_score || 8;
       safeSetText('ceo-system-score', (100 - riskScore) + '%');
       
@@ -715,6 +714,9 @@ async function loadCEOFindings() {
     const data = await api('/ceo/findings');
     const findings = data.findings || [];
     
+    // Geçici olarak globalde sakla (detay modalı için)
+    window._lastCEOFindings = findings;
+    
     if (!findings.length) {
       tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:100px 0; color:var(--muted); font-size:14px;">Stratejik bulgu yok. Sistem nominal değerlerde çalışıyor.</td></tr>';
       return;
@@ -724,6 +726,7 @@ async function loadCEOFindings() {
       const statusClass = f.status.toLowerCase();
       const severityColor = f.severity === 'critical' ? '#ef4444' : (f.severity === 'high' ? '#f59e0b' : 'var(--primary)');
       const score = f.priority_score || '--';
+      const isApproved = statusClass === 'approved' || statusClass === 'resolved';
       
       return `<tr>
         <td style="font-family:var(--mono); font-size:11px; opacity:0.6;">${(f.category || 'GENEL').toUpperCase()}</td>
@@ -735,7 +738,10 @@ async function loadCEOFindings() {
         <td><span style="font-family:var(--mono); color:var(--primary); font-weight:700;">${score}</span></td>
         <td><span class="badge-sovereign badge-${statusClass}">${f.status}</span></td>
         <td style="text-align:right;">
-          <button class="btn btn-ghost btn-sm" style="border-color:rgba(255,255,255,0.05); font-size:11px;" onclick="toast('Detaylı analiz raporu Faz 13 ile entegre edilecek','info')">DETAYLAR</button>
+          <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button class="btn btn-ghost btn-sm" style="font-size:10px; padding:2px 8px;" onclick="viewCEOFindingDetails('${f.id}')">DETAYLAR</button>
+            ${!isApproved ? `<button class="btn btn-primary btn-sm" style="font-size:10px; padding:2px 8px;" onclick="approveCEOFinding('${f.id}')">UYGULA</button>` : ''}
+          </div>
         </td>
       </tr>`;
     }).join('');
@@ -745,6 +751,70 @@ async function loadCEOFindings() {
     tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:40px; color:var(--red);">Yükleme hatası: ${e.message}</td></tr>`;
   }
 }
+
+async function viewCEOFindingDetails(id) {
+  const f = (window._lastCEOFindings || []).find(x => x.id === id);
+  if (!f) return;
+  
+  openModal('modal-detail');
+  const content = document.getElementById('modal-detail-content');
+  if (!content) return;
+  
+  const evidenceStr = f.evidence ? JSON.stringify(f.evidence, null, 2) : "Detaylı kanıt bulunamadı.";
+  const reasoningStr = f.reasoning || "Gerekçe henüz formüle edilmedi.";
+  const statusClass = f.status.toLowerCase();
+  
+  content.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h3 style="margin:0; color:#fff;">Stratejik Analiz: ${f.finding}</h3>
+      <span class="badge-sovereign badge-${statusClass}">${f.status}</span>
+    </div>
+    
+    <div style="margin-bottom:20px; padding:12px; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid var(--border);">
+      <div style="font-size:11px; font-weight:700; color:var(--primary); margin-bottom:6px;">AÇIKLAMA</div>
+      <div style="font-size:13px; color:var(--text2);">${f.description || 'Açıklama yok.'}</div>
+    </div>
+
+    <div style="margin-bottom:20px;">
+      <div style="font-size:11px; font-weight:700; color:var(--yellow); margin-bottom:8px;">BİLİŞSEL GEREKÇE (REASONING)</div>
+      <div style="font-size:12px; color:var(--text2); line-height:1.5; font-style:italic; border-left:3px solid var(--yellow); padding-left:12px;">"${reasoningStr}"</div>
+    </div>
+
+    <div style="margin-bottom:20px;">
+      <div style="font-size:11px; font-weight:700; color:var(--accent); margin-bottom:8px;">TEKNİK KANITLAR & METADATA</div>
+      <div style="background:#000; padding:12px; border-radius:8px; font-size:11px; color:var(--text2); font-family:var(--mono); white-space:pre-wrap; border:1px solid var(--border); max-height:200px; overflow-y:auto;">${evidenceStr}</div>
+    </div>
+
+    <div style="display:flex; gap:12px; margin-top:24px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeModal('modal-detail')">Kapat</button>
+      ${statusClass === 'suggested' || statusClass === 'open' ? 
+        `<button class="btn btn-primary" style="flex:1;" onclick="approveCEOFinding('${f.id}');closeModal('modal-detail')">🧬 Operasyonu Başlat</button>` : ''}
+    </div>
+  `;
+}
+
+async function approveCEOFinding(id) {
+  if (!AUTH.isAdmin) {
+    toast('Bu işlem için yönetici yetkisi gereklidir.', 'error');
+    return;
+  }
+  
+  try {
+    showToast('CEO Kararı Uygulanıyor: Görev oluşturuluyor...', 'info');
+    const res = await api('/ceo/approve/' + id, { method: 'POST' });
+    
+    if (res.success) {
+      toast('Başarılı! Görev ID: ' + res.project_id, 'success');
+      loadCEOFindings(); // Tabloyu tazele
+    } else {
+      toast('Hata: ' + (res.error || 'İşlem başarısız'), 'error');
+    }
+  } catch (e) {
+    console.error('CEO Approve error:', e);
+    toast('Onaylama hatası: ' + e.message, 'error');
+  }
+}
+
 
 async function triggerCEOScan() {
   try {
