@@ -89,8 +89,10 @@ async def cancel_task(task_id: str, body: dict = Body(default={}), current_user=
         from packages.orchestration.domain.events import event_bus
         await event_bus.emit(
             "project.failed",
-            project_id=task_id, severity="warning",
-            agent_id=cancelled_by, phase="project",
+            project_id=task_id,
+            severity="warning",
+            agent_id=cancelled_by,
+            phase="project",
             message=f"Görev iptal edildi",
         )
         return {"cancelled": True, "id": task_id}
