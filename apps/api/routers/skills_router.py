@@ -26,7 +26,14 @@ async def get_skill_logs(project_id: str | None = None, current_user=Depends(get
     async with get_db_session() as db:
         stmt = select(SkillExecutionLog).order_by(SkillExecutionLog.created_at.desc()).limit(100)
         if project_id:
-            stmt = stmt.filter(SkillExecutionLog.project_id == project_id)
+            try:
+                from uuid import UUID
+                # Validate and convert to UUID object to match column type
+                valid_id = UUID(project_id)
+                stmt = stmt.filter(SkillExecutionLog.project_id == valid_id)
+            except (ValueError, TypeError):
+                # If invalid UUID string, skip filtering to prevent 500 error
+                pass
             
         result = await db.execute(stmt)
         logs = result.scalars().all()
