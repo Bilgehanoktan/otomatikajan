@@ -162,7 +162,7 @@ N8N_API_KEY              = os.getenv("N8N_API_KEY", "")
 N8N_WEBHOOK_URL          = os.getenv("N8N_WEBHOOK_URL", "")
 
 # ── Dosya Sistemleri ────────────────────────────────────────
-UPLOAD_DIR               = os.getenv("UPLOAD_DIR", "/app/uploads")
+UPLOAD_DIR               = os.getenv("UPLOAD_DIR", "./runtime/uploads")
 DATA_DIR                 = os.getenv("DATA_DIR", "./runtime/data")
 LOG_DIR                  = os.getenv("LOG_DIR", "./runtime/logs")
 
