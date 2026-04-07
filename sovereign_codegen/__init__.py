@@ -31,8 +31,9 @@ from packages.observability.logging import get_logger
 logger = get_logger("sovereign_codegen")
 
 from packages.persistence.session import AsyncSessionLocal
-from packages.persistence.code_repository import CodeRepository
-from packages.persistence.repository import ProjectRepository
+from packages.persistence.repositories.code_repository import CodeRepository
+from packages.persistence.repositories.repository import ProjectRepository
+from packages.orchestration.agency.loader import agency_loader
 from packages.orchestration.agi.cognitive.sovereign_cortex import SovereignCortex
 
 
@@ -633,7 +634,7 @@ class CodeGenerationEngine:
                 technologies=[template.value] if template and template != ProjectTemplate.CUSTOM else [],
                 summary="Başlatılıyor..."
             )
-            await packages.persistence.commit()
+            await db.commit()
             real_project_id = str(project.id)
 
         result = CodeGenerationResult(
@@ -710,7 +711,7 @@ class CodeGenerationEngine:
                     summary=result.review_summary or f"{len(result.files)} dosya başarıyla üretildi."
                 )
                 await ProjectRepository.mark_completed(db, project.id, report=result.review_summary)
-                await packages.persistence.commit()
+                await db.commit()
 
             result.status = "completed"
             result.__post_init__()
@@ -730,7 +731,7 @@ class CodeGenerationEngine:
             async with AsyncSessionLocal() as db:
                 await CodeRepository.update_status(db, code_res.id, status="failed", summary=str(e))
                 await ProjectRepository.set_error(db, project.id, error=str(e))
-                await packages.persistence.commit()
+                await db.commit()
 
         return result
 
@@ -745,7 +746,7 @@ class CodeGenerationEngine:
     ) -> list[CodeFile]:
         """Tek ajan için kod üret."""
         agent_id   = task["agent_id"]
-        agent      = packages.orchestration.agi.get(agent_id) if agents else None
+        agent = agency_loader.get_agent(agent_id) if agents else None
         system_msg = agent.system_prompt if agent else f"Sen {agent_id} rolünde bir uzman geliştiricisisin."
 
         prompt = (
