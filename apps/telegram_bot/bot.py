@@ -88,7 +88,7 @@ async def _log_command(
                 db, telegram_id, command, arguments,
                 response=response[:2000], success=success, project_id=project_id,
             )
-            await packages.persistence.commit()
+            await db.commit()
     except Exception:
         pass
 
@@ -99,7 +99,7 @@ async def _upsert_user(telegram_id: str, username: str, full_name: str):
         from packages.persistence.repository import TelegramRepository
         async with AsyncSessionLocal() as db:
             await TelegramRepository.upsert_user(db, telegram_id, username, full_name)
-            await packages.persistence.commit()
+            await db.commit()
     except Exception:
         pass
 
@@ -715,7 +715,7 @@ class BotCommandHandler:
             from packages.quality_assurance.approval_gate import approval_gate
             req = approval_gate.decide(req_id, True, decided_by=f"telegram:{tid}")
             if req:
-                from core.events import event_bus
+                from packages.orchestration.domain.events import event_bus
                 await event_bus.emit(
                     "approval.decided",
                     request_id=req_id,
@@ -731,7 +731,7 @@ class BotCommandHandler:
 
         # 2. PR Ã¶nerisini dene
         try:
-            from api.repair_router import _persist_proposal_decision, _update_job_on_proposal_decision
+            from apps.api.routers.repair_router import _persist_proposal_decision, _update_job_on_proposal_decision
             await _persist_proposal_decision(req_id, "approved", f"telegram:{tid}")
             await _update_job_on_proposal_decision(req_id, "approved", f"telegram:{tid}")
             return f"âœ… PR `{req_id[:14]}` onaylandÄ±."
@@ -755,7 +755,7 @@ class BotCommandHandler:
             from packages.quality_assurance.approval_gate import approval_gate
             req = approval_gate.decide(req_id, False, decided_by=f"telegram:{tid}", reason=reason)
             if req:
-                from core.events import event_bus
+                from packages.orchestration.domain.events import event_bus
                 await event_bus.emit(
                     "approval.decided",
                     request_id=req_id,
@@ -771,7 +771,7 @@ class BotCommandHandler:
 
         # 2. PR Ã¶nerisi
         try:
-            from api.repair_router import _persist_proposal_decision, _update_job_on_proposal_decision
+            from apps.api.routers.repair_router import _persist_proposal_decision, _update_job_on_proposal_decision
             await _persist_proposal_decision(req_id, "rejected", f"telegram:{tid}")
             await _update_job_on_proposal_decision(req_id, "rejected", f"telegram:{tid}")
             return f"âŒ PR `{req_id[:14]}` reddedildi.{' Neden: ' + reason if reason else ''}"
@@ -884,7 +884,7 @@ async def _handle_natural_language(tid: str, chat_id: int, text: str) -> Optiona
         
         # NLP YÃ¶nlendirme (Title ve slug Ã§Ä±kart)
         # Mevcut task_router sadece slug dÃ¶ner, ama biz baÅŸlÄ±ÄŸÄ± da tahmin edebiliriz.
-        from core.task_routing import task_router
+        from packages.orchestration.application.task_routing import task_router
         import asyncio
         try:
             task_name = await asyncio.wait_for(task_router.route_task(text[:50], text), timeout=5.0)
@@ -911,7 +911,7 @@ async def _handle_natural_language(tid: str, chat_id: int, text: str) -> Optiona
                 f"Telegram NLP Ã¼zerinden oluÅŸturuldu (mod: {task_name})",
                 agent_id="telegram_nlp",
             )
-            await packages.persistence.commit()
+            await db.commit()
             db_project_id = str(p.id)
 
         # KuyruÄŸa ekle
