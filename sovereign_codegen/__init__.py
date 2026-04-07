@@ -746,8 +746,8 @@ class CodeGenerationEngine:
     ) -> list[CodeFile]:
         """Tek ajan için kod üret."""
         agent_id   = task["agent_id"]
-        agent = agency_loader.get_agent(agent_id) if agents else None
-        system_msg = agent.system_prompt if agent else f"Sen {agent_id} rolünde bir uzman geliştiricisisin."
+        agent = agency_loader.get_agent(agent_id) if agent_id else None
+        system_msg = agent.get("system_prompt", "") if agent else f"Sen {agent_id} rolünde bir uzman geliştiricisisin."
 
         prompt = (
             f"Proje: {title}\n"
