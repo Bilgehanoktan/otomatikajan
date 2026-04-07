@@ -597,63 +597,113 @@ class CEOEngine:
         db.add(decision)
         
         # --- AUTO-EXECUTION LOGIC ---
-        # Note: We auto-execute the target (either the single task or the FIRST step of the roadmap)
         if not getattr(self, "_throttle_auto_exec", False) and confidence >= 0.9 and op_obj.priority_score >= 60:
             logger.info(f"CEO Engine: AUTO-EXECUTING {'first step of ' if is_roadmap else ''}task '{execution_target.title}'")
             
-            from packages.persistence.models import Project
-            from packages.persistence.repositories.repository import TaskLogRepository
-            
-            proj_id = uuid.uuid4()
-            new_project = Project(
-                id=proj_id,
-                title=f"[AUTO-CEO] {execution_target.title}",
-                description=execution_target.description,
-                status="pending", # Initially pending, then queued by celery call
-                priority_level=9 if op_obj.severity == "critical" else 7,
-                assigned_agent=agent_id,
-                suggestion_id=execution_target.id,
-                ceo_managed=True,
-                workflow_template="default",
-                quality_profile="production",
-                notes=f"CEO Motoru tarafından otomatik olarak yetkilendirildi. \nStratejik Gerekçe: {ai_suggestion.get('reasoning')}"
+            await self._approve_and_enqueue(
+                db, 
+                execution_target, 
+                op_obj, 
+                is_auto=True, 
+                reasoning=ai_suggestion.get('reasoning')
             )
-            db.add(new_project)
-            execution_target.status = "approved"
-            execution_target.created_task_id = proj_id
             
             decision.decision_type = "auto_approve"
             decision.decision_summary = f"Auto-Approved {'Roadmap' if is_roadmap else 'Task'}: {execution_target.title}"
             
-            # --- ENQUEUE TO JOB QUEUE (Faz 12.1 Unified Queue) ---
-            try:
-                from packages.orchestration.application.job_queue import job_queue
-                
-                job = await job_queue.enqueue(
-                    "run_project",
-                    db_project_id=str(proj_id),
-                    title=new_project.title,
-                    description=new_project.description,
-                    user_id=agent_id,
-                    workflow_template="default",
-                    quality_profile="production",
-                    acceptance_criteria=["CEO Engine otomasyon projesinin hedefine ulaşması."]
-                )
-                new_project.status = "queued"
-                new_project.job_id = job.id
-                
-                await TaskLogRepository.write(
-                    db, proj_id, "queued",
-                    f"Otomatik olarak başlatıldı ve ortak kuyruğa atıldı. (İş ID: {job.id})",
-                    agent_id="ceo_engine"
-                )
-            except Exception as e:
-                logger.error(f"CEO Engine: Auto-Approval enqueuing failed for {new_project.id}: {e}")
-                new_project.status = "error"
-                new_project.error_detail = str(e)
-                # Keep as pending if celery fails, will be caught by stalling scan later
-
         await db.flush()
+
+    async def _approve_and_enqueue(self, db, suggestion, opportunity, is_auto=True, reasoning=None):
+        """Helper to create a Project and move a suggestion to queue."""
+        from packages.persistence.models import Project
+        from packages.persistence.repositories.repository import TaskLogRepository
+        
+        proj_id = uuid.uuid4()
+        label = "[AUTO-CEO]" if is_auto else "[MANUAL-CEO]"
+        
+        new_project = Project(
+            id=proj_id,
+            title=f"{label} {suggestion.title}",
+            description=suggestion.description,
+            status="pending",
+            priority_level=9 if (opportunity and opportunity.severity == "critical") else 7,
+            assigned_agent=suggestion.owner_agent_hint or "architect",
+            suggestion_id=suggestion.id,
+            ceo_managed=True,
+            workflow_template="default",
+            quality_profile="production",
+            notes=f"CEO Dashboard üzerinden {'otomatik' if is_auto else 'kullanıcı'} tarafından onaylandı. \nGerekçe: {reasoning}"
+        )
+        db.add(new_project)
+        suggestion.status = "approved"
+        suggestion.created_task_id = proj_id
+        
+        # --- ENQUEUE TO JOB QUEUE ---
+        try:
+            from packages.orchestration.application.job_queue import job_queue
+            
+            job = await job_queue.enqueue(
+                "run_project",
+                db_project_id=str(proj_id),
+                title=new_project.title,
+                description=new_project.description,
+                user_id=suggestion.owner_agent_hint or "ceo_engine",
+                workflow_template="default",
+                quality_profile="production"
+            )
+            new_project.status = "queued"
+            new_project.job_id = job.id
+            
+            await TaskLogRepository.write(
+                db, proj_id, "queued",
+                f"{'Otomatik' if is_auto else 'Manuel'} olarak başlatıldı ve ortak kuyruğa atıldı. (İş ID: {job.id})",
+                agent_id="ceo_engine"
+            )
+            logger.info(f"CEO Engine: Suggestion '{suggestion.id}' approved and queued as Project '{proj_id}'")
+            return proj_id
+        except Exception as e:
+            logger.error(f"CEO Engine: Approval enqueuing failed for {suggestion.id}: {e}")
+            new_project.status = "error"
+            new_project.error_detail = str(e)
+            return None
+
+    async def manual_approve_suggestion(self, suggestion_id: uuid.UUID) -> Dict[str, Any]:
+        """Kullanıcının Dashboard'dan verdiği onayı işler."""
+        from packages.persistence.session import session_scope
+        from sqlalchemy import select
+        
+        async with session_scope() as db:
+            # Önce öneriyi bul
+            res = await db.execute(select(CEOSuggestedTask).where(CEOSuggestedTask.id == suggestion_id))
+            suggestion = res.scalars().first()
+            
+            if not suggestion:
+                return {"success": False, "error": "Öneri bulunamadı."}
+            
+            if suggestion.status != "suggested":
+                return {"success": False, "error": f"Öneri zaten '{suggestion.status}' durumunda."}
+                
+            # Bağlı fırsatı bul (varsa)
+            opportunity = None
+            if suggestion.opportunity_id:
+                res_op = await db.execute(select(ImprovementOpportunity).where(ImprovementOpportunity.id == suggestion.opportunity_id))
+                opportunity = res_op.scalars().first()
+            
+            # Onayla ve kuyruğa at
+            proj_id = await self._approve_and_enqueue(
+                db, 
+                suggestion, 
+                opportunity, 
+                is_auto=False, 
+                reasoning="Dashboard Manuel Onay"
+            )
+            
+            if proj_id:
+                await db.commit()
+                return {"success": True, "project_id": str(proj_id)}
+            else:
+                return {"success": False, "error": "Kuyruğa atma başarısız."}
+
 
     async def get_overview(self) -> Dict[str, Any]:
         """Provides a quick summary for the CEO Dashboard API."""
