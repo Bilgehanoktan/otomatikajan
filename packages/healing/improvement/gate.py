@@ -58,16 +58,17 @@ class ImprovementGate:
 
     async def _report_improvement(self, proposal: Dict, auto: bool = False):
         """İyileştirme sonucunu kullanıcıya raporlar (WS üzerinden)."""
-        from packages.orchestration.agi.cognitive.sovereign_cortex import nexus_orchestrator as orchestrator
+        # Report to user via Event Bus
+        from packages.orchestration.domain.events import event_bus
         msg = f"{'OTONOM ' if auto else ''}İyileştirme Uygulandı: {proposal['issue']['reason']}"
-        if orchestrator.ws_manager:
-            await orchestrator.ws_manager.broadcast({
-                "event": "improvement_report",
-                "severity": "success",
-                "message": msg,
-                "proposal_id": proposal.get("id", "auto"),
-                "auto": auto
-            })
+        await event_bus.emit(
+            "improvement.report",
+            severity="success",
+            message=msg,
+            proposal_id=proposal.get("id", "auto"),
+            auto=auto,
+            phase="healing"
+        )
         logger.info(f"REPORT: {msg}")
 
     async def get_proposals(self) -> List[Dict]:
