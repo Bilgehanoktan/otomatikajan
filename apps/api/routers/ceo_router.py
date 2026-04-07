@@ -53,7 +53,9 @@ async def get_findings(current_user=Depends(get_current_user)):
                     "priority_score": op.priority_score,
                     "status": "OPEN",
                     "description": op.description,
-                    "source": "CEO_ENGINE"
+                    "source": "CEO_ENGINE",
+                    "evidence": op.evidence_metadata, # Added for details modal
+                    "reasoning": op.reasoning        # Added for details modal
                 })
             
             for sug in sugs:
@@ -62,11 +64,12 @@ async def get_findings(current_user=Depends(get_current_user)):
                     "timestamp": sug.created_at,
                     "category": "suggestion",
                     "finding": sug.title,
-                    "severity": sug.priority,
-                    "priority_score": 0,
+                    "severity": "high" if sug.priority >= 7 else "medium", # Normalize for UI
+                    "priority_score": sug.priority,
                     "status": "SUGGESTED",
                     "description": sug.description,
-                    "source": "CEO_STRATEGY"
+                    "source": "CEO_STRATEGY",
+                    "reasoning": sug.plan_hierarchy.get("strategic_objective") if sug.plan_hierarchy else None
                 })
 
             return {
@@ -87,6 +90,22 @@ async def get_findings(current_user=Depends(get_current_user)):
             "is_fallback": True,
             "source_of_truth": "unavailable"
         }
+
+@router.post("/approve/{finding_id}")
+async def approve_finding(finding_id: str, current_user=Depends(get_current_user)):
+    """Kullanıcının bir bulguyu veya öneriyi onaylayarak göreve dönüştürmesini sağlar."""
+    import uuid
+    try:
+        f_id = uuid.UUID(finding_id)
+        ceo = get_ceo_engine()
+        result = await ceo.manual_approve_suggestion(f_id)
+        return result
+    except ValueError:
+        return {"success": False, "error": "Geçersiz ID formatı."}
+    except Exception as e:
+        logger.error(f"CEO approval error: {e}")
+        return {"success": False, "error": str(e)}
+
 
 @router.post("/scan")
 async def trigger_scan(background_tasks: BackgroundTasks, current_user=Depends(get_current_user)):
