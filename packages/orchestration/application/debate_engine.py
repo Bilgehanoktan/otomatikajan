@@ -179,9 +179,9 @@ class DebateEngine:
                 agent_a=agent_a, persona_a=persona_a,
                 context_hint=context_hint
             )
-            await event_bus.emit(EVENT_DEBATE_STATE, {"debate_id": debate_id, "state": "thinking", "agent_id": agent_a, "round": round_num})
+            await event_bus.emit(EVENT_DEBATE_STATE, debate_id=debate_id, state="thinking", agent_id=agent_a, round=round_num)
             arg_a = await self._llm(prompt_a, agent_a, force_provider=provider_map.get(agent_a))
-            await event_bus.emit(EVENT_DEBATE_STATE, {"debate_id": debate_id, "state": "arguing", "agent_id": agent_a, "round": round_num, "content": arg_a[:200]})
+            await event_bus.emit(EVENT_DEBATE_STATE, debate_id=debate_id, state="arguing", agent_id=agent_a, round=round_num, content=arg_a[:200])
             history += f"\n[{agent_a} — Tur {round_num}]:\n{arg_a}\n"
 
             # ── Agent B yanıt verir ───────────────────────────
@@ -189,18 +189,18 @@ class DebateEngine:
                 history=history, agent_b=agent_b,
                 persona_b=persona_b, agent_a=agent_a
             )
-            await event_bus.emit(EVENT_DEBATE_STATE, {"debate_id": debate_id, "state": "thinking", "agent_id": agent_b, "round": round_num})
+            await event_bus.emit(EVENT_DEBATE_STATE, debate_id=debate_id, state="thinking", agent_id=agent_b, round=round_num)
             arg_b = await self._llm(prompt_b, agent_b, force_provider=provider_map.get(agent_b))
-            await event_bus.emit(EVENT_DEBATE_STATE, {"debate_id": debate_id, "state": "arguing", "agent_id": agent_b, "round": round_num, "content": arg_b[:200]})
+            await event_bus.emit(EVENT_DEBATE_STATE, debate_id=debate_id, state="arguing", agent_id=agent_b, round=round_num, content=arg_b[:200])
             history += f"\n[{agent_b} — Tur {round_num}]:\n{arg_b}\n"
 
             # ── Moderatör değerlendirme notu ──────────────────
             prompt_mod = DEBATE_PROMPT_MOD.format(
                 history=history, moderator=moderator, persona_m=persona_m
             )
-            await event_bus.emit(EVENT_DEBATE_STATE, {"debate_id": debate_id, "state": "thinking", "agent_id": moderator, "round": round_num})
+            await event_bus.emit(EVENT_DEBATE_STATE, debate_id=debate_id, state="thinking", agent_id=moderator, round=round_num)
             mod_note = await self._llm(prompt_mod, moderator, force_provider=provider_map.get(moderator))
-            await event_bus.emit(EVENT_DEBATE_STATE, {"debate_id": debate_id, "state": "arguing", "agent_id": moderator, "round": round_num, "content": mod_note[:200]})
+            await event_bus.emit(EVENT_DEBATE_STATE, debate_id=debate_id, state="arguing", agent_id=moderator, round=round_num, content=mod_note[:200])
             history += f"\n[Moderatör — Tur {round_num}]:\n{mod_note}\n"
 
             rounds.append(DebateRound(
@@ -222,11 +222,11 @@ class DebateEngine:
         synthesis_prompt = DEBATE_SYNTHESIS_PROMPT.format(
             history=history, moderator=moderator, persona_m=persona_m
         )
-        await event_bus.emit(EVENT_DEBATE_STATE, {"debate_id": debate_id, "state": "thinking", "agent_id": moderator, "round": 999}) # 999 is final
+        await event_bus.emit(EVENT_DEBATE_STATE, debate_id=debate_id, state="thinking", agent_id=moderator, round=999) # 999 is final
         consensus = await self._llm(synthesis_prompt, moderator, force_provider=provider_map.get(moderator))
         # Pacify weird slice lint
         safe_consensus = str(consensus or "")
-        await event_bus.emit(EVENT_DEBATE_STATE, {"debate_id": debate_id, "state": "concluded", "agent_id": moderator, "round": 999, "consensus": safe_consensus[:300]})
+        await event_bus.emit(EVENT_DEBATE_STATE, debate_id=debate_id, state="concluded", agent_id=moderator, round=999, consensus=safe_consensus[:300])
         _log.info(f"Debate tamamlandı [{debate_id}] — {len(rounds)} tur, uzlaşı={agreement_reached}")
 
         return DebateResult(
