@@ -122,7 +122,7 @@ def run_deerflow_task(
     async def _execute():
         from packages.persistence.session import AsyncSessionLocal
         from packages.persistence.repositories.repository import ProjectRepository
-        from integrations.deerflow_bridge import DeerFlowBridgeClient
+        from packages.integrations.deerflow_bridge import DeerFlowBridgeClient
 
         async with AsyncSessionLocal() as db:
             p = await ProjectRepository.get(db, to_uuid(db_project_id))
