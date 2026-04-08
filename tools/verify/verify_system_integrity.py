@@ -33,6 +33,40 @@ def check_lint():
     print("[OK] Linting passed.")
     return True
 
+def check_architecture_hygiene():
+    print("[*] Running Architecture Hygiene Check...")
+    project_root = Path(__file__).parent.parent.parent
+    
+    violations = []
+    
+    # 1. No runtime data/DB in root
+    root_artifacts = list(project_root.glob("*.db")) + list(project_root.glob("*.sqlite"))
+    if root_artifacts:
+        violations.append(f"Runtime data found in root: {[f.name for f in root_artifacts]}")
+        
+    # 2. Source of truth check (runtime/data)
+    data_dir = project_root / "runtime" / "data"
+    if not data_dir.exists():
+        violations.append("Source of truth directory missing: runtime/data/")
+        
+    # 3. Memory Centralization check
+    memory_vault = data_dir / "memory_vault"
+    if not memory_vault.exists():
+        violations.append("Memory vault not centralized: runtime/data/memory_vault/ missing")
+        
+    # 4. No backups/ in root
+    if (project_root / "backups").exists():
+        violations.append("Legacy backups directory found in root. Move to .legacy_archive/")
+
+    if violations:
+        print("[!] HYGIENE VIOLATIONS DETECTED:")
+        for v in violations:
+            print(f"    [!] {v}")
+        return False
+        
+    print("[OK] Architecture hygiene passed.")
+    return True
+
 def smoke_import_test():
     print("[*] Running Import Smoke Test...")
     project_root = Path(__file__).parent.parent.parent
@@ -71,10 +105,11 @@ if __name__ == "__main__":
     print("====================================================")
     
     lint_ok = check_lint()
+    hygiene_ok = check_architecture_hygiene()
     import_ok = smoke_import_test()
     
     print("----------------------------------------------------")
-    if lint_ok and import_ok:
+    if lint_ok and hygiene_ok and import_ok:
         print("[SUCCESS] System Integrity Check PASSED.")
         sys.exit(0)
     else:
