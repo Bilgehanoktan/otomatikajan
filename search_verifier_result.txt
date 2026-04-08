@@ -1,2 +1,0 @@
-﻿E:\ai_company_faz12.1\packages\healing\improvement\cognitive_verifier.py
-E:\ai_company_faz12.1\packages\improvement_engine\cognitive_verifier.py
