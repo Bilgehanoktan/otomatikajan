@@ -119,6 +119,11 @@ FALLBACK_API_KEY    = os.getenv("FALLBACK_API_KEY", "")
 CLAUDE_PROXY_URL    = os.getenv("CLAUDE_PROXY_URL", "")
 DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
 
+# ── Dosya Sistemleri ────────────────────────────────────────
+UPLOAD_DIR               = os.getenv("UPLOAD_DIR", "./runtime/uploads")
+DATA_DIR                 = os.getenv("DATA_DIR", "./runtime/data")
+LOG_DIR                  = os.getenv("LOG_DIR", "./runtime/logs")
+
 # ── Memory Config ─────────────────────────────────────────
 MEMORY_DATABASE_URL = os.getenv("MEMORY_DATABASE_URL", "sqlite:///./runtime/data/memory_vault/packages.memory.db")
 MEMORY_MODE         = os.getenv("MEMORY_MODE", "inject")
@@ -162,11 +167,7 @@ N8N_BASE_URL             = os.getenv("N8N_BASE_URL", "http://n8n:5678")
 N8N_API_KEY              = os.getenv("N8N_API_KEY", "")
 N8N_WEBHOOK_URL          = os.getenv("N8N_WEBHOOK_URL", "")
 
-# ── Dosya Sistemleri ────────────────────────────────────────
-UPLOAD_DIR               = os.getenv("UPLOAD_DIR", "./runtime/uploads")
-DATA_DIR                 = os.getenv("DATA_DIR", "./runtime/data")
-LOG_DIR                  = os.getenv("LOG_DIR", "./runtime/logs")
-
+# ── LLM & Execution ─────────────────────────────────────────
 LLM_TIMEOUT_S = float(os.getenv("LLM_TIMEOUT_S", "60"))
 LLM_MAX_RETRIES = int(os.getenv("LLM_MAX_RETRIES", "10"))
 
@@ -183,5 +184,5 @@ ENABLE_AUTONOMOUS_IMPROVEMENT     = os.getenv("ENABLE_AUTONOMOUS_IMPROVEMENT", "
 IMPROVEMENT_AUTO_APPLY_THRESHOLD  = float(os.getenv("IMPROVEMENT_AUTO_APPLY_THRESHOLD", "0.8"))
 
 # ── Version & Revision ──────────────────────────────────────
-VERSION  = "4.0.0-RC1.5"
-REVISION = "Phase 2 Final - Modular Cutover"
+VERSION  = "4.0.0-RC1.6"
+REVISION = "Phase 12.1 RC 1.6 - Architectural Solidification"
