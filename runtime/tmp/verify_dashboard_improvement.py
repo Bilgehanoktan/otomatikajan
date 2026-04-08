@@ -8,7 +8,7 @@ from pathlib import Path
 project_root = Path(__file__).resolve().parents[1]
 sys.path.append(str(project_root))
 
-from core.self_updater import SelfUpdater
+from packages.orchestration.self_updater import SelfUpdater
 from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 
 async def verify_dashboard_support():
@@ -44,7 +44,7 @@ async def verify_dashboard_support():
         print(f"[OK] Invalid HTML failed as expected: {e}")
 
     print("\nTesting ShadowRunner syntax check for HTML...")
-    from core.shadow_runner import ShadowRunner
+    from packages.healing.shadow_runner import ShadowRunner
     runner = ShadowRunner(project_root=str(project_root))
     
     # Mocking a Path object with .suffix == ".html"
