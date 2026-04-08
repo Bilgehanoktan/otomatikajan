@@ -35,14 +35,13 @@ class ChannelStore:
 
     def __init__(self, path: str | Path | None = None) -> None:
         if path is None:
-            # Note: We attempt to import deerflow paths here for backward compatibility
-            # with the original vendor implementation.
             try:
-                from deerflow.config.paths import get_paths
-                path = Path(get_paths().base_dir) / "channels" / "store.json"
+                from config import MEMORY_VAULT_DIR
+                path = Path(MEMORY_VAULT_DIR) / "channel_store.json"
             except ImportError:
-                # Fallback to a default data path if deerflow is not available
-                path = Path("runtime/memory/channel_store.json")
+                # Fallback if config is not available
+                path = Path("runtime/data/memory_vault/channel_store.json")
+
                 
         self._path = Path(path)
         self._path.parent.mkdir(parents=True, exist_ok=True)
