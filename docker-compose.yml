@@ -233,6 +233,7 @@ services:
       disable: true
     volumes:
       - .:/app
+      - runtime_data:/app/runtime/data
 
 
 volumes:
