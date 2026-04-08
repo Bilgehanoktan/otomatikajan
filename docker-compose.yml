@@ -191,6 +191,7 @@ services:
       - "8010:8010"
     volumes:
       - ./external/vendor/deer-flow:/opt/deerflow
+      - ./packages:/app/backend/packages/harness/deerflow/packages:ro
       # Sadece Docker sandbox kullanacaksan:
       # - /var/run/docker.sock:/var/run/docker.sock
     healthcheck:
