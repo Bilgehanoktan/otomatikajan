@@ -12,7 +12,7 @@ from packages.persistence.repositories.repository import ProjectRepository, Task
 from apps.worker.tasks.celery_app import celery_app  # type: ignore
 from packages.integrations.deerflow_bridge import DeerFlowBridgeClient  # type: ignore
 from schemas import DeerFlowEventType  # type: ignore
-from packages.orchestration.heal_engine import heal_engine  # type: ignore
+from packages.healing.application.heal_engine import heal_engine  # type: ignore
 
 # ── DeerFlow Stream Event Normalizer ─────────────────────
 _EVENT_TYPE_MAP: dict[str, DeerFlowEventType] = {
