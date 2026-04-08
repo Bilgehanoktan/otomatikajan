@@ -349,7 +349,7 @@ Bulgularını 'İyileştirme Fırsatı' formunda raporla."""
 def run_market_intelligence_task():
     """Pazar trendlerini analiz eder ve stratejik raporlar hazırlar."""
     async def _execute():
-        from tools.web_search import get_web_search
+        from packages.integrations.web_search import get_web_search
         from packages.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
         from packages.persistence.session import AsyncSessionLocal
         from packages.persistence.repositories.repository import ImprovementRepository
