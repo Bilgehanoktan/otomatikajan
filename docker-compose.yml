@@ -236,6 +236,7 @@ services:
 
 volumes:
   pgdata:
+  runtime_data:
 
     # ── NOT ──────────────────────────────────────────────────────
     # Local development için port açmak istersen:
