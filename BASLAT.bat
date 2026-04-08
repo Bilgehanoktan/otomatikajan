@@ -11,7 +11,7 @@ echo ----------------------------------------------------
 
 :: 0. Ön Kontrol: Sistem Bütünlüğü (Quality Guard)
 echo [*] Sistem bütünlüğü kontrol ediliyor (Quality Guard)...
-python scripts\verify_system_integrity.py
+python tools\verify\verify_system_integrity.py
 if %errorlevel% neq 0 (
     echo [!] KRITIK: Sistem bütünlük kontrolü başarisiz oldu!
     echo [!] Hatalari düzeltmeden sistemi başlatmak güvenli değildir.
@@ -64,9 +64,9 @@ echo [*] Servislerin hazir olmasi bekleniyor (10s)...
 timeout /t 10 /nobreak >nul
 
 :: 5. Telegram Watchdog (Artık Docker Compose içinde otomotiv çalışıyor)
-:: if exist "scripts\telegram_watchdog.py" (
+:: if exist "tools\maintenance\telegram_watchdog.py" (
 ::     echo [4/4] Telegram Watchdog baslatiliyor...
-::     start "Telegram Watchdog" cmd /k "python scripts\telegram_watchdog.py"
+::     start "Telegram Watchdog" cmd /k "python tools\maintenance\telegram_watchdog.py"
 :: )
 
 :: 6. Git Oto-Commit (Sessiz Mod)
