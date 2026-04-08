@@ -253,7 +253,7 @@ async def _get_subscriptions(event: str) -> list[dict]:
 def heal_check_task():
     """Her 1 dakikada bir sağlık kontrolü."""
     try:
-        from packages.orchestration.heal_engine import heal_engine
+        from packages.healing.application.heal_engine import heal_engine
         score = heal_engine.system_health_score()
         logger.info(f"🩺 Sistem sağlık skoru: {score}")
         return {"health": score}
