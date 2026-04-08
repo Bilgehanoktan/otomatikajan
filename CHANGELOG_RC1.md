@@ -285,3 +285,8 @@
 - **Docker Deployment Hardening**: docker-compose.yml icerisindeki volume mount stratejisi, root packages/ dizini ile vendor dosyalari arasindaki cakismalari onlemek icin ozellestirildi.
 - **Legacy Import Refactoring**: runtime/tmp/ ve test dizinlerindeki residual core.* importlari yeni canonical packages.* ve apps.* yapisina otonom olarak tasindi.
 - **Integrity Guard**: Butunluk kontrolu otonom sistemler tarafindan gecildi ve PROVENANCE.json Milestone 50 (System Stabilization) olarak guncellendi.
+
+### Sprint 19 - Deployment Stabilization & Runtime Safety (Faz 12.1 RC1.4)
+- **Container Name Conflict Resolution**: docker-compose up anında meydana gelen 	elegram-bot konteyner adı çatışması (zombie container) otonom olarak tespit edildi ve temizlendi.
+- **Service Orchestration Hardening**: Konteyner temizleme ve servis başlatma döngüsü docker compose down --remove-orphans ile daha dirençli hale getirildi.
+- **Verification**: scripts/verify_system_integrity.py ve sistem bütünlük kontrolleri geçildi.
