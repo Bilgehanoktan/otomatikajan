@@ -35,7 +35,7 @@ def check_lint():
 
 def smoke_import_test():
     print("[*] Running Import Smoke Test...")
-    project_root = Path(__file__).parent.parent
+    project_root = Path(__file__).parent.parent.parent
     sys.path.append(str(project_root))
     
     critical_modules = [
