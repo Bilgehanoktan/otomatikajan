@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config import ALLOWED_ORIGINS, ALLOWED_METHODS, ALLOWED_HEADERS
 from packages.observability.logging import RequestTracingMiddleware
-from apps.api.routers.rate_limiter import RateLimitHeaderMiddleware
+from apps.api.support.rate_limiter import RateLimitHeaderMiddleware
 
 
 def configure_middleware(app: FastAPI) -> None:
