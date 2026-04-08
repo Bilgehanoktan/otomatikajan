@@ -234,7 +234,7 @@ class JobQueue(BaseQueueCapabilities):
             
             # Faz 12.1: DeerFlow köprü iptalini de tetikle (Fire & Forget)
             try:
-                from integrations.deerflow_bridge import DeerFlowBridgeClient
+                from packages.integrations.deerflow_bridge import DeerFlowBridgeClient
                 client = DeerFlowBridgeClient()
                 asyncio.create_task(client.cancel(job_id))
             except Exception as e:
@@ -250,7 +250,7 @@ class JobQueue(BaseQueueCapabilities):
             
             # Faz 12.1: Bekleyen iş olsa dahi DeerFlow Bridge'e iptal gönder (Garantici yaklaşım)
             try:
-                from integrations.deerflow_bridge import DeerFlowBridgeClient
+                from packages.integrations.deerflow_bridge import DeerFlowBridgeClient
                 client = DeerFlowBridgeClient()
                 asyncio.create_task(client.cancel(job_id))
             except Exception:
@@ -650,7 +650,7 @@ class CeleryJobQueue(BaseQueueCapabilities):
             
             # Faz 12.1: DeerFlow köprü iptalini de tetikle (Fire & Forget)
             try:
-                from integrations.deerflow_bridge import DeerFlowBridgeClient
+                from packages.integrations.deerflow_bridge import DeerFlowBridgeClient
                 client = DeerFlowBridgeClient()
                 # Celery worker loop'unda olmayabiliriz (API context), loop kontrolü yap
                 try:
