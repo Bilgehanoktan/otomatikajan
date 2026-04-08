@@ -65,7 +65,7 @@ from packages.orchestration.agi.governance.watchdog import governance_watchdog
 from packages.healing.application.heal_engine import heal_engine
 from packages.orchestration.domain.events import event_bus
 from packages.orchestration.application.job_queue import job_queue
-from apps.api.routers.ws_manager import ws_manager
+from apps.api.support.ws_manager import ws_manager
 from packages.observability.logging import get_logger
 from packages.observability.metrics import metrics
 
