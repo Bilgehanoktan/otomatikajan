@@ -279,3 +279,9 @@
 - **Event-Driven UI**: Core logic decoupled from `ws_manager` via `event_bus` integration in `ImprovementGate`.
 - **Normalized Deployment**: `Dockerfile`, `docker-compose.yml`, and `Makefile` updated to use standardized entrypoints (`apps.api.main`, `apps.worker.tasks`).
 - **Verification**: `scripts/verify_system_integrity.py` passed with 100% success rate.
+
+### Sprint 18 - Architectural Stabilization & Vendor Bridge Restoration (Faz 12.1 RC1.3)
+- **DeerFlow Bridge Restoration**: External/vendor dizini icerisinde olusturulan packages/skills shim yapisi ile modul yukleme hatasi (ModuleNotFoundError) tamamen giderildi.
+- **Docker Deployment Hardening**: docker-compose.yml icerisindeki volume mount stratejisi, root packages/ dizini ile vendor dosyalari arasindaki cakismalari onlemek icin ozellestirildi.
+- **Legacy Import Refactoring**: runtime/tmp/ ve test dizinlerindeki residual core.* importlari yeni canonical packages.* ve apps.* yapisina otonom olarak tasindi.
+- **Integrity Guard**: Butunluk kontrolu otonom sistemler tarafindan gecildi ve PROVENANCE.json Milestone 50 (System Stabilization) olarak guncellendi.
