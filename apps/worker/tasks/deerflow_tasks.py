@@ -10,7 +10,7 @@ from packages.persistence.models import ProjectStatus  # type: ignore
 from packages.persistence.session import AsyncSessionLocal  # type: ignore
 from packages.persistence.repositories.repository import ProjectRepository, TaskLogRepository, SubTaskRepository  # type: ignore
 from apps.worker.tasks.celery_app import celery_app  # type: ignore
-from integrations.deerflow_bridge import DeerFlowBridgeClient  # type: ignore
+from packages.integrations.deerflow_bridge import DeerFlowBridgeClient  # type: ignore
 from schemas import DeerFlowEventType  # type: ignore
 from packages.orchestration.heal_engine import heal_engine  # type: ignore
 
