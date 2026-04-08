@@ -120,8 +120,9 @@ CLAUDE_PROXY_URL    = os.getenv("CLAUDE_PROXY_URL", "")
 DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
 
 # ── Memory Config ─────────────────────────────────────────
-MEMORY_DATABASE_URL = os.getenv("MEMORY_DATABASE_URL", "sqlite:///./runtime/data/packages.memory.db")
+MEMORY_DATABASE_URL = os.getenv("MEMORY_DATABASE_URL", "sqlite:///./runtime/data/memory_vault/packages.memory.db")
 MEMORY_MODE         = os.getenv("MEMORY_MODE", "inject")
+MEMORY_VAULT_DIR    = os.path.join(DATA_DIR, "memory_vault")
 
 # ── Orkestrasyon & Ajanlar ──────────────────────────────────
 AGENT_COUNT              = int(os.getenv("AGENT_COUNT", "12"))
