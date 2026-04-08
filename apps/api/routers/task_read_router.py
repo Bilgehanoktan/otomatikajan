@@ -1,7 +1,7 @@
-﻿"""GÃ¶rev Okuma Router â€” GET endpoints"""
+"""GÃ¶rev Okuma Router â€” GET endpoints"""
 from fastapi import APIRouter, HTTPException, Query, Depends
 from apps.api.routers.auth.jwt_auth import get_current_user
-from ._task_shared import _db_session, _project_to_dict
+from ..support._task_shared import _db_session, _project_to_dict
 from packages.observability.logging import get_logger
 
 from typing import Optional, List, Dict, Any
