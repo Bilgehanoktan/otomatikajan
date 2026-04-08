@@ -317,7 +317,7 @@ async def lifespan(app: FastAPI):
         # Faz 12.1: DeerFlow Handlers (Real Bridge Integration)
         async def _run_deerflow_wrapper(**payload):
             try:
-                from integrations.deerflow_bridge import DeerFlowBridgeClient
+                from packages.integrations.deerflow_bridge import DeerFlowBridgeClient
                 client = DeerFlowBridgeClient()
                 
                 # Payload mapping
