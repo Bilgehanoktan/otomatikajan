@@ -290,3 +290,11 @@
 - **Container Name Conflict Resolution**: docker-compose up anında meydana gelen 	elegram-bot konteyner adı çatışması (zombie container) otonom olarak tespit edildi ve temizlendi.
 - **Service Orchestration Hardening**: Konteyner temizleme ve servis başlatma döngüsü docker compose down --remove-orphans ile daha dirençli hale getirildi.
 - **Verification**: scripts/verify_system_integrity.py ve sistem bütünlük kontrolleri geçildi.
+
+### Sprint 20 - Modular Monolith Solidification & Spine Implementation (Faz 12.1 RC1.5)
+- **Runtime Infrastructure**: Established 'runtime/data' and 'runtime/logs' as canonical persistence paths.
+- **Data Isolation**: Moved all root SQLite databases to 'runtime/data/' to decouple data from source code.
+- **Contract Modularization**: Relocated 'schemas.py' to 'packages.contracts' and established root compatibility shims.
+- **Root Sanitization**: Purged root directory of legacy maintenance scripts and temporary artifacts.
+- **DevOps Hardening**: Implemented 'runtime_data' volume persistence in 'docker-compose.yml' ensuring SQLite reliability across container lifecycles.
+- **Quality Guard**: Verified 100% system integrity and import stability.
