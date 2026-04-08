@@ -16,7 +16,7 @@ def test_verify_capabilities_endpoint_via_client():
     Faz 12.1 Verification: Ensure the /tasks/capabilities endpoint works and
     correctly loads capabilities via agency_loader without bypassing auth using mocks.
     """
-    response = client.get("/tasks/capabilities")
+    response = client.get("/api/v1/tasks/capabilities")
     
     assert response.status_code == 200, f"Expected 200, got {response.status_code}"
     data = response.json()
