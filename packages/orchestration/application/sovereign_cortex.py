@@ -384,7 +384,6 @@ class SovereignCortex:
             return obj
         try:
             episode = EpisodeRecord(episode_id=task.id, problem_frame=ProblemFrame(task_type=TaskType.OPERATION, objective=task.title, risk_level=RiskLevel.MEDIUM), final_output=task.report)
-            from packages.orchestration.agi.task_governance import ActionRecord # Placeholder until moved
             for st in task.subtasks:
                 episode.actions.append(ActionRecord(step_id=st.id, agent_id=st.agent_id, tool_used="velocity_engine", output_data=st.result, success=(st.status == TaskStatus.COMPLETED), duration_s=st.duration_s or 0.0))
             episode.verification = VerificationReport(result_status=(task.status == TaskStatus.COMPLETED), evidence_summary=task.report[:1000] if task.report else "Kanıt yok", confidence_adjusted=0.8, integration_reality_score=0.9 if task.status == TaskStatus.COMPLETED else 0.4)
@@ -419,7 +418,6 @@ class SovereignCortex:
                     subtask.prompt += wisdom_block
             subtask.status = TaskStatus.RUNNING
             t_start = time.time()
-            from packages.orchestration.agi.operational.velocity_engine import velocity_engine
             enriched_context = await context_builder.build_context(agent_id=subtask.agent_id, task_text=subtask.prompt, project_id=task.id)
             result = await velocity_engine.simulate_and_execute(agent_id=subtask.agent_id, prompt=subtask.prompt, context=enriched_context, task_id=task.id)
             if result.success:
