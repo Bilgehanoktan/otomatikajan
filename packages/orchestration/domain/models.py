@@ -1,8 +1,6 @@
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from enum import Enum
-from typing import Any, Dict, List, Optional
 import uuid
+from enum import Enum
+from typing import Any, Dict, List, Optional, Union
 
 # --- Katman 1: Interface / Input Layer ---
 
@@ -239,3 +237,74 @@ class PolicyProposal:
     rollout_scope: str = "limited" # limited, global
     rollback_trigger: str = ""
     status: str = "pending" # pending, testing, active, rejected
+
+# --- Katman 8: Governance and Autonomy Layer ---
+
+class GovernanceStatus(str, Enum):
+    PENDING          = "PENDING"
+    QUEUED           = "QUEUED"
+    RUNNING          = "RUNNING"
+    PENDING_APPROVAL = "PENDING_APPROVAL"
+    COMPLETED        = "COMPLETED"
+    PARTIAL_COMPLETE = "PARTIAL_COMPLETE"
+    ERROR            = "ERROR"
+    CANCELLED        = "CANCELLED"
+    PAUSED           = "PAUSED"
+    RETRYING         = "RETRYING"
+    SKIPPED          = "SKIPPED"
+
+@dataclass
+class GovernedTask:
+    id:           str
+    agent_id:     str
+    prompt:       str
+    status:       GovernanceStatus = GovernanceStatus.PENDING
+    result:       str        = ""
+    structured:   Any        = None   # AgentOutput nesnesi
+    quality_score:Optional[float] = None
+    quality_detail: Optional[dict] = None
+    attempts:     int        = 0
+    reviewed:     bool       = False
+    review_notes: list       = field(default_factory=list)
+    db_subtask_id: Optional[str] = None
+    created_at:   datetime   = field(default_factory=lambda: datetime.now(timezone.utc))
+    # Faz 39: Risk ve Konsensüs
+    risk_level:   str        = "low" # low, medium, high, critical
+    consensus_required: bool = False
+    consensus_score: float   = 0.0
+    consensus_report: Optional[str] = None
+    # Faz 42: Bilişsel Devamlılık
+    internal_monologue: str = ""
+    # Faz 12.3: Bilişsel Çapalar (Anchors)
+    causal_anchor: str = ""      # Bu alt görevin ana özeti/dersi
+    inhibition_signals: list[str] = field(default_factory=list) # Kısıtlar
+    # Faz 51: Rekürsif Dekompozisyon (Sovereign Depth)
+    is_complex:   bool       = False
+    parent_id:    Optional[str] = None
+    complexity_reasoning: str = ""
+    dependencies: list[str] = field(default_factory=list)
+
+@dataclass
+class SovereignGoal:
+    id:         str
+    title:      str
+    description:str           = ""
+    subtasks:   list[GovernedTask] = field(default_factory=list)
+    status:     GovernanceStatus    = GovernanceStatus.PENDING
+    created_at: datetime      = field(default_factory=lambda: datetime.now(timezone.utc))
+    report:     str           = ""
+    avg_quality:Optional[float]  = None
+    workflow_template: str    = "default"
+    quality_profile: str      = "standard"
+    acceptance_criteria: list[str] = field(default_factory=list)
+    execution_context: dict   = field(default_factory=dict)
+    
+    def get_shared_state(self) -> dict:
+        """Paylaşılan çalışma belleğini (Blackboard) döner."""
+        return self.execution_context.get("shared_state", {})
+
+    def update_shared_state(self, updates: dict):
+        """Paylaşılan belleği günceller."""
+        state = self.get_shared_state()
+        state.update(updates)
+        self.execution_context["shared_state"] = state
