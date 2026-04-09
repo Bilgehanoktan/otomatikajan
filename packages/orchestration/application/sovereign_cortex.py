@@ -24,9 +24,9 @@ from packages.orchestration.domain.models import SovereignGoal, GovernedTask, Go
 from packages.orchestration.application.governance import TaskPlanner, TaskStateService, ReportSynthesizer
 
 # LEGACY IMPORTS (To be migrated next)
-from packages.orchestration.agi.cognitive.metacognitive_auditor import metacognitive_auditor
-from packages.orchestration.agi.cognitive.architect import Architect
-from packages.orchestration.agi.operational.scaffolder import scaffolder
+from packages.orchestration.domain.auditor import metacognitive_auditor
+from packages.orchestration.domain.architect import Architect
+from packages.orchestration.application.scaffolder import scaffolder
 from packages.orchestration.agi.cognitive.memory_api import memory_api
 from packages.orchestration.agi.schemas import EpisodeRecord, ActionRecord, UnifiedInput, ProblemFrame, TaskType, RiskLevel, VerificationReport
 from packages.orchestration.agi.learning.cognitive_mirror import cognitive_mirror
@@ -35,16 +35,16 @@ from packages.orchestration.agi.cognitive.agi_goal_decomposer import agi_goal_de
 from packages.orchestration.agi.cognitive.collaborative_node import collaborative_node
 from packages.orchestration.agi.learning.knowledge_distiller import knowledge_distiller
 from packages.orchestration.agi.learning.prompt_synthesizer import PromptSynthesizer
-from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
+from packages.orchestration.domain.synaptic_cortex import synaptic_cortex
 from packages.orchestration.agi.cognitive.motivation_engine import motivation_engine
-from packages.orchestration.agi.consciousness.affective_core import affective_core
+from packages.orchestration.domain.affective_core import affective_core
 from packages.orchestration.agi.cognitive.foresight_cortex import foresight_cortex
 from packages.orchestration.agi.learning.memory_gate import memory_gate
 from packages.orchestration.agi.governance.watchdog import governance_watchdog
 from packages.orchestration.agi.governance.consensus_arbiter import consensus_arbiter
 from packages.orchestration.agi.cognitive.reflective_synthesizer import reflective_synthesizer
 from packages.orchestration.agi.cognitive.axiology_engine import axiology_engine
-from packages.orchestration.agi.operational.metabolic_governor import metabolic_governor
+from packages.orchestration.application.metabolic_governor import metabolic_governor
 from packages.orchestration.agi.learning.wisdom_synthesizer import wisdom_synthesizer
 from packages.orchestration.agi.cognitive.memory_pruner import memory_pruner
 from packages.orchestration.agi.quality.sovereign_evaluator import sovereign_evaluator
