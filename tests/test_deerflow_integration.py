@@ -38,8 +38,8 @@ class TestDeerFlowIntegration(unittest.IsolatedAsyncioTestCase):
 
     async def test_routing_to_deerflow(self):
         """API'nin 'deerflow' ajanını doğru Celery görevine yönlendirdiğini doğrula."""
-        from api.task_write_router import create_task
-        from api._task_shared import TaskCreateRequest
+        from apps.api.routers.task_write import create_task
+        from apps.api.support._task_shared import TaskCreateRequest
         
         # Mocks for all internal components
         mock_db = MagicMock()

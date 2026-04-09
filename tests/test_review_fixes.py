@@ -285,7 +285,7 @@ class TestRateLimiter429:
 
     def test_in_memory_blocks_after_limit(self):
         """Limit aşılınca allowed=False döner."""
-        from api.rate_limiter import InMemoryRateLimiter, RateLimit
+        from apps.api.support.rate_limiter import InMemoryRateLimiter, RateLimit
 
         limiter = InMemoryRateLimiter()
         limit   = RateLimit(requests=3, window_s=60, label="test:3/60s")
@@ -303,7 +303,7 @@ class TestRateLimiter429:
 
     def test_window_expiry_resets_counter(self):
         """Pencere dolunca sayaç sıfırlanır."""
-        from api.rate_limiter import InMemoryRateLimiter, RateLimit
+        from apps.api.support.rate_limiter import InMemoryRateLimiter, RateLimit
 
         limiter = InMemoryRateLimiter()
         limit   = RateLimit(requests=2, window_s=0.05, label="test:kısa pencere")
@@ -323,7 +323,7 @@ class TestRateLimiter429:
 
     def test_different_keys_independent(self):
         """Farklı IP'ler birbirini etkilemez."""
-        from api.rate_limiter import InMemoryRateLimiter, RateLimit
+        from apps.api.support.rate_limiter import InMemoryRateLimiter, RateLimit
 
         limiter = InMemoryRateLimiter()
         limit   = RateLimit(requests=1, window_s=60, label="test:1/60s")
@@ -342,7 +342,7 @@ class TestRateLimiter429:
     def test_rate_limit_headers_present(self):
         """429 response'unda gerekli başlıklar var mı."""
         from fastapi import HTTPException
-        from api.rate_limiter import InMemoryRateLimiter, RateLimit, rate_limit
+        from apps.api.support.rate_limiter import InMemoryRateLimiter, RateLimit, rate_limit
         import asyncio
 
         limiter = InMemoryRateLimiter()
@@ -362,7 +362,7 @@ class TestRateLimiter429:
         # rate_limit global limiter'ı kullanır — kendi limiteri ile test edelim
         with pytest.raises(HTTPException) as exc:
             # _limiter'a müdahale et
-            from api.rate_limiter import _limiter as global_limiter
+            from apps.api.support.rate_limiter import _limiter as global_limiter
             for _ in range(201):  # global limit: 200
                 global_limiter.check("global:ip-header", RateLimit(200, 60, "g"))
             asyncio.run(check_fn(req))
@@ -573,7 +573,7 @@ class TestRedisRateLimiterFallback:
     @pytest.mark.asyncio
     async def test_falls_back_to_memory_when_redis_unavailable(self):
         """Redis bağlantı hatası -> in-memory fallback."""
-        from api.rate_limiter import RedisRateLimiter, RateLimit
+        from apps.api.support.rate_limiter import RedisRateLimiter, RateLimit
 
         limiter = RedisRateLimiter("redis://unavailable:9999/0")
         # Redis bağlantısı başarısız olacak
@@ -593,7 +593,7 @@ class TestRedisRateLimiterFallback:
         import os
         saved = os.environ.pop("REDIS_URL", None)
         try:
-            from api.rate_limiter import _build_redis_limiter
+            from apps.api.support.rate_limiter import _build_redis_limiter
             result = _build_redis_limiter()
             assert result is None
         finally:

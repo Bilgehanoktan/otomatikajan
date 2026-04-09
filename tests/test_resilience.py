@@ -3,7 +3,7 @@ import time
 import asyncio
 from unittest.mock import MagicMock, patch
 from packages.llm_gateway.model_orchestrator import ProviderStats, CircuitState
-from api.resilience import CircuitBreaker, CircuitState as APICircuitState
+from apps.api.support.resilience import CircuitBreaker, CircuitState as APICircuitState
 
 def test_llm_latency_quarantine():
     """LLM sağlayıcısının yavaş yanıtlar sonrası karantinaya alınmasını test eder."""
@@ -66,7 +66,7 @@ def test_api_circuit_breaker_flow():
 @pytest.mark.asyncio
 async def test_circuit_breaker_decorator():
     """Decorator'ın istisnaları yakalayıp devreyi etkileyip etkilemediğini test eder."""
-    from api.resilience import circuit_breaker
+    from apps.api.support.resilience import circuit_breaker
     from fastapi import HTTPException
     
     breaker_name = "decorated_test"
@@ -80,7 +80,7 @@ async def test_circuit_breaker_decorator():
     except RuntimeError:
         pass
         
-    from api.resilience import get_breaker
+    from apps.api.support.resilience import get_breaker
     breaker = get_breaker(breaker_name)
     assert breaker.state == APICircuitState.OPEN
     

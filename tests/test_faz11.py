@@ -398,7 +398,7 @@ def test_faz11_022():
     diff = """--- a/api/task_router.py
 +++ b/api/task_router.py
 @@ -1,3 +1,4 @@
-+from api._task_shared import task_to_dict
++from apps.api.support._task_shared import task_to_dict
  from fastapi import APIRouter
 """
     result = get_architecture_guard().check_diff(diff)

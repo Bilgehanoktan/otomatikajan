@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 # 1. TaskCreateRequest validasyonu
 # ════════════════════════════════════════════════════════
 def test_task_create_request_valid():
-    from api.task_router import TaskCreateRequest
+    from apps.api.routers.task_router import TaskCreateRequest
     req = TaskCreateRequest(
         title="Test görevi",
         description="Açıklama",
@@ -34,7 +34,7 @@ def test_task_create_request_valid():
 
 
 def test_task_create_request_defaults():
-    from api.task_router import TaskCreateRequest
+    from apps.api.routers.task_router import TaskCreateRequest
     req = TaskCreateRequest(title="Min test")
     assert req.priority == "medium"
     assert req.source == "manual"
@@ -43,28 +43,28 @@ def test_task_create_request_defaults():
 
 
 def test_task_create_request_invalid_priority():
-    from api.task_router import TaskCreateRequest
+    from apps.api.routers.task_router import TaskCreateRequest
     from pydantic import ValidationError
     with pytest.raises(ValidationError):
         TaskCreateRequest(title="Test", priority="urgent")  # geçersiz öncelik
 
 
 def test_task_create_request_invalid_source():
-    from api.task_router import TaskCreateRequest
+    from apps.api.routers.task_router import TaskCreateRequest
     from pydantic import ValidationError
     with pytest.raises(ValidationError):
         TaskCreateRequest(title="Test", source="slack")  # geçersiz kaynak
 
 
 def test_task_create_request_short_title():
-    from api.task_router import TaskCreateRequest
+    from apps.api.routers.task_router import TaskCreateRequest
     from pydantic import ValidationError
     with pytest.raises(ValidationError):
         TaskCreateRequest(title="AB")  # 2 karakter, min 3
 
 
 def test_task_update_request_optional_fields():
-    from api.task_router import TaskUpdateRequest
+    from apps.api.routers.task_router import TaskUpdateRequest
     req = TaskUpdateRequest(priority="low")
     assert req.priority == "low"
     assert req.title is None
@@ -72,7 +72,7 @@ def test_task_update_request_optional_fields():
 
 
 def test_task_update_request_empty():
-    from api.task_router import TaskUpdateRequest
+    from apps.api.routers.task_router import TaskUpdateRequest
     req = TaskUpdateRequest()
     assert req.priority is None
     assert req.title is None
@@ -82,7 +82,7 @@ def test_task_update_request_empty():
 # 2. _project_to_dict
 # ════════════════════════════════════════════════════════
 def test_project_to_dict_basic():
-    from api.task_router import _project_to_dict
+    from apps.api.routers.task_router import _project_to_dict
     from unittest.mock import MagicMock
     from datetime import datetime, timezone
 
@@ -117,7 +117,7 @@ def test_project_to_dict_basic():
 
 
 def test_project_to_dict_with_subtasks():
-    from api.task_router import _project_to_dict
+    from apps.api.routers.task_router import _project_to_dict
     from unittest.mock import MagicMock
     from datetime import datetime, timezone
 
@@ -219,7 +219,7 @@ def test_telegram_notifier_events():
 # 4. Monitoring Router yapısı
 # ════════════════════════════════════════════════════════
 def test_monitoring_router_has_routes():
-    from api.monitoring_router import router
+    from apps.api.routers.monitoring_router import router
     paths = [r.path for r in router.routes]
     assert any("/overview" in p for p in paths)
     assert any("/api/stats" in p for p in paths)
@@ -231,7 +231,7 @@ def test_monitoring_router_has_routes():
 
 
 def test_task_router_has_routes():
-    from api.task_router import router
+    from apps.api.routers.task_router import router
     paths = [r.path for r in router.routes]
     # Temel CRUD
     assert any(p == "/tasks" for p in paths)
@@ -244,7 +244,7 @@ def test_task_router_has_routes():
 
 
 def test_telegram_router_has_routes():
-    from api.telegram_router import router
+    from apps.api.routers.telegram_router import router
     paths = [r.path for r in router.routes]
     assert any("/webhook" in p for p in paths)
     assert any("/info" in p for p in paths)
@@ -256,7 +256,7 @@ def test_telegram_router_has_routes():
 # 5. Monitoring _system_resources
 # ════════════════════════════════════════════════════════
 def test_system_resources_returns_dict():
-    from api.monitoring_router import _system_resources
+    from apps.api.routers.monitoring_router import _system_resources
     result = _system_resources()
     assert isinstance(result, dict)
     assert "available" in result

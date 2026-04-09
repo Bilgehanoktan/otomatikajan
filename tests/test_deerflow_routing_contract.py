@@ -21,8 +21,8 @@ async def test_bridge_health():
 @pytest.mark.asyncio
 async def test_routing_logic_to_deerflow():
     """API'nin 'deerflow' ajanını veya etiketini doğru Celery görevine yönlendirdiğini doğrula."""
-    from api.task_write_router import create_task
-    from api._task_shared import TaskCreateRequest
+    from apps.api.routers.task_write import create_task
+    from apps.api.support._task_shared import TaskCreateRequest
     
     mock_user = MagicMock()
     mock_user.id = "test-user-id"
