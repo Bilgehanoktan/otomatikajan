@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch, AsyncMock
-from api.task_write_router import create_task
-from api._task_shared import TaskCreateRequest
+from apps.api.routers.task_write import create_task
+from apps.api.support._task_shared import TaskCreateRequest
 from core.orchestrator import Orchestrator
 from packages.skills.base import SkillRequest
 
@@ -35,7 +35,7 @@ async def test_tsk01_tsk05_create_task_adds_suggested_skills_to_payload():
         mock_p_create.return_value = MagicMock(id="550e8400-e29b-41d4-a716-446655440000")
         mock_enqueue.return_value = mock_job
         
-        from api.task_write_router import create_task
+        from apps.api.routers.task_write import create_task
         await create_task(req, current_user=mock_user)
         
         # Verify enqueue was called with suggested_skills
