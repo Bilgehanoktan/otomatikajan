@@ -9,26 +9,26 @@ from fastapi import FastAPI
 
 def register_routers(app: FastAPI) -> None:
     """Tüm API router'larını uygulamaya kaydet."""
-    from apps.api.routers.admin_router import router as admin_router
+    from apps.api.routers.admin import router as admin_router
     from apps.api.routers.routes import router as main_router
     from apps.api.routers.auth.router import router as auth_router
     from apps.api.routers.webhooks.router import router as webhook_router
-    from apps.api.routers.storage_router import router as storage_router
-    from apps.api.routers.task_read_router import router as task_read_router
-    from apps.api.routers.task_write_router import router as task_write_router
-    from apps.api.routers.task_control_router import router as task_control_router
-    from apps.api.routers.monitoring_router import router as monitoring_router
-    from apps.api.routers.telegram_router import router as telegram_router
-    from apps.api.routers.code_router import router as code_router
-    from apps.api.routers.repair_router import router as repair_router
-    from apps.api.routers.repair_admin_router import router as repair_admin_router
-    from apps.api.routers.faz12_router import router as faz12_router
-    from apps.api.routers.self_update_router import router as self_update_router
-    from apps.api.routers.specialists_router import router as specialists_router
-    from apps.api.routers.ceo_router import router as ceo_router
-    from apps.api.routers.improvement_router import router as improvement_router
-    from apps.api.routers.finance_router import router as finance_router
-    from apps.api.routers.skills_router import router as skills_router
+    from apps.api.routers.storage import router as storage_router
+    from apps.api.routers.task_read import router as task_read_router
+    from apps.api.routers.task_write import router as task_write_router
+    from apps.api.routers.task_control import router as task_control_router
+    from apps.api.routers.monitoring import router as monitoring_router
+    from apps.api.routers.telegram import router as telegram_router
+    from apps.api.routers.code import router as code_router
+    from apps.api.routers.repair import router as repair_router
+    from apps.api.routers.repair_admin import router as repair_admin_router
+    from apps.api.routers.faz12 import router as faz12_router
+    from apps.api.routers.self_update import router as self_update_router
+    from apps.api.routers.specialists import router as specialists_router
+    from apps.api.routers.ceo import router as ceo_router
+    from apps.api.routers.improvement import router as improvement_router
+    from apps.api.routers.finance import router as finance_router
+    from apps.api.routers.skills import router as skills_router
 
     app.include_router(main_router, prefix="/api/v1", tags=["Projeler & Heal"])
     app.include_router(admin_router, prefix="/api/v1", tags=["Admin"])
