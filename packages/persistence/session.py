@@ -68,6 +68,19 @@ def _get_engine():
                     # Asyncio task başlatma yerine sessiz kal, init_db zaten yapılacak
                     pass
                 except Exception as e:
+                    # ── PRODUCTION GUARD: SQLite üretimde kabul edilemez ──
+                    app_env = os.environ.get("APP_ENV", "development").lower()
+                    if app_env == "production":
+                        logger.critical(
+                            f"FATAL: PostgreSQL bağlantısı başarısız ve APP_ENV=production. "
+                            f"SQLite fallback üretimde devre dışı. Hata: {e}"
+                        )
+                        raise RuntimeError(
+                            "PostgreSQL connection failed in production. "
+                            "SQLite fallback is disabled for data safety. "
+                            "Please fix DATABASE_URL."
+                        ) from e
+                    
                     logger.warning(f"SQLAlchemy: Ana DB (Postgres) bağlantısı kurulamadı: {e}. SQLite Fallback aktif ediliyor.")
                     # Fallback to Local SQLite
                     sqlite_url = "sqlite+aiosqlite:///./runtime/data/cortex_local.db"
