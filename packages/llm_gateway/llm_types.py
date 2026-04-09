@@ -78,10 +78,19 @@ class ProviderStats:
 
         self.success      += 1
         self.total_latency += latency
-        self.penalty_multiplier = 1
-        self.latency_streak     = 0 # Reset streak on success
-        self.circuit       = CircuitState.CLOSED
-        self.quarantine_until = 0.0 # Clear quarantine on success
+        
+        # Faz 12.3: Latency Streak Management (Hardening)
+        if latency > self.LATENCY_THRESHOLD:
+            self.latency_streak += 1
+            # 3 ardışık yavaşlama -> 5dk karantina
+            if self.latency_streak >= 3:
+                self.quarantine_until = now + 300
+                logger.warning(f"[AGI-METABOLISM] {self.name} quarantined for 300s due to latency streak.")
+        else:
+            self.latency_streak = 0
+            self.penalty_multiplier = 1
+            self.circuit = CircuitState.CLOSED
+            self.quarantine_until = 0.0 # Clear quarantine on fast success
         
         self.history.append(True)
         self.latencies.append(latency)
