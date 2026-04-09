@@ -49,6 +49,7 @@ services:
       REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
       DEERFLOW_BRIDGE_URL: http://deerflow-bridge:8010
       WORKERS: "2"
+      GUNICORN_TIMEOUT: "120"
       PYTHONPATH: /app
     ports:
       - "8000:8000"
