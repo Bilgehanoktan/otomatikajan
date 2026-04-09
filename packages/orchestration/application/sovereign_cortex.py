@@ -11,7 +11,7 @@ import json
 from typing import Any, Dict, List, Optional
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
-from schemas import SubtaskOutput
+from packages.orchestration.application.velocity_engine import velocity_engine
 
 from packages.orchestration.application.agent_discovery import build_agents
 from packages.observability.logging import get_logger
