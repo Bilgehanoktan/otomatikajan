@@ -57,11 +57,11 @@ class SelfUpdater:
         self.project_root = (
             Path(project_root).resolve()
             if project_root
-            else Path(__file__).resolve().parents[1]
+            else Path(__file__).resolve().parents[3]
         )
 
         self.registry = SystemUpdateRegistry(
-            registry_path=str(self.project_root / "workspace" / "system_state.json")
+            registry_path=str(self.project_root / "runtime" / "data" / "system_state.json")
         )
         self.indexer = SystemIndexer(project_root=str(self.project_root))
         self.shadow_runner = ShadowRunner(project_root=str(self.project_root))
