@@ -52,7 +52,7 @@ RUN rm -f .env .env.local *.zip *.pyc
 FROM base-runtime AS validator
 RUN pip install --no-cache-dir ruff==0.4.0
 # Bu aşama, eğer sistemde import hatası veya kritik lint hatası varsa build'i durdurur.
-RUN python scripts/verify_system_integrity.py
+RUN python tools/verify/verify_system_integrity.py
 
 
 # ─── Aşama 3: Üretim Slim (App & Beat için) ──────────────
