@@ -375,8 +375,8 @@ class CEOEngine:
             )
         )
         auto_count = auto_exec_res.scalar() or 0
-        if auto_count >= 3:
-            logger.info(f"CEO Engine: Saatlik oto-karar limitine ulaşıldı ({auto_count}/3). Yeni oto-onay verilmeyecek.")
+        if auto_count >= 10:
+            logger.info(f"CEO Engine: Saatlik oto-karar limitine ulaşıldı ({auto_count}/10). Yeni oto-onay verilmeyecek.")
             # Devam edebiliriz ama sadece suggestion (öneri) yapılacak, auto-exec bloklanacak.
             self._throttle_auto_exec = True
         else:
@@ -432,12 +432,12 @@ class CEOEngine:
             p_score = op.priority_score if hasattr(op, "priority_score") else op.get("priority_score", 0)
             o_title = op.title if hasattr(op, "title") else op.get("title", "Unknown")
 
-            if p_score >= 50:
+            if p_score >= 20:
                 logger.info(f"CEO Engine: {o_title} için öneri hazırlanıyor (Priority: {p_score})")
                 await self._create_suggestion_from_op(db, op)
                 await db.commit()
             else:
-                logger.debug(f"CEO Engine: {o_title} eşik değerini geçemedi (Priority: {p_score} < 50)")
+                logger.debug(f"CEO Engine: {o_title} eşik değerini geçemedi (Priority: {p_score} < 20)")
 
     async def _generate_suggestion_with_llm(self, op: ImprovementOpportunity) -> Dict[str, str]:
         """Uses LLM to delegate to a specific Specialist Agent from the library."""
