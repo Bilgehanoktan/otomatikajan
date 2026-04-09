@@ -413,7 +413,7 @@ def discover_and_build_specialists(project_root: Optional[str] = None) -> dict[s
     skills = discovery.discover()
     specialists = {}
 
-    for skill_id, meta in packages.skills.items():
+    for skill_id, meta in skills.items():
         # Her skill için bir Agent wrapper'ı oluştur
         specialists[skill_id] = Agent(
             id=skill_id,
