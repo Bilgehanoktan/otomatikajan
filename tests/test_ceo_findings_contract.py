@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 import pytest
 
 def test_ceo_findings_endpoint_discloses_fallback_source(monkeypatch) -> None:
-    from api.ceo_router import router
+    from apps.api.routers.ceo import router
     from fastapi import FastAPI
     import sys
     import types
