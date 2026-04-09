@@ -68,7 +68,7 @@ async def verify_phase_36():
 
     # 3. Test Metacognition API (Mocking DB)
     _log.info("Testing Metacognition API endpoint...")
-    from api.monitoring_router import agi_metacognition_stats
+    from apps.api.routers.monitoring_router import agi_metacognition_stats
     
     # Mocking DB chain: await packages.persistence.execute() -> result.scalars().all()
     mock_db = AsyncMock()

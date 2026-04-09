@@ -4,7 +4,7 @@ import json
 from packages.orchestration.agi.monitoring.nervous_system import nervous_system
 from packages.orchestration.agi.packages.quality_assurance.sovereign_evaluator import SovereignEvaluator
 from packages.orchestration.agi.task_governance import GovernedTask, GovernanceStatus
-from api.monitoring_router import monitoring_overview
+from apps.api.routers.monitoring_router import monitoring_overview
 
 async def verify_dashboard_metrics():
     print("--- Phase 60.5 Verification: Dashboard Metrics ---")
