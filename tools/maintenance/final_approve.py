@@ -15,7 +15,7 @@ from sqlalchemy import text
 from apps.worker.tasks.celery_app import celery_app
 
 async def final_batch_approve():
-    print("🚀 Starting FINAL Batch Approval (Corrected Fields)...")
+    print("🚀 Starting FINAL Batch Approval (Fixed Schema)...")
     async with AsyncSessionLocal() as db:
         # 1. Fetch
         res = await db.execute(text("SELECT id, title, description, priority, owner_agent_hint, reasoning_summary FROM ceo_suggested_tasks WHERE status = 'suggested'"))
@@ -44,7 +44,7 @@ async def final_batch_approve():
                     priority=prio_enum,
                     source=ProjectSource.API,
                     assigned_agent=sug_hint or "architect",
-                    suggestion_id=sug_id,
+                    # suggestion_id NO LONGER USED HERE - Link is in Suggestion table
                     workflow_template="default",
                     quality_profile="production",
                     notes=f"CEO Dashboard üzerinden toplu onaylandı. Gerekçesi: {sug_reason}"
