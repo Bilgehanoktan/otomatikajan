@@ -298,3 +298,12 @@
 - **Root Sanitization**: Purged root directory of legacy maintenance scripts and temporary artifacts.
 - **DevOps Hardening**: Implemented 'runtime_data' volume persistence in 'docker-compose.yml' ensuring SQLite reliability across container lifecycles.
 - **Quality Guard**: Verified 100% system integrity and import stability.
+
+
+### Sprint 21 - Architecture Solidification & Hygiene Enforcement (Faz 12.1 RC1.6)
+- **Source/Runtime Separation**: Enforced strict isolation of code and data. Root directory is now 100% clean of .db, .sqlite, and temporary artifacts.
+- **Data Centralization**: Redirected all runtime data (SQLite DBs, memory vaults, code indexes) to runtime/data/.
+- **Orchestration Refactoring**: Updated SelfUpdater, SystemIndexer, and ShadowRunner to use standardized root resolution (parents[3]) and store all internal state in runtime/.
+- **API Service Layer**: Extracted strategic logic from skills_router.py to apps/api/services/skills_service.py for improved modularity.
+- **Legacy Purge**: Archived root-level backups/, memory/, vault/, and workspace/ to .legacy_archive/.
+- **Integrity Compliance**: Updated verify_system_integrity.py with 4 new architecture hygiene checks. All tests PASSED.
