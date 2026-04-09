@@ -116,9 +116,10 @@ async def autonomous_metabolism_loop():
             # 1. CEO Scan (High Priority)
             if now - last_runs["ceo"] >= PERIODS["ceo"]:
                 try:
-                    await ceo.run_scan()
+                    # Faz 12.1: Startup blokajini onlemek icin background task olarak calistir
+                    asyncio.create_task(ceo.run_scan())
                 except Exception as e:
-                    logger.error(f"[AML] CEO Scan failed: {e}")
+                    logger.error(f"[AML] CEO Scan trigger failed: {e}")
                 last_runs["ceo"] = now
 
             # 1.1 Sovereign Evolution (Reflective Reasoning)
