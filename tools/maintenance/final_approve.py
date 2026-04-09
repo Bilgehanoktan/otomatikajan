@@ -15,7 +15,7 @@ from sqlalchemy import text
 from apps.worker.tasks.celery_app import celery_app
 
 async def final_batch_approve():
-    print("🚀 Starting FINAL Batch Approval (Fixed Schema)...")
+    print("🚀 Starting FINAL Batch Approval (Strict Values)...")
     async with AsyncSessionLocal() as db:
         # 1. Fetch
         res = await db.execute(text("SELECT id, title, description, priority, owner_agent_hint, reasoning_summary FROM ceo_suggested_tasks WHERE status = 'suggested'"))
@@ -28,27 +28,27 @@ async def final_batch_approve():
                 # 2. Create Project
                 proj_id = uuid.uuid4()
                 
-                # Map priority string to Enum
-                prio_enum = TaskPriority.MEDIUM
-                if sug_prio:
-                    try:
-                        prio_enum = TaskPriority(sug_prio.lower())
-                    except ValueError:
-                        prio_enum = TaskPriority.MEDIUM
-
+                # Use .value for Enums since DB is using VARCHAR (native_enum=False)
                 new_project = Project(
                     id=proj_id,
                     title=f"[CEO-AUTO] {sug_title}",
                     description=sug_desc or "",
-                    status=ProjectStatus.QUEUED,
-                    priority=prio_enum,
-                    source=ProjectSource.API,
+                    status=ProjectStatus.QUEUED.value,
+                    priority=TaskPriority.MEDIUM.value, # Default to safe string
+                    source=ProjectSource.API.value,
                     assigned_agent=sug_hint or "architect",
-                    # suggestion_id NO LONGER USED HERE - Link is in Suggestion table
                     workflow_template="default",
                     quality_profile="production",
                     notes=f"CEO Dashboard üzerinden toplu onaylandı. Gerekçesi: {sug_reason}"
                 )
+                
+                # Try to map priority if it matches
+                if sug_prio:
+                    try:
+                        new_project.priority = TaskPriority(sug_prio.lower()).value
+                    except ValueError:
+                        pass
+
                 db.add(new_project)
                 
                 # 3. Update Suggestion
@@ -56,12 +56,11 @@ async def final_batch_approve():
                                  {"tid": proj_id, "sid": sug_id})
                 
                 # 4. Enqueue
-                celery_task = celery_app.send_task(
+                celery_app.send_task(
                     "tasks.project_tasks.run_project_task",
                     args=[str(proj_id), f"[CEO-AUTO] {sug_title}", sug_desc or "No description"],
                     kwargs={"workflow_template": "default", "quality_profile": "production"}
                 )
-                new_project.job_id = celery_task.id
                 
                 approved_count += 1
                 if approved_count % 10 == 0:
