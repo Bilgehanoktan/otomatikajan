@@ -442,7 +442,8 @@ class CEOEngine:
     async def _generate_suggestion_with_llm(self, op: ImprovementOpportunity) -> Dict[str, str]:
         """Uses LLM to delegate to a specific Specialist Agent from the library."""
         from packages.orchestration.indexing.system_indexer import SystemIndexer
-        from packages.orchestration.agency.loader import agency_loader
+        from packages.orchestration.agency.loader import get_agency_loader
+        agency_loader = get_agency_loader()
         
         indexer = SystemIndexer()
         # Fetch relevant code context
