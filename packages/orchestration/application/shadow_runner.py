@@ -30,7 +30,7 @@ class ShadowRunner:
         if project_root:
             self.project_root = Path(project_root).resolve()
         else:
-            self.project_root = Path(__file__).resolve().parents[1]
+            self.project_root = Path(__file__).resolve().parents[3]
 
         self.timeout_seconds = timeout_seconds
 
