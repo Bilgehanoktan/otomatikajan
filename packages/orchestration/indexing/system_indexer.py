@@ -57,12 +57,12 @@ class SystemIndexer:
     def __init__(
         self,
         project_root: str | None = None,
-        index_path: str = "workspace/code_index.json",
+        index_path: str = "runtime/data/code_index.json",
     ):
         if project_root:
             self.project_root = Path(project_root).resolve()
         else:
-            self.project_root = Path(__file__).resolve().parents[1]
+            self.project_root = Path(__file__).resolve().parents[3]
 
         self.index_path = (self.project_root / index_path).resolve()
         
