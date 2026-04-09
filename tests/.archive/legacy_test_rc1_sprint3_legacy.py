@@ -110,7 +110,7 @@ section("2 — Rate Limiter Reset Float")
 # ══════════════════════════════════════════════════════════════
 
 try:
-    from api.rate_limiter import InMemoryRateLimiter, RateLimit
+    from apps.api.support.rate_limiter import InMemoryRateLimiter, RateLimit
     ok("rate_limiter import OK")
 except Exception as e:
     fail("Import", e); sys.exit(1)

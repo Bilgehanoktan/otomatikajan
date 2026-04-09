@@ -44,7 +44,7 @@ class TestCoreParity(unittest.TestCase):
     @pytest.mark.asyncio
     async def test_tc_mon_02_graceful_degrade_on_db_fail(self):
         """TC-MON-02: Monitoring should return 'offline' for DB when it's down."""
-        from api.monitoring_router import monitoring_overview
+        from apps.api.routers.monitoring_router import monitoring_overview
         
         # Mocking db components to simulate failure
         with patch('packages.persistence.session.AsyncSessionLocal') as mock_session:

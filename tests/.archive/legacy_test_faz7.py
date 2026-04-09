@@ -169,7 +169,7 @@ def test_main_uses_split_routers():
     assert "task_write_router" in src, "main.py task_write_router kullanmıyor"
     assert "task_control_router" in src, "main.py task_control_router kullanmıyor"
     # eski tek monolitik router artık olmamalı
-    assert "from api.task_router import" not in src, "eski task_router hâlâ import ediliyor"
+    assert "from apps.api.routers.task_router import" not in src, "eski task_router hâlâ import ediliyor"
     ok("main.py: 3 yeni task router kullanıyor, eski monolitik kaldırıldı")
 
 
