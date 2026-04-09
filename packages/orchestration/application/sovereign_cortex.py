@@ -33,8 +33,8 @@ from packages.orchestration.agi.learning.cognitive_mirror import cognitive_mirro
 from packages.orchestration.agi.learning.distiller import skill_distiller
 from packages.orchestration.agi.cognitive.agi_goal_decomposer import agi_goal_decomposer
 from packages.orchestration.agi.cognitive.collaborative_node import collaborative_node
-from packages.orchestration.agi.learning.knowledge_distiller import knowledge_distiller
-from packages.orchestration.agi.learning.prompt_synthesizer import PromptSynthesizer
+from packages.orchestration.domain.learning.knowledge_distiller import knowledge_distiller
+from packages.orchestration.domain.learning.prompt_synthesizer import PromptSynthesizer
 from packages.orchestration.domain.synaptic_cortex import synaptic_cortex
 from packages.orchestration.agi.cognitive.motivation_engine import motivation_engine
 from packages.orchestration.domain.affective_core import affective_core
