@@ -10,7 +10,7 @@ async def verify():
     
     try:
         # 1. Capabilities Endpoint Logic Check
-        from api.task_read_router import task_capabilities
+        from apps.api.routers.task_read_router import task_capabilities
         
         print("[1/3] Testing /capabilities logic...")
         # task_capabilities handles current_user=Depends internally, but we can call it directly

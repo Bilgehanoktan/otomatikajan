@@ -22,5 +22,5 @@ def test_orchestrator_contains_skill_preflight_contract():
 def test_startup_routers_contains_skills_router_contract():
     content = Path("startup/routers.py").read_text(encoding="utf-8")
 
-    assert "from api.skills_router import router as skills_router" in content
+    assert "from apps.api.routers.skills import router as skills_router" in content
     assert "app.include_router(skills_router" in content
