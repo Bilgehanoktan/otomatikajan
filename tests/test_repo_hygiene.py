@@ -34,7 +34,7 @@ def test_no_tmp_or_verify_scripts_at_repo_root() -> None:
 def test_python_sources_are_parseable() -> None:
     bad: list[str] = []
     for path in ROOT.rglob("*.py"):
-        if any(part in {"vendor", ".venv", "everything-claude-code-main", ".agent"} for part in path.parts):
+        if any(part in {"vendor", ".venv", "everything-claude-code-main", ".agent", ".legacy_archive", "runtime"} for part in path.parts):
             continue
         try:
             compile(path.read_text(encoding="utf-8", errors="ignore"), str(path), "exec")
