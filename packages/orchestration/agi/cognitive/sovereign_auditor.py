@@ -1,8 +1,8 @@
 """
-Compatibility shim: sovereign_auditor → metacognitive_auditor
-[CONSOLIDATION] Bu modül metacognitive_auditor.py ile birleştirilmiştir.
+Compatibility shim: sovereign_auditor → domain.auditor
+[FAZ 12.1] Bu modül artık merkezi domain denetçisine yönlendirme yapmaktadır.
 """
-from packages.orchestration.agi.cognitive.metacognitive_auditor import (
+from packages.orchestration.domain.auditor import (
     MetacognitiveAuditor,
     metacognitive_auditor,
 )
