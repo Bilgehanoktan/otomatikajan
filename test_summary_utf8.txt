@@ -1,0 +1,21 @@
+﻿====================================================
+   Sovereign Quality Guard: Integrity Check
+====================================================
+[*] Running Linter (Ruff) check...
+[!] WARNING: 'ruff' not found on host. Skipping linting (Will be enforced in Docker).
+[*] Running Architecture Hygiene Check...
+[!] HYGIENE VIOLATIONS DETECTED:
+    [!] Legacy backups directory found in root. Move to .legacy_archive/
+[*] Running Import Smoke Test...
+    [-] Testing import: apps.api.main... 06:49:07  INFO      [agi_synaptic_cortex]  [UGC] Ba┼şlat─▒ld─▒. Hot Cache boyutu: 100
+06:49:09  INFO      [world_service_graph]  [SERVICE-GRAPH] 10 ├ğekirdek servis kay─▒t edildi.
+­şÜÇ WebSocket Manager is subscribed to Global Event Bus
+06:49:11  INFO      [core.policy_engine]  Policies loaded successfully.
+OK
+    [-] Testing import: apps.api.lifespan... OK
+    [-] Testing import: apps.worker.tasks.celery_app... OK
+    [-] Testing import: packages.orchestration.agi.cognitive.sovereign_cortex... OK
+    [-] Testing import: packages.persistence.session... OK
+----------------------------------------------------
+[FAILURE] System Integrity Check FAILED.
+[!] Please fix the errors above before launching.
