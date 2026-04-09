@@ -17,8 +17,14 @@ class PatchingSandbox:
     """
     Operasyonel Güvenlik Katmanı (Katman 25+): Kendi Koduna Yazma Güvenliği.
     """
-    def __init__(self, backup_dir: str = "backups/self_patches"):
-        self.backup_dir = backup_dir
+    def __init__(self, backup_dir: Optional[str] = None):
+        # SOLIDIFIED ARCHITECTURE: Runtime data belongs to runtime/data
+        if backup_dir is None:
+            data_root = os.environ.get("DATA_DIR", "runtime/data")
+            self.backup_dir = os.path.join(data_root, "backups", "self_patches")
+        else:
+            self.backup_dir = backup_dir
+            
         os.makedirs(self.backup_dir, exist_ok=True)
 
     def apply_atomic_patch(self, file_path: str, new_content: str) -> Dict[str, Any]:
