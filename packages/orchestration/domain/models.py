@@ -310,3 +310,60 @@ class SovereignGoal:
         state = self.get_shared_state()
         state.update(updates)
         self.execution_context["shared_state"] = state
+
+
+# --- Katman 9: Execution Task Models ---
+
+class TaskStatus(str, Enum):
+    """Görev yürütme durumu."""
+    QUEUED          = "QUEUED"
+    PENDING         = "PENDING"
+    RUNNING         = "RUNNING"
+    COMPLETED       = "COMPLETED"
+    ERROR           = "ERROR"
+    CANCELLED       = "CANCELLED"
+    PENDING_APPROVAL = "PENDING_APPROVAL"
+    RESUMING        = "RESUMING"
+
+
+@dataclass
+class SubTask:
+    """Bir ProjectTask içindeki alt görev birimi (Domain Model — ORM değil)."""
+    id:           str = field(default_factory=lambda: str(uuid.uuid4()))
+    title:        str = ""
+    agent_id:     str = ""
+    prompt:       str = ""
+    content:      str = ""
+    action:       str = ""
+    description:  str = ""
+    status:       TaskStatus = TaskStatus.QUEUED
+    result:       str = ""
+    risk_level:   str = "low"
+    duration_s:   Optional[float] = None
+    parent_id:    Optional[str] = None
+    internal_monologue: str = ""
+    is_complex:   bool = False
+    attempts:     int = 0
+    dependencies: list = field(default_factory=list)
+
+
+@dataclass
+class ProjectTask:
+    """Bir üst seviye görev/proje yürütme birimi."""
+    id:           str = field(default_factory=lambda: str(uuid.uuid4()))
+    title:        str = ""
+    description:  str = ""
+    subtasks:     List[SubTask] = field(default_factory=list)
+    status:       TaskStatus = TaskStatus.QUEUED
+    report:       str = ""
+    risk_level:   str = "low"
+    workflow_template: str = "default"
+    quality_profile: str = "standard"
+    acceptance_criteria: list = field(default_factory=list)
+    execution_context: Dict[str, Any] = field(default_factory=dict)
+    created_at:   datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+    def to_frame(self) -> Dict[str, Any]:
+        """Basit sözlük temsili."""
+        return {"id": self.id, "title": self.title, "description": self.description, "status": self.status.value}
+
