@@ -63,7 +63,8 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 CMD ["sh", "-c", \
-    "gunicorn apps.api.main:app \
+    "alembic -c packages/persistence/migrations/alembic.ini upgrade head && \
+     gunicorn apps.api.main:app \
         --worker-class uvicorn.workers.UvicornWorker \
         --workers ${WORKERS:-2} \
         --bind 0.0.0.0:8000 \
