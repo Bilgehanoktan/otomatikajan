@@ -67,7 +67,7 @@ class ShadowRunner:
 
     def validate_candidate(self, relative_path: str, candidate_code: str) -> Dict[str, Any]:
         run_id = uuid.uuid4().hex[:8]
-        shadow_root = self.project_root / "workspace" / "shadow_workspace" / f"run_{run_id}"
+        shadow_root = self.project_root / "runtime" / "shadow_workspace" / f"run_{run_id}"
 
         logger.info(f"Shadow ortam hazırlanıyor: {shadow_root}")
         shutil.copytree(
