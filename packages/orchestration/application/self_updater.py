@@ -153,7 +153,7 @@ class SelfUpdater:
     def _create_backup(self, target_path: Path, original_code: str) -> Path:
         relative = target_path.relative_to(self.project_root)
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        backup_dir = self.project_root / "workspace" / "backups" / relative.parent
+        backup_dir = self.project_root / "runtime" / "data" / "backups" / "self_patches" / relative.parent
         backup_dir.mkdir(parents=True, exist_ok=True)
 
         backup_name = (
