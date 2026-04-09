@@ -11,53 +11,52 @@ if ROOT_DIR not in sys.path:
 
 from packages.persistence.session import AsyncSessionLocal
 from packages.persistence.models.core_models import CEOSuggestedTask, Project, ProjectStatus
-from sqlalchemy import select, update
+from sqlalchemy import text
 from apps.worker.tasks.celery_app import celery_app
 
 async def fast_batch_approve():
-    print("🚀 Starting Fast Batch Approval (V3)...")
+    print("🚀 Starting Fast Batch Approval (V3 - Hardened)...")
     
     async with AsyncSessionLocal() as db:
-        # 1. Fetch all suggested tasks
-        stmt = select(CEOSuggestedTask).where(CEOSuggestedTask.status == "suggested")
-        res = await db.execute(stmt)
-        suggestions = res.scalars().all()
+        # 1. Fetch all suggested tasks using raw SQL to be sure
+        res = await db.execute(text("SELECT id, title, description, priority, owner_agent_hint, reasoning_summary FROM ceo_suggested_tasks WHERE status = 'suggested'"))
+        suggestions = res.fetchall()
         
         count = len(suggestions)
-        print(f"📦 Found {count} suggested tasks.")
+        print(f"📦 Found {count} suggested tasks in DB.")
         
         if count == 0:
-            print("✅ No tasks to approve.")
+            print("✅ No tasks found in 'suggested' status.")
             return
 
         approved_count = 0
-        for sug in suggestions:
+        for sug_id, sug_title, sug_desc, sug_prio, sug_hint, sug_reason in suggestions:
             try:
                 # 2. Create Project
                 proj_id = uuid.uuid4()
                 new_project = Project(
                     id=proj_id,
-                    title=f"[CEO-AUTO] {sug.title}",
-                    description=sug.description,
+                    title=f"[CEO-AUTO] {sug_title}",
+                    description=sug_desc,
                     status=ProjectStatus.PENDING,
-                    priority=sug.priority or "medium",
-                    assigned_agent=sug.owner_agent_hint or "architect",
-                    suggestion_id=sug.id,
+                    priority=sug_prio or "medium",
+                    assigned_agent=sug_hint or "architect",
+                    suggestion_id=sug_id,
                     ceo_managed=True,
                     workflow_template="default",
                     quality_profile="production",
-                    notes=f"CEO Dashboard üzerinden toplu onaylandı. Gerekçesi: {sug.reasoning_summary}"
+                    notes=f"CEO Dashboard üzerinden toplu onaylandı. Gerekçesi: {sug_reason}"
                 )
                 db.add(new_project)
                 
-                # 3. Update Suggestion
-                sug.status = "approved"
-                sug.created_task_id = proj_id
+                # 3. Update Suggestion status via raw SQL to bypass ORM mapping issues
+                await db.execute(text("UPDATE ceo_suggested_tasks SET status = 'approved', created_task_id = :tid WHERE id = :sid"), 
+                                 {"tid": proj_id, "sid": sug_id})
                 
                 # 4. Enqueue
                 celery_task = celery_app.send_task(
                     "tasks.project_tasks.run_project_task",
-                    args=[str(proj_id), new_project.title, new_project.description],
+                    args=[str(proj_id), f"[CEO-AUTO] {sug_title}", sug_desc],
                     kwargs={"workflow_template": "default", "quality_profile": "production"}
                 )
                 
@@ -66,20 +65,13 @@ async def fast_batch_approve():
                 
                 approved_count += 1
                 if approved_count % 10 == 0:
-                    print(f"✅ Approved {approved_count}/{count}...")
+                    print(f"✅ Processed {approved_count}/{count}...")
                 
             except Exception as e:
-                print(f"❌ Error approving task {sug.id}: {e}")
+                print(f"❌ Error approving task {sug_id}: {e}")
 
         await db.commit()
         print(f"🏁 Batch Approval Complete! {approved_count} tasks approved and queued.")
 
 if __name__ == "__main__":
-    # Check if we are running in the right environment
-    # On host, we might need to override DATABASE_URL to use localhost:5433
-    if os.name == 'nt' and "db:5432" in os.getenv("DATABASE_URL", ""):
-        db_url = os.getenv("DATABASE_URL").replace("db:5432", "localhost:5433")
-        os.environ["DATABASE_URL"] = db_url
-        print(f"🔧 Overriding DATABASE_URL for Host: {db_url}")
-
     asyncio.run(fast_batch_approve())
