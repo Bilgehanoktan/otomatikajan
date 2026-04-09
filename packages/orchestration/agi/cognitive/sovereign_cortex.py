@@ -938,10 +938,6 @@ class SovereignCortex:
             _log.error(f"[SOVEREIGN-REPLAN] Revizyon hatası: {e}")
             subtask.status = TaskStatus.ERROR
 
-    async def _execute_subtask_core(self, task: GovernedTask, subtask: SubTask):
-        """Orijinal alt görev yürütme mantığı (Refactor edilmiş)."""
-        # ... (Önceki mantık devam eder)
-
     async def decompose_subtask(self, parent_goal: SovereignGoal, subtask: SubTask) -> bool:
         """
         Büyük bir alt görevi (SubTask) otonom olarak daha küçük parçalara böler.
@@ -977,8 +973,6 @@ class SovereignCortex:
         except Exception as e:
             _log.error(f"[SOVEREIGN-DEPTH] Ayrıştırma hatası: {e}")
             return False
-
-        st.duration_s = time.time() - t_start
 
     async def _diagnostic_reflection(self, st: SubTask, errors: List[str]) -> str:
         """Hata durumunda 'neden' sorusunu soran mini-reflection."""
