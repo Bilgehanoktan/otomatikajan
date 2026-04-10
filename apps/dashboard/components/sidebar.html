@@ -1,0 +1,49 @@
+<aside class="sidebar">
+  <div class="sidebar-logo">
+      <div class="logo-orb"></div>
+      <div style="display:flex; flex-direction:column;">
+          <span style="font-weight:800; letter-spacing:1px; color:#fff; font-size:16px;">SOVEREIGN</span>
+          <span style="font-size:9px; color:var(--accent); font-weight:700; letter-spacing:2px;">FAZ 12.1 AGI</span>
+      </div>
+  </div>
+  
+  <nav class="nav-menu">
+      <a href="#" class="nav-item active" onclick="showPage('dashboard')">
+          <i class="fas fa-th-large"></i> Dashboard
+      </a>
+      <a href="#" class="nav-item" onclick="showPage('jobs')">
+          <i class="fas fa-microchip"></i> Task Nexus
+      </a>
+      <a href="#" class="nav-item" onclick="showPage('architect')">
+          <i class="fas fa-drafting-compass"></i> Mimari
+      </a>
+      <a href="#" class="nav-item" onclick="showPage('ceo')">
+          <i class="fas fa-chess-king"></i> CEO Engine
+      </a>
+      <a href="#" class="nav-item" onclick="showPage('finance')">
+          <i class="fas fa-hand-holding-usd"></i> Finans
+      </a>
+      <a href="#" class="nav-item" onclick="showPage('skills')">
+          <i class="fas fa-brain"></i> Yetenekler
+      </a>
+      <a href="#" class="nav-item" onclick="showPage('monitoring')">
+          <i class="fas fa-shuttle-space"></i> Monitoring
+      </a>
+      <!-- Phase 42 Integration -->
+      <a href="#" class="nav-item" onclick="showPage('pacing')">
+          <i class="fas fa-bolt"></i> Metabolik Kontrol
+      </a>
+      <!-- Phase 45 Governance -->
+      <a href="#" class="nav-item" onclick="showPage('governance')">
+          <i class="fas fa-shield-halved"></i> Öz-Yönetişim
+      </a>
+  </nav>
+
+  <div class="sidebar-footer">
+      <div id="system-status-orb" class="status-orb green"></div>
+      <div>
+          <div style="font-size:11px; font-weight:700; color:#fff;">SYSTEM STABLE</div>
+          <div style="font-size:9px; color:var(--muted);" id="last-heartbeat">HB: 0ms</div>
+      </div>
+  </div>
+</aside>
