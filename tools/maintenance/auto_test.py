@@ -11,7 +11,7 @@ if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
 async def check_api_health():
-    print("🔍 Test 1: API Health Check...")
+    print("[TEST 1] API Health Check...")
     try:
         conn = http.client.HTTPConnection("localhost", 8000)
         conn.request("GET", "/health")
@@ -24,7 +24,7 @@ async def check_api_health():
         return False
 
 async def check_db_integrity():
-    print("\n🔍 Test 2: Database Integrity...")
+    print("\n[TEST 2] Database Integrity...")
     from packages.persistence.session import AsyncSessionLocal
     from sqlalchemy import text
     try:
@@ -46,7 +46,7 @@ async def check_db_integrity():
         return False
 
 async def check_worker_activity():
-    print("\n🔍 Test 3: Worker Throughput (Progress Check)...")
+    print("\n[TEST 3] Worker Throughput (Progress Check)...")
     from packages.persistence.session import AsyncSessionLocal
     from sqlalchemy import text
     try:
