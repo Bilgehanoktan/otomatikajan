@@ -723,24 +723,40 @@ async function loadCEOFindings() {
     }
 
     tableBody.innerHTML = findings.map(f => {
+      const statusLabel = f.status.toUpperCase();
       const statusClass = f.status.toLowerCase();
-      const severityColor = f.severity === 'critical' ? '#ef4444' : (f.severity === 'high' ? '#f59e0b' : 'var(--primary)');
+      const severityColor = f.severity === 'critical' ? 'var(--red)' : (f.severity === 'high' ? 'var(--orange)' : 'var(--primary)');
       const score = f.priority_score || '--';
       const isApproved = statusClass === 'approved' || statusClass === 'resolved';
       
-      return `<tr>
-        <td style="font-family:var(--mono); font-size:11px; opacity:0.6;">${(f.category || 'GENEL').toUpperCase()}</td>
-        <td>
-          <div style="font-weight:600; color:#fff;">${f.finding}</div>
-          <div style="font-size:11px; color:var(--muted); margin-top:4px;">${f.description || ''}</div>
+      return `
+      <tr class="premium-row" style="animation: fadeIn 0.3s ease-out;">
+        <td style="padding-left:0;">
+          <div style="font-family:var(--mono); font-size:9px; color:var(--primary); opacity:0.8; letter-spacing:0.1em;">${(f.category || 'GENEL').toUpperCase()}</div>
         </td>
-        <td><span style="color:${severityColor}; font-weight:800; font-size:11px;">${(f.severity || 'MED').toUpperCase()}</span></td>
-        <td><span style="font-family:var(--mono); color:var(--primary); font-weight:700;">${score}</span></td>
-        <td><span class="badge-sovereign badge-${statusClass}">${f.status}</span></td>
+        <td>
+          <div style="font-weight:700; color:#fff; font-size:14px; letter-spacing:-0.01em;">${f.finding}</div>
+          <div style="font-size:11px; color:var(--text2); margin-top:4px; opacity:0.7;">${f.description || ''}</div>
+        </td>
+        <td>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="width:6px; height:6px; background:${severityColor}; border-radius:50%; box-shadow:0 0 8px ${severityColor};"></div>
+            <span style="color:${severityColor}; font-weight:800; font-size:10px; font-family:var(--mono);">${(f.severity || 'MED').toUpperCase()}</span>
+          </div>
+        </td>
+        <td>
+          <div style="font-family:var(--mono); color:var(--gold); font-weight:800; font-size:14px;">${score}</div>
+        </td>
+        <td>
+          <span class="live-status" style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05);">
+            <div class="live-dot" style="background:${isApproved ? 'var(--green)' : 'var(--yellow)'};"></div>
+            ${statusLabel}
+          </span>
+        </td>
         <td style="text-align:right;">
           <div style="display:flex; gap:8px; justify-content:flex-end;">
-            <button class="btn btn-ghost btn-sm" style="font-size:10px; padding:2px 8px;" onclick="viewCEOFindingDetails('${f.id}')">DETAYLAR</button>
-            ${!isApproved ? `<button class="btn btn-primary btn-sm" style="font-size:10px; padding:2px 8px;" onclick="approveCEOFinding('${f.id}')">UYGULA</button>` : ''}
+            <button class="btn btn-ghost btn-sm" style="border-radius:6px; width:32px; height:32px; padding:0; justify-content:center;" title="Detaylar" onclick="viewCEOFindingDetails('${f.id}')">👁️</button>
+            ${!isApproved ? `<button class="btn btn-primary btn-sm" style="background:rgba(14,165,233,0.1); color:var(--primary); border:1px solid var(--primary-glow); border-radius:6px;" onclick="approveCEOFinding('${f.id}')">UYGULA</button>` : ''}
           </div>
         </td>
       </tr>`;
