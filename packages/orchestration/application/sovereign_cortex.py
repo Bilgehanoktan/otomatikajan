@@ -313,25 +313,6 @@ class SovereignCortex:
         return task
 
 
-    async def _execute_subtask_nexus(self, task: ProjectTask, subtask: SubTask):
-        try:
-            await self._ensure_specialist_availability(subtask)
-            blackboard = get_blackboard(task.id)
-            from packages.persistence.session import AsyncSessionLocal
-            async with AsyncSessionLocal() as db_mem:
-                past_lessons = await synaptic_cortex.search_with_causal_anchoring(db=db_mem, query=f"{subtask.title} {subtask.prompt}", top_k=5, use_synergy=True)
-                if past_lessons:
-                    wisdom_block = "\n\n### 🧠 BİLİŞSEL MİRAS:\n" + "\n".join([f"- {m.get('body')}" for m in past_lessons])
-                    subtask.prompt += wisdom_block
-            subtask.status = TaskStatus.RUNNING
-            t_start = time.time()
-            enriched_context = await context_builder.build_context(agent_id=subtask.agent_id, task_text=subtask.prompt, project_id=task.id)
-            result = await velocity_engine.simulate_and_execute(agent_id=subtask.agent_id, prompt=subtask.prompt, context=enriched_context, task_id=task.id)
-            if result.success:
-                subtask.status = TaskStatus.COMPLETED
-                subtask.result = str(result.output_data)
-            subtask.duration_s = time.time() - t_start
-        except Exception as e: raise e
 
     async def trigger_self_evolution(self):
         try:
