@@ -147,9 +147,11 @@ class SovereignCortex:
         if not self._is_running: await self.start()
         task_id = project_id or str(uuid.uuid4())
         _log.info(f"[SOVEREIGN] Hedef koordinasyonu başlatıldı: {title} ({task_id})")
+        
         from packages.persistence.session import AsyncSessionLocal
         from packages.persistence.repositories.repository import ProjectRepository
         from packages.persistence.models import ProjectStatus
+        
         async with AsyncSessionLocal() as db:
             existing = await ProjectRepository.get(db, task_id)
             if existing:
@@ -161,6 +163,7 @@ class SovereignCortex:
             else:
                 task = ProjectTask(id=task_id, title=title)
                 task.description = description
+        
         task.workflow_template = workflow_template or "default"
         task.quality_profile = quality_profile or "standard"
         if acceptance_criteria:
@@ -168,14 +171,15 @@ class SovereignCortex:
         if execution_context:
             task.execution_context.update(execution_context)
 
+        # 1. Metabolic & Safety Pre-checks
         if affective_core.energy < 0.3:
             _log.info(f"[SOVEREIGN-DREAM] Düşük enerji tespiti ({affective_core.energy:.2f}). Bilişsel Sıkıştırma başlatılıyor...")
-            from packages.persistence.session import AsyncSessionLocal
             async with AsyncSessionLocal() as db:
                 await memory_pruner.dream_cycle(db)
 
         m_safety = metabolic_governor.check_safety()
         audit = await axiology_engine.evaluate_alignment(target={"title": title, "description": description}, context="initial_goal", metabolic_status=m_safety)
+        
         if audit.get("decision") == "reject" or m_safety["status"] == "DANGER":
             _log.error(f"[SOVEREIGN-SAFETY] GÖREV REDDİ: {audit.get('rejection_reason') or m_safety['reason']}")
             task.status = TaskStatus.ERROR
@@ -184,6 +188,7 @@ class SovereignCortex:
                 await ProjectRepository.update_fields(db, task.id, status=ProjectStatus.ERROR, error_detail=task.report)
                 await db.commit()
             return task
+
         if audit.get("decision") == "flag":
             _log.warning(f"[SOVEREIGN-SAFETY] GÖREV İŞARETLENDİ: {audit.get('justification')}")
             task.status = TaskStatus.PENDING_APPROVAL
@@ -193,87 +198,24 @@ class SovereignCortex:
                 await db.commit()
             return task
 
-        subtasks = await self.planner.plan_sovereign(title, description)
-        _log.info("[SOVEREIGN] Plan öz-yansıma döngüsü başlatılıyor (Faz 65)...")
-        MAX_REVISIONS = 2
-        for revision_step in range(MAX_REVISIONS + 1):
-            plan_summary = [{"agent_id": st.agent_id, "prompt": st.prompt} for st in subtasks]
-            audit_res = await metacognitive_auditor.audit_plan(title, plan_summary)
-            is_safe = audit_res.get("is_safe", True)
-            coverage = audit_res.get("coverage_score", 1.0)
-            if not is_safe or coverage < 0.7:
-                if revision_step < MAX_REVISIONS:
-                    _log.warning(f"[SOVEREIGN-REFLECT] Plan yetersiz bulundu ({'GÜVENSİZ' if not is_safe else 'Eksik Kapsam: '+str(coverage)}). Revize ediliyor (Deneme {revision_step+1}/{MAX_REVISIONS})...")
-                    revision_context = f"\n\n[MİMARİ DENETİM GERİ BİLDİRİMİ]: {audit_res.get('refinement_suggestion')}\nEksikler: {', '.join(audit_res.get('gaps', []))}"
-                    subtasks = await self.planner.plan_sovereign(title, description + revision_context)
-                else:
-                    _log.error(f"[SOVEREIGN-REFLECT] Plan {MAX_REVISIONS} denemede mükemmelleştirilemedi. Kritik hata: {audit_res.get('refinement_suggestion')}")
-                    break
-            else:
-                _log.info(f"[SOVEREIGN-REFLECT] Plan onaylandı (Deneme: {revision_step}, Logic: {audit_res.get('logic_score')}, Coverage: {coverage})")
-                break
-        
+        # 2. Context Aggregation
         strategic_context = await memory_api.get_strategic_context(query=f"{title} {description}")
         cognitive_memory = await self._sync_provenance_memory()
-        _log.info("[SOVEREIGN] Paralel gelecekler (futures) simüle ediliyor...")
-        timelines = await foresight_cortex.simulate_parallel_futures({"title": title, "content": description})
-        optimal = await foresight_cortex.select_optimal_timeline(timelines)
-        if optimal:
-            _log.info(f"[SOVEREIGN] Optimum zaman çizgisi seçildi: {optimal.get('timeline_name')} (Risk Skoru: {optimal.get('risk_score')})")
-            description += f"\n\n[STRATEJİK YÖNLENDİRME]: {optimal.get('potential_outcome')}"
-
-        frame = ProblemFrame(task_type=TaskType.OPERATION, objective=title, risk_level=RiskLevel.MEDIUM)
-        recent_episodes = await synaptic_cortex.search(db=None, query="", category="episode_record", top_k=5)
-        aff_state = await self.motivation.recalibrate_state(recent_episodes, frame)
-        _log.info(f"[SOVEREIGN] Motivasyon kalibre edildi. Politika: {aff_state.persistence_policy}")
-        recovery_hint = task.execution_context.get("recovery_context")
-        inhibition = task.execution_context.get("inhibition_signal")
-        if recovery_hint:
-            _log.info(f"[SOVEREIGN-RECOVERY] Kurtarma bağlamı enjekte ediliyor: {recovery_hint[:50]}...")
-            description += f"\n\n### OTONOM KURTARMA BAĞLAMI:\n{recovery_hint}"
-        if inhibition:
-            _log.info(f"[SOVEREIGN-RECOVERY] Mimari kısıtlama (Inhibition) enjekte ediliyor: {inhibition[:50]}...")
-            description += f"\n\n### KRİTİK KISITLAMA (NEGATİF SİNAPS):\n{inhibition}"
-
-        try:
-            _log.info("[SOVEREIGN-GROUNDING] Geçmiş başarısızlıklar ve dersler hatırlanıyor (Deep Recall + Causal V5)...")
-            async with AsyncSessionLocal() as db:
-                failures = await synaptic_cortex.search_with_causal_anchoring(db=db, query=f"{title} {description}", top_k=5)
-            if failures:
-                failure_context = "\n".join([f"- {f.get('body')}" for f in failures])
-                description += f"\n\n### GEÇMİŞTEN DERSLER (BİLİŞSEL TEMELLENDİRME):\n{failure_context}"
-                _log.info(f"[SOVEREIGN-GROUNDING] {len(failures)} ders planlamaya enjekte edildi.")
-            else:
-                _log.info("[SOVEREIGN-GROUNDING] Benzer bir geçmiş başarısızlık bulunamadı (Temiz sayfa).")
-        except Exception as e:
-            _log.warning(f"Failure recall failed: {e}")
-
-        import re
-        sensitive_patterns = [r"\.env", r"db/", r"core/agi/", r"main\.py"]
-        critical_blacklist = [r"rm\s+-rf", r"\bdrop\b\s+(table|database|schema)", r"\btruncate\b\s+table", r"chmod\s+-?[R]?\s*777", r"(?i)select\s+.*\s+from\s+users(?!\s+where)", r">\s*(/dev/null|/etc/passwd)"]
-        combined_text = title.lower() + " " + description.lower()
-        if any(re.search(pattern, combined_text) for pattern in critical_blacklist):
-            _log.error(f"[SOVEREIGN-SAFETY] SİSTEMİ TEHLİKEYE ATACAK KRİTİK İHLAL ENGELLENDİ: '{title}'")
-            task.status = TaskStatus.ERROR
-            task.report = "⚠️ GÜVENLİK İHLALİ BAŞLATILAMADI: Sistem güvenliğini doğrudan tehdit eden kara listeye alınmış bir desen (rm -rf, drop table, chmod 777 vb.) tespit edildi."
-            async with AsyncSessionLocal() as db:
-                await ProjectRepository.update_fields(db, task.id, status=ProjectStatus.ERROR, error_detail=task.report)
-                await db.commit()
-            return task
-        is_risky = any(re.search(pattern, combined_text) for pattern in sensitive_patterns)
-        if is_risky:
-            _log.warning(f"[SOVEREIGN-SAFETY] YÜKSEK RİSK TESPİT EDİLDİ: '{title}'. Konsensüs zorunlu kılınıyor.")
-            task.execution_context["consensus_required"] = True
-            task.risk_level = "high"
-
-        mood = self.affective.get_current_mood()
+        
         from packages.orchestration.agi.world import service_graph, task_state_graph
         service_health = service_graph.get_summary()
         failure_patterns = task_state_graph.get_summary()
-        full_context = f"{title}\nSTRATEJİK: {strategic_context}\nBİLİŞSEL HAFIZA: {cognitive_memory}\nWORLD_MODEL_HEALTH: {service_health}\nFAILURE_PATTERNS: {failure_patterns}\nMOOD: {mood}"
         
+        mood = self.affective.get_current_mood()
+        aff_state = await self.motivation.recalibrate_state([], ProblemFrame(task_type=TaskType.OPERATION, objective=title, risk_level=RiskLevel.MEDIUM))
+        
+        full_context = f"{title}\nSTRATEJİK: {strategic_context}\nBİLİŞSEL HAFIZA: {cognitive_memory}\nWORLD_MODEL_HEALTH: {service_health}\nFAILURE_PATTERNS: {failure_patterns}\nMOOD: {mood}"
+
+        # 3. Delegated Planning (CognitivePlanner)
         subtasks = await self.planner_svc.execute_dialectic_planning(task_id, title, full_context, description, asdict(aff_state))
         task.subtasks = subtasks
+
+        # 4. Architectural Audit Gate
         is_architectural = any(word in task.title.lower() or word in description.lower() for word in ["mimari", "architecture", "core", "refactor", "security"])
         if is_architectural:
             _log.info(f"[SOVEREIGN] Mimari Denetim (Audit Gate) başlatılıyor: {title}")
@@ -286,29 +228,23 @@ class SovereignCortex:
                 task.report = "GÜVENLİK/MİMARİ DENETİM REDDİ: Plan riskli bulundu."
                 self.state_svc.save(task)
                 return task
+
+        # 5. Delegated Execution (OperationalExecutor)
         task.status = TaskStatus.RUNNING
         self.state_svc.save(task)
         await self.executor_svc.execute_task_tree(task)
+
+        # 6. Result Synthesis & Finalization
         has_failures = any(st.status == TaskStatus.ERROR for st in task.subtasks)
-        if has_failures:
-            _log.warning(f"[RECOVERY] Bazı alt görevler başarısız oldu. Kurtarma denemesi başlatılıyor...")
-            failed_steps = [st for st in task.subtasks if st.status == TaskStatus.ERROR]
-            error_context = "\n".join([f"- {st.agent_id}: {st.result[:200]}" for st in failed_steps])
-            repair_prompt = f"Şu adımlar BAŞARISIZ oldu:\n{error_context}\nKalan hedefleri başarmak için alternatif bir plan oluştur."
-            new_subtasks = await agi_goal_decomposer.decompose(title=task.title, description=repair_prompt, available_agents=[], affective_state=self.affective.get_state())
-            if new_subtasks:
-                task.subtasks.extend(new_subtasks)
-                for nst in new_subtasks:
-                    if nst.id not in events: events[nst.id] = asyncio.Event()
-                await asyncio.gather(*[self._process_node_recursive(nst, task, events) for nst in new_subtasks])
-                has_failures = any(st.status == TaskStatus.ERROR for st in new_subtasks)
         task.status = TaskStatus.ERROR if has_failures else TaskStatus.COMPLETED
         task.report = self.synthesizer.synthesize(task)
+        
         if task.status == TaskStatus.COMPLETED:
             self.affective.adjust_state("goal_reached", magnitude=0.2)
         else:
             self.affective.adjust_state("error", magnitude=0.25)
         
+        # 7. Delegated Reflection (ReflectionEngine)
         await self.reflection_svc.reflect_on_task(task)
         return task
 
