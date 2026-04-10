@@ -67,8 +67,7 @@ const STATUS_LABELS = {
 function safeGet(id) { 
   const el = document.getElementById(id);
   if (!el && !id.startsWith('badge-')) {
-    // Console only for development or debug
-    // console.warn(`[DOM Guard] Request for missing element: #${id}`);
+    console.debug(`[DOM Guard] Missing element: #${id}`);
   }
   return el;
 }
