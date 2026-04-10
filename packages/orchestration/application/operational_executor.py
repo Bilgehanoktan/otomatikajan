@@ -5,6 +5,7 @@ from packages.observability.logging import get_logger
 from packages.orchestration.domain.models import ProjectTask, TaskStatus, SubTask
 from packages.orchestration.application.velocity_engine import velocity_engine
 from packages.orchestration.application.metabolic_governor import metabolic_governor
+from packages.healing.application.heal_engine import heal_engine # Autonomous Healing
 
 _log = get_logger("agi_operational_executor")
 
@@ -59,8 +60,26 @@ class OperationalExecutor:
             if result.success:
                 subtask.status = TaskStatus.COMPLETED
                 subtask.result = str(result.output_data)
+                # Otonom Başarı Sinyali
+                heal_engine.on_subtask_success(subtask.agent_id, time.time() - t_start)
+            else:
+                # Re-throw for exception handler if result failed but didn't exception
+                raise Exception(f"Agent {subtask.agent_id} reported failure in output.")
+            
             subtask.duration_s = time.time() - t_start
         except Exception as e:
             _log.error(f"[EXECUTOR] Subtask nexus failed: {e}")
             subtask.status = TaskStatus.ERROR
             subtask.result = str(e)
+            
+            # Otonom Öz-İyileştirme (Self-Healing) Döngüsü
+            await heal_engine.on_subtask_error(subtask.agent_id, str(e))
+            
+            _log.info(f"[EXECUTOR-HEAL] Hata saptandı, otonom onarım denemesi başlatılıyor: {subtask.agent_id}")
+            recovered = await heal_engine.recover_subtask(subtask.agent_id, subtask)
+            
+            if recovered:
+                _log.info(f"[EXECUTOR-HEAL] OTONOM ONARIM BAŞARILI: {subtask.agent_id}")
+                subtask.status = TaskStatus.COMPLETED
+            else:
+                _log.warning(f"[EXECUTOR-HEAL] Onarım başarısız veya strateji bulunamadı.")
