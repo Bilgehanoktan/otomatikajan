@@ -23,6 +23,8 @@ from packages.orchestration.domain.events import event_bus
 from packages.contracts.events import EVENT_SKILL_TRACE
 from packages.orchestration.agi.world.provenance_engine import provenance_engine # To be moved
 from packages.orchestration.agi.cognitive.metacognitive_auditor import MetacognitiveAuditor # To be moved
+from packages.orchestration.agi.operational.tool_executor import tool_executor
+from packages.quality_assurance.output_schema import output_parser, AgentOutput
 
 _log = get_logger("velocity_engine")
 
@@ -110,11 +112,23 @@ class VelocityEngine:
         try:
             out = await agent.execute(task_id=task_id, subtask_id=str(uuid.uuid4()), prompt=prompt, context=context)
             final_output = out.raw_output
+            
+            # 1. Self-Critique (If output is large or contains code)
             if "```" in str(final_output) or len(str(final_output)) > 500:
                 is_valid, critique_feedback = await self._self_critique_output(agent_id, prompt, final_output)
                 if not is_valid:
                     response = await self.model_orch.complete([{"role": "system", "content": "Sen bir Üstat Yazılımcı ve Denetçisin."}, {"role": "user", "content": f"Şu talimat için bir çıktı üretildi: {prompt}\n\nÇIKTI:\n{final_output}\n\nELEŞTİRİ:\n{critique_feedback}\n\nLütfen eleştiriyi dikkate alarak KESİN, DOĞRU ve DÜZELTİLMİŞ yeni çıktıyı üret."}], preferred_agent="architect")
                     final_output = response
+
+            # 2. Parse Structured Output & Execute Tools (Phase 12.2 Integration)
+            parsed: AgentOutput = output_parser.parse(str(final_output))
+            if parsed.tool_calls:
+                _log.info(f"[VELOCITY-REALIZATION] {len(parsed.tool_calls)} araç çağrısı saptandı. İcra ediliyor...")
+                tool_results = await tool_executor.execute_calls(task_id, agent_id, parsed.tool_calls, context)
+                # Sonuçları ana çıktıya enjekte et (Ajanın bir sonraki adımda görmesi için)
+                parsed.quality_notes.append(f"Autonomous Tool Results: {json.dumps(tool_results)}")
+                final_output = parsed.to_dict()
+
             return EngineResult(success=True, output_data=final_output, reflection=getattr(out, "reflection", ""))
         except Exception as e: return EngineResult(success=False, output_data=None, errors=[str(e)])
 
