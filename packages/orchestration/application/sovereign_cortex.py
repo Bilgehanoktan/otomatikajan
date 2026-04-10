@@ -47,10 +47,11 @@ from packages.orchestration.agi.governance.watchdog import governance_watchdog
 from packages.orchestration.agi.governance.consensus_arbiter import consensus_arbiter
 from packages.orchestration.agi.cognitive.reflective_synthesizer import reflective_synthesizer
 from packages.orchestration.agi.cognitive.axiology_engine import axiology_engine
-from packages.orchestration.agi.governance.metabolic_governor import metabolic_governor
-from packages.orchestration.agi.security.axiology_engine import axiology_engine
-from packages.orchestration.agi.memory.memory_api import memory_api
-from packages.orchestration.agi.memory.memory_pruner import memory_pruner
+from packages.orchestration.agi.operational.metabolic_governor import metabolic_governor
+from packages.orchestration.agi.cognitive.axiology_engine import axiology_engine
+from packages.orchestration.agi.cognitive.memory_api import memory_api
+from packages.orchestration.agi.cognitive.memory_pruner import memory_pruner
+from packages.orchestration.agi.consciousness.affective_core import affective_core as shared_affective
 from packages.orchestration.agi.learning.wisdom_synthesizer import wisdom_synthesizer
 from packages.orchestration.agi.cognitive.memory_pruner import memory_pruner
 from packages.orchestration.agi.quality.sovereign_evaluator import sovereign_evaluator
