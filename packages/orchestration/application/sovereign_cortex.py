@@ -81,8 +81,10 @@ class SovereignCortex:
         self.event_bus = event_bus # Unified AGI Event System (V5)
         
         # Decomposed Services
-        self.planner_svc = CognitivePlanner(self.model_orch, self.affective, self.motivation)
-        self.executor_svc = OperationalExecutor(self.model_orch, self.affective)
+        self.foresight = foresight_cortex
+        self.reflection = reflective_synthesizer
+        self.planner_svc = CognitivePlanner(self.model_orch, self.affective, self.motivation, self.foresight)
+        self.executor_svc = OperationalExecutor(self.model_orch, self.affective, self.reflection)
         self.reflection_svc = ReflectionEngine(self.affective)
         self.improvement_coordinator = None
 
