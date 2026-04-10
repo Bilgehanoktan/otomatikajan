@@ -188,15 +188,28 @@ async function loadRepairCenter() {
     const jobs = Array.isArray(jobData) ? jobData : (jobData.jobs || []);
     const jobsEl = document.getElementById('rc-jobs-list');
     if (jobsEl) {
-      jobsEl.innerHTML = jobs.length ? jobs.map(j => `
-        <div style="display:flex;align-items:center;padding:10px;border-bottom:1px solid var(--border2);cursor:pointer;" onclick="openRepairJobDetail('${j.id}')">
-          <span class="badge badge-${j.status}">${j.status}</span>
-          <div style="margin-left:12px;flex:1;">
-            <div>${j.target_module || j.module || 'Bilinmiyor'}</div>
-            <div style="font-size:10px;color:var(--muted);">${j.id.substring(0,8)}</div>
+      jobsEl.innerHTML = jobs.length ? jobs.map(j => {
+        const jStatus = j.status.toLowerCase();
+        let dotColor = 'var(--accent)';
+        if (jStatus === 'failed') dotColor = 'var(--red)';
+        if (jStatus === 'completed') dotColor = 'var(--green)';
+        if (jStatus === 'running') dotColor = 'var(--yellow)';
+
+        return `
+        <div class="premium-row" style="padding:12px; margin-bottom:8px; border-radius:10px; cursor:pointer;" onclick="openRepairJobDetail('${j.id}')">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div class="live-status" style="background:rgba(255,255,255,0.03);">
+              <div class="live-dot" style="background:${dotColor}; animation: pulse 2s infinite;"></div>
+              ${j.status.toUpperCase()}
+            </div>
+            <div style="flex:1;">
+              <div style="font-weight:700; color:#fff; font-size:13px;">${j.target_module || j.module || 'Bilinmiyor'}</div>
+              <div style="font-size:10px; color:var(--text2); font-family:var(--mono); opacity:0.6; margin-top:2px;">JOB_ID: ${j.id.substring(0,8)}</div>
+            </div>
+            <div style="font-size:10px; color:var(--muted);">👁️</div>
           </div>
         </div>
-      `).join('') : '<div style="padding:20px; text-align:center; color:var(--muted);">Aktif iş yok</div>';
+      `}).join('') : '<div class="empty-state">Aktif iş bulunamadı.</div>';
     }
   } catch (e) {
     console.error('Repair Center yükleme hatası:', e);
@@ -214,26 +227,40 @@ async function loadRepairIncidents() {
       return;
     }
     el.innerHTML = `
-      <table style="width:100%; border-collapse:collapse;">
-        <thead>
-          <tr style="text-align:left; border-bottom:1px solid var(--border);">
-            <th style="padding:12px 8px;">Hata / Semptom</th>
-            <th style="padding:12px 8px;">Modül</th>
-            <th style="padding:12px 8px;">Önem</th>
-            <th style="padding:12px 8px;">Tarih</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${incidents.map(i => `
-            <tr style="border-bottom:1px solid var(--border2);">
-              <td style="padding:12px 8px; font-weight:700; color:var(--text);">${i.symptom}</td>
-              <td style="padding:12px 8px; font-family:var(--mono); font-size:12px;">${i.module}</td>
-              <td style="padding:12px 8px;"><span class="badge badge-${i.severity || 'medium'}">${i.severity || 'medium'}</span></td>
-              <td style="padding:12px 8px; color:var(--muted); font-size:11px;">${new Date(i.first_seen_at || i.created_at).toLocaleString('tr')}</td>
+      <div class="table-container" style="margin-top:10px;">
+        <table style="width:100%; border-collapse:separate; border-spacing:0 8px;">
+          <thead>
+            <tr style="text-align:left; color:var(--muted); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.1em;">
+              <th style="padding:0 12px 8px;">Hata / Semptom</th>
+              <th style="padding:0 12px 8px;">Modül</th>
+              <th style="padding:0 12px 8px;">Önem Derecesi</th>
+              <th style="padding:0 12px 8px;">Zaman Damgası</th>
             </tr>
-          `).join('')}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            ${incidents.map(i => {
+              const sev = (i.severity || 'medium').toLowerCase();
+              const sevColor = sev === 'critical' ? 'var(--red)' : (sev === 'high' ? 'var(--orange)' : 'var(--primary)');
+              return `
+              <tr class="premium-row" style="background:rgba(255,255,255,0.02);">
+                <td style="padding:12px; border-radius:8px 0 0 8px;">
+                  <div style="font-weight:700; color:#fff;">${i.symptom}</div>
+                </td>
+                <td style="padding:12px; font-family:var(--mono); font-size:11px; color:var(--primary);">${i.module}</td>
+                <td style="padding:12px;">
+                  <div style="display:flex; align-items:center; gap:8px;">
+                     <div style="width:6px; height:6px; background:${sevColor}; border-radius:50%; box-shadow:0 0 8px ${sevColor};"></div>
+                     <span style="color:${sevColor}; font-weight:800; font-size:10px; font-family:var(--mono);">${sev.toUpperCase()}</span>
+                  </div>
+                </td>
+                <td style="padding:12px; border-radius:0 8px 8px 0; color:var(--muted); font-size:11px; font-family:var(--mono);">
+                  ${new Date(i.first_seen_at || i.created_at).toLocaleString('tr')}
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
     `;
   } catch (e) {
     el.innerHTML = `<div style="padding:24px; color:var(--red); text-align:center;">⚠️ Yükleme hatası: ${e.message || 'Sunucu hatası'}</div>`;
