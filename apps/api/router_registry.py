@@ -29,6 +29,7 @@ def register_routers(app: FastAPI) -> None:
     from apps.api.routers.improvement import router as improvement_router
     from apps.api.routers.finance import router as finance_router
     from apps.api.routers.skills import router as skills_router
+    from apps.api.routers.payload_integration import router as payload_integration_router
 
     app.include_router(main_router, prefix="/api/v1", tags=["Projeler & Heal"])
     app.include_router(admin_router, prefix="/api/v1", tags=["Admin"])
@@ -50,3 +51,4 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(finance_router, prefix="/api/v1", tags=["Financial Control"])
     app.include_router(storage_router, prefix="/api/v1", tags=["System Storage"])
     app.include_router(skills_router, prefix="/api/v1", tags=["Beceriler (Skills)"])
+    app.include_router(payload_integration_router, prefix="/api/v1", tags=["Payload Integration"])
