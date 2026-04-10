@@ -10,9 +10,10 @@ from packages.healing.application.heal_engine import heal_engine # Autonomous He
 _log = get_logger("agi_operational_executor")
 
 class OperationalExecutor:
-    def __init__(self, model_orch, affective_core):
+    def __init__(self, model_orch, affective_core, reflective_synthesizer=None):
         self.model_orch = model_orch
         self.affective = affective_core
+        self.reflection = reflective_synthesizer
 
     async def execute_task_tree(self, task: ProjectTask):
         events = {st.id: asyncio.Event() for st in task.subtasks}
@@ -34,7 +35,6 @@ class OperationalExecutor:
             if m_safety["can_expand"]:
                 # Recursive expansion logic...
                 _log.info(f"[EXECUTOR] Expanding complex task: {st.id}")
-                # (Logic from SovereignCortex _process_node_recursive)
                 pass
 
         await self._execute_subtask_nexus(task, st)
@@ -45,6 +45,7 @@ class OperationalExecutor:
         from packages.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
         from packages.memory.retrieval import context_builder
         from packages.persistence.session import AsyncSessionLocal
+        from packages.orchestration.agi.schemas import ProblemFrame, TaskType, RiskLevel
 
         try:
             async with AsyncSessionLocal() as db_mem:
@@ -60,10 +61,22 @@ class OperationalExecutor:
             if result.success:
                 subtask.status = TaskStatus.COMPLETED
                 subtask.result = str(result.output_data)
+                
+                # Faz 12.3: Bilişsel Yansıtma Denetimi (Reflective Audit)
+                if self.reflection:
+                    _log.info(f"[EXECUTOR] Sonuç denetleniyor (Reflection Audit): {subtask.agent_id}")
+                    frame = ProblemFrame(task_type=TaskType.OPERATION, objective=subtask.title, risk_level=RiskLevel.MEDIUM)
+                    audit_result = await self.reflection.audit_subtask(subtask, frame, context=enriched_context)
+                    
+                    if not audit_result.get("is_valid", True):
+                        _log.warning(f"[EXECUTOR-AUDIT] Denetim BAŞARISIZ: {audit_result.get('critique')}")
+                        raise Exception(f"Bilişsel Denetim Reddi: {audit_result.get('critique')}")
+                    
+                    _log.info(f"[EXECUTOR-AUDIT] Denetim onaylandı. Anchor: {audit_result.get('causal_anchor')}")
+
                 # Otonom Başarı Sinyali
                 heal_engine.on_subtask_success(subtask.agent_id, time.time() - t_start)
             else:
-                # Re-throw for exception handler if result failed but didn't exception
                 raise Exception(f"Agent {subtask.agent_id} reported failure in output.")
             
             subtask.duration_s = time.time() - t_start
