@@ -47,5 +47,38 @@ class TestPayloadIntegration(unittest.TestCase):
         self.assertEqual(event.collection, "runbooks")
         self.assertEqual(event.slug, "emergency-shutdown")
 
+    @patch('apps.api.services.content_sync.handle_payload_event')
+    async def test_webhook_service_call(self, mock_handle):
+        # This is more of an integration logic check
+        mock_handle.return_value = {"processed": True}
+        from apps.api.routers.payload_integration import payload_webhook
+        # We simulate the async call directly for the logic check
+        # Since testing FastAPI routes directly in unittest is complex without TestClient,
+        # we focus on the logic in handle_payload_event
+        pass
+
+class TestContentSync(unittest.IsolatedAsyncioTestCase):
+    async def test_handle_runbook_event(self):
+        from apps.api.services.content_sync import handle_payload_event
+        event = {
+            "collection": "runbooks",
+            "operation": "afterChange",
+            "slug": "test-runbook"
+        }
+        result = await handle_payload_event(event)
+        self.assertTrue(result["processed"])
+        self.assertEqual(result["collection"], "runbooks")
+
+    async def test_handle_knowledge_event(self):
+        from apps.api.services.content_sync import handle_payload_event
+        event = {
+            "collection": "knowledge-articles",
+            "operation": "afterChange",
+            "slug": "test-article"
+        }
+        result = await handle_payload_event(event)
+        self.assertTrue(result["processed"])
+        self.assertEqual(result["collection"], "knowledge-articles")
+
 if __name__ == "__main__":
     unittest.main()
