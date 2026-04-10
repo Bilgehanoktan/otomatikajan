@@ -25,6 +25,8 @@ from packages.orchestration.application.governance import TaskPlanner, TaskState
 from packages.orchestration.application.cognitive_planner import CognitivePlanner
 from packages.orchestration.application.operational_executor import OperationalExecutor
 from packages.orchestration.application.reflection_engine import ReflectionEngine
+from packages.improvement_engine.self_improvement_coordinator import SelfImprovementCoordinator
+from packages.improvement_engine.observer import observer as improvement_observer
 
 # LEGACY IMPORTS (To be migrated next)
 from packages.orchestration.domain.auditor import metacognitive_auditor
@@ -82,6 +84,7 @@ class SovereignCortex:
         self.planner_svc = CognitivePlanner(self.model_orch, self.affective, self.motivation)
         self.executor_svc = OperationalExecutor(self.model_orch, self.affective)
         self.reflection_svc = ReflectionEngine(self.affective)
+        self.improvement_coordinator = None
 
         self._agents: dict = {}
         self._health: dict[str, float] = {}
@@ -95,6 +98,8 @@ class SovereignCortex:
             self._health = {aid: 1.0 for aid in self._agents}
             self._is_running = True
             self.load_self_updater()
+            if self.improvement_coordinator:
+                await self.improvement_coordinator.start()
             await self.watchdog.start()
             asyncio.create_task(self._metacognitive_drift_loop())
             _log.info(f"[SOVEREIGN] Bilişsel yönetim merkezi aktif. {len(self._agents)} ajan hazır.")
@@ -143,8 +148,12 @@ class SovereignCortex:
         try:
             from packages.orchestration.application.self_updater import SelfUpdater
             self.self_updater = SelfUpdater(model_orch=self.model_orch)
+            # Faz 12.2: Öz-Evrim Koordinatörü
+            self.improvement_coordinator = SelfImprovementCoordinator(
+                self.self_updater, improvement_observer
+            )
         except Exception as e:
-            _log.error(f"SelfUpdater load failed: {e}")
+            _log.error(f"Self-Improvement initialization failed: {e}")
 
     async def coordinate_goal(self, title: str, description: str, project_id: str = None, workflow_template: str = None, quality_profile: str = None, acceptance_criteria: str = None, execution_context: Dict[str, Any] = None) -> ProjectTask:
         if not self._is_running: await self.start()
@@ -255,11 +264,17 @@ class SovereignCortex:
 
     async def trigger_self_evolution(self):
         try:
+            _log.info("[SOVEREIGN-EVOLUTION] Otonom öz-evrim dögüsü manuel tetiklendi.")
+            if self.improvement_coordinator:
+                # 1. Mevcut fırsatları tara
+                opportunities = await improvement_observer.scan()
+                if opportunities:
+                    # 2. Koordinatör üzerinden işle
+                    await self.improvement_coordinator._process_opportunities(opportunities)
+            
             from packages.orchestration.agi.cognitive.goal_synthesizer import GoalSynthesizer
             synthesizer = GoalSynthesizer(model_orch=self.model_orch)
             asyncio.create_task(synthesizer.run_synthesis_cycle())
-            from packages.orchestration.agi.learning.memory_distiller import memory_distiller
-            asyncio.create_task(memory_distiller.run_distillation_cycle())
         except Exception as e: _log.error(f"Evolution failed: {e}")
 
     async def shutdown(self):
