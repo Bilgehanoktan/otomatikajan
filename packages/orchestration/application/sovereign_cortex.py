@@ -312,50 +312,6 @@ class SovereignCortex:
         await self.reflection_svc.reflect_on_task(task)
         return task
 
-    async def _execute_recursive_layer(self, children: List[SubTask], parent_task: ProjectTask, depth: int = 1):
-        events = {st.id: asyncio.Event() for st in children}
-        await asyncio.gather(*[self._process_node_recursive(st, parent_task, events, depth) for st in children])
-
-    async def _process_node_recursive(self, st: SubTask, task: ProjectTask, events: Dict[str, asyncio.Event], depth: int = 0):
-        dependencies = getattr(st, "dependencies", [])
-        for dep_id in dependencies:
-            if dep_id in events: await events[dep_id].wait()
-        if st.status == TaskStatus.COMPLETED:
-            events[st.id].set()
-            return
-        max_depth = 3
-        if getattr(st, "is_complex", False) and depth < max_depth:
-            m_safety = metabolic_governor.check_safety()
-            if m_safety["can_expand"]:
-                from packages.orchestration.application.agent_discovery import build_agents, discover_and_build_specialists
-                all_agents = {**build_agents(), **discover_and_build_specialists()}
-                agents_list = [{"id": aid, "role": a.role, "name": a.name} for aid, a in all_agents.items()]
-                child_tasks = await agi_goal_decomposer.decompose(title=f"Recursive Expansion of {st.id}", description=st.prompt, available_agents=agents_list, affective_state=self.affective.get_state_matrix())
-                if child_tasks:
-                    await self._execute_recursive_layer(child_tasks, task, depth + 1)
-                    st.status = TaskStatus.COMPLETED
-                    st.result = f"RECURSIVE-PATH: {len(child_tasks)} alt adım tamamlandı."
-                    events[st.id].set()
-                    return
-        await self._execute_subtask_nexus(task, st)
-        if st.status == TaskStatus.COMPLETED:
-            eval_report = await sovereign_evaluator.evaluate_task_outcome(st)
-            if not eval_report["is_grounded"]:
-                if eval_report["score"] < 0.5 and getattr(st, "attempts", 0) < 1:
-                    st.status = TaskStatus.ERROR
-                    st.result = f"BİLİŞSEL ÇELİŞKİ HATASI: {eval_report['missing']}."
-                    st.attempts = getattr(st, "attempts", 0) + 1
-                    await asyncio.sleep(2)
-                    return await self._process_node_recursive(st, task, events, depth)
-                else:
-                    st.result += f"\n[WARNING: LOW_GROUNDING_EVIDENCE ({eval_report['score']:.2f})]"
-        ctx = getattr(self, "execution_context", {})
-        progress = ctx.get("agi_progress", [])
-        if st.agent_id not in progress: progress.append(st.agent_id)
-        ctx["agi_progress"] = progress
-        await self._update_project_context(task.id, ctx)
-        events[st.id].set()
-
     async def _execute_dialectic_planning(self, task_id: str, title: str, context: str, description: str, affective_state: Optional[Dict[str, float]] = None) -> list[SubTask]:
         from packages.orchestration.application.agent_discovery import build_agents, discover_and_build_specialists
         all_agents = build_agents()
