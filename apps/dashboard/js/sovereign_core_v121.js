@@ -1905,3 +1905,43 @@ async function updateCognitiveBlackboard(goalId) {
     container.innerHTML = '<div style="color:var(--muted);">Karatahta erişilemez durumda.</div>';
   }
 }
+/**
+ * SOVEREIGN DASHBOARD ENTRY POINT (Phase 12.1)
+ * Bridges the gap between a static modular shell and a live cognitive engine.
+ */
+function initializeDashboard() {
+  console.log('[Sovereign] Orchestrating cognitive startup...');
+  
+  // 1. Check Auth first
+  if (!checkAuth()) {
+    console.warn('[Auth] No session found. Redirecting to entry...');
+    // In production, this would redirect to login or show overlay
+    return;
+  }
+
+  // 2. Determine initial page and show it
+  // This triggers loadDashboard() or equivalent via showPage switch
+  const urlParams = new URLSearchParams(window.location.search);
+  const startPage = urlParams.get('p') || 'dashboard';
+  showPage(startPage);
+
+  // 3. Start high-frequency background syncs if on dashboard
+  if (startPage === 'dashboard') {
+    updateAGIState();
+    loadDashboard();
+  }
+
+  // 4. Initialize Core Modules
+  try {
+    InactivityMonitor.init();
+    setInterval(updateFreshness, 5000);
+    setInterval(updateAGIState, 8000); 
+  } catch (e) {
+    console.error('[Sovereign] Core Module Init Failed:', e);
+  }
+
+  console.log('[Sovereign] Entry point stabilized ✓');
+}
+
+// Ensure globally accessible for index.html
+window.initializeDashboard = initializeDashboard;
