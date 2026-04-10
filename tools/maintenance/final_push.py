@@ -4,6 +4,7 @@ import uuid
 import sys
 import logging
 import traceback
+import json
 from pathlib import Path
 
 # Add project root to sys.path
@@ -15,7 +16,7 @@ from packages.persistence.session import AsyncSessionLocal
 from sqlalchemy import text
 
 async def final_push():
-    print("🚀 SISTEM AKTIFLESTIRME (DB Only Mod)...")
+    print("🚀 SISTEM AKTIFLESTIRME (Schema-Aware Mod)...")
     
     try:
         async with AsyncSessionLocal() as db:
@@ -32,10 +33,19 @@ async def final_push():
             async with AsyncSessionLocal() as db_task:
                 try:
                     p_id = uuid.uuid4()
-                    # 2. Insert Project
+                    
+                    # 2. Insert Project (Including reviews and review_required)
                     sql = """
-                        INSERT INTO projects (id, title, description, status, priority, source, workflow_template, quality_profile, created_at, updated_at)
-                        VALUES (CAST(:pid AS UUID), :title, :desc, 'QUEUED', 'medium', 'api', 'default', 'production', now(), now())
+                        INSERT INTO projects (
+                            id, title, description, status, priority, source, 
+                            workflow_template, quality_profile, review_required, reviews,
+                            created_at, updated_at
+                        )
+                        VALUES (
+                            CAST(:pid AS UUID), :title, :desc, 'QUEUED', 'medium', 'api', 
+                            'default', 'production', false, '[]'::jsonb,
+                            now(), now()
+                        )
                     """
                     await db_task.execute(text(sql), {
                         "pid": str(p_id),
@@ -49,6 +59,8 @@ async def final_push():
                     
                     await db_task.commit()
                     approved_count += 1
+                    if approved_count % 10 == 0:
+                        print(f"✅ {approved_count}/{len(rows)} tamamlandi...")
                     
                 except Exception:
                     print(f"❌ Gorev {r_id} hatasi:")
