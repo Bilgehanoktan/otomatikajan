@@ -1,0 +1,63 @@
+<div id="page-ceo" class="page">
+  <!-- Top: Mission Metrics -->
+  <div class="stats-grid">
+    <div class="sovereign-card" style="padding:24px; border-radius:16px;">
+       <div style="font-size:11px; font-weight:700; color:var(--primary); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:8px;">Açık Fırsatlar</div>
+       <div id="ceo-open-ops" style="font-size:32px; font-weight:800; color:#fff; text-shadow:0 0 15px var(--primary-glow);">0</div>
+       <div style="font-size:10px; color:var(--muted); margin-top:4px;">Stratejik müdahale bekleyen birimler</div>
+    </div>
+    <div class="sovereign-card" style="padding:24px; border-radius:16px; border-color:var(--purple) !important;">
+       <div style="font-size:11px; font-weight:700; color:var(--purple); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:8px;">Önerilen Görevler</div>
+       <div id="ceo-suggested" style="font-size:32px; font-weight:800; color:#fff; text-shadow:0 0 15px var(--secondary-glow);">0</div>
+       <div style="font-size:10px; color:var(--muted); margin-top:4px;">Değerlendirme aşamasındaki otonom planlar</div>
+    </div>
+    <div class="sovereign-card" style="padding:24px; border-radius:16px; border-color:var(--green) !important;">
+       <div style="font-size:11px; font-weight:700; color:var(--green); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:8px;">Sistem Skoru</div>
+       <div id="ceo-system-score" style="font-size:32px; font-weight:800; color:#fff; text-shadow:0 0 15px rgba(16,185,129,0.3);">0%</div>
+       <div style="font-size:10px; color:var(--muted); margin-top:4px;">Genel operasyonel sağlık ve verimlilik</div>
+    </div>
+  </div>
+
+  <!-- Middle: Dynamic Manifesto -->
+  <div class="ceo-terminal" style="margin-bottom:24px;">
+    <div class="terminal-header">
+       <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
+       <span style="font-size:10px; margin-left:14px; opacity:0.5; font-family:var(--mono);">STRATEGY_ENGINE_V121_ACTIVE</span>
+    </div>
+    <div id="ceo-manifesto" class="ceo-manifesto-text">
+      CEO Strateji Motoru yükleniyor... Sistem çekirdeği analiz ediliyor...
+    </div>
+  </div>
+
+  <!-- Bottom: Strategic Findings -->
+  <div class="card glass-panel" style="padding:0; overflow:hidden;">
+    <div class="card-header" style="padding:20px 24px;">
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        <span class="card-title">📝 Stratejik Analiz & İyileştirme Fırsatları</span>
+        <span style="font-size:11px; color:var(--muted);">Sistem tarafından otonom olarak tespit edilen kritik bulgular</span>
+      </div>
+      <div style="display:flex; gap:12px;">
+        <button class="btn btn-ghost btn-sm" onclick="loadCEOFindings()" style="border-color:var(--border2);">↻ Yenile</button>
+        <button class="btn btn-primary btn-sm" onclick="triggerCEOScan()" style="box-shadow:0 10px 20px var(--primary-glow);">⚡ Otonom Tarama Başlat</button>
+      </div>
+    </div>
+    
+    <div id="ceo-findings-table" class="table-wrap" style="padding:12px 24px 24px; border:none;">
+       <table class="premium-table">
+         <thead>
+            <tr>
+              <th>Kategori</th>
+              <th>Stratejik Bulgu / Hedef</th>
+              <th>Seviye</th>
+              <th>Skor</th>
+              <th>Durum</th>
+              <th style="text-align:right;">İşlem</th>
+            </tr>
+         </thead>
+         <tbody id="ceo-findings-body">
+            <tr><td colspan="6" style="text-align:center; padding:100px 0;"><div class="loading">Veriler analiz ediliyor...</div></td></tr>
+         </tbody>
+       </table>
+    </div>
+  </div>
+</div>
