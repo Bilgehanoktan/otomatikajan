@@ -4,7 +4,6 @@ import uuid
 import sys
 import logging
 import traceback
-import json
 from pathlib import Path
 
 # Add project root to sys.path
@@ -13,61 +12,61 @@ if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
 from packages.persistence.session import AsyncSessionLocal
-from sqlalchemy import text
+from packages.persistence.models.core_models import Project, ProjectStatus, ProjectSource, TaskPriority, CEOSuggestedTask
+from sqlalchemy import select, update
 
 async def final_push():
-    print("🚀 SISTEM AKTIFLESTIRME (Schema-Aware Mod)...")
+    print("🚀 SISTEM AKTIFLESTIRME (ORM Saf Mod)...")
     
     try:
         async with AsyncSessionLocal() as db:
-            res = await db.execute(text("SELECT id, title, description FROM ceo_suggested_tasks WHERE status = 'suggested'"))
-            rows = res.fetchall()
-            print(f"📦 {len(rows)} adet öneri bulundu.")
+            stmt = select(CEOSuggestedTask).where(CEOSuggestedTask.status == 'suggested')
+            res = await db.execute(stmt)
+            tasks = res.scalars().all()
+            print(f"📦 {len(tasks)} adet öneri bulundu.")
             
-            if not rows:
+            if not tasks:
                 print("✅ Onaylanacak yeni gorev kalmadi.")
                 return
 
         approved_count = 0
-        for r_id, r_title, r_desc in rows:
+        for task in tasks:
             async with AsyncSessionLocal() as db_task:
                 try:
                     p_id = uuid.uuid4()
                     
-                    # 2. Insert Project (Including reviews and review_required)
-                    sql = """
-                        INSERT INTO projects (
-                            id, title, description, status, priority, source, 
-                            workflow_template, quality_profile, review_required, reviews,
-                            created_at, updated_at
-                        )
-                        VALUES (
-                            CAST(:pid AS UUID), :title, :desc, 'QUEUED', 'medium', 'api', 
-                            'default', 'production', false, '[]'::jsonb,
-                            now(), now()
-                        )
-                    """
-                    await db_task.execute(text(sql), {
-                        "pid": str(p_id),
-                        "title": f"[CEO-AUTO] {r_title}",
-                        "desc": r_desc or ""
-                    })
+                    # Create Project using ORM
+                    new_project = Project(
+                        id=p_id,
+                        title=f"[CEO-AUTO] {task.title}",
+                        description=task.description or "",
+                        status=ProjectStatus.QUEUED,
+                        priority=TaskPriority.MEDIUM,
+                        source=ProjectSource.API,
+                        workflow_template="default",
+                        quality_profile="production"
+                    )
+                    db_task.add(new_project)
                     
-                    # 3. Update Suggestion
-                    await db_task.execute(text("UPDATE ceo_suggested_tasks SET status = 'approved', created_task_id = CAST(:tid AS UUID) WHERE id = CAST(:sid AS UUID)"), 
-                                     {"tid": str(p_id), "sid": str(r_id)})
+                    # Update Task status
+                    # We need to fetch the task in this session or use update()
+                    await db_task.execute(
+                        update(CEOSuggestedTask)
+                        .where(CEOSuggestedTask.id == task.id)
+                        .values(status='approved', created_task_id=p_id)
+                    )
                     
                     await db_task.commit()
                     approved_count += 1
                     if approved_count % 10 == 0:
-                        print(f"✅ {approved_count}/{len(rows)} tamamlandi...")
+                        print(f"✅ {approved_count}/{len(tasks)} tamamlandi...")
                     
                 except Exception:
-                    print(f"❌ Gorev {r_id} hatasi:")
+                    print(f"❌ Gorev {task.id} hatasi:")
                     traceback.print_exc()
                     await db_task.rollback()
 
-        print(f"🏁 SKOR: {approved_count}/{len(rows)} basarili.")
+        print(f"🏁 SKOR: {approved_count}/{len(tasks)} basarili.")
     except Exception:
         traceback.print_exc()
 
