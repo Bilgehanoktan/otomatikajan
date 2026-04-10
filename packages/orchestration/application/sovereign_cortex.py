@@ -22,6 +22,9 @@ from packages.quality_assurance.output_schema import output_parser, AgentOutput
 # MIGRATED IMPORTS
 from packages.orchestration.domain.models import SovereignGoal, GovernedTask, GovernanceStatus, TaskStatus, ProjectTask, SubTask
 from packages.orchestration.application.governance import TaskPlanner, TaskStateService, ReportSynthesizer
+from packages.orchestration.application.cognitive_planner import CognitivePlanner
+from packages.orchestration.application.operational_executor import OperationalExecutor
+from packages.orchestration.application.reflection_engine import ReflectionEngine
 
 # LEGACY IMPORTS (To be migrated next)
 from packages.orchestration.domain.auditor import metacognitive_auditor
@@ -70,6 +73,12 @@ class SovereignCortex:
         self.self_updater = None # Faz 8 Infra
         self.watchdog    = governance_watchdog
         self.event_bus = event_bus # Unified AGI Event System (V5)
+        
+        # Decomposed Services
+        self.planner_svc = CognitivePlanner(self.model_orch, self.affective, self.motivation)
+        self.executor_svc = OperationalExecutor(self.model_orch, self.affective)
+        self.reflection_svc = ReflectionEngine(self.affective)
+
         self._agents: dict = {}
         self._health: dict[str, float] = {}
         self._is_running = False
@@ -262,7 +271,8 @@ class SovereignCortex:
         service_health = service_graph.get_summary()
         failure_patterns = task_state_graph.get_summary()
         full_context = f"{title}\nSTRATEJİK: {strategic_context}\nBİLİŞSEL HAFIZA: {cognitive_memory}\nWORLD_MODEL_HEALTH: {service_health}\nFAILURE_PATTERNS: {failure_patterns}\nMOOD: {mood}"
-        subtasks = await self._execute_dialectic_planning(task_id, title, full_context, description, asdict(aff_state))
+        
+        subtasks = await self.planner_svc.execute_dialectic_planning(task_id, title, full_context, description, asdict(aff_state))
         task.subtasks = subtasks
         is_architectural = any(word in task.title.lower() or word in description.lower() for word in ["mimari", "architecture", "core", "refactor", "security"])
         if is_architectural:
@@ -278,8 +288,7 @@ class SovereignCortex:
                 return task
         task.status = TaskStatus.RUNNING
         self.state_svc.save(task)
-        events = {st.id: asyncio.Event() for st in task.subtasks}
-        await asyncio.gather(*[self._process_node_recursive(st, task, events) for st in task.subtasks])
+        await self.executor_svc.execute_task_tree(task)
         has_failures = any(st.status == TaskStatus.ERROR for st in task.subtasks)
         if has_failures:
             _log.warning(f"[RECOVERY] Bazı alt görevler başarısız oldu. Kurtarma denemesi başlatılıyor...")
@@ -297,14 +306,10 @@ class SovereignCortex:
         task.report = self.synthesizer.synthesize(task)
         if task.status == TaskStatus.COMPLETED:
             self.affective.adjust_state("goal_reached", magnitude=0.2)
-            try:
-                from packages.persistence.session import get_db
-                async with get_db() as db:
-                    await metacognitive_auditor.distill_positive_skill(db, task.title, task.subtasks)
-            except Exception as e: _log.warning(f"[SOVEREIGN-LEARNING] Pozitif öğrenme hatası: {e}")
         else:
             self.affective.adjust_state("error", magnitude=0.25)
-        await self._post_task_reflection(task)
+        
+        await self.reflection_svc.reflect_on_task(task)
         return task
 
     async def _execute_recursive_layer(self, children: List[SubTask], parent_task: ProjectTask, depth: int = 1):
