@@ -301,9 +301,34 @@
 
 
 ### Sprint 21 - Architecture Solidification & Hygiene Enforcement (Faz 12.1 RC1.6)
+- **Integrity Guard**: Butunluk kontrolu otonom sistemler tarafindan gecildi ve PROVENANCE.json Milestone 50 (System Stabilization) olarak guncellendi.
+
+### Sprint 19 - Deployment Stabilization & Runtime Safety (Faz 12.1 RC1.4)
+- **Container Name Conflict Resolution**: docker-compose up anında meydana gelen 	elegram-bot konteyner adı çatışması (zombie container) otonom olarak tespit edildi ve temizlendi.
+- **Service Orchestration Hardening**: Konteyner temizleme ve servis başlatma döngüsü docker compose down --remove-orphans ile daha dirençli hale getirildi.
+- **Verification**: scripts/verify_system_integrity.py ve sistem bütünlük kontrolleri geçildi.
+
+### Sprint 20 - Modular Monolith Solidification & Spine Implementation (Faz 12.1 RC1.5)
+- **Runtime Infrastructure**: Established 'runtime/data' and 'runtime/logs' as canonical persistence paths.
+- **Data Isolation**: Moved all root SQLite databases to 'runtime/data/' to decouple data from source code.
+- **Contract Modularization**: Relocated 'schemas.py' to 'packages.contracts' and established root compatibility shims.
+- **Root Sanitization**: Purged root directory of legacy maintenance scripts and temporary artifacts.
+- **DevOps Hardening**: Implemented 'runtime_data' volume persistence in 'docker-compose.yml' ensuring SQLite reliability across container lifecycles.
+- **Quality Guard**: Verified 100% system integrity and import stability.
+
+
+### Sprint 21 - Architecture Solidification & Hygiene Enforcement (Faz 12.1 RC1.6)
 - **Source/Runtime Separation**: Enforced strict isolation of code and data. Root directory is now 100% clean of .db, .sqlite, and temporary artifacts.
 - **Data Centralization**: Redirected all runtime data (SQLite DBs, memory vaults, code indexes) to runtime/data/.
 - **Orchestration Refactoring**: Updated SelfUpdater, SystemIndexer, and ShadowRunner to use standardized root resolution (parents[3]) and store all internal state in runtime/.
 - **API Service Layer**: Extracted strategic logic from skills_router.py to apps/api/services/skills_service.py for improved modularity.
 - **Legacy Purge**: Archived root-level backups/, memory/, vault/, and workspace/ to .legacy_archive/.
 - **Integrity Compliance**: Updated verify_system_integrity.py with 4 new architecture hygiene checks. All tests PASSED.
+
+### Sprint 22 - Phase 12.2: Autonomous Evolution Initiation (2026-04-10)
+- **Dashboard UI**: `announcements.html` bileşeni eklendi ve `index.html` üzerinden aktif edildi. AGI'nin otonom kararları ve gelişim süreçleri için canlı yayın kanalı oluşturuldu.
+- **SovereignCortex (Core)**: `SelfImprovementCoordinator` ve `improvement_observer` entegrasyonu tamamlandı.
+ - **Lifecycle**: `start()` metodunda otonom iyileştirme motoru (`improvement_coordinator`) otomatik olarak başlatılıyor.
+ - **Self-Evolution Loop**: `trigger_self_evolution` metodu artık manuel tetiklendiğinde otonom fırsatları tarıyor (`improvement_observer.scan()`) ve koordinatör üzerinden otomatik işliyor.
+- **Persistence**: `load_self_updater` üzerinde `SelfImprovementCoordinator` başlatma mantığı eklendi.
+- **Verification**: Dashboard duyuru paneli ve backend otonom dögü entegrasyonu doğrulandı.
