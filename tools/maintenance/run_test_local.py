@@ -4,7 +4,7 @@ import asyncio
 from pathlib import Path
 
 # Add project root to sys.path
-ROOT_DIR = str(Path(__file__).resolve())
+ROOT_DIR = str(Path(__file__).resolve().parents[2])
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
