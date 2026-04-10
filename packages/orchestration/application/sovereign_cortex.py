@@ -312,60 +312,6 @@ class SovereignCortex:
         await self.reflection_svc.reflect_on_task(task)
         return task
 
-    async def _execute_dialectic_planning(self, task_id: str, title: str, context: str, description: str, affective_state: Optional[Dict[str, float]] = None) -> list[SubTask]:
-        from packages.orchestration.application.agent_discovery import build_agents, discover_and_build_specialists
-        all_agents = build_agents()
-        all_agents.update(discover_and_build_specialists())
-        available_agents = [{"id": a.id, "name": a.name, "role": a.role_name} for a in all_agents.values()]
-        target_role = "architect"
-        if "research" in title.lower(): target_role = "deerflow_researcher"
-        elif "plan" in title.lower(): target_role = "deerflow_planner"
-        ctx = getattr(self, "execution_context", {})
-        if ctx.get("agi_subtasks"):
-            from packages.orchestration.domain.models import SubTask
-            subtasks = [SubTask(**st_data) for st_data in ctx["agi_subtasks"]]
-        else:
-            subtasks = await agi_goal_decomposer.decompose(title, description, available_agents, affective_state, lead_agent_role=target_role)
-        predicted_violations = await self.watchdog.predict_violations(subtasks)
-        if predicted_violations:
-            from packages.persistence.session import get_db
-            async with get_db() as db:
-                for v in predicted_violations:
-                    await synaptic_cortex.save_architectural_inhibition(db=db, rule_id=v.rule_id, target=v.target, description=f"[PREDICTION] {v.description}")
-            subtasks = await self.planner.plan_sovereign(title, description, history=context)
-        if not subtasks: subtasks = self.planner.plan(title, description)
-        return subtasks
-
-    async def _post_task_reflection(self, task: ProjectTask):
-        def _deep_convert_enums(obj):
-            if isinstance(obj, dict): return {k: _deep_convert_enums(v) for k, v in obj.items()}
-            elif isinstance(obj, list): return [_deep_convert_enums(v) for v in obj]
-            elif hasattr(obj, "value"): return obj.value
-            elif isinstance(obj, datetime): return obj.isoformat()
-            return obj
-        try:
-            episode = EpisodeRecord(episode_id=task.id, problem_frame=ProblemFrame(task_type=TaskType.OPERATION, objective=task.title, risk_level=RiskLevel.MEDIUM), final_output=task.report)
-            for st in task.subtasks:
-                episode.actions.append(ActionRecord(step_id=st.id, agent_id=st.agent_id, tool_used="velocity_engine", output_data=st.result, success=(st.status == TaskStatus.COMPLETED), duration_s=st.duration_s or 0.0))
-            episode.verification = VerificationReport(result_status=(task.status == TaskStatus.COMPLETED), evidence_summary=task.report[:1000] if task.report else "Kanıt yok", confidence_adjusted=0.8, integration_reality_score=0.9 if task.status == TaskStatus.COMPLETED else 0.4)
-            reflected_episode = await cognitive_mirror.reflect(episode)
-            is_eligible = await memory_gate.evaluate_eligibility(reflected_episode)
-            if not is_eligible: return
-            from packages.persistence.session import get_db
-            async with get_db() as db:
-                await synaptic_cortex.save_thought_thread(db, f"Görev '{task.title}' tamamlandı.", context_id="global")
-                ep_dict = _deep_convert_enums(asdict(reflected_episode))
-                ep_dict["project_id"] = task.id
-                ep_dict["status"] = task.status.value
-                episode_mem = await synaptic_cortex.save_episode(db, ep_dict)
-            if reflected_episode.verification and reflected_episode.verification.result_status:
-                async with get_db() as db: await skill_distiller.distill(reflected_episode, db)
-            async with get_db() as db:
-                for lesson in reflected_episode.lessons_learned:
-                    await synaptic_cortex.save(db=db, agent_id="system", body=lesson, category="cognitive_lesson", project_id=task.id, importance=0.6, parent_id=episode_mem.id)
-            asyncio.create_task(wisdom_synthesizer.synthesize_from_task(task))
-            if reflected_episode.metacognitive_score < 0.4: await self.trigger_self_evolution()
-        except Exception as e: _log.error(f"[NEXUS] Bilişsel yansıma hatası: {e}")
 
     async def _execute_subtask_nexus(self, task: ProjectTask, subtask: SubTask):
         try:
