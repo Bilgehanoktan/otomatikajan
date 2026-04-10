@@ -13,10 +13,9 @@ if ROOT_DIR not in sys.path:
 
 from packages.persistence.session import AsyncSessionLocal
 from sqlalchemy import text
-from apps.worker.tasks.celery_app import celery_app
 
 async def final_push():
-    print("🚀 SISTEM AKTIFLESTIRME (Debug Mod)...")
+    print("🚀 SISTEM AKTIFLESTIRME (DB Only Mod)...")
     
     try:
         async with AsyncSessionLocal() as db:
@@ -33,8 +32,6 @@ async def final_push():
             async with AsyncSessionLocal() as db_task:
                 try:
                     p_id = uuid.uuid4()
-                    print(f"🔄 Isleniyor: {r_id} -> {p_id}")
-                    
                     # 2. Insert Project
                     sql = """
                         INSERT INTO projects (id, title, description, status, priority, source, workflow_template, quality_profile, created_at, updated_at)
@@ -52,7 +49,6 @@ async def final_push():
                     
                     await db_task.commit()
                     approved_count += 1
-                    print(f"✅ Gorev {r_id} onaylandi.")
                     
                 except Exception:
                     print(f"❌ Gorev {r_id} hatasi:")
