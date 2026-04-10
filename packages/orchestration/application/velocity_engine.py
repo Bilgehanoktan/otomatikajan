@@ -9,7 +9,7 @@ import json
 import uuid
 import re
 from datetime import datetime, timezone
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass, field
 
 from packages.observability.logging import get_logger
@@ -98,7 +98,7 @@ class VelocityEngine:
         results = await asyncio.gather(*tasks, return_exceptions=True)
         return [r if not isinstance(r, Exception) else EngineResult(success=False, output_data=None, errors=[str(r)]) for r in results]
 
-    async def _run_simulation(self, agent_id: str, prompt: str, context: Dict[str, Any]) -> (bool, str):
+    async def _run_simulation(self, agent_id: str, prompt: str, context: Dict[str, Any]) -> Tuple[bool, str]:
         sim_res = await self.meta_audit.simulate_action_impact(agent_id, prompt, context)
         status = sim_res.get("predicted_status", "success")
         report = sim_res.get("foresight_report", "No report.")
@@ -132,7 +132,7 @@ class VelocityEngine:
             return EngineResult(success=True, output_data=final_output, reflection=getattr(out, "reflection", ""))
         except Exception as e: return EngineResult(success=False, output_data=None, errors=[str(e)])
 
-    async def _self_critique_output(self, agent_id: str, prompt: str, output: Any) -> (bool, str):
+    async def _self_critique_output(self, agent_id: str, prompt: str, output: Any) -> Tuple[bool, str]:
         critique_prompt = f"Talimat: {prompt}\nÇıktı: {output}\nLütfen bu çıktıyı eleştir. Geçerliyse PASSED, değilse FAILED: <neden> şeklinde döndür."
         try:
             res = await self.model_orch.complete([{"role": "user", "content": critique_prompt}], preferred_agent="reviewer")
@@ -140,7 +140,7 @@ class VelocityEngine:
             return False, res
         except: return True, ""
 
-    async def _inspect_intent_simulated(self, agent_id: str, prompt: str, sim_report: str) -> (bool, str):
+    async def _inspect_intent_simulated(self, agent_id: str, prompt: str, sim_report: str) -> Tuple[bool, str]:
         if "delete" in prompt.lower() and "force" not in prompt.lower():
             return False, "Data Loss Risk: 'delete' without force override."
         return True, "Safe."
