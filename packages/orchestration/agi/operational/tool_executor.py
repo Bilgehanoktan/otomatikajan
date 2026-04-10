@@ -24,8 +24,7 @@ class ToolExecutor:
             _log.info(f"[TOOL-EXEC] {agent_id} araç çağrısı başlattı: {call.tool_name}")
             
             # 1. Grounding & Safety Check
-            # Not: tool_grounder şu an context bekliyor, gelen inputu ground ediyoruz.
-            grounded_input = await get_grounded_tool_input(task_id, agent_id, call.tool_input)
+            grounded_input = await get_grounded_tool_input(task_id, call.tool_name, call.tool_input)
             
             if grounded_input == "BLOCKED":
                 results.append({"tool": call.tool_name, "status": "error", "error": "Safety Block: Input disallowed by ToolGrounder"})
