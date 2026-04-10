@@ -86,8 +86,8 @@ def smoke_import_test():
         "packages.orchestration.application.orchestrator",
         "packages.orchestration.application.control",
         "packages.orchestration.application.governance",
+        "packages.orchestration.application.sovereign_cortex",
         "packages.orchestration.domain.models",
-        "packages.orchestration.agi.cognitive.sovereign_cortex",
         "packages.persistence.session"
     ]
     
