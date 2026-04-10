@@ -90,11 +90,11 @@ services:
       DEERFLOW_BRIDGE_URL: http://deerflow-bridge:8010
       PYTHONPATH: /app
     # Komut Dockerfile'a taşındı, burada override edilebilir
-    healthcheck:
-      test: [ "CMD-SHELL", "celery -A apps.worker.tasks.celery_app inspect ping || exit 1" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+#    healthcheck:
+#      test: [ "CMD-SHELL", "celery -A apps.worker.tasks.celery_app inspect ping || exit 1" ]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
     depends_on:
       db:
         condition: service_healthy
