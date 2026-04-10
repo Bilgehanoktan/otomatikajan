@@ -58,7 +58,8 @@ class ToolGrounder:
                                 return "BLOCKED_PATH_ACCESS"
 
         # 3. Faz 64: Repo World Model (Filystem Grounding)
-        if "file" in tool_name.lower() or "read" in tool_name.lower() or "write" in tool_name.lower() or "path" in str(tool_input).lower():
+        is_search_or_git = any(kw in tool_name.lower() for kw in ["search", "github", "git"])
+        if "file" in tool_name.lower() or "read" in tool_name.lower() or "write" in tool_name.lower() or "path" in str(tool_input).lower() or is_search_or_git:
             if not repo_world_model.nodes:
                 repo_world_model.scan()
             
