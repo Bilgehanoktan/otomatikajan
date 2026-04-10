@@ -90,7 +90,6 @@ class SovereignCortex:
             self._agents = build_agents()
             self._health = {aid: 1.0 for aid in self._agents}
             self._is_running = True
-            await self._sync_provenance_memory()
             self.load_self_updater()
             await self.watchdog.start()
             asyncio.create_task(self._metacognitive_drift_loop())
@@ -172,8 +171,8 @@ class SovereignCortex:
             task.execution_context.update(execution_context)
 
         # 1. Metabolic & Safety Pre-checks
-        if affective_core.energy < 0.3:
-            _log.info(f"[SOVEREIGN-DREAM] Düşük enerji tespiti ({affective_core.energy:.2f}). Bilişsel Sıkıştırma başlatılıyor...")
+        if self.affective.energy < 0.3:
+            _log.info(f"[SOVEREIGN-DREAM] Düşük enerji tespiti ({self.affective.energy:.2f}). Bilişsel Sıkıştırma başlatılıyor...")
             async with AsyncSessionLocal() as db:
                 await memory_pruner.dream_cycle(db)
 
@@ -200,7 +199,7 @@ class SovereignCortex:
 
         # 2. Context Aggregation
         strategic_context = await memory_api.get_strategic_context(query=f"{title} {description}")
-        cognitive_memory = await self._sync_provenance_memory()
+        cognitive_memory = "Synaptic synergy active" # Simplified for now, since legacy sync is removed
         
         from packages.orchestration.agi.world import service_graph, task_state_graph
         service_health = service_graph.get_summary()
