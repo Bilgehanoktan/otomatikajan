@@ -18,7 +18,14 @@ import json
 import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
+from typing import Any, Dict, List, Optional
+
+
+@dataclass
+class ToolCall:
+    tool_name: str
+    tool_input: Dict[str, Any]
+    thought_process: str = ""
 
 
 class RiskSeverity(str, Enum):
@@ -51,6 +58,7 @@ class AgentOutput:
     assumptions:  list[str]       = field(default_factory=list)
     risks:        list[Risk]      = field(default_factory=list)
     deliverables: list[Deliverable] = field(default_factory=list)
+    tool_calls:   list[ToolCall]    = field(default_factory=list)
     next_actions: list[str]       = field(default_factory=list)
     quality_notes:list[str]       = field(default_factory=list)
     raw_response: str             = ""
@@ -70,6 +78,7 @@ class AgentOutput:
                                 "mitigation": r.mitigation} for r in self.risks],
             "deliverables":  [{"type": d.type, "name": d.name,
                                 "desc": d.description} for d in self.deliverables],
+            "tool_calls":    [{"tool": t.tool_name, "input": t.tool_input} for t in self.tool_calls],
             "next_actions":  self.next_actions,
             "quality_notes": self.quality_notes,
             "quality_score": self.quality_score,
@@ -127,6 +136,9 @@ Yanıtını aşağıdaki JSON şemasında ver. Başka bir şey yazma.
   ],
   "deliverables": [
     {"type": "code|config|doc|design|test|other", "name": "isim", "description": "açıklama", "content": ""}
+  ],
+  "tool_calls": [
+    {"tool_name": "web_search|github_pr|file_write|etc", "tool_input": {"param1": "val1"}, "thought_process": "neden bu araç?"}
   ],
   "next_actions": ["adım1", "adım2"],
   "quality_notes": ["not1"]
@@ -204,6 +216,13 @@ class AgentOutputParser:
             deliverables=deliverables,
             next_actions=list(data.get("next_actions", [])),
             quality_notes=list(data.get("quality_notes", [])),
+            tool_calls=[
+                ToolCall(
+                    tool_name=str(t.get("tool_name", t.get("tool", ""))),
+                    tool_input=t.get("tool_input", t.get("input", {})),
+                    thought_process=str(t.get("thought_process", ""))
+                ) for t in data.get("tool_calls", []) if isinstance(t, dict)
+            ],
             raw_response=raw,
             parse_errors=errors,
         )
