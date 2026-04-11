@@ -812,10 +812,12 @@ async function loadDashboard() {
     applyCapabilityVisibility();
 
     // Faz 12.1 Integrity Patch: Render capability status
-    if (ov.integrity) {
-      renderIntegrityStatus(ov.integrity);
+    if (s && s.integrity) {
+      renderIntegrityStatus(s.integrity);
     }
-  } catch (e) { }
+  } catch (e) { 
+    console.error('[Dashboard Logic Error]', e);
+  }
 
   try {
     const d = await api('/tasks?limit=8');

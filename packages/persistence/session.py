@@ -208,13 +208,13 @@ async def init_db():
             return True
 
     try:
-        engine = _get_engine()
+        engine = get_engine()
         await run_init(engine)
         _DB_AVAILABLE = True
         _DB_ERROR = ""
     except Exception as e:
         _DB_ERROR = str(e)
-        if "sqlite" not in str(_get_engine().url):
+        if "sqlite" not in str(get_engine().url):
             logger.warning(f"Postgres bağlantısı başlatma sırasında başarısız oldu: {e}. SQLite'a zorlanıyor...")
             sqlite_url = "sqlite+aiosqlite:///./runtime/data/cortex_local.db"
             _engine = create_async_engine(sqlite_url)

@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query, Body, Depends
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from apps.api.routers.auth.jwt_auth import get_current_user
 from packages.observability.logging import get_logger
@@ -21,6 +21,18 @@ async def _db_session():
         yield db
 
 class TaskCreateRequest(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "title": "Kullanıcı yetkilendirme servisi",
+                "description": "JWT tabanlı auth sistemi kur",
+                "priority": "high",
+                "source": "manual",
+                "tags": ["auth", "backend"],
+            }
+        }
+    )
+
     title:          str  = Field(..., min_length=3, max_length=500)
     description:    str  = Field(default="", max_length=10000)
     priority:       str  = Field(default="medium",
@@ -36,17 +48,6 @@ class TaskCreateRequest(BaseModel):
     workflow_template: str = Field(default="default", description="Kullanılacak şablon (plan, hotfix vb.)")
     quality_profile: str   = Field(default="standard", description="standard, strict, veya production")
     acceptance_criteria: list[str] = Field(default_factory=list, description="Onay kriterleri listesi")
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "title": "Kullanıcı yetkilendirme servisi",
-                "description": "JWT tabanlı auth sistemi kur",
-                "priority": "high",
-                "source": "manual",
-                "tags": ["auth", "backend"],
-            }
-        }
 
 
 class TaskUpdateRequest(BaseModel):

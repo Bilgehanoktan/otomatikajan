@@ -36,16 +36,19 @@ class SelfUpdater:
     11) registry'ye işle
     """
 
-    # Permitted top-level directories for self-modification
     ALLOWED_TOP_LEVELS = {
         "core", "api", "agents", "llm", "services", "orchestration", 
         "observability", "db", "tasks", "quality", "improve", "heal", "utils", "webhooks",
-        "dashboard"
+        "dashboard", "packages", "apps", "external"
     }
     
-    # Paths that require extra scrutiny or manual approval (Faz 12)
     HIGH_RISK_PATHS = {
-        "main.py", "auth/", "db/session.py", "core/self_updater.py", "config.py"
+        "main.py", "auth/", "db/session.py", "core/self_updater.py", "config.py",
+        "packages/persistence/session.py", 
+        "packages/orchestration/application/sovereign_cortex.py",
+        "packages/orchestration/application/self_updater.py",
+        "apps/api/routers/auth/",
+        "packages/improvement_engine/self_improvement_coordinator.py"
     }
 
     DISALLOWED_TOP_LEVELS = {

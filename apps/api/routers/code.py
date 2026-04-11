@@ -1,4 +1,4 @@
-﻿"""
+"""
 Kod Ãœretim API Router â€” Faz 6
 POST /api/v1/code/generate   -> Kod Ã¼retimi baÅŸlat
 GET  /api/v1/code/results    -> TÃ¼m Ã¼retimler
@@ -13,7 +13,7 @@ import base64
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 
 from apps.api.routers.auth.jwt_auth import get_current_user, get_optional_user
@@ -37,8 +37,8 @@ class CodeGenerateRequest(BaseModel):
     template:    str   = Field("custom", description="fastapi_rest | react_spa | cli_tool | data_pipeline | fullstack | custom")
     run_review:  bool  = Field(True, description="Code review ajan Ã§alÄ±ÅŸsÄ±n mÄ±")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "title": "Blog API",
                 "description": "KullanÄ±cÄ±larÄ±n post oluÅŸturabildiÄŸi, yorum yapabildiÄŸi REST API",
@@ -46,6 +46,7 @@ class CodeGenerateRequest(BaseModel):
                 "run_review": True,
             }
         }
+    )
 
 
 class CodeFileOut(BaseModel):
