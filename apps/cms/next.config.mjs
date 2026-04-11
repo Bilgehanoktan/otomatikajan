@@ -7,12 +7,7 @@ const __dirname = path.dirname(__filename)
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Turbopack may cause issues with Payload 3.x CSS injection in some environments
-  experimental: {
-    turbo: {
-      enabled: false,
-    },
-  },
+  // Your Next.js config here
 }
 
 export default withPayload(nextConfig, {
