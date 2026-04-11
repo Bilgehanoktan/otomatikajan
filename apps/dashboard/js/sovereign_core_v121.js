@@ -168,7 +168,8 @@ function showPage(name) {
 
   switch (name) {
     case 'dashboard': renderLoading('recent-tasks'); loadDashboard().catch(err => toast('Dashboard yüklenemedi: ' + err.message, 'error')); break;
-    case 'tasks': renderLoading('task-table'); loadTasks().catch(err => toast('Görevler yüklenemedi: ' + err.message, 'error')); break;
+    case 'tasks': 
+    case 'jobs': renderLoading('task-table'); loadTasks().catch(err => toast('Görevler yüklenemedi: ' + err.message, 'error')); break;
     case 'agents': renderLoading('agent-cards'); loadAgents().catch(err => toast('Ajanlar yüklenemedi: ' + err.message, 'error')); break;
     case 'queue': renderLoading('queue-stats'); loadQueue().catch(err => toast('Kuyruk yüklenemedi: ' + err.message, 'error')); break;
     case 'monitoring': {
@@ -188,11 +189,17 @@ function showPage(name) {
     case 'model-router': loadModelRouterPage().catch(err => toast('Router yüklenemedi: ' + err.message, 'error')); break;
     case 'vector-lessons': loadVectorLessonsPage().catch(err => toast('Lessons yüklenemedi: ' + err.message, 'error')); break;
     case 'admin': loadAdminUsers().catch(err => toast('Admin paneli yüklenemedi: ' + err.message, 'error')); break;
-    case 'specialists': toast('Yakında Gelecek', 'info'); break;
+    case 'specialists': 
+    case 'skills': toast('Yetenekler Modülü Yakında Gelecek', 'info'); break;
     case 'ceo': renderLoading('ceo-findings-body'); loadCEOFindings().catch(err => toast('CEO bulguları yüklenemedi: ' + err.message, 'error')); break;
     case 'self-update': loadSelfUpdateHistory().catch(err => toast('Güncelleme geçmişi yüklenemedi: ' + err.message, 'error')); break;
     case 'approvals': renderLoading('approval-list'); loadApprovals().catch(err => toast('Onaylar yüklenemedi: ' + err.message, 'error')); break;
     case 'finance': loadFinancePage().catch(err => toast('Finansal veriler yüklenemedi: ' + err.message, 'error')); break;
+    case 'architect': toast('Mimari Gözlemci Aktif Değil', 'warning'); break;
+    case 'knowledge': toast('Bilgi Bankası Hazırlanıyor', 'info'); break;
+    case 'runbooks': toast('Runbooklar Yükleniyor...', 'info'); break;
+    case 'pacing': toast('Metabolik Kontrol: Normal', 'info'); break;
+    case 'governance': toast('Öz-Yönetişim Aktif ve Denetliyor', 'success'); break;
     case 'improvement': renderLoading('imp-opportunities-list'); scanImprovements().catch(err => {
       console.error('Improvement page load failed', err);
       const el = safeGet('imp-opportunities-list');
