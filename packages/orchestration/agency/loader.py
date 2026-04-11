@@ -78,6 +78,9 @@ class AgencyLoader:
         return self.agents.get(agent_id)
 
     def list_agents(self) -> List[Dict[str, Any]]:
+        # Faz 12.4: Otonom Yükleme Tetikleyici
+        if not self.agents:
+            self.load_agents()
         return list(self.agents.values())
 
     def find_by_capability(self, capability: str) -> List[Dict[str, Any]]:
