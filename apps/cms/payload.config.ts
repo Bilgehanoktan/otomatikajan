@@ -29,6 +29,11 @@ export default buildConfig({
          Logo: './src/components/Logo#Logo',
          Icon: './src/components/Icon#Icon',
       },
+      views: {
+        dashboard: {
+          Component: './src/components/Dashboard#default',
+        },
+      },
     },
   },
   collections: [
