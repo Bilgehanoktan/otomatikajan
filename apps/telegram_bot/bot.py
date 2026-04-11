@@ -1100,7 +1100,7 @@ class TelegramNotifier:
 
     def __init__(self):
         self._bot_token = BOT_TOKEN
-        self._recipients: list[str] = list(ADMIN_IDS) + list(ALLOWED_IDS)
+        self._recipients: list[str] = list(ADMIN_IDS | ALLOWED_IDS)
 
     async def notify_event(self, event_type: str, payload: dict):
         title = self.NOTIFY_EVENTS.get(event_type)
