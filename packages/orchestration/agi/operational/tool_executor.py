@@ -1,4 +1,6 @@
 import asyncio
+import os
+import subprocess
 from typing import Dict, Any, List, Optional
 from packages.observability.logging import get_logger
 from packages.integrations.web_search import get_web_search
@@ -62,6 +64,7 @@ class ToolExecutor:
                 elif call.tool_name == "code_repair":
                     # Faz 12.3: Otonom Hata Onarımı
                     from packages.healing.application.heal_engine import heal_engine
+                    from packages.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex
                     target_path = grounded_input.get("target_path") or grounded_input.get("file_path")
                     error_msg = grounded_input.get("error_msg", "Unknown error")
                     
@@ -89,6 +92,38 @@ class ToolExecutor:
                         results.append({"tool": "list_dir", "status": "success", "items": items})
                     else:
                         results.append({"tool": "list_dir", "status": "error", "error": f"Directory not found: {path}"})
+
+                elif call.tool_name == "git_create_fix_branch":
+                    issue_id = grounded_input.get("issue_id", "evolve")
+                    branch_name = f"AutoRepair/fix-{issue_id}"
+                    # Git komutunu çalıştır
+                    try:
+                        subprocess.run(["git", "checkout", "-b", branch_name], check=True, capture_output=True)
+                        results.append({"tool": "git_create_fix_branch", "status": "success", "branch": branch_name})
+                    except Exception as git_err:
+                        results.append({"tool": "git_create_fix_branch", "status": "error", "error": str(git_err)})
+
+                elif call.tool_name == "run_shell_command":
+                    command = grounded_input.get("command")
+                    if not command:
+                        results.append({"tool": "run_shell_command", "status": "error", "error": "No command provided"})
+                        continue
+                    
+                    # Sandbox safety is handled by ToolGrounder, but we add a timeout here
+                    try:
+                        # Run command with 30s timeout
+                        process = subprocess.run(command, shell=True, capture_output=True, text=True, timeout=30)
+                        results.append({
+                            "tool": "run_shell_command", 
+                            "status": "success" if process.returncode == 0 else "failed",
+                            "stdout": process.stdout,
+                            "stderr": process.stderr,
+                            "code": process.returncode
+                        })
+                    except subprocess.TimeoutExpired:
+                        results.append({"tool": "run_shell_command", "status": "error", "error": "Command timeout (30s)"})
+                    except Exception as cmd_err:
+                        results.append({"tool": "run_shell_command", "status": "error", "error": str(cmd_err)})
 
                 else:
                     _log.warning(f"[TOOL-EXEC] Tanımlanmamış araç: {call.tool_name}")
