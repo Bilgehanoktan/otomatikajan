@@ -17,7 +17,8 @@ class VisualUXObserver:
         self.model_orch = model_orch
         self.scan_targets = [
             "apps/dashboard/index.html",
-            "apps/dashboard/css/style.css",
+            "apps/dashboard/css/sovereign_v121.css",
+            "apps/dashboard/css/style_v2.css",
             "dashboard/index.html",
             "apps/api/static/dashboard/index.html", # fallback paths
             "apps/api/static/style.css"
