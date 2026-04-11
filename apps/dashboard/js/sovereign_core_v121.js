@@ -259,6 +259,8 @@ const InactivityMonitor = {
   warningTime: 60,  // Uyarı süresi (saniye)
   interval: null,
   isWarning: false,
+  lastRefresh: Date.now(),
+  refreshInterval: 10 * 60 * 1000, // 10 dakikada bir zorunlu yenileme (aktif kullanıcılar için)
 
   init() {
     ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evt => {
@@ -283,6 +285,12 @@ const InactivityMonitor = {
   async check() {
     if (!AUTH.token) return;
     this.idleTime++;
+    
+    // Faz 12.1: Zorunlu Yenileme (Aktif kullanıcılar için 10 dakikada bir)
+    if (Date.now() - this.lastRefresh > this.refreshInterval) {
+        console.log("[InactivityMonitor] Aktif kullanıcı için periyodik yenileme tetiklendi.");
+        await this.silentRefresh();
+    }
 
     // Aktif Operasyon Kontrolü: Eğer çalışan bir görev varsa süreyi otomatik sıfırla ve oturumu yenile
     const runningTask = document.querySelector('.status-running') || document.querySelector('.badge-running');
@@ -326,8 +334,17 @@ const InactivityMonitor = {
   async silentRefresh() {
     try {
       console.log("[InactivityMonitor] Oturum tazeleniyor...");
+      this.lastRefresh = Date.now();
       // Backend'deki yeni cookie tabanlı refresh endpoint'ini çağır
-      await api('/auth/refresh', { method: 'POST', body: JSON.stringify({}) });
+      const r = await fetch(API + '/auth/refresh', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include' 
+      });
+      if (r.status === 401) {
+         console.warn("[InactivityMonitor] Refresh token da geçersiz. Oturum tamamen kapandı.");
+         logout();
+      }
     } catch (e) {
       console.warn("Silent refresh failed:", e);
     }
@@ -359,15 +376,17 @@ async function api(path, opts = {}) {
 
     if (r.status === 401) {
       // 401 Unauthorized: Oturum gerçekten düşmüşse temizle
-      // Ancak InactivityMonitor tarafından tetiklenen bir 401 (refresh hatası) ise sessiz kal
       if (path === '/auth/refresh') throw new Error('Refresh failed');
 
-      AUTH.clear();
       const isBackground = path.includes('/monitoring/') || path.includes('/stats') || path.includes('/health');
+      const isMe = path === '/auth/me';
       
-      if (!isBackground && path !== '/auth/me' && !path.includes('/auth/login')) {
-         location.reload();
-      } else {
+      AUTH.clear();
+      
+      if (!isBackground && !isMe && !path.includes('/auth/login')) {
+         console.warn("[API] 401 Alındı. Giriş sayfasına yönlendiriliyor.");
+         location.reload(); 
+      } else if (isMe) {
          showLogin();
       }
       throw new Error('Oturum sona erdi');
