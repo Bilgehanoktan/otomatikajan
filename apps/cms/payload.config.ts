@@ -24,6 +24,12 @@ export default buildConfig({
     importMap: {
       baseDir: path.resolve(dirname),
     },
+    components: {
+      graphics: {
+         Logo: './src/components/Logo#Logo',
+         Icon: './src/components/Icon#Icon',
+      },
+    },
   },
   collections: [
     Users,
