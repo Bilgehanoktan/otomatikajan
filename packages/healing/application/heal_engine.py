@@ -342,7 +342,7 @@ class SelfHealEngine:
         )
         self._events.append(e)
         icon = SEVERITY_ICONS.get(severity, "  ")
-        _log = __import__("observability.logging", fromlist=["get_logger"]).get_logger("heal_engine")
+        _log = __import__("packages.observability.logging", fromlist=["get_logger"]).get_logger("heal_engine")
         _log.info(f"{icon} [{e.timestamp[11:19]}][{phase:7}][{agent_id:12}] {message}")
         
         # Faz 12 Hardening: Vektör Belleğe (Watchdog) aktar
