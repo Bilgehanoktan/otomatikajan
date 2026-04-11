@@ -1,126 +1,50 @@
-@layer payload-default, payload;
-
-@layer payload {
-/* Deep Custom Styles for Payload CMS */
+/* Refined Custom Styles for Payload CMS */
 
 :root {
   --theme-elevation-0: #0a0a0a;
   --theme-elevation-50: #121212;
   --theme-elevation-100: #1a1a1a;
-  --theme-elevation-150: #222222;
   --theme-elevation-200: #2a2a2a;
-  
-  --theme-input-bg: rgba(255, 255, 255, 0.03);
-  --theme-input-border: rgba(255, 255, 255, 0.1);
-  --theme-input-focus-border: #6366f1;
 }
 
-body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+/* Subtle background override - avoid !important on body if possible */
+.template-default, .template-minimal {
   background-color: var(--theme-elevation-0) !important;
 }
 
-/* Sidebar Customization */
+/* Sidebar Styling */
 .nav {
-  background-color: var(--theme-elevation-50) !important;
-  border-right: 1px solid var(--theme-elevation-150) !important;
-}
-
-.nav__scroll {
-  padding-top: 2rem !important;
+  border-right: 1px solid var(--theme-elevation-100);
 }
 
 .nav__group-title {
-  font-size: 0.75rem !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.1em !important;
-  color: #666 !important;
-  margin-bottom: 0.75rem !important;
+  color: #666;
+  font-weight: 700;
+  font-size: 0.7rem;
 }
 
 .nav__link {
-  border-radius: 8px !important;
-  margin: 0.25rem 0.75rem !important;
-  transition: all 0.2s ease !important;
+  border-radius: 6px;
+  transition: all 0.2s;
 }
 
 .nav__link:hover {
-  background-color: var(--theme-elevation-150) !important;
-  transform: translateX(4px) !important;
+  background-color: var(--theme-elevation-50);
 }
 
 .nav__link--active {
-  background: linear-gradient(90deg, rgba(99, 102, 241, 0.1) 0%, rgba(168, 85, 247, 0.05) 100%) !important;
-  border-left: 3px solid #6366f1 !important;
-  color: #fff !important;
+  color: #6366f1 !important;
+  background: rgba(99, 102, 241, 0.05);
 }
 
-/* Dashboard Cards */
-.dashboard__group {
-  margin-bottom: 3rem !important;
+/* Dashboard Banner Styling */
+.custom-banner {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
 }
 
-.card {
-  background: var(--theme-elevation-50) !important;
-  border: 1px solid var(--theme-elevation-150) !important;
-  border-radius: 16px !important;
-  padding: 1.5rem !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
-}
-
-.card:hover {
-  transform: translateY(-8px) !important;
-  border-color: #6366f1 !important;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
-}
-
-/* Buttons */
-.btn {
-  border-radius: 100px !important;
-  font-weight: 600 !important;
-  transition: all 0.2s ease !important;
-  text-transform: none !important;
-  letter-spacing: 0 !important;
-}
-
-.btn--style-primary {
-  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%) !important;
-  border: none !important;
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3) !important;
-}
-
-.btn--style-primary:hover {
-  transform: scale(1.02) !important;
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4) !important;
-}
-
-/* Inputs */
-input, select, textarea {
-  background: var(--theme-input-bg) !important;
-  border: 1px solid var(--theme-input-border) !important;
-  border-radius: 8px !important;
-  transition: all 0.2s ease !important;
-}
-
-input:focus {
-  border-color: var(--theme-input-focus-border) !important;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
-}
-
-/* Custom Table Styles */
-.table__row:hover {
-  background-color: var(--theme-elevation-100) !important;
-}
-
-/* Logo on Login Screen */
-.template-minimal__wrap .logo {
-  margin-bottom: 2rem !important;
-}
-
-/* Glassmorphism effects for certain elements */
-.glass {
-  background: rgba(255, 255, 255, 0.03) !important;
-  backdrop-filter: blur(10px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+/* Fix for unstyled links - ensure they inherit app theme */
+a {
+  text-decoration: none;
 }
