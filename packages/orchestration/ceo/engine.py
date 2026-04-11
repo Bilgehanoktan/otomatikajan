@@ -58,11 +58,13 @@ class CEOEngine:
                 else:
                     logger.warning("CostRepository.total_cost is not available. Skipping budget check.")
             except Exception as e:
-                # UndefinedTableError (llm_cost_logs tablosu yoksa) durumunda sessizce atla
-                if "relation" in str(e) and "does not exist" in str(e):
-                    logger.warning("CEO Engine: llm_cost_logs table not found. Skipping budget check (migrations pending).")
-                else:
-                    logger.error(f"CEO Engine budget check failed: {e}")
+                logger.error(f"CEO Engine budget check failed: {e}")
+                # Faz 12.1 Hardening: Bütçe kontrolü olmadan çalışma GÜVENLİ DEĞİLDİR.
+                # Eğer llm_cost_logs tablosu eksikse hata fırlat!
+                raise RuntimeError(
+                    "CRITICAL: Bütçe tabloları (llm_cost_logs vb.) bulunamadı! "
+                    "Lütfen 'alembic upgrade head' ile veritabanını güncelleyin."
+                ) from e
             
             # --- PHASE 80: North Star Goal Alignment ---
             # Sistem ana hedefleri kontrol eder, yoksa otonom olarak bir vizyon belirler.
