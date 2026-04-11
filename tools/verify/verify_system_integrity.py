@@ -110,6 +110,38 @@ def smoke_import_test():
             
     return success
 
+def check_database_migrations():
+    print("[*] Running Database Schema Validation...")
+    try:
+        import asyncio
+        from packages.persistence.session import engine
+        from sqlalchemy import inspect
+
+        async def _check_tables():
+            async with engine.begin() as conn:
+                def get_tables(sync_conn):
+                    return inspect(sync_conn).get_table_names()
+                tables = await conn.run_sync(get_tables)
+                required_tables = ["llm_cost_logs", "projects", "subtasks"]
+                missing = [t for t in required_tables if t not in tables]
+                return missing
+                
+        # SQLAlchemy async call returns the missing tables list
+        missing_tables = asyncio.run(_check_tables())
+        if missing_tables:
+            print(f"[!] DATABASE ERROR: Missing critical tables: {missing_tables}")
+            print(f"    Please run 'alembic upgrade head' to apply pending migrations.")
+            return False
+            
+    except Exception as e:
+        print(f"[!] WARNING: Could not connect to database or check schema: {e}")
+        # To avoid blocking CI environments if DB is completely mocked/stubbed, we fail gracefully
+        # but warn strictly. Since Faz 12.1 focuses on strictness, we'll return False.
+        return False
+        
+    print("[OK] Database migration check passed (all critical tables exist).")
+    return True
+
 if __name__ == "__main__":
     print("====================================================")
     print("   Sovereign Quality Guard: Integrity Check")
@@ -117,10 +149,17 @@ if __name__ == "__main__":
     
     lint_ok = check_lint()
     hygiene_ok = check_architecture_hygiene()
+    
+    # DB kontrolünden dolayı yolu ekle
+    project_root = Path(__file__).parent.parent.parent
+    if str(project_root) not in sys.path:
+        sys.path.append(str(project_root))
+        
     import_ok = smoke_import_test()
+    db_ok = check_database_migrations()
     
     print("----------------------------------------------------")
-    if lint_ok and hygiene_ok and import_ok:
+    if lint_ok and hygiene_ok and import_ok and db_ok:
         print("[SUCCESS] System Integrity Check PASSED.")
         sys.exit(0)
     else:
