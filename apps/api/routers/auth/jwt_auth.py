@@ -107,7 +107,7 @@ def set_auth_cookies(response: Response, access_token: str, refresh_token: str, 
     is_secure = APP_ENV == "production"
     if request:
         host = request.url.hostname or ""
-        if host in ("localhost", "127.0.0.1", "0.0.0.0"):
+        if host in ("localhost", "127.0.0.1", "0.0.0.0", "::1", "::ffff:127.0.0.1"):
             is_secure = False
         elif request.url.scheme == "http":
             is_secure = False
