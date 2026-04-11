@@ -33,7 +33,7 @@ _last_loop = None
 _lock = threading.Lock()
 
 
-def _get_engine():
+def get_engine():
     global _engine, _last_loop
     curr_active_loop = None
     try:
@@ -97,7 +97,7 @@ def _get_engine():
 
 def _get_session_factory():
     global _async_session_factory
-    engine = _get_engine()
+    engine = get_engine()
     
     # Engine yenilenmiş olabilir, factory'i de kontrol et
     if _async_session_factory is None or _async_session_factory.kw["bind"] is not engine:
@@ -138,7 +138,6 @@ except ImportError:
 
 
 # Public engine access
-engine = _get_engine
 _DB_AVAILABLE: bool = False
 _DB_DEGRADED:  bool = False
 _DB_ERROR:     str  = ""
@@ -165,7 +164,7 @@ async def verify_db_connection() -> bool:
 async def _verify_core() -> bool:
     global _DB_AVAILABLE
     try:
-        engine = _get_engine()
+        engine = get_engine()
         if engine is None:
             return False
         async with engine.begin() as conn:
