@@ -1,7 +1,7 @@
 import React from 'react'
 import { CollectionCards } from '@payloadcms/next/rsc'
 
-const Dashboard = () => {
+const Dashboard = (props: any) => {
   return (
     <div style={{ padding: 'var(--gutter-h)', maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ 
@@ -21,7 +21,7 @@ const Dashboard = () => {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '2rem' }}>
-        <CollectionCards />
+        <CollectionCards {...props} />
       </div>
     </div>
   )
