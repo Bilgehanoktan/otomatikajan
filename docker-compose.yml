@@ -184,7 +184,7 @@ services:
       DEER_FLOW_CONFIG_PATH: /opt/deerflow/config.yaml
       DEER_FLOW_HOME: /app/.deer-flow
       CLAUDE_PROXY_URL: ${CLAUDE_PROXY_URL:-}
-      PYTHONPATH: /app/backend:/app/backend/packages/harness/deerflow
+      PYTHONPATH: /app/backend:/app/backend/packages/harness
     dns:
       - 8.8.8.8
       - 8.8.4.4
