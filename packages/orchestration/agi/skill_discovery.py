@@ -14,7 +14,22 @@ class SkillDiscovery:
     """
     def __init__(self, project_root: str):
         self.project_root = Path(project_root).resolve()
-        self.skills_dir = self.project_root / ".agent" / "skills"
+        
+        # Faz 12.4: Bilişsel Bütünlük — Otonom Yol Arama
+        # Varsayılan dizin yoksa bilinen diğer yetenek havuzlarına bak.
+        default_dir = self.project_root / ".agent" / "skills"
+        fallback_dir = self.project_root / "external" / "vendor" / "deer-flow" / "skills" / "public"
+        runtime_dir = self.project_root / "runtime" / "data" / "generated_skills"
+        
+        if default_dir.exists():
+            self.skills_dir = default_dir
+        elif fallback_dir.exists():
+            _log.info(f"Fallback skills directory detected: {fallback_dir}")
+            self.skills_dir = fallback_dir
+        else:
+            _log.info(f"Using runtime skills directory: {runtime_dir}")
+            self.skills_dir = runtime_dir
+            
         self.discovered_skills: Dict[str, Any] = {}
 
     def discover(self) -> Dict[str, Any]:
