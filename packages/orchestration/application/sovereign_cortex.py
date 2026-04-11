@@ -26,39 +26,9 @@ from packages.orchestration.application.governance import TaskPlanner, TaskState
 # Lazy-loaded imports (moved from top level to prevent circular hangs)
 # Improvement, Healing, and Updater will be imported in properties
 
-# LEGACY IMPORTS (To be migrated next)
-from packages.orchestration.domain.auditor import metacognitive_auditor
-from packages.orchestration.domain.architect import Architect
-from packages.orchestration.application.scaffolder import scaffolder
-from packages.orchestration.agi.cognitive.memory_api import memory_api
-from packages.orchestration.agi.schemas import EpisodeRecord, ActionRecord, UnifiedInput, ProblemFrame, TaskType, RiskLevel, VerificationReport
-from packages.orchestration.agi.learning.cognitive_mirror import cognitive_mirror
-from packages.orchestration.agi.learning.distiller import skill_distiller
-from packages.orchestration.agi.cognitive.agi_goal_decomposer import agi_goal_decomposer
-from packages.orchestration.agi.cognitive.collaborative_node import collaborative_node
-from packages.orchestration.domain.learning.knowledge_distiller import knowledge_distiller
-from packages.orchestration.domain.learning.prompt_synthesizer import PromptSynthesizer
-from packages.orchestration.domain.synaptic_cortex import synaptic_cortex
-from packages.orchestration.agi.cognitive.motivation_engine import motivation_engine
-from packages.orchestration.domain.affective_core import affective_core
-from packages.orchestration.agi.cognitive.foresight_cortex import foresight_cortex
-from packages.orchestration.agi.learning.memory_gate import memory_gate
-from packages.orchestration.agi.governance.watchdog import governance_watchdog
-from packages.orchestration.agi.governance.consensus_arbiter import consensus_arbiter
-from packages.orchestration.agi.cognitive.reflective_synthesizer import reflective_synthesizer
-from packages.orchestration.agi.cognitive.axiology_engine import axiology_engine
-from packages.orchestration.agi.operational.metabolic_governor import metabolic_governor
-from packages.orchestration.agi.cognitive.axiology_engine import axiology_engine
-from packages.orchestration.agi.cognitive.memory_api import memory_api
-from packages.orchestration.agi.cognitive.memory_pruner import memory_pruner
-from packages.orchestration.agi.consciousness.affective_core import affective_core as shared_affective
-from packages.orchestration.agi.learning.wisdom_synthesizer import wisdom_synthesizer
-from packages.orchestration.agi.cognitive.memory_pruner import memory_pruner
-from packages.orchestration.agi.quality.sovereign_evaluator import sovereign_evaluator
-from packages.orchestration.agi.cognitive.cognitive_blackboard import get_blackboard
-from packages.orchestration.agi.operational.tool_grounder import get_grounded_tool_input
-from packages.orchestration.agi.quality.eval_harness import eval_harness
-from packages.orchestration.domain.events import event_bus
+# Lazy-loaded imports (moved from top level to prevent circular hangs)
+# Improvement, Healing, and Updater will be imported in properties
+# Internal engines (foresight, reflection, etc.) will be imported locally
 
 _log = get_logger("agi_sovereign_cortex")
 
@@ -66,15 +36,23 @@ class SovereignCortex:
     # ... (Rest of the code is identical to original, just with updated imports)
     # I will paste the content I viewed earlier but with the import fixes.
     def __init__(self):
+        from packages.llm_gateway.model_orchestrator import ModelOrchestrator
+        from packages.orchestration.domain.architect import Architect
+        from packages.orchestration.domain.learning.prompt_synthesizer import PromptSynthesizer
+        from packages.orchestration.agi.governance.watchdog import governance_watchdog
+        from packages.orchestration.domain.events import event_bus
+        from packages.orchestration.agi.cognitive.motivation_engine import motivation_engine
+        from packages.orchestration.domain.affective_core import affective_core
+
         self.model_orch  = ModelOrchestrator()
-        self.state_svc   = TaskStateService()
-        self.synthesizer = ReportSynthesizer()
+        self.state_svc   = None # Lazy loaded in property
+        self.synthesizer = None # Lazy loaded in property
         self.architect   = Architect(model_orch=self.model_orch)
         self.motivation  = motivation_engine
         self.affective   = affective_core
         self.prompt_synth = PromptSynthesizer(self.model_orch)
         self.watchdog    = governance_watchdog
-        self.event_bus = event_bus # Unified AGI Event System (V5)
+        self.event_bus   = event_bus
         
         # Internal lazy states
         self._self_updater = None
@@ -83,10 +61,24 @@ class SovereignCortex:
         self._planner_svc = None
         self._executor_svc = None
         self._reflection_svc = None
-        
-        # Decomposed Services (Aliases for backward compatibility)
-        self.foresight = foresight_cortex
-        self.reflection = reflective_synthesizer
+        self._task_planner = None
+        self._state_svc = None
+        self._synthesizer = None
+
+        self._agents: dict = {}
+        self._health: dict[str, float] = {}
+        self._is_running = False
+        self._lock = asyncio.Lock()
+
+    @property
+    def foresight(self):
+        from packages.orchestration.agi.cognitive.foresight_cortex import foresight_cortex
+        return foresight_cortex
+
+    @property
+    def reflection(self):
+        from packages.orchestration.agi.cognitive.reflective_synthesizer import reflective_synthesizer
+        return reflective_synthesizer
 
         self._agents: dict = {}
         self._health: dict[str, float] = {}
