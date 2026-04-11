@@ -30,9 +30,9 @@ class BroadcastManager:
             event_bus.on(EVENT_DEBATE_STATE, _handle_debate_state)
             event_bus.on(EVENT_SKILL_TRACE,  _handle_skill_trace)
             
-            print("🚀 WebSocket Manager is subscribed to Global Event Bus")
+            print("[WS] WebSocket Manager is subscribed to Global Event Bus")
         except Exception as e:
-            print(f"⚠️  WS Manager event bus subscription failure: {e}")
+            print(f"[WS] WS Manager event bus subscription failure: {e}")
 
     async def connect(self, ws: WebSocket):
         await ws.accept()
