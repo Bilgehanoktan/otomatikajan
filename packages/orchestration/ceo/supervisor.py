@@ -146,13 +146,24 @@ Tıkanmış projeler için sadece doğrudan, 1-2 cümlelik kesin eylem kararlar�
         if (now - self.last_budget_check).total_seconds() <= 3600:
             return
 
-        if self.budget_manager is None:
-            logger.info("💰 CEO: budget_manager tanımlı değil, bütçe izleme atlandı.")
-            self.last_budget_check = now
-            return
-
         logger.info("💰 CEO: Bütçe durumu izleniyor...")
-        await self.budget_manager.monitor_overall_budget()
+        
+        try:
+            from packages.persistence.session import session_scope
+            from packages.persistence.repositories.repository import CostRepository
+            from config import MONTHLY_BUDGET
+            async with session_scope() as db:
+                if hasattr(CostRepository, 'total_cost'):
+                    total_spent = await CostRepository.total_cost(db)
+                    if total_spent >= MONTHLY_BUDGET:
+                        logger.warning(f"🚨 CEO Alarmı: Şirket aylık bütçesi doldu! (${total_spent} / ${MONTHLY_BUDGET})")
+                        await self._queue_telegram_alert(f"🚨 Şirket Aylık Bütçe Sınırı Aşıldı: ${total_spent}")
+                else:
+                    raise RuntimeError("CostRepository.total_cost metodu bulunamadı!")
+        except Exception as e:
+            logger.error(f"❌ CEO Bütçe Kontrol Hatası: {e}")
+            raise RuntimeError("CRITICAL: Bütçe tabloları veya bağlantısı koptu. Çalışma durduruluyor!") from e
+
         self.last_budget_check = now
         logger.info("💰 CEO: Bütçe izleme tamamlandı.")
 
