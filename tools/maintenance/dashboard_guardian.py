@@ -9,12 +9,12 @@ INDEX_PATH = os.path.join(BASE_DIR, "apps", "dashboard", "index.html")
 CORE_JS_PATH = os.path.join(BASE_DIR, "apps", "dashboard", "js", "sovereign_core_v121.js")
 
 def check_dashboard_sync():
-    print("🛡️ Sovereign Dashboard Integrity Guardian Başlatılıyor...")
+    print("[GUARDIAN] Sovereign Dashboard Integrity Guardian Baslatiliyor...")
     errors = []
     
     # 1. Sidebar'dan tokenları oku
     if not os.path.exists(SIDEBAR_PATH):
-        print(f"❌ Sidebar bulunamadı: {SIDEBAR_PATH}")
+        print(f"[ERROR] Sidebar bulunamadi: {SIDEBAR_PATH}")
         return False
         
     with open(SIDEBAR_PATH, 'r', encoding='utf-8') as f:
@@ -22,11 +22,11 @@ def check_dashboard_sync():
         
     # showPage('token') desenini yakala
     tokens = set(re.findall(r"showPage\('([^']+)'\)", sidebar_content))
-    print(f"✅ Sidebar'dan {len(tokens)} navigasyon tokenı çıkarıldı.")
+    print(f"[OK] Sidebar'dan {len(tokens)} navigasyon tokenı cıkarıldı.")
 
     # 2. index.html'deki page-div'leri kontrol et
     if not os.path.exists(INDEX_PATH):
-        print(f"❌ Index bulunamadı: {INDEX_PATH}")
+        print(f"[ERROR] Index bulunamadi: {INDEX_PATH}")
         return False
         
     with open(INDEX_PATH, 'r', encoding='utf-8') as f:
@@ -39,7 +39,7 @@ def check_dashboard_sync():
 
     # 3. JS switch case'lerini kontrol et
     if not os.path.exists(CORE_JS_PATH):
-        print(f"❌ Core JS bulunamadı: {CORE_JS_PATH}")
+        print(f"[ERROR] Core JS bulunamadi: {CORE_JS_PATH}")
         return False
         
     with open(CORE_JS_PATH, 'r', encoding='utf-8') as f:
@@ -64,10 +64,10 @@ def check_dashboard_sync():
 
     # Sonuç raporu
     if not errors:
-        print("🔥 Dashboard Bütünlüğü Tam: Tüm katmanlar senkronize.")
+        print("[SUCCESS] Dashboard Bütünlügü Tam: Tüm katmanlar senkronize.")
         return True
     else:
-        print(f"❌ {len(errors)} Bütünlük Hatası Tespit Edildi:")
+        print(f"[ERROR] {len(errors)} Bütünlük Hatası Tespit Edildi:")
         for err in errors:
             print(f"  - {err}")
         return False
