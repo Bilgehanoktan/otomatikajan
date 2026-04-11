@@ -15,13 +15,13 @@ from packages.orchestration.agi.cognitive.reflective_synthesizer import reflecti
 _log = get_logger("integrity_checker")
 
 async def verify_integrity():
-    _log.info("🛡️ Sovereign AGI Bilişsel Bütünlük Denetimi Başlatılıyor...")
+    _log.info("[INTEGRITY] Sovereign AGI Bilisel Bütünlük Denetimi Baslatiliyor...")
     errors = []
 
     # 1. SovereignCortex Bağlantısı
     try:
         cortex = SovereignCortex()
-        _log.info("✅ [CORTEX] Ana orkestrasyon motoru erişilebilir.")
+        _log.info("[OK] [CORTEX] Ana orkestrasyon motoru erisilebilir.")
     except Exception as e:
         errors.append(f"Cortex Initialization Failed: {e}")
 
@@ -29,7 +29,7 @@ async def verify_integrity():
     try:
         from packages.healing.application.heal_engine import heal_engine
         if heal_engine:
-            _log.info("✅ [HEALING] Otonom onarım motoru bağlı.")
+            _log.info("[OK] [HEALING] Otonom onarim motoru bagli.")
         else:
             errors.append("HealEngine instance is None.")
     except Exception as e:
@@ -41,7 +41,7 @@ async def verify_integrity():
         # Coordinator testi
         from packages.improvement_engine.observer import observer
         if observer:
-            _log.info("✅ [IMPROVEMENT] Öz-evrim gözlemcisi aktif.")
+            _log.info("[OK] [IMPROVEMENT] Oz-evrim gozlemcisi aktif.")
         else:
             errors.append("Improvement Observer is None.")
     except Exception as e:
@@ -50,7 +50,7 @@ async def verify_integrity():
     # 4. Foresight (Öngörü)
     try:
         if foresight_cortex:
-            _log.info("✅ [FORESIGHT] Stratejik öngörü motoru bağlı.")
+            _log.info("[OK] [FORESIGHT] Stratejik ongorü motoru bagli.")
         else:
             errors.append("ForesightCortex is None.")
     except Exception as e:
@@ -59,7 +59,7 @@ async def verify_integrity():
     # 5. Reflection (Yansıtma)
     try:
         if reflective_synthesizer:
-            _log.info("✅ [REFLECTION] Bilişsel denetim (Reflection) motoru bağlı.")
+            _log.info("[OK] [REFLECTION] Bilisel denetim (Reflection) motoru bagli.")
         else:
             errors.append("ReflectiveSynthesizer is None.")
     except Exception as e:
@@ -68,20 +68,20 @@ async def verify_integrity():
     # 6. Dashboard Bütünlüğü (UI/Logic Sync)
     try:
         from tools.maintenance.dashboard_guardian import check_dashboard_sync
-        _log.info("🔍 [DASHBOARD] Arayüz katmanları denetleniyor...")
+        _log.info("[SEARCH] [DASHBOARD] Arayüz katmanları denetleniyor...")
         if not check_dashboard_sync():
             errors.append("Dashboard Integrity Check Failed (Sync mismatch).")
         else:
-            _log.info("✅ [DASHBOARD] Tüm katmanlar (Sidebar/HTML/JS) senkronize.")
+            _log.info("[OK] [DASHBOARD] Tum katmanlar (Sidebar/HTML/JS) senkronize.")
     except Exception as e:
         errors.append(f"Dashboard Guardian Check Failed: {e}")
 
     # SONUÇ
     if not errors:
-        _log.info("🔥 BÜTÜNLÜK DOĞRULANDI: Sovereign AGI operasyon için %100 hazır.")
+        _log.info("[SUCCESS] BÜTÜNLÜK DOGRULANDI: Sovereign AGI operasyon icin %100 hazır.")
         return True
     else:
-        _log.error("❌ BÜTÜNLÜK HATASI: Aşağıdaki motorlar eksik veya hatalı:")
+        _log.error("[ERROR] BÜTÜNLÜK HATASI: Asagidaki motorlar eksik veya hatali:")
         for err in errors:
             _log.error(f"  - {err}")
         return False
