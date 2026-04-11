@@ -3,7 +3,7 @@ import { RootLayout } from '@payloadcms/next/layouts'
 import config from '../../../payload.config'
 import { importMap } from './admin/importMap'
 import { handleServerFunctions } from './actions'
-// import './custom.css'
+import './custom.css'
 
 type Args = {
   children: React.ReactNode
