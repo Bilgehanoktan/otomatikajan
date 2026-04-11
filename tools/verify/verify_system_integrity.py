@@ -119,7 +119,7 @@ def check_database_migrations():
         from sqlalchemy import inspect
 
         async def _check_tables():
-            async with engine().begin() as conn:
+            async with engine.begin() as conn:
                 def get_tables(sync_conn):
                     return inspect(sync_conn).get_table_names()
                 tables = await conn.run_sync(get_tables)
