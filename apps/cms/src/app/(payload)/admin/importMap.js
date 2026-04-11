@@ -23,6 +23,7 @@ import { BoldFeatureClient as BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864
 import { ItalicFeatureClient as ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { Icon as Icon_0dcef4f978fb8dbe92535b3868292997 } from '../../../../src/components/Icon'
 import { Logo as Logo_264db98da1ac5df3191d0afe4380a0d8 } from '../../../../src/components/Logo'
+import { default as default_ff7126c832d661791a1aaef71a73809f } from '../../../../src/components/Dashboard'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
 export const importMap = {
@@ -51,5 +52,6 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#ItalicFeatureClient": ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "./src/components/Icon#Icon": Icon_0dcef4f978fb8dbe92535b3868292997,
   "./src/components/Logo#Logo": Logo_264db98da1ac5df3191d0afe4380a0d8,
+  "./src/components/Dashboard#default": default_ff7126c832d661791a1aaef71a73809f,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }
