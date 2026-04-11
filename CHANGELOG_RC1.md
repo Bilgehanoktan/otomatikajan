@@ -174,11 +174,16 @@
 - **Hygiene Automation**: Optimized repository scanner in `test_repo_hygiene.py` to skip large directories, preventing test timeouts.
 - **Quality Guard**: Full system integrity and architectural hardening verified.
 
-### Sprint 24 — Infrastructure Recovery & Root Hygiene (Faz 12.1 RC1.8)
-- **DeerFlow Bridge Resolution**: `ImportError` in `deerflow-bridge` resolved by correcting relative import depth in `packages/skills/loader.py` and enforcing bridge rebuild.
-- **Root Directory Purge**: Root is now completely sanitized. 
-  - Logs, test results, and transient outputs moved to `runtime/logs/`.
-  - Legacy diagnostic proof files archived to `.legacy_archive/`.
-  - Redundant root `memory/` and `vault/` directories removed.
-- **Persistence Mapping**: Centralized `engine_paths.txt` and other runtime mapping artifacts into `runtime/data/`.
-- **Integrity**: Deduplicated and updated `CHANGELOG_RC1.md` to reflect unified RC1.x stabilization timeline.
+### Sprint 24: Infrastructure Hardening & Hygiene (Faz 12.1 RC1.8)
+- **Bridge Stability**:
+  - Resolved `ImportError: attempted relative import beyond top-level package` in `deerflow-bridge`.
+  - Corrected relative imports in `loader.py` and `validation.py` within `deerflow.packages.skills`.
+  - Verified container stability through automated checks.
+- **Repository Hygiene**:
+  - Root directory sanitized: Removed legacy `memory/`, `vault/`, `workspace/`, and `uploads/`.
+  - Established `runtime/data/` and `runtime/logs/` as the single sources for state and diagnostics.
+  - Migrated recovery and diagnostic scripts to `scripts/`.
+- **Integrity Enforcement**:
+  - Implemented `scripts/verify_rc1_8_status.py` for automated infrastructure validation.
+  - Successfully verified system state across modular domains.
+
