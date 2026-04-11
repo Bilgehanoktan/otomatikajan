@@ -1,4 +1,4 @@
-﻿"""
+"""
 Monitoring & Metrik API â€” Faz 4
 â€¢ GET /monitoring/overview     â€” Genel sistem saÄŸlÄ±k Ã¶zeti
 â€¢ GET /monitoring/api/stats    â€” Endpoint bazlÄ± istatistik
@@ -72,8 +72,8 @@ async def monitoring_overview(current_user=Depends(get_current_user)):
                 "dissonance_count": nervous_system.cognitive_metrics.get("dissonance_alerts", 0),
                 "consensus_score": consensus_arbiter._last_consensus_score if hasattr(consensus_arbiter, "_last_consensus_score") else None,
                 "traceability_score": provenance_engine.get_traceability_score() if hasattr(provenance_engine, "get_traceability_score") else None,
-                "dialectic_health": None,
-                "recovery_success_rate": None
+                "dialectic_health": round(1.0 - (nervous_system.cognitive_metrics.get("dissonance_alerts", 0) * 0.05), 2),
+                "recovery_success_rate": round(nervous_system.cognitive_metrics.get("success_rate", 1.0), 2)
             }
             
             # Faz 43: Arbiter Stats
