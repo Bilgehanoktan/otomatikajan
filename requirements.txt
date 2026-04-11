@@ -50,3 +50,4 @@ google-generativeai==0.8.0
 PyGithub==2.3.0
 playwright==1.42.0
 pytest-playwright==0.4.4
+aiofiles==23.2.1
