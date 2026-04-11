@@ -83,7 +83,7 @@ class AgencyLoader:
         return self.agents
 
 _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-base_path = os.path.join(_root, "agents", "agency_library")
+base_path = os.path.join(_root, "packages", "orchestration", "agi", "agents", "agency_library")
 agency_loader = AgencyLoader(base_path)
 
 def get_agency_loader() -> AgencyLoader:
