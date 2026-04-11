@@ -68,7 +68,12 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "DEBUG" if is_dev else "INFO")
 _raw_db_url = os.getenv("DATABASE_URL", "")
 
 # Docker ortamında mıyız? (Konteyner içi tespiti)
-_is_in_docker = os.path.exists("/.dockerenv") or os.getenv("DOCKER_CONTAINER", "false").lower() == "true"
+_is_in_docker = (
+    os.path.exists("/.dockerenv") or 
+    os.getenv("DOCKER_CONTAINER", "false").lower() == "true" or
+    os.path.exists("/proc/self/cgroup") and any("docker" in line for line in open("/proc/self/cgroup"))
+)
+
 
 if _is_in_docker:
     # Docker içinde '127.0.0.1' veya 'localhost' kullanımı genellikle hatadır (host portuna gitmeye çalışır)
