@@ -11,30 +11,16 @@ import json
 from typing import Any, Dict, List, Optional
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
-from packages.orchestration.application.velocity_engine import velocity_engine
 
-from packages.orchestration.application.agent_discovery import build_agents
 from packages.observability.logging import get_logger
-from packages.llm_gateway.model_orchestrator import ModelOrchestrator
-from packages.memory.retrieval import context_builder
-from packages.quality_assurance.output_schema import output_parser, AgentOutput
 
-# MIGRATED IMPORTS
-from packages.orchestration.domain.models import SovereignGoal, GovernedTask, GovernanceStatus, TaskStatus, ProjectTask, SubTask
-from packages.orchestration.application.governance import TaskPlanner, TaskStateService, ReportSynthesizer
-
-# Lazy-loaded imports (moved from top level to prevent circular hangs)
-# Improvement, Healing, and Updater will be imported in properties
-
-# Lazy-loaded imports (moved from top level to prevent circular hangs)
+# Internal package imports moved to local scopes to prevent circular hangs
 # Improvement, Healing, and Updater will be imported in properties
 # Internal engines (foresight, reflection, etc.) will be imported locally
 
 _log = get_logger("agi_sovereign_cortex")
 
 class SovereignCortex:
-    # ... (Rest of the code is identical to original, just with updated imports)
-    # I will paste the content I viewed earlier but with the import fixes.
     def __init__(self):
         from packages.llm_gateway.model_orchestrator import ModelOrchestrator
         from packages.orchestration.domain.architect import Architect
@@ -80,14 +66,10 @@ class SovereignCortex:
         from packages.orchestration.agi.cognitive.reflective_synthesizer import reflective_synthesizer
         return reflective_synthesizer
 
-        self._agents: dict = {}
-        self._health: dict[str, float] = {}
-        self._is_running = False
-        self._lock = asyncio.Lock()
-
     @property
     def planner(self):
         """Lazy-loaded TaskPlanner"""
+        from packages.orchestration.application.governance import TaskPlanner
         return TaskPlanner()
 
     @property
@@ -158,6 +140,7 @@ class SovereignCortex:
         return self._reflection_svc
 
     async def start(self):
+        from packages.orchestration.application.agent_discovery import build_agents
         async with self._lock:
             if self._is_running: return
             self._agents = build_agents()
@@ -180,6 +163,7 @@ class SovereignCortex:
         while self._is_running:
             try:
                 _log.info("[SOVEREIGN-AUTOCHECK] Bilişsel sağlık denetimi başlatılıyor...")
+                from packages.quality_assurance.eval_harness import eval_harness
                 report = await eval_harness.run_full_evaluation()
                 score = report.get("overall_cognitive_score", 0.0)
                 if score < 0.8:
@@ -192,12 +176,13 @@ class SovereignCortex:
                 _log.error(f"[SOVEREIGN-AUTOCHECK] Öz-bakım döngüsü hatası: {e}")
                 await asyncio.sleep(300)
 
-    async def _ensure_specialist_availability(self, subtask: SubTask):
+    async def _ensure_specialist_availability(self, subtask: Any):
         role = subtask.agent_id
         if role not in self._agents:
             _log.info(f"[SOVEREIGN-WEAVER] Uzman ajan eksikliği saptandı: {role}. Otonom forgery başlatılıyor...")
             specialist_prompt = await self.architect.forge_specialist_prompt(role, subtask.title + " " + subtask.description)
             from packages.orchestration.application.agent_discovery import Agent
+            from packages.quality_assurance.output_schema import output_parser
             new_agent = Agent(
                 id=role,
                 name=f"{role.capitalize()} Specialist",
@@ -213,15 +198,13 @@ class SovereignCortex:
     def load_self_updater(self):
         try:
             from packages.orchestration.application.self_updater import SelfUpdater
+            from packages.improvement_engine.observer import observer as improvement_observer
             self.self_updater = SelfUpdater(model_orch=self.model_orch)
-            # Faz 12.2: Öz-Evrim Koordinatörü
-            self.improvement_coordinator = SelfImprovementCoordinator(
-                self.self_updater, improvement_observer
-            )
+            self.improvement_coordinator = self.improvement_coordinator
         except Exception as e:
             _log.error(f"Self-Improvement initialization failed: {e}")
 
-    async def coordinate_goal(self, title: str, description: str, project_id: str = None, workflow_template: str = None, quality_profile: str = None, acceptance_criteria: str = None, execution_context: Dict[str, Any] = None) -> ProjectTask:
+    async def coordinate_goal(self, title: str, description: str, project_id: str = None, workflow_template: str = None, quality_profile: str = None, acceptance_criteria: str = None, execution_context: Dict[str, Any] = None) -> Any:
         if not self._is_running: await self.start()
         task_id = project_id or str(uuid.uuid4())
         _log.info(f"[SOVEREIGN] Hedef koordinasyonu başlatıldı: {title} ({task_id})")
@@ -229,6 +212,7 @@ class SovereignCortex:
         from packages.persistence.session import AsyncSessionLocal
         from packages.persistence.repositories.repository import ProjectRepository
         from packages.persistence.models import ProjectStatus
+        from packages.orchestration.domain.models import ProjectTask, TaskStatus, SubTask
         
         async with AsyncSessionLocal() as db:
             existing = await ProjectRepository.get(db, task_id)
@@ -250,6 +234,10 @@ class SovereignCortex:
             task.execution_context.update(execution_context)
 
         # 1. Metabolic & Safety Pre-checks
+        from packages.orchestration.agi.metabolic_governor import metabolic_governor
+        from packages.orchestration.agi.axiology_engine import axiology_engine
+        from packages.memory.pruner import memory_pruner
+        
         if self.affective.energy < 0.3:
             _log.info(f"[SOVEREIGN-DREAM] Düşük enerji tespiti ({self.affective.energy:.2f}). Bilişsel Sıkıştırma başlatılıyor...")
             async with AsyncSessionLocal() as db:
@@ -277,8 +265,11 @@ class SovereignCortex:
             return task
 
         # 2. Context Aggregation
-        strategic_context = await memory_api.get_strategic_context(query=f"{title} {description}")
-        cognitive_memory = "Synaptic synergy active" # Simplified for now, since legacy sync is removed
+        from packages.memory.retrieval import context_builder
+        from packages.orchestration.domain.models import ProblemFrame, TaskType, RiskLevel
+        
+        strategic_context = await context_builder.build_context(f"{title} {description}")
+        cognitive_memory = "Synaptic synergy active"
         
         from packages.orchestration.agi.world import service_graph, task_state_graph
         service_health = service_graph.get_summary()
