@@ -114,7 +114,8 @@ def check_database_migrations():
     print("[*] Running Database Schema Validation...")
     try:
         import asyncio
-        from packages.persistence.session import engine
+        from packages.persistence.session import _get_engine
+        engine = _get_engine()
         from sqlalchemy import inspect
 
         async def _check_tables():
