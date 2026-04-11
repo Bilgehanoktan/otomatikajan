@@ -114,14 +114,14 @@ async def telegram_webhook(
 
     # Bot işleyici
     try:
-        from telegram_app.bot import (
-    handle_update,
-    telegram_notifier,
-    BOT_TOKEN,
-    _tg_available,
-    _is_admin,
-    ALLOWED_IDS
-)
+        from apps.telegram_bot.bot import (
+            handle_update,
+            telegram_notifier,
+            BOT_TOKEN,
+            _tg_available,
+            _is_admin,
+            ALLOWED_IDS
+        )
         result = await handle_update(update_data)
 
         if result:
@@ -147,7 +147,7 @@ async def send_message(body: dict):
         raise HTTPException(status_code=422, detail="chat_id ve text gerekli")
 
     try:
-        from telegram_app.bot import telegram_notifier
+        from apps.telegram_bot.bot import telegram_notifier
         success = await telegram_notifier.send_to_chat(int(chat_id), text)
         return {"sent": success}
     except Exception as e:
