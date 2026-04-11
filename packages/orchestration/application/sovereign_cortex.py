@@ -134,6 +134,22 @@ class SovereignCortex:
         return self._executor_svc
 
     @property
+    def state_svc(self):
+        """Lazy-loaded TaskStateService"""
+        if self._state_svc is None:
+            from packages.orchestration.application.governance import TaskStateService
+            self._state_svc = TaskStateService()
+        return self._state_svc
+
+    @property
+    def synthesizer(self):
+        """Lazy-loaded ReportSynthesizer"""
+        if self._synthesizer is None:
+            from packages.orchestration.application.governance import ReportSynthesizer
+            self._synthesizer = ReportSynthesizer()
+        return self._synthesizer
+
+    @property
     def reflection_svc(self):
         """Lazy-loaded ReflectionEngine"""
         if self._reflection_svc is None:
