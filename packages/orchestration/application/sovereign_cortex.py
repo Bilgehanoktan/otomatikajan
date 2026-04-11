@@ -188,6 +188,7 @@ class SovereignCortex:
             if self.improvement_coordinator:
                 await self.improvement_coordinator.start()
             await self.watchdog.start()
+            asyncio.create_task(self.heal_engine.monitor_loop()) # Faz 12.5: Otonom İyileştirme Aktif
             asyncio.create_task(self._metacognitive_drift_loop())
             _log.info(f"[SOVEREIGN] Bilişsel yönetim merkezi aktif. {len(self._agents)} ajan hazır.")
 
