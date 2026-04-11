@@ -2,7 +2,6 @@ import React from 'react'
 import { CollectionCards } from '@payloadcms/next/rsc'
 
 const Dashboard = (props: any) => {
-  console.log('Dashboard Props Keys:', Object.keys(props))
   return (
     <div style={{ padding: 'var(--gutter-h)', maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ 
