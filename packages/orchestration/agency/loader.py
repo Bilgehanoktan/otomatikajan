@@ -49,8 +49,16 @@ class AgencyLoader:
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 post = frontmatter.load(f)
-                agent_id = os.path.splitext(os.path.basename(file_path))[0]
-                category = os.path.basename(os.path.dirname(file_path))
+                base_name = os.path.basename(file_path)
+                parent_dir = os.path.basename(os.path.dirname(file_path))
+                
+                # If the filename is generic (SKILL.md), use the directory name as the ID
+                if base_name.upper() == "SKILL.MD":
+                    agent_id = parent_dir
+                else:
+                    agent_id = os.path.splitext(base_name)[0]
+                
+                category = parent_dir if agent_id != parent_dir else os.path.basename(os.path.dirname(os.path.dirname(file_path)))
                 self.agents[agent_id] = {
                     "id": agent_id,
                     "name": post.get("name", agent_id.replace("-", " ").title()),
