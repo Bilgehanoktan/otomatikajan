@@ -198,9 +198,10 @@ class SovereignCortex:
     def load_self_updater(self):
         try:
             from packages.orchestration.application.self_updater import SelfUpdater
-            from packages.improvement_engine.observer import observer as improvement_observer
-            self.self_updater = SelfUpdater(model_orch=self.model_orch)
-            self.improvement_coordinator = self.improvement_coordinator
+            # Faz 12.2: Öz-Evrim Koordinatörü
+            # Note: Accessing the properties triggers lazy initialization
+            _ = self.self_updater
+            _ = self.improvement_coordinator
         except Exception as e:
             _log.error(f"Self-Improvement initialization failed: {e}")
 
