@@ -22,11 +22,9 @@ from packages.quality_assurance.output_schema import output_parser, AgentOutput
 # MIGRATED IMPORTS
 from packages.orchestration.domain.models import SovereignGoal, GovernedTask, GovernanceStatus, TaskStatus, ProjectTask, SubTask
 from packages.orchestration.application.governance import TaskPlanner, TaskStateService, ReportSynthesizer
-from packages.orchestration.application.cognitive_planner import CognitivePlanner
-from packages.orchestration.application.operational_executor import OperationalExecutor
-from packages.orchestration.application.reflection_engine import ReflectionEngine
-from packages.improvement_engine.self_improvement_coordinator import SelfImprovementCoordinator
-from packages.improvement_engine.observer import observer as improvement_observer
+
+# Lazy-loaded imports (moved from top level to prevent circular hangs)
+# Improvement, Healing, and Updater will be imported in properties
 
 # LEGACY IMPORTS (To be migrated next)
 from packages.orchestration.domain.auditor import metacognitive_auditor
@@ -69,29 +67,87 @@ class SovereignCortex:
     # I will paste the content I viewed earlier but with the import fixes.
     def __init__(self):
         self.model_orch  = ModelOrchestrator()
-        self.planner     = TaskPlanner()
         self.state_svc   = TaskStateService()
         self.synthesizer = ReportSynthesizer()
         self.architect   = Architect(model_orch=self.model_orch)
         self.motivation  = motivation_engine
         self.affective   = affective_core
         self.prompt_synth = PromptSynthesizer(self.model_orch)
-        self.self_updater = None # Faz 8 Infra
         self.watchdog    = governance_watchdog
         self.event_bus = event_bus # Unified AGI Event System (V5)
         
-        # Decomposed Services
+        # Internal lazy states
+        self._self_updater = None
+        self._improvement_coordinator = None
+        self._heal_engine = None
+        self._planner_svc = None
+        self._executor_svc = None
+        self._reflection_svc = None
+        
+        # Decomposed Services (Aliases for backward compatibility)
         self.foresight = foresight_cortex
         self.reflection = reflective_synthesizer
-        self.planner_svc = CognitivePlanner(self.model_orch, self.affective, self.motivation, self.foresight)
-        self.executor_svc = OperationalExecutor(self.model_orch, self.affective, self.reflection)
-        self.reflection_svc = ReflectionEngine(self.affective)
-        self.improvement_coordinator = None
 
         self._agents: dict = {}
         self._health: dict[str, float] = {}
         self._is_running = False
         self._lock = asyncio.Lock()
+
+    @property
+    def planner(self):
+        """Lazy-loaded TaskPlanner"""
+        return TaskPlanner()
+
+    @property
+    def self_updater(self):
+        """Lazy-loaded SelfUpdater to prevent circular imports during init"""
+        if self._self_updater is None:
+            from packages.orchestration.application.self_updater import SelfUpdater
+            self._self_updater = SelfUpdater(self.model_orch)
+        return self._self_updater
+
+    @property
+    def improvement_coordinator(self):
+        """Lazy-loaded SelfImprovementCoordinator"""
+        if self._improvement_coordinator is None:
+            from packages.improvement_engine.self_improvement_coordinator import SelfImprovementCoordinator
+            from packages.improvement_engine.observer import observer as improvement_observer
+            self._improvement_coordinator = SelfImprovementCoordinator(
+                self.self_updater, improvement_observer
+            )
+        return self._improvement_coordinator
+
+    @property
+    def heal_engine(self):
+        """Lazy-loaded SelfHealEngine"""
+        if self._heal_engine is None:
+            from packages.healing.application.heal_engine import heal_engine
+            self._heal_engine = heal_engine
+        return self._heal_engine
+
+    @property
+    def planner_svc(self):
+        """Lazy-loaded CognitivePlanner"""
+        if self._planner_svc is None:
+            from packages.orchestration.application.cognitive_planner import CognitivePlanner
+            self._planner_svc = CognitivePlanner(self.model_orch, self.affective, self.motivation, self.foresight)
+        return self._planner_svc
+
+    @property
+    def executor_svc(self):
+        """Lazy-loaded OperationalExecutor"""
+        if self._executor_svc is None:
+            from packages.orchestration.application.operational_executor import OperationalExecutor
+            self._executor_svc = OperationalExecutor(self.model_orch, self.affective, self.reflection)
+        return self._executor_svc
+
+    @property
+    def reflection_svc(self):
+        """Lazy-loaded ReflectionEngine"""
+        if self._reflection_svc is None:
+            from packages.orchestration.application.reflection_engine import ReflectionEngine
+            self._reflection_svc = ReflectionEngine(self.affective)
+        return self._reflection_svc
 
     async def start(self):
         async with self._lock:
