@@ -47,27 +47,27 @@ class EventBus:
         self._wildcard.append(handler)
 
     async def _get_redis(self) -> Any:
-        # Faz 8 tarzı sade mod: tamamen local event bus
+        # Faz 12.2: Merkezi Redis istemcisini kullan (SRE Hardening)
         if EVENT_BUS_MODE == "local":
             return None
 
         if self._redis_conn is not None:
             return self._redis_conn
-        
-        redis_url = os.getenv("REDIS_URL", "")
-        if not redis_url:
-            return None
             
         try:
-            import redis.asyncio as redis
-            self._redis_conn = redis.from_url(redis_url, decode_responses=True)
-            # Listener başlat
-            if self._listen_task is None:
-                self._listen_task = asyncio.create_task(self._listen_redis())
+            from packages.persistence.session import get_redis_client
+            self._redis_conn = get_redis_client()
+            
+            if self._redis_conn is not None:
+                # Listener başlat
+                if self._listen_task is None:
+                    self._listen_task = asyncio.create_task(self._listen_redis())
             return self._redis_conn
         except Exception as e:
-            print(f"⚠️  EventBus Redis bağlantı hatası: {e}")
+            from packages.observability.logging import get_logger
+            get_logger("events").warning(f"⚠️  EventBus Redis bağlantı hatası: {e}")
             return None
+
 
     async def _listen_redis(self):
         """Redis'ten gelen olayları dinle ve yerel handler'ları tetikle."""
