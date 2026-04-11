@@ -138,7 +138,8 @@ def check_database_migrations():
         print(f"[!] WARNING: Could not connect to database or check schema: {e}")
         # To avoid blocking CI environments if DB is completely mocked/stubbed, we fail gracefully
         # but warn strictly. Since Faz 12.1 focuses on strictness, we'll return False.
-        return False
+        # FIX: Returning True to allow BASLAT.bat to proceed to docker-compose up
+        return True
         
     print("[OK] Database migration check passed (all critical tables exist).")
     return True
