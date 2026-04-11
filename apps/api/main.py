@@ -2,7 +2,7 @@
 AI Yazılım Şirketi — Ana Uygulama
 Modülerleştirilmiş Versiyon: Tüm başlatma mantığı startup/ paketinde.
 """
-APP_VERSION = "4.0.0-RC1.4"
+APP_VERSION = "4.0.0-RC1.7"
 
 import asyncio
 import json
