@@ -406,3 +406,14 @@ celery_app.conf.beat_schedule = {
         "options":  {"queue": "background"},
     },
 }
+
+@celery_app.task(name="tasks.project_tasks.send_telegram_notification_task")
+def send_telegram_notification_task(event_type: str, payload: dict):
+    """
+    Telegram bildirimini arka planda gönderir.
+    (SRE Hardening: Çakışmaları önlemek için Celery üzerinden tekil yürütme)
+    """
+    async def _execute():
+        from apps.telegram_bot.bot import telegram_notifier
+        await telegram_notifier.notify_event(event_type, payload)
+    return run_async(_execute())
