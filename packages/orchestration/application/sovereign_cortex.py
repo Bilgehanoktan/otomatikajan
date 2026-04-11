@@ -194,6 +194,19 @@ class SovereignCortex:
     def get_health(self) -> dict[str, float]:
         return self._health.copy()
 
+    def check_safety(self, input_text: str) -> bool:
+        """
+        Gvenlik Denetimi: Tehlikeli komut ve paternleri senkron olarak tarar.
+        (AxiologyEngine ve AuditGate'in senkron n-katman)
+        """
+        dangerous_patterns = ["rm -rf", "drop table", "truncate", "delete from", "format c:", ":(){:|:&};:"]
+        input_lower = input_text.lower()
+        for pattern in dangerous_patterns:
+            if pattern in input_lower:
+                _log.warning(f"[SAFETY-ALARM] Tehlikeli patern saptand: {pattern}")
+                return False
+        return True
+
     def agent_count(self) -> int:
         return len(self._agents) if self._agents else 0
 
