@@ -66,7 +66,11 @@ async def verify_integrity():
     try:
         from tools.maintenance.dashboard_guardian import check_dashboard_sync
         _log.info("[CHECK] [DASHBOARD] Interface layers audit starting...")
-        if not check_dashboard_sync():
+        is_synced, sync_errors = check_dashboard_sync()
+        if not is_synced:
+            # Detaylı hataları ana loga aktar
+            for sync_err in sync_errors:
+                _log.error(f"  [DASHBOARD ERROR] - {sync_err}")
             errors.append("Dashboard Integrity Check Failed (Sync mismatch).")
         else:
             _log.info("[OK] [DASHBOARD] All layers (Sidebar/HTML/JS) synchronized.")
