@@ -137,8 +137,8 @@ except ImportError:
 
 
 
-
-# ── DB Durumu — degraded mode takibi ─────────────────────
+# Public engine access
+engine = _get_engine
 _DB_AVAILABLE: bool = False
 _DB_DEGRADED:  bool = False
 _DB_ERROR:     str  = ""
