@@ -106,6 +106,16 @@ class UnifiedGalacticCortex:
         primary_results = await self.search(db, query, top_k=top_k)
         return primary_results
 
+    async def get_recent(self, db: AsyncSession, limit: int = 10, category: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Sistemin en son hatıralarını döner. Rüya ve konsolidasyon için kritik."""
+        stmt = select(Memory).order_by(desc(Memory.created_at))
+        if category:
+            stmt = stmt.where(Memory.category == category)
+        
+        res = await db.execute(stmt.limit(limit))
+        return [{"id": str(m.id), "agent_id": m.agent_id, "body": m.body, "category": m.category, "importance": m.importance, "created_at": m.created_at.isoformat()} for m in res.scalars().all()]
+
+
 # Singleton
 synaptic_cortex = UnifiedGalacticCortex()
 ugc = synaptic_cortex
