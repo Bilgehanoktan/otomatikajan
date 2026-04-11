@@ -3,7 +3,7 @@ import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import path from 'path'
 import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
-import sharp from 'sharp'
+// import sharp from 'sharp'
 
 import { Users } from './src/collections/Users'
 import { Media } from './src/collections/Media'
@@ -48,5 +48,5 @@ export default buildConfig({
       connectionString: process.env.DATABASE_URL || '',
     },
   }),
-  sharp,
+  // sharp,
 })
