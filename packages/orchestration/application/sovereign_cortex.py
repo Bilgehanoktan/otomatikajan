@@ -215,7 +215,7 @@ class SovereignCortex:
         while self._is_running:
             try:
                 _log.info("[SOVEREIGN-AUTOCHECK] Bilişsel sağlık denetimi başlatılıyor...")
-                from packages.quality_assurance.eval_harness import eval_harness
+                from packages.orchestration.agi.quality.eval_harness import eval_harness
                 report = await eval_harness.run_full_evaluation()
                 score = report.get("overall_cognitive_score", 0.0)
                 if score < 0.8:
