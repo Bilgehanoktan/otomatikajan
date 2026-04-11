@@ -1,3 +1,6 @@
+@layer payload-default, payload;
+
+@layer payload {
 /* Deep Custom Styles for Payload CMS */
 
 :root {
