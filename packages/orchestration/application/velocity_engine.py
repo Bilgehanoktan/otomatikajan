@@ -22,7 +22,7 @@ from packages.persistence.session import session_scope
 from packages.orchestration.domain.events import event_bus
 from packages.contracts.events import EVENT_SKILL_TRACE
 from packages.orchestration.agi.world.provenance_engine import provenance_engine # To be moved
-from packages.orchestration.agi.cognitive.metacognitive_auditor import MetacognitiveAuditor # To be moved
+# from packages.orchestration.agi.cognitive.metacognitive_auditor import MetacognitiveAuditor # Moved to lazy property
 from packages.orchestration.agi.operational.tool_executor import tool_executor
 from packages.quality_assurance.output_schema import output_parser, AgentOutput
 
@@ -46,7 +46,15 @@ class VelocityEngine:
         self.sandbox = get_sandbox_runner()
         self.agents = {} 
         self.simulation_mode = True 
-        self.meta_audit = MetacognitiveAuditor(self.model_orch)
+        self._meta_audit = None
+
+    @property
+    def meta_audit(self):
+        """Lazy loader for MetacognitiveAuditor to prevent circular imports."""
+        if self._meta_audit is None:
+            from packages.orchestration.agi.cognitive.metacognitive_auditor import MetacognitiveAuditor
+            self._meta_audit = MetacognitiveAuditor(self.model_orch)
+        return self._meta_audit
 
     async def _ensure_agents(self):
         if not self.agents:
