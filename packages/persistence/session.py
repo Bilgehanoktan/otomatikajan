@@ -117,6 +117,8 @@ class _LazySessionLocal:
         return _get_session_factory()()
 
 AsyncSessionLocal = _LazySessionLocal()
+async_session = AsyncSessionLocal  # Faz 12.1/12.2 Geriye Dönük Uyumluluk
+
 
 # Celery Fork Safety: Worker process baslatildiginda engine'i temizle
 # Bu sayede her worker kendi pool'una sahip olur.
@@ -307,23 +309,36 @@ def get_redis_client():
         import redis.asyncio as redis
         from config import REDIS_URL
         
-        url = REDIS_URL or "redis://localhost:6379/0"
-        
-        # SRE: getaddrinfo hatasını önlemek için Windows/Host tarafındaysak 127.0.0.1'e zorla
+        # SRE: URL tespiti ve normalizasyon
+        url = REDIS_URL
+        if not url:
+            # Fallback zinciri
+            if os.getenv("DOCKER_CONTAINER", "false").lower() == "true":
+                url = "redis://redis:6379/0"
+            else:
+                url = "redis://127.0.0.1:6380/0"
+
+        # Docker dışında mıyız testi (Socket check)
         if "redis:6379" in url:
             import socket
             try:
                 # Docker içinde değilsek (redis ismi çözülemiyorsa) localhost kullan
                 socket.gethostbyname("redis")
             except socket.gaierror:
-                # Sadece eğer 6380 portu dışarıdan açıksa (host mode tespiti)
-                if os.getenv("RUNNING_ON_HOST", "false").lower() == "true":
-                    url = url.replace("redis:6379", "127.0.0.1:6380")
-                    logger.debug(f"Redis: Host mode detected, using 127.0.0.1:6380")
-
+                url = url.replace("redis:6379", "127.0.0.1:6380")
+                logger.debug(f"Redis: Host mode detected (DNS fail), using 127.0.0.1:6380")
+        
+        # SRE Robustness: URL icinde localhost gecerse ama 6379 ise ve baglanamazsa 6380 dene (opsiyonel ama guvenli)
+        
         logger.info(f"Redis: Connecting to {url}")
-        _redis_instance = redis.from_url(url, decode_responses=True)
+        _redis_instance = redis.from_url(
+            url, 
+            decode_responses=True,
+            socket_connect_timeout=2.0,
+            retry_on_timeout=True
+        )
         return _redis_instance
     except Exception as e:
-        logger.warning(f"Redis baglantisi kurulamadi: {e}")
+        logger.warning(f"Redis baglantisi kurulamadi ({url}): {e}")
         return None
+
