@@ -421,13 +421,26 @@ class ModelOrchestrator:
         return round((input_tokens + output_tokens) / 1000 * rate, 6)
 
     async def _call_openai(self, client, p, messages, max_tokens) -> str:
-        resp = await client.post(
-            p.base_url,
-            headers={"Authorization": f"Bearer {p.api_key}"},
-            json={"model": p.model, "messages": messages, "max_tokens": max_tokens},
-        )
-        resp.raise_for_status()
-        return resp.json()["choices"][0]["message"]["content"]
+        for attempt in range(3):
+            try:
+                resp = await client.post(
+                    p.base_url,
+                    headers={"Authorization": f"Bearer {p.api_key}"},
+                    json={"model": p.model, "messages": messages, "max_tokens": max_tokens},
+                )
+                if resp.status_code == 429 and attempt < 2:
+                    wait = (attempt + 1) * 2
+                    logger.warning(f"[LLM-RETRY] OpenAI 429 Rate Limit. {wait}s bekleniyor...")
+                    await asyncio.sleep(wait)
+                    continue
+                resp.raise_for_status()
+                return resp.json()["choices"][0]["message"]["content"]
+            except Exception as e:
+                if attempt == 2: raise e
+                if "429" in str(e) and attempt < 2:
+                    await asyncio.sleep((attempt + 1) * 2)
+                    continue
+                raise e
 
     async def _call_nvidia(self, client, p, messages, max_tokens) -> str:
         # NVIDIA NIM API uses OpenAI format + optional thinking flag
@@ -492,12 +505,25 @@ class ModelOrchestrator:
         api_version = "v1beta"
         url = f"{p.base_url.rstrip('/')}/{api_version}/models/{p.model}:generateContent"
         
-        resp = await client.post(
-            f"{url}?key={p.api_key}",
-            json={"contents": contents, "generationConfig": {"maxOutputTokens": max_tokens}},
-        )
-        resp.raise_for_status()
-        return resp.json()["candidates"][0]["content"]["parts"][0]["text"]
+        for attempt in range(3):
+            try:
+                resp = await client.post(
+                    f"{url}?key={p.api_key}",
+                    json={"contents": contents, "generationConfig": {"maxOutputTokens": max_tokens}},
+                )
+                if resp.status_code == 429 and attempt < 2:
+                    wait = (attempt + 1) * 3
+                    logger.warning(f"[LLM-RETRY] Gemini 429 Rate Limit. {wait}s bekleniyor...")
+                    await asyncio.sleep(wait)
+                    continue
+                resp.raise_for_status()
+                return resp.json()["candidates"][0]["content"]["parts"][0]["text"]
+            except Exception as e:
+                if attempt == 2: raise e
+                if "429" in str(e) and attempt < 2:
+                    await asyncio.sleep((attempt + 1) * 3)
+                    continue
+                raise e
 
     async def complete(
         self,
