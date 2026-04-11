@@ -17,7 +17,7 @@ const Dashboard = (props: any) => {
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '2rem' }}>
+      <div>
         <CollectionCards {...props} req={{ i18n: props.i18n, payload: props.payload, user: props.user }} />
       </div>
     </div>
