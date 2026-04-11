@@ -22,25 +22,10 @@ _log = get_logger("agi_sovereign_cortex")
 
 class SovereignCortex:
     def __init__(self):
-        from packages.llm_gateway.model_orchestrator import ModelOrchestrator
-        from packages.orchestration.domain.architect import Architect
-        from packages.orchestration.domain.learning.prompt_synthesizer import PromptSynthesizer
-        from packages.orchestration.agi.governance.watchdog import governance_watchdog
-        from packages.orchestration.domain.events import event_bus
-        from packages.orchestration.agi.cognitive.motivation_engine import motivation_engine
-        from packages.orchestration.domain.affective_core import affective_core
-
-        self.model_orch  = ModelOrchestrator()
-        self.state_svc   = None # Lazy loaded in property
-        self.synthesizer = None # Lazy loaded in property
-        self.architect   = Architect(model_orch=self.model_orch)
-        self.motivation  = motivation_engine
-        self.affective   = affective_core
-        self.prompt_synth = PromptSynthesizer(self.model_orch)
-        self.watchdog    = governance_watchdog
-        self.event_bus   = event_bus
-        
         # Internal lazy states
+        self._model_orch = None
+        self._architect = None
+        self._prompt_synth = None
         self._self_updater = None
         self._improvement_coordinator = None
         self._heal_engine = None
@@ -50,11 +35,64 @@ class SovereignCortex:
         self._task_planner = None
         self._state_svc = None
         self._synthesizer = None
+        self._event_bus = None
+        self._motivation = None
+        self._affective = None
+        self._watchdog = None
 
         self._agents: dict = {}
         self._health: dict[str, float] = {}
         self._is_running = False
         self._lock = asyncio.Lock()
+
+    @property
+    def model_orch(self):
+        if self._model_orch is None:
+            from packages.llm_gateway.model_orchestrator import ModelOrchestrator
+            self._model_orch = ModelOrchestrator()
+        return self._model_orch
+
+    @property
+    def architect(self):
+        if self._architect is None:
+            from packages.orchestration.domain.architect import Architect
+            self._architect = Architect(model_orch=self.model_orch)
+        return self._architect
+
+    @property
+    def prompt_synth(self):
+        if self._prompt_synth is None:
+            from packages.orchestration.domain.learning.prompt_synthesizer import PromptSynthesizer
+            self._prompt_synth = PromptSynthesizer(self.model_orch)
+        return self._prompt_synth
+
+    @property
+    def event_bus(self):
+        if self._event_bus is None:
+            from packages.orchestration.domain.events import event_bus
+            self._event_bus = event_bus
+        return self._event_bus
+
+    @property
+    def motivation(self):
+        if self._motivation is None:
+            from packages.orchestration.agi.cognitive.motivation_engine import motivation_engine
+            self._motivation = motivation_engine
+        return self._motivation
+
+    @property
+    def affective(self):
+        if self._affective is None:
+            from packages.orchestration.domain.affective_core import affective_core
+            self._affective = affective_core
+        return self._affective
+
+    @property
+    def watchdog(self):
+        if self._watchdog is None:
+            from packages.orchestration.agi.governance.watchdog import governance_watchdog
+            self._watchdog = governance_watchdog
+        return self._watchdog
 
     @property
     def foresight(self):
