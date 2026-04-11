@@ -27,13 +27,14 @@ async def verify_integrity():
 
     # 2. Self-Healing (Bilişsel Onarım)
     try:
-        from packages.healing.application.heal_engine import HealEngine
+        from packages.healing.application.heal_engine import heal_engine
         if heal_engine:
             _log.info("✅ [HEALING] Otonom onarım motoru bağlı.")
         else:
             errors.append("HealEngine instance is None.")
     except Exception as e:
         errors.append(f"HealEngine Check Failed: {e}")
+
 
     # 3. Self-Improvement (Öz-Evrim)
     try:
