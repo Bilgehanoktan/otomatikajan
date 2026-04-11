@@ -59,7 +59,7 @@ async def _persist_event(event):
 async def _forward_to_telegram(event):
     """Proje/ajan olaylarini Telegram'a ilet."""
     try:
-        from telegram_app.bot import telegram_notifier
+        from apps.telegram_bot.bot import telegram_notifier
         await telegram_notifier.notify_event(event.type, event.payload)
     except Exception as e:
         import logging
@@ -213,6 +213,7 @@ async def _self_governor_sync_action(orch):
     out = await agent.execute(
         task_id=audit_id,
         subtask_id="aml-sub",
+        prompt="Sistem saÄŸlÄ±ÄŸÄ±nÄ± ve mimari hijyeni denetle. AykÄ±rÄ±lÄ±klarÄ± raporla.",
         context={"requirements": "AML Periyodik Denetim"}
     )
     await event_bus.emit("system.audit", message=out.summary, severity="info", agent_id="self_governor")
