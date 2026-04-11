@@ -14,23 +14,24 @@ class SkillDiscovery:
     """
     def __init__(self, project_root: str):
         self.project_root = Path(project_root).resolve()
-        
-        # Faz 12.4: Bilişsel Bütünlük — Otonom Yol Arama
-        # Varsayılan dizin yoksa bilinen diğer yetenek havuzlarına bak.
-        default_dir = self.project_root / ".agent" / "skills"
-        fallback_dir = self.project_root / "external" / "vendor" / "deer-flow" / "skills" / "public"
-        runtime_dir = self.project_root / "runtime" / "data" / "generated_skills"
-        
-        if default_dir.exists():
-            self.skills_dir = default_dir
-        elif fallback_dir.exists():
-            _log.info(f"Fallback skills directory detected: {fallback_dir}")
-            self.skills_dir = fallback_dir
-        else:
-            _log.info(f"Using runtime skills directory: {runtime_dir}")
-            self.skills_dir = runtime_dir
-            
         self.discovered_skills: Dict[str, Any] = {}
+        
+        # Faz 12.4: Bilişsel Bütünlük — Aktif Yetenek Dizini Arama
+        # Sadece dizinin varlığına değil, içindeki SKILL.md varlığına göre önceliklendir.
+        potential_dirs = [
+            self.project_root / ".agent" / "skills",
+            self.project_root / "external" / "vendor" / "deer-flow" / "skills" / "public",
+            self.project_root / "runtime" / "data" / "generated_skills"
+        ]
+        
+        self.skills_dir = potential_dirs[0] # Default
+        for pdir in potential_dirs:
+            if pdir.exists() and any(pdir.glob("*/SKILL.md")):
+                self.skills_dir = pdir
+                _log.info(f"Active skills directory detected: {self.skills_dir}")
+                break
+        else:
+            _log.warning(f"No active skills found in any known directory. Defaulting to: {self.skills_dir}")
 
     def discover(self) -> Dict[str, Any]:
         """
@@ -40,7 +41,7 @@ class SkillDiscovery:
             _log.warning(f"Skills directory not found: {self.skills_dir}")
             return {}
 
-        _log.info(f"Scanning for skills in {self.skills_dir}")
+        _log.info(f"Executing discovery in {self.skills_dir}")
         
         for skill_path in self.skills_dir.iterdir():
             if skill_path.is_dir():
