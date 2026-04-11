@@ -82,8 +82,17 @@ class AgencyLoader:
     def personas(self) -> Dict[str, Dict[str, Any]]:
         return self.agents
 
+# Faz 12.4: Bilişsel Bütünlük — Otonom Loader Senkronizasyonu
 _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-base_path = os.path.join(_root, "packages", "orchestration", "agi", "agents", "agency_library")
+default_path = os.path.join(_root, "packages", "orchestration", "agi", "agents", "agency_library")
+fallback_path = os.path.join(_root, "external", "vendor", "deer-flow", "skills", "public")
+
+if not os.path.exists(default_path) and os.path.exists(fallback_path):
+    _log.info(f"AgencyLoader falling back to: {fallback_path}")
+    base_path = fallback_path
+else:
+    base_path = default_path
+
 agency_loader = AgencyLoader(base_path)
 
 def get_agency_loader() -> AgencyLoader:
