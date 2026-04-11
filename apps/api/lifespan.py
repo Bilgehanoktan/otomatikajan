@@ -59,8 +59,8 @@ async def _persist_event(event):
 async def _forward_to_telegram(event):
     """Proje/ajan olaylarini Telegram'a ilet."""
     try:
-        from apps.telegram_bot.bot import telegram_notifier
-        await telegram_notifier.notify_event(event.type, event.payload)
+        from apps.worker.tasks.project_tasks import send_telegram_notification_task
+        send_telegram_notification_task.delay(event.type, event.payload)
     except Exception as e:
         import logging
         logging.getLogger("telegram").warning(f"Telegram bildirimi gÃ¶nderilemedi: {e}")
@@ -116,8 +116,19 @@ async def autonomous_metabolism_loop():
             # 1. CEO Scan (High Priority)
             if now - last_runs["ceo"] >= PERIODS["ceo"]:
                 try:
-                    # Faz 12.1: Startup blokajini onlemek icin background task olarak calistir
-                    asyncio.create_task(ceo.run_scan())
+                    # Faz 12.1: Master lock (GÃ¼Ã§lÃ¼ deduplikasyon - sadece bir worker tarama yapar)
+                    from packages.persistence.session import get_redis_client
+                    r = get_redis_client()
+                    lock_acquired = False
+                    if r:
+                        # 4 dakikalÄ±k kilit (kendi periyodundan kÄ±sa ama yarÄ±ÅŸÄ± Ã¶nleyecek kadar uzun)
+                        lock_acquired = await r.set("faz12:ceo_scan_lock", "1", ex=240, nx=True)
+                    else:
+                        lock_acquired = True
+                    
+                    if lock_acquired:
+                        # Startup blokajini onlemek icin background task olarak calistir
+                        asyncio.create_task(ceo.run_scan())
                 except Exception as e:
                     logger.error(f"[AML] CEO Scan trigger failed: {e}")
                 last_runs["ceo"] = now
