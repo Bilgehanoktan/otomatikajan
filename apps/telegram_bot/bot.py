@@ -52,7 +52,7 @@ async def _is_authorized(telegram_id: str) -> bool:
         return True
     try:
         from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repository import TelegramRepository
+        from packages.persistence.repositories.repository import TelegramRepository
         async with AsyncSessionLocal() as db:
             return await TelegramRepository.is_authorized(db, telegram_id)
     except Exception:
@@ -64,7 +64,7 @@ async def _is_admin(telegram_id: str) -> bool:
         return True
     try:
         from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repository import TelegramRepository
+        from packages.persistence.repositories.repository import TelegramRepository
         async with AsyncSessionLocal() as db:
             user = await TelegramRepository.get_user(db, telegram_id)
             return user is not None and user.is_admin
@@ -82,7 +82,7 @@ async def _log_command(
 ):
     try:
         from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repository import TelegramRepository
+        from packages.persistence.repositories.repository import TelegramRepository
         async with AsyncSessionLocal() as db:
             await TelegramRepository.log_command(
                 db, telegram_id, command, arguments,
@@ -96,7 +96,7 @@ async def _log_command(
 async def _upsert_user(telegram_id: str, username: str, full_name: str):
     try:
         from packages.persistence.session import AsyncSessionLocal
-        from packages.persistence.repository import TelegramRepository
+        from packages.persistence.repositories.repository import TelegramRepository
         async with AsyncSessionLocal() as db:
             await TelegramRepository.upsert_user(db, telegram_id, username, full_name)
             await db.commit()
