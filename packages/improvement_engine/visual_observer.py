@@ -16,8 +16,9 @@ class VisualUXObserver:
         self.db = db
         self.model_orch = model_orch
         self.scan_targets = [
+            "apps/dashboard/index.html",
+            "apps/dashboard/css/style.css",
             "dashboard/index.html",
-            # dashboard klasörü root'ta ise
             "apps/api/static/dashboard/index.html", # fallback paths
             "apps/api/static/style.css"
         ]
