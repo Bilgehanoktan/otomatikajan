@@ -64,6 +64,17 @@ async def verify_integrity():
     except Exception as e:
         errors.append(f"Reflection Check Failed: {e}")
 
+    # 6. Dashboard Bütünlüğü (UI/Logic Sync)
+    try:
+        from tools.maintenance.dashboard_guardian import check_dashboard_sync
+        _log.info("🔍 [DASHBOARD] Arayüz katmanları denetleniyor...")
+        if not check_dashboard_sync():
+            errors.append("Dashboard Integrity Check Failed (Sync mismatch).")
+        else:
+            _log.info("✅ [DASHBOARD] Tüm katmanlar (Sidebar/HTML/JS) senkronize.")
+    except Exception as e:
+        errors.append(f"Dashboard Guardian Check Failed: {e}")
+
     # SONUÇ
     if not errors:
         _log.info("🔥 BÜTÜNLÜK DOĞRULANDI: Sovereign AGI operasyon için %100 hazır.")
