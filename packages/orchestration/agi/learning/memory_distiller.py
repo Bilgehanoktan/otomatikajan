@@ -8,6 +8,7 @@ from packages.observability.logging import get_logger
 from packages.llm_gateway.model_orchestrator import ModelOrchestrator
 from packages.persistence.repositories.repository import MemoryRepository
 from packages.persistence.session import AsyncSessionLocal
+from packages.orchestration.governance.policy_engine import policy_engine
 
 _log = get_logger("memory_distiller")
 
@@ -128,6 +129,18 @@ class MemoryDistiller:
                 tags=["distilled_rule", source_pattern['agent_id']]
             )
             await db.commit()
+
+        # 3. Politika Motoruna Enjekte Et (Phase 12.3 Entegrasyonu)
+        policy_engine.evolve_policy({
+            "learned_policies": policy_engine.learned_policies + [
+                {
+                    "title": title,
+                    "instinct": instinct,
+                    "severity": rule.get("severity", "medium"),
+                    "detected_at": datetime.now(timezone.utc).isoformat()
+                }
+            ]
+        })
 
         # Phase 73: Bu noktada kural artık 'search_synergetic' tarafından 
         # otomatik olarak bulunup ilgili ajanlara enjekte edilecektir.

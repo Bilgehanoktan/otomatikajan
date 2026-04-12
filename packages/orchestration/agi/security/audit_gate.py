@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import subprocess
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from packages.observability.logging import get_logger

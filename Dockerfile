@@ -25,8 +25,9 @@ WORKDIR /app
 RUN chown appuser:appgroup /app
 
 # Temel sistem kütüphaneleri (PostgreSQL istemcisi, Curl ve Playwright/Browser bağımlılıkları)
-RUN apt-get -o Acquire::Retries=3 update && apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
-    libpq5 curl \
+RUN apt-get -o Acquire::Retries=3 update && \
+    DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
+    libpq5 curl git \
     libglib2.0-0 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
     libxkbcommon0 libxcomposite1 libxdamage1 libxext6 libxfixes3 libxrandr2 \
     libgbm1 libasound2 libpango-1.0-0 libcairo2 \
