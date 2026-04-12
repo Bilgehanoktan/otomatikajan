@@ -167,7 +167,7 @@ class BotCommandHandler:
             q    = job_queue.stats()
             hs   = 0.9 # Fallback
             try:
-                from packages.repair_engine.heal_engine import heal_engine
+                from packages.healing.application.heal_engine import heal_engine
                 hs = heal_engine.system_health_score()
             except: pass
 
@@ -419,7 +419,7 @@ class BotCommandHandler:
     async def cmd_agents(self, tid: str, args: str) -> str:
         try:
             from packages.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
-            from packages.repair_engine.heal_engine import heal_engine
+            from packages.healing.application.heal_engine import heal_engine
             health = orchestrator.get_health()
             snapshots = heal_engine.agent_snapshots()
             snap_map = {s["agent_id"]: s for s in snapshots}
@@ -731,7 +731,7 @@ class BotCommandHandler:
 
         # 2. PR Ã¶nerisini dene
         try:
-            from apps.api.routers.repair_router import _persist_proposal_decision, _update_job_on_proposal_decision
+            from apps.api.routers.repair import _persist_proposal_decision, _update_job_on_proposal_decision
             await _persist_proposal_decision(req_id, "approved", f"telegram:{tid}")
             await _update_job_on_proposal_decision(req_id, "approved", f"telegram:{tid}")
             return f"âœ… PR `{req_id[:14]}` onaylandÄ±."
@@ -771,7 +771,7 @@ class BotCommandHandler:
 
         # 2. PR Ã¶nerisi
         try:
-            from apps.api.routers.repair_router import _persist_proposal_decision, _update_job_on_proposal_decision
+            from apps.api.routers.repair import _persist_proposal_decision, _update_job_on_proposal_decision
             await _persist_proposal_decision(req_id, "rejected", f"telegram:{tid}")
             await _update_job_on_proposal_decision(req_id, "rejected", f"telegram:{tid}")
             return f"âŒ PR `{req_id[:14]}` reddedildi.{' Neden: ' + reason if reason else ''}"

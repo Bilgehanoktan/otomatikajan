@@ -18,9 +18,9 @@ try:
     _base_dir = os.path.dirname(os.path.abspath(__file__))
     # Öncelik: .env -> .env.local (Host mode)
     if os.path.exists(".env"):
-        load_dotenv(".env", override=True)
+        load_dotenv(".env", override=False)
     if os.path.exists(".env.local"):
-        load_dotenv(".env.local", override=True) # local SHOULD override environment
+        load_dotenv(".env.local", override=False) # local SHOULD NOT override environment if already set
         
     # Sadece development/test modunda örnek dosyayı yükle (güvenlik için)
     _temp_env = os.getenv("APP_ENV", os.getenv("ENVIRONMENT", "development")).lower()

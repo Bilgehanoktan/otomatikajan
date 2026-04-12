@@ -131,6 +131,7 @@ class Project(Base):
     review_required     = Column(Boolean, default=False, nullable=False)
     checkpoint_data     = Column(SmartJSON(), default=dict)  # AGI Dayanıklılık: Son güvenli durum verisi
     goal_id             = Column(UUID(as_uuid=True), ForeignKey("sovereign_goals.id", ondelete="SET NULL"), nullable=True)
+    metadata_           = Column(SmartJSON(), default=dict)
     # ──────────────────────────────────────────────────────
     created_at   = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
     updated_at   = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)

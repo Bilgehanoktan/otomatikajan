@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import patch, MagicMock
-from main import app
+from apps.api.main import app
 from apps.api.routers.auth.jwt_auth import _make_token
 from datetime import timedelta
 
@@ -16,7 +16,8 @@ def test_sentinel_service_status_online(auth_token):
     with patch("psutil.process_iter") as mock_iter:
         m_proc = MagicMock()
         # Simulated psutil process with .info property returning cmdline
-        m_proc.info = {'cmdline': ["python", "telegram_app/main.py"]}
+        # Simulated psutil process with .info property returning cmdline
+        m_proc.info = {'cmdline': ["python", "-m", "apps.telegram_bot.polling"]}
         # Ensure the call with ['cmdline'] returns the mock process
         mock_iter.return_value = [m_proc]
         

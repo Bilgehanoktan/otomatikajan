@@ -94,7 +94,7 @@ def run_project_task(
                 return {"status": "skipped", "reason": "already_processed"}
 
             await ProjectRepository.mark_started(db, p.id)
-            await packages.persistence.commit()
+            await db.commit()
 
         # 2. Asıl işi Nexus Orchestrator'a devret
         # Bu aşamada Nexus, planlama ve yürütmeyi (coordinate_goal) yapar.
@@ -142,7 +142,7 @@ def run_project_task(
                         report=result.report or "",
                         status=final_status.value,
                     )
-                    await packages.persistence.commit()
+                    await db.commit()
         run_async(_mark_done())
 
         # Tamamlandı webhook'u
@@ -171,7 +171,7 @@ def run_project_task(
                 p = await ProjectRepository.get(db, _uuid.UUID(db_project_id))
                 if p:
                     await ProjectRepository.set_error(db, p.id, str(exc))
-                    await packages.persistence.commit()
+                    await db.commit()
 
         # State: Görev çöktü olarak işaretle
         run_async(_set_failed())
@@ -238,7 +238,7 @@ async def _get_subscriptions(event: str) -> list[dict]:
     from sqlalchemy import select
 
     async with AsyncSessionLocal() as db:
-        subs = (await packages.persistence.execute(
+        subs = (await db.execute(
             select(WebhookSubscription).where(WebhookSubscription.is_active == True)
         )).scalars().all()
         return [
@@ -270,13 +270,13 @@ def cleanup_memories():
         from sqlalchemy import delete
 
         async with AsyncSessionLocal() as db:
-            result = await packages.persistence.execute(
+            result = await db.execute(
                 delete(Memory).where(
                     Memory.expires_at != None,
                     Memory.expires_at < datetime.now(timezone.utc),
                 )
             )
-            await packages.persistence.commit()
+            await db.commit()
             return result.rowcount
 
     deleted = run_async(_clean())
@@ -334,7 +334,7 @@ Bulgularını 'İyileştirme Fırsatı' formunda raporla."""
                     category="ux_ui",
                     evidence="playwright_screenshot_b64"
                 )
-                await packages.persistence.commit()
+                await db.commit()
             
             logger.info("✅ Görsel denetim tamamlandı ve raporlandı.")
             return "Visual audit completed."
@@ -380,7 +380,7 @@ def run_market_intelligence_task():
                     severity="low",
                     category="strategy"
                 )
-                await packages.persistence.commit()
+                await db.commit()
             
             logger.info("✅ Pazar zekası analizi tamamlandı.")
             return "Market intelligence completed."

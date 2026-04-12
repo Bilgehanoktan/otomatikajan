@@ -31,7 +31,7 @@ python scripts/register_telegram_commands.py
 ### A. Yerel Geliştirme (Polling)
 Dış dünyaya açık bir HTTPS adresiniz (ngrok vb.) yoksa botu polling modunda çalıştırabilirsiniz:
 ```bash
-python telegram_app/polling.py
+python -m apps.telegram_bot.polling
 ```
 
 ### B. Canlı Ortam (Webhook)

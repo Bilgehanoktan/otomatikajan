@@ -51,6 +51,7 @@ services:
       WORKERS: "2"
       GUNICORN_TIMEOUT: "120"
       PYTHONPATH: /app
+      DOCKER_CONTAINER: "true"
     ports:
       - "8000:8000"
     depends_on:
@@ -89,6 +90,7 @@ services:
       REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
       DEERFLOW_BRIDGE_URL: http://deerflow-bridge:8010
       PYTHONPATH: /app
+      DOCKER_CONTAINER: "true"
     # Komut Dockerfile'a taşındı, burada override edilebilir
 #    healthcheck:
 #      test: [ "CMD-SHELL", "celery -A apps.worker.tasks.celery_app inspect ping || exit 1" ]
@@ -122,6 +124,7 @@ services:
       REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
       DEERFLOW_BRIDGE_URL: http://deerflow-bridge:8010
       PYTHONPATH: /app
+      DOCKER_CONTAINER: "true"
     command: >
       celery -A apps.worker.tasks.celery_app worker
         --queues=deerflow
@@ -159,6 +162,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/ai_company
       REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
       PYTHONPATH: /app
+      DOCKER_CONTAINER: "true"
     command: >
       celery -A apps.worker.tasks.celery_app beat
         --loglevel=info
@@ -185,6 +189,7 @@ services:
       DEER_FLOW_HOME: /app/.deer-flow
       CLAUDE_PROXY_URL: ${CLAUDE_PROXY_URL:-}
       PYTHONPATH: /app/backend:/app/backend/packages/harness
+      DOCKER_CONTAINER: "true"
     dns:
       - 8.8.8.8
       - 8.8.4.4
@@ -225,6 +230,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/ai_company
       REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
       PYTHONPATH: /app
+      DOCKER_CONTAINER: "true"
     command: ["python", "-m", "apps.telegram_bot.polling"]
     depends_on:
       db:
@@ -236,6 +242,29 @@ services:
     volumes:
       - .:/app
       - runtime_data:/app/runtime/data
+
+  # ── Payload CMS (Admin Interface) ─────────────────────────
+  cms:
+    build:
+      context: .
+      dockerfile: Dockerfile.cms
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/ai_company
+      REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
+      DOCKER_CONTAINER: "true"
+      PAYLOAD_PUBLIC_SERVER_URL: http://localhost:3100
+      NEXT_PUBLIC_API_URL: http://app:8000
+    ports:
+      - "3100:3100"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
 
 
 volumes:

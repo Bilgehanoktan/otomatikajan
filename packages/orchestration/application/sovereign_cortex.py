@@ -39,6 +39,7 @@ class SovereignCortex:
         self._motivation = None
         self._affective = None
         self._watchdog = None
+        self._repair_orch = None
 
         self._agents: dict = {}
         self._health: dict[str, float] = {}
@@ -136,6 +137,14 @@ class SovereignCortex:
             from packages.healing.application.heal_engine import heal_engine
             self._heal_engine = heal_engine
         return self._heal_engine
+
+    @property
+    def repair_orch(self):
+        """Lazy-loaded RepairOrchestrator"""
+        if self._repair_orch is None:
+            from packages.repair_engine.application.orchestrator import RepairOrchestrator
+            self._repair_orch = RepairOrchestrator(model_orch=self.model_orch)
+        return self._repair_orch
 
     @property
     def planner_svc(self):

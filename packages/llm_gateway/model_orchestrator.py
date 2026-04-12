@@ -133,6 +133,29 @@ class ModelOrchestrator:
             chain = [p for p in top_tier if p in chain] + [p for p in chain if p not in top_tier]
             logger.info(f"[STRATEGIC-ROUTING] Kritik Görev/Hız Önceliği (TURBO). Top-tier modeller başa alındı.")
 
+        # 4. Phase 53: CEO NAS Integration (Dynamic DB Policies)
+        try:
+            from packages.orchestration.ceo.optimizer import CEOStochasticOptimizer
+            policies = await CEOStochasticOptimizer.get_active_policies()
+            
+            if agent_role in policies:
+                policy = policies[agent_role]
+                db_chain = []
+                if policy["winner"]: db_chain.append(policy["winner"])
+                if policy["runner_up"]: db_chain.append(policy["runner_up"])
+                
+                # Combine DB chain with hardcoded chain (avoiding duplicates)
+                for p in policy["fallback_chain"]:
+                    if p not in db_chain: db_chain.append(p)
+                
+                for p in chain:
+                    if p not in db_chain: db_chain.append(p)
+                
+                chain = db_chain
+                logger.debug(f"[CEO-NAS] Dynamic policy for '{agent_role}': {chain[:3]}...")
+        except Exception as e:
+            logger.warning(f"[CEO-NAS] Dynamic policy error: {e}")
+
         return chain
 
     async def complete_task(
@@ -347,6 +370,19 @@ class ModelOrchestrator:
             latency = time.time() - t0
             provider.record_success(latency)
             
+            # [CEO-NAS] Emergency Latency Feedback
+            if latency > 10.0:
+                try:
+                    from packages.orchestration.ceo.optimizer import CEOStochasticOptimizer
+                    import asyncio
+                    asyncio.create_task(CEOStochasticOptimizer.report_latency_anomaly(
+                        provider=provider.name,
+                        model=provider.model,
+                        latency_s=latency,
+                        agent_role=kwargs.get("agent_role", "all")
+                    ))
+                except Exception: pass
+
             # Phase 88: Systemic Recovery signal
             affective_core.adjust_state("success", magnitude=0.05)
 

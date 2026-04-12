@@ -1,50 +1,109 @@
-/* Refined Custom Styles for Payload CMS */
+/* Premium UI Overhaul for Sovereign Platform */
 
 :root {
-  --theme-elevation-0: #0a0a0a;
-  --theme-elevation-50: #121212;
-  --theme-elevation-100: #1a1a1a;
-  --theme-elevation-200: #2a2a2a;
+  /* Dark Mode Palette - Deep Indigo/Slate */
+  --theme-bg: #0d0e12;
+  --theme-elevation-50: #16181d;
+  --theme-elevation-100: #1e2128;
+  --theme-elevation-200: #282c35;
+  --theme-border: rgba(255, 255, 255, 0.08);
+  --accent-primary: #6366f1; /* Indigo */
+  --accent-secondary: #a855f7; /* Purple */
 }
 
-/* Subtle background override - avoid !important on body if possible */
-.template-default, .template-minimal {
-  background-color: var(--theme-elevation-0) !important;
+/* Global Background */
+.template-default, .template-minimal, body {
+  background-color: var(--theme-bg) !important;
+  color: #e2e8f0 !important;
 }
 
-/* Sidebar Styling */
+/* Sidebar & Navigation */
 .nav {
-  border-right: 1px solid var(--theme-elevation-100);
+  background-color: var(--theme-elevation-50) !important;
+  border-right: 1px solid var(--theme-border) !important;
 }
 
 .nav__group-title {
-  color: #666;
+  color: #94a3b8 !important;
   font-weight: 700;
-  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-top: 1.5rem !important;
+  opacity: 0.8;
 }
 
 .nav__link {
-  border-radius: 6px;
-  transition: all 0.2s;
+  color: #94a3b8 !important;
+  padding: 0.75rem 1rem !important;
+  margin: 0.25rem 0.5rem !important;
+  border-radius: 12px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .nav__link:hover {
-  background-color: var(--theme-elevation-50);
+  background-color: var(--theme-elevation-100) !important;
+  color: #fff !important;
+  transform: translateX(4px);
 }
 
 .nav__link--active {
-  color: #6366f1 !important;
-  background: rgba(99, 102, 241, 0.05);
+  color: #fff !important;
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.15) 0%, rgba(99, 102, 241, 0) 100%) !important;
+  border-left: 3px solid var(--accent-primary) !important;
 }
 
-/* Dashboard Banner Styling */
+/* Dashboard Banner */
 .custom-banner {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
+  background: radial-gradient(circle at top left, rgba(99, 102, 241, 0.15), transparent),
+              radial-gradient(circle at bottom right, rgba(168, 85, 247, 0.1), transparent),
+              var(--theme-elevation-50);
+  border: 1px solid var(--theme-border);
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
+  position: relative;
+  overflow: hidden;
 }
 
-/* Fix for unstyled links - ensure they inherit app theme */
-a {
-  text-decoration: none;
+.custom-banner::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(45deg, transparent 0%, rgba(255, 255, 255, 0.03) 100%);
+  pointer-events: none;
+}
+
+/* Collection Cards Overrides */
+.card {
+  background-color: var(--theme-elevation-50) !important;
+  border: 1px solid var(--theme-border) !important;
+  border-radius: 16px !important;
+  transition: transform 0.3s ease, box-shadow 0.3s ease !important;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5) !important;
+  border-color: rgba(99, 102, 241, 0.3) !important;
+}
+
+.card__title {
+  color: #f8fafc !important;
+  font-weight: 600 !important;
+}
+
+/* Button & UI Element Refinement */
+.btn {
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+
+.btn--style-primary {
+  background-color: var(--accent-primary) !important;
+  border-color: var(--accent-primary) !important;
+}
+
+.btn--style-primary:hover {
+  background-color: #4f46e5 !important;
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.4) !important;
 }

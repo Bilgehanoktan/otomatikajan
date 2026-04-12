@@ -317,15 +317,20 @@ def get_redis_client():
             else:
                 url = "redis://127.0.0.1:6380/0"
 
-        # Docker dışında mıyız testi (Socket check)
-        if "redis:6379" in url:
-            import socket
-            try:
-                # Docker içinde değilsek (redis ismi çözülemiyorsa) localhost kullan
-                socket.gethostbyname("redis")
-            except socket.gaierror:
-                url = url.replace("redis:6379", "127.0.0.1:6380")
-                logger.debug(f"Redis: Host mode detected (DNS fail), using 127.0.0.1:6380")
+        # SRE Robustness: DNS fail durumunda veya Docker algılandığında 'redis' ismine güven.
+        # Konteyner içinde 127.0.0.1:6380 kullanımı felakete (connection refused) yol açar.
+        if os.getenv("DOCKER_CONTAINER", "false").lower() == "true":
+            url = url.replace("127.0.0.1:6380", "redis:6379").replace("localhost:6380", "redis:6379")
+            logger.debug(f"Redis: Container mode detected, enforcing internal network path.")
+        else:
+            # Docker dışında (host) çalışıyorsak socket check yapabiliriz
+            if "redis:6379" in url:
+                import socket
+                try:
+                    socket.gethostbyname("redis")
+                except socket.gaierror:
+                    url = url.replace("redis:6379", "127.0.0.1:6380")
+                    logger.debug(f"Redis: Host mode detected (DNS fail), using 127.0.0.1:6380")
         
         # SRE Robustness: URL icinde localhost gecerse ama 6379 ise ve baglanamazsa 6380 dene (opsiyonel ama guvenli)
         

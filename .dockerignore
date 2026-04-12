@@ -19,9 +19,22 @@ tests/
 .env
 .env.local
 vendor/deer-flow/.[!.]*
-node_modules/
+**/node_modules/
+**/.next/
+**/.pnpm-store/
+package-lock.json
+pnpm-lock.yaml
 
 # Faz 12.1: Production Isolation
 backups/
 runtime/
+runtime/data/
 external/
+.antigravity/
+.git/
+.github/
+.vscode/
+*.log
+.env
+.env.*
+!.env.example

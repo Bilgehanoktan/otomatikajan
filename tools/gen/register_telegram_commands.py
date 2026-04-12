@@ -12,11 +12,10 @@ import httpx
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Env yükle
 if os.path.exists(".env"):
-    load_dotenv(".env", override=True)
+    load_dotenv(".env", override=False)
 if os.path.exists(".env.local"):
-    load_dotenv(".env.local", override=True)
+    load_dotenv(".env.local", override=False)
 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 

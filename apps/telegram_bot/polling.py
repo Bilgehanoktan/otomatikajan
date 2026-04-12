@@ -3,7 +3,7 @@ Telegram Bot Polling Mode — Faz 4
 Yerel geliştirme ve test için botu polling (sorgulama) modunda çalıştırır.
 Webhook gerektirmez.
 
-Kullanım: python telegram/polling.py
+Kullanım: python -m apps.telegram_bot.polling
 """
 
 import asyncio
@@ -18,9 +18,9 @@ if root_dir not in sys.path:
 
 from dotenv import load_dotenv
 if os.path.exists(".env"):
-    load_dotenv(".env", override=True)
+    load_dotenv(".env", override=False)
 if os.path.exists(".env.local"):
-    load_dotenv(".env.local", override=True)
+    load_dotenv(".env.local", override=False)
 
 from apps.telegram_bot.bot import handle_update, BOT_TOKEN, _tg_available
 from packages.observability.logging import get_logger

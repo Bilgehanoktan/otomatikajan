@@ -97,6 +97,44 @@ class CEOForecaster:
                     "message": f"İş kuyruğu şişiyor: {q_size} bekleyen görev var.",
                     "value": q_size
                 })
+            
+            # 3. Gecikme (Latency) Analizi
+            latency_anomalies = await CEOForecaster.detect_latency_spikes()
+            anomalies.extend(latency_anomalies)
+                
+        return anomalies
+
+    @staticmethod
+    async def detect_latency_spikes() -> List[Dict[str, Any]]:
+        """
+        API uç noktalarındaki gecikme (latency) artışlarını tespit eder.
+        """
+        anomalies = []
+        async with session_scope() as db:
+            now = datetime.now(timezone.utc)
+            one_hour_ago = now - timedelta(hours=1)
+            
+            # Son 1 saat içindeki endpoint bazlı ortalama gecikme
+            stmt = select(
+                ApiMetric.endpoint,
+                func.avg(ApiMetric.response_ms).label("avg_latency")
+            ).where(
+                ApiMetric.created_at >= one_hour_ago
+            ).group_by(ApiMetric.endpoint)
+            
+            try:
+                res = await db.execute(stmt)
+                for row in res.all():
+                    if row.avg_latency > 3000: # 3 saniye barajı (Faz 12 standardı)
+                        anomalies.append({
+                            "type": "latency_spike",
+                            "severity": "medium",
+                            "message": f"Performans Düşüşü: {row.endpoint} ({row.avg_latency:.0f}ms)",
+                            "endpoint": row.endpoint,
+                            "value": row.avg_latency
+                        })
+            except Exception as e:
+                logger.warning(f"Latency detection failed: {e}")
                 
         return anomalies
 

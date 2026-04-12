@@ -41,20 +41,37 @@ class AestheticAuditor:
             response = await self.model_orch.complete_task(
                 agent_role="ui_designer",
                 prompt=prompt,
-                system_prompt="Sen bir Premium AGI Estetik Denetçisisin. Sadece en üst seviye tasarımı kabul edersin."
+                system_prompt="Sen bir Premium AGI Estetik Denetçisisin (UI/UX Auditor). Yanıtlarını JSON formatında ver: {'score': int, 'debt': [], 'suggestion': ''}"
             )
             
-            # TODO: Gerçek bir parser eklenebilir. Basitçe özeti döndür.
-            _log.info(f"Visual Audit Tamamlandı: {response.content[:100]}...")
+            # JSON Parse (Helper metodu Pathogen ile aynı mantıkta buraya da eklenebilir veya generic bir yere alınabilir)
+            data = self._parse_json(response.content)
+            
+            _log.info(f"Visual Audit Tamamlandı. Score: {data.get('score') if data else 'unknown'}")
+            
             return {
                 "status": "completed",
-                "feedback": response.content,
+                "score": data.get("score", 70) if data else 70,
+                "debt": data.get("debt", []) if data else [],
+                "suggestion": data.get("suggestion", "") if data else response.content,
+                "raw_feedback": response.content if not data else None,
                 "timestamp": os.path.getmtime(self.css_path) if os.path.exists(self.css_path) else 0
             }
             
         except Exception as e:
             _log.error(f"Aesthetic audit failed: {e}")
             return {"status": "failed", "error": str(e)}
+
+    def _parse_json(self, text: str) -> Optional[Dict[str, Any]]:
+        import re
+        import json
+        match = re.search(r'\{.*\}', text, re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group())
+            except:
+                pass
+        return None
 
 # Singleton
 aesthetic_auditor = AestheticAuditor()

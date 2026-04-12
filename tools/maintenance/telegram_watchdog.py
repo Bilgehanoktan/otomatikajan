@@ -1,6 +1,6 @@
 """
 Telegram Bot Watchdog Script
-Amaç: telegram_app.polling betiğini çalıştırır ve herhangi bir çökme 
+Amaç: apps.telegram_bot.polling betiğini çalıştırır ve herhangi bir çökme 
 (crash) veya kapanma durumunda 5 saniye bekleyip otomatik olarak yeniden başlatır. 
 Bu sayede bot kesintisiz çalışarak hızlı tepki vermeye devam eder.
 
@@ -21,10 +21,10 @@ def run_watchdog():
     
     while True:
         try:
-            logging.info("Telegram Botu (telegram_app.polling) başlatılıyor...")
+            logging.info("Telegram Botu (apps.telegram_bot.polling) başlatılıyor...")
             # subprocess.run engeller (blocklar), süreç bitene kadar bekler.
             process = subprocess.Popen(
-                [sys.executable, "-m", "telegram_app.polling"],
+                [sys.executable, "-m", "apps.telegram_bot.polling"],
                 stdout=sys.stdout,
                 stderr=sys.stderr
             )

@@ -40,6 +40,27 @@ class CEOEngine:
         self.model_orch = model_orch
         self.last_scan_at = None
 
+    async def _perform_strategic_audit(self, db, goal: SovereignGoal):
+        """
+        Active projelerin North Star hedeflerine katkısını denetler.
+        """
+        if not goal: return
+        
+        logger.info(f"👔 CEO Engine: Strategic Audit for Goal '{goal.title}' started.")
+        # Bu hedefle ilişkili projeleri bul
+        from packages.persistence.models import Project
+        stmt = select(Project).where(Project.goal_id == goal.id, Project.status == 'active')
+        res = await db.execute(stmt)
+        projects = res.scalars().all()
+        
+        for project in projects:
+            # Projenin son durumunu ve KPI'lara etkisini analiz et (Şimdilik placeholder/log)
+            # Gelecekte LLM ile 'Impact Analysis' yapılacak.
+            logger.info(f"👔 CEO Audit: Project '{project.name}' is aligned with vision.")
+            
+        # Eğer hedef gerçekleşmişse/KPI'lar tutmuşsa statüsünü güncelle
+        # (Bu kısım gelecekte otomatize edilecek)
+
     async def run_scan(self):
         """Main entry point for periodic background scanning."""
         logger.info("CEO Engine: Starting system scan...")
@@ -66,6 +87,15 @@ class CEOEngine:
                     "Lütfen 'alembic upgrade head' ile veritabanını güncelleyin."
                 ) from e
             
+            # --- PHASE 53: NAS & Policy Optimization (The 'Other' Strategy Motor) ---
+            try:
+                from packages.orchestration.ceo.optimizer import CEOStochasticOptimizer
+                # SRE Hardening: Heavy optimization should not block the main heartbeat/lifespan
+                asyncio.create_task(CEOStochasticOptimizer.run_optimization_cycle())
+                logger.info("👔 CEO Engine: Optimization cycle offloaded to background.")
+            except Exception as e:
+                logger.error(f"👔 CEO Optimizer trigger failed: {e}")
+
             # --- PHASE 80: North Star Goal Alignment ---
             # Sistem ana hedefleri kontrol eder, yoksa otonom olarak bir vizyon belirler.
             current_goal = await self._ensure_north_star_goal(db)
@@ -149,19 +179,12 @@ class CEOEngine:
             goal = res.scalars().first()
             
             if not goal:
-                logger.info("👔 CEO Engine: Aktif bir North Star Hedefi bulunamadı. Otonom vizyon belirleniyor...")
-                # Faz 80: Otonom Vizyon Tanımlama
-                goal = SovereignGoal(
-                    id=uuid.uuid4(),
-                    title="Faz 12.1 Sovereign AGI Evrimi ve Stabilizasyonu",
-                    vision_statement="Sistemi tam otonom, kendi hatalarından ders alan ve mimari bütünlüğünü koruyan bir AGI seviyesine taşımak.",
-                    priority=100,
-                    status="active",
-                    kpis={"quality_score_target": 0.95, "autonomy_depth": "full_nexus"}
-                )
-                db.add(goal)
-                await db.flush()
-                logger.info(f"👔 CEO Engine: Yeni North Star Hedefi belirlendi: {goal.title}")
+                logger.info("👔 CEO Engine: Aktif bir North Star Hedefi bulunamadı. GoalSynthesizer tetikleniyor...")
+                from packages.orchestration.agi.cognitive.goal_synthesizer import GoalSynthesizer
+                synthesizer = GoalSynthesizer(model_orch=self.model_orch)
+                # Otonom olarak yeni hedefler sentezle - SRE: Non-blocking during startup
+                asyncio.create_task(synthesizer.run_synthesis_cycle())
+                logger.info("👔 CEO Engine: Goal synthesis started in background.")
             return goal
         except Exception as e:
             logger.error(f"CEO Engine goal enforcement failed: {e}")
@@ -441,7 +464,7 @@ class CEOEngine:
             else:
                 logger.debug(f"CEO Engine: {o_title} eşik değerini geçemedi (Priority: {p_score} < 20)")
 
-    async def _generate_suggestion_with_llm(self, op: ImprovementOpportunity) -> Dict[str, str]:
+    async def _generate_suggestion_with_llm(self, op: ImprovementOpportunity, active_goal: Optional[Any] = None) -> Dict[str, str]:
         """Uses LLM to delegate to a specific Specialist Agent from the library."""
         from packages.orchestration.indexing.system_indexer import SystemIndexer
         from packages.orchestration.agency.loader import get_agency_loader
@@ -455,13 +478,18 @@ class CEOEngine:
         specialists = agency_loader.list_agents()
         specialist_list_str = "\n".join([f"- {s['id']}: {s['description']}" for s in specialists[:50]]) # Limit for context size
 
+        goal_context = ""
+        if active_goal:
+            goal_context = f"\nMEVCUT STRATEJİK HEDEF: {active_goal.title}\nVİZYON: {active_goal.vision_statement}\n"
+
         from packages.orchestration.application.prompts import CEO_DELEGATION_PROMPT
         prompt = CEO_DELEGATION_PROMPT.format(
             title=op.title, source_type=op.source_type,
             severity=op.severity, description=op.description,
             category=op.category, priority_score=op.priority_score,
             evidence=getattr(op, 'evidence_detail', 'N/A'),
-            context=context, specialist_list_str=specialist_list_str
+            context=context + goal_context,
+            specialist_list_str=specialist_list_str
         )
         
         try:
@@ -488,6 +516,36 @@ class CEOEngine:
             "confidence": 0.5
         }
 
+    async def _refine_suggestion_with_llm(self, op: ImprovementOpportunity, prev_suggestion: Dict[str, Any], critique: Dict[str, Any]) -> Dict[str, Any]:
+        """Refines a suggestion based on critic feedback."""
+        refinement_prompt = f"""
+        MEVCUT FIRSAT: {op.title}
+        ESKİ ÖNERİ: {prev_suggestion.get('title')}
+        ELEŞTİRMEN GERİ BİLDİRİMİ: {critique.get('reason')}
+        
+        Yukarıdaki eleştiriyi dikkate alarak öneriyi geliştirin ve hataları düzeltin. 
+        Yanıtınız mutlaka JSON formatında olmalıdır.
+        """
+        
+        try:
+            response = await self.model_orch.complete(
+                messages=[
+                    {"role": "system", "content": "Stratejisini düzelten ve optimize eden bir CEO'sunuz. Her zaman Türkçe yanıt verirsiniz."},
+                    {"role": "user", "content": refinement_prompt}
+                ],
+                preferred_agent="architect",
+                task_id=f"ceo-refine-{uuid.uuid4().hex[:8]}"
+            )
+            import json
+            import re
+            json_match = re.search(r'\{.*\}', response, re.DOTALL)
+            if json_match:
+                return json.loads(json_match.group())
+        except Exception as e:
+            logger.error(f"CEO Refinement failed: {e}")
+            
+        return prev_suggestion # Return old one if refinement fails
+
     async def _create_suggestion_from_op(self, db, op_item: Any):
         """Logic to generate a task suggestion from an opportunity, delegating to Specialists."""
         from sqlalchemy import select
@@ -513,28 +571,65 @@ class CEOEngine:
         )
         if res_sug.scalars().first(): return
 
-        # PHASE 2.2: Reflective Reasoning Loop (Self-Critique)
+        # PHASE 2.1: North Star Alignment (Fetch Active Goal)
+        from packages.persistence.models import SovereignGoal
+        active_goal_stmt = select(SovereignGoal).where(SovereignGoal.status == "active").order_by(desc(SovereignGoal.priority)).limit(1)
+        active_goal_res = await db.execute(active_goal_stmt)
+        active_goal = active_goal_res.scalars().first()
+
+        # PHASE 2.2: Reflective Reasoning Loop (Self-Critique & Refinement)
         logger.info(f"👔 CEO Engine: Generating suggestion for {op_obj.title}...")
-        ai_suggestion = await self._generate_suggestion_with_llm(op_obj)
+        ai_suggestion = await self._generate_suggestion_with_llm(op_obj, active_goal)
         
         if not ai_suggestion or "title" not in ai_suggestion:
             logger.error("👔 CEO Engine: Suggestion generation failed (Empty or Invalid JSON).")
             return
 
-        logger.info(f"👔 CEO Engine: Raw Suggestion Outcome: {ai_suggestion.get('title')}")
-        
-        # Critique Phase
-        critique = await self._critique_suggestion(op_obj, ai_suggestion)
-        if not critique.get("is_valid", True):
-            logger.warning(f"👔 CEO Engine: Öneri reddedildi (Eleştiri): {critique.get('reason')}")
-            # Eğer geçersizse, daha güvenli bir fallback'e dön veya iptal et
-            if critique.get("action") == "fallback":
-                logger.info("👔 CEO Engine: Fallback stratejisine dönülüyor.")
+        # --- Reflective Loop Start ---
+        max_refinements = 3
+        refinement_count = 0
+        deliberation_logs = []
+
+        while refinement_count < max_refinements:
+            logger.info(f"👔 CEO Engine: Critique Phase (Refinement {refinement_count}) for: {ai_suggestion.get('title')}")
+            
+            critique = await self._critique_suggestion(op_obj, ai_suggestion, active_goal)
+            logger.debug(f"👔 CEO Engine: Parsed Critique: {critique}")
+            
+            deliberation_logs.append({
+                "iteration": refinement_count,
+                "suggestion": ai_suggestion.copy(),
+                "critique": critique
+            })
+
+            if critique.get("is_valid", True):
+                if refinement_count > 0:
+                    logger.info(f"👔 CEO Engine: Strategy validated after {refinement_count} refinement(s).")
+                break
+            
+            action = critique.get("action", "refine")
+            
+            if action == "cancel":
+                logger.warning(f"👔 CEO Engine: Strategy CANCELLED by critic: {critique.get('reason')}")
+                return
+            
+            if action == "fallback":
+                logger.info(f"👔 CEO Engine: Switching to FALLBACK strategy: {critique.get('reason')}")
                 ai_suggestion["title"] = f"Güvenli Onarım: {op_obj.title}"
+                ai_suggestion["description"] = f"Otomatik onarım girişimi: {op_obj.description}"
                 ai_suggestion["is_roadmap"] = False
                 ai_suggestion["confidence"] = 0.6
+                break
+            
+            if action == "refine":
+                logger.info(f"👔 CEO Engine: REFINING strategy based on critic feedback: {critique.get('reason')}")
+                ai_suggestion = await self._refine_suggestion_with_llm(op_obj, ai_suggestion, critique)
+                refinement_count += 1
             else:
-                return
+                # Default to valid if action unknown
+                break
+        
+        # --- Reflective Loop End ---
 
         confidence = ai_suggestion.get("confidence", 0.5)
 
@@ -554,7 +649,8 @@ class CEOEngine:
             status="suggested",
             reasoning_summary=ai_suggestion.get("reasoning", f"Priority score {op_obj.priority_score}"),
             impact_projection=ai_suggestion.get("projection", {"estimated_cost": 0.01, "risk_reduction_pct": 50, "performance_gain": "medium"}),
-            plan_hierarchy={"is_roadmap": is_roadmap, "step_count": len(steps) if is_roadmap else 1}
+            plan_hierarchy={"is_roadmap": is_roadmap, "step_count": len(steps) if is_roadmap else 1},
+            goal_id=active_goal.id if active_goal else None
         )
         db.add(new_suggestion)
         
@@ -757,17 +853,27 @@ class CEOEngine:
                 "last_scan_at": self.last_scan_at.isoformat() if self.last_scan_at else None
             }
 
-    async def _critique_suggestion(self, op, suggestion) -> Dict[str, Any]:
+    async def _critique_suggestion(self, op, suggestion, active_goal: Optional[Any] = None) -> Dict[str, Any]:
         """Ayrı bir 'critic' rolü ile önerinin mantığını denetler."""
+        goal_context = ""
+        if active_goal:
+            goal_context = f"\nMEVCUT STRATEJİK HEDEF: {active_goal.title}\n"
+
         prompt = f"""
         FIRSAT: {op.title} (Severity: {op.severity})
         ÖNERİLEN EYLEM: {suggestion['title']}
         GEREKÇE: {suggestion.get('reasoning')}
         ROADMAP: {suggestion.get('is_roadmap')}
+        {goal_context}
         
         Bu stratejik kararı bir 'Sovereign Critic' olarak değerlendir. 
-        Halüsinasyon var mı? Öneri fırsatla örtüşüyor mu? Güvenlik riski var mı?
-        JSON Formatı: {{'is_valid': bool, 'reason': '...', 'action': 'proceed/fallback/cancel'}}
+        Halüsinasyon var mı? Öneri fırsatla örtüşüyor mu? Güvenlik riski var mı? Maliyet makul mü? Stratejik hedefle uyumlu mu?
+        
+        Eğer öneri küçük düzeltmelerle iyileşebilecekse 'refine', 
+        kesinlikle yanlış veya riskliyse 'cancel', 
+        riski azaltmak için standart bir çözüme dönmek gerekiyorsa 'fallback' aksiyonunu seç.
+        
+        JSON Formatı: {{'is_valid': bool, 'reason': '...', 'action': 'proceed/refine/fallback/cancel'}}
         """
         try:
             resp = await self.model_orch.complete_task(

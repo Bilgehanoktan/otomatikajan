@@ -296,6 +296,58 @@ class DatabaseRecoveryStrategy(RecoveryStrategy):
             return RecoveryResult(False, self.name, f"DB Kurtarma hatası: {e}")
 
 
+# ── 8. Kod Onarımı (Self-Repair) ──────────────────────────
+class CodeRepairStrategy(RecoveryStrategy):
+    """
+    Kritik veya tekrarlayan hatalarda -> Otonom Self-Repair Pipeline'ını tetikle.
+    RepairOrchestrator üzerinden incident oluşturur ve onarım sürecini başlatır.
+    """
+    name = "code_repair"
+
+    async def execute(self, snapshot, subtask, orch) -> RecoveryResult:
+        t0 = self._timer()
+        try:
+            # 1. Incident oluştur
+            from packages.repair_engine.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
+            from packages.healing.domain.agent_state import AgentState
+            
+            # Severity belirle (Agent durumuna göre)
+            severity = IncidentSeverity.HIGH
+            if snapshot.state == AgentState.DEAD:
+                severity = IncidentSeverity.CRITICAL
+
+            incident = IncidentRecord.create(
+                source=IncidentSource.API_ERROR,
+                severity=severity,
+                service="sovereign-cortex",
+                module=snapshot.agent_id,
+                symptom=f"Agent '{snapshot.agent_id}' failed: {snapshot.dominant_error}",
+                stack_trace=str(snapshot.dominant_error),
+                context={
+                    "agent_id": snapshot.agent_id,
+                    "subtask_prompt": subtask.prompt[:500],
+                    "fail_streak": snapshot.fail_streak
+                }
+            )
+
+            # 2. RepairOrchestrator'ı bul ve başlat
+            repair_orch = getattr(orch, "repair_orch", None)
+            if not repair_orch:
+                return RecoveryResult(False, self.name, "RepairOrchestrator bulunamadı.")
+
+            job = await repair_orch.start_repair(incident)
+            
+            return RecoveryResult(
+                success=True,
+                strategy=self.name,
+                message=f"Otonom onarım başlatıldı (Job: {job.job_id}). Hata: {snapshot.dominant_error}",
+                duration_s=time.time() - t0
+            )
+
+        except Exception as e:
+            return RecoveryResult(False, self.name, f"Kod onarımı tetikleme hatası: {e}")
+
+
 # ── 7. Bellek Temizleme ───────────────────────────────────
 class MemoryCleanupStrategy(RecoveryStrategy):
     """
@@ -334,8 +386,8 @@ def get_strategy_chain(error_type: str) -> list[RecoveryStrategy]:
         "NetworkError":       [CooldownStrategy(), ModelRotateStrategy(), PartialResultStrategy()],
         "DatabaseError":      [DatabaseRecoveryStrategy(), CooldownStrategy(), PartialResultStrategy()],
         "MemoryPressure":     [MemoryCleanupStrategy(), CooldownStrategy(), PartialResultStrategy()],
-        "InternalError":      [PromptSimplifyStrategy(), ModelRotateStrategy(), PartialResultStrategy()],
+        "InternalError":      [PromptSimplifyStrategy(), ModelRotateStrategy(), CodeRepairStrategy(), PartialResultStrategy()],
         "unknown":            [PromptSimplifyStrategy(), ModelRotateStrategy(),
-                               WorkloadRedirectStrategy(), CooldownStrategy(), PartialResultStrategy()],
+                               WorkloadRedirectStrategy(), CodeRepairStrategy(), CooldownStrategy(), PartialResultStrategy()],
     }
     return chains.get(error_type, chains["unknown"])

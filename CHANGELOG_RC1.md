@@ -108,6 +108,16 @@
   - `SovereignEvolutionEngine`: Tüm self-improvement ve yama mantığı (önceden 3+ dosya).
   - `DreamEngine`: Tüm hafıza budama ve konsolidasyon mantığı (önceden 3+ dosya).
 - **Geriye Dönük Uyumluluk (Shims)**: Eski dosya yolları (`sovereign_auditor.py`, `memory_pruner.py`, vb.) shim modüllerine dönüştürülerek mevcut import'ların kırılması engellendi.
+- **Legacy Cleanup**: `packages/orchestration/agi/cognitive/` altındaki 15+ mükerrer/eski bilişsel nod temizlendi.
+
+### Sprint 14 — Sovereign CEO Strategy Engine & Autonomous NAS (Faz 12.1 Operational)
+- **CEO Engine Integration**: `CEOEngine` artık otonom "North Star" hedefleri için `GoalSynthesizer` ile entegre çalışıyor. Vizyon, sistemik fırsatlara göre otonom olarak sentezleniyor. Hardcoded hedef belirleme mantığı kaldırıldı.
+- **CEO Stochastic Optimizer (NAS)**: `packages/orchestration/ceo/optimizer.py` implemente edildi. LLM sağlayıcılarının latency ve ROI (CPS-Cost Per Success) verilerini analiz ederek model rotalama politikalarını (`SovereignModelPolicy`) otonom olarak güncelliyor.
+- **Dynamic Model Orchestration**: `ModelOrchestrator`, DB tabanlı politikalarla entegre edildi. Performans düşüşü yaşayan modeller (latency > 10s) anında "Emergency Pivot" geri bildirim döngüsü ile ikincil modellerle değiştiriliyor.
+- **ROI-Based Decisioning**: Modeller artık sadece performans metriğine göre değil, maliyet/başarı ROI oranına göre otonom olarak rütbelendirilip `fallback_chain` içerisinde yeniden konumlandırılıyor.
+- **SRE Hardening**: CEO Engine tarama döngüleri, NAS optimizasyonu ve stratejik sentez süreçleri `asyncio.create_task` ile arka plana (non-blocking) alınarak sistem açılış hızı (lifespan) ve operasyonel stabilitesi optimize edildi.
+- **Strategic Performance Audit**: `CEOEngine` içerisinde aktif projelerin vizyona ve KPI'lara katkısını denetleyen `_perform_strategic_audit` döngüsü aktif edildi.
+- **Verification**: `test_ceo_optimizer.py` ile otonom model pivoting, emergency callback ve politika güncellemeleri başarıyla doğrulandı.
 - **Repo Hijyeni**:
   - `tests/phases/` ve `tests/components/` klasörleri oluşturularak root dizindeki 20+ `verify_*.py` scripti düzenlendi.
   - `archive/improvement_v1/` dizini oluşturularak eski `improvement_v1` kodları arşivlendi.

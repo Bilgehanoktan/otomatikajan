@@ -110,6 +110,24 @@ class GoalSynthesizer:
                         status="pending"
                     )
                     
+                    # [PHASE 80] North Star Alignment
+                    from packages.persistence.models import SovereignGoal
+                    # Mevcut North Star'ı güncelle veya yeni birini aktif yap if mission is big enough
+                    if mission_data['priority'] == 'high':
+                        # Eski hedefleri 'pivoted' yap
+                        await db.execute(update(SovereignGoal).where(SovereignGoal.status == 'active').values(status='pivoted'))
+                        
+                        new_goal = SovereignGoal(
+                            id=uuid.uuid4(),
+                            title=mission_data['title'],
+                            vision_statement=mission_data['mission_statement'],
+                            priority=100,
+                            status='active',
+                            kpis={"target_mission_id": str(project.id)}
+                        )
+                        db.add(new_goal)
+                        _log.info(f"[GOAL_SYNTH] North Star Hedefi Güncellendi: {new_goal.title}")
+
                     # Fırsatları 'Misyon Altına Alındı' olarak işaretle (resolved)
                     for opp in opportunities:
                         await ImprovementRepository.mark_resolved(db, opp.id)
