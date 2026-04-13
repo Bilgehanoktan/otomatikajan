@@ -90,6 +90,16 @@ app = FastAPI(
 configure_middleware(app)
 register_routers(app)
 
+# ── OTel Tracing Middleware (Phase 13.04) ─────────────────
+try:
+    from libs.observability.middleware import get_otel_middleware
+    _OTelMW = get_otel_middleware()
+    if _OTelMW is not None:
+        app.add_middleware(_OTelMW)
+        logger.info("[OTEL] Tracing middleware registered")
+except Exception as _otel_err:
+    logger.warning(f"[OTEL] Middleware skipped: {_otel_err}")
+
 # ── Dashboard (Statik) ───────────────────────────────────
 _dash = os.path.join(ROOT_DIR, "hub_interaction", "dashboard")
 if os.path.isdir(_dash):
