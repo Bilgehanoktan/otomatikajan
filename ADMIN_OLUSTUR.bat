@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 chcp 65001 >nul
 title Admin Hesabi Olustur
 
@@ -24,9 +24,9 @@ async def main():
     if not email or len(password) < 10:
         print('HATA: E-posta veya parola gecersiz (min 10 karakter).')
         sys.exit(1)
-    from db.session import AsyncSessionLocal, init_db
-    from auth.jwt_auth import AuthService
-    from db.models import User
+    from hub_infra.persistence.session import AsyncSessionLocal, init_db
+    from hub_infra.api.routers.auth.jwt_auth import AuthService
+    from hub_infra.persistence.models import User
     from sqlalchemy import update
     await init_db()
     async with AsyncSessionLocal() as db:

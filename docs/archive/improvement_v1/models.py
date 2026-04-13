@@ -2,7 +2,7 @@
 [DEPRECATED] improvement_v1/models.py
 Compatibility shim — all models moved to core.improvement.models
 """
-from core.improvement.models import (
+from hub_cortex.improvement.models import (
     ImprovementOpportunity,
     PatchProposal,
     VerificationResult,

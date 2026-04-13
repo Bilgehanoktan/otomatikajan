@@ -1,8 +1,8 @@
 .git
 .github
-.venv
-venv
-__pycache__
+**/.venv/
+**/venv/
+**/__pycache__/
 *.pyc
 *.pyo
 *.pyd
@@ -23,7 +23,8 @@ vendor/deer-flow/.[!.]*
 **/.next/
 **/.pnpm-store/
 package-lock.json
-pnpm-lock.yaml
+# pnpm-lock.yaml (Removed ignore to allow subprojects to build)
+
 
 # Faz 12.1: Production Isolation
 backups/

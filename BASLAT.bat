@@ -10,7 +10,7 @@ echo ----------------------------------------------------
 
 :: 0. On Kontrol: Sistem Butunlugu (Quality Guard)
 echo [*] Sistem butunlugu kontrol ediliyor (Quality Guard)...
-python tools\verify\verify_system_integrity.py
+python hub_guardian\scripts\verify_sovereign_integrity.py
 if %errorlevel% neq 0 (
     echo [!] UYARI: Sistem butunluk kontrolu tamamlanamadi.
     echo [!] Nedeni: Veritabani henuz baslatilmamis olabilir. Devam ediliyor...
@@ -26,7 +26,7 @@ if %errorlevel% neq 0 (
 
 :: 2. Eski Bot Sureclerini Temizle
 echo [*] Eski bot surecleri temizleniyor...
-powershell -Command "Get-CimInstance Win32_Process -Filter \"name='python.exe' and (commandline like '%%apps.telegram_bot.polling%%' or commandline like '%%telegram_watchdog%%')\" | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }" >nul 2>&1
+powershell -Command "Get-CimInstance Win32_Process -Filter \"name='python.exe' and (commandline like '%%hub_interaction.telegram_bot%%' or commandline like '%%telegram_watchdog%%')\" | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }" >nul 2>&1
 
 :: 3. Docker Compose Islemleri
 cd /d "%~dp0"

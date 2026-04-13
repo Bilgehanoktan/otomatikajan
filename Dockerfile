@@ -53,7 +53,7 @@ RUN rm -f .env .env.local *.zip *.pyc
 FROM base-runtime AS validator
 RUN pip install --no-cache-dir ruff==0.4.0
 # Bu aşama, eğer sistemde import hatası veya kritik lint hatası varsa build'i durdurur.
-RUN python tools/verify/verify_system_integrity.py
+RUN python hub_guardian/scripts/verify_sovereign_integrity.py
 
 
 # ─── Aşama 3: Üretim Slim (App & Beat için) ──────────────
@@ -64,8 +64,8 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 CMD ["sh", "-c", \
-    "alembic -c packages/persistence/migrations/alembic.ini upgrade head && \
-     gunicorn apps.api.main:app \
+    "alembic -c hub_infra/persistence/migrations/alembic.ini upgrade head && \
+     gunicorn hub_infra.api.main:app \
         --worker-class uvicorn.workers.UvicornWorker \
         --workers ${WORKERS:-2} \
         --bind 0.0.0.0:8000 \
@@ -85,4 +85,4 @@ RUN apt-get -o Acquire::Retries=3 update && apt-get -o Acquire::Retries=3 instal
 # Playwright browser'ları zaten base-runtime'da kurulu.
 
 USER appuser
-CMD ["celery", "-A", "apps.worker.tasks.celery_app", "worker", "--loglevel=info", "--queues=critical,default,background", "--concurrency=2"]
+CMD ["celery", "-A", "hub_infra.worker.tasks.celery_app", "worker", "--loglevel=info", "--queues=critical,default,background", "--concurrency=2"]

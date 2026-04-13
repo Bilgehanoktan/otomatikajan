@@ -7,10 +7,10 @@ Bu dizin konsolide edilmiştir. Tüm aktif kod `core/improvement/` altına taş�
 Yeni import'lar için:
 ```python
 # ❌ Eski (kullanmayın)
-from core.improvement_v1.models import ImprovementOpportunity
+from hub_cortex.improvement_v1.models import ImprovementOpportunity
 
 # ✅ Yeni (doğru)
-from core.improvement.models import ImprovementOpportunity
+from hub_cortex.improvement.models import ImprovementOpportunity
 ```
 
 Konsolidasyon tarihi: 2026-04-02
