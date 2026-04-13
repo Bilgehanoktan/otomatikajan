@@ -1,0 +1,21 @@
+{
+  "name": "sovereign-agi-workspace",
+  "version": "13.0.4",
+  "private": true,
+  "scripts": {
+    "start": "docker-compose up -d",
+    "test": "nx run-many --target=test --all",
+    "lint": "nx run-many --target=lint --all"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "nx": "18.3.0",
+    "@nx/workspace": "18.3.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "libs/*",
+    "services/*",
+    "workers/*"
+  ]
+}

@@ -1,0 +1,39 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: sovereign-agi
+  description: Sovereign AGI V2 - Autonomous Execution & Orchestration Platform.
+  annotations:
+    github.com/project-slug: ai_company/sovereign-agi
+    backstage.io/techdocs-ref: dir:.
+spec:
+  type: service
+  lifecycle: production
+  owner: execution-team
+  system: sovereign-agents
+  dependsOn:
+    - resource:postgres-db
+    - resource:redis-queue
+    - resource:signoz-otel
+  providesApis:
+    - api:workflow-api
+    - api:public-api
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: sovereign-agents
+  description: Sovereign AGI Agents System
+spec:
+  owner: execution-team
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: workflow-api
+  description: Durable Workflow Control Plane API
+spec:
+  type: openapi
+  lifecycle: production
+  owner: execution-team
+  definition: $text: ./services/workflow_api/openapi.yaml
