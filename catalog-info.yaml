@@ -18,6 +18,12 @@ spec:
   providesApis:
     - api:workflow-api
     - api:public-api
+    - api:mcp-api
+  links:
+    - title: Operations Control Plane
+      url: http://localhost:3000
+      icon: dashboard
+      type: admin-dashboard
 ---
 apiVersion: backstage.io/v1alpha1
 kind: System
@@ -37,3 +43,16 @@ spec:
   lifecycle: production
   owner: execution-team
   definition: $text: ./services/workflow_api/openapi.yaml
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: mcp-api
+  description: Sovereign MCP Tool Specification
+spec:
+  type: mcp
+  lifecycle: production
+  owner: execution-team
+  definition: |
+    Standardized Model Context Protocol interface for AGI orchestration.
+    Exposes: list_active_workflows, trigger_workflow, get_system_health.

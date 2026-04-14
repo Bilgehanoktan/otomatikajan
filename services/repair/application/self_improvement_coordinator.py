@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -97,26 +97,98 @@ class SelfImprovementCoordinator:
             message=f"Kendi kendine iyileÅŸtirme onayÄ± bekleniyor: {op.description}"
         )
 
+
     async def apply_improvement(self, op: ImprovementOpportunity) -> str:
-        """Bir iyileÅŸtirme fÄ±rsatÄ±nÄ± uygula."""
+        """
+        Stage 1: Analyze opportunity, generate patch, verify in shadow, and save to DB.
+        Does NOT touch the real disk.
+        """
+        from libs.db.session import AsyncSessionLocal
+        from libs.db.models.core_models import SystemImprovement, SystemImprovementStatus
+        from services.orchestration.application.shadow_runner import ShadowRunner
+        
+        affected_files = getattr(op, "affected_files", []) or []
+        if not affected_files:
+            return "No affected files."
+
         results = []
-        for file_path in op.affected_files:
+        for file_path in affected_files:
             try:
-                out = await self.updater.modify_system_file(
-                    target_file_path=file_path,
-                    instruction=f"IMPROVEMENT REQUEST: {op.description}. Evidence: {op.evidence}"
-                )
-                results.append(f"{file_path}: {out}")
+                # 1. Shadow Workspace'de dÃ¼zeltme Ã¼ret ve test et
+                instruction = f"FIX RECURRING ERROR: {op.description}. Evidence: {op.evidence_detail}"
+                
+                # Shadow Runner ile izole ortamda deneme yap
+                shadow = ShadowRunner(self.updater.workspace_root)
+                shadow_path = await shadow.create_shadow_copy(file_path)
+                
+                # LLM'den dÃ¼zeltme iste (shadow dosya Ã¼zerinde)
+                suggested_code = await self.updater.propose_fix(file_path, instruction)
+                
+                # Shadow dosyayÄ± gÃ¼ncelle
+                with open(shadow_path, "w", encoding="utf-8") as f:
+                    f.write(suggested_code)
+                
+                # DoÄŸrulama (Syntax + Tests)
+                is_valid, test_report = await shadow.verify_shadow(shadow_path)
+                
+                # 2. VeritabanÄ±na 'Pending' olarak kaydet
+                async with AsyncSessionLocal() as db:
+                    improvement = SystemImprovement(
+                        id=uuid.uuid4(),
+                        opportunity_id=op.id,
+                        target_file=file_path,
+                        instruction=instruction,
+                        proposed_patch=suggested_code,
+                        status=SystemImprovementStatus.PENDING,
+                        test_results={
+                            "valid": is_valid,
+                            "report": test_report,
+                            "shadow_verified_at": datetime.now(timezone.utc).isoformat()
+                        }
+                    )
+                    db.add(improvement)
+                    await db.commit()
+
+                results.append(f"{file_path}: PROPOSED (Shadow Verified: {is_valid})")
             except Exception as e:
+                logger.error(f"Improvement proposal failed for {file_path}: {e}")
                 results.append(f"{file_path}: FAILED ({e})")
         
-        summary = "\n".join(results)
-        await event_bus.emit(
-            "improvement.applied",
-            opportunity_id=op.id,
-            status="success" if "BaÅŸarÄ±lÄ±" in summary else "partial",
-            summary=summary,
-            message=f"Ä°yileÅŸtirme uygulandÄ±: {op.description}"
-        )
-        return summary
+        return "\n".join(results)
+
+    async def run_effector(self):
+        """
+        Stage 2: Effector Phase.
+        Scan for APPROVED improvements and apply them to the real disk.
+        """
+        from libs.db.session import AsyncSessionLocal
+        from libs.db.models.core_models import SystemImprovement, SystemImprovementStatus
+        from sqlalchemy import select
+
+        async with AsyncSessionLocal() as db:
+            res = await db.execute(
+                select(SystemImprovement).where(SystemImprovement.status == SystemImprovementStatus.APPROVED)
+            )
+            approved_list = res.scalars().all()
+
+            if not approved_list:
+                return
+
+            print(f"[SelfImprovement] Found {len(approved_list)} approved improvements. Applying...")
+
+            for imp in approved_list:
+                try:
+                    # Physically apply the patch
+                    target_path = Path(self.updater.workspace_root) / imp.target_file
+                    with open(target_path, "w", encoding="utf-8") as f:
+                        f.write(imp.proposed_patch)
+                    
+                    imp.status = SystemImprovementStatus.APPLIED
+                    imp.applied_at = datetime.now(timezone.utc)
+                    logger.info(f"SUCCESSFULLY APPLIED PATCH to {imp.target_file}")
+                except Exception as e:
+                    logger.error(f"Failed to apply patch {imp.id}: {e}")
+                    imp.status = SystemImprovementStatus.FAILED
+                
+            await db.commit()
 

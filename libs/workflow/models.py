@@ -9,13 +9,23 @@ class StepStatus(str, Enum):
     COMPLETED = "completed"
     FAILED = "failed"
     SKIPPED = "skipped"
+    WAITING = "waiting" # Waiting for dependencies or approval
+    REPLAY_PENDING = "replay_pending"
 
 class WorkflowStatus(str, Enum):
-    PENDING = "pending"
-    RUNNING = "running"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    CANCELLED = "cancelled"
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
+    WAITING_APPROVAL = "WAITING_APPROVAL"
+    REPLAYING = "REPLAYING"
+    PAUSED = "PAUSED"
+
+class ReplayMode(str, Enum):
+    SAME_INPUT = "same_input"         # Just retry the step
+    FROM_STEP = "from_step"           # Reset this step and all downstream
+    WITH_OVERRIDE = "with_override"   # Replay with modified input/context
 
 class WorkflowStep(BaseModel):
     id: str
@@ -30,6 +40,7 @@ class WorkflowStep(BaseModel):
     retries: int = 0
     max_retries: int = 3
     dependencies: List[str] = Field(default_factory=list)
+    require_approval: bool = False
 
 class WorkflowInstance(BaseModel):
     id: str
@@ -40,4 +51,5 @@ class WorkflowInstance(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
+    review_required: bool = False
     metadata: Dict[str, Any] = Field(default_factory=dict)

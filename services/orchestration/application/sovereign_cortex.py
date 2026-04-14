@@ -123,8 +123,8 @@ class SovereignCortex:
     def improvement_coordinator(self):
         """Lazy-loaded SelfImprovementCoordinator"""
         if self._improvement_coordinator is None:
-            from hub_cortex.improvement_engine.self_improvement_coordinator import SelfImprovementCoordinator
-            from hub_cortex.improvement_engine.observer import observer as improvement_observer
+            from services.governance.evolution.self_improvement_coordinator import SelfImprovementCoordinator
+            from services.repair.improvement.observer import observer as improvement_observer
             self._improvement_coordinator = SelfImprovementCoordinator(
                 self.self_updater, improvement_observer
             )

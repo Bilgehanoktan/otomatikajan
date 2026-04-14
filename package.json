@@ -7,10 +7,16 @@
     "test": "nx run-many --target=test --all",
     "lint": "nx run-many --target=lint --all"
   },
-  "dependencies": {},
   "devDependencies": {
-    "nx": "18.3.0",
-    "@nx/workspace": "18.3.0"
+    "@nx/eslint": "^22.6.5",
+    "@nx/jest": "^22.6.5",
+    "@nx/js": "^22.6.5",
+    "@nx/linter": "^19.8.4",
+    "@nx/next": "^22.6.5",
+    "@nx/react": "^22.6.5",
+    "@nx/web": "^22.6.5",
+    "@nx/workspace": "^18.3.0",
+    "nx": "18.3.0"
   },
   "workspaces": [
     "apps/*",

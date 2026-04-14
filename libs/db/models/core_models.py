@@ -74,13 +74,15 @@ class ProjectStatus(str, enum.Enum):
     QUEUED = "QUEUED"
     RUNNING = "RUNNING"
     PENDING_APPROVAL = "PENDING_APPROVAL"
+    WAITING_APPROVAL = "WAITING_APPROVAL" # Alternative name for clarity
+    REPLAYING = "REPLAYING"
     RETRYING = "RETRYING"         # Added for schema sync
     COMPLETED = "COMPLETED"
     PARTIAL_COMPLETE = "PARTIAL_COMPLETE"
     ERROR = "ERROR"
     CANCELLED = "CANCELLED"
     PAUSED = "PAUSED"
-    INTERRUPTED = "INTERRUPTED"    # Kesintiye uğrayan (Zombi değil, kurtarılabilir)
+    INTERRUPTED = "INTERRUPTED"    # Kesintiye uÄŸrayan (Zombi deÄŸil, kurtarÄ±labilir)
     RESUMING = "RESUMING"          # Otonom olarak devam ettiriliyor
 
 class ProjectSource(str, enum.Enum):
@@ -146,6 +148,8 @@ class Project(Base):
     task_logs= relationship("TaskLog", back_populates="project",
                             lazy="select", cascade="all, delete-orphan")
     goal     = relationship("SovereignGoal", back_populates="projects", foreign_keys=[goal_id])
+    workflow_events = relationship("WorkflowEvent", back_populates="project",
+                                   lazy="select", cascade="all, delete-orphan")
 
 
 # ── Alt Görevler ─────────────────────────────────────────
@@ -327,6 +331,30 @@ class ApiMetric(Base):
     __table_args__ = (
         Index("ix_api_metrics_endpoint_created", "endpoint", "created_at"),
         Index("ix_api_metrics_created", "created_at"),
+    )
+
+
+# ── Workflow Olay Geçmişi (Faz 13.04 — Durable Execution) ──
+class WorkflowEvent(Base):
+    """
+    Temporal-like event history. Her workflow adımı ve durum değişikliği
+    burada immutably saklanır. Recovery için bu tablo replay edilir.
+    """
+    __tablename__ = "workflow_events"
+
+    id           = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id   = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    event_type   = Column(String(64), nullable=False, index=True)
+    # event_type: "workflow_started", "step_scheduled", "step_started", 
+    #             "step_completed", "step_failed", "context_updated", "workflow_completed"
+    step_id      = Column(String(128), nullable=True, index=True)
+    payload      = Column(SmartJSON(), default=dict)
+    created_at   = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+
+    project = relationship("Project", back_populates="workflow_events")
+
+    __table_args__ = (
+        Index("ix_workflow_events_project_created", "project_id", "created_at"),
     )
 
 
@@ -585,3 +613,23 @@ class ModelBenchmarking(Base):
     quality_score    = Column(Float, default=0.0)
     recorded_at      = Column(DateTime(timezone=True), default=utcnow, index=True)
 
+
+# ── Öz-İyileştirme Yamaları (Faz 4) ────────────────────────
+class SystemImprovement(Base):
+    """
+    Otonom olarak üretilen sistem dÃ¼zeltmeleri (patches).
+    """
+    __tablename__ = "system_improvements"
+
+    id               = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    opportunity_id   = Column(UUID(as_uuid=True), ForeignKey("improvement_opportunities.id"), nullable=True)
+    target_file      = Column(String(512), nullable=False)
+    instruction      = Column(Text, nullable=False)
+    proposed_patch   = Column(Text, nullable=False)   # Unified diff or full file
+    test_results     = Column(SmartJSON(), default=dict) # Shadow runner output
+    status           = Column(String(32), default="pending", index=True) # pending, verified, applied, rejected
+    applied_at       = Column(DateTime(timezone=True), nullable=True)
+    git_commit       = Column(String(64), nullable=True)
+    created_at       = Column(DateTime(timezone=True), default=utcnow, index=True)
+
+    opportunity = relationship("ImprovementOpportunity")

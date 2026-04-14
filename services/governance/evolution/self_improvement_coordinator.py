@@ -4,9 +4,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
 
-from improve.observer import ImprovementObserver, ImprovementOpportunity
-from services.repair.self_updater import SelfUpdater
-from core.events import event_bus
+from services.repair.improvement.observer import ImprovementObserver, ImprovementOpportunity
+from services.orchestration.application.self_updater import SelfUpdater
+from services.orchestration.domain.events import event_bus
 from services.observability.logging import get_logger
 
 logger = get_logger("self_improvement")

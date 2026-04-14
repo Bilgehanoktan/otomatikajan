@@ -1,0 +1,27 @@
+{
+  "name": "workflow-api",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "services/workflow_api",
+  "tags": ["type:service", "platform:python"],
+  "targets": {
+    "start": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "python -m uvicorn services.workflow_api.router:router --host 0.0.0.0 --port 8000 --reload"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pytest services/workflow_api/tests"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "flake8 services/workflow_api"
+      }
+    }
+  }
+}

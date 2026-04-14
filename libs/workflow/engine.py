@@ -31,6 +31,13 @@ except ImportError:
 
 logger = logging.getLogger("libs.workflow.engine")
 
+# WS — optional real-time broadcast
+try:
+    from libs.infra.ws_manager import ws_manager
+    _WS_AVAILABLE = True
+except ImportError:
+    _WS_AVAILABLE = False
+
 
 class WorkflowEngine:
     def __init__(self):
@@ -48,12 +55,12 @@ class WorkflowEngine:
         Creates an OTel root span wrapping the entire workflow.
 
         On each iteration:
-        1. Find all PENDING steps whose dependencies are fully COMPLETED.
+        1. Find all PENDING or REPLAY_PENDING steps whose dependencies are fully COMPLETED.
         2. Run them in parallel via asyncio.gather.
         3. Persist state and loop until terminal state or deadlock.
         """
-        if instance.status in [WorkflowStatus.COMPLETED, WorkflowStatus.FAILED]:
-            logger.info(f"Workflow {instance.id} already finished ({instance.status}).")
+        if instance.status in [WorkflowStatus.COMPLETED, WorkflowStatus.CANCELLED] and instance.status != WorkflowStatus.REPLAYING:
+            logger.info(f"Workflow {instance.id} in terminal state ({instance.status}). Skipping.")
             return
 
         span_attrs = {
@@ -63,9 +70,24 @@ class WorkflowEngine:
         }
 
         async def _run():
-            instance.status = WorkflowStatus.RUNNING
+            instance.status = WorkflowStatus.RUNNING if instance.status != WorkflowStatus.REPLAYING else WorkflowStatus.REPLAYING
             instance.started_at = instance.started_at or datetime.utcnow()
+            
+            # Hardening: Capture Trace ID for audit & continuity
+            tid = correlation_id()
+            if tid != "no-otel" and tid != "no-span":
+                instance.metadata["original_trace_id"] = tid.split(":")[0]
+
             await self.persistence.save_instance(instance)
+            await self.persistence.save_event(instance.id, "workflow_started", payload={"type": instance.workflow_type, "trace_id": tid})
+
+            if _WS_AVAILABLE:
+                await ws_manager.broadcast({
+                    "type": "WORKFLOW_STARTED",
+                    "project_id": str(instance.id),
+                    "status": instance.status.value,
+                    "timestamp": datetime.utcnow().isoformat()
+                })
 
             try:
                 while instance.status == WorkflowStatus.RUNNING:
@@ -76,7 +98,7 @@ class WorkflowEngine:
 
                     ready_steps = [
                         s for s in instance.steps
-                        if s.status == StepStatus.PENDING
+                        if s.status in (StepStatus.PENDING, StepStatus.REPLAY_PENDING)
                         and all(dep_id in completed_ids for dep_id in s.dependencies)
                     ]
 
@@ -112,13 +134,30 @@ class WorkflowEngine:
                         *[self._execute_step(instance, step) for step in ready_steps]
                     )
 
+                    # Reload instance to check for cancellation signals from other workers/API
+                    instance = await self.persistence.load_instance(instance.id)
+                    if instance.status == WorkflowStatus.CANCELLED:
+                        logger.warning(f"Workflow {instance.id} CANCELLED by signal.")
+                        await self.persistence.save_event(instance.id, "workflow_cancelled")
+                        return
+
                     await self.persistence.save_instance(instance)
 
                     if instance.status == WorkflowStatus.FAILED:
+                        await self.persistence.save_event(instance.id, "workflow_failed")
                         break
 
                 instance.completed_at = datetime.utcnow()
                 await self.persistence.save_instance(instance)
+                await self.persistence.save_event(instance.id, "workflow_completed")
+
+                if _WS_AVAILABLE:
+                    await ws_manager.broadcast({
+                        "type": "WORKFLOW_COMPLETED",
+                        "project_id": str(instance.id),
+                        "status": instance.status.value,
+                        "timestamp": datetime.utcnow().isoformat()
+                    })
 
                 set_span_attrs(
                     **{
@@ -153,10 +192,45 @@ class WorkflowEngine:
         }
 
         async def _run_step():
+            # Check history to prevent redundant execution (DURABILITY)
+            history = await self.persistence.load_history(instance.id)
+            if any(e["event_type"] == "step_completed" and e["step_id"] == step.id for e in history):
+                logger.info(f"[Step {step.name}] Already completed in history. Skipping.")
+                step.status = StepStatus.COMPLETED
+                return
+
+            # Approval Gate Logic (Phase 2)
+            if step.require_approval:
+                # We check if the parent project has review_required=False (meaning it was approved)
+                # This matches the existing Project.review_required column in core_models.py
+                instance_reloaded = await self.persistence.load_instance(instance.id)
+                project_needs_review = getattr(instance_reloaded, "review_required", False) 
+                # Note: persistence.load_instance currently loads into WorkflowInstance which might not have all fields.
+                # However, our engine loop reloads from persistence.
+
+                if project_needs_review:
+                    logger.info(f"[Step {step.name}] WAITING FOR APPROVAL.")
+                    step.status = StepStatus.WAITING
+                    instance.status = WorkflowStatus.WAITING_APPROVAL
+                    await self.persistence.save_step(instance.id, step)
+                    await self.persistence.save_instance(instance)
+                    await self.persistence.save_event(instance.id, "step_waiting_approval", step_id=step.id)
+                    return # Pause this step (and since it's gathered, it stops the batch)
+
             logger.info(f"[Step {step.name}] Starting action: {step.action}")
             step.status = StepStatus.RUNNING
             step.started_at = datetime.utcnow()
             await self.persistence.save_step(instance.id, step)
+            await self.persistence.save_event(instance.id, "step_started", step_id=step.id)
+
+            if _WS_AVAILABLE:
+                await ws_manager.broadcast({
+                    "type": "STEP_STARTED",
+                    "project_id": str(instance.id),
+                    "step_id": step.id,
+                    "step_name": step.name,
+                    "timestamp": datetime.utcnow().isoformat()
+                })
 
             try:
                 action_func = self._registry.get(step.action)
@@ -168,6 +242,7 @@ class WorkflowEngine:
                 step.output_data = result if isinstance(result, dict) else {"result": result}
                 step.status = StepStatus.COMPLETED
                 step.completed_at = datetime.utcnow()
+                await self.persistence.save_event(instance.id, "step_completed", step_id=step.id, payload=step.output_data)
 
                 if isinstance(step.output_data, dict) and "_context_update" in step.output_data:
                     instance.context.update(step.output_data["_context_update"])
@@ -191,9 +266,93 @@ class WorkflowEngine:
                     step.status = StepStatus.FAILED
                     instance.status = WorkflowStatus.FAILED
                     set_span_attrs(**{"step.status": "failed", "step.error": str(e)})
+                    await self.persistence.save_event(instance.id, "step_failed", step_id=step.id, payload={"error": str(e)})
                     logger.error(f"[Step {step.name}] Max retries exceeded. Workflow FAILED.")
 
             await self.persistence.save_step(instance.id, step)
 
+            if _WS_AVAILABLE:
+                await ws_manager.broadcast({
+                    "type": "STEP_COMPLETED" if step.status == StepStatus.COMPLETED else "STEP_FAILED",
+                    "project_id": str(instance.id),
+                    "step_id": step.id,
+                    "status": step.status.value,
+                    "error": step.error,
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+
         with _otel_span(f"step.{step.action}", attributes=step_attrs):
             await _run_step()
+
+
+    # ── Replay Operations (Phase 2.1) ──────────────────────────────────────────
+
+    async def replay(self, instance: WorkflowInstance, from_step_id: str, mode: str = "same_input", overrides: dict = None, operator_id: str = "system", reason: str = "manual trigger"):
+        """
+        Force a workflow to re-execute from a specific point with full audit trail.
+        - mode 'same_input': only reset the target step.
+        - mode 'from_step': reset the target step and ALL downstream steps.
+        - overrides: update the context or step input before replaying.
+        """
+        logger.info(f"[Replay] Triggered by {operator_id} for workflow {instance.id} from step {from_step_id} (Mode: {mode}). Reason: {reason}")
+        
+        target_found = False
+        steps_to_reset = [from_step_id]
+
+        if mode == "from_step":
+            # Collect all downstream dependents recursively (Dependency Graph Reset)
+            def collect_downstream(step_id):
+                for s in instance.steps:
+                    if step_id in s.dependencies and s.id not in steps_to_reset:
+                        steps_to_reset.append(s.id)
+                        collect_downstream(s.id)
+            collect_downstream(from_step_id)
+
+        for s in instance.steps:
+            if s.id in steps_to_reset:
+                s.status = StepStatus.REPLAY_PENDING
+                s.completed_at = None
+                s.started_at = None
+                s.error = None
+                if s.id == from_step_id and overrides:
+                    # Hardening: Validate override keys exist in target step
+                    if "input" in overrides:
+                        invalid_keys = [k for k in overrides["input"] if k not in s.input_data]
+                        if invalid_keys:
+                            logger.warning(f"[Replay] Override contains unknown input keys for step {s.name}: {invalid_keys}")
+                            # We still apply it but log a warning, or we could raise an error.
+                            # For hardening, let's keep it as a warning but strictly update only existing keys if preferred.
+                    
+                    # Apply overrides to step input
+                    s.input_data.update(overrides.get("input", {}))
+                target_found = True
+
+        if not target_found:
+            raise ValueError(f"Step {from_step_id} not found in workflow {instance.id}")
+
+        if overrides and "context" in overrides:
+            # Apply global context updates
+            instance.context.update(overrides["context"])
+
+        instance.status = WorkflowStatus.REPLAYING
+        await self.persistence.save_instance(instance)
+        
+        # Comprehensive audit log entry
+        original_tid = instance.metadata.get("original_trace_id", "unknown")
+        await self.persistence.save_event(
+            instance.id, 
+            "workflow_replay_started", 
+            payload={
+                "from_step": from_step_id, 
+                "mode": mode,
+                "operator_id": operator_id,
+                "reason": reason,
+                "reset_steps": steps_to_reset,
+                "has_overrides": overrides is not None,
+                "original_trace_id": original_tid,
+                "correlation_trace_id": correlation_id().split(":")[0]
+            }
+        )
+        
+        # Start execution loop
+        await self.execute(instance)

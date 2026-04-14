@@ -1,0 +1,21 @@
+{
+  "name": "service-mcp",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "services/mcp_server",
+  "tags": ["type:service", "platform:python", "protocol:mcp"],
+  "targets": {
+    "start": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "python services/mcp_server/main.py"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pytest services/mcp_server/tests"
+      }
+    }
+  }
+}

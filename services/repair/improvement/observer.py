@@ -1,4 +1,4 @@
-﻿"""
+"""
 Self-Improvement Observer (Consolidated from improvement_v1)
 [CONSOLIDATION] Eski improvement_v1/observer.py'nin aktif versiyonu.
 Sistemdeki iyileÅŸtirme fÄ±rsatlarÄ±nÄ± tarar.
@@ -45,10 +45,64 @@ class ImprovementObserver:
             for opp in opportunities
         ]
 
+
     async def _scan_agent_failures(self) -> List[ImprovementOpportunity]:
-        """Agent baÅŸarÄ± oranlarÄ±nÄ± tarar."""
-        # GerÃ§ek DB taramasÄ± burada yapÄ±lÄ±r (stub)
-        return []
+        """
+        Agent baÅŸarÄ± oranlarÄ±nÄ± ve hata desenlerini tarar.
+        """
+        from libs.db.session import SessionLocal
+        from libs.db.models.core_models import WorkflowEvent, ImprovementOpportunity
+        from sqlalchemy import select, func
+        from datetime import datetime, timedelta, timezone
+
+        opportunities = []
+        logger.info("Agent hatalarÄ± taranÄ±yor...")
+
+        try:
+            async with SessionLocal() as session:
+                # Son 24 saatteki hatalarÄ± grupla
+                yesterday = datetime.now(timezone.utc) - timedelta(days=1)
+                
+                # Hata mesajlarÄ±na gÃ¶re gruplama yaparak "pattern" yakala
+                # Not: Payload iÃ§indeki hatayÄ± parse etmek iÃ§in basit bir model
+                stmt = (
+                    select(
+                        WorkflowEvent.step_id,
+                        WorkflowEvent.payload["error"].as_string().label("error_msg"),
+                        func.count().label("err_count")
+                    )
+                    .where(WorkflowEvent.event_type == "step_failed")
+                    .where(WorkflowEvent.created_at >= yesterday)
+                    .group_by("error_msg", WorkflowEvent.step_id)
+                    .having(func.count() >= 2) # En az 2 kez tekrarlananlarÄ± al
+                )
+                
+                res = await session.execute(stmt)
+                for row in res.all():
+                    step_id, error_msg, count = row
+                    
+                    # Bu pattern daha Ã¶nce kaydedilmiÅŸ mi? (hash kontrolÃ¼)
+                    pattern_hash = ImprovementOpportunity.generate_hash("agent_failure", f"{step_id}:{error_msg}")
+                    
+                    # Existing check (basitleÅŸtirilmiÅŸ)
+                    opp = ImprovementOpportunity(
+                        id=uuid.uuid4(),
+                        source_type="agent_failure",
+                        source_ref=step_id,
+                        title=f"Recurring Failure in {step_id}",
+                        description=f"Detected {count} failures with error: {error_msg}",
+                        severity="high" if count > 5 else "medium",
+                        category="reliability",
+                        evidence_detail=error_msg,
+                        pattern_hash=pattern_hash,
+                        status="open"
+                    )
+                    opportunities.append(opp)
+                    
+        except Exception as e:
+            logger.error(f"Agent failure scanning failed: {e}")
+
+        return opportunities
 
     async def _scan_endpoint_errors(self) -> List[ImprovementOpportunity]:
         """API endpoint hata oranlarÄ±nÄ± tarar."""
