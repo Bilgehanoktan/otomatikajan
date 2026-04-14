@@ -1,0 +1,30 @@
+# Integration Governance Policies
+# Defines capabilities and safety limits for connectors.
+
+connectors:
+  github_tool:
+    allowed_tools:
+      - "read_file"
+      - "list_dir"
+      - "create_issue"
+    timeout_s: 30
+    max_retries: 2
+    risk_level: "monitored"
+
+  google_search:
+    allowed_tools:
+      - "search"
+    timeout_s: 15
+    max_retries: 3
+    risk_level: "low"
+
+  mcp_generic:
+    allowed_tools: ["*"] # Full access but subject to global safety checks
+    timeout_s: 60
+    max_retries: 5
+    risk_level: "high"
+
+system_defaults:
+  default_timeout_s: 20
+  default_max_retries: 3
+  fail_safe_enabled: true
