@@ -376,9 +376,16 @@ async def require_admin(user=Depends(get_current_user)):
 
 async def optional_admin(user=Depends(get_optional_user)):
     """Dev modunda veya kullanıcı admin ise izin ver."""
-    env = os.getenv("APP_ENV", "development")
-    if env == "development":
+    from libs.config import is_prod, is_dev
+    if is_prod:
+        # Üretimde her zaman gerçek admin yetkisi aranır.
+        if not user or not getattr(user, "is_admin", False):
+            raise HTTPException(status_code=403, detail="Üretim ortamında admin yetkisi zorunludur")
         return user
+
+    if is_dev:
+        return user
+
     if not user or not getattr(user, "is_admin", False):
         raise HTTPException(status_code=403, detail="Admin yetkisi gerekli")
     return user

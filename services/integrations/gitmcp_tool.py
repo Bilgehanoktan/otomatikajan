@@ -3,17 +3,29 @@ import httpx
 import logging
 from typing import Dict, Any, Optional, List
 from services.observability.logging import get_logger
+from services.integrations.base import BaseIntegrationTool, async_retry
 
 logger = get_logger("tools.gitmcp")
 
-class GitMCPTool:
+class GitMCPTool(BaseIntegrationTool):
     """
     GitMCP (gitmcp.io) entegrasyon aracı.
     GitHub depolarını MCP (Model Context Protocol) bağlamında okumayı sağlar.
     """
     def __init__(self, base_url: str = "https://gitmcp.io"):
+        super().__init__(tool_name="gitmcp")
         self.base_url = base_url.rstrip("/")
 
+    async def call(self, action: str, **kwargs) -> Any:
+        if action == "get_repo_context":
+            return await self.get_repo_context(**kwargs)
+        elif action == "get_raw_file":
+            return await self.get_raw_file(**kwargs)
+        elif action == "get_repo_tree":
+            return await self.get_repo_tree(**kwargs)
+        return None
+
+    @async_retry(max_retries=2, backoff=2.0)
     async def get_repo_context(self, repo_path: str, format: str = "llms.txt") -> str:
         """
         Herhangi bir GitHub deposundan structured context okur.

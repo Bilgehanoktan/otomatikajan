@@ -37,6 +37,21 @@ def set_trace_id(tid: str = "") -> str:
 
 
 # ════════════════════════════════════════════════════════
+# Log Filters
+# ════════════════════════════════════════════════════════
+class TraceIDFilter(logging.Filter):
+    """Her log satırına trace_id ve otel_trace bilgisini inject eder."""
+    def filter(self, record):
+        record.trace_id = get_trace_id()
+        try:
+            from libs.observability.tracer import correlation_id as _corr_id
+            record.otel_trace = _corr_id()
+        except Exception:
+            record.otel_trace = "no-otel"
+        return True
+
+
+# ════════════════════════════════════════════════════════
 # JSON Log Formatter
 # ════════════════════════════════════════════════════════
 class JSONFormatter(logging.Formatter):
@@ -164,14 +179,18 @@ def get_logger(name: str, force_db: bool = False) -> logging.Logger:
 
     logger.setLevel(getattr(logging, LOG_LEVEL, logging.DEBUG))
 
+    # Common Trace Filter
+    trace_filter = TraceIDFilter()
+
     # Stdout — JSON (prod) veya insan okunabilir (dev)
     handler = logging.StreamHandler(sys.stdout)
+    handler.addFilter(trace_filter)
     if APP_ENV == "production":
         handler.setFormatter(JSONFormatter())
     else:
         handler.setFormatter(
             logging.Formatter(
-                "%(asctime)s  %(levelname)-8s  [%(name)s]  %(message)s",
+                "%(asctime)s  %(levelname)-8s  [%(name)s] [%(trace_id)s] %(message)s",
                 datefmt="%H:%M:%S",
             )
         )
@@ -179,7 +198,9 @@ def get_logger(name: str, force_db: bool = False) -> logging.Logger:
 
     # DB handler ekle (Production'da otomatik, veya zorunluysa her zaman)
     if APP_ENV == "production" or force_db:
-        logger.addHandler(DBLogHandler())
+        db_handler = DBLogHandler()
+        db_handler.addFilter(trace_filter)
+        logger.addHandler(db_handler)
 
     return logger
 
