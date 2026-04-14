@@ -4,7 +4,7 @@ import { useList } from "@refinedev/core";
 import { Activity, ShieldCheck, Terminal, Cpu, Clock, CheckCircle } from "lucide-react";
 
 export default function ControlPlaneDashboard() {
-  const { data, isLoading, isError } = useList({
+  const { query: { data, isLoading, isError } } = useList({
     resource: "workflows",
   });
 
@@ -64,7 +64,7 @@ export default function ControlPlaneDashboard() {
               {workflows.length === 0 ? (
                 <div className="text-center py-10 text-[#45a29e]">No workflows currently active.</div>
               ) : (
-                workflows.map((wf) => (
+                workflows.map((wf: any) => (
                   <div key={wf.id} className="group p-5 rounded-xl border border-[#1f2833] bg-[#0b0c10] hover:bg-[#1f2833]/50 transition-all cursor-pointer">
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-4">

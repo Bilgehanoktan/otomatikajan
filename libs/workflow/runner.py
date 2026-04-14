@@ -7,13 +7,13 @@ This is the single entry-point called by Celery workers instead of
 directly talking to SovereignCortex.
 """
 import uuid
-import logging
 from datetime import datetime
-
+from services.observability.logging import get_logger
+from libs.observability.tracer import traced, span
 from libs.workflow.engine import WorkflowEngine
-from libs.workflow.models import WorkflowInstance, WorkflowStep, WorkflowStatus, StepStatus
+from libs.workflow.models import WorkflowInstance, WorkflowStep, WorkflowStatus
 
-logger = logging.getLogger("libs.workflow.runner")
+logger = get_logger("libs.workflow.runner")
 
 # ── Shared engine singleton for this worker process ──────────
 _engine: WorkflowEngine | None = None
@@ -35,6 +35,7 @@ def _register_default_actions(engine: WorkflowEngine):
     Each action is an async function: async(context, **kwargs) -> dict | Any
     """
 
+    @traced("wf.plan_subtasks")
     async def _plan_subtasks(context: dict, title: str, description: str, **kw) -> dict:
         """Step 1: Delegated planning via CognitivePlanner."""
         from services.orchestration.application.sovereign_cortex import get_sovereign_cortex
@@ -80,6 +81,7 @@ def _register_default_actions(engine: WorkflowEngine):
             }
         }
 
+    @traced("wf.execute_subtasks")
     async def _execute_subtasks(context: dict, **kw) -> dict:
         """Step 2: Execute all planned subtasks via OperationalExecutor."""
         from services.orchestration.application.sovereign_cortex import get_sovereign_cortex
@@ -107,9 +109,19 @@ def _register_default_actions(engine: WorkflowEngine):
 
         await cortex.executor_svc.execute_task_tree(task)
 
-        # Capture results
+        # Capture results (Faz 8: Comprehensive Extraction)
         results = {
-            st.agent_id: {"status": str(st.status), "result": getattr(st, "result", "")}
+            st.agent_id: {
+                "status": str(st.status),
+                "result": getattr(st, "result", ""),
+                "internal_monologue": getattr(st, "internal_monologue", ""),
+                "llm_provider": getattr(st, "llm_provider", ""),
+                "input_tokens": getattr(st, "input_tokens", 0),
+                "output_tokens": getattr(st, "output_tokens", 0),
+                "cost_usd": getattr(st, "cost_usd", 0.0),
+                "latency_s": getattr(st, "duration_s", 0.0), # OperationalExecutor uses duration_s
+                "quality_score": getattr(st, "quality_score", None),
+            }
             for st in task.subtasks
         }
         has_failures = any(str(st.status) in ("TaskStatus.ERROR", "error") for st in task.subtasks)
@@ -120,6 +132,7 @@ def _register_default_actions(engine: WorkflowEngine):
             }
         }
 
+    @traced("wf.synthesize_report")
     async def _synthesize_report(context: dict, **kw) -> dict:
         """Step 3: Synthesize final report and persist."""
         from services.orchestration.application.sovereign_cortex import get_sovereign_cortex
@@ -229,6 +242,7 @@ def build_project_workflow(
     )
 
 
+@traced("WorkflowRunner.run")
 async def run_project_workflow(
     project_id: str,
     title: str,
@@ -270,3 +284,12 @@ async def run_project_workflow(
 
     await engine.execute(instance)
     return instance
+
+
+class WorkflowRunner:
+    """Compatibility wrapper for durable workflow orchestration."""
+    def __init__(self, engine=None):
+        self.engine = engine or get_engine()
+
+    async def run_project_workflow(self, **kwargs) -> WorkflowInstance:
+        return await run_project_workflow(**kwargs)

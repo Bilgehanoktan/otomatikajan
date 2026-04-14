@@ -14,17 +14,17 @@ import {
 
 export default function WorkflowListPage() {
     const { show } = useNavigation();
-    const { data, isLoading, refetch } = useList({
+    const { query: { data, isLoading, refetch } } = useList({
         resource: "workflows",
         pagination: { pageSize: 12 },
         sorters: [{ field: "created_at", order: "desc" }]
     });
 
-    const { data: statsData } = useList({
+    const { query: { data: statsData } } = useList({
         resource: "workflows/stats/summary",
         queryOptions: { retry: false }
     });
-    const { data: clustersData } = useList({
+    const { query: { data: clustersData } } = useList({
         resource: "workflows/analytics/failure-clusters",
         queryOptions: { retry: false }
     });
@@ -73,23 +73,23 @@ export default function WorkflowListPage() {
 
             {/* Quick Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-                <div class="glass-card">
-                    <p class="text-xs font-bold text-[#45a29e] uppercase tracking-wider mb-2">Total Workflows</p>
-                    <h3 class="text-3xl font-bold text-white">{stats?.total || 0}</h3>
+                <div className="glass-card">
+                    <p className="text-xs font-bold text-[#45a29e] uppercase tracking-wider mb-2">Total Workflows</p>
+                    <h3 className="text-3xl font-bold text-white">{stats?.total || 0}</h3>
                 </div>
-                <div class="glass-card">
-                    <p class="text-xs font-bold text-[#66fcf1] uppercase tracking-wider mb-2">Active Jobs</p>
-                    <h3 class="text-3xl font-bold text-white">
+                <div className="glass-card">
+                    <p className="text-xs font-bold text-[#66fcf1] uppercase tracking-wider mb-2">Active Jobs</p>
+                    <h3 className="text-3xl font-bold text-white">
                         {stats?.running || 0}
                     </h3>
                 </div>
-                <div class="glass-card border-green-500/10">
-                    <p class="text-xs font-bold text-green-400 uppercase tracking-wider mb-2">Success Rate</p>
-                    <h3 class="text-3xl font-bold text-white">{stats?.success_rate_pct || 0}%</h3>
+                <div className="glass-card border-green-500/10">
+                    <p className="text-xs font-bold text-green-400 uppercase tracking-wider mb-2">Success Rate</p>
+                    <h3 className="text-3xl font-bold text-white">{stats?.success_rate_pct || 0}%</h3>
                 </div>
-                <div class="glass-card border-red-500/10 group relative overflow-hidden">
-                    <p class="text-xs font-bold text-red-400 uppercase tracking-wider mb-2">Failure Clusters</p>
-                    <h3 class="text-3xl font-bold text-white">{clusters.length}</h3>
+                <div className="glass-card border-red-500/10 group relative overflow-hidden">
+                    <p className="text-xs font-bold text-red-400 uppercase tracking-wider mb-2">Failure Clusters</p>
+                    <h3 className="text-3xl font-bold text-white">{clusters.length}</h3>
                     {clusters.length > 0 && (
                         <div className="absolute inset-x-0 bottom-0 p-2 bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity">
                             <p className="text-[9px] text-red-300 truncate font-mono">Top: {clusters[0].pattern}</p>

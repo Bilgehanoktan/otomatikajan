@@ -41,6 +41,7 @@ class WorkflowStep(BaseModel):
     max_retries: int = 3
     dependencies: List[str] = Field(default_factory=list)
     require_approval: bool = False
+    input_schema: Optional[Dict[str, Any]] = None  # Deep validation support (Draft-07 JSON Schema likely)
 
 class WorkflowInstance(BaseModel):
     id: str

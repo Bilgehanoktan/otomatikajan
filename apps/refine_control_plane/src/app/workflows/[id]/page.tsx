@@ -20,12 +20,11 @@ import { useParams, useRouter } from "next/navigation";
 export default function WorkflowShowPage() {
     const { id } = useParams();
     const router = useRouter();
-    const { queryResult } = useShow({
+    const { query: { data, isLoading } } = useShow({
         resource: "workflows",
         id: id as string,
     });
-    const { data, isLoading } = queryResult;
-    const workflow = data?.data;
+    const workflow = data?.data as any;
 
     const { mutate: retry } = useCustomMutation();
     const { mutate: cancel } = useCustomMutation();
@@ -66,11 +65,13 @@ export default function WorkflowShowPage() {
 
     const handleReplay = () => {
         let overrides = null;
-        try {
-            overrides = JSON.parse(overrideJson);
-        } catch (e) {
-            alert("Invalid JSON in overrides");
-            return;
+        if (replayMode === "with_override") {
+            try {
+                overrides = JSON.parse(overrideJson);
+            } catch (e) {
+                alert("Invalid JSON in overrides");
+                return;
+            }
         }
 
         replay({
@@ -79,9 +80,9 @@ export default function WorkflowShowPage() {
             values: { 
                 from_step: selectedStepForReplay || (workflow?.steps?.[0]?.id),
                 mode: replayMode,
-                overrides: replayMode === "with_override" ? overrides : null,
-                operator_id: "admin_human",
-                reason: "Manual override/replay requested via UI"
+                overrides: overrides,
+                operator_id: "admin_operator_01",
+                reason: `Manual ${replayMode} initiated via Control Plane`
             },
         }, {
             onSuccess: () => {
@@ -90,6 +91,22 @@ export default function WorkflowShowPage() {
             }
         });
     };
+
+    const getSelectedStepSchema = () => {
+        if (!selectedStepForReplay) return null;
+        return workflow?.steps?.find((s: any) => s.id === selectedStepForReplay)?.input_schema;
+    };
+
+    const getSelectedStepInputData = () => {
+        if (!selectedStepForReplay) return {};
+        return workflow?.steps?.find((s: any) => s.id === selectedStepForReplay)?.input_data || {};
+    };
+
+    React.useEffect(() => {
+        if (replayMode === "with_override" && selectedStepForReplay) {
+            setOverrideJson(JSON.stringify({ input: getSelectedStepInputData() }, null, 2));
+        }
+    }, [replayMode, selectedStepForReplay]);
 
     if (isLoading) return <div className="p-10 text-[#66fcf1] animate-pulse">Synchronizing neural link...</div>;
 
@@ -134,7 +151,7 @@ export default function WorkflowShowPage() {
                             className="flex items-center gap-2 px-6 py-2.5 premium-gradient text-black rounded-xl text-sm font-bold shadow-[0_0_20px_rgba(102,252,241,0.3)] transition-all hover:scale-105"
                         >
                             <CheckCircle size={18} />
-                            Authorize Execution
+                            Authorize Execution [admin_operator_01]
                         </button>
                     )}
                     {["failed", "error", "completed", "cancelled"].includes(workflow?.status || "") && (
@@ -340,14 +357,24 @@ export default function WorkflowShowPage() {
                             </div>
 
                             {replayMode === "with_override" && (
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Manual Override (JSON)</label>
-                                    <textarea 
-                                        className="w-full h-32 bg-black/50 border border-white/10 rounded-xl p-4 text-xs font-mono text-[#66fcf1] focus:border-[#66fcf1] outline-none"
-                                        value={overrideJson}
-                                        onChange={(e) => setOverrideJson(e.target.value)}
-                                        placeholder='{"input": {"key": "value"}, "context": {"flag": true}}'
-                                    />
+                                <div className="space-y-4">
+                                    {getSelectedStepSchema() && (
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-[#45a29e] uppercase tracking-widest mb-2">Required Schema Definition</label>
+                                            <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xl text-[10px] text-gray-400 font-mono">
+                                                <pre>{JSON.stringify(getSelectedStepSchema(), null, 2)}</pre>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Manual Override (JSON)</label>
+                                        <textarea 
+                                            className="w-full h-40 bg-black/50 border border-white/10 rounded-xl p-4 text-xs font-mono text-[#66fcf1] focus:border-[#66fcf1] outline-none shadow-inner"
+                                            value={overrideJson}
+                                            onChange={(e) => setOverrideJson(e.target.value)}
+                                            placeholder='{"input": {"key": "value"}, "context": {"flag": true}}'
+                                        />
+                                    </div>
                                 </div>
                             )}
 

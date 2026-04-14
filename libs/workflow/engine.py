@@ -12,11 +12,17 @@ from datetime import datetime
 from typing import Callable, Any, Dict, Awaitable
 
 from libs.workflow.models import WorkflowInstance, WorkflowStep, StepStatus, WorkflowStatus
+from libs.workflow.registry import WorkflowRegistry
 from libs.workflow.persistence import WorkflowPersistence
 
-# OTel — soft dependency (never crashes if not installed)
+# Phase 14: Governance Imports
+from services.governance.autonomy_policy import autonomy_engine
+from services.governance.cost_guard import cost_guard
+from services.governance.approval_policy import approval_engine
+
+from services.observability.logging import get_logger
 try:
-    from libs.observability.tracer import span as _otel_span, set_span_attrs, add_span_event
+    from libs.observability.tracer import span as _otel_span, set_span_attrs, add_span_event, correlation_id
     _HAS_OTEL = True
 except ImportError:
     _HAS_OTEL = False
@@ -28,8 +34,9 @@ except ImportError:
 
     def set_span_attrs(**kw): pass
     def add_span_event(name, **kw): pass
+    def correlation_id(): return "no-otel"
 
-logger = logging.getLogger("libs.workflow.engine")
+logger = get_logger("libs.workflow.engine")
 
 # WS — optional real-time broadcast
 try:
@@ -70,6 +77,7 @@ class WorkflowEngine:
         }
 
         async def _run():
+            nonlocal instance
             instance.status = WorkflowStatus.RUNNING if instance.status != WorkflowStatus.REPLAYING else WorkflowStatus.REPLAYING
             instance.started_at = instance.started_at or datetime.utcnow()
             
@@ -90,7 +98,13 @@ class WorkflowEngine:
                 })
 
             try:
-                while instance.status == WorkflowStatus.RUNNING:
+                while instance.status in (WorkflowStatus.RUNNING, WorkflowStatus.REPLAYING):
+                    # Reload instance at loop start to catch external cancellation or status changes
+                    instance = await self.persistence.load_instance(instance.id)
+                    if instance.status == WorkflowStatus.CANCELLED:
+                        logger.warning(f"[Workflow {instance.id}] Cancellation signal detected. Terminating loop.")
+                        break
+
                     completed_ids = {
                         s.id for s in instance.steps
                         if s.status == StepStatus.COMPLETED
@@ -134,8 +148,8 @@ class WorkflowEngine:
                         *[self._execute_step(instance, step) for step in ready_steps]
                     )
 
-                    # Reload instance to check for cancellation signals from other workers/API
-                    instance = await self.persistence.load_instance(instance.id)
+                    # Update persistence with the latest state after batch execution
+                    await self.persistence.save_instance(instance)
                     if instance.status == WorkflowStatus.CANCELLED:
                         logger.warning(f"Workflow {instance.id} CANCELLED by signal.")
                         await self.persistence.save_event(instance.id, "workflow_cancelled")
@@ -199,7 +213,47 @@ class WorkflowEngine:
                 step.status = StepStatus.COMPLETED
                 return
 
-            # Approval Gate Logic (Phase 2)
+            # ── Phase 14: Governance & Budget Check ────────────────────
+            # 1. Global Budget Check
+            current_total_cost = instance.context.get("_total_cost", 0.0)
+            budget_check = cost_guard.check_budget_limit(current_total_cost)
+            if budget_check["blocked"]:
+                logger.error(f"[Budget] {budget_check['reason']}")
+                step.status = StepStatus.FAILED
+                step.error = budget_check["reason"]
+                await self.persistence.save_step(instance.id, step)
+                await self.persistence.save_event(instance.id, "budget_limit_breached", payload=budget_check)
+                return
+
+            # 2. Autonomy & Approval Check
+            autonomy_check = autonomy_engine.check_execution_permission({
+                "step_id": str(step.id),
+                "step_name": step.name,
+                "tool_name": step.action,
+                "risk_score": step.input_data.get("_risk_score", 0.0)
+            })
+
+            if autonomy_check["requires_approval"]:
+                logger.warning(f"[Autonomy] Approval required: {autonomy_check['reason']}")
+                step.status = StepStatus.WAITING
+                instance.status = WorkflowStatus.WAITING_APPROVAL
+                
+                await self.persistence.save_event(
+                    instance.id, 
+                    "step_waiting_approval", 
+                    step_id=step.id,
+                    payload={
+                        "reason": autonomy_check["reason"],
+                        "autonomy_level": autonomy_engine.config.get("current_global_level"),
+                        "input_preview": step.input_data
+                    }
+                )
+                
+                await self.persistence.save_step(instance.id, step)
+                await self.persistence.save_instance(instance)
+                return
+
+            # Approval Gate Logic (Legacy/Phase 2 fallback)
             if step.require_approval:
                 # We check if the parent project has review_required=False (meaning it was approved)
                 # This matches the existing Project.review_required column in core_models.py
@@ -233,10 +287,18 @@ class WorkflowEngine:
                 })
 
             try:
+                # Pre-execution Cancellation Check
+                instance_check = await self.persistence.load_instance(instance.id)
+                if instance_check.status == WorkflowStatus.CANCELLED:
+                    logger.warning(f"[Step {step.name}] Workflow cancelled before execution. Aborting.")
+                    step.status = StepStatus.FAILED
+                    return
+
                 action_func = self._registry.get(step.action)
                 if not action_func:
                     raise ValueError(f"Action '{step.action}' not registered in WorkflowEngine")
 
+                # Actual execution wrapped in a potential cancellation listener
                 result = await action_func(instance.context, **step.input_data)
 
                 step.output_data = result if isinstance(result, dict) else {"result": result}
@@ -315,13 +377,35 @@ class WorkflowEngine:
                 s.started_at = None
                 s.error = None
                 if s.id == from_step_id and overrides:
-                    # Hardening: Validate override keys exist in target step
+                    # Deeper Hardening: Validate override keys AND types against schema
                     if "input" in overrides:
-                        invalid_keys = [k for k in overrides["input"] if k not in s.input_data]
-                        if invalid_keys:
-                            logger.warning(f"[Replay] Override contains unknown input keys for step {s.name}: {invalid_keys}")
-                            # We still apply it but log a warning, or we could raise an error.
-                            # For hardening, let's keep it as a warning but strictly update only existing keys if preferred.
+                        input_to_check = overrides["input"]
+                        for key, value in input_to_check.items():
+                            if key not in s.input_data:
+                                logger.warning(f"[Replay] Unknown key: {key} (Step: {s.name})")
+                            
+                            # Type Validation if schema exists
+                            if s.input_schema and key in s.input_schema:
+                                expected_type = s.input_schema[key].get("type")
+                                actual_val = value
+                                
+                                # Robust validation for basic types
+                                type_map = {
+                                    "integer": int,
+                                    "string": str,
+                                    "boolean": bool,
+                                    "number": (int, float),
+                                    "array": list,
+                                    "object": dict
+                                }
+                                
+                                expected_py_type = type_map.get(expected_type)
+                                if expected_py_type and not isinstance(actual_val, expected_py_type):
+                                    raise ValueError(
+                                        f"Validation Error in step '{s.name}': "
+                                        f"Field '{key}' expected type '{expected_type}', "
+                                        f"but got '{type(actual_val).__name__}'."
+                                    )
                     
                     # Apply overrides to step input
                     s.input_data.update(overrides.get("input", {}))
@@ -342,10 +426,10 @@ class WorkflowEngine:
         await self.persistence.save_event(
             instance.id, 
             "workflow_replay_started", 
+            operator_id=operator_id,
             payload={
                 "from_step": from_step_id, 
                 "mode": mode,
-                "operator_id": operator_id,
                 "reason": reason,
                 "reset_steps": steps_to_reset,
                 "has_overrides": overrides is not None,

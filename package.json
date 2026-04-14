@@ -22,6 +22,7 @@
     "apps/*",
     "libs/*",
     "services/*",
-    "workers/*"
+    "workers/*",
+    "agents/*"
   ]
 }

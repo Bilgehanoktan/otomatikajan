@@ -12,6 +12,46 @@ import os
 
 QUEUE_BACKEND = os.getenv("QUEUE_BACKEND", "auto").lower()
 
+def validate_production_config():
+    """
+    Üretim ortamı için kritik yapılandırma denetimi.
+    Eksik veya zayıf bir ayar varsa RuntimeError fırlatır.
+    """
+    if not is_prod:
+        return
+
+    # SRE Hardening: Üretim ortamında kesinlikle olması gereken değişkenler
+    mandatory_vars = {
+        "ADMIN_SECRET": ADMIN_SECRET,
+        "JWT_SECRET": JWT_SECRET,
+        "DATABASE_URL": DATABASE_URL,
+        "ANTHROPIC_API_KEY": ANTHROPIC_API_KEY,
+    }
+    
+    # Opsiyonel ama önerilenler (Uyarı basar)
+    recommended_vars = {
+        "TELEGRAM_BOT_TOKEN": TELEGRAM_BOT_TOKEN,
+        "DEEPSEEK_API_KEY": DEEPSEEK_API_KEY,
+    }
+
+    missing = [k for k, v in mandatory_vars.items() if not v]
+    if missing:
+        raise RuntimeError(f"Üretim ortamı için kritik değişkenler eksik: {missing}")
+
+    # Şablon/Zayıf şifre kontrolü
+    for name, secret in [("ADMIN_SECRET", ADMIN_SECRET), ("JWT_SECRET", JWT_SECRET)]:
+        is_weak = any(tpl in secret for tpl in WEAK_TEMPLATES)
+        if is_weak:
+            raise RuntimeError(f"{name} üretim ortamı için kabul edilemez (Template eşleşmesi)!")
+    
+    if len(JWT_SECRET) < 64:
+        raise RuntimeError("JWT_SECRET üretim ortamı için en az 64 karakter olmalı!")
+
+    for r_name, r_val in recommended_vars.items():
+        if not r_val:
+            print(f"UYARI: {r_name} üretim ortamında eksik. Bazı özellikler devre dışı kalabilir.")
+
+
 # ── .env local yükleme (ek güvence) ──────────────────────
 try:
     from dotenv import load_dotenv

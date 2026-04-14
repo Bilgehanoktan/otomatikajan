@@ -9,22 +9,30 @@ import {
     Zap, 
     ShieldCheck, 
     LogOut,
-    Eye
+    Eye,
+    CheckSquare,
+    AlertTriangle,
+    BarChart3,
+    FileText
 } from "lucide-react";
 
-export const Sidebar = () => {
+const icons: Record<string, React.ReactNode> = {
+    workflows: <Workflow size={20} />,
+    dashboard: <LayoutDashboard size={20} />,
+    agents: <Zap size={20} />,
+    improvements: <ShieldCheck size={20} />,
+    security: <ShieldCheck size={20} />,
+    observability: <Eye size={20} />,
+    approvals: <CheckSquare size={20} />,
+    incidents: <AlertTriangle size={20} />,
+    costs: <BarChart3 size={20} />,
+    audit: <FileText size={20} />,
+};
+
+const SidebarContent = () => {
     const { menuItems, selectedKey } = useMenu();
     const { mutate: logout } = useLogout();
     const { data: identity } = useGetIdentity<{ name: string }>();
-
-    const icons: Record<string, React.ReactNode> = {
-        workflows: <Workflow size={20} />,
-        dashboard: <LayoutDashboard size={20} />,
-        agents: <Zap size={20} />,
-        improvements: <ShieldCheck size={20} />,
-        security: <ShieldCheck size={20} />,
-        observability: <Eye size={20} />,
-    };
 
     return (
         <aside className="w-64 h-full glass border-r border-white/5 flex flex-col">
@@ -81,3 +89,19 @@ export const Sidebar = () => {
         </aside>
     );
 };
+
+export const Sidebar = () => {
+    const [mounted, setMounted] = React.useState(false);
+    
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    if (!mounted) {
+        return <aside className="w-64 h-full glass border-r border-white/5 flex flex-col" />;
+    }
+
+    return <SidebarContent />;
+};
+
+export default Sidebar;

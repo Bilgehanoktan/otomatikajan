@@ -1,32 +1,31 @@
-FROM node:20-alpine AS base
-
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+FROM node:20-slim AS base
 
 WORKDIR /app
 
 # Build phase
 FROM base AS builder
 
-# Focus only on the CMS subdirectory
-COPY hub_interaction/cms/package.json hub_interaction/cms/pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+# Install build dependencies for native modules if needed
+RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 
-COPY hub_interaction/cms/ ./
-RUN pnpm build
+# Copy only the package files first for caching
+COPY apps/refine_control_plane/package.json ./
+RUN npm install
+
+# Copy the rest of the source
+COPY apps/refine_control_plane/ ./
+RUN npm run build
 
 # Production phase
 FROM base AS runner
 
 WORKDIR /app
 
-COPY --from=builder /app/next.config.mjs ./
+COPY --from=builder /app/next.config.ts ./
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
-# Inclusion of essential Payload/Next.js files
-COPY --from=builder /app/payload.config.ts ./
-COPY --from=builder /app/tsconfig.json ./
+COPY --from=builder /app/public ./public
 COPY --from=builder /app/src ./src
 
 EXPOSE 3100
@@ -34,4 +33,4 @@ EXPOSE 3100
 ENV PORT 3100
 ENV NODE_ENV production
 
-CMD ["pnpm", "start"]
+CMD ["npm", "start"]

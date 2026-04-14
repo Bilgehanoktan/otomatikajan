@@ -36,28 +36,19 @@ except ImportError:
     pass
 
 # ── Güvenlik çekirdek kontrolleri ─────────────────────────
-from libs.config import APP_ENV as _ENV, ADMIN_SECRET, JWT_SECRET
+from libs.config import APP_ENV as _ENV, ADMIN_SECRET, JWT_SECRET, validate_production_config
 
 if _ENV == "production":
-    # FAZ 12 HARDENING: Üretim ortamında zayıf veya şablon sırları KESİNLİKLE reddet.
-    WEAK_TEMPLATES = ["REPLACE_WITH", "your-secret", "changeme", "123456"]
-    
-    missing = [k for k, v in [("ADMIN_SECRET", ADMIN_SECRET), ("JWT_SECRET", JWT_SECRET)] if not v]
-    if missing:
-        print(f"HATA: Üretim sırları eksik: {missing}")
+    try:
+        validate_production_config()
+        logger.info("[SECURITY] Production environment validation passed.")
+    except RuntimeError as e:
+        print(f"KRİTİK GÜVENLİK HATASI: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"BEKLENMEDİK KURULUM HATASI: {e}")
         sys.exit(1)
         
-    for name, secret in [("ADMIN_SECRET", ADMIN_SECRET), ("JWT_SECRET", JWT_SECRET)]:
-        is_weak = any(tpl in secret for tpl in WEAK_TEMPLATES)
-        is_low_entropy = len(set(secret)) < 8
-        if is_weak or is_low_entropy:
-            reason = "Template eşleşmesi" if is_weak else "Düşük entropi"
-            print(f"HATA: {name} üretim ortamı için kabul edilemez! Neden: {reason}")
-            sys.exit(1)
-
-    if JWT_SECRET and len(JWT_SECRET) < 64:
-        print("HATA: JWT_SECRET üretim ortamı için çok kısa (en az 64 karakter olmalı).")
-        sys.exit(1)
 
 # ── Core singleton'ları ───────────────────────────────────
 from services.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
@@ -65,16 +56,16 @@ from services.orchestration.agi.governance.watchdog import governance_watchdog
 from services.repair.application.heal_engine import heal_engine
 from services.orchestration.domain.events import event_bus
 from services.orchestration.application.job_queue import job_queue
-from hub_infra.api.support.ws_manager import ws_manager
+from libs.infra.ws_manager import ws_manager
 from services.observability.logging import get_logger
 from services.observability.metrics import metrics
 
 logger = get_logger("main")
 
 # ── Startup modülleri ─────────────────────────────────────
-from hub_infra.api.lifespan import lifespan, register_event_listeners
-from hub_infra.api.middleware import configure_middleware
-from hub_infra.api.router_registry import register_routers
+from libs.infra.lifespan import lifespan, register_event_listeners
+from libs.infra.middleware import configure_middleware
+from libs.infra.router_registry import register_routers
 
 # Event bus dinleyicilerini kaydet (modül yüklenirken)
 register_event_listeners()
@@ -163,7 +154,7 @@ async def websocket_logs(ws: WebSocket):
         return
 
     try:
-        from hub_infra.api.routers.auth.jwt_auth import _decode_token
+        from services.auth.jwt_auth import _decode_token
         payload = _decode_token(token)
         if payload.get("type") != "access":
             await ws.accept()

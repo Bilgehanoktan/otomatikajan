@@ -1,16 +1,16 @@
 @echo off
 setlocal disabledelayedexpansion
 chcp 65001 >nul
-title AI Yazilim Sirketi - Baslat (v4.0.0-RC1.4 - Headless)
+title AI Yazilim Sirketi - Baslat (v4.0.0-RC1.5 - Phase 13.04)
 
 echo ----------------------------------------------------
 echo    AI Yazilim Sirketi (DeerFlow) - Baslatiliyor
-echo    Surum: 4.0.0-RC1.4 (Automated Recovery Mode)
+echo    Surum: 4.0.0-RC1.5 (Phase 13.04 Modular Monolith)
 echo ----------------------------------------------------
 
 :: 0. On Kontrol: Sistem Butunlugu (Quality Guard)
 echo [*] Sistem butunlugu kontrol ediliyor (Quality Guard)...
-python hub_guardian\scripts\verify_sovereign_integrity.py
+python scripts\verify_system_integrity.py
 if %errorlevel% neq 0 (
     echo [!] UYARI: Sistem butunluk kontrolu tamamlanamadi.
     echo [!] Nedeni: Veritabani henuz baslatilmamis olabilir. Devam ediliyor...

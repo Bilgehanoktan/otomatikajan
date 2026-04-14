@@ -159,6 +159,7 @@ class SubTask(Base):
     id            = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     project_id    = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"))
     agent_id      = Column(String(64), nullable=False, index=True)
+    action        = Column(String(128), default="run_agent", nullable=False)
     prompt        = Column(Text, nullable=False)
     result        = Column(Text, default="")
     status        = Column(SAEnum(ProjectStatus, native_enum=False, length=32), default=ProjectStatus.PENDING, nullable=False, index=True)
@@ -171,6 +172,8 @@ class SubTask(Base):
     latency_s     = Column(Float, default=0.0)
     quality_score = Column(Float, nullable=True)
     quality_detail = Column(SmartJSON(), default=dict)
+    input_data     = Column(SmartJSON(), default=dict)
+    input_schema   = Column(SmartJSON(), default=dict)
     internal_monologue = Column(Text, default="")
     reviewed      = Column(Boolean, default=False, nullable=False)
     review_notes  = Column(SmartJSON(), default=list)
@@ -339,16 +342,26 @@ class WorkflowEvent(Base):
     """
     Temporal-like event history. Her workflow adımı ve durum değişikliği
     burada immutably saklanır. Recovery için bu tablo replay edilir.
+    Faz 13.04: Tamper-evident hash chaining ve operator takibi eklendi.
     """
     __tablename__ = "workflow_events"
 
     id           = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    project_id   = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    project_id   = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=True, index=True) # Changed to support system-wide events
     event_type   = Column(String(64), nullable=False, index=True)
     # event_type: "workflow_started", "step_scheduled", "step_started", 
-    #             "step_completed", "step_failed", "context_updated", "workflow_completed"
+    #             "step_completed", "step_failed", "context_updated", "workflow_completed",
+    #             "manual_approval", "workflow_replayed", "workflow_cancelled"
+    
     step_id      = Column(String(128), nullable=True, index=True)
+    operator_id  = Column(String(128), nullable=True, index=True) # "system" veya User.email
+    
     payload      = Column(SmartJSON(), default=dict)
+    
+    # ── Tamper-Evidence (Audit Chain) ──
+    previous_hash = Column(String(64), nullable=True)             # Bir önceki event'in imzası
+    signature     = Column(String(64), nullable=True, index=True) # Bu kaydın özgün özeti (SHA256)
+    
     created_at   = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
 
     project = relationship("Project", back_populates="workflow_events")
@@ -633,3 +646,48 @@ class SystemImprovement(Base):
     created_at       = Column(DateTime(timezone=True), default=utcnow, index=True)
 
     opportunity = relationship("ImprovementOpportunity")
+
+
+# ── Faz 14: Operasyonel Yönetişim Modelleri ────────────────
+class ApprovalRequest(Base):
+    """
+    İnsan onayı bekleyen ajan kararları.
+    """
+    __tablename__ = "approval_requests"
+
+    id            = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id    = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    step_id       = Column(String(128), nullable=True)
+    request_type  = Column(String(64), nullable=False) # budget, autonomy, risk_score
+    reason        = Column(Text, nullable=False)
+    input_data    = Column(SmartJSON(), default=dict) # Neye onay veriliyor?
+    
+    status        = Column(String(32), default="pending", index=True) # pending, approved, rejected
+    approver_id   = Column(String(128), nullable=True)
+    decision_at   = Column(DateTime(timezone=True), nullable=True)
+    comment       = Column(Text, default="")
+    
+    created_at    = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+
+    project = relationship("Project")
+
+
+class OperationalIncident(Base):
+    """
+    Sistem tarafından otomatik tespit edilen operasyonel darboğazlar.
+    """
+    __tablename__ = "operational_incidents"
+
+    id            = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    incident_type = Column(String(64), nullable=False, index=True) # stuck_workflow, budget_breach, safety_violation
+    severity      = Column(String(16), default="medium")
+    message       = Column(Text, nullable=False)
+    
+    status        = Column(String(32), default="open", index=True) # open, investigating, resolved, archived
+    project_id    = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="SET NULL"), nullable=True)
+    
+    payload       = Column(SmartJSON(), default=dict)
+    resolved_at   = Column(DateTime(timezone=True), nullable=True)
+    created_at    = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+
+    project = relationship("Project")

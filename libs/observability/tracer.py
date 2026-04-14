@@ -87,14 +87,11 @@ def span(
     tracer_name: str = SERVICE_NAME,
     attributes: Optional[Dict[str, Any]] = None,
     record_exceptions: bool = True,
+    context: Any = None,
 ) -> Generator:
     """
     Convenience context manager for manual spans.
-
-    Usage:
-        with span("my.operation", attributes={"project.id": project_id}) as s:
-            s.set_attribute("extra", "value")
-            do_work()
+    If `context` is provided, it links to that upstream trace context.
     """
     if not _OTEL_AVAILABLE:
         yield _NoOpSpan()
@@ -103,11 +100,39 @@ def span(
     tracer = get_tracer(tracer_name)
     with tracer.start_as_current_span(
         name,
+        context=context,
         attributes=attributes or {},
         record_exception=record_exceptions,
         set_status_on_exception=True,
     ) as s:
         yield s
+
+
+def traced(name: Optional[str] = None):
+    """
+    Decorator for tracing async functions.
+    
+    Usage:
+        @traced("my_operation")
+        async def do_something(): ...
+    """
+    def decorator(func):
+        import functools
+        span_name = name or func.__name__
+
+        @functools.wraps(func)
+        async def async_wrapper(*args, **kwargs):
+            with span(span_name) as s:
+                return await func(*args, **kwargs)
+
+        @functools.wraps(func)
+        def sync_wrapper(*args, **kwargs):
+            with span(span_name) as s:
+                return func(*args, **kwargs)
+
+        import asyncio
+        return async_wrapper if asyncio.iscoroutinefunction(func) else sync_wrapper
+    return decorator
 
 
 def set_span_attrs(**kwargs: Any) -> None:

@@ -126,13 +126,13 @@ services:
       PYTHONPATH: /app
       DOCKER_CONTAINER: "true"
     command: >
-      celery -A hub_infra.worker.tasks.celery_app worker
+      celery -A workers.workflow_worker.tasks.celery_app worker
         --queues=deerflow
         --concurrency=2
         --loglevel=info
         --hostname=deerflow-worker@%h
     healthcheck:
-      test: [ "CMD-SHELL", "celery -A hub_infra.worker.tasks.celery_app inspect ping || exit 1" ]
+      test: [ "CMD-SHELL", "celery -A workers.workflow_worker.tasks.celery_app inspect ping || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -164,7 +164,7 @@ services:
       PYTHONPATH: /app
       DOCKER_CONTAINER: "true"
     command: >
-      celery -A hub_infra.worker.tasks.celery_app beat
+      celery -A workers.workflow_worker.tasks.celery_app beat
         --loglevel=info
     healthcheck:
       disable: true
@@ -177,7 +177,7 @@ services:
   # ── DeerFlow Bridge ───────────────────────────────────────
   deerflow-bridge:
     build:
-      context: ./hub_ecosystem/external/vendor/deer-flow
+      context: ./libs/vendor/deer-flow
       dockerfile: ./backend/Dockerfile
     container_name: deerflow-bridge
     restart: unless-stopped
@@ -200,11 +200,11 @@ services:
     ports:
       - "8010:8010"
     volumes:
-      - ./hub_ecosystem/external/vendor/deer-flow/backend:/app/backend
-      - ./hub_ecosystem/external/vendor/deer-flow/config.yaml:/opt/deerflow/config.yaml:ro
-      - ./hub_ecosystem/external/vendor/deer-flow/skills:/app/skills:ro
-      - ./hub_cortex:/app/backend/packages/harness/deerflow/hub_cortex:ro
-      - ./hub_guardian:/app/backend/packages/harness/deerflow/hub_guardian:ro
+      - ./libs/vendor/deer-flow/backend:/app/backend
+      - ./libs/vendor/deer-flow/config.yaml:/opt/deerflow/config.yaml:ro
+      - ./libs/vendor/deer-flow/skills:/app/skills:ro
+      - ./libs:/app/backend/packages/harness/deerflow/hub_cortex:ro
+      - ./services:/app/backend/packages/harness/deerflow/hub_guardian:ro
       # Sadece Docker sandbox kullanacaksan:
       - /var/run/docker.sock:/var/run/docker.sock
     healthcheck:
@@ -234,7 +234,7 @@ services:
       REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
       PYTHONPATH: /app
       DOCKER_CONTAINER: "true"
-    command: ["python", "-m", "hub_interaction.telegram_bot.polling"]
+    command: ["python", "-m", "apps.telegram_bot.polling"]
     depends_on:
       db:
         condition: service_healthy
@@ -261,7 +261,9 @@ services:
       PAYLOAD_PUBLIC_SERVER_URL: http://localhost:3105
       NEXT_PUBLIC_API_URL: http://app:8000
     ports:
-      - "3105:3100"
+      - "3100:3100"
+    volumes:
+      - .:/app
     depends_on:
       db:
         condition: service_healthy

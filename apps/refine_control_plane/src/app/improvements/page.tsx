@@ -10,11 +10,12 @@ import {
     Check, 
     X,
     ExternalLink,
-    Terminal
+    Terminal,
+    Clock
 } from "lucide-react";
 
 export default function ImprovementsPage() {
-    const { data, isLoading, refetch } = useList({
+    const { query: { data, isLoading, refetch } } = useList({
         resource: "improvements",
         pagination: { pageSize: 20 },
         sorters: [{ field: "created_at", order: "desc" }]
@@ -88,7 +89,7 @@ export default function ImprovementsPage() {
             <div className="space-y-6">
                 {isLoading ? (
                     <div className="text-center py-20 text-gray-500">Scanning for neural pattern fixes...</div>
-                ) : data?.data?.map((improvement) => (
+                ) : data?.data?.map((improvement: any) => (
                     <div key={improvement.id} className="glass rounded-3xl p-6 border border-white/5 hover:border-white/10 transition-all">
                         <div className="flex justify-between items-start mb-6">
                             <div className="flex items-start gap-4">

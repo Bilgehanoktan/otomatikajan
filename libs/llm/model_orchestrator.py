@@ -9,7 +9,10 @@ import logging
 import httpx
 import random
 
-logger = logging.getLogger(__name__)
+from services.observability.logging import get_logger
+from libs.observability.tracer import traced, span
+
+logger = get_logger("libs.llm.model_orchestrator")
 
 # ── 1. Canonical Çıktı Sözleşmesi ────────────────────────
 class LLMResponse(BaseModel):
@@ -254,6 +257,7 @@ class ModelOrchestrator:
         if missing:
             logger.debug(f"[LLM] Anahtarı eksik sağlayıcılar: {', '.join(missing)}")
 
+    @traced("ModelOrchestrator.complete_task")
     async def complete_task(
         self,
         agent_role: str,
@@ -363,79 +367,100 @@ class ModelOrchestrator:
 
         raise RuntimeError(error_msg)
 
-    async def _call(self, provider: ProviderStats, messages: list[dict], max_tokens: int, project_id: str | None = None) -> LLMResponse:
-        llm_timeout = float(os.getenv("LLM_TIMEOUT_S", "30"))
+    async def _call(
+        self,
+        provider: ProviderStats,
+        messages: List[Dict],
+        max_tokens: int,
+        project_id: str | None = None
+    ) -> LLMResponse:
+        """Kalıcı API çağrısı, metrik kaydı ve hata yönetimi."""
         t0 = time.time()
-        
-        try:
-            async with httpx.AsyncClient(timeout=llm_timeout) as client:
-                if provider.name in ("openai", "groq", "openrouter"):
-                    text = await self._call_openai(client, provider, messages, max_tokens)
-                elif provider.name == "anthropic":
-                    text = await self._call_anthropic(client, provider, messages, max_tokens)
-                elif provider.name == "gemini":
-                    text = await self._call_gemini(client, provider, messages, max_tokens)
-                elif provider.name == "nvidia":
-                    text = await self._call_nvidia(client, provider, messages, max_tokens)
-                elif provider.name in ("moonshot", "deepseek"):
-                    text = await self._call_openai(client, provider, messages, max_tokens)
-                else:
-                    raise ValueError(f"Bilinmeyen sağlayıcı: {provider.name}")
+        llm_timeout = float(os.getenv("LLM_TIMEOUT", "60.0"))
+
+        # ── OTel Instrumentation (Phase 13.04) ──
+        with span(f"llm_call:{provider.name}", attributes={
+            "llm.provider": provider.name,
+            "llm.model": provider.model,
+            "llm.agent_role": "orchestrator", # Fallback default
+            "project.id": project_id or "none",
+        }) as s:
+            try:
+                async with httpx.AsyncClient(timeout=llm_timeout) as client:
+                    if provider.name in ("openai", "groq", "openrouter"):
+                        text = await self._call_openai(client, provider, messages, max_tokens)
+                    elif provider.name == "anthropic":
+                        text = await self._call_anthropic(client, provider, messages, max_tokens)
+                    elif provider.name == "gemini":
+                        text = await self._call_gemini(client, provider, messages, max_tokens)
+                    elif provider.name == "nvidia":
+                        text = await self._call_nvidia(client, provider, messages, max_tokens)
+                    elif provider.name in ("moonshot", "deepseek"):
+                        text = await self._call_openai(client, provider, messages, max_tokens)
+                    else:
+                        raise ValueError(f"Bilinmeyen sağlayıcı: {provider.name}")
+                        
+                latency = time.time() - t0
+                provider.record_success(latency)
+
+                # Yaklaşık token ve maliyet hesabı
+                est_tokens = self._estimate_tokens(messages)
+                out_tokens = self._estimate_output_tokens(text)
+                est_cost   = self._estimate_cost(provider.name, est_tokens, out_tokens)
+
+                # Update span attributes
+                s.set_attribute("llm.input_tokens", est_tokens)
+                s.set_attribute("llm.output_tokens", out_tokens)
+                s.set_attribute("llm.cost_usd", est_cost)
+                s.set_attribute("llm.latency_s", latency)
+
+                # Metrics ve Maliyet Kaydı
+                try:
+                    from services.observability.metrics import metrics
+                    from libs.llm.cost_tracker import cost_tracker
+                    from libs.db.session import AsyncSessionLocal
+
+                    # In-memory metrics
+                    metrics.record_llm_call(
+                        provider=provider.name, latency_s=latency, success=True, tokens=est_tokens, cost_usd=est_cost
+                    )
                     
-            latency = time.time() - t0
-            provider.record_success(latency)
+                    # In-memory Tracker & DB Persistence
+                    rec = cost_tracker.record(
+                        provider=provider.name, model=provider.model, agent_id="orchestrator",
+                        input_tokens=est_tokens, output_tokens=out_tokens, 
+                        latency_s=latency, success=True, project_id=project_id
+                    )
+                    
+                    # Arka planda DB'ye yaz (fire and forget tarzı ama await etmek daha güvenli)
+                    async with AsyncSessionLocal() as db:
+                        await cost_tracker.persist(db, rec)
+                        await db.commit()
 
-            # Yaklaşık token ve maliyet hesabı
-            est_tokens = self._estimate_tokens(messages)
-            out_tokens = self._estimate_output_tokens(text)
-            est_cost   = self._estimate_cost(provider.name, est_tokens, out_tokens)
+                except Exception as e:
+                    logger.warning(f"Cost tracking error: {e}")
 
-            # Metrics ve Maliyet Kaydı
-            try:
-                from observability.metrics import metrics
-                from llm.cost_tracker import cost_tracker
-                from db.session import AsyncSessionLocal
-
-                # In-memory metrics
-                metrics.record_llm_call(
-                    provider=provider.name, latency_s=latency, success=True, tokens=est_tokens, cost_usd=est_cost
+                # Zorunlu Canonical Sözleşme Çıktısı
+                return LLMResponse(
+                    content=text,
+                    input_tokens=est_tokens,
+                    output_tokens=out_tokens,
+                    model_name=provider.model,
+                    provider=provider.name,
+                    latency_s=latency,
+                    cost_usd=est_cost
                 )
-                
-                # In-memory Tracker & DB Persistence
-                rec = cost_tracker.record(
-                    provider=provider.name, model=provider.model, agent_id="orchestrator",
-                    input_tokens=est_tokens, output_tokens=out_tokens, 
-                    latency_s=latency, success=True, project_id=project_id
-                )
-                
-                # Arka planda DB'ye yaz (fire and forget tarzı ama await etmek daha güvenli)
-                async with AsyncSessionLocal() as db:
-                    await cost_tracker.persist(db, rec)
-                    await db.commit()
 
-            except Exception as e:
-                logger.warning(f"Cost tracking error: {e}")
+            except Exception as _exc:
+                provider.record_failure()
+                try:
+                    from services.observability.metrics import metrics
+                    metrics.record_llm_call(provider=provider.name, latency_s=time.time() - t0, success=False)
+                    metrics.record_error(f"llm.{provider.name}.{type(_exc).__name__}")
+                except (ImportError, Exception):
+                    pass
+                raise _exc
 
-            # Zorunlu Canonical Sözleşme Çıktısı
-            return LLMResponse(
-                content=text,
-                input_tokens=est_tokens,
-                output_tokens=out_tokens,
-                model_name=provider.model,
-                provider=provider.name,
-                latency_s=latency,
-                cost_usd=est_cost
-            )
-
-        except Exception as _exc:
-            provider.record_failure()
-            try:
-                from observability.metrics import metrics
-                metrics.record_llm_call(provider=provider.name, latency_s=time.time() - t0, success=False)
-                metrics.record_error(f"llm.{provider.name}.{type(_exc).__name__}")
-            except ImportError:
-                pass
-            raise _exc
 
     # ── RAW HTTP İSTEKLERİ ──────────────────────────────────
     # ── Token / Cost Yardımcı Metodları ─────────────────────────

@@ -13,8 +13,10 @@ const geistMono = Geist_Mono({
 });
 
 import { Providers } from "./providers";
-import { Sidebar } from "../components/Sidebar";
-import { SystemHeader } from "../components/SystemHeader";
+import dynamic from "next/dynamic";
+
+const Sidebar = dynamic(() => import("../components/Sidebar"), { ssr: false });
+const SystemHeader = dynamic(() => import("../components/SystemHeader"), { ssr: false });
 
 export const metadata: Metadata = {
   title: "Sovereign AGI | Control Plane",

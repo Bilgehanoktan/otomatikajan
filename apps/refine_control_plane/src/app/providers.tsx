@@ -19,6 +19,22 @@ export function Providers({ children }: { children: React.ReactNode }) {
           show: "/workflows/:id",
         },
         {
+          name: "approvals",
+          list: "/approvals",
+        },
+        {
+          name: "incidents",
+          list: "/incidents",
+        },
+        {
+          name: "costs",
+          list: "/costs",
+        },
+        {
+          name: "audit",
+          list: "/audit",
+        },
+        {
           name: "improvements",
           list: "/improvements",
         },
@@ -26,6 +42,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       options={{
         syncWithLocation: true,
         warnWhenUnsavedChanges: true,
+        disableTelemetry: true,
       }}
     >
       {children}
