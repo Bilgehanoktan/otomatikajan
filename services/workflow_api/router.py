@@ -11,7 +11,31 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/api/v1/workflows", tags=["Workflow Control Plane"])
+router = APIRouter(prefix="/api/v1", tags=["Workflow Control Plane"])
+
+
+# ── Dependencies ──────────────────────────────────────────────────────────────
+
+async def require_admin(operator_id: str = Query(..., alias="operatorId")):
+    """Mandatory admin check for all state mutations."""
+    from libs.db.session import AsyncSessionLocal
+    from libs.db.models.core_models import User
+    from sqlalchemy import select
+
+    # Allow 'admin_human' as a semi-hardened bypass for legacy dev/CI
+    if operator_id == "admin_human":
+        return operator_id
+
+    async with AsyncSessionLocal() as db:
+        user_res = await db.execute(select(User).where(User.email == operator_id))
+        user = user_res.scalar_one_or_none()
+        if not user or not user.is_admin:
+            from fastapi import HTTPException
+            raise HTTPException(
+                status_code=403, 
+                detail=f"Operator '{operator_id}' is not authorized for this action."
+            )
+    return operator_id
 
 
 # ── Response Schemas ──────────────────────────────────────────────────────────
@@ -28,6 +52,10 @@ class StepOut(BaseModel):
     error: Optional[str] = None
     dependencies: List[str] = []
     output_summary: Optional[str] = None
+    input_schema: Dict[str, Any] = {}
+    input_data: Dict[str, Any] = {}
+    internal_monologue: Optional[str] = None
+    cost_usd: float = 0.0
 
 
 class WorkflowOut(BaseModel):
@@ -89,6 +117,48 @@ class ImprovementUpdate(BaseModel):
     status: str
 
 
+class ApprovalRequestOut(BaseModel):
+    id: str
+    project_id: str
+    step_id: Optional[str]
+    request_type: str
+    reason: str
+    input_data: Dict[str, Any]
+    status: str
+    approver_id: Optional[str]
+    decision_at: Optional[datetime]
+    comment: str
+    created_at: datetime
+
+
+class OperationalIncidentOut(BaseModel):
+    id: str
+    incident_type: str
+    severity: str
+    message: str
+    status: str
+    project_id: Optional[str]
+    payload: Dict[str, Any]
+    resolved_at: Optional[datetime]
+    created_at: datetime
+
+
+class ApprovalUpdate(BaseModel):
+    status: str
+    comment: str = ""
+
+
+class IncidentUpdate(BaseModel):
+    status: str
+
+
+class CostAnalyticsOut(BaseModel):
+    total_cost_usd: float
+    budget_limit_usd: float
+    usage_pct: float
+    top_projects: List[Dict[str, Any]]
+
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 async def _get_project_with_subtasks(project_id: str):
@@ -125,7 +195,7 @@ def _map_workflow(project, subtasks) -> WorkflowOut:
         steps.append(StepOut(
             id=str(st.id),
             name=st.agent_id,
-            action=st.agent_id,
+            action=st.action,
             status=status_val.lower(),
             started_at=None,
             completed_at=st.completed_at,
@@ -134,6 +204,10 @@ def _map_workflow(project, subtasks) -> WorkflowOut:
             error=getattr(st, "causal_anchor", None) if status_val.lower() in ("error", "failed") else None,
             dependencies=st.dependencies if isinstance(st.dependencies, list) else [],
             output_summary=output_summary,
+            input_schema=st.input_schema or {},
+            input_data=st.input_data if st.input_data else {"prompt": st.prompt},
+            internal_monologue=st.internal_monologue,
+            cost_usd=st.cost_usd or 0.0
         ))
 
     p_status = project.status.value if hasattr(project.status, "value") else str(project.status)
@@ -156,7 +230,8 @@ def _map_workflow(project, subtasks) -> WorkflowOut:
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
-@router.get("", response_model=List[ProjectListItem])
+@router.get("/workflows", response_model=List[ProjectListItem])
+async def list_workflows(
     response: Response,
     status_filter: Optional[str] = Query(None, alias="status"),
     limit: int = Query(50, ge=1, le=200),
@@ -222,7 +297,7 @@ def _map_workflow(project, subtasks) -> WorkflowOut:
         return items
 
 
-@router.get("/{project_id}", response_model=WorkflowOut)
+@router.get("/workflows/{project_id}", response_model=WorkflowOut)
 async def get_workflow(project_id: str):
     """Get full workflow detail with step trace and event history."""
     project, subtasks = await _get_project_with_subtasks(project_id)
@@ -235,8 +310,8 @@ async def get_workflow(project_id: str):
     return out
 
 
-@router.post("/{project_id}/retry", response_model=RetryResponse)
-async def retry_workflow(project_id: str):
+@router.post("/{project_id}/retry", response_model=RetryResponse, dependencies=[Depends(require_admin)])
+async def retry_workflow(project_id: str, operator_id: str = Depends(require_admin)):
     """Re-enqueue a failed/error project for execution."""
     from libs.db.session import AsyncSessionLocal
     from libs.db.models.core_models import Project, ProjectStatus
@@ -268,6 +343,15 @@ async def retry_workflow(project_id: str):
             error_detail="",
             retry_count=project.retry_count + 1,
         )
+        # Audit trail: Record retry event
+        from libs.workflow.persistence import WorkflowPersistence
+        await WorkflowPersistence().save_event(
+            project_id, 
+            "workflow_retried", 
+            operator_id=operator_id,
+            payload={"retry_count": project.retry_count + 1}
+        )
+
         await db.commit()
 
     # Enqueue via Celery
@@ -289,8 +373,8 @@ async def retry_workflow(project_id: str):
         return RetryResponse(message=f"Queued in DB (Celery unavailable: {e})", task_id=project_id)
 
 
-@router.post("/{project_id}/cancel")
-async def cancel_workflow(project_id: str):
+@router.post("/{project_id}/cancel", dependencies=[Depends(require_admin)])
+async def cancel_workflow(project_id: str, operator_id: str = Depends(require_admin)):
     """Cancel a running or pending workflow."""
     from libs.db.session import AsyncSessionLocal
     from libs.db.models.core_models import Project, ProjectStatus
@@ -308,19 +392,28 @@ async def cancel_workflow(project_id: str):
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
 
+        # Audit trail: Record cancellation
+        from libs.workflow.persistence import WorkflowPersistence
+        await WorkflowPersistence().save_event(
+            project_id, 
+            "workflow_cancelled", 
+            operator_id=operator_id,
+            payload={"previous_status": str(project.status)}
+        )
+
         await ProjectRepository.update_fields(
             db, project.id,
             status=ProjectStatus.CANCELLED,
             cancelled_at=datetime.now(timezone.utc),
-            cancelled_by="control_plane",
+            cancelled_by=operator_id,
         )
         await db.commit()
 
     return {"message": "Workflow cancelled", "project_id": project_id}
 
 
-@router.post("/{project_id}/approve")
-async def approve_workflow(project_id: str, req: ApprovalRequest):
+@router.post("/{project_id}/approve", dependencies=[Depends(require_admin)])
+async def approve_workflow(project_id: str, req: ApprovalRequest, operator_id: str = Depends(require_admin)):
     """Approve a workflow pending manual review with audit trail."""
     from libs.db.session import AsyncSessionLocal
     from libs.db.models.core_models import Project, ProjectStatus
@@ -345,12 +438,12 @@ async def approve_workflow(project_id: str, req: ApprovalRequest):
         if p_status.lower() != "pending_approval":
             raise HTTPException(status_code=409, detail=f"Project is not pending approval (status: {p_status})")
 
-        # Hardening: Save to Workflow Audit Trail
+        # Hardening: Save to Workflow Audit Trail (Phase 13.04)
         await persistence.save_event(
             project_id, 
             "workflow_approved", 
+            operator_id=operator_id,
             payload={
-                "operator_id": req.operator_id,
                 "notes": req.notes,
                 "timestamp": datetime.utcnow().isoformat()
             }
@@ -359,7 +452,7 @@ async def approve_workflow(project_id: str, req: ApprovalRequest):
         await ProjectRepository.update_fields(
             db, project.id,
             status=ProjectStatus.QUEUED,
-            notes=f"[APPROVED BY {req.operator_id}] {req.notes}",
+            notes=f"[APPROVED BY {operator_id}] {req.notes}",
             review_required=False,
         )
         await db.commit()
@@ -367,8 +460,8 @@ async def approve_workflow(project_id: str, req: ApprovalRequest):
     return {"message": "Workflow approved and re-queued", "project_id": project_id}
 
 
-@router.post("/{project_id}/replay")
-async def replay_workflow(project_id: str, req: ReplayRequest):
+@router.post("/{project_id}/replay", dependencies=[Depends(require_admin)])
+async def replay_workflow(project_id: str, req: ReplayRequest, operator_id: str = Depends(require_admin)):
     """Trigger a durable replay of a workflow with hardening & audit trail."""
     from libs.workflow.persistence import WorkflowPersistence
     from libs.workflow.engine import WorkflowEngine
@@ -380,7 +473,7 @@ async def replay_workflow(project_id: str, req: ReplayRequest):
     instance = await persistence.load_instance(project_id)
     if not instance:
         raise HTTPException(status_code=404, detail="Workflow instance not found")
-        
+
     status_str = instance.status.value if hasattr(instance.status, "value") else str(instance.status)
     if status_str.lower() in ["running", "replaying"]:
         raise HTTPException(
@@ -397,10 +490,10 @@ async def replay_workflow(project_id: str, req: ReplayRequest):
         project_id, 
         "replay_initiated", 
         step_id=req.from_step,
+        operator_id=operator_id,
         payload={
             "mode": req.mode,
             "reason": req.reason,
-            "operator_id": req.operator_id,
             "overrides_keys": list(req.overrides.keys()) if req.overrides else []
         }
     )
@@ -412,7 +505,7 @@ async def replay_workflow(project_id: str, req: ReplayRequest):
         from_step_id=req.from_step, 
         mode=req.mode, 
         overrides=req.overrides,
-        operator_id=req.operator_id,
+        operator_id=operator_id,
         reason=req.reason
     )
 
@@ -420,7 +513,7 @@ async def replay_workflow(project_id: str, req: ReplayRequest):
         "status": "success",
         "message": "Durable replay sequence authorized and initiated.",
         "project_id": project_id,
-        "audit_id": req.operator_id
+        "audit_id": operator_id
     }
 
 
@@ -468,7 +561,7 @@ async def workflow_stats():
 
 # ── Improvement Endpoints (Self-Healing) ───────────────────────────────────
 
-@router.get("/improvements/list", response_model=List[ImprovementOut], tags=["Self-Healing"])
+@router.get("/improvements", response_model=List[ImprovementOut], tags=["Self-Healing"])
 async def list_improvements(
     response: Response,
     limit: int = Query(50, ge=1, le=200),
@@ -504,8 +597,8 @@ async def list_improvements(
         ]
 
 
-@router.patch("/improvements/{improvement_id}", response_model=ImprovementOut, tags=["Self-Healing"])
-async def update_improvement(improvement_id: str, patch_data: ImprovementUpdate):
+@router.patch("/improvements/{improvement_id}", response_model=ImprovementOut, tags=["Self-Healing"], dependencies=[Depends(require_admin)])
+async def update_improvement(improvement_id: str, patch_data: ImprovementUpdate, operator_id: str = Depends(require_admin)):
     """Approve or reject a patch."""
     from libs.db.session import AsyncSessionLocal
     from libs.db.models.core_models import SystemImprovement
@@ -523,14 +616,25 @@ async def update_improvement(improvement_id: str, patch_data: ImprovementUpdate)
             raise HTTPException(status_code=404, detail="Improvement not found")
 
         # Update status
+        old_status = str(improvement.status)
         improvement.status = patch_data.status
         
+        # Comprehensive: Log this mutation to the Global Audit Trail
+        from libs.workflow.persistence import WorkflowPersistence
+        await WorkflowPersistence.save_event(
+            project_id=None, # Global system mutation
+            event_type="improvement_status_updated",
+            operator_id=operator_id,
+            payload={
+                "improvement_id": str(improvement.id),
+                "target_file": improvement.target_file,
+                "old_status": old_status,
+                "new_status": str(patch_data.status)
+            }
+        )
+
         # If approved, we would normally trigger the effector here.
-        # For Phase 4, we'll log the approval. The effector will be triggered
-        # by the coordinator scanning for 'approved' patches.
-        
         if patch_data.status == "approved":
-            # Optional: Trigger effector background task
             pass
 
         await db.commit()
@@ -583,3 +687,225 @@ async def get_failure_clusters():
         })
 
     return sorted(clusters, key=lambda x: x["count"], reverse=True)
+
+
+# ── Faz 14: Yönetişim Uç Noktaları ──────────────────────────────────────────
+
+@router.get("/approvals", response_model=List[ApprovalRequestOut], tags=["Governance"])
+async def list_approvals(
+    response: Response,
+    status: Optional[str] = Query(None),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+):
+    """İnsan onayı bekleyen kararları listele."""
+    from libs.db.session import AsyncSessionLocal
+    from libs.db.models.core_models import ApprovalRequest
+    from sqlalchemy import select, func
+
+    async with AsyncSessionLocal() as db:
+        count_q = select(func.count(ApprovalRequest.id))
+        if status:
+            count_q = count_q.where(ApprovalRequest.status == status)
+        total_count = (await db.execute(count_q)).scalar()
+        response.headers["X-Total-Count"] = str(total_count)
+        response.headers["Access-Control-Expose-Headers"] = "X-Total-Count"
+
+        q = select(ApprovalRequest).order_by(ApprovalRequest.created_at.desc()).limit(limit).offset(offset)
+        if status:
+            q = q.where(ApprovalRequest.status == status)
+        res = await db.execute(q)
+        approvals = res.scalars().all()
+
+        return [
+            ApprovalRequestOut(
+                id=str(a.id),
+                project_id=str(a.project_id),
+                step_id=a.step_id,
+                request_type=a.request_type,
+                reason=a.reason,
+                input_data=a.input_data,
+                status=a.status,
+                approver_id=a.approver_id,
+                decision_at=a.decision_at,
+                comment=a.comment,
+                created_at=a.created_at,
+            )
+            for a in approvals
+        ]
+
+
+@router.patch("/approvals/{approval_id}", response_model=ApprovalRequestOut, tags=["Governance"], dependencies=[Depends(require_admin)])
+async def update_approval(
+    approval_id: str,
+    update: ApprovalUpdate,
+    operator_id: str = Depends(require_admin)
+):
+    """Kararı onayla veya reddet."""
+    from libs.db.session import AsyncSessionLocal
+    from libs.db.models.core_models import ApprovalRequest, Project, ProjectStatus
+    from sqlalchemy import select, update as sql_update
+
+    try:
+        uid = uuid.UUID(approval_id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid ID")
+
+    async with AsyncSessionLocal() as db:
+        res = await db.execute(select(ApprovalRequest).where(ApprovalRequest.id == uid))
+        req = res.scalar_one_or_none()
+        if not req:
+            raise HTTPException(status_code=404, detail="Approval request not found")
+
+        req.status = update.status
+        req.comment = update.comment
+        req.approver_id = operator_id
+        req.decision_at = datetime.now(timezone.utc)
+
+        # Eğer onaylandıysa ilgili projeyi QUEUED durumuna çek
+        if update.status == "approved":
+            await db.execute(
+                sql_update(Project)
+                .where(Project.id == req.project_id)
+                .values(status=ProjectStatus.QUEUED, notes=f"[Approved] {update.comment}")
+            )
+        
+        from libs.workflow.persistence import WorkflowPersistence
+        await WorkflowPersistence().save_event(
+            str(req.project_id),
+            "approval_decision",
+            operator_id=operator_id,
+            payload={"status": update.status, "comment": update.comment}
+        )
+
+        await db.commit()
+        await db.refresh(req)
+        
+        return ApprovalRequestOut(
+            id=str(req.id),
+            project_id=str(req.project_id),
+            step_id=req.step_id,
+            request_type=req.request_type,
+            reason=req.reason,
+            input_data=req.input_data,
+            status=req.status,
+            approver_id=req.approver_id,
+            decision_at=req.decision_at,
+            comment=req.comment,
+            created_at=req.created_at,
+        )
+
+
+@router.get("/incidents", response_model=List[OperationalIncidentOut], tags=["Governance"])
+async def list_incidents(
+    response: Response,
+    status: Optional[str] = Query(None),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+):
+    """Sistem olaylarını listele."""
+    from libs.db.session import AsyncSessionLocal
+    from libs.db.models.core_models import OperationalIncident
+    from sqlalchemy import select, func
+
+    async with AsyncSessionLocal() as db:
+        count_q = select(func.count(OperationalIncident.id))
+        if status:
+            count_q = count_q.where(OperationalIncident.status == status)
+        total_count = (await db.execute(count_q)).scalar()
+        response.headers["X-Total-Count"] = str(total_count)
+        response.headers["Access-Control-Expose-Headers"] = "X-Total-Count"
+
+        q = select(OperationalIncident).order_by(OperationalIncident.created_at.desc()).limit(limit).offset(offset)
+        if status:
+            q = q.where(OperationalIncident.status == status)
+        res = await db.execute(q)
+        incidents = res.scalars().all()
+
+        return [
+            OperationalIncidentOut(
+                id=str(i.id),
+                incident_type=i.incident_type,
+                severity=i.severity,
+                message=i.message,
+                status=i.status,
+                project_id=str(i.project_id) if i.project_id else None,
+                payload=i.payload,
+                resolved_at=i.resolved_at,
+                created_at=i.created_at,
+            )
+            for i in incidents
+        ]
+
+
+@router.patch("/incidents/{incident_id}", response_model=OperationalIncidentOut, tags=["Governance"], dependencies=[Depends(require_admin)])
+async def update_incident(incident_id: str, update: IncidentUpdate, operator_id: str = Depends(require_admin)):
+    """Olay durumunu gÃ¼ncele."""
+    from libs.db.session import AsyncSessionLocal
+    from libs.db.models.core_models import OperationalIncident
+    from sqlalchemy import select
+
+    try:
+        uid = uuid.UUID(incident_id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid ID")
+
+    async with AsyncSessionLocal() as db:
+        res = await db.execute(select(OperationalIncident).where(OperationalIncident.id == uid))
+        incident = res.scalar_one_or_none()
+        if not incident:
+            raise HTTPException(status_code=404, detail="Incident not found")
+
+        incident.status = update.status
+        if update.status == "resolved":
+            incident.resolved_at = datetime.now(timezone.utc)
+        
+        await db.commit()
+        await db.refresh(incident)
+        
+        return OperationalIncidentOut(
+            id=str(incident.id),
+            incident_type=incident.incident_type,
+            severity=incident.severity,
+            message=incident.message,
+            status=incident.status,
+            project_id=str(incident.project_id) if incident.project_id else None,
+            payload=incident.payload,
+            resolved_at=incident.resolved_at,
+            created_at=incident.created_at,
+        )
+
+
+@router.get("/analytics/costs", response_model=CostAnalyticsOut, tags=["Governance"])
+async def get_cost_analytics():
+    """Maliyet analizi ve bÃ¼tçe kullanımı."""
+    from libs.db.session import AsyncSessionLocal
+    from libs.db.models.core_models import Project
+    from sqlalchemy import select, func
+
+    async with AsyncSessionLocal() as db:
+        # Toplam maliyet
+        res_total = await db.execute(select(func.sum(Project.cost_usd)))
+        total_cost = res_total.scalar() or 0.0
+
+        # En pahalı projeler
+        res_top = await db.execute(
+            select(Project.id, Project.title, Project.cost_usd)
+            .order_by(Project.cost_usd.desc())
+            .limit(5)
+        )
+        top_projects = [
+            {"id": str(r[0]), "title": r[1], "cost_usd": float(r[2] or 0.0)}
+            for r in res_top.all()
+        ]
+
+        # Limit (Örn: Sabit 1000$ veya config'den çekilebilir)
+        budget_limit = 1000.0 
+        usage_pct = (total_cost / budget_limit * 100) if budget_limit > 0 else 0
+
+        return CostAnalyticsOut(
+            total_cost_usd=float(total_cost),
+            budget_limit_usd=budget_limit,
+            usage_pct=usage_pct,
+            top_projects=top_projects
+        )

@@ -83,6 +83,7 @@ from services.repair.generation.patch_generator import GeneratedPatch
 from services.repair.schemas.patch_plan import PatchPlan
 from services.repair.schemas.validation import ValidationReport, ValidationStatus
 from services.observability.logging import get_logger
+from services.orchestration.application.sandbox_runner import get_sandbox_runner
 
 _log = get_logger("repair.verification")
 
@@ -293,25 +294,19 @@ class CommandRunner:
 
     def __init__(self, allowed_commands: Optional[list[str]] = None):
         self._allowed = set(allowed_commands or list(_ALLOWED_COMMANDS))
+        self.runner = get_sandbox_runner(use_docker=True)
 
-    def run(self, cmd: list[str], cwd: str) -> tuple[bool, str]:
-        """(ok, output) döndür. İzinsiz komut -> False."""
+    async def run(self, cmd: list[str], cwd: str) -> tuple[bool, str]:
+        """(ok, output) döndür. Platform sandbox üzerinden çalıştır."""
         if not cmd:
             return False, "Komut boş."
         base = cmd[0].split("/")[-1]   # path varsa sadece binary adı
         if base not in self._allowed:
             return False, f"Komut izin listesinde değil: {cmd[0]}"
-        try:
-            result = subprocess.run(
-                cmd, cwd=cwd, capture_output=True, text=True, timeout=self.TIMEOUT,
-            )
-            return result.returncode == 0, (result.stdout + result.stderr)[:3000]
-        except subprocess.TimeoutExpired:
-            return False, f"Timeout: {' '.join(cmd)} — {self.TIMEOUT}s aşıldı"
-        except FileNotFoundError:
-            return False, f"Komut bulunamadı: {cmd[0]}"
-        except Exception as e:
-            return False, f"Komut hatası: {e}"
+        
+        # Platform runner (Docker) üzerinden çalıştır
+        res = await self.runner.run_command(cmd, timeout=self.TIMEOUT, cwd=cwd)
+        return res.success, (res.stdout + res.stderr)[:3000]
 
 
 # ══════════════════════════════════════════════════════════════
@@ -328,7 +323,7 @@ class SandboxRunner:
         self.project_root = os.path.abspath(project_root)
         self.applicator  = PatchApplicator()
 
-    def run_in_sandbox(
+    async def run_in_sandbox(
         self,
         diff_text: str,
         test_cmds: list[list[str]],
@@ -358,7 +353,7 @@ class SandboxRunner:
                 if not _cmd_allowed(cmd):
                     test_parts.append(f"SKIP (izinsiz): {' '.join(cmd)}")
                     continue
-                ok, out = runner.run(cmd, tmpdir)
+                ok, out = await runner.run(cmd, tmpdir)
                 status = "PASS" if ok else "FAIL"
                 test_parts.append(f"{status}: {' '.join(cmd)}\n{out[:1000]}")
                 if not ok:
@@ -399,7 +394,7 @@ class VerificationEngine:
         self.sandbox      = SandboxRunner(project_root)
         self.applicator   = PatchApplicator()
 
-    def verify(
+    async def verify(
         self,
         patch:  GeneratedPatch,
         plan:   PatchPlan,
@@ -450,7 +445,7 @@ class VerificationEngine:
         parts.append(f"LINT: {'OK' if report.lint_ok else 'WARN'}")
 
         # ── 6. Patch Apply + Reproducer + Tests ────────────
-        self._run_sandbox_phase(patch, plan, report, notes, gaps, parts)
+        await self._run_sandbox_phase(patch, plan, report, notes, gaps, parts)
 
         # ── 7. Sonuç ────────────────────────────────────────
         report.notes              = notes
@@ -475,7 +470,7 @@ class VerificationEngine:
         )
         return report
 
-    def _run_sandbox_phase(
+    async def _run_sandbox_phase(
         self,
         patch:  GeneratedPatch,
         plan:   PatchPlan,
@@ -497,7 +492,7 @@ class VerificationEngine:
             notes.append("Hedefli test tanımlanmadı — doğrulama eksik (manual_review_only).")
             parts.append("TESTS: SKIPPED — test dosyası belirtilmedi (gap kaydedildi)")
             # Patch'i yalnızca syntax için kopya üstünde dene
-            self._try_apply_only(patch, plan, report, notes, parts)
+            await self._try_apply_only(patch, plan, report, notes, parts)
             return
 
         # Sandbox testleri çalıştır
@@ -518,7 +513,7 @@ class VerificationEngine:
 
         # Reproducer: patch öncesi fail bekliyoruz
         if has_reproducer:
-            pre_ok, pre_apply_out, pre_test_out = self.sandbox.run_in_sandbox(
+            pre_ok, pre_apply_out, pre_test_out = await self.sandbox.run_in_sandbox(
                 diff_text="",   # diff uygulamadan testleri çalıştır
                 test_cmds=[
                     ["python3", "-m", "pytest", t, "-x", "--tb=short", "-q"]
@@ -538,7 +533,7 @@ class VerificationEngine:
 
         # Patch uygula + testler
         extra = [c.split("/")[-1].split()[0] for c in (plan.allowed_commands or [])]
-        sandbox_ok, apply_out, test_out = self.sandbox.run_in_sandbox(
+        sandbox_ok, apply_out, test_out = await self.sandbox.run_in_sandbox(
             diff_text=patch.diff,
             test_cmds=all_cmds,
             extra_allowed=extra,
@@ -571,7 +566,7 @@ class VerificationEngine:
         if not sandbox_ok:
             notes.append("Sandbox testleri geçmedi.")
 
-    def _try_apply_only(
+    async def _try_apply_only(
         self,
         patch:  GeneratedPatch,
         plan:   PatchPlan,

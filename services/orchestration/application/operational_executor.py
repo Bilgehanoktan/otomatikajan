@@ -56,11 +56,23 @@ class OperationalExecutor:
             subtask.status = TaskStatus.RUNNING
             t_start = time.time()
             enriched_context = await context_builder.build_context(agent_id=subtask.agent_id, task_text=subtask.prompt, project_id=task.id)
+            
+            # Faz 8: Persistent START status
+            from libs.db.repositories.repository import SubTaskRepository
+            async with AsyncSessionLocal() as db_sync:
+                await db_sync.execute(
+                    update(SubTask)
+                    .where(SubTask.id == subtask.id)
+                    .values(status=TaskStatus.RUNNING, updated_at=datetime.now(timezone.utc))
+                )
+                await db_sync.commit()
+
             result = await velocity_engine.simulate_and_execute(agent_id=subtask.agent_id, prompt=subtask.prompt, context=enriched_context, task_id=task.id)
             
             if result.success:
                 subtask.status = TaskStatus.COMPLETED
                 subtask.result = str(result.output_data)
+                subtask.internal_monologue = result.reflection
                 
                 # Faz 12.3: Bilişsel Yansıtma Denetimi (Reflective Audit)
                 if self.reflection:
@@ -72,7 +84,8 @@ class OperationalExecutor:
                         _log.warning(f"[EXECUTOR-AUDIT] Denetim BAŞARISIZ: {audit_result.get('critique')}")
                         raise Exception(f"Bilişsel Denetim Reddi: {audit_result.get('critique')}")
                     
-                    _log.info(f"[EXECUTOR-AUDIT] Denetim onaylandı. Anchor: {audit_result.get('causal_anchor')}")
+                    subtask.causal_anchor = audit_result.get('causal_anchor', "")
+                    _log.info(f"[EXECUTOR-AUDIT] Denetim onaylandı. Anchor: {subtask.causal_anchor}")
 
                 # Otonom Başarı Sinyali
                 heal_engine.on_subtask_success(subtask.agent_id, time.time() - t_start)
@@ -80,6 +93,22 @@ class OperationalExecutor:
                 raise Exception(f"Agent {subtask.agent_id} reported failure in output.")
             
             subtask.duration_s = time.time() - t_start
+
+            # Faz 8: Persistent COMPLETE status + Metrics
+            async with AsyncSessionLocal() as db_sync:
+                await SubTaskRepository.mark_completed(
+                    db=db_sync,
+                    subtask_id=subtask.id,
+                    result=subtask.result,
+                    provider="velocity_engine",
+                    input_tokens=0,
+                    output_tokens=0,
+                    cost_usd=0.0,
+                    latency_s=subtask.duration_s,
+                    internal_monologue=subtask.internal_monologue,
+                    causal_anchor=getattr(subtask, "causal_anchor", "")
+                )
+                await db_sync.commit()
         except Exception as e:
             _log.error(f"[EXECUTOR] Subtask nexus failed: {e}")
             subtask.status = TaskStatus.ERROR
@@ -94,5 +123,27 @@ class OperationalExecutor:
             if recovered:
                 _log.info(f"[EXECUTOR-HEAL] OTONOM ONARIM BAŞARILI: {subtask.agent_id}")
                 subtask.status = TaskStatus.COMPLETED
+                
+                # Faz 8: Persistent HEALED status
+                async with AsyncSessionLocal() as db_sync:
+                    await SubTaskRepository.mark_completed(
+                        db=db_sync,
+                        subtask_id=subtask.id,
+                        result=subtask.result,
+                        recovered=True,
+                        latency_s=subtask.duration_s,
+                        internal_monologue=f"[HEALED] {subtask.internal_monologue}"
+                    )
+                    await db_sync.commit()
             else:
                 _log.warning(f"[EXECUTOR-HEAL] Onarım başarısız veya strateji bulunamadı.")
+                # Faz 8: Persistent FAIL status
+                async with AsyncSessionLocal() as db_sync:
+                    await SubTaskRepository.mark_failed(
+                        db=db_sync,
+                        subtask_id=subtask.id,
+                        result=str(e),
+                        attempts=subtask.attempts,
+                        internal_monologue=getattr(subtask, "internal_monologue", "")
+                    )
+                    await db_sync.commit()

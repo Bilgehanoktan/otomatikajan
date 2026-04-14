@@ -75,16 +75,6 @@ const SystemHeaderContent = () => {
 };
 
 export const SystemHeader = () => {
-    const [mounted, setMounted] = React.useState(false);
-    
-    React.useEffect(() => {
-        setMounted(true);
-    }, []);
-
-    if (!mounted) {
-        return <header className="h-16 border-b border-white/5 px-8 flex items-center justify-between glass sticky top-0 z-50" />;
-    }
-
     return <SystemHeaderContent />;
 };
 

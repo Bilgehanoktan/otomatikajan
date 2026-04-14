@@ -91,16 +91,6 @@ const SidebarContent = () => {
 };
 
 export const Sidebar = () => {
-    const [mounted, setMounted] = React.useState(false);
-    
-    React.useEffect(() => {
-        setMounted(true);
-    }, []);
-
-    if (!mounted) {
-        return <aside className="w-64 h-full glass border-r border-white/5 flex flex-col" />;
-    }
-
     return <SidebarContent />;
 };
 

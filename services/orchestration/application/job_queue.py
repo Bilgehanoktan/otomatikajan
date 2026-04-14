@@ -512,17 +512,22 @@ class CeleryJobQueue(BaseQueueCapabilities):
 
         target_queue = QUEUE_DEERFLOW if job_type in _DEERFLOW_JOB_TYPES else QUEUE_DEFAULT
 
-        # Metadata enjeksiyonu (Role propagation)
+        # Metadata enjeksiyonu (Role propagation + OTel Tracing)
         task_kwargs = {**payload, "job_id": job_id}
         if job_type in _DEERFLOW_JOB_TYPES:
             task_kwargs["deerflow_role"] = job_type
+
+        # OTel Header Injection (Distributed Tracing)
+        from libs.observability.middleware import inject_celery_headers
+        task_headers = inject_celery_headers({})
 
         try:
             self._celery.send_task(
                 task_name,
                 kwargs=task_kwargs,
                 task_id=job_id,
-                queue=target_queue
+                queue=target_queue,
+                headers=task_headers
             )
             # job.status = JobStatus.PENDING (default) - DO NOT set to RUNNING here!
             _log.info(f"📤 Celery'ye gönderildi: {task_name} | ID: {job_id}")

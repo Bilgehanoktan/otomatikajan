@@ -12,7 +12,8 @@ from celery.utils.log import get_task_logger
 from libs.db.models import ProjectStatus
 from workers.workflow_worker.tasks.celery_app import celery_app
 
-logger = get_task_logger(__name__)
+from services.observability.logging import get_logger
+logger = get_logger("workers.workflow_worker")
 
 
 # ── Async Yardımcısı ──────────────────────────────────────
@@ -44,6 +45,15 @@ def run_async(coro):
         asyncio.set_event_loop(None)
 
 
+class _WorkflowResult:
+    """Thin compatibility shim so the success/failure block below works unchanged."""
+    def __init__(self, has_failures: bool, report: str, workflow_status: str):
+        self.has_failures = has_failures
+        self.report = report
+        self.workflow_status = workflow_status
+        self.subtasks = []  # No legacy subtasks in new engine
+
+
 # ── Proje Görevi (DÜZELTİLDİ: Contract uyumu + Repository Pattern) ──
 @celery_app.task(
     name="workers.workflow_worker.tasks.project_tasks.run_project_task",
@@ -73,7 +83,16 @@ def run_project_task(
     Orchestrator ProjectTask döner — FinalReport DEĞİL.
     """
     import uuid as _uuid
-    logger.info(f"🚀 Worker görevi devraldı: {job_id or db_project_id} — {title}")
+    from libs.observability.middleware import extract_celery_context
+    from libs.observability.tracer import span
+
+    # Extract upstream context from Celery headers
+    ctx = extract_celery_context(self.request.headers)
+
+    with span(f"celery_task:{self.name}", context=ctx) as s:
+        s.set_attribute("job_id", job_id)
+        s.set_attribute("project_id", db_project_id)
+        logger.info(f"🚀 Worker görevi devraldı: {job_id or db_project_id} — {title}")
 
     async def _execute_task():
         from libs.db.session import AsyncSessionLocal
@@ -121,15 +140,6 @@ def run_project_task(
             report=final_report,
             workflow_status=instance.status.value,
         )
-
-
-class _WorkflowResult:
-    """Thin compatibility shim so the success/failure block below works unchanged."""
-    def __init__(self, has_failures: bool, report: str, workflow_status: str):
-        self.has_failures = has_failures
-        self.report = report
-        self.workflow_status = workflow_status
-        self.subtasks = []  # No legacy subtasks in new engine
 
     try:
         # Asenkron akışı çalıştır

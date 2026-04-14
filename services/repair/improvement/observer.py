@@ -5,7 +5,7 @@ Sistemdeki iyileÅŸtirme fÄ±rsatlarÄ±nÄ± tarar.
 """
 import uuid
 from typing import List, Dict, Any
-from hub_cortex.improvement_engine.models import ImprovementOpportunity
+from libs.db.models.core_models import ImprovementOpportunity
 from services.observability.logging import get_logger
 
 logger = get_logger("improvement.observer")
@@ -50,7 +50,7 @@ class ImprovementObserver:
         """
         Agent baÅŸarÄ± oranlarÄ±nÄ± ve hata desenlerini tarar.
         """
-        from libs.db.session import SessionLocal
+        from libs.db.session import AsyncSessionLocal as SessionLocal
         from libs.db.models.core_models import WorkflowEvent, ImprovementOpportunity
         from sqlalchemy import select, func
         from datetime import datetime, timedelta, timezone

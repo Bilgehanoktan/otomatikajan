@@ -17,6 +17,13 @@ from libs.db.models.core_models import Project, ProjectStatus
 # Initialize FastMCP Server
 mcp = FastMCP("SovereignAGI", version="13.0.4")
 
+# Mock Security Config (In production, load from Vault/Secret Manager)
+MCP_API_KEY = os.getenv("MCP_API_KEY", "agiv13_internal_key_default")
+
+def validate_auth(key: Optional[str]):
+    if not key or key != MCP_API_KEY:
+        raise ValueError("Unauthorized: Invalid or missing MCP_API_KEY")
+
 @mcp.tool()
 async def list_active_workflows() -> str:
     """List all workflows currently in RUNNING or PENDING state."""
@@ -33,38 +40,61 @@ async def list_active_workflows() -> str:
         return "Active Workflows:\n" + "\n".join(lines)
 
 @mcp.tool()
-async def trigger_workflow(title: str, template: str = "default") -> str:
-    """Trigger a new Sovereign AGI workflow."""
-    from libs.db.repositories.repository import ProjectRepository
-    
-    async with AsyncSessionLocal() as db:
-        project = await ProjectRepository.create(
-            db,
-            title=title,
-            workflow_template=template,
-            status=ProjectStatus.QUEUED
-        )
-        await db.commit()
+async def trigger_workflow(title: str, api_key: str, template: str = "default", operator_id: str = "mcp_client") -> str:
+    """Trigger a new Sovereign AGI workflow. Requires valid api_key."""
+    try:
+        validate_auth(api_key)
+        from libs.db.repositories.repository import ProjectRepository
+        from libs.workflow.persistence import WorkflowPersistence
         
-    # Enqueue task (Simulated for MCP tool - in real life this calls Celery)
-    return f"Successfully queued workflow '{title}' with ID: {project.id}"
+        async with AsyncSessionLocal() as db:
+            project = await ProjectRepository.create(
+                db,
+                title=title,
+                workflow_template=template,
+                status=ProjectStatus.QUEUED
+            )
+            await db.commit()
+
+            # Audit logging: MCP initiation event
+            persistence = WorkflowPersistence(db)
+            await persistence.save_event(
+                project_id=project.id,
+                event_type="mcp.workflow_initiated",
+                payload={
+                    "title": title,
+                    "template": template,
+                    "mcp_version": "13.0.4"
+                },
+                operator_id=operator_id
+            )
+            await db.commit()
+
+            return f"Successfully queued workflow '{title}' with ID: {project.id}"
+    except Exception as e:
+        return f"Error triggering workflow: {str(e)}"
 
 @mcp.tool()
 async def get_system_health() -> Dict[str, Any]:
     """Get high-level platform health metrics."""
-    async with AsyncSessionLocal() as db:
-        total = await db.execute(select(func.count(Project.id)))
-        running = await db.execute(select(func.count(Project.id)).where(Project.status == ProjectStatus.RUNNING))
-        errors = await db.execute(select(func.count(Project.id)).where(Project.status == ProjectStatus.ERROR))
-        
-        return {
-            "platform": "Sovereign AGI",
-            "version": "13.0.4",
-            "total_workflows": total.scalar(),
-            "active_nodes": running.scalar(),
-            "incident_count": errors.scalar(),
-            "status": "OPERATIONAL" if errors.scalar() == 0 else "DEGRADED"
-        }
+    try:
+        async with AsyncSessionLocal() as db:
+            total = await db.execute(select(func.count(Project.id)))
+            running = await db.execute(select(func.count(Project.id)).where(Project.status == ProjectStatus.RUNNING))
+            errors = await db.execute(select(func.count(Project.id)).where(Project.status == ProjectStatus.ERROR))
+            
+            return {
+                "platform": "Sovereign AGI",
+                "version": "13.0.4",
+                "status": "OPERATIONAL" if errors.scalar() == 0 else "DEGRADED",
+                "metrics": {
+                    "total_workflows": total.scalar(),
+                    "active_nodes": running.scalar(),
+                    "incident_count": errors.scalar()
+                }
+            }
+    except Exception as e:
+        return {"status": "UNAVAILABLE", "error": str(e)}
 
 if __name__ == "__main__":
     # Start the server using stdio transport by default

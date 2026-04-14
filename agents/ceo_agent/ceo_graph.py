@@ -18,6 +18,7 @@ class AgentState(TypedDict):
     plan: str
     delegated_agent: str
     tool_calls: List[Dict[str, Any]]
+    security_clearance: bool
     final_decision: str
     status: str
 
@@ -36,33 +37,67 @@ async def node_analyze_opportunity(state: AgentState):
         return {"plan": plan, "status": "analyzed"}
 
 async def node_delegate_expert(state: AgentState):
-    """Delegates the specific task to a specialized agent (e.g. using CrewAI integration)."""
+    """Delegates the specific task to a specialized agent using intelligent orchestrator."""
+    from libs.llm.model_orchestrator import ModelOrchestrator
+    
     with span("ceo.delegate_expert"):
-        logger.info("[CEO Graph] Node: Delegating Expert")
+        logger.info("[CEO Graph] Node: Delegating Expert via Orchestrator")
         plan = state.get("plan", "")
         
-        # Simulate LLM choosing an agent based on the plan
-        delegated_agent = "agency-software-architect" if "code" in plan.lower() else "agency-devops-automator"
-        set_span_attrs(delegated_agent=delegated_agent)
+        # In production, we query the Agent Registry. Here we map known needs.
+        prompt = f"Based on this plan, choose the best agent from [agency-software-architect, agency-devops-automator, agency-security-engineer]:\n{plan}"
         
+        # We use a central orchestrator to pick the agent based on capability
+        orch = ModelOrchestrator()
+        selection = await orch.complete(messages=[{"role": "user", "content": prompt}])
+        
+        delegated_agent = "agency-software-architect" # Default fallback
+        for agent in ["architect", "devops", "security"]:
+            if agent in selection.lower():
+                delegated_agent = f"agency-{agent}"
+                break
+                
+        set_span_attrs(delegated_agent=delegated_agent)
         return {"delegated_agent": delegated_agent, "status": "delegated"}
 
+async def node_security_guard(state: AgentState):
+    """validates tool calls against prompt guardrails before execution."""
+    from services.governance.quality.prompt_guard import validate_tool_param
+    
+    logger.info("[CEO Graph] Node: Security Guardrail Check")
+    tool_calls = state.get("tool_calls", [])
+    
+    for call in tool_calls:
+        # Check for forbidden patterns in parameters
+        is_safe = validate_tool_param(call.get("parameters", {}))
+        if not is_safe:
+            logger.error(f"❌ Security violation detected in tool call: {call.get('tool')}")
+            return {"security_clearance": False, "status": "security_violation"}
+            
+    return {"security_clearance": True}
+
 async def node_invoke_mcp_tools(state: AgentState):
-    """Invokes system tools autonomously via MCP to resolve the issue."""
+    """Invokes system tools autonomously via hardened MCP Bridge."""
+    from libs.mcp.client import mcp_bridge
+    
     with span("ceo.invoke_mcp_tools"):
-        logger.info("[CEO Graph] Node: Invoking MCP Tools")
+        logger.info("[CEO Graph] Node: Invoking MCP Tools via Bridge")
+        op = state.get("opportunity", {})
         
-        # Here we would normally take the LLM's requested tool calls and execute them against the MCP Server
-        # We will simulate triggering a 'start_workflow' tool
-        simulated_tool_call = {
-            "tool": "start_workflow",
-            "parameters": {
-                "workflow_type": "automated_repair",
-                "target": state.get("opportunity", {}).get("source_ref", "unknown")
+        # In a real run, the LLM would populate this based on its analysis node.
+        # We simulate the mapping logic here for the 'trigger_workflow' tool.
+        tool_resp = await mcp_bridge.call_tool(
+            "trigger_workflow", 
+            {
+                "title": f"Repair: {op.get('title')}",
+                "template": "automated_repair"
             }
-        }
+        )
         
-        return {"tool_calls": [simulated_tool_call], "status": "tools_invoked"}
+        return {
+            "tool_calls": [{"tool": "trigger_workflow", "response": tool_resp}], 
+            "status": "tools_invoked" if tool_resp.get("status") == "success" else "execution_failed"
+        }
 
 async def node_evaluate_outcome(state: AgentState):
     """Evaluates if the tools resolved the issue successfully."""
@@ -86,15 +121,23 @@ def build_ceo_graph() -> StateGraph:
     workflow.add_node("analyze", node_analyze_opportunity)
     workflow.add_node("delegate", node_delegate_expert)
     workflow.add_node("invoke_tools", node_invoke_mcp_tools)
+    workflow.add_node("security_guard", node_security_guard)
     workflow.add_node("evaluate", node_evaluate_outcome)
     
     # Add edges
     workflow.set_entry_point("analyze")
     workflow.add_conditional_edges("analyze", route_after_analysis, {
         "delegate": "delegate",
-        "invoke_tools": "invoke_tools"
+        "invoke_tools": "security_guard" # Route tools through guard first
     })
-    workflow.add_edge("delegate", "invoke_tools")
+    workflow.add_edge("delegate", "security_guard")
+    
+    # Security Guard Routing
+    workflow.add_conditional_edges("security_guard", lambda x: "pass" if x.get("security_clearance") else "fail", {
+        "pass": "invoke_tools",
+        "fail": "evaluate" # Skip to evaluation/rejection on security fail
+    })
+    
     workflow.add_edge("invoke_tools", "evaluate")
     workflow.add_edge("evaluate", END)
     

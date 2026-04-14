@@ -360,15 +360,18 @@ class SovereignCortex:
                 self.state_svc.save(task)
                 return task
 
-        # 5. Delegated Execution (OperationalExecutor)
-        task.status = TaskStatus.RUNNING
-        self.state_svc.save(task)
-        await self.executor_svc.execute_task_tree(task)
-
+        # 5. Delegated Execution (WorkflowRunner - Durable & Persistent)
+        _log.info(f"[SOVEREIGN] Durable Workflow başlatılıyor: {task.id}")
+        from libs.workflow.runner import WorkflowRunner
+        runner = WorkflowRunner()
+        
+        # We pass the existing ProjectTask which now has subtasks from planning
+        result_task = await runner.run(task)
+        
         # 6. Result Synthesis & Finalization
-        has_failures = any(st.status == TaskStatus.ERROR for st in task.subtasks)
-        task.status = TaskStatus.ERROR if has_failures else TaskStatus.COMPLETED
-        task.report = self.synthesizer.synthesize(task)
+        task.status = result_task.status
+        task.report = result_task.report
+        task.subtasks = result_task.subtasks
         
         if task.status == TaskStatus.COMPLETED:
             self.affective.adjust_state("goal_reached", magnitude=0.2)
