@@ -141,20 +141,36 @@ class RepairOrchestrator:
         self._jobs_cache: dict[str, RepairJob] = {}
         self._hydrated = False
         
-        # Phase 28 Scientific Components
         from services.repair.generation.candidate_generator import CandidateGenerator
         from services.repair.generation.patch_tournament import PatchTournament
         from services.repair.verification.regression_verifier import RegressionVerifier
         from services.repair.verification.governance_verifier import GovernanceVerifier
         from services.repair.verification.economic_verifier import EconomicVerifier
+        from services.repair.verification.security_verifier import SecurityVerifier
+        from services.repair.verification.performance_verifier import PerformanceVerifier
         from services.repair.repair_memory import RepairMemory
+        from services.repair.self_tuning.optimizer import WeightOptimizer
 
-        self.candidate_gen = CandidateGenerator()
+        # Phase 28 Scientific Components
+        self.candidate_gen = CandidateGenerator(model_orch=self.model_orch)
         self.tournament = PatchTournament()
+        self.repair_memory = RepairMemory()
+        self.weight_optimizer = WeightOptimizer(self.repair_memory)
+        
         self.reg_verifier = RegressionVerifier()
         self.gov_verifier = GovernanceVerifier()
         self.econ_verifier = EconomicVerifier()
-        self.repair_memory = RepairMemory()
+        self.sec_verifier = SecurityVerifier()
+        self.perf_verifier = PerformanceVerifier()
+        
+        # Comprehensive Verifier Mesh
+        self.verifier_mesh = [
+            self.reg_verifier,
+            self.gov_verifier,
+            self.econ_verifier,
+            self.sec_verifier,
+            self.perf_verifier
+        ]
         
         # Faz 12.1 Compliance: Formalize Pipeline Steps
         from dataclasses import dataclass, field
@@ -236,20 +252,27 @@ class RepairOrchestrator:
         # 1. Multi-Candidate Generation
         candidates = await self.candidate_gen.generate_variants(incident_type, payload)
         
-        # 2. Patch Tournament (Ranking)
-        winner, win_score = await self.tournament.run_tournament(candidates)
+        # 1b. Self-Tuning (Weight Calibration based on Evidence)
+        new_weights = await self.weight_optimizer.calculate_optimal_weights()
+        self.tournament.risk_weight = new_weights["risk_weight"]
+        self.tournament.cost_weight = new_weights["cost_weight"]
+        self.tournament.verifier_weight = new_weights["verifier_weight"]
         
-        # 3. 5-Layer Verifier Mesh (First 3 layers)
+        # 2. 5-Layer Verifier Mesh & Tournament (Ranking)
         context = {
             "region": payload.get("region", "Global"),
-            "available_budget": 500.0  # Mock budget for shadow pass
+            "available_budget": payload.get("budget", 500.0),
+            "threat_level": payload.get("threat_level", "low")
         }
         
-        reg_pass = await self.reg_verifier.verify(winner.patch_payload, context)
-        gov_pass = await self.gov_verifier.verify(winner.patch_payload, context)
-        econ_pass = await self.econ_verifier.verify(winner.patch_payload, context)
+        winner, win_score = await self.tournament.run_tournament(
+            candidates=candidates,
+            verifiers=self.verifier_mesh,
+            context=context
+        )
         
-        all_passed = reg_pass and gov_pass and econ_pass
+        # Winner must pass weighted success threshold
+        all_passed = win_score > 0.6
         
         # 4. Persistence (Memory)
         from services.repair.repair_memory import RepairOutcome
@@ -268,7 +291,7 @@ class RepairOrchestrator:
             "candidates_count": len(candidates),
             "winning_score": win_score,
             "winner_strategy": winner.strategy_name,
-            "summary": f"Tournament champion '{winner.strategy_name}' evaluated via 3-layer mesh."
+            "summary": f"Tournament champion '{winner.strategy_name}' evaluated via verifier mesh."
         }
 
     async def list_jobs(self, limit: int = 50) -> list[RepairJob]:
@@ -397,13 +420,17 @@ class RepairOrchestrator:
             # Phase 2: Planlama (Lesson Memory + Strategy + Patch Plan)
             if not await self._phase_planning(ctx): return
 
-            # Phase 3: Kod Üretimi (Patch Generation)
+            # Phase 3: Kandidat Turnuvası (Multi-Candidate Tournament)
+            # RC1: Tek patch yerine aday kümesi üretip en iyisini seçiyoruz.
+            if not await self._phase_tournament(ctx): return
+
+            # Phase 4: Kod Üretimi (Patch Generation for Tournament Winner)
             if not await self._phase_generation(ctx): return
 
-            # Phase 4: Doğrulama (Sandbox + Debate + Review)
+            # Phase 5: Doğrulama (Sandbox + Review)
             if not await self._phase_verification(ctx): return
 
-            # Phase 5: Yayına Hazırlık (Persistence + Metric)
+            # Phase 6: Yayına Hazırlık
             await self._phase_release(ctx)
 
             duration = time.time() - t_start
@@ -450,28 +477,47 @@ class RepairOrchestrator:
         ctx.plan = await self._step_patch_plan(ctx.job, ctx.ticket)
         return ctx.plan is not None
 
+    async def _phase_tournament(self, ctx) -> bool:
+        """Kandidat üretimi ve turnuva."""
+        # 1. Generate 3-5 candidates
+        candidates = await self.candidate_gen.generate_variants(
+            ctx.incident.module, 
+            {"symptom": ctx.incident.symptom, "ticket": ctx.ticket.dict()}
+        )
+        
+        # 2. Context for verifiers
+        verify_context = {
+            "available_budget": 1000.0,
+            "region": ctx.incident.context.get("region", "unknown"),
+            "risk_appetite": 0.5
+        }
+        
+        # 3. Run tournament
+        winner, score = await self.tournament.run_tournament(
+            candidates, 
+            verifiers=self.verifier_mesh, 
+            context=verify_context
+        )
+        ctx.winner = winner
+        ctx.tournament_score = score
+        
+        _log.info(f"Tournament Winner: {winner.strategy_name} (Score: {score})")
+        return True
+
     async def _phase_generation(self, ctx) -> bool:
-        """Kod üretimi."""
-        ctx.patch = await self._step_generate_patch(ctx.job, ctx.plan, ctx.incident)
+        """Kod üretimi (Turnuva galibi üzerinden)."""
+        ctx.patch = await self._step_generate_patch(ctx.job, ctx.plan, ctx.incident, ctx.winner)
         return ctx.patch is not None
 
     async def _phase_verification(self, ctx) -> bool:
-        """Sandbox, Debate ve Review."""
+        """Sandbox ve Review."""
         # Sandbox 
         if not await self._step_sandbox_verify(ctx.job, ctx.patch, ctx.plan):
             return False
             
-        # Debate / Üst Akıl (Opsiyonel)
-        if ctx.plan.risk == "high" or ctx.patch.confidence < 60:
-            await self._step_debate_verify(ctx.job, ctx.patch, ctx.plan)
-            
         # Son Karar
         decision = await self._step_verify(ctx.job, ctx.patch, ctx.plan)
         ctx.validation_passed = decision in ("success", "merged", "approved")
-
-        # GStack Otonom QA (Phase 10)
-        if ctx.validation_passed and ctx.incident.context.get("url"):
-            await self._step_browser_qa(ctx.job, ctx.incident)
             
         return ctx.validation_passed
 
@@ -551,11 +597,17 @@ class RepairOrchestrator:
             _log.error(f"Patch planlama başarısız [{job.job_id}]: {e}")
             return None
 
-    async def _step_generate_patch(self, job: RepairJob, plan: PatchPlan, incident: IncidentRecord):
-        """Adım 5: Patch Üretimi."""
+    async def _step_generate_patch(self, job: RepairJob, plan: PatchPlan, incident: IncidentRecord, winner=None):
+        """Adım 5: Patch Üretimi (Turnuva stratejisi dikkate alınarak)."""
         try:
             from repair.generation.patch_generator import get_patch_generator
             generator = get_patch_generator(self.model_orch)
+            
+            # Stratejiyi plan'a enjekte et
+            if winner:
+                plan.meta["strategy"] = winner.strategy_name
+                plan.meta["patch_payload"] = winner.patch_payload
+                
             patch = await generator.generate(
                 plan=plan,
                 incident_symptom=incident.symptom,

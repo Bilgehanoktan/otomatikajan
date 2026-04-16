@@ -37,7 +37,6 @@ class RepairBench:
         start_time = time.time()
         
         # Trigger Repair Orchestrator in SHADOW mode (Phase 28 requirement)
-        # We assume orchestrator has a method for this or we adapt its flow
         outcome = await self.orchestrator.shadow_repair_cycle(
             incident_type=scenario.incident_type,
             payload=scenario.payload
@@ -45,8 +44,13 @@ class RepairBench:
         
         latency = (time.time() - start_time) * 1000
         
-        # evaluation logic (placeholder for Phase 28 Stage 2)
-        success = outcome.get("status") == scenario.expected_outcome
+        actual_status = outcome.get("status")
+        success = actual_status == scenario.expected_outcome
+        
+        if success:
+            logger.info(f"PASSED: {scenario.scenario_id} (Status: {actual_status})")
+        else:
+            logger.error(f"FAILED: {scenario.scenario_id} (Expected: {scenario.expected_outcome}, Actual: {actual_status})")
         
         return {
             "scenario_id": scenario.scenario_id,

@@ -13,7 +13,15 @@ import {
     CheckSquare,
     AlertTriangle,
     BarChart3,
-    FileText
+    FileText,
+    Boxes,
+    Globe,
+    ShieldAlert,
+    Network,
+    Cpu,
+    History,
+    Activity,
+    Settings
 } from "lucide-react";
 
 const icons: Record<string, React.ReactNode> = {
@@ -27,6 +35,14 @@ const icons: Record<string, React.ReactNode> = {
     incidents: <AlertTriangle size={20} />,
     costs: <BarChart3 size={20} />,
     audit: <FileText size={20} />,
+    federation: <Network size={20} />,
+    fleet: <Boxes size={20} />,
+    mesh: <Globe size={20} />,
+    safety: <ShieldAlert size={20} />,
+    "repair-lab": <Cpu size={20} />,
+    "repair-memory": <History size={20} />,
+    verifiers: <Activity size={20} />,
+    "self-tuning": <Settings size={20} />,
 };
 
 const SidebarContent = () => {

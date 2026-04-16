@@ -12,10 +12,10 @@ class RepairScenario(BaseModel):
     """Scientific representation of an incident to be repaired."""
     scenario_id: str = Field(alias="id")
     name: str = Field(alias="title")
-    incident_type: str
-    target_component: str
-    payload: Dict[str, Any] = Field(alias="initial_state_payload")
-    expected_outcome: str = "RESOLVED"
+    incident_type: str = "general_incident"
+    target_component: str = "unknown_subsystem"
+    payload: Dict[str, Any] = Field(default_factory=dict, alias="initial_state_payload")
+    expected_outcome: str = "REPAIR_SUCCESS"
     success_criteria: List[str] = Field(default_factory=list)
     tags: List[str] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=datetime.now)
@@ -32,25 +32,64 @@ class BenchmarkLoader:
             os.makedirs(self.base_path, exist_ok=True)
 
     def list_scenarios(self) -> List[str]:
-        """Lists available scenario IDs."""
-        return [f.split('.')[0] for f in os.listdir(self.base_path) if f.endswith(".yaml") or f.endswith(".json")]
+        """Lists available scenario IDs, searching recursively for .yaml/.json files."""
+        scenarios = []
+        for root, _, files in os.walk(self.base_path):
+            for f in files:
+                if f.endswith(".yaml") or f.endswith(".json"):
+                    # For directories like re-001/case.yaml, use directory name as ID
+                    if f in ["case.yaml", "scenario.json"]:
+                        scenarios.append(os.path.basename(root))
+                    else:
+                        scenarios.append(f.split('.')[0])
+        return sorted(list(set(scenarios)))
 
     def load_scenario(self, scenario_id: str) -> Optional[RepairScenario]:
-        """Loads a specific scenario by ID."""
-        yaml_path = os.path.join(self.base_path, f"{scenario_id}.yaml")
-        json_path = os.path.join(self.base_path, f"{scenario_id}.json")
-        
-        file_path = yaml_path if os.path.exists(yaml_path) else json_path
-        if not os.path.exists(file_path):
-            logger.error(f"Scenario file not found: {scenario_id}")
+        """Loads a specific scenario by ID, supporting recursive lookup."""
+        target_file = None
+        for root, _, files in os.walk(self.base_path):
+            # Check for direct file naming
+            if f"{scenario_id}.yaml" in files:
+                target_file = os.path.join(root, f"{scenario_id}.yaml")
+                break
+            if f"{scenario_id}.json" in files:
+                target_file = os.path.join(root, f"{scenario_id}.json")
+                break
+            
+            # Check for directory-based naming (re-001/case.yaml)
+            if os.path.basename(root) == scenario_id:
+                if "case.yaml" in files:
+                    target_file = os.path.join(root, "case.yaml")
+                    break
+                if "scenario.json" in files:
+                    target_file = os.path.join(root, "scenario.json")
+                    break
+
+        if not target_file:
+            logger.error(f"Scenario file not found for ID: {scenario_id}")
             return None
             
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                if file_path.endswith(".json"):
+            with open(target_file, 'r', encoding='utf-8') as f:
+                if target_file.endswith(".json"):
                     data = json.load(f)
                 else:
                     data = yaml.safe_load(f)
+                
+                # Adapting Legacy Schema (re-001 etc.)
+                if "incident_id" in data and "id" not in data:
+                    data["id"] = data["incident_id"]
+                if "module" in data and "target_component" not in data:
+                    data["target_component"] = data["module"]
+                if "subsystem" in data and "target_component" not in data:
+                    data["target_component"] = data["subsystem"]
+                if "initial_state_payload" not in data:
+                    data["initial_state_payload"] = data.get("payload", {})
+                if "incident_type" not in data:
+                    data["incident_type"] = data.get("type", "legacy_system_repair")
+                if "title" not in data and "name" in data:
+                     data["title"] = data["name"]
+                
                 return RepairScenario(**data)
         except Exception as e:
             logger.error(f"Failed to parse scenario {scenario_id}: {e}")

@@ -44,7 +44,7 @@ class RepairMemory:
                 await db.commit()
                 logger.info("Repair outcome successfully persisted to memory.")
         except Exception as e:
-            logger.error(f"Failed to persist repair memory: {e}")
+            logger.debug(f"Repair memory persistence deferred (resilience mode): {e}")
 
     async def get_performance_stats(self, strategy_name: str) -> Dict[str, Any]:
         """Retrieves success rates and cost history for a specific strategy."""

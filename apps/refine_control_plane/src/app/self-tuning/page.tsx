@@ -11,19 +11,27 @@ export default function SelfTuningPage() {
       try {
         const response = await fetch('http://localhost:8000/api/v1/repair-lab/suggestions');
         const data = await response.json();
-        // Map database model names to UI keys if necessary, but keep it agile
+        
+        if (!Array.isArray(data)) {
+          console.error("Self-Tuning: Expected array but got", data);
+          setSuggestions([]);
+          return;
+        }
+
+        // Map database model names to UI keys
         setSuggestions(data.map((s: any) => ({
            id: s.suggestion_id || s.id,
-           parameter: s.parameter_name,
-           from: s.current_value,
-           to: s.suggested_value,
-           reason: s.rationale,
-           impact: s.expected_impact,
-           confidence: s.confidence_score,
+           parameter: s.parameter_name || s.parameter,
+           from: s.current_value || s.from,
+           to: s.suggested_value || s.proposed_value || s.to,
+           reason: s.rationale || s.reason,
+           impact: s.expected_impact || s.impact,
+           confidence: s.confidence_score || s.confidence || 1.0,
            status: s.status
         })));
       } catch (err) {
         console.error("Failed to fetch suggestions", err);
+        setSuggestions([]);
       }
     };
     fetchSuggestions();
