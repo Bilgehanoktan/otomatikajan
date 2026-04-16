@@ -8,6 +8,7 @@ import yaml
 import os
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
+from services.orchestration.trust_governor import trust_governor
 
 class FederationTask(BaseModel):
     task_id: str
@@ -32,27 +33,39 @@ class FederationRouter:
 
     async def route_task(self, task: FederationTask) -> Optional[str]:
         """
-        Matches a task to the best specialized cluster based on expertise and priority.
+        Matches a task to the best specialized cluster based on expertise, priority, and TRUST SCORE.
         Returns the cluster_id.
         """
+        # Load real-time trust scores
+        trust_map = await trust_governor.get_trust_map()
+        
         candidates = []
         for cluster in self.clusters:
             # Simple intersection check for expertise
             match_score = len(set(task.required_expertise) & set(cluster.get("expertise", [])))
             if match_score > 0:
+                cluster_id = cluster["id"]
+                trust_score = trust_map.get(cluster_id, 0.8) # Default 0.8 if no history
+                
                 candidates.append({
-                    "cluster_id": cluster["id"],
+                    "cluster_id": cluster_id,
                     "match_score": match_score,
+                    "trust_score": trust_score,
                     "priority": cluster.get("priority", 0)
                 })
         
         if not candidates:
             return "logic-cortex-v1" # Default fallback
             
-        # Sort by match_score (primary) and priority (secondary)
-        candidates.sort(key=lambda x: (x["match_score"], x["priority"]), reverse=True)
+        # Sort by match_score (primary), trust_score (secondary), and priority (tertiary)
+        candidates.sort(key=lambda x: (x["match_score"], x["trust_score"], x["priority"]), reverse=True)
         
-        return candidates[0]["cluster_id"]
+        final_choice = candidates[0]
+        # Decay logic check: Trigger decay analysis for the chosen cluster (maintenance pulse)
+        # In production this might be a cron, here we do it ad-hoc for simplicity in Faz 26
+        await trust_governor.apply_decay(final_choice["cluster_id"])
+        
+        return final_choice["cluster_id"]
 
     def get_cluster_specs(self, cluster_id: str) -> Optional[Dict[str, Any]]:
         for cluster in self.clusters:

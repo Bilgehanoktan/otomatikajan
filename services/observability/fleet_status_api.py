@@ -7,6 +7,9 @@ from fastapi import APIRouter
 from typing import Dict, Any, List
 from services.orchestration.fleet_manager import fleet_manager
 from services.orchestration.economic_engine import economic_engine
+from libs.db.session import AsyncSessionLocal
+from libs.db.models.core_models import SovereignEvidence
+from sqlalchemy import select, desc
 
 router = APIRouter(prefix="/fleet", tags=["fleet-ops"])
 
@@ -96,3 +99,47 @@ async def get_fleet_projects():
         })
         
     return projects
+
+@router.get("/mesh/topology")
+async def get_mesh_topology():
+    """
+    Returns high-fidelity topology data for ChaosMap.
+    Simulates cross-region latency and health.
+    """
+    return {
+        "regions": [
+            {"id": "us-east-1", "name": "US-EAST (Virginia)", "status": "healthy", "health": "healthy", "role": "primary", "latency": 24},
+            {"id": "eu-central-1", "name": "EU-CENTRAL (Frankfurt)", "status": "healthy", "health": "healthy", "role": "secondary", "latency": 88},
+            {"id": "ap-southeast-1", "name": "AP-SOUTH (Singapore)", "status": "warning", "health": "warning", "role": "standby", "latency": 156},
+            {"id": "us-west-1", "name": "US-WEST (Oregon)", "status": "healthy", "health": "healthy", "role": "primary", "latency": 42}
+        ],
+        "links": [
+            # In a real system, these would be calculated based on real pings
+            {"source": "us-east-1", "target": "eu-central-1", "latency": 85, "status": "active"},
+            {"source": "eu-central-1", "target": "ap-southeast-1", "latency": 160, "status": "active"},
+            {"source": "us-east-1", "target": "us-west-1", "latency": 40, "status": "active"}
+        ],
+        "quorum_maintained": True,
+        "region_count": {"total": 4, "healthy": 3}
+    }
+
+@router.get("/evidence")
+async def get_mesh_evidence(limit: int = 10):
+    """
+    Returns the latest deep-dive evidence from SovereignEvidence table.
+    """
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(SovereignEvidence).order_by(desc(SovereignEvidence.created_at)).limit(limit)
+        )
+        evidence_list = result.scalars().all()
+        
+    return [
+        {
+            "id": str(e.id),
+            "type": e.evidence_type,
+            "severity": e.severity,
+            "created_at": e.created_at.isoformat(),
+            "payload": e.payload
+        } for e in evidence_list
+    ]

@@ -56,16 +56,38 @@ class MetabolicGovernor:
         self._metabolic_score = round((1.0 - stress) * 0.7 + (energy * 0.3), 2)
         
         old_mode = self._current_mode
+        new_mode = None
         if self._metabolic_score < 0.4 or energy < 0.2:
-            self._current_mode = MetabolicMode.ECO
-            if old_mode != MetabolicMode.ECO:
-                _log.warning(f"[METABOLISM] KRİTİK: Sistem ECO moduna geçti. (Skor: {self._metabolic_score}, Enerji: {energy})")
+            new_mode = MetabolicMode.ECO
         elif self._metabolic_score > 0.8 and energy > 0.8:
-            self._current_mode = MetabolicMode.TURBO
-            if old_mode != MetabolicMode.TURBO:
-                _log.info(f"[METABOLISM] TURBO modu aktif: Maksimum performans çekirdeği devrede.")
+            new_mode = MetabolicMode.TURBO
         else:
-            self._current_mode = MetabolicMode.NORMAL
+            new_mode = MetabolicMode.NORMAL
+
+        if new_mode != old_mode:
+            self._current_mode = new_mode
+            _log.info(f"[METABOLISM] Mode changed: {old_mode} -> {new_mode} (Score: {self._metabolic_score})")
+            
+            # Log Evidence of Operational Drift
+            try:
+                from libs.db.session import session_scope
+                from libs.db.models.core_models import SovereignEvidence
+                
+                async with session_scope() as db:
+                    db.add(SovereignEvidence(
+                        evidence_type="operational_drift",
+                        severity="info" if new_mode == MetabolicMode.NORMAL else "warning",
+                        payload={
+                            "reason": "Metabolic mode shift",
+                            "old_mode": old_mode,
+                            "new_mode": new_mode,
+                            "metabolic_score": self._metabolic_score,
+                            "energy": energy
+                        }
+                    ))
+                    await db.commit()
+            except Exception as e:
+                _log.error(f"Failed to log metabolic evidence: {e}")
         
         self._last_check = now
 

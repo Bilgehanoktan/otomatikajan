@@ -74,36 +74,50 @@ export default function OperatorConsole({ onAction, isLocked = false }: ActionPr
         />
       </div>
 
-      {/* REASON MODAL (SIMULATED INLINE) */}
+      {/* REASON MODAL (ENHANCED FOR R-06 CRISIS ERGONOMICS) */}
       {showReasonInput && (
-        <div className="absolute inset-0 z-50 bg-[#0b0c10]/95 backdrop-blur-xl p-8 flex flex-col justify-center animate-in fade-in zoom-in duration-200">
-          <div className="flex items-center gap-2 mb-4 text-amber-500">
-             <AlertTriangle size={20} />
-             <h4 className="font-bold uppercase tracking-tight">Confirm Action: {showReasonInput}</h4>
+        <div className="absolute inset-0 z-50 bg-[#0b0c10]/98 backdrop-blur-2xl p-8 flex flex-col justify-center animate-in fade-in zoom-in duration-300">
+          <div className="mb-8 flex flex-col items-center text-center">
+             <div className="p-4 rounded-full bg-red-500/20 border border-red-500/30 mb-4 animate-bounce">
+                <AlertTriangle size={32} className="text-red-500" />
+             </div>
+             <h4 className="text-2xl font-black text-white uppercase tracking-tighter mb-2">DANGER: System Mutation Mode</h4>
+             <p className="text-sm text-red-400 font-bold mb-1 opacity-80 uppercase tracking-widest">Action: {showReasonInput}</p>
+             <div className="h-px w-32 bg-red-500/30 my-4" />
           </div>
-          <p className="text-xs text-[#c5c6c7] mb-6 leading-relaxed">
-            Provide a mandatory operational justification for this mutation. This record will be persisted in global audit logs and GitOps history.
-          </p>
-          <textarea 
-            className="w-full bg-[#1f2833]/50 border border-[#1f2833] rounded-xl p-4 text-sm text-white focus:outline-none focus:border-[#66fcf1] transition-colors h-24 mb-6 placeholder:text-white/20"
-            placeholder="Operational justification required..."
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-          />
-          <div className="flex gap-4">
-            <button 
-              className="flex-1 py-3 rounded-xl bg-[#1f2833] text-white text-sm font-bold hover:bg-[#1f2833]/80 transition-all"
-              onClick={() => { setShowReasonInput(null); setReason(""); }}
-            >
-              Cancel
-            </button>
-            <button 
-              className="flex-1 py-3 rounded-xl bg-amber-600 text-[#0b0c10] text-sm font-black uppercase tracking-widest hover:brightness-110 transition-all disabled:opacity-50"
-              onClick={() => handleTrigger(showReasonInput)}
-              disabled={!reason}
-            >
-              Execute
-            </button>
+
+          <div className="space-y-6">
+            <div>
+              <label className="text-[10px] text-gray-500 uppercase tracking-widest font-black mb-2 block">1. Operational Justification</label>
+              <textarea 
+                className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-red-500/50 transition-all h-24 placeholder:text-white/10"
+                placeholder="Why is this action critical? (Required for co-repo audit)..."
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+              />
+            </div>
+
+            <div className="p-4 rounded-2xl bg-red-500/5 border border-red-500/10">
+               <p className="text-[10px] text-red-300 font-medium leading-relaxed italic">
+                 "By executing this command, you are bypassing autonomous safety gates. This action will be immutable in the blockchain-backed telemetry and may trigger mesh-wide re-routing."
+               </p>
+            </div>
+
+            <div className="flex gap-4">
+              <button 
+                className="flex-1 py-4 rounded-2xl bg-white/5 text-gray-400 text-xs font-bold hover:bg-white/10 transition-all uppercase tracking-widest"
+                onClick={() => { setShowReasonInput(null); setReason(""); }}
+              >
+                Abort
+              </button>
+              <button 
+                className="flex-[2] py-4 rounded-2xl bg-red-600 text-white text-xs font-black uppercase tracking-[0.2em] hover:bg-red-500 hover:shadow-[0_0_30px_rgba(220,38,38,0.3)] transition-all disabled:opacity-20 disabled:grayscale"
+                onClick={() => handleTrigger(showReasonInput)}
+                disabled={reason.length < 10}
+              >
+                Confirm Mutation
+              </button>
+            </div>
           </div>
         </div>
       )}

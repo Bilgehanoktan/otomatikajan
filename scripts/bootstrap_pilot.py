@@ -38,7 +38,24 @@ async def bootstrap():
                 status=ProjectStatus.RUNNING,
                 is_pilot=True,
                 budget_limit=100.0,
-                workflow_template="resilience_v1"
+                workflow_template="resilience_v1",
+                # Phase 23: Isolation & Autonomy
+                isolation_tier=1, # Production Tier
+                autonomy_envelope={
+                    "mode": "autonomous",
+                    "allow_auto_patch": True,
+                    "max_risk_score": 0.5,
+                    "isolation_zone": "eu-central-1"
+                },
+                concurrency_limit=10,
+                # Phase 24: Economics
+                current_budget_usd=100.0,
+                hourly_burn_rate=2.5,
+                economic_profile={
+                    "steering_policy": "performance_optimized",
+                    "min_budget_threshold": 20.0,
+                    "auto_scale_concurrency": True
+                }
             )
             session.add(project)
             await session.commit()

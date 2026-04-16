@@ -19,42 +19,55 @@ const SystemHeaderContent = () => {
     });
 
     const stats = data?.data as any;
+    const isCrisisMode = (stats?.health || 100) < 70;
 
     return (
         <header className="h-16 border-b border-white/5 px-8 flex items-center justify-between glass sticky top-0 z-50">
             <div className="flex items-center gap-6">
-                <div className="relative group">
-                    <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-[#66fcf1] transition-colors" />
-                    <input 
-                        type="text" 
-                        placeholder="Search neural traces..." 
-                        className="bg-white/5 border border-white/5 rounded-full pl-10 pr-4 py-1.5 text-xs text-gray-300 focus:outline-none focus:border-[#66fcf1]/30 focus:bg-white/[0.08] transition-all w-64"
-                    />
-                </div>
+                {!isCrisisMode && (
+                    <div className="relative group animate-in fade-in duration-500">
+                        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-[#66fcf1] transition-colors" />
+                        <input 
+                            type="text" 
+                            placeholder="Search neural traces..." 
+                            className="bg-white/5 border border-white/5 rounded-full pl-10 pr-4 py-1.5 text-xs text-gray-300 focus:outline-none focus:border-[#66fcf1]/30 focus:bg-white/[0.08] transition-all w-64"
+                        />
+                    </div>
+                )}
+                {isCrisisMode && (
+                    <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/30 animate-pulse">
+                        <span className="w-2 h-2 bg-red-500 rounded-full" />
+                        <span className="text-[10px] font-black text-red-500 uppercase tracking-tighter">Operational Crisis Mode Active</span>
+                    </div>
+                )}
             </div>
 
             <div className="flex items-center gap-6">
                 {/* System Metrics */}
-                <div className="hidden md:flex items-center gap-4 border-r border-white/10 pr-6">
+                <div className="hidden md:flex items-center gap-8 border-r border-white/10 pr-6">
                     <div className="flex items-center gap-2">
-                        <Activity size={14} className="text-[#66fcf1]" />
+                        <Activity size={14} className={isCrisisMode ? "text-red-500" : "text-[#66fcf1]"} />
                         <div className="flex flex-col">
                             <span className="text-[10px] text-gray-500 leading-none">ACTIVE JOBS</span>
-                            <span className="text-xs font-bold text-white">{stats?.running || 0}</span>
+                            <span className={`text-xs font-bold ${isCrisisMode ? "text-red-400" : "text-white"}`}>{stats?.running || 0}</span>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <ShieldCheck size={14} className="text-green-400" />
-                        <div className="flex flex-col">
-                            <span className="text-[10px] text-gray-500 leading-none">UPTIME</span>
-                            <span className="text-xs font-bold text-white">99.9%</span>
+                    
+                    {!isCrisisMode && (
+                        <div className="flex items-center gap-2 animate-in slide-in-from-right-4 duration-500">
+                            <ShieldCheck size={14} className="text-green-400" />
+                            <div className="flex flex-col">
+                                <span className="text-[10px] text-gray-500 leading-none">UPTIME</span>
+                                <span className="text-xs font-bold text-white">99.9%</span>
+                            </div>
                         </div>
-                    </div>
+                    )}
+
                     <div className="flex items-center gap-2">
-                        <Cpu size={14} className="text-[#45a29e]" />
+                        <Cpu size={14} className={isCrisisMode ? "text-red-500" : "text-[#45a29e]"} />
                         <div className="flex flex-col">
                             <span className="text-[10px] text-gray-500 leading-none">LOAD</span>
-                            <span className="text-xs font-bold text-white">12%</span>
+                            <span className={`text-xs font-bold ${isCrisisMode ? "text-red-400" : "text-white"}`}>{stats?.load || "12%"}</span>
                         </div>
                     </div>
                 </div>

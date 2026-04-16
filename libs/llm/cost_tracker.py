@@ -56,8 +56,8 @@ class CostTracker:
         return rec
 
     async def persist(self, db, rec: CostRecord):
-        from db.models import LLMCostLog, Project  # lazy
-        from sqlalchemy import update
+        from libs.db.models.core_models import LLMCostLog, Project, SovereignEvidence  # lazy
+        from sqlalchemy import update, select
         
         # Log entry
         db.add(LLMCostLog(
@@ -69,11 +69,46 @@ class CostTracker:
         
         # Update project total_cost if linked
         if rec.project_id and rec.success:
-             await db.execute(
-                 update(Project)
-                 .where(Project.id == rec.project_id)
-                 .values(total_cost=Project.total_cost + rec.cost_usd)
-             )
+            # 1. Update total_cost
+            await db.execute(
+                update(Project)
+                .where(Project.id == rec.project_id)
+                .values(total_cost=Project.total_cost + rec.cost_usd)
+            )
+
+            # 2. Check Project-level budget drift for Evidence
+            res = await db.execute(select(Project).where(Project.id == rec.project_id))
+            proj = res.scalar_one_or_none()
+            if proj and proj.budget_limit > 0:
+                ratio = proj.total_cost / proj.budget_limit
+                if ratio >= 0.8 and ratio < 1.0 and not proj.metadata.get("drift_evidence_80"):
+                    # Log 80% budget warning evidence
+                    db.add(SovereignEvidence(
+                        evidence_type="economic_drift",
+                        severity="warning",
+                        project_id=proj.id,
+                        payload={
+                            "reason": "Project budget reached 80%",
+                            "total_cost": proj.total_cost,
+                            "budget_limit": proj.budget_limit,
+                            "ratio": round(ratio, 2)
+                        }
+                    ))
+                    proj.metadata["drift_evidence_80"] = True
+                elif ratio >= 1.0 and not proj.metadata.get("drift_evidence_100"):
+                    # Log 100% budget exhaustion evidence
+                    db.add(SovereignEvidence(
+                        evidence_type="economic_drift",
+                        severity="critical",
+                        project_id=proj.id,
+                        payload={
+                            "reason": "Project budget exhausted",
+                            "total_cost": proj.total_cost,
+                            "budget_limit": proj.budget_limit,
+                            "ratio": round(ratio, 2)
+                        }
+                    ))
+                    proj.metadata["drift_evidence_100"] = True
 
     def _check_budget(self):
         ratio = self._monthly_total / MONTHLY_BUDGET_USD if MONTHLY_BUDGET_USD > 0 else 0.0

@@ -18,6 +18,7 @@ from services.observability.logging import get_logger
 # Phase 22 Integration: Mesh Observability & Actions
 from services.observability import mesh_status_api, fleet_status_api
 from services.governance import mesh_actions_api
+from services.workflow_api import repair_lab_router
 
 logger = get_logger("workflow_api")
 
@@ -38,6 +39,7 @@ def create_app() -> FastAPI:
     app.include_router(mesh_status_api.router)
     app.include_router(fleet_status_api.router, prefix="/api/v1")
     app.include_router(mesh_actions_api.router)
+    app.include_router(repair_lab_router.router, prefix="/api/v1")
 
     @app.get("/health")
     async def health_check():

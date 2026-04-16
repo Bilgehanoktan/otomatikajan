@@ -38,6 +38,30 @@ export function Providers({ children }: { children: React.ReactNode }) {
           name: "improvements",
           list: "/improvements",
         },
+        {
+          name: "federation",
+          list: "/federation/trust",
+        },
+        {
+          name: "repair-lab",
+          list: "/repair-lab",
+          meta: { label: "Autonomous Lab" },
+        },
+        {
+          name: "repair-memory",
+          list: "/repair-memory",
+          meta: { label: "Repair Memory" },
+        },
+        {
+          name: "verifiers",
+          list: "/verifiers",
+          meta: { label: "Verifier Mesh" },
+        },
+        {
+          name: "self-tuning",
+          list: "/self-tuning",
+          meta: { label: "Tuning Console" },
+        },
       ]}
       options={{
         syncWithLocation: true,

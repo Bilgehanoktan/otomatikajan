@@ -9,6 +9,7 @@ from services.workflow_api.metrics_router import router as metrics_router
 from services.observability.mesh_status_api import router as mesh_router
 from services.observability.fleet_status_api import router as fleet_router
 from services.governance.mesh_actions_api import router as mesh_actions_router
+from services.improve.router import router as repair_lab_router
 
 def register_routers(app: FastAPI):
     """
@@ -23,7 +24,14 @@ def register_routers(app: FastAPI):
     # Phase 17 Metrics API
     app.include_router(metrics_router)
     
+    # Governance & Self-Healing
+    from services.workflow_api.governance_router import router as governance_router
+    app.include_router(governance_router)
+    
     # Observability & Actions
     app.include_router(mesh_router)
     app.include_router(fleet_router, prefix="/api/v1")
     app.include_router(mesh_actions_router)
+    
+    # Repair Lab & Self-Tuning
+    app.include_router(repair_lab_router)

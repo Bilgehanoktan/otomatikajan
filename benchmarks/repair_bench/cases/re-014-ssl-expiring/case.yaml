@@ -1,0 +1,5 @@
+id: re-014-ssl-expiring
+severity: high
+subsystem: security
+title: Unnoticed SSL Certificate Expiry
+type: incident_replay

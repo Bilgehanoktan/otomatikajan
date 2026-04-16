@@ -292,15 +292,21 @@
     .search-icon {
       position: absolute; left: 28px; top: 50%; transform: translateY(-50%);
       color: var(--text-muted); font-size: 14px; pointer-events: none;
+      display: flex; align-items: center; justify-content: center;
     }
 
     .filter-tabs {
-      display: flex; gap: 4px; padding: 0 16px 12px;
-      flex-wrap: wrap;
+      display: flex; gap: 6px; padding: 0 16px 12px;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
     }
+    .filter-tabs::-webkit-scrollbar { display: none; }
 
     .filter-tab {
-      padding: 4px 12px; border-radius: 20px;
+      padding: 4px 10px; border-radius: 20px;
+      white-space: nowrap; flex-shrink: 0;
       border: 1px solid var(--border);
       background: transparent;
       color: var(--text-muted);
@@ -432,8 +438,9 @@
     }
 
     .detail-action-bar {
-      display: flex; gap: 8px; padding-bottom: 16px;
+      display: flex; gap: 8px; padding-bottom: 20px;
       flex-wrap: wrap;
+      align-items: center;
     }
 
     .action-btn {
@@ -833,7 +840,7 @@
           <aside class="panel-left">
             <div class="panel-header" style="justify-content: space-between; align-items: center">
               <div style="display:flex; flex-direction:column">
-                <span class="panel-title">Workflow Listesi</span>
+                <span class="panel-title">İş Akışı Listesi</span>
                 <span id="wf-count" style="font-size:11px;color:var(--text-muted)"></span>
               </div>
               <button class="topbar-btn" style="padding: 4px 8px; font-size: 12px; border-color: var(--neon-cyan); color: var(--neon-cyan)" onclick="openNewProjectModal()">
@@ -850,7 +857,7 @@
               <button class="filter-tab" data-filter="pending" onclick="setFilter('pending',this)">Bekliyor</button>
               <button class="filter-tab" data-filter="error" onclick="setFilter('error',this)">Hatalı</button>
               <button class="filter-tab" data-filter="completed" onclick="setFilter('completed',this)">Tamamlandı</button>
-              <button class="filter-tab" style="border-color: var(--neon-violet); color: var(--neon-violet)" data-filter="improvement" onclick="setFilter('improvement',this)">Self-Improvement</button>
+              <button class="filter-tab" style="border-color: var(--neon-violet); color: var(--neon-violet)" data-filter="improvement" onclick="setFilter('improvement',this)">İyileştirme</button>
             </div>
             <div class="workflow-list" id="workflowList">
               <div class="loading-overlay" id="listLoading" style="display:none">
@@ -1021,38 +1028,38 @@
 <div class="detail-panel-slide" id="fleetDetailPanel">
   <div class="close-detail" onclick="closeDetail()">&times;</div>
   <div class="detail-header" style="border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 20px;">
-    <h2 id="d-name" style="margin-bottom:8px; font-size: 20px;">Project Name</h2>
-    <div id="d-status" class="status-badge running">HEALTHY</div>
+    <h2 id="d-name" style="margin-bottom:8px; font-size: 20px;">Proje İsmi</h2>
+    <div id="d-status" class="status-badge running">SAĞLIKLI</div>
   </div>
   <div class="detail-content" style="flex:1; overflow-y:auto">
     <div class="detail-metric">
-      <label>Economic Burn Rate</label>
+      <label>Ekonomik Yakım Hızı</label>
       <div class="value" id="d-burn">$0.00 / hr</div>
     </div>
     <div class="detail-metric">
-      <label>Resource Tier</label>
+      <label>Kaynak Katmanı</label>
       <div class="value" id="d-tier">Production (T1)</div>
     </div>
     <div class="detail-metric">
-      <label>Current Compute Load</label>
+      <label>Mevcut İş Yükü</label>
       <div class="value" id="d-load">0%</div>
     </div>
     <div class="detail-metric">
-      <label>Forecasted 4h Load</label>
+      <label>Öngörülen 4s Yükü</label>
       <div class="value" id="d-forecast">0%</div>
     </div>
   </div>
   <div style="margin-top:20px; display:flex; flex-direction:column; gap:10px">
-    <button class="action-btn" onclick="jumpToOps()" style="width:100%; border-color: var(--neon-cyan); color: var(--neon-cyan)">View Workflows</button>
-    <button class="action-btn" style="width:100%; background:var(--neon-red); color:white; border:none" onclick="alert('Quarantine initiated')">Quarantine Region</button>
+    <button class="action-btn" onclick="jumpToOps()" style="width:100%; border-color: var(--neon-cyan); color: var(--neon-cyan)">İş Akışlarını Görüntüle</button>
+    <button class="action-btn" style="width:100%; background:var(--neon-red); color:white; border:none" onclick="alert('Quarantine initiated')">Bölgeyi Karantinaya Al</button>
   </div>
 </div>
 
 <!-- Operator Terminal -->
 <div class="terminal-overlay" id="operatorTerminal">
   <div class="terminal-header">
-    <span>OPERATOR CONSOLE — SESSION_ID: SOV-AGI-${Math.random().toString(36).substr(2, 9).toUpperCase()}</span>
-    <span style="cursor:pointer" onclick="toggleTerminal()">[ESC] CLOSE</span>
+    <span>OPERATÖR KONSOLU — SESSION_ID: SOV-AGI-${Math.random().toString(36).substr(2, 9).toUpperCase()}</span>
+    <span style="cursor:pointer" onclick="toggleTerminal()">[ESC] KAPAT</span>
   </div>
   <div class="terminal-body" id="terminalOutput">
     <div style="color:var(--text-secondary)">Sovereign AGI Control Plane v13.04.1 Initialized...</div>
@@ -1060,7 +1067,7 @@
   </div>
   <div class="terminal-input-row">
     <span class="terminal-prompt">></span>
-    <input type="text" class="terminal-input" id="terminalInput" autocomplete="off" spellcheck="false" placeholder="Enter command..." />
+    <input type="text" class="terminal-input" id="terminalInput" autocomplete="off" spellcheck="false" placeholder="Komut girin..." />
   </div>
 </div>
 

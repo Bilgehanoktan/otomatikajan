@@ -1,0 +1,8 @@
+
+{
+  "last_30d_avg_daily_spend": 240.0,
+  "current_hourly_spend": 450.0,
+  "active_scaling_plan": "SC-GCP-US-EAST-01",
+  "anomaly_alert_id": "ALT-998",
+  "reason": "Sudden spend spike > 300%"
+}

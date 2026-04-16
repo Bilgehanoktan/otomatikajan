@@ -227,8 +227,8 @@ async def list_projects(
             except ValueError:
                 pass
         total_count = (await db.execute(count_q)).scalar()
-        response.headers["X-Total-Count"] = str(total_count)
-        response.headers["Access-Control-Expose-Headers"] = "X-Total-Count"
+        response.headers["x-total-count"] = str(total_count)
+        response.headers["Access-Control-Expose-Headers"] = "x-total-count"
 
         q = select(Project).order_by(Project.created_at.desc()).limit(limit).offset(offset)
         if status_filter:

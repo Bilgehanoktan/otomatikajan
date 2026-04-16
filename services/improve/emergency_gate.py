@@ -6,6 +6,7 @@ Hard Safety Gate for Autonomous Patching & Rollouts.
 from __future__ import annotations
 from typing import Dict, Any, Optional
 from services.governance.emergency_policy import EmergencyPolicyEngine, EmergencyState
+from services.orchestration.calibration_engine import calibration_engine
 
 class EmergencyGate:
     """Intercepts and validates rollouts against live emergency policies."""
@@ -44,11 +45,22 @@ class EmergencyGate:
                 "state": EmergencyState.DEGRADED
             }
 
-        return {
+        result = {
             "safe": True,
             "reason": "OK: Metrics within safety thresholds.",
             "state": EmergencyState.NORMAL
         }
+        
+        # R-05 Calibration Loop: Record if blocked (even if logic is simplified here)
+        if not result["safe"]:
+             calibration_engine.record_correction(
+                incident_id="gate_check",
+                action="blocked_by_gate",
+                risk_score=1.0 if state == EmergencyState.SAFETY_FREEZE else 0.8,
+                severity="critical" if state == EmergencyState.SAFETY_FREEZE else "medium"
+            )
+            
+        return result
 
     async def get_emergency_remedy(self, state: EmergencyState) -> str:
         """Returns the recommended fallback action string for a given state."""

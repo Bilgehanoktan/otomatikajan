@@ -145,7 +145,7 @@ class JobQueue(BaseQueueCapabilities):
                                 created_at=p.created_at.isoformat() if p.created_at else ""
                             )
                             self._jobs[job.id] = job
-                            if job.status == JobStatus.PENDING:
+                            if job.status in (JobStatus.PENDING, JobStatus.RUNNING, JobStatus.RETRYING):
                                 await self._queue.put(job)
                             count += 1
                 
@@ -176,6 +176,9 @@ class JobQueue(BaseQueueCapabilities):
     # ── Worker Döngüsü ────────────────────────────────────
     async def start(self, num_workers: int = 2):
         self._running = True
+        # Faz 12.1 Persistence: Açık işleri DB'den çek
+        await self.hydrate_from_db()
+        
         for i in range(num_workers):
             task = asyncio.create_task(self._worker(f"worker-{i}"))
             self._workers.append(task)
@@ -561,6 +564,9 @@ class CeleryJobQueue(BaseQueueCapabilities):
                                 payload={"db_project_id": str(p.id), "title": p.title},
                                 status=JobStatus.PENDING 
                             )
+                            # Celery backend: Hydration only syncs memory map. 
+                            # If it was PENDING or RUNNING in DB, calling get_job() 
+                            # later will sync current Celery state via AsyncResult.
                             self._jobs[job.id] = job
                             count += 1
                 

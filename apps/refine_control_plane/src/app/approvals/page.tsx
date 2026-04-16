@@ -81,14 +81,14 @@ export default function ApprovalsPage() {
                         <div>
                           <div className="flex items-center gap-3">
                             <h3 className="text-white font-semibold text-lg uppercase tracking-tight">{req.request_type} GATE</h3>
-                            <span className="px-2 py-0.5 rounded bg-white/5 text-[10px] text-gray-500 font-mono">ID: {req.id.substring(0,8)}</span>
+                            <span className="px-2 py-0.5 rounded bg-white/5 text-[10px] text-gray-500 font-mono">ID: {String(req.id).substring(0,8) || 'N/A'}</span>
                           </div>
                           <p className="text-[#c5c6c7] mt-2 max-w-2xl leading-relaxed">{req.reason}</p>
                           
                           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6">
                             <div className="flex flex-col">
                               <span className="text-[10px] uppercase text-gray-500 font-bold mb-1">Project ID</span>
-                              <span className="text-xs text-[#66fcf1] font-mono">{req.project_id.substring(0,13)}...</span>
+                              <span className="text-xs text-[#66fcf1] font-mono">{String(req.project_id).substring(0,13) || 'N/A'}...</span>
                             </div>
                             <div className="flex flex-col">
                               <span className="text-[10px] uppercase text-gray-500 font-bold mb-1">Step</span>

@@ -16,6 +16,9 @@ import {
 
 import FleetHeatmap from "../../components/fleet/FleetHeatmap";
 import ResourceArbitrationChart from "../../components/fleet/ResourceArbitrationChart";
+import { FleetEconomicsMonitor } from "../../components/fleet/FleetEconomicsMonitor";
+import { QuotaElasticityDetails } from "../../components/fleet/QuotaElasticityDetails";
+import { FinancialGovernancePanel } from "../../components/fleet/FinancialGovernancePanel";
 
 // API Base
 const API_BASE = "http://localhost:8000/api/v1/fleet";
@@ -31,7 +34,7 @@ export default function FleetHub() {
     try {
       const statusRes = await fetch(`${API_BASE}/status`);
       const statusData = await statusRes.json();
-      setStats(statusData.summary);
+      setStats(statusData); // Store full statusData for components
       setArbitration(statusData.arbitration);
 
       const projectsRes = await fetch(`${API_BASE}/projects`);
@@ -73,7 +76,7 @@ export default function FleetHub() {
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-4xl font-black text-white tracking-tighter">Global Fleet Hub</h1>
-              <span className="px-2 py-0.5 rounded bg-blue-500/20 border border-blue-400/30 text-[10px] text-blue-400 font-black uppercase">Phase 23</span>
+              <span className="px-2 py-0.5 rounded bg-cyan-500/20 border border-cyan-400/30 text-[10px] text-cyan-400 font-black uppercase">Phase 26</span>
             </div>
             <p className="text-[#45a29e] tracking-[0.2em] text-xs font-bold uppercase mt-1.5 opacity-80 flex items-center gap-2">
               <Activity size={12} /> Fleet-scale Multi-Project Orchestration
@@ -129,6 +132,16 @@ export default function FleetHub() {
 
         {/* SIDEBAR - 1/3 Width */}
         <div className="flex flex-col gap-8">
+           <FleetEconomicsMonitor data={{
+             global_burn_rate: stats?.global_burn_rate || 0,
+             mesh_concurrency_total: stats?.mesh_concurrency_total || 0,
+             forecast_window_hours: stats?.forecast_window_hours || 4
+           }} />
+           
+           <QuotaElasticityDetails projects={projects} />
+           
+           <FinancialGovernancePanel projects={projects} />
+
            <ResourceArbitrationChart stats={arbitration} />
            
            {/* MASS ACTIONS */}

@@ -141,3 +141,120 @@ class VectorLessonModel(Base):
     __table_args__ = (
         Index("ix_repair_vector_lessons_module_created", "module", "created_at"),
     )
+
+
+# ── Lab & Tournament Modelleri (Faz 28) ──────────────────
+
+class RepairBenchmarkRun(Base):
+    __tablename__ = "repair_benchmark_runs"
+
+    id           = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    run_id       = Column(String(64), unique=True, nullable=False, index=True)
+    project_id   = Column(String(64), index=True) # Scope
+    cluster_id   = Column(String(64), index=True)
+    start_time   = Column(DateTime(timezone=True), default=_utcnow)
+    end_time     = Column(DateTime(timezone=True))
+    total_cases  = Column(Integer, default=0)
+    success_rate = Column(Float, default=0.0)
+    avg_score    = Column(Float, default=0.0)
+    total_validation_cost = Column(Float, default=0.0)
+    total_validation_time = Column(Float, default=0.0)
+    status       = Column(String(32), default="running") # running | completed | failed
+
+
+class RepairTournament(Base):
+    __tablename__ = "repair_tournaments"
+
+    id               = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tournament_id    = Column(String(64), unique=True, nullable=False, index=True)
+    run_id           = Column(String(64), nullable=True, index=True)
+    incident_id      = Column(String(64), nullable=False, index=True)
+    project_id       = Column(String(64), index=True)
+    cluster_id       = Column(String(64), index=True)
+    winner_candidate_id = Column(String(64), nullable=True)
+    winner_score     = Column(Float, default=0.0)
+    verifier_score_breakdown = Column(SmartJSON(), default=dict) # Aggregate for winner
+    total_candidates = Column(Integer, default=0)
+    created_at       = Column(DateTime(timezone=True), default=_utcnow)
+
+
+class RepairCandidate(Base):
+    __tablename__ = "repair_candidates"
+
+    id            = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    candidate_id  = Column(String(64), unique=True, nullable=False, index=True)
+    tournament_id = Column(String(64), nullable=False, index=True)
+    strategy      = Column(String(32), nullable=False) # conservative | radical | etc
+    candidate_type = Column(String(32))               # code | policy | config
+    patch_diff    = Column(Text, nullable=False)
+    patch_signature = Column(String(256), index=True) # for deduplication/memory
+    risk_score    = Column(Float, default=0.0)
+    final_score   = Column(Float, default=0.0)
+    
+    # Outcomes
+    canary_outcome = Column(String(32))               # success | failure | rollback
+    rollback_reason = Column(Text)
+    
+    # Metrics
+    total_validation_cost = Column(Float, default=0.0)
+    total_validation_time = Column(Float, default=0.0) # seconds
+    
+    status        = Column(String(32), default="draft") # draft | verified | winner | rejected
+
+
+class VerifierResult(Base):
+    __tablename__ = "verifier_results"
+
+    id            = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    result_id     = Column(String(64), unique=True, nullable=False, index=True)
+    candidate_id  = Column(String(64), nullable=False, index=True)
+    verifier_name = Column(String(64), nullable=False) # build | regression | economic etc
+    score         = Column(Float, default=0.0)
+    passed        = Column(Boolean, default=False)
+    details       = Column(SmartJSON(), default=dict) # breakdown details
+    timestamp     = Column(DateTime(timezone=True), default=_utcnow)
+
+
+class RepairMemory(Base):
+    __tablename__ = "repair_memories"
+
+    id               = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    memory_id        = Column(String(64), unique=True, nullable=False, index=True)
+    incident_id      = Column(String(64), nullable=False, index=True)
+    project_id       = Column(String(64), index=True)
+    cluster_id       = Column(String(64), index=True)
+    patch_signature  = Column(String(256), index=True) # e.g. "module:strategy"
+    subsystem        = Column(String(128), index=True)
+    outcome          = Column(String(32), index=True) # success | failure
+    failure_reason   = Column(Text)
+    verifier_rejections = Column(SmartJSON(), default=list)
+    score            = Column(Float, default=0.0)
+    recurrence_within_window = Column(Integer, default=0)
+    recorded_at      = Column(DateTime(timezone=True), default=_utcnow)
+
+
+class RepairPattern(Base):
+    __tablename__ = "repair_patterns"
+
+    id             = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    pattern_id     = Column(String(64), unique=True, nullable=False, index=True)
+    subsystem      = Column(String(128), index=True)
+    strategy       = Column(String(32))
+    success_rate   = Column(Float, default=0.0)
+    failure_count  = Column(Integer, default=0)
+    avg_risk       = Column(Float, default=0.0)
+    last_detected_at = Column(DateTime(timezone=True), default=_utcnow)
+
+
+class SelfTuningSuggestion(Base):
+    __tablename__ = "self_tuning_suggestions"
+
+    id              = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    suggestion_id   = Column(String(64), unique=True, nullable=False, index=True)
+    parameter_name  = Column(String(64), nullable=False)
+    current_value   = Column(Float, nullable=False)
+    proposed_value  = Column(Float, nullable=False)
+    reason          = Column(Text, nullable=False)
+    expected_impact = Column(Text)
+    status          = Column(String(32), default="pending") # pending | applied | rejected
+    created_at      = Column(DateTime(timezone=True), default=_utcnow)

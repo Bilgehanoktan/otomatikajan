@@ -12,6 +12,8 @@ from services.orchestration.federation_router import FederationTask, FederationR
 from services.orchestration.latency_adapter import latency_adapter
 from services.orchestration.mesh_state_store import mesh_state_store
 from services.orchestration.quota_arbitrator import quota_arbitrator, QuotaViolationException, AutonomyViolationException
+from services.orchestration.economic_engine import economic_engine
+from services.orchestration.calibration_engine import calibration_engine
 
 class MeshTaskRouting(BaseModel):
     task_id: str
@@ -104,14 +106,15 @@ class MeshRouter:
                             target_region=region["id"]
                         )
                     
-                    mock_cost = 1.0 + (specs.get("priority", 0) * 0.1)
-
+                    # Phase 24: Real cost calculation via Economic Engine
+                    actual_cost = economic_engine.calculate_task_cost(region["id"], project_config["isolation_tier"])
+                    
                     candidates.append(MeshTaskRouting(
                         task_id=task.task_id,
                         target_region_id=region["id"],
                         target_cluster_id=cluster_id,
                         latency_ms=current_latency,
-                        cost_factor=mock_cost
+                        cost_factor=actual_cost
                     ))
 
         if not candidates:
@@ -124,8 +127,33 @@ class MeshRouter:
                 cost_factor=1.0
             )
 
-        # 2. Sort candidates by Latency (Primary) and Cost (Secondary)
-        # Phase 23 Expansion: We could also weight by regional project density
-        candidates.sort(key=lambda x: (x.latency_ms, x.cost_factor))
+        # 2. Phase 24: Weighted Economic Routing
+        # Tier 0 (Critical) -> Weights Latency 90% / Cost 10%
+        # Tier 3 (Sandbox) -> Weights Latency 20% / Cost 80%
+        
+        tier = project_config["isolation_tier"]
+        if tier == 0:
+            latency_weight, cost_weight = 0.9, 0.1
+        elif tier == 3:
+            latency_weight, cost_weight = 0.2, 0.8
+        else:
+            latency_weight, cost_weight = 0.5, 0.5
+            
+        # Composite score calculation (Lower is better)
+        # Note: we use x.latency_ms normalized and inverted (1 - cost_score)
+        # For simplicity in this shell, we use a raw weighted sort
+        candidates.sort(key=lambda x: (
+            (x.latency_ms * latency_weight) + 
+            ((1.0 - economic_engine.get_region_cost_score(x.target_region_id)) * 500 * cost_weight)
+        ))
 
-        return candidates[0]
+        chosen = candidates[0]
+        
+        # Phase 21: Calibration Link (R-04) - Record Steering Impact
+        # We compare chosen cost vs max possible cost in candidates (the 'naive' alternative)
+        max_cost = max(c.cost_factor for c in candidates)
+        savings = max_cost - chosen.cost_factor
+        if savings > 0:
+            calibration_engine.record_steering_impact(savings)
+
+        return chosen

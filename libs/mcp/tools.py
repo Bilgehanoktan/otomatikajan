@@ -1,5 +1,5 @@
 """
-libs/mcp/tools.py — Phase 13.04.E
+libs/mcp/tools.py — Phase 15.01
 Standardized MCP Tool Registry for Sovereign AGI Federation.
 """
 from __future__ import annotations
@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from libs.workflow.engine import WorkflowEngine
 from libs.db.session import AsyncSessionLocal
 from libs.auth.rbac import is_authorized, Role
+from libs.mcp.registry import mcp_registry
 
 class WorkflowReplayInput(BaseModel):
     workflow_id: str = Field(..., description="UUID of the workflow to replay")
@@ -22,50 +23,40 @@ class WorkflowDiagnosisInput(BaseModel):
     workflow_id: str = Field(..., description="UUID of the workflow")
     step_id: str = Field(..., description="Step ID to diagnose")
 
-class MCPWorkflowRegistry:
-    """Central registry for workflow-related MCP tools."""
-    
-    @staticmethod
-    async def replay_workflow(params: WorkflowReplayInput) -> str:
-        """Securely replay a workflow from a specific step with optional overrides."""
-        # 1. RBAC Check (MCP Agents are 'OPERATORS' by default)
-        if not is_authorized(Role.OPERATOR, "workflow:replay"):
-             return "ERROR: MCP Agent (OPERATOR) unauthorized for deep replay. MANAGER role required."
+@mcp_registry.register(name="replay_workflow", requires_approval=True)
+async def replay_workflow(workflow_id: str, from_step_id: str, mode: str = "same_input", overrides: Optional[Dict[str, Any]] = None, operator_id: str = "mcp_agent", reason: str = "Autonomous recovery"):
+    """Securely replay a workflow from a specific step with optional overrides."""
+    # 1. RBAC Check
+    if not is_authorized(Role.OPERATOR, "workflow:replay"):
+         return "ERROR: MCP Agent (OPERATOR) unauthorized for deep replay. MANAGER role required."
 
-        async with AsyncSessionLocal() as db:
-            engine = WorkflowEngine(db)
-            try:
-                # Mode translation for engine
-                mode_map = {
-                    "same_input": "same_input",
-                    "from_step": "from_step",
-                    "with_override": "with_override"
-                }
-                
-                await engine.replay(
-                    workflow_id=params.workflow_id,
-                    from_step_id=params.from_step_id,
-                    mode=mode_map.get(params.mode, "same_input"),
-                    overrides=params.overrides,
-                    operator_id=params.operator_id,
-                    reason=params.reason
-                )
-                return f"SUCCESS: Workflow {params.workflow_id} replayed from {params.from_step_id} in mode {params.mode}"
-            except Exception as e:
-                return f"FAILURE: Replay failed: {str(e)}"
+    async with AsyncSessionLocal() as db:
+        engine = WorkflowEngine(db)
+        try:
+            await engine.replay(
+                workflow_id=workflow_id,
+                from_step_id=from_step_id,
+                mode=mode,
+                overrides=overrides,
+                operator_id=operator_id,
+                reason=reason
+            )
+            return f"SUCCESS: Workflow {workflow_id} replayed from {from_step_id}"
+        except Exception as e:
+            return f"FAILURE: Replay failed: {str(e)}"
 
-    @staticmethod
-    async def diagnose_failure(params: WorkflowDiagnosisInput) -> Dict[str, Any]:
-        """Perform metacognitive diagnosis on a failed workflow step."""
-        async with AsyncSessionLocal() as db:
-            engine = WorkflowEngine(db)
-            try:
-                suggestion = await engine.suggest_fix(params.workflow_id, params.step_id)
-                return {
-                    "status": "COMPLETED",
-                    "workflow_id": params.workflow_id,
-                    "step_id": params.step_id,
-                    "analysis": suggestion
-                }
-            except Exception as e:
-                return {"status": "ERROR", "detail": str(e)}
+@mcp_registry.register(name="diagnose_failure")
+async def diagnose_failure(workflow_id: str, step_id: str):
+    """Perform metacognitive diagnosis on a failed workflow step."""
+    async with AsyncSessionLocal() as db:
+        engine = WorkflowEngine(db)
+        try:
+            suggestion = await engine.suggest_fix(workflow_id, step_id)
+            return {
+                "status": "COMPLETED",
+                "workflow_id": workflow_id,
+                "step_id": step_id,
+                "analysis": suggestion
+            }
+        except Exception as e:
+            return {"status": "ERROR", "detail": str(e)}

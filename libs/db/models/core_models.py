@@ -144,7 +144,15 @@ class Project(Base):
         "max_risk_score": 0.3,
         "isolation_zone": "global"    # global, restricted_to_region
     })
-    concurrency_limit   = Column(Integer, default=5, nullable=False) # Max concurrent subtasks fleet-wide
+    concurrency_limit   = Column(Integer, default=5, nullable=False)
+    # ── Faz 24: Predictive Fleet Economics ──
+    current_budget_usd  = Column(Float, default=0.0)
+    hourly_burn_rate    = Column(Float, default=0.0)
+    economic_profile    = Column(SmartJSON(), default={
+        "steering_policy": "cost_optimized", # cost_optimized, performance_optimized, balanced
+        "min_budget_threshold": 10.0,       # Alert threshold in USD
+        "auto_scale_concurrency": True      # Adaptive Quota Balancing trigger
+    })
     
     metadata_           = Column(SmartJSON(), default=dict)
     # ──────────────────────────────────────────────────────
@@ -706,3 +714,68 @@ class OperationalIncident(Base):
     created_at    = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
 
     project = relationship("Project")
+
+
+class SovereignEvidence(Base):
+    """
+    Faz 26: R-01 Live Field Evidence Depth.
+    Otonom kararların, müdahalelerin ve ekonomik sapmaların doğrulanabilir kanıtları.
+    """
+    __tablename__ = "sovereign_evidence"
+
+    id               = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    evidence_type    = Column(String(64), nullable=False, index=True) # self_healing, economic_drift, failover, rollback
+    severity         = Column(String(16), default="info")
+    
+    project_id       = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="SET NULL"), nullable=True)
+    incident_id      = Column(UUID(as_uuid=True), ForeignKey("operational_incidents.id", ondelete="SET NULL"), nullable=True)
+    improvement_id   = Column(UUID(as_uuid=True), ForeignKey("system_improvements.id", ondelete="SET NULL"), nullable=True)
+    
+    # Derinlemesine Kanıt Verisi: decision_logic, risk_delta, cost_delta, validation_tokens
+    payload          = Column(SmartJSON(), default=dict)
+    
+    provenance_hash  = Column(String(64), nullable=True) # Değişmezlik doğrulaması
+    created_at       = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+
+    project    = relationship("Project")
+    incident   = relationship("OperationalIncident")
+    improvement= relationship("SystemImprovement")
+
+
+class FederationTrust(Base):
+    """
+    Faz 26: R-09 Federation Trust Score Depth.
+    Küme (cluster) bazlı güven puanları ve otonom kararlılık metrikleri.
+    """
+    __tablename__ = "federation_trust"
+
+    cluster_id       = Column(String(64), primary_key=True) # e.g., sec-overwatch-v1
+    trust_score      = Column(Float, default=1.0)           # 0.0 - 1.0
+    
+    # Başarı/Başarısızlık Metrikleri
+    success_count    = Column(Integer, default=0)
+    failure_count    = Column(Integer, default=0)
+    arbitration_wins = Column(Integer, default=0)           # Çelişki çözümleme başarısı
+    
+    # Decay Modeli için
+    last_activity_at = Column(DateTime(timezone=True), default=utcnow)
+    
+    # Metadata: cluster_version, preferred_models, isolation_stats
+    cluster_metadata = Column(SmartJSON(), default=dict)
+    
+    updated_at       = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+class FederationTrustHistory(Base):
+    """
+    Güven puanı değişim geçmişi (Time-series).
+    """
+    __tablename__ = "federation_trust_history"
+
+    id               = Column(Integer, primary_key=True)
+    cluster_id       = Column(String(64), nullable=False, index=True)
+    trust_score      = Column(Float, nullable=False)
+    change_reason    = Column(String(256)) # success, failure, decay, arbitration_win
+    
+    payload          = Column(SmartJSON(), default=dict) # O anki metrikler
+    created_at       = Column(DateTime(timezone=True), default=utcnow, index=True)

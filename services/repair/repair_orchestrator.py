@@ -16,23 +16,23 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from repair.schemas.repair_job import RepairJob, RepairJobStatus
-from repair.schemas.incident import IncidentRecord
-from repair.schemas.diagnosis import DiagnosisTicket, RepairMode
-from repair.schemas.patch_plan import PatchPlan
-from repair.schemas.validation import ValidationStatus
-from repair.ingestion.incident_ingestor import IncidentIngestor, incident_ingestor
-from libs.db.repair_models import RepairJobRecord
-from repair.triage.triage_engine import TriageEngine, triage_engine
-from repair.memory.incident_memory import IncidentMemory, incident_memory
-from repair.memory.patch_memory import PatchMemory, PatchOutcome, patch_memory
-from repair.memory.architecture_memory import ArchitectureMemory, architecture_memory
+from services.repair.schemas.repair_job import RepairJob, RepairJobStatus
+from services.repair.schemas.incident import IncidentRecord
+from services.repair.schemas.diagnosis import DiagnosisTicket, RepairMode
+from services.repair.schemas.patch_plan import PatchPlan
+from services.repair.schemas.validation import ValidationStatus
+from services.repair.ingestion.incident_ingestor import IncidentIngestor, incident_ingestor
+from libs.db.models.repair_models import RepairJobRecord
+from services.repair.triage.triage_engine import TriageEngine, triage_engine
+from services.repair.memory.incident_memory import IncidentMemory, incident_memory
+from services.repair.memory.patch_memory import PatchMemory, PatchOutcome, patch_memory
+from services.repair.memory.architecture_memory import ArchitectureMemory, architecture_memory
 from services.governance.policy.policy_engine import PolicyEngine, policy_engine
 from services.observability.logging import get_logger
 
 # DB Persistence (Faz 13)
 from libs.db.session import AsyncSessionLocal
-from libs.db.repair_repository import RepairJobRepo, RepairIncidentRepo
+from libs.db.repositories.repair_repository import RepairJobRepo, RepairIncidentRepo
 
 
 # Faz 12.1 Stability Patch: Capability Tracking
@@ -141,6 +141,21 @@ class RepairOrchestrator:
         self._jobs_cache: dict[str, RepairJob] = {}
         self._hydrated = False
         
+        # Phase 28 Scientific Components
+        from services.repair.generation.candidate_generator import CandidateGenerator
+        from services.repair.generation.patch_tournament import PatchTournament
+        from services.repair.verification.regression_verifier import RegressionVerifier
+        from services.repair.verification.governance_verifier import GovernanceVerifier
+        from services.repair.verification.economic_verifier import EconomicVerifier
+        from services.repair.repair_memory import RepairMemory
+
+        self.candidate_gen = CandidateGenerator()
+        self.tournament = PatchTournament()
+        self.reg_verifier = RegressionVerifier()
+        self.gov_verifier = GovernanceVerifier()
+        self.econ_verifier = EconomicVerifier()
+        self.repair_memory = RepairMemory()
+        
         # Faz 12.1 Compliance: Formalize Pipeline Steps
         from dataclasses import dataclass, field
         from typing import Callable, Any
@@ -209,6 +224,52 @@ class RepairOrchestrator:
             _log.error(f"Error loading job {job_id} from DB: {e}")
             
         return None
+
+    # ══════════════════════════════════════════════════════
+    # Phase 28: Scientific Repair Lab (Shadow Mode)
+    # ══════════════════════════════════════════════════════
+
+    async def shadow_repair_cycle(self, incident_type: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Executes a scientific repair tournament without committing changes."""
+        _log.info(f"Starting SHADOW Repair Cycle [Phase 28] for {incident_type}")
+        
+        # 1. Multi-Candidate Generation
+        candidates = await self.candidate_gen.generate_variants(incident_type, payload)
+        
+        # 2. Patch Tournament (Ranking)
+        winner, win_score = await self.tournament.run_tournament(candidates)
+        
+        # 3. 5-Layer Verifier Mesh (First 3 layers)
+        context = {
+            "region": payload.get("region", "Global"),
+            "available_budget": 500.0  # Mock budget for shadow pass
+        }
+        
+        reg_pass = await self.reg_verifier.verify(winner.patch_payload, context)
+        gov_pass = await self.gov_verifier.verify(winner.patch_payload, context)
+        econ_pass = await self.econ_verifier.verify(winner.patch_payload, context)
+        
+        all_passed = reg_pass and gov_pass and econ_pass
+        
+        # 4. Persistence (Memory)
+        from services.repair.repair_memory import RepairOutcome
+        outcome = RepairOutcome(
+            incident_id=f"shadow_{uuid.uuid4().hex[:8]}",
+            applied_strategy=winner.strategy_name,
+            outcome="SUCCESS" if all_passed else "FAILED",
+            failure_reason=None if all_passed else "Verification Mesh Failure",
+            mttr_ms=1250.0, # Mock latency
+            cost_delta=winner.estimated_cost
+        )
+        await self.repair_memory.record_outcome(outcome)
+        
+        return {
+            "status": "REPAIR_SUCCESS" if all_passed else "FAILED_VERIFICATION",
+            "candidates_count": len(candidates),
+            "winning_score": win_score,
+            "winner_strategy": winner.strategy_name,
+            "summary": f"Tournament champion '{winner.strategy_name}' evaluated via 3-layer mesh."
+        }
 
     async def list_jobs(self, limit: int = 50) -> list[RepairJob]:
         """Tüm job'ları listele (Cache + DB Sync)."""

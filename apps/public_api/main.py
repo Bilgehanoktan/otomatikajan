@@ -143,13 +143,9 @@ if os.path.isdir(_active_dash):
 else:
     logger.warning("[DASHBOARD] No dashboard directory found. Root / will 404.")
 
-# ── Workflow Control Plane API ────────────────────────────────
-try:
-    from services.workflow_api.router import router as workflow_router
-    app.include_router(workflow_router)
-    logger.info("[WORKFLOW API] Control plane router registered at /api/v1/workflows")
-except Exception as _wf_err:
-    logger.warning(f"[WORKFLOW API] Router registration skipped: {_wf_err}")
+# ── Workflow Control Plane API (Centralized in router_registry) ───────────
+# Removed manual inclusion to prevent duplicate routes and conflicts.
+# The following is handled by register_routers(app) above.
 
 
 

@@ -4,8 +4,19 @@ import React from "react";
 import Sidebar from "./Sidebar";
 import { SystemHeader } from "./SystemHeader";
 
+import { useApiUrl, useCustom } from "@refinedev/core";
+
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
     const [mounted, setMounted] = React.useState(false);
+    const apiUrl = useApiUrl();
+    
+    // R-06 Crisis Detection
+    const { query: { data } } = useCustom({
+        url: `${apiUrl}/workflows/stats/summary`,
+        method: "get",
+    });
+
+    const isCrisis = ((data?.data as any)?.health || 100) < 70;
     
     React.useEffect(() => {
         setMounted(true);
@@ -31,14 +42,26 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
     }
 
     return (
-        <div className="h-full flex bg-[#0b0c10] text-[#c5c6c7] overflow-hidden">
+        <div className={`h-full flex bg-[#0b0c10] text-[#c5c6c7] overflow-hidden transition-all duration-700 ${isCrisis ? 'ring-inset ring-[12px] ring-red-900/40 shadow-[inset_0_0_100px_rgba(153,27,27,0.4)]' : ''}`}>
             <Sidebar />
             <div className="flex-1 flex flex-col h-full overflow-hidden relative">
                 <SystemHeader />
                 <main className="flex-1 overflow-y-auto overflow-x-hidden relative">
+                    {/* CRISIS OVERLAY HUD */}
+                    {isCrisis && (
+                        <div className="sticky top-0 z-[100] w-full bg-red-600/90 text-white py-1 px-4 flex items-center justify-between backdrop-blur-md animate-in slide-in-from-top duration-500 shadow-lg">
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] flex items-center gap-2">
+                                <span className="w-2 h-2 bg-white rounded-full animate-ping" />
+                                Operational Crisis: Focus Required
+                            </span>
+                            <span className="text-[10px] font-mono opacity-60">ERR_CRITICAL_HEALTH_BELOW_THRESHOLD</span>
+                        </div>
+                    )}
+
                     <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#66fcf1]/5 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/2" />
                     <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[#45a29e]/5 blur-[120px] rounded-full translate-y-1/2 -translate-x-1/2" />
-                    <div className="relative z-10">
+                    
+                    <div className={`relative z-10 transition-all duration-500 ${isCrisis ? 'filter grayscale-[0.2] brightness-90' : ''}`}>
                         {children}
                     </div>
                 </main>

@@ -1,0 +1,13 @@
+{
+  "id": "scenario_07_dns_mesh_failure",
+  "title": "Discovery Service DNS Resolution Failure",
+  "incident_type": "mesh_dns_fault",
+  "target_component": "ConsulAgent",
+  "initial_state_payload": {
+    "hostname": "order-service.mesh.local",
+    "resolver": "10.0.0.1",
+    "error": "NXDOMAIN",
+    "affected_services": 4
+  },
+  "expected_outcome": "REPAIR_SUCCESS"
+}

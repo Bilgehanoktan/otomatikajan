@@ -74,7 +74,7 @@ export default function ControlPlaneDashboard() {
                         <div>
                           <h3 className="text-white font-medium">{wf.workflow_type || "Unknown Type"}</h3>
                           <div className="flex items-center gap-3 mt-1 text-xs text-[#45a29e]">
-                            <span>ID: {wf.id.substring(0,8)}</span>
+                            <span>ID: {String(wf.id).substring(0,8) || 'N/A'}</span>
                             <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Updated: {new Date().toLocaleTimeString()}</span>
                           </div>
                         </div>

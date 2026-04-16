@@ -1,9 +1,9 @@
 {
   "regions": {
     "eu-central-1": {
-      "latency_from_us-east-1": 85.0,
+      "latency_from_us-east-1": 85,
       "last_latency_check": 1776286003.650719,
-      "updated_at": "2026-04-15T20:58:12.639598",
+      "updated_at": "2026-04-16T03:48:45.826320",
       "health_status": "NOMINAL",
       "health_score": 1.0,
       "latency_from_source": 85.0
@@ -16,14 +16,14 @@
       "health_status": "NOMINAL"
     },
     "us-east-1": {
-      "latency_from_us-east-1": 1500.0,
+      "latency_from_us-east-1": 0,
       "last_latency_check": 1776286004.2161596,
-      "updated_at": "2026-04-15T20:58:12.638579",
-      "health_status": "DEGRADED",
+      "updated_at": "2026-04-16T03:48:45.825612",
+      "health_status": "NOMINAL",
       "health_score": 0.1,
       "latency_from_source": 1500.0
     }
   },
-  "last_update": "2026-04-15T20:58:12.639608",
+  "last_update": "2026-04-16T03:48:45.826326",
   "version": "1.0"
 }

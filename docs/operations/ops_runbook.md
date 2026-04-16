@@ -6,18 +6,17 @@ This document defines the standard procedures for managing Sovereign AGI in prod
 
 | Action | When to use | Rule of Thumb |
 | :--- | :--- | :--- |
-| **Cancel** | Runaway cost, critical bug identified, user request change. | Kill immediately if cost > $10 in 1 min. |
-| **Retry** | Transient network errors, rate limits (429), DB lock timeout. | Max 3 retries per step. |
-| **Replay** | Logic fix applied, partial failure where context is still valid. | Use when state is clear but execution failed. |
-| **Approve** | L1/L2 approval requests, budget threshold exceeded. | Architect review for code, Operator review for cost. |
-| **Override** | Deadlock, incorrect model decision, state correction. | Document reason in Audit Trail manually. |
+| **Cancel** | Runaway cost (Alert: `ALERT_COST_SPIKE`), critical bug, user request. | Kill if cost > $10 in 1 min. |
+| **Retry** | Transient network errors, rate limits (429). | Max 3 retries per step. |
+| **Approve** | L1/L2 requests, budget exhausted (Alert: `BUDGET_EXHAUSTED`). | Architect review. |
+| **Override** | Deadlock, incorrect model decision. | Log: `MANUAL_OVERRIDE`. |
 
 ## 2. Emergency Shutdown
 
 If the system exhibits aggressive behavior or unexplained resource consumption:
-1. Set `SOVEREIGN_MODE=safe` in `.env`.
+1. Set `SOVEREIGN_MODE=safe` in `.env` (Logs: `EMERGENCY_FREEZE_ACTIVE`).
 2. Restart services: `docker-compose restart`.
-3. Self-heal will be disabled, system becomes read-only.
+3. Self-heal disabled, system becomes read-only.
 
 ## 3. Maintenance Windows
 Standard maintenance should be performed between 02:00 - 04:00 UTC.

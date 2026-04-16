@@ -14,9 +14,9 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 
-from repair.schemas.diagnosis import DiagnosisTicket, ProblemClass, RepairMode
-from repair.schemas.patch_plan import PatchPlan, RiskLevel
-from repair.schemas.validation import ValidationReport
+from services.repair.schemas.diagnosis import DiagnosisTicket, ProblemClass, RepairMode
+from services.repair.schemas.patch_plan import PatchPlan, RiskLevel
+from services.repair.schemas.validation import ValidationReport
 from services.observability.logging import get_logger
 
 _log = get_logger("services.governance.policy.policy_engine")

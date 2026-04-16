@@ -42,11 +42,16 @@ class QuotaArbitrator:
                      "Switching to Human-In-The-Loop mandatory mode."
                  )
 
-        # 3. Check Fleet Concurrency Quota
-        success = fleet_manager.increment_task(project_id)
+        # 3. Check Fleet Concurrency Quota (with Phase 24 Budget awareness)
+        success = fleet_manager.increment_task(project_id, region="local-node")
         
         if not success:
-            # If fail, and project is high priority, we could trigger a priority resolution event
+            # Check if reason was budget
+            snapshot = fleet_manager._active_workloads.get(project_id)
+            if snapshot and snapshot.health == "BUDGET_EXHAUSTED":
+                raise QuotaViolationException(f"Project {project_id} rejected due to BUDGET_EXHAUSTED.")
+            
+            # Default quota violation
             raise QuotaViolationException(
                 f"Project {project_id} concurrency limit ({limit}) reached. "
                 "Workload queued for priority resolution."

@@ -30,7 +30,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}>
-      <body className="h-full bg-[#0b0c10] text-[#c5c6c7] overflow-hidden">
+      <body className="h-full bg-[#0b0c10] text-[#c5c6c7] overflow-hidden" suppressHydrationWarning>
         <Providers>
           <Suspense fallback={<div className="h-full bg-[#0b0c10]" />}>
             <LayoutWrapper>

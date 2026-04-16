@@ -94,7 +94,7 @@ export default function IncidentsPage() {
                               <span>{new Date(inc.created_at).toLocaleTimeString()}</span>
                             </div>
                             {inc.project_id && (
-                              <div className="text-purple-400 uppercase tracking-tighter">PROJECT: {inc.project_id.substring(0,8)}</div>
+                              <div className="text-purple-400 uppercase tracking-tighter">PROJECT: {String(inc.project_id).substring(0,8)}</div>
                             )}
                           </div>
                         </div>

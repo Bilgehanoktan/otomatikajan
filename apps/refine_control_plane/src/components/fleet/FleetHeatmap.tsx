@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { Tooltip } from "antd"; // Assuming Ant Design Tooltip is available, fallback to title if not
 
 interface FleetProject {
   id: string;
@@ -47,7 +46,7 @@ export default function FleetHeatmap({ projects }: FleetHeatmapProps) {
              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-[#0b0c10] border border-[#66fcf1]/30 rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-2xl">
                 <div className="text-[10px] font-black text-[#66fcf1] mb-1">{p.name.toUpperCase()}</div>
                 <div className="flex justify-between text-[9px] text-[#c5c6c7] font-mono">
-                   <span>ID: {p.id.substring(0,8)}</span>
+                   <span>ID: {String(p.id).substring(0,8)}</span>
                    <span>Tier: {p.tier}</span>
                 </div>
                 <div className="mt-2 h-1 bg-[#1f2833] rounded-full overflow-hidden">

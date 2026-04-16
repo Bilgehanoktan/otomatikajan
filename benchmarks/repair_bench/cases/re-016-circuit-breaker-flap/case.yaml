@@ -1,0 +1,5 @@
+id: re-016-circuit-breaker-flap
+severity: high
+subsystem: mesh
+title: Unstable Circuit Breaker State
+type: incident_replay

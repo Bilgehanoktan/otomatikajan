@@ -1,0 +1,24 @@
+# Sovereign AGI — Phase 24
+# Global Economic Policy & Cost Mapping
+
+# Cost per subtask execution by region (USD)
+regional_base_costs:
+  us-east-1: 0.0050      # Standard baseline
+  us-west-2: 0.0055      # Slightly more expensive (power/cooling)
+  eu-central-1: 0.0065   # Regulatory/Green energy overhead
+  ap-southeast-1: 0.0080 # High infrastructure cost
+  local-node: 0.0010     # Bare-metal local mode (default)
+
+# Multipliers based on project nature
+tier_multipliers:
+  0: 1.5   # Mission Critical (High availability overhead)
+  1: 1.2   # Production
+  2: 1.0   # Standard
+  3: 0.8   # Sandbox (Spot instance / low priority optimization)
+
+# Global Governance Thresholds
+governance:
+  global_burn_limit_hourly: 500.0   # USD total across all projects
+  emergency_shutdown_threshold: 0.9 # Shut down Tier-3 if burn > 90%
+  forecast_window_hours: 4          # Look-ahead window for TrendAnalyzer
+  rebalance_interval_seconds: 300   # Frequency of Adaptive Quota Balanced updates

@@ -298,7 +298,7 @@ session_scope = get_db
 # ── Redis (Faz 12.1) ──────────────────────────────────
 _redis_instance = None
 
-def get_redis_client():
+async def get_redis_client():
     """Redis bağlantısını döner. (SRE Hardening: Host/Docker tespiti)"""
     global _redis_instance
     if _redis_instance is not None:
@@ -319,29 +319,28 @@ def get_redis_client():
 
         # SRE Robustness: DNS fail durumunda veya Docker algılandığında 'redis' ismine güven.
         # Konteyner içinde 127.0.0.1:6380 kullanımı felakete (connection refused) yol açar.
-        if os.getenv("DOCKER_CONTAINER", "false").lower() == "true":
-            url = url.replace("127.0.0.1:6380", "redis:6379").replace("localhost:6380", "redis:6379")
-            logger.debug(f"Redis: Container mode detected, enforcing internal network path.")
-        else:
-            # Docker dışında (host) çalışıyorsak socket check yapabiliriz
-            if "redis:6379" in url:
-                import socket
-                try:
-                    socket.gethostbyname("redis")
-                except socket.gaierror:
-                    url = url.replace("redis:6379", "127.0.0.1:6380")
-                    logger.debug(f"Redis: Host mode detected (DNS fail), using 127.0.0.1:6380")
-        
-        # SRE Robustness: URL icinde localhost gecerse ama 6379 ise ve baglanamazsa 6380 dene (opsiyonel ama guvenli)
-        
-        logger.info(f"Redis: Connecting to {url}")
-        _redis_instance = redis.from_url(
-            url, 
-            decode_responses=True,
-            socket_connect_timeout=2.0,
-            retry_on_timeout=True
-        )
-        return _redis_instance
+        # SRE Robustness: URL icinde localhost gecerse ama 6379 ise ve baglanamazsa 6380 dene
+        # Phase 27 R-03: Multi-port discovery
+        potential_ports = [6379, 6380, 56380]
+        for port in potential_ports:
+            try:
+                test_url = url.replace("6380", str(port)).replace("6379", str(port))
+                logger.debug(f"Redis: Trying connection to {test_url}...")
+                _redis_instance = redis.from_url(
+                    test_url, 
+                    decode_responses=True,
+                    socket_connect_timeout=0.5,
+                    retry_on_timeout=False
+                )
+                await _redis_instance.ping()
+                logger.info(f"Redis: Successfully connected to {test_url} (R-03 Active)")
+                return _redis_instance
+            except Exception:
+                continue
+
+        logger.warning(f"Redis: All potential ports failed. Staying in degraded mode.")
+        _redis_instance = None
+        return None
     except Exception as e:
         logger.warning(f"Redis baglantisi kurulamadi ({url}): {e}")
         return None

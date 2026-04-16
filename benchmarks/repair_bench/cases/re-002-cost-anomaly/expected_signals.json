@@ -1,0 +1,6 @@
+
+{
+  "log_pattern": "POLICY_UPDATE:BASELINE_ADJUSTED",
+  "expected_tags": ["scaling", "economic_safety"],
+  "min_occurrances": 1
+}

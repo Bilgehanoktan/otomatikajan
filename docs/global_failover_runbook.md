@@ -4,10 +4,11 @@
 This runbook describes the process for moving the **Global Sovereign Center of Gravity** between regions during a persistent Level 2 (Critical) or Level 3 (Isolated) failure.
 
 ## 2. Failover Trigger Conditions
-Failover is triggered automatically if:
+Failover is triggered and logged as `INCIDENT_REGIONAL_FAILOVER` if:
 - **Region Health** remains < 0.2 for more than 45 seconds.
-- **Latency Matrix** shows > 1000ms from all other mesh nodes to the current Primary.
-- **Heartbeat Silence**: No state updates (Pulse) for > 30 seconds.
+- **Latency Matrix** (Alert: `LATENCY_THRESHOLD_EXCEEDED`) shows > 1000ms from all other mesh nodes to the current Primary.
+- **Heartbeat Silence** (Alert: `PULSE_SILENCE`): No state updates (Pulse) for > 30 seconds.
+- **Quorum Loss** (Alert: `ERR_QUORUM_LOST`): Majority of nodes are unreachable.
 
 ## 3. Automated Failover Process
 ### Step 1: Drain Primary (us-east-1)
@@ -32,7 +33,7 @@ Only perform failback after the Primary region has been stable (nominal) for **>
 
 ## 5. Emergency "Kill Switch"
 If the whole mesh becomes unstable due to a cascading routing loop:
-1. Run `mesh_emergency_freeze --all`.
+1. Run `mesh_emergency_freeze --all` (Logs: `EMERGENCY_FREEZE_ACTIVE`).
 2. All regions enter **Safe-Mode (Local Proxy Only)**.
 3. Manual intervention is required to restart the global mesh.
 

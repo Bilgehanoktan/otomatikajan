@@ -5,9 +5,10 @@ import logging
 from uuid import UUID
 from pathlib import Path
 from sqlalchemy import select, and_
-from libs.db.models.core_models import SystemImprovement, OperationalIncident, Project
+from libs.db.models.core_models import SystemImprovement, OperationalIncident, Project, SovereignEvidence
 from services.orchestration.application.self_updater import SelfUpdater
 from services.orchestration.application.rollback_manager import RollbackManager
+from services.orchestration.calibration_engine import calibration_engine
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,28 @@ class RolloutManager:
 
     def set_updater(self, updater: SelfUpdater):
         self.updater = updater
+
+    async def log_evidence(self, evidence_type: str, severity: str, 
+                         project_id: Optional[UUID] = None, 
+                         incident_id: Optional[UUID] = None,
+                         improvement_id: Optional[UUID] = None,
+                         payload: Dict[str, Any] = None):
+        """Phase 26: R-01 Live Field Evidence Logger"""
+        try:
+            evidence = SovereignEvidence(
+                evidence_type=evidence_type,
+                severity=severity,
+                project_id=project_id,
+                incident_id=incident_id,
+                improvement_id=improvement_id,
+                payload=payload or {},
+                created_at=datetime.now(timezone.utc)
+            )
+            self.db.add(evidence)
+            await self.db.flush()
+            logger.debug(f"📊 Evidence Logged: {evidence_type} (ImpID: {improvement_id})")
+        except Exception as e:
+            logger.error(f"Failed to log evidence in RolloutManager: {e}")
 
     async def apply_canary(self, improvement_id: UUID) -> bool:
         """
@@ -116,16 +139,14 @@ class RolloutManager:
         result = await self.db.execute(stmt)
         blockers = result.scalars().all()
 
-        if blockers:
-            logger.warning(f"🚨 Blockers detected in canary window for {patch.target_file}. Triggering ROLLBACK.")
-            await self.rollback(improvement_id, reason=f"Detected {len(blockers)} incidents during observation window.")
-        else:
-            logger.info(f"🏆 No incidents detected in 15m window. Promoting {improvement_id} to production.")
-            patch.status = "applied"
-            # Finalize metadata
-            meta["status"] = "promoted"
-            meta["promoted_at"] = now.isoformat()
-            patch.test_results["rollout_meta"] = meta
+            # R-05 Calibration Loop: Record Canary Success (Promotion)
+            calibration_engine.record_correction(
+                incident_id="canary_promotion",
+                action="canary_success",
+                risk_score=patch.risk_score,
+                is_success=True
+            )
+            
             await self.db.commit()
 
     async def rollback(self, improvement_id: UUID, reason: str = "Manual/System rollback"):
@@ -150,11 +171,18 @@ class RolloutManager:
         else:
             logger.warning("No snapshot tag found for rollback. Attempting manual file revert? (Not implemented)")
 
-        # Update DB Status
-        patch.status = "rolled_back"
-        meta["status"] = "rolled_back"
-        meta["rollback_reason"] = reason
-        meta["rolled_back_at"] = datetime.now(timezone.utc).isoformat()
-        patch.test_results["rollout_meta"] = meta
+        # R-05 Calibration Loop: Record Canary Fail and Rollback
+        calibration_engine.record_correction(
+            incident_id=str(patch.id),
+            action="canary_fail",
+            risk_score=patch.risk_score,
+            is_success=False
+        )
+        calibration_engine.record_correction(
+            incident_id=str(patch.id),
+            action="rollback",
+            risk_score=patch.risk_score,
+            is_success=True
+        )
         
         await self.db.commit()
