@@ -6,6 +6,9 @@ from fastapi import FastAPI
 from services.workflow_api.router import router as workflow_router
 from services.auth.router import router as auth_router
 from services.workflow_api.metrics_router import router as metrics_router
+from services.observability.mesh_status_api import router as mesh_router
+from services.observability.fleet_status_api import router as fleet_router
+from services.governance.mesh_actions_api import router as mesh_actions_router
 
 def register_routers(app: FastAPI):
     """
@@ -20,4 +23,7 @@ def register_routers(app: FastAPI):
     # Phase 17 Metrics API
     app.include_router(metrics_router)
     
-    # Add other routers here as services are migrated
+    # Observability & Actions
+    app.include_router(mesh_router)
+    app.include_router(fleet_router, prefix="/api/v1")
+    app.include_router(mesh_actions_router)

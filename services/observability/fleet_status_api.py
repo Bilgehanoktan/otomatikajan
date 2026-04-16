@@ -6,6 +6,7 @@ Exposes global fleet metrics and project snapshots for the Fleet Hub dashboard.
 from fastapi import APIRouter
 from typing import Dict, Any, List
 from services.orchestration.fleet_manager import fleet_manager
+from services.orchestration.economic_engine import economic_engine
 
 router = APIRouter(prefix="/fleet", tags=["fleet-ops"])
 
@@ -39,32 +40,59 @@ async def get_fleet_status():
         "summary": stats,
         "arbitration": formatted_stats,
         "mesh_concurrency_total": sum(stats["tier_usage"].values()),
-        "mesh_concurrency_limit": 200
+        "mesh_concurrency_limit": 200,
+        "global_burn_rate": sum(s.burn_rate for s in fleet_manager._active_workloads.values()),
+        "forecast_window_hours": 4
     }
 
 @router.get("/projects")
 async def get_fleet_projects():
     """
-    Returns a flat list of all projects for the Heatmap.
+    Returns a unified list of real and mock projects for the Heatmap.
+    Include Phase 25 elasticity metrics (base_limit, adjustment_status).
     """
-    # Mocking 100+ projects for the Phase 23 visualization
-    mock_projects = []
-    import random
+    projects = []
     
-    # First, include real ones from fleet_manager if any
-    # (Actually we'll just mock 100 for the 'mass-scale' demo)
-    for i in range(100):
-        # Deterministic random for consistent-ish polling
+    # 1. Real Internal Workloads (Phase 24-25 Data)
+    for p in fleet_manager._active_workloads.values():
+        projects.append({
+            "id": p.project_id,
+            "name": f"Core-{p.project_id}",
+            "status": "healthy" if p.health == "NOMINAL" else "error",
+            "load_pct": (p.active_tasks / p.concurrency_limit * 100) if p.concurrency_limit > 0 else 0,
+            "tier": p.isolation_tier,
+            "burn_rate": p.burn_rate,
+            "forecast_load": p.forecast_load,
+            "base_limit": p.base_concurrency_limit,
+            "current_limit": p.concurrency_limit,
+            "adjustment_status": "Expanded" if p.concurrency_limit > p.base_concurrency_limit else "Nominal",
+            "current_budget": economic_engine._project_budgets.get(p.project_id, 0.0),
+            "anomaly_score": economic_engine.detect_spend_anomaly(p.project_id),
+            "health_reason": p.health
+        })
+
+    # 2. Fill the rest with Mock projects for Viz (Phase 23 demo)
+    import random
+    start_idx = len(projects)
+    for i in range(start_idx, 100):
         random.seed(i)
         status_choice = random.choices(["healthy", "warning", "error", "idle"], weights=[80, 10, 5, 5])[0]
         load = random.randint(10, 95) if status_choice != "idle" else 0
         
-        mock_projects.append({
+        projects.append({
             "id": f"proj-{i:03}",
             "name": f"Sovereign-{['A','B','X','Z'][i%4]}-{i}",
             "status": status_choice,
             "load_pct": load,
-            "tier": random.randint(0, 3)
+            "tier": random.randint(0, 3),
+            "burn_rate": round(load * 0.15, 2),
+            "forecast_load": round(load * (0.8 + random.random() * 0.4), 1),
+            "base_limit": 10,
+            "current_limit": 10,
+            "adjustment_status": "Nominal",
+            "current_budget": random.randint(10, 500),
+            "anomaly_score": 0.05 if status_choice == "healthy" else 0.4,
+            "health_reason": "NOMINAL" if status_choice == "healthy" else "MOCK_WARNING"
         })
         
-    return mock_projects
+    return projects

@@ -72,17 +72,82 @@
     }
 
     /* ── Layout ───────────────────────────────────────────── */
-    #app { position: relative; z-index: 1; display: flex; flex-direction: column; min-height: 100vh; }
+    #app { position: relative; z-index: 1; display: flex; height: 100vh; overflow: hidden; }
+
+    /* ── Sidebar ──────────────────────────────────────────── */
+    .sidebar {
+      width: 72px;
+      background: var(--bg-glass);
+      border-right: 1px solid var(--border);
+      backdrop-filter: blur(20px);
+      display: flex; flex-direction: column; align-items: center; gap: 20px;
+      padding: 24px 0;
+      z-index: 110;
+    }
+
+    .nav-item {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: var(--transition);
+      color: var(--text-muted);
+      font-size: 20px;
+      border: 1px solid transparent;
+    }
+
+    .nav-item:hover, .nav-item.active {
+      background: rgba(79,156,255,0.1);
+      border-color: var(--border-glow);
+      color: var(--neon-blue);
+      box-shadow: 0 0 15px rgba(79,156,255,0.2);
+    }
+
+    .nav-item.active { color: var(--neon-cyan); border-color: var(--neon-cyan); }
+
+    /* ── Content Area ─────────────────────────────────────── */
+    .content-area {
+      flex: 1; display: flex; flex-direction: column; overflow: hidden;
+      position: relative;
+    }
+
+    /* ── Sovereign Grid Background ────────────────────────── */
+    .grid-bg {
+      position: fixed; inset: 0; z-index: -1;
+      background: 
+        linear-gradient(rgba(79,156,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(79,156,255,0.02) 1px, transparent 1px);
+      background-size: 50px 50px;
+      background-position: center;
+      animation: grid-scroll 60s linear infinite;
+    }
+
+    @keyframes grid-scroll {
+      from { background-position: 0 0; }
+      to { background-position: 500px 500px; }
+    }
+
+    .grid-nebula {
+      position: fixed; inset: 0; z-index: -1;
+      background: radial-gradient(circle at 50% 50%, rgba(79,156,255,0.05), transparent 70%);
+      pointer-events: none;
+    }
+
+    /* ── Dashboard Views ──────────────────────────────────── */
+    .view-container {
+      display: none; flex: 1; flex-direction: column; overflow: hidden;
+    }
+    .view-container.active { display: flex; }
 
     /* ── Top Nav ──────────────────────────────────────────── */
     .topbar {
       display: flex; align-items: center; gap: 16px;
       padding: 0 24px;
-      height: 56px;
-      background: var(--bg-glass);
+      height: 64px;
+      background: rgba(6,10,18,0.4);
       border-bottom: 1px solid var(--border);
-      backdrop-filter: blur(20px);
-      position: sticky; top: 0; z-index: 100;
+      backdrop-filter: blur(10px);
+      flex-shrink: 0;
     }
 
     .topbar-logo {
@@ -160,6 +225,11 @@
       background: var(--bg-deep);
       padding: 14px 20px;
       display: flex; flex-direction: column; gap: 4px;
+      position: relative; overflow: hidden;
+    }
+    .stat-sparkline {
+      position: absolute; bottom: 0; left: 0; width: 100%; height: 24px;
+      pointer-events: none; opacity: 0.25;
     }
 
     .stat-label {
@@ -182,7 +252,7 @@
     .stat-sub { font-size: 11px; color: var(--text-muted); }
 
     /* ── Main Grid ────────────────────────────────────────── */
-    .main { display: grid; grid-template-columns: 440px 1fr; flex: 1; min-height: 0; }
+    .main-layout { display: grid; grid-template-columns: 400px 1fr; flex: 1; min-height: 0; }
 
     /* ── Left Panel ───────────────────────────────────────── */
     .panel-left {
@@ -611,111 +681,285 @@
       padding-top: 20px; border-top: 1px solid var(--border);
     }
 
+    /* ── Fleet Heatmap ───────────────────────────────────── */
+    .fleet-view { padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+    .fleet-grid {
+      display: grid;
+      grid-template-columns: repeat(20, 1fr);
+      gap: 6px;
+      background: rgba(255,255,255,0.02);
+      padding: 20px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+    }
+    .fleet-node {
+      aspect-ratio: 1;
+      border-radius: 4px;
+      background: var(--text-muted);
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.2s;
+    }
+    .fleet-node:hover { transform: scale(1.4); z-index: 10; box-shadow: 0 0 15px currentColor; }
+    .fleet-node.healthy { background: var(--neon-green); box-shadow: 0 0 4px var(--neon-green); }
+    .fleet-node.warning { background: var(--neon-amber); box-shadow: 0 0 4px var(--neon-amber); }
+    .fleet-node.error   { background: var(--neon-red);   box-shadow: 0 0 8px var(--neon-red); }
+    .fleet-node.idle    { background: rgba(255,255,255,0.1); }
+
+    .fleet-node-tooltip {
+      position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+      background: var(--bg-void); color: white; padding: 4px 8px; border-radius: 4px;
+      font-size: 10px; white-space: nowrap; pointer-events: none; opacity: 0;
+      transition: opacity 0.2s; border: 1px solid var(--border);
+      margin-bottom: 8px; z-index: 20;
+    }
+    .fleet-node:hover .fleet-node-tooltip { opacity: 1; }
+
+    /* ── Mesh Grid ────────────────────────────────────────── */
+    .mesh-view { padding: 24px; display: grid; grid-template-columns: 1fr 400px; gap: 24px; }
+    .region-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 20px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+
     [title] { cursor: help; }
-  </style>
+    /* ── Project Detail Panel ────────────────────────────────── */
+    .detail-panel-slide {
+      position: fixed; top: 0; right: -420px; width: 400px; height: 100%;
+      background: var(--bg-glass); border-left: 1px solid var(--border);
+      backdrop-filter: blur(40px); z-index: 2000;
+      padding: 40px 24px; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: -20px 0 50px rgba(0,0,0,0.5);
+      display: flex; flex-direction: column;
+    }
+    .detail-panel-slide.active { right: 0; }
+    .detail-header { border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 20px; }
+    .detail-metric { background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 12px; border-radius: 8px; margin-bottom: 12px; }
+    .detail-metric label { font-size: 10px; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px; }
+    .detail-metric .value { font-size: 16px; font-weight: 500; font-family: var(--font-mono); }
+    .close-detail { position: absolute; top: 16px; right: 16px; cursor: pointer; color: var(--text-muted); font-size: 20px; }
+    .close-detail:hover { color: var(--text-primary); }
+    /* ── Terminal ────────────────────────────────────────── */
+    .terminal-overlay {
+      position: fixed; bottom: -300px; left: 72px; right: 0; height: 300px;
+      background: rgba(6, 10, 18, 0.95); border-top: 1px solid var(--neon-blue);
+      backdrop-filter: blur(20px); z-index: 1000;
+      transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex; flex-direction: column;
+      box-shadow: 0 -10px 40px rgba(0,0,0,0.8);
+    }
+    .terminal-overlay.active { bottom: 0; }
+    .terminal-header { background: rgba(255,255,255,0.05); padding: 8px 16px; font-size: 11px; font-family: var(--font-mono); color: var(--neon-cyan); display: flex; justify-content: space-between; }
+    .terminal-body { flex: 1; padding: 16px; font-family: var(--font-mono); font-size: 12px; color: var(--neon-blue); overflow-y: auto; line-height: 1.4; }
+    .terminal-input-row { display: flex; align-items: center; padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.05); }
+    .terminal-prompt { color: var(--neon-cyan); margin-right: 12px; font-weight: 700; }
+    .terminal-input { background: transparent; border: none; color: white; flex: 1; font-family: var(--font-mono); font-size: 13px; outline: none; }
+</style>
 </head>
 <body>
-<div id="app">
+  <!-- Sidebar Nav -->
+  <aside class="sidebar">
+    <div class="topbar-logo-icon" style="margin-bottom: 12px;">⚡</div>
+    <div class="nav-item active" onclick="switchView('ops', this)" title="İş Akışları">📋</div>
+    <div class="nav-item" onclick="switchView('fleet', this)" title="Filo Hub">🌐</div>
+    <div class="nav-item" onclick="switchView('mesh', this)" title="Sistem Sağlığı">🛡️</div>
+    <div class="nav-item" onclick="switchView('gov', this)" title="Yönetişim & Drift">⚖️</div>
+    <div style="flex:1"></div>
+    <div class="nav-item">⚙️</div>
+  </aside>
 
-  <!-- Top Bar -->
-  <nav class="topbar">
-    <div class="topbar-logo">
-      <div class="topbar-logo-icon">⚡</div>
-      Sovereign AGI
-    </div>
-    <span class="topbar-phase">Faz 13.04 — Control Plane</span>
-    <div class="topbar-spacer"></div>
-    <div class="topbar-meta">
-      <div style="display:flex;align-items:center;gap:6px">
-        <div class="live-dot" id="liveStatus"></div>
-        <span id="liveLabel">Bağlanıyor…</span>
+  <div class="content-area">
+    <div class="grid-bg"></div>
+    <div class="grid-nebula"></div>
+
+    <!-- Top Bar -->
+    <nav class="topbar">
+      <div class="topbar-logo">
+        Sovereign AGI
       </div>
-      <span id="lastRefresh" style="font-family:var(--font-mono);font-size:11px"></span>
-    </div>
-    <button class="topbar-btn" id="refreshBtn" onclick="refreshAll()">↺ Yenile</button>
-    <a href="/" class="topbar-btn">← Dashboard</a>
-  </nav>
-
-  <!-- Stat Bar -->
-  <div class="statbar" id="statbar">
-    <div class="stat-cell">
-      <div class="stat-label">Toplam İş</div>
-      <div class="stat-value blue" id="s-total">—</div>
-    </div>
-    <div class="stat-cell">
-      <div class="stat-label">Aktif</div>
-      <div class="stat-value cyan" id="s-running">—</div>
-    </div>
-    <!-- Phase 17 Pilot -->
-    <div class="stat-cell" style="background: rgba(191,95,255,0.03); border-left: 2px solid var(--neon-violet)">
-      <div class="stat-label">Canary Başarı</div>
-      <div class="stat-value violet" id="p17-success">—</div>
-      <div class="stat-sub">Faz 17 Pilot</div>
-    </div>
-    <div class="stat-cell" style="background: rgba(191,95,255,0.03)">
-      <div class="stat-label">MTTR (Ort)</div>
-      <div class="stat-value amber" id="p17-mttr">—</div>
-      <div class="stat-sub">Self-Correction</div>
-    </div>
-    <div class="stat-cell" style="background: rgba(191,95,255,0.03)">
-      <div class="stat-label">Yama Maliyeti</div>
-      <div class="stat-value cyan" id="p17-cost">—</div>
-      <div class="stat-sub">LLM Efficiency</div>
-    </div>
-    <div class="stat-cell">
-      <div class="stat-label">Genel Başarı</div>
-      <div class="stat-value green" id="s-rate">—</div>
-    </div>
-  </div>
-
-  <!-- Main -->
-  <div class="main">
-
-    <!-- Left: Workflow List -->
-    <aside class="panel-left">
-      <div class="panel-header" style="justify-content: space-between; align-items: center">
-        <div style="display:flex; flex-direction:column">
-          <span class="panel-title">Workflow Listesi</span>
-          <span id="wf-count" style="font-size:11px;color:var(--text-muted)"></span>
+      <span class="topbar-phase" id="viewTitle">Operations</span>
+      <div class="topbar-spacer"></div>
+      <div class="topbar-meta">
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="live-dot" id="liveStatus"></div>
+          <span id="liveLabel">Bağlanıyor…</span>
         </div>
-        <button class="topbar-btn" style="padding: 4px 8px; font-size: 12px; border-color: var(--neon-cyan); color: var(--neon-cyan)" onclick="openNewProjectModal()">
-          + Yeni Görev
-        </button>
+        <span id="lastRefresh" style="font-family:var(--font-mono);font-size:11px"></span>
       </div>
-      <div class="search-wrap">
-        <span class="search-icon">🔍</span>
-        <input type="search" class="search-input" id="searchInput" placeholder="Başlıkta ara…" oninput="filterList()" />
+      <button class="topbar-btn" id="refreshBtn" onclick="refreshAll()">↺ Yenile</button>
+    </nav>
+
+    <!-- Stat Bar (Global) -->
+    <div class="statbar" id="statbar">
+      <div class="stat-cell">
+        <div class="stat-label">Toplam İş</div>
+        <div class="stat-value blue" id="s-total">—</div>
+        <svg class="stat-sparkline"><polyline points="0,30 20,20 40,25 60,10 80,15 100,5 120,20 140,10 160,25 180,15 200,30" fill="none" stroke="var(--neon-blue)" stroke-width="1"/></svg>
       </div>
-      <div class="filter-tabs" id="filterTabs">
-        <button class="filter-tab active" data-filter="all" onclick="setFilter('all',this)">Tümü</button>
-        <button class="filter-tab" data-filter="running" onclick="setFilter('running',this)">Çalışıyor</button>
-        <button class="filter-tab" data-filter="pending" onclick="setFilter('pending',this)">Bekliyor</button>
-        <button class="filter-tab" data-filter="error" onclick="setFilter('error',this)">Hatalı</button>
-        <button class="filter-tab" data-filter="completed" onclick="setFilter('completed',this)">Tamamlandı</button>
-        <button class="filter-tab" data-filter="pending_approval" onclick="setFilter('pending_approval',this)">Onay</button>
-        <button class="filter-tab" style="border-color: var(--neon-violet); color: var(--neon-violet)" data-filter="improvement" onclick="setFilter('improvement',this)">Self-Improvement</button>
+      <div class="stat-cell">
+        <div class="stat-label">Aktif Filo</div>
+        <div class="stat-value cyan" id="s-running">—</div>
+        <svg class="stat-sparkline"><polyline points="0,25 30,15 60,20 90,10 120,22 150,5 180,18 210,12" fill="none" stroke="var(--neon-cyan)" stroke-width="1"/></svg>
       </div>
-      <div class="workflow-list" id="workflowList">
-        <div class="loading-overlay" id="listLoading">
-          <div class="spinner"></div>
+      <div class="stat-cell" style="background: rgba(191,95,255,0.03); border-left: 2px solid var(--neon-violet)">
+        <div class="stat-label">Canary Başarı</div>
+        <div class="stat-value violet" id="p17-success">—</div>
+        <svg class="stat-sparkline"><polyline points="0,20 40,18 80,22 120,10 160,15 200,5" fill="none" stroke="var(--neon-violet)" stroke-width="1"/></svg>
+      </div>
+      <div class="stat-cell" style="background: rgba(191,95,255,0.03)">
+        <div class="stat-label">MTTR (Ort)</div>
+        <div class="stat-value amber" id="p17-mttr">—</div>
+        <svg class="stat-sparkline"><polyline points="0,5 50,25 100,10 150,20 200,8" fill="none" stroke="var(--neon-amber)" stroke-width="1"/></svg>
+      </div>
+      <div class="stat-cell" style="background: rgba(191,95,255,0.03)">
+        <div class="stat-label">Filo Maliyeti</div>
+        <div class="stat-value cyan" id="p17-cost">—</div>
+        <svg class="stat-sparkline"><polyline points="0,28 40,20 80,25 120,15 160,22 200,18" fill="none" stroke="var(--neon-cyan)" stroke-width="1"/></svg>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-label">Sistem Skoru</div>
+        <div class="stat-value green" id="s-rate">—</div>
+        <svg class="stat-sparkline"><polyline points="0,15 40,10 80,12 120,5 160,8 200,4" fill="none" stroke="var(--neon-green)" stroke-width="1"/></svg>
+      </div>
+    </div>
+
+    <!-- Views Container -->
+    <main style="flex:1; overflow:hidden; display:flex;">
+      
+      <!-- Operations View -->
+      <div class="view-container active" id="view-ops">
+        <div class="main-layout" style="width: 100%; height: 100%;">
+          <aside class="panel-left">
+            <div class="panel-header" style="justify-content: space-between; align-items: center">
+              <div style="display:flex; flex-direction:column">
+                <span class="panel-title">Workflow Listesi</span>
+                <span id="wf-count" style="font-size:11px;color:var(--text-muted)"></span>
+              </div>
+              <button class="topbar-btn" style="padding: 4px 8px; font-size: 12px; border-color: var(--neon-cyan); color: var(--neon-cyan)" onclick="openNewProjectModal()">
+                + Yeni Görev
+              </button>
+            </div>
+            <div class="search-wrap">
+              <span class="search-icon">🔍</span>
+              <input type="search" class="search-input" id="searchInput" placeholder="Başlıkta ara…" oninput="filterList()" />
+            </div>
+            <div class="filter-tabs" id="filterTabs">
+              <button class="filter-tab active" data-filter="all" onclick="setFilter('all',this)">Tümü</button>
+              <button class="filter-tab" data-filter="running" onclick="setFilter('running',this)">Çalışıyor</button>
+              <button class="filter-tab" data-filter="pending" onclick="setFilter('pending',this)">Bekliyor</button>
+              <button class="filter-tab" data-filter="error" onclick="setFilter('error',this)">Hatalı</button>
+              <button class="filter-tab" data-filter="completed" onclick="setFilter('completed',this)">Tamamlandı</button>
+              <button class="filter-tab" style="border-color: var(--neon-violet); color: var(--neon-violet)" data-filter="improvement" onclick="setFilter('improvement',this)">Self-Improvement</button>
+            </div>
+            <div class="workflow-list" id="workflowList">
+              <div class="loading-overlay" id="listLoading" style="display:none">
+                <div class="spinner"></div>
+              </div>
+            </div>
+          </aside>
+          <section class="panel-right" id="detailPanel">
+            <div class="detail-empty" id="detailEmpty">
+              <div class="detail-empty-icon">⚡</div>
+              <div style="font-size:14px;font-weight:500">Bir workflow seçin</div>
+              <div style="font-size:12px">Sol listeden bir iş akışı seçerek detayları görün</div>
+            </div>
+            <div id="detailContent" style="display:none;flex:1;display:flex;flex-direction:column;overflow:hidden"></div>
+          </section>
         </div>
       </div>
-    </aside>
 
-    <!-- Right: Detail -->
-    <section class="panel-right" id="detailPanel">
-      <div class="detail-empty" id="detailEmpty">
-        <div class="detail-empty-icon">⚡</div>
-        <div style="font-size:14px;font-weight:500">Bir workflow seçin</div>
-        <div style="font-size:12px">Sol listeden bir iş akışı seçerek detayları görün</div>
+      <!-- Fleet View -->
+      <div class="view-container" id="view-fleet">
+        <div class="fleet-view">
+          <div style="display:flex; justify-content:space-between; align-items:flex-end">
+            <div>
+              <h2 style="font-size:24px; font-weight:700">Filo Hub</h2>
+              <p style="color:var(--text-secondary)">Global otonom proje dağılımı ve sağlık heatmap'i</p>
+            </div>
+            <div class="filter-tabs">
+              <div class="status-badge" style="background:var(--neon-green); color:#000">Sağlıklı</div>
+              <div class="status-badge" style="background:var(--neon-amber); color:#000">Uyarı</div>
+              <div class="status-badge" style="background:var(--neon-red); color:#000">Hata</div>
+            </div>
+          </div>
+          <div class="fleet-grid" id="fleetGrid">
+            <!-- Populated by JS -->
+          </div>
+        </div>
       </div>
-      <div id="detailContent" style="display:none;flex:1;display:flex;flex-direction:column;overflow:hidden">
-        <!-- injected by JS -->
-      </div>
-    </section>
 
+      <!-- Mesh View -->
+      <div class="view-container" id="view-mesh">
+        <div class="mesh-view">
+          <div style="display:flex; flex-direction:column; gap:20px">
+            <h2 style="font-size:24px; font-weight:700">Mesh Topolojisi</h2>
+            <div id="regionList" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:16px">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+          <aside class="panel-left" style="background:var(--bg-glass); border-radius:var(--radius-md); padding:20px">
+            <h3 style="font-size:14px; text-transform:uppercase; margin-bottom:16px">System Logs</h3>
+            <div id="meshTimeline" style="font-family:var(--font-mono); font-size:11px; color:var(--text-secondary); line-height:1.6">
+              <!-- Populated by JS -->
+            </div>
+          </aside>
+        </div>
+      </div>
+
+      <!-- Governance View -->
+      <div class="view-container" id="view-gov">
+        <div style="padding:40px; display:flex; flex-direction:column; gap:32px; max-width:1200px">
+          <div>
+            <h2 style="font-size:24px; font-weight:700; margin-bottom:8px">Yönetişim & Politika Drifti</h2>
+            <p style="color:var(--text-secondary)">Sistemin otonom karar alma sınırlarını ve politika uyumluluğunu izleyin.</p>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px">
+            <!-- Drift Cards -->
+            <div class="region-card" style="border-color: var(--neon-violet)">
+              <h3 style="font-size:16px; margin-bottom:16px">Politika Uyumluluk Skoru</h3>
+              <div style="font-size:48px; font-weight:700; color:var(--neon-violet)">98.4%</div>
+              <div style="font-size:12px; color:var(--text-muted)">Son 24 saatte +0.2% iyileşme</div>
+            </div>
+            <div class="region-card" style="border-color: var(--neon-amber)">
+              <h3 style="font-size:16px; margin-bottom:16px">Otonom Karar Sınırı (Drift)</h3>
+              <div style="font-size:48px; font-weight:700; color:var(--neon-amber)">1.2%</div>
+              <div style="font-size:12px; color:var(--text-muted)">Baseline'dan sapma miktarı</div>
+            </div>
+          </div>
+
+          <div class="region-card">
+            <h3 style="font-size:18px; margin-bottom:24px">Otonom Güvenlik Kapıları</h3>
+            <div style="display:flex; flex-direction:column; gap:16px">
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:rgba(255,255,255,0.03); border-radius:8px">
+                <div>
+                  <div style="font-weight:500">Emergency Stop (Global)</div>
+                  <div style="font-size:11px; color:var(--text-secondary)">Tüm otonom patch yayınlarını anında durdurur.</div>
+                </div>
+                <input type="checkbox" style="width:40px; height:20px" onchange="alert('Emergency Stop trigered')">
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:rgba(255,255,255,0.03); border-radius:8px">
+                <div>
+                  <div style="font-weight:500">Quorum Requirement</div>
+                  <div style="font-size:11px; color:var(--text-secondary)">Kritik kararlar için minimum 3 bölge onayı.</div>
+                </div>
+                <input type="checkbox" checked style="width:40px; height:20px">
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:rgba(255,255,255,0.03); border-radius:8px">
+                <div>
+                  <div style="font-weight:500">Self-Improvement Loop</div>
+                  <div style="font-weight:500; font-size:11px; color:var(--neon-violet)">FAZ 17 AKTİF</div>
+                </div>
+                <input type="checkbox" checked style="width:40px; height:20px">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
   </div>
-</div>
 
 <!-- Create Project Modal -->
 <div class="modal-overlay" id="newProjectModal" onclick="if(event.target===this) closeNewProjectModal()">
@@ -773,6 +1017,53 @@
 </div>
 
 <!-- Toast -->
+<!-- Project Detail Panel -->
+<div class="detail-panel-slide" id="fleetDetailPanel">
+  <div class="close-detail" onclick="closeDetail()">&times;</div>
+  <div class="detail-header" style="border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 20px;">
+    <h2 id="d-name" style="margin-bottom:8px; font-size: 20px;">Project Name</h2>
+    <div id="d-status" class="status-badge running">HEALTHY</div>
+  </div>
+  <div class="detail-content" style="flex:1; overflow-y:auto">
+    <div class="detail-metric">
+      <label>Economic Burn Rate</label>
+      <div class="value" id="d-burn">$0.00 / hr</div>
+    </div>
+    <div class="detail-metric">
+      <label>Resource Tier</label>
+      <div class="value" id="d-tier">Production (T1)</div>
+    </div>
+    <div class="detail-metric">
+      <label>Current Compute Load</label>
+      <div class="value" id="d-load">0%</div>
+    </div>
+    <div class="detail-metric">
+      <label>Forecasted 4h Load</label>
+      <div class="value" id="d-forecast">0%</div>
+    </div>
+  </div>
+  <div style="margin-top:20px; display:flex; flex-direction:column; gap:10px">
+    <button class="action-btn" onclick="jumpToOps()" style="width:100%; border-color: var(--neon-cyan); color: var(--neon-cyan)">View Workflows</button>
+    <button class="action-btn" style="width:100%; background:var(--neon-red); color:white; border:none" onclick="alert('Quarantine initiated')">Quarantine Region</button>
+  </div>
+</div>
+
+<!-- Operator Terminal -->
+<div class="terminal-overlay" id="operatorTerminal">
+  <div class="terminal-header">
+    <span>OPERATOR CONSOLE — SESSION_ID: SOV-AGI-${Math.random().toString(36).substr(2, 9).toUpperCase()}</span>
+    <span style="cursor:pointer" onclick="toggleTerminal()">[ESC] CLOSE</span>
+  </div>
+  <div class="terminal-body" id="terminalOutput">
+    <div style="color:var(--text-secondary)">Sovereign AGI Control Plane v13.04.1 Initialized...</div>
+    <div style="color:var(--text-secondary)">Listening for secure mesh commands. Type 'help' for options.</div>
+  </div>
+  <div class="terminal-input-row">
+    <span class="terminal-prompt">></span>
+    <input type="text" class="terminal-input" id="terminalInput" autocomplete="off" spellcheck="false" placeholder="Enter command..." />
+  </div>
+</div>
+
 <div id="toast-container"></div>
 
 <script>
@@ -839,8 +1130,107 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function refreshAll() {
-  await Promise.all([loadStats(), loadPhase17Metrics(), loadList()]);
+  await Promise.all([loadStats(), loadPhase17Metrics(), loadList(), loadFleet(), loadMesh()]);
   updateLive();
+}
+
+function switchView(view, btn) {
+  document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
+  document.getElementById(`view-${view}`).classList.add('active');
+  
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  
+  const titles = { ops: 'Operations', fleet: 'Fleet Hub', mesh: 'Mesh Topoloji', gov: 'Governance' };
+  document.getElementById('viewTitle').textContent = titles[view] || 'Sovereign AGI';
+}
+
+let projectCache = [];
+let selectedProjectId = null;
+
+async function loadFleet() {
+  try {
+    const projects = await apiFetch('/api/v1/fleet/projects');
+    projectCache = projects;
+    const container = document.getElementById('fleetGrid');
+    if (!container) return;
+    container.innerHTML = projects.map(p => `
+      <div class="fleet-node ${p.status}" onclick="selectProject('${p.id}')">
+        <div class="fleet-node-tooltip">${p.name} (${p.load_pct}%)</div>
+      </div>
+    `).join('');
+  } catch(e) { console.warn('Fleet fetch error:', e); }
+}
+
+function selectProject(id) {
+  const p = projectCache.find(x => x.id === id);
+  if (!p) return;
+  selectedProjectId = id;
+  
+  document.getElementById('d-name').textContent = p.name;
+  document.getElementById('d-status').textContent = p.status.toUpperCase();
+  document.getElementById('d-status').className = 'status-badge ' + p.status;
+  document.getElementById('d-burn').textContent = `$${p.burn_rate} / hr`;
+  document.getElementById('d-tier').textContent = ['Sovereign','Critical','Standard','Sandbox'][p.tier] || 'Production';
+  document.getElementById('d-load').textContent = p.load_pct + '%';
+  document.getElementById('d-forecast').textContent = p.forecast_load + '%';
+  
+  document.getElementById('fleetDetailPanel').classList.add('active');
+}
+
+function closeDetail() {
+  const panel = document.getElementById('fleetDetailPanel');
+  if (panel) panel.classList.remove('active');
+}
+
+function jumpToOps() {
+  if (!selectedProjectId) return;
+  closeDetail();
+  switchView('ops', document.querySelector('.nav-item[title="İş Akışları"]'));
+  document.getElementById('searchInput').value = selectedProjectId;
+  filterList();
+}
+
+async function loadMesh() {
+  try {
+    const status = await apiFetch('/api/v1/mesh/status');
+    const container = document.getElementById('regionList');
+    const timeline = document.getElementById('meshTimeline');
+    
+    // Render Regions
+    container.innerHTML = Object.entries(status.regions).map(([name, r]) => `
+      <div class="region-card">
+        <div style="display:flex; justify-content:space-between">
+          <strong style="font-size:14px">${name.toUpperCase()}</strong>
+          <span class="status-badge ${r.status === 'HEALTHY' ? 'completed' : 'error'}">${r.status}</span>
+        </div>
+        <div style="font-size:11px; color:var(--text-secondary)">
+          Load: ${r.load_pct}% | Nodes: ${r.node_count} | Latency: ${r.latency_ms}ms
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width:${r.load_pct}%; background:var(--neon-blue)"></div>
+        </div>
+      </div>
+    `).join('');
+
+    // Timeline Snapshot
+    const events = await apiFetch('/api/v1/mesh/timeline');
+    timeline.innerHTML = events.slice(0,10).map(e => `
+      <div style="margin-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:4px">
+        <span style="color:var(--neon-cyan)">[${e.timestamp.split('T')[1].split('.')[0]}]</span> 
+        <span style="color:var(--text-primary)">${e.type}</span>: ${e.severity} 
+        <br/> ${e.description}
+      </div>
+    `).join('');
+
+  } catch(e) { console.warn('Mesh fetch error:', e); }
+}
+
+function selectWorkflowFromFleet(projId) {
+  // Logic to jump to ops view and filter for this project
+  switchView('ops', document.querySelector('.nav-item[title="İş Akışları"]'));
+  document.getElementById('searchInput').value = projId;
+  filterList();
 }
 
 async function loadPhase17Metrics() {
@@ -1259,6 +1649,79 @@ function showToast(msg, type = 'info', ms = 4000) {
   el.textContent = msg;
   container.appendChild(el);
   setTimeout(() => el.remove(), ms);
+}
+// ── Terminal Logic ──────────────────────────────────────────
+const termInput = document.getElementById('terminalInput');
+const termOutput = document.getElementById('terminalOutput');
+
+function toggleTerminal() {
+  document.getElementById('operatorTerminal').classList.toggle('active');
+  if (document.getElementById('operatorTerminal').classList.contains('active')) {
+    termInput.focus();
+  }
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === '`') {
+    e.preventDefault();
+    toggleTerminal();
+  }
+});
+
+termInput.addEventListener('keydown', async (e) => {
+  if (e.key === 'Enter') {
+    const cmd = termInput.value.trim();
+    if (!cmd) return;
+    
+    appendOutput(`> ${cmd}`, 'var(--text-primary)');
+    termInput.value = '';
+    
+    await processCommand(cmd);
+    termOutput.scrollTop = termOutput.scrollHeight;
+  }
+});
+
+function appendOutput(text, color) {
+  const line = document.createElement('div');
+  line.style.color = color || 'var(--neon-blue)';
+  line.innerHTML = `[${new Date().toLocaleTimeString()}] ${text}`;
+  termOutput.appendChild(line);
+}
+
+async function processCommand(fullCmd) {
+  const parts = fullCmd.split(' ');
+  const cmd = parts[0].toLowerCase();
+  const args = parts.slice(1);
+
+  switch(cmd) {
+    case 'help':
+      appendOutput('Available commands: help, clear, freeze, recalibrate, stats, switch [view]');
+      break;
+    case 'clear':
+      termOutput.innerHTML = '';
+      break;
+    case 'freeze':
+      try {
+        const res = await apiFetch('/api/v1/mesh/actions/freeze', 'POST', { operator_id: 'OP-01', reason: args.join(' ') || 'Manual Override' });
+        appendOutput(`SYSTEM STATUS: ${res.status} - ${res.message}`, 'var(--neon-red)');
+      } catch(e) { appendOutput(`ERROR: ${e.message}`, 'var(--neon-red)'); }
+      break;
+    case 'recalibrate':
+      appendOutput('Broadcasting mesh recalibration pulse...', 'var(--neon-cyan)');
+      try {
+        await apiFetch('/api/v1/mesh/actions/recalibrate', 'POST', { operator_id: 'OP-01', reason: 'Operator Request' });
+        appendOutput('SUCCESS: Regional sync complete.', 'var(--neon-green)');
+      } catch(e) { appendOutput(`ERROR: ${e.message}`, 'var(--neon-red)'); }
+      break;
+    case 'switch':
+      if (args[0]) {
+        switchView(args[0], document.querySelector(`.nav-item[title*="${args[0]}"]`));
+        appendOutput(`Switching to view: ${args[0]}`);
+      }
+      break;
+    default:
+      appendOutput(`Unknown command: ${cmd}. Type 'help' for support.`, 'var(--neon-amber)');
+  }
 }
 </script>
 </body>
