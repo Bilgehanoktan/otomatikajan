@@ -26,9 +26,9 @@ def upgrade():
         op.add_column("projects", sa.Column("quality_profile", sa.String(length=32), nullable=False, server_default="standard"))
         op.create_index("ix_projects_quality_profile", "projects", ["quality_profile"], unique=False)
     if "acceptance_criteria" not in p_cols:
-        op.add_column("projects", sa.Column("acceptance_criteria", sa.JSON(astext_type=sa.Text()), nullable=True, server_default=sa.text("'[]'")))
+        op.add_column("projects", sa.Column("acceptance_criteria", sa.JSON(), nullable=True, server_default=sa.text("'[]'")))
     if "execution_context" not in p_cols:
-        op.add_column("projects", sa.Column("execution_context", sa.JSON(astext_type=sa.Text()), nullable=True, server_default=sa.text("'{}'")))
+        op.add_column("projects", sa.Column("execution_context", sa.JSON(), nullable=True, server_default=sa.text("'{}'")))
     if "review_required" not in p_cols:
         op.add_column("projects", sa.Column("review_required", sa.Boolean(), nullable=False, server_default=sa.text("false")))
 
@@ -37,11 +37,11 @@ def upgrade():
     if "quality_score" not in s_cols:
         op.add_column("subtasks", sa.Column("quality_score", sa.Float(), nullable=True))
     if "quality_detail" not in s_cols:
-        op.add_column("subtasks", sa.Column("quality_detail", sa.JSON(astext_type=sa.Text()), nullable=True, server_default=sa.text("'{}'")))
+        op.add_column("subtasks", sa.Column("quality_detail", sa.JSON(), nullable=True, server_default=sa.text("'{}'")))
     if "reviewed" not in s_cols:
         op.add_column("subtasks", sa.Column("reviewed", sa.Boolean(), nullable=False, server_default=sa.text("false")))
     if "review_notes" not in s_cols:
-        op.add_column("subtasks", sa.Column("review_notes", sa.JSON(astext_type=sa.Text()), nullable=True, server_default=sa.text("'[]'")))
+        op.add_column("subtasks", sa.Column("review_notes", sa.JSON(), nullable=True, server_default=sa.text("'[]'")))
 
     op.alter_column("projects", "workflow_template", server_default=None)
     op.alter_column("projects", "quality_profile", server_default=None)

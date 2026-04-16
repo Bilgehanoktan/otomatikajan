@@ -80,3 +80,19 @@ spec:
   system: sovereign-agents
   dependsOn:
     - component:sovereign-agi
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: mcp-api
+  description: Model Context Protocol (MCP) Standardized Tool Interface
+spec:
+  type: openapi
+  lifecycle: production
+  owner: execution-team
+  system: sovereign-agents
+  definition: |
+    openapi: 3.0.0
+    info:
+      title: Sovereign AGI MCP Tool Interface [Standard]
+      version: 13.0.4

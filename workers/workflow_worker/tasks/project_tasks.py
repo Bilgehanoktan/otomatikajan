@@ -277,14 +277,50 @@ async def _get_subscriptions(event: str) -> list[dict]:
 # ── Periyodik Görevler (Korundu) ──────────────────────────
 @celery_app.task(name="workers.workflow_worker.tasks.project_tasks.heal_check_task")
 def heal_check_task():
-    """Her 1 dakikada bir sağlık kontrolü."""
-    try:
+    """Her 1 dakikada bir sağlık kontrolü ve otomatik olay kaydı."""
+    async def _check():
         from services.repair.application.heal_engine import heal_engine
+        from libs.db.session import AsyncSessionLocal
+        from libs.db.repositories.repository import OperationalIncidentRepository
+        
         score = heal_engine.system_health_score()
         logger.info(f"🩺 Sistem sağlık skoru: {score}")
-        return {"health": score}
-    except Exception as e:
-        logger.error(f"Heal check hatası: {e}")
+        
+        # Faz 15: Kritik eşik kontrolü
+        if score < 0.7:
+            logger.warning(f"🚨 Kritik Sağlık Uyarısı ({score})! Olay kaydı açılıyor...")
+            async with AsyncSessionLocal() as db:
+                incident = await OperationalIncidentRepository.create(
+                    db,
+                    incident_type="system_health_low",
+                    message=f"Sistem sağlık skoru kritik seviyeye düştü: {score:.2f}",
+                    severity="high",
+                    payload={"health_score": score, "check_time": datetime.now(timezone.utc).isoformat()}
+                )
+                await db.commit()
+                
+                # Telegram bildirimi tetikle
+                send_telegram_notification_task.apply_async(
+                    kwargs={
+                        "event_type": "incident.created",
+                        "payload": {
+                            "incident_id": str(incident.id),
+                            "type": incident.incident_type,
+                            "message": incident.message,
+                            "severity": incident.severity
+                        }
+                    },
+                    queue="background"
+                )
+
+                # FAZ 16: Otonom Düzeltme Tetikle (Incident-to-Patch Loop)
+                auto_fix_incident_task.apply_async(
+                    args=[str(incident.id)],
+                    queue="critical"
+                )
+        return score
+
+    return run_async(_check())
 
 
 @celery_app.task(name="workers.workflow_worker.tasks.project_tasks.cleanup_memories")
@@ -442,4 +478,104 @@ def send_telegram_notification_task(event_type: str, payload: dict):
     async def _execute():
         from apps.telegram_bot.bot import telegram_notifier
         await telegram_notifier.notify_event(event_type, payload)
+    return run_async(_execute())
+
+
+@celery_app.task(
+    name="workers.workflow_worker.tasks.project_tasks.auto_fix_incident_task",
+    queue="critical",
+    max_retries=2
+)
+def auto_fix_incident_task(incident_id: str):
+    """
+    Olayı otomatik teşhis eder ve uygunsa (Pilot + Low Risk) yamayı uygular.
+    """
+    async def _execute():
+        from services.improve.self_correction_service import SelfCorrectionService
+        from services.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
+        
+        service = SelfCorrectionService(
+            model_orch=orchestrator.model_orch,
+            project_root=os.getcwd()
+        )
+        result = await service.process_incident(incident_id)
+        logger.info(f"🛠 Auto-Fix Result for {incident_id}: {result}")
+        
+        # Eğer yama başarıyla uygulandıysa, 15 dakika sonra sağlık kontrolü planla
+        if "Başarılı" in result:
+             # Burada 'apply_async' ile 900 saniye (15dk) erteleme yapıyoruz
+             verify_canary_health_task.apply_async(
+                 args=[incident_id],
+                 countdown=900,
+                 queue="background"
+             )
+             logger.info(f"⏱ Canary Health Check scheduled for incident {incident_id} in 15 minutes.")
+             
+        return result
+
+    return run_async(_execute())
+
+
+@celery_app.task(
+    name="workers.workflow_worker.tasks.project_tasks.verify_canary_health_task",
+    queue="background"
+)
+def verify_canary_health_task(incident_id: str):
+    """
+    Yamadan 15 dakika sonra sistem sağlığını kontrol eder. 
+    Eğer sağlık hala düşükse veya yeni olaylar varsa geri alma (rollback) tetikler.
+    """
+    async def _execute():
+        import uuid as _uuid
+        from libs.db.session import AsyncSessionLocal
+        from libs.db.models import OperationalIncident, SystemImprovement
+        from libs.vcs.git_ops import GitOps
+        from sqlalchemy import select
+        
+        async with AsyncSessionLocal() as db:
+            incident = await db.get(OperationalIncident, _uuid.UUID(incident_id))
+            if not incident:
+                return "Incident not found for canary check."
+            
+            # Son 15 dakikadaki yeni olayları kontrol et (Aynı proje için)
+            # Not: Basitleştirilmiş mantık, gerçekte daha kapsamlı 'health score' bakılabilir.
+            stmt = select(OperationalIncident).where(
+                OperationalIncident.project_id == incident.project_id,
+                OperationalIncident.status == "open",
+                OperationalIncident.created_at > incident.created_at
+            )
+            new_incidents = await db.execute(stmt)
+            has_regression = len(new_incidents.scalars().all()) > 0
+            
+            if has_regression:
+                logger.error(f"⚠️ CANARY FAILED for incident {incident_id}. Regression detected! Rolling back...")
+                
+                # 1. En son uygulanan 'applied' iyileştirmeyi bul
+                stmt_imp = select(SystemImprovement).where(
+                    SystemImprovement.target_file != None, # Basit filtre
+                    SystemImprovement.status == "applied"
+                ).order_by(SystemImprovement.applied_at.desc())
+                
+                imp_res = await db.execute(stmt_imp)
+                last_improvement = imp_res.scalars().first()
+                
+                # 2. Git ile Rollback yap (GitOps reset_to_sha)
+                # Not: GitOps branch/sha takibi gerektirir. Şimdilik 'HEAD~1' veya tag bazlı gidebiliriz.
+                git = GitOps(os.getcwd())
+                # En güvenli rollback: Son commit'e geri dön (Patch commit olduğu varsayımıyla)
+                rollback_res = git.reset_to_sha("HEAD~1")
+                
+                if "Success" in rollback_res:
+                    if last_improvement:
+                        last_improvement.status = "rolled_back"
+                    incident.status = "rollback_triggered"
+                    await db.commit()
+                    logger.warning(f"🔄 Rollback completed for incident {incident_id}.")
+                    return "Rollback successful."
+                else:
+                    return f"Rollback failed: {rollback_res}"
+            else:
+                logger.info(f"✅ CANARY PASSED for incident {incident_id}. System stable.")
+                return "Canary passed."
+
     return run_async(_execute())

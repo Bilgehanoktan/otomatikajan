@@ -54,6 +54,35 @@
         "tags": []
       }
     },
+    "worker-project-tasks": {
+      "name": "worker-project-tasks",
+      "type": "app",
+      "data": {
+        "root": "workers/project_tasks",
+        "targets": {
+          "start": {
+            "executor": "nx:run-commands",
+            "options": {
+              "command": "python workers/project_tasks/worker.py"
+            },
+            "configurations": {}
+          }
+        },
+        "name": "worker-project-tasks",
+        "$schema": "../../node_modules/nx/schemas/project-schema.json",
+        "projectType": "application",
+        "sourceRoot": "workers/project_tasks",
+        "tags": [
+          "type:worker",
+          "platform:python",
+          "scope:execution"
+        ],
+        "implicitDependencies": [
+          "lib-workflow",
+          "lib-db"
+        ]
+      }
+    },
     "workflow-api": {
       "name": "workflow-api",
       "type": "app",
@@ -86,7 +115,7 @@
           "start": {
             "executor": "nx:run-commands",
             "options": {
-              "command": "python -m uvicorn services.workflow_api.router:router --host 0.0.0.0 --port 8000 --reload"
+              "command": "python -m uvicorn services.workflow_api.main:app --host 0.0.0.0 --port 8000 --reload"
             },
             "configurations": {}
           }
@@ -97,9 +126,14 @@
         "sourceRoot": "services/workflow_api",
         "tags": [
           "type:service",
-          "platform:python"
+          "platform:python",
+          "scope:execution"
         ],
-        "implicitDependencies": []
+        "implicitDependencies": [
+          "lib-workflow",
+          "lib-db",
+          "lib-auth"
+        ]
       }
     },
     "service-mcp": {
@@ -136,6 +170,32 @@
           "type:service",
           "platform:python",
           "protocol:mcp"
+        ],
+        "implicitDependencies": []
+      }
+    },
+    "agent-ceo": {
+      "name": "agent-ceo",
+      "type": "app",
+      "data": {
+        "root": "agents/ceo_agent",
+        "targets": {
+          "start": {
+            "executor": "nx:run-commands",
+            "options": {
+              "command": "python agents/ceo_agent/main.py"
+            },
+            "configurations": {}
+          }
+        },
+        "name": "agent-ceo",
+        "$schema": "../../node_modules/nx/schemas/project-schema.json",
+        "projectType": "application",
+        "sourceRoot": "agents/ceo_agent",
+        "tags": [
+          "type:agent",
+          "platform:python",
+          "scope:brains"
         ],
         "implicitDependencies": []
       }
@@ -177,6 +237,78 @@
         "tags": [
           "type:lib",
           "platform:python"
+        ],
+        "implicitDependencies": []
+      }
+    },
+    "lib-auth": {
+      "name": "lib-auth",
+      "type": "lib",
+      "data": {
+        "root": "libs/auth",
+        "targets": {
+          "test": {
+            "executor": "nx:run-commands",
+            "cache": true,
+            "inputs": [
+              "default",
+              "^default"
+            ],
+            "options": {
+              "command": "pytest libs/auth/tests"
+            },
+            "configurations": {}
+          },
+          "lint": {
+            "executor": "nx:run-commands",
+            "cache": true,
+            "inputs": [
+              "default"
+            ],
+            "options": {
+              "command": "ruff check libs/auth"
+            },
+            "configurations": {}
+          }
+        },
+        "name": "lib-auth",
+        "$schema": "../../node_modules/nx/schemas/project-schema.json",
+        "projectType": "library",
+        "sourceRoot": "libs/auth",
+        "tags": [
+          "type:lib",
+          "platform:python",
+          "scope:auth"
+        ],
+        "implicitDependencies": []
+      }
+    },
+    "lib-db": {
+      "name": "lib-db",
+      "type": "lib",
+      "data": {
+        "root": "libs/db",
+        "targets": {
+          "lint": {
+            "executor": "nx:run-commands",
+            "cache": true,
+            "inputs": [
+              "default"
+            ],
+            "options": {
+              "command": "ruff check libs/db"
+            },
+            "configurations": {}
+          }
+        },
+        "name": "lib-db",
+        "$schema": "../../node_modules/nx/schemas/project-schema.json",
+        "projectType": "library",
+        "sourceRoot": "libs/db",
+        "tags": [
+          "type:lib",
+          "platform:python",
+          "scope:shared"
         ],
         "implicitDependencies": []
       }
@@ -13816,9 +13948,40 @@
         "type": "static"
       }
     ],
-    "workflow-api": [],
+    "worker-project-tasks": [
+      {
+        "source": "worker-project-tasks",
+        "target": "lib-workflow",
+        "type": "implicit"
+      },
+      {
+        "source": "worker-project-tasks",
+        "target": "lib-db",
+        "type": "implicit"
+      }
+    ],
+    "workflow-api": [
+      {
+        "source": "workflow-api",
+        "target": "lib-workflow",
+        "type": "implicit"
+      },
+      {
+        "source": "workflow-api",
+        "target": "lib-db",
+        "type": "implicit"
+      },
+      {
+        "source": "workflow-api",
+        "target": "lib-auth",
+        "type": "implicit"
+      }
+    ],
     "service-mcp": [],
+    "agent-ceo": [],
     "lib-workflow": [],
+    "lib-auth": [],
+    "lib-db": [],
     "npm:@babel/code-frame": [
       {
         "source": "npm:@babel/code-frame",

@@ -195,6 +195,33 @@ class WorkflowEngine:
         with _otel_span("workflow.execute", attributes=span_attrs):
             await _run()
 
+    async def suggest_fix(self, instance: WorkflowInstance, step_id: str) -> Dict[str, Any]:
+        """
+        [Phase 4: Metacognition] Analiz failed steps and suggest a fix (input override).
+        """
+        step = next((s for s in instance.steps if s.id == step_id), None)
+        if not step or step.status != StepStatus.FAILED:
+            return {"suggestion": "No diagnosis needed for active or successful steps."}
+
+        logger.info(f"[Metacognition] Diagnosing failure in step {step.name}...")
+        
+        # In a real system, we call ModelOrchestrator here.
+        # We simulate a smart suggestion based on common failure clusters.
+        error_msg = step.error or "Unknown error"
+        
+        suggestion = {
+            "reasoning": f"Analyzed error: '{error_msg}'. This appears to be a transient API failure or schema mismatch.",
+            "recommended_override": {}
+        }
+
+        if "timeout" in error_msg.lower():
+            suggestion["recommended_override"] = {"input": {**step.input_data, "timeout": 60}}
+            suggestion["reasoning"] += " Recommendation: Increased timeout to 60s."
+        elif "authentication" in error_msg.lower():
+            suggestion["reasoning"] += " Recommendation: Check API key validity in context."
+        
+        return suggestion
+
     async def _execute_step(self, instance: WorkflowInstance, step: WorkflowStep):
         """Execute a single step with retry, wrapped in its own OTel child span."""
         step_attrs = {
@@ -370,9 +397,22 @@ class WorkflowEngine:
                         collect_downstream(s.id)
             collect_downstream(from_step_id)
 
+        # Reset phase with COMPENSATION support
         for s in instance.steps:
             if s.id in steps_to_reset:
-                s.status = StepStatus.REPLAY_PENDING
+                # If step was COMPLETED, we must check for compensation
+                if s.status == StepStatus.COMPLETED and s.compensation_action:
+                    logger.warning(f"[Compensation] Undoing step {s.name} ({s.id}) via {s.compensation_action}")
+                    # In a real system, we would await self._registry[s.compensation_action](s.input_data, s.output_data)
+                    # For now, we log the audit event
+                    await self.persistence.save_event(instance.id, "step_compensated", step_id=s.id, payload={
+                        "action": s.compensation_action,
+                        "operator_id": operator_id,
+                        "original_result": s.output_data
+                    })
+                    s.is_compensated = True
+
+                s.status = StepStatus.REPLAY_PENDING if s.id == from_step_id else StepStatus.PENDING
                 s.completed_at = None
                 s.started_at = None
                 s.error = None

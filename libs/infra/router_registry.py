@@ -5,6 +5,7 @@ Centralized router registration for Sovereign AGI services.
 from fastapi import FastAPI
 from services.workflow_api.router import router as workflow_router
 from services.auth.router import router as auth_router
+from services.workflow_api.metrics_router import router as metrics_router
 
 def register_routers(app: FastAPI):
     """
@@ -15,5 +16,8 @@ def register_routers(app: FastAPI):
     
     # Workflow API (contains /api/v1 prefix in its own definition)
     app.include_router(workflow_router)
+    
+    # Phase 17 Metrics API
+    app.include_router(metrics_router)
     
     # Add other routers here as services are migrated

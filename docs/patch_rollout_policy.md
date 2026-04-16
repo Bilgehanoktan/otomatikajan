@@ -4,7 +4,7 @@ This document defines the safety standards for applying autonomous patches to th
 
 ## 1. Rollout Strategies
 - **Canary:** Apply a patch to 10% of workers or a single non-critical project ID.
-- **Verification Gate:** Wait for 10 minutes of operational telemetry. If no `OperationalIncident` is linked to the patch, proceed.
+- **Verification Gate:** Wait for 15 minutes of operational telemetry. If no `OperationalIncident` is linked to the patch, proceed.
 - **Full Rollout:** Gradual deployment across all clusters.
 
 ## 2. Automatic Rollback

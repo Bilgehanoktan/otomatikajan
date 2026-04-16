@@ -13,6 +13,7 @@ from mcp.server.fastmcp import FastMCP
 from sqlalchemy import select, func
 from libs.db.session import AsyncSessionLocal
 from libs.db.models.core_models import Project, ProjectStatus
+from libs.mcp.tools import WorkflowReplayInput, WorkflowDiagnosisInput, MCPWorkflowRegistry
 
 # Initialize FastMCP Server
 mcp = FastMCP("SovereignAGI", version="13.0.4")
@@ -95,6 +96,16 @@ async def get_system_health() -> Dict[str, Any]:
             }
     except Exception as e:
         return {"status": "UNAVAILABLE", "error": str(e)}
+
+@mcp.tool()
+async def replay_workflow(params: WorkflowReplayInput) -> str:
+    """Securely replay a workflow from a specific step with optional overrides."""
+    return await MCPWorkflowRegistry.replay_workflow(params)
+
+@mcp.tool()
+async def diagnose_workflow_failure(params: WorkflowDiagnosisInput) -> Dict[str, Any]:
+    """Perform metacognitive diagnosis on a failed workflow step via AI."""
+    return await MCPWorkflowRegistry.diagnose_failure(params)
 
 if __name__ == "__main__":
     # Start the server using stdio transport by default

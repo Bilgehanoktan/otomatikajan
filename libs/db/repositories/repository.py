@@ -48,6 +48,7 @@ class ProjectRepository:
         acceptance_criteria: list | None = None,
         execution_context: dict | None = None,
         review_required: bool = False,
+        is_pilot: bool = False,
         status: str = ProjectStatus.PENDING.value,
     ) -> Project:
         project = Project(
@@ -69,6 +70,7 @@ class ProjectRepository:
             acceptance_criteria=acceptance_criteria or [],
             execution_context=execution_context or {},
             review_required=review_required,
+            is_pilot=is_pilot,
         )
         db.add(project)
         await db.flush()
@@ -99,6 +101,7 @@ class ProjectRepository:
         source: str | None = None,
         priority: str | None = None,
         search: str | None = None,
+        is_pilot: bool | None = None,
     ) -> list[Project]:
         q = select(Project).order_by(Project.created_at.desc())
         if status:
@@ -107,6 +110,8 @@ class ProjectRepository:
             q = q.where(Project.source == source)
         if priority:
             q = q.where(Project.priority == priority)
+        if is_pilot is not None:
+            q = q.where(Project.is_pilot == is_pilot)
         if search:
             q = q.where(Project.title.ilike(f"%{search}%"))
         q = q.offset(offset).limit(limit)
@@ -183,6 +188,7 @@ class ProjectRepository:
             "job_id", "progress_pct", "error_detail", "retry_count",
             "workflow_template", "quality_profile",
             "acceptance_criteria", "execution_context", "review_required",
+            "is_pilot",
             "cancelled_at", "cancelled_by",
             "ceo_status", "stuck_reason", "next_action", "last_supervised_at",
             "updated_at",
@@ -873,3 +879,52 @@ class MemoryRepository:
         )
         
         return [{"agent_id": r[0], "pattern": r[1], "frequency": r[2]} for r in result.all()]
+
+
+# ════════════════════════════════════════════════════════
+# Operasyonel Olay Repository (Faz 14/15)
+# ════════════════════════════════════════════════════════
+from libs.db.models import OperationalIncident
+
+class OperationalIncidentRepository:
+
+    @staticmethod
+    async def create(
+        db: AsyncSession,
+        incident_type: str,
+        message: str,
+        severity: str = "medium",
+        project_id: uuid.UUID | None = None,
+        payload: dict | None = None,
+        status: str = "open",
+    ) -> OperationalIncident:
+        incident = OperationalIncident(
+            id=uuid.uuid4(),
+            incident_type=incident_type,
+            message=message,
+            severity=severity,
+            project_id=project_id,
+            payload=payload or {},
+            status=status,
+        )
+        db.add(incident)
+        await db.flush()
+        return incident
+
+    @staticmethod
+    async def list_active(db: AsyncSession, limit: int = 50) -> list[OperationalIncident]:
+        result = await db.execute(
+            select(OperationalIncident)
+            .where(OperationalIncident.status.in_(["open", "investigating"]))
+            .order_by(OperationalIncident.created_at.desc())
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
+    @staticmethod
+    async def resolve(db: AsyncSession, incident_id: uuid.UUID) -> None:
+        await db.execute(
+            update(OperationalIncident)
+            .where(OperationalIncident.id == incident_id)
+            .values(status="resolved", resolved_at=_utcnow())
+        )

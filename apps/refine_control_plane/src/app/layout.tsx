@@ -12,11 +12,11 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+import React, { Suspense } from "react";
 import { Providers } from "./providers";
-import dynamic from "next/dynamic";
+import LayoutWrapper from "../components/LayoutWrapper";
 
-const Sidebar = dynamic(() => import("../components/Sidebar"), { ssr: false });
-const SystemHeader = dynamic(() => import("../components/SystemHeader"), { ssr: false });
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Sovereign AGI | Control Plane",
@@ -30,21 +30,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}>
-      <body className="h-full flex bg-[#0b0c10] text-[#c5c6c7] overflow-hidden">
+      <body className="h-full bg-[#0b0c10] text-[#c5c6c7] overflow-hidden">
         <Providers>
-          <Sidebar />
-          <div className="flex-1 flex flex-col h-full overflow-hidden relative">
-            <SystemHeader />
-            <main className="flex-1 overflow-y-auto overflow-x-hidden relative">
-              {/* Background Ambient Glow */}
-              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#66fcf1]/5 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/2" />
-              <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[#45a29e]/5 blur-[120px] rounded-full translate-y-1/2 -translate-x-1/2" />
-              
-              <div className="relative z-10">
-                {children}
-              </div>
-            </main>
-          </div>
+          <Suspense fallback={<div className="h-full bg-[#0b0c10]" />}>
+            <LayoutWrapper>
+              {children}
+            </LayoutWrapper>
+          </Suspense>
         </Providers>
       </body>
     </html>

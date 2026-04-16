@@ -15,11 +15,16 @@ import logging
 logger = logging.getLogger(__name__)
 
 class ProjectScope:
-    def __init__(self, project_id: UUID):
+    def __init__(self, project_id: UUID, is_pilot: bool = False):
         self.project_id = project_id
+        self.is_pilot = is_pilot
         self.config_path = os.path.join(DATA_DIR, "configs", "project_policies", f"{project_id}.yaml")
         self.default_config_path = os.path.join("configs", "project_policies", "default.yaml")
         self.policy = self._load_policy()
+        
+        # Apply Pilot Overrides
+        if self.is_pilot:
+            self._apply_pilot_overrides()
 
     def _load_policy(self) -> Dict[str, Any]:
         """Loads project-specific policy or falls back to default."""
@@ -37,12 +42,19 @@ class ProjectScope:
         
         return policy
 
+    def _apply_pilot_overrides(self):
+        """Hardens governance for pilot projects (Phase 15)."""
+        logger.info(f"🛡️ PilotGuard active for project {self.project_id}")
+        # Pilot projects are forced to Level 1 Autonomy (Human-in-the-loop)
+        self.policy["max_autonomy_level"] = 1
+        # Pilot projects have a default strict budget if not specified
+        if "budget_limit" not in self.policy or self.policy["budget_limit"] <= 0:
+            self.policy["budget_limit"] = 50.0 # $50 limit for pilots
+        # Mandatory audit trail
+        self.policy["audit_required"] = True
+
     def get_secret(self, key: str) -> Optional[str]:
-        """
-        Retrieves a project-scoped secret.
-        In this implementation, it looks into project-specific policy 
-        but in production this should call an encrypted store.
-        """
+        """Retrieves a project-scoped secret."""
         secrets = self.policy.get("secrets", {})
         return secrets.get(key)
 
@@ -56,6 +68,16 @@ class ProjectScope:
     def get_autonomy_level(self) -> int:
         """Returns allowed autonomy level (1-4)."""
         return self.policy.get("max_autonomy_level", 1)
+
+class PilotGuard:
+    """Utility class for pilot project verification."""
+    @staticmethod
+    def enforce_pilot_policy(scope: ProjectScope):
+        if scope.is_pilot:
+            # Additional runtime enforcement logic can go here
+            if scope.get_autonomy_level() > 1:
+                logger.warning(f"⚠️ Pilot project {scope.project_id} attempted high autonomy. Forcing Level 1.")
+                # This is already enforced in __init__, but we can add safety checks here
 
 class ProjectIsolationMiddleware:
     """

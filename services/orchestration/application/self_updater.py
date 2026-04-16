@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List
 
-from hub_cortex.shared.utils.git_ops import GitOps
+from libs.vcs.git_ops import GitOps
 from services.orchestration.application.shadow_runner import ShadowRunner
 from services.orchestration.indexing.system_indexer import SystemIndexer
 from services.orchestration.application.update_registry import SystemUpdateRegistry

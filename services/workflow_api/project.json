@@ -3,12 +3,13 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
   "sourceRoot": "services/workflow_api",
-  "tags": ["type:service", "platform:python"],
+  "tags": ["type:service", "platform:python", "scope:execution"],
+  "implicitDependencies": ["lib-workflow", "lib-db", "lib-auth"],
   "targets": {
     "start": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "python -m uvicorn services.workflow_api.router:router --host 0.0.0.0 --port 8000 --reload"
+        "command": "python -m uvicorn services.workflow_api.main:app --host 0.0.0.0 --port 8000 --reload"
       }
     },
     "test": {

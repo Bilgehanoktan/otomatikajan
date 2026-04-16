@@ -497,3 +497,11 @@ The system has achieved full cognitive sustainability. It now manages its own me
 - **Database Metrics Fix**: (sqlite3.OperationalError: no such table: api_metrics) hatasÃƒ Ã‚Â± giderildi.
 - **Import Dependency Resolution**: _db_session import hatalarÃƒÃ‚Â± stabilize edildi.
 - **Verification**: verify_system_integrity.py testi SUCCESS basamaÃƒÃ…Â¸ÃƒÃ‚Â±na getirildi.
+
+## Faz 18: Emergency Autonomy & Live Operations Safety (2026-04-15)
+- **Emergency Autonomy Policy**: 'Safety Freeze', 'Quarantine' ve 'Read-Only' modlarý tanýmlandý; sistem kritik anlarda otonom koruma kalkanýna geçer.
+- **Incident Thresholds**: SigNoz metrikleri (Hata Oraný, Gecikme, Bütçe) direkt P0/P1 tetikleyicilerine baðlandý; matematiksel eþiklerle otonom aksiyon garanti edildi.
+- **Hard Safety Gate**: EmergencyGate ile otonom iyileþtirme yamalarý canlýya geçmeden önce zorunlu güvenlik filtresinden geçirilmeye baþlandý.
+- **Automated Rollback Protocol**: Level A/B/C seviyelerinde otomatik geri dönüþ protokolleri (ERP) epair_worker görevlerine entegre edildi.
+- **Live Safety Dashboard**: Refine Control Plane üzerinde 'Safety Center' kuruldu; operatörlere anlýk görünürlük ve 'Emergency Force Freeze' yetkisi verildi.
+- **Status**: FAZ 18 ISKELETI TAMAMLANDI - Canlý pilotlarda otonom güvenlik refleksleri aktif.

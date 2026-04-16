@@ -1,1 +1,1 @@
-from ....skills.validation import *
+from deerflow.skills.validation import _validate_skill_frontmatter

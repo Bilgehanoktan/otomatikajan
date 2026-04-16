@@ -262,8 +262,6 @@ services:
       NEXT_PUBLIC_API_URL: http://app:8000
     ports:
       - "3100:3100"
-    volumes:
-      - .:/app
     depends_on:
       db:
         condition: service_healthy

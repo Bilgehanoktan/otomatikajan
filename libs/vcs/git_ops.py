@@ -72,3 +72,37 @@ class GitOps:
             return sha
 
         return None
+    def reset_to_sha(self, sha: str) -> bool:
+        """Belirtilen SHA'ya hard reset atar."""
+        if not self.is_git_repo():
+            return False
+            
+        result = self._run_git(["reset", "--hard", sha])
+        if result.returncode == 0:
+            logger.info(f"Git reset başarılı: {sha}")
+            return True
+        else:
+            logger.error(f"Git reset başarısız: {result.stderr.strip()}")
+            return False
+
+    def apply_patch(self, patch_content: str) -> bool:
+        """
+        Git patch dosyasını doğrudan sisteme uygular.
+        """
+        if not self.is_git_repo():
+            return False
+            
+        patch_file = self.project_root / "temp_patch.patch"
+        try:
+            patch_file.write_text(patch_content, encoding="utf-8")
+            result = self._run_git(["apply", str(patch_file)])
+            
+            if result.returncode == 0:
+                logger.info("Patch başarıyla uygulandı.")
+                return True
+            else:
+                logger.error(f"Patch uygulaması başarısız: {result.stderr.strip()}")
+                return False
+        finally:
+            if patch_file.exists():
+                patch_file.unlink()

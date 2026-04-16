@@ -92,6 +92,7 @@ class ProjectSource(str, enum.Enum):
     SCHEDULED = "scheduled"
     QUEUE_STUCK = "queue_stuck"
     APPROVAL_TIMEOUT = "approval_timeout"
+    CONTROL_PLANE = "control_plane"
 
 class TaskPriority(str, enum.Enum):
     CRITICAL = "critical"
@@ -133,8 +134,21 @@ class Project(Base):
     review_required     = Column(Boolean, default=False, nullable=False)
     checkpoint_data     = Column(SmartJSON(), default=dict)  # AGI Dayanıklılık: Son güvenli durum verisi
     goal_id             = Column(UUID(as_uuid=True), ForeignKey("sovereign_goals.id", ondelete="SET NULL"), nullable=True)
+    
+    # ── Faz 23: Multi-Project Fleet & Isolation ──
+    isolation_tier      = Column(Integer, default=2, nullable=False, index=True) 
+    # 0: Mission Critical, 1: Production, 2: Standard, 3: Sandbox/Trial
+    autonomy_envelope   = Column(SmartJSON(), default={
+        "mode": "advisory",           # advisory, autonomous, human_in_loop
+        "allow_auto_patch": False,
+        "max_risk_score": 0.3,
+        "isolation_zone": "global"    # global, restricted_to_region
+    })
+    concurrency_limit   = Column(Integer, default=5, nullable=False) # Max concurrent subtasks fleet-wide
+    
     metadata_           = Column(SmartJSON(), default=dict)
     # ──────────────────────────────────────────────────────
+    is_pilot     = Column(Boolean, default=False, nullable=False, index=True)
     created_at   = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
     updated_at   = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
     started_at   = Column(DateTime(timezone=True), nullable=True)
@@ -639,6 +653,7 @@ class SystemImprovement(Base):
     target_file      = Column(String(512), nullable=False)
     instruction      = Column(Text, nullable=False)
     proposed_patch   = Column(Text, nullable=False)   # Unified diff or full file
+    risk_score       = Column(Float, default=0.0)
     test_results     = Column(SmartJSON(), default=dict) # Shadow runner output
     status           = Column(String(32), default="pending", index=True) # pending, verified, applied, rejected
     applied_at       = Column(DateTime(timezone=True), nullable=True)

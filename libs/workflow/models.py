@@ -42,6 +42,8 @@ class WorkflowStep(BaseModel):
     dependencies: List[str] = Field(default_factory=list)
     require_approval: bool = False
     input_schema: Optional[Dict[str, Any]] = None  # Deep validation support (Draft-07 JSON Schema likely)
+    compensation_action: Optional[str] = None      # Logic to run if this step needs to be 'undone'
+    is_compensated: bool = False                  # Flag for audit/compliance
 
 class WorkflowInstance(BaseModel):
     id: str

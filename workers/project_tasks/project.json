@@ -4,6 +4,7 @@
   "projectType": "application",
   "sourceRoot": "workers/project_tasks",
   "tags": ["type:worker", "platform:python", "scope:execution"],
+  "implicitDependencies": ["lib-workflow", "lib-db"],
   "targets": {
     "start": {
       "executor": "nx:run-commands",

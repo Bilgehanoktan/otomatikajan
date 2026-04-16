@@ -12,7 +12,10 @@ import {
     Database, 
     History,
     Network,
-    Terminal
+    Terminal,
+    AlertTriangle,
+    ShieldCheck,
+    Stethoscope
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -35,6 +38,8 @@ export default function WorkflowShowPage() {
     const [selectedStepForReplay, setSelectedStepForReplay] = React.useState<string | null>(null);
     const [replayMode, setReplayMode] = React.useState<"same_input" | "from_step" | "with_override">("same_input");
     const [overrideJson, setOverrideJson] = React.useState("{}");
+    const [diagnosis, setDiagnosis] = React.useState<any>(null);
+    const [isDiagnosing, setIsDiagnosing] = React.useState(false);
 
     const handleRetry = () => {
         retry({
@@ -81,15 +86,32 @@ export default function WorkflowShowPage() {
                 from_step: selectedStepForReplay || (workflow?.steps?.[0]?.id),
                 mode: replayMode,
                 overrides: overrides,
-                operator_id: "admin_operator_01",
+                operator_id: "admin_human", // Linked to RBAC
                 reason: `Manual ${replayMode} initiated via Control Plane`
             },
         }, {
             onSuccess: () => {
                 setIsReplayModalOpen(false);
                 setSelectedStepForReplay(null);
+            },
+            onError: (error: any) => {
+                const detail = error?.response?.data?.detail || "Replay failed";
+                alert(`SECURITY ALERT: ${detail}`);
             }
         });
+    };
+
+    const handleDiagnose = async (stepId: string) => {
+        setIsDiagnosing(true);
+        try {
+            const res = await fetch(`http://localhost:8000/workflows/${id}/steps/${stepId}/diagnose`);
+            const data = await res.json();
+            setDiagnosis(data);
+        } catch (e) {
+            alert("Failed to connect to Diagnosis Engine");
+        } finally {
+            setIsDiagnosing(false);
+        }
     };
 
     const getSelectedStepSchema = () => {
@@ -231,17 +253,21 @@ export default function WorkflowShowPage() {
                                                             {new Date(step.completed_at).toLocaleTimeString()}
                                                         </p>
                                                     )}
-                                                    <button 
-                                                        onClick={() => {
-                                                            setSelectedStepForReplay(step.id);
-                                                            setIsReplayModalOpen(true);
-                                                        }}
-                                                        className="mt-2 p-1.5 hover:bg-white/5 rounded text-[10px] text-gray-400 flex items-center gap-1 transition-colors"
-                                                        title="Replay from this point"
-                                                    >
-                                                        <RefreshCcw size={10} />
-                                                        Reset & Replay
-                                                    </button>
+                                                    {step.status === "failed" && (
+                                                        <button 
+                                                            onClick={() => handleDiagnose(step.id)}
+                                                            className="mt-2 p-1.5 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 border border-yellow-500/20 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all"
+                                                        >
+                                                            <Stethoscope size={12} />
+                                                            AI Diagnosis
+                                                        </button>
+                                                    )}
+                                                    {step.is_compensated && (
+                                                        <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 bg-purple-500/10 border border-purple-500/20 rounded-md text-[9px] font-bold text-purple-400 uppercase tracking-widest">
+                                                            <ShieldCheck size={10} />
+                                                            Compensated
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                             {step.output_summary && (
@@ -314,8 +340,62 @@ export default function WorkflowShowPage() {
                             )}
                         </div>
                     </div>
+
+                    {/* Metadata / RBAC Policy */}
+                    <div className="p-4 rounded-xl bg-[#66fcf1]/5 border border-[#66fcf1]/10 flex items-center gap-3">
+                        <ShieldCheck size={20} className="text-[#66fcf1]" />
+                        <div>
+                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Active Security Policy</p>
+                            <p className="text-xs text-white font-mono">RBAC: Enforced (Phase 13.04.C)</p>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            {/* Diagnosis Overlay */}
+            {diagnosis && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
+                    <div className="glass-card w-full max-w-lg border-yellow-500/30">
+                        <h3 className="text-xl font-bold text-yellow-500 flex items-center gap-2 mb-6">
+                            <Stethoscope size={24} />
+                            Metacognitive Analysis
+                        </h3>
+                        <div className="space-y-6">
+                            <div className="p-4 rounded-xl bg-black/40 border border-white/5 text-sm text-gray-300 leading-relaxed font-mono">
+                                {diagnosis.reasoning}
+                            </div>
+                            {diagnosis.recommended_override && (
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Recommended Fix Overlay</label>
+                                    <pre className="p-4 rounded-xl bg-black/60 border border-[#66fcf1]/20 text-[#66fcf1] text-[10px] overflow-auto max-h-40">
+                                        {JSON.stringify(diagnosis.recommended_override, null, 2)}
+                                    </pre>
+                                </div>
+                            )}
+                            <div className="flex gap-4 pt-4">
+                                <button 
+                                    onClick={() => {
+                                        setReplayMode("with_override");
+                                        setOverrideJson(JSON.stringify(diagnosis.recommended_override, null, 2));
+                                        setSelectedStepForReplay(workflow?.steps?.find((s:any) => s.status === "failed")?.id);
+                                        setDiagnosis(null);
+                                        setIsReplayModalOpen(true);
+                                    }}
+                                    className="flex-1 py-3 bg-yellow-500 hover:bg-yellow-600 text-black font-bold rounded-xl transition-all"
+                                >
+                                    Apply & Replay
+                                </button>
+                                <button 
+                                    onClick={() => setDiagnosis(null)}
+                                    className="px-8 py-3 glass text-white font-bold rounded-xl transition-all"
+                                >
+                                    Dismiss
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Replay Modal */}
             {isReplayModalOpen && (

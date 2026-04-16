@@ -1,0 +1,33 @@
+# Sovereign AGI Federation Policy — Phase 19 Configuration
+# Global rules for multi-cluster coordination and arbitration.
+
+global_settings:
+  current_federation_mode: "SHADOW" # SHADOW, ADVISORY, SCOPED, FULL
+  default_priority_tie_breaker: "RISK_SCORE"
+  max_concurrent_clusters_per_project: 3
+  heartbeat_interval_seconds: 60
+
+arbitration_rules:
+  precedence:
+    - cluster_type: "SECURITY"
+      priority: 10
+    - cluster_type: "OPERATIONS"
+      priority: 8
+    - cluster_type: "GOVERNANCE"
+      priority: 7
+    - cluster_type: "LOGIC"
+      priority: 5
+
+  conflict_thresholds:
+    confidence_parity_margin: 0.05 # If scores are within 5%, escalate to human.
+    collision_radius_lines: 50     # Code changes within 50 lines are a "collision".
+
+audit_policy:
+  log_federation_events: true
+  retention_days: 90
+  include_thought_fragments: true # Save agent reasoning for audit.
+
+budget_guardrails:
+  global_daily_token_limit: 10000000
+  hard_stop_on_breach: true
+  soft_limit_percent: 80 # Warn at 80% usage.

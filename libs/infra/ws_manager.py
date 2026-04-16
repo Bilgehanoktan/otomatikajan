@@ -20,6 +20,11 @@ class ConnectionManager:
         # Support for targeted updates (e.g. specific project)
         self.project_rooms: Dict[str, List[WebSocket]] = {}
 
+    @property
+    def client_count(self) -> int:
+        """Returns the number of active subscriptions."""
+        return len(self.active_connections)
+
     async def connect(self, websocket: WebSocket, project_id: str | None = None):
         await websocket.accept()
         self.active_connections.append(websocket)

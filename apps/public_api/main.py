@@ -91,38 +91,57 @@ try:
 except Exception as _otel_err:
     logger.warning(f"[OTEL] Middleware skipped: {_otel_err}")
 
-# ── Dashboard (Statik) ───────────────────────────────────
-_dash = os.path.join(ROOT_DIR, "hub_interaction", "dashboard")
-if os.path.isdir(_dash):
-    # Mount the entire dashboard directory under /static. 
-    # This allows referencing files like /static/css/style.css or /static/js/script.js
-    app.mount("/static", StaticFiles(directory=_dash), name="static")
+# ── Incident capturing Middleware (Phase 16) ──────────────
+try:
+    from libs.observability.incident_middleware import SovereignIncidentMiddleware
+    app.add_middleware(SovereignIncidentMiddleware)
+    logger.info("[INCIDENT] Sovereign Incident Middleware registered")
+except Exception as _inc_err:
+    logger.error(f"[INCIDENT] Middleware failed: {_inc_err}")
+
+# ── Dashboard & Control Plane (Unified Routing) ───────────
+_dash_legacy = os.path.join(ROOT_DIR, "hub_interaction", "dashboard")
+_dash_modern = os.path.join(ROOT_DIR, "apps", "control_plane")
+
+# Prioritize Phase 13.04 Control Plane as the primary dashboard
+_active_dash = _dash_modern if os.path.isdir(_dash_modern) else _dash_legacy
+
+if os.path.isdir(_active_dash):
+    # Mount the active dashboard directory under /static
+    app.mount("/static", StaticFiles(directory=_active_dash), name="static")
+    
+    # Also mount under /control-plane/static for internal compatibility if modern
+    if _active_dash == _dash_modern:
+        app.mount("/control-plane/static", StaticFiles(directory=_active_dash), name="control_plane_static")
+        logger.info(f"[DASHBOARD] Modern Control Plane mounted from {_active_dash}")
+    else:
+        logger.info(f"[DASHBOARD] Legacy Dashboard mounted from {_active_dash}")
+
+    # Ensure uploads directory exists
     _up = "uploads"
     if not os.path.exists(_up):
         os.makedirs(_up)
     app.mount("/uploads", StaticFiles(directory=_up), name="uploads")
 
     @app.get("/", include_in_schema=False)
+    @app.get("/control-plane", include_in_schema=False)
+    @app.get("/control-plane/", include_in_schema=False)
     async def serve_dashboard():
+        index_path = os.path.join(_active_dash, "index.html")
+        if not os.path.exists(index_path):
+            return {"error": "Dashboard index.html not found", "path": index_path}
+            
         return FileResponse(
-            os.path.join(_dash, "index.html"),
-            headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"},
+            index_path,
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0",
+                "X-Sovereign-AGI-UI": "Faz-13.04-Modern" if _active_dash == _dash_modern else "Legacy"
+            },
         )
-
-# ── Control Plane (Phase 13.04) ───────────────────────────────
-_cp_dir = os.path.join(ROOT_DIR, "apps", "control_plane")
-if os.path.isdir(_cp_dir):
-    app.mount("/control-plane/static", StaticFiles(directory=_cp_dir), name="control_plane_static")
-    logger.info(f"[CONTROL PLANE] Static files mounted from {_cp_dir}")
-
-@app.get("/control-plane", include_in_schema=False)
-@app.get("/control-plane/", include_in_schema=False)
-async def serve_control_plane():
-    index_path = os.path.join(ROOT_DIR, "apps", "control_plane", "index.html")
-    return FileResponse(
-        index_path,
-        headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
-    )
+else:
+    logger.warning("[DASHBOARD] No dashboard directory found. Root / will 404.")
 
 # ── Workflow Control Plane API ────────────────────────────────
 try:

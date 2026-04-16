@@ -50,7 +50,7 @@ class ImprovementObserver:
         """
         Agent baÅŸarÄ± oranlarÄ±nÄ± ve hata desenlerini tarar.
         """
-        from libs.db.session import AsyncSessionLocal as SessionLocal
+        from libs.db.session import AsyncSessionLocal
         from libs.db.models.core_models import WorkflowEvent, ImprovementOpportunity
         from sqlalchemy import select, func
         from datetime import datetime, timedelta, timezone
@@ -59,7 +59,7 @@ class ImprovementObserver:
         logger.info("Agent hatalarÄ± taranÄ±yor...")
 
         try:
-            async with SessionLocal() as session:
+            async with AsyncSessionLocal() as session:
                 # Son 24 saatteki hatalarÄ± grupla
                 yesterday = datetime.now(timezone.utc) - timedelta(days=1)
                 
