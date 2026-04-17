@@ -22,6 +22,8 @@ from libs.db.models.repair_models import (
     RepairPattern,
     SelfTuningSuggestion
 )
+from services.orchestration.application.sovereign_cortex import get_sovereign_cortex
+from services.improve.repair_bench import RepairBenchService
 
 router = APIRouter(prefix="/api/v1/repair-lab", tags=["Autonomous Repair Lab"])
 
@@ -185,6 +187,41 @@ async def apply_tuning_suggestion(suggestion_id: str, data: SuggestionUpdate):
         await db.commit()
         return {"id": suggestion_id, "status": data.status}
 
+@router.get("/verifiers")
+async def get_verifiers_stats():
+    """Verifier Mesh katmanlarının güvenilirlik ve performans verilerini döner."""
+    async with AsyncSessionLocal() as db:
+        q = select(VerifierResult).order_by(desc(VerifierResult.timestamp)).limit(500)
+        results = (await db.execute(q)).scalars().all()
+        
+        # Aggregate stats by verifier
+        stats = {}
+        for r in results:
+            name = r.verifier_name
+            if name not in stats:
+                stats[name] = {"passed": 0, "total": 0, "latency": 0.0, "errors_blocked": 0}
+            
+            stats[name]["total"] += 1
+            if r.passed:
+                stats[name]["passed"] += 1
+            else:
+                stats[name]["errors_blocked"] += 1
+                
+            # Simulate latency if details.latency is missing
+            latency = r.details.get("latency", 0.15) if isinstance(r.details, dict) else 0.15
+            stats[name]["latency"] += latency
+            
+        return [
+            {
+                "name": k,
+                "reliability": round(v["passed"] / v["total"], 2) if v["total"] > 0 else 0.0,
+                "precision": round(v["passed"] / v["total"], 2) if v["total"] > 0 else 0.0, # Simplified
+                "latency": f"{round((v['latency'] / v['total']) * 1000, 0)}ms" if v["total"] > 0 else "0ms",
+                "detected_errors": v["errors_blocked"]
+            }
+            for k, v in stats.items()
+        ]
+
 @router.get("/memory/heatmaps")
 async def get_repair_memory():
     """Tamir hafızasındaki başarı/başarısızlık yoğunluk haritasını döner."""
@@ -208,3 +245,47 @@ async def get_repair_memory():
             {"subsystem": k, "success": v["success"], "failure": v["failure"], "rate": round(v["success"]/v["total"], 2)}
             for k, v in stats.items()
         ]
+
+@router.post("/run")
+async def trigger_lab_run(cortex=Depends(get_sovereign_cortex)):
+    """Otonom tamir benchmark turunu başlatır."""
+    bench_svc = RepairBenchService(model_orch=cortex.model_orch)
+    # Run in background to avoid timeout
+    import asyncio
+    asyncio.create_task(bench_svc.run_full_bench())
+    return {"status": "started", "message": "Otonom benchmark turu arka planda başlatıldı."}
+
+@router.get("/evolution/feed")
+async def get_evolution_feed(limit: int = 15):
+    """Sistemin otonom gelişim günlüğünü (DecisionLineage) döner."""
+    from libs.db.models.lineage_models import DecisionLineage
+    async with AsyncSessionLocal() as db:
+        q = select(DecisionLineage).where(DecisionLineage.decision_type == "SYSTEM_EVOLUTION").order_by(desc(DecisionLineage.created_at)).limit(limit)
+        res = await db.execute(q)
+        items = res.scalars().all()
+        
+        return [
+            {
+                "id": str(i.id),
+                "component": i.component_name,
+                "rationale": i.rationale,
+                "success": i.meta_data.get("success", False) if isinstance(i.meta_data, dict) else False,
+                "output": i.meta_data.get("output", "N/A") if isinstance(i.meta_data, dict) else "N/A",
+                "created_at": i.created_at
+            }
+            for i in items
+        ]
+
+@router.get("/evolution/status")
+async def get_evolution_status():
+    """Otonom gelişim döngüsünün durumunu döner."""
+    from services.improve.evolution_orchestrator import evolution_orchestrator
+    if not evolution_orchestrator:
+        return {"is_running": False, "failure_counts": {}}
+    
+    return {
+        "is_running": evolution_orchestrator.is_running,
+        "failure_counts": evolution_orchestrator.failure_counter,
+        "stuck_threshold": evolution_orchestrator.STUCK_THRESHOLD
+    }
+

@@ -21,9 +21,12 @@ import { QuotaElasticityDetails } from "../../components/fleet/QuotaElasticityDe
 import { FinancialGovernancePanel } from "../../components/fleet/FinancialGovernancePanel";
 
 // API Base
-const API_BASE = "http://localhost:8000/api/v1/fleet";
+const API_BASE = "/api/v1/fleet";
 
 export default function FleetHub() {
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => setIsClient(true), []);
+
   const [projects, setProjects] = useState<any[]>([]);
   const [arbitration, setArbitration] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);

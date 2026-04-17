@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sovereign AGI — Control Plane</title>
-  <meta name="description" content="Sovereign AGI Workflow Control Plane — Phase 13.04 Operations Dashboard" />
+  <title>Egemen YAZ — Kontrol Düzlemi</title>
+  <meta name="description" content="Egemen YAZ İş Akışı Kontrol Düzlemi — Faz 13.04 Operasyon Paneli" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -215,7 +215,7 @@
     /* ── Stat Bar ─────────────────────────────────────────── */
     .statbar {
       display: grid;
-      grid-template-columns: repeat(6, 1fr);
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 1px;
       background: var(--border);
       border-bottom: 1px solid var(--border);
@@ -783,9 +783,9 @@
     <!-- Top Bar -->
     <nav class="topbar">
       <div class="topbar-logo">
-        Sovereign AGI
+        Egemen YAZ
       </div>
-      <span class="topbar-phase" id="viewTitle">Operations</span>
+      <span class="topbar-phase" id="viewTitle">Operasyonlar</span>
       <div class="topbar-spacer"></div>
       <div class="topbar-meta">
         <div style="display:flex;align-items:center;gap:6px">
@@ -800,32 +800,32 @@
     <!-- Stat Bar (Global) -->
     <div class="statbar" id="statbar">
       <div class="stat-cell">
-        <div class="stat-label">Toplam İş</div>
+        <div class="stat-label">Toplam Görev</div>
         <div class="stat-value blue" id="s-total">—</div>
         <svg class="stat-sparkline"><polyline points="0,30 20,20 40,25 60,10 80,15 100,5 120,20 140,10 160,25 180,15 200,30" fill="none" stroke="var(--neon-blue)" stroke-width="1"/></svg>
       </div>
       <div class="stat-cell">
-        <div class="stat-label">Aktif Filo</div>
+        <div class="stat-label">Aktif Birimler</div>
         <div class="stat-value cyan" id="s-running">—</div>
         <svg class="stat-sparkline"><polyline points="0,25 30,15 60,20 90,10 120,22 150,5 180,18 210,12" fill="none" stroke="var(--neon-cyan)" stroke-width="1"/></svg>
       </div>
       <div class="stat-cell" style="background: rgba(191,95,255,0.03); border-left: 2px solid var(--neon-violet)">
-        <div class="stat-label">Canary Başarı</div>
+        <div class="stat-label">Canary Başarısı</div>
         <div class="stat-value violet" id="p17-success">—</div>
         <svg class="stat-sparkline"><polyline points="0,20 40,18 80,22 120,10 160,15 200,5" fill="none" stroke="var(--neon-violet)" stroke-width="1"/></svg>
       </div>
       <div class="stat-cell" style="background: rgba(191,95,255,0.03)">
-        <div class="stat-label">MTTR (Ort)</div>
+        <div class="stat-label">Ort. Tamir Süresi</div>
         <div class="stat-value amber" id="p17-mttr">—</div>
         <svg class="stat-sparkline"><polyline points="0,5 50,25 100,10 150,20 200,8" fill="none" stroke="var(--neon-amber)" stroke-width="1"/></svg>
       </div>
       <div class="stat-cell" style="background: rgba(191,95,255,0.03)">
-        <div class="stat-label">Filo Maliyeti</div>
+        <div class="stat-label">Operasyon Maliyeti</div>
         <div class="stat-value cyan" id="p17-cost">—</div>
         <svg class="stat-sparkline"><polyline points="0,28 40,20 80,25 120,15 160,22 200,18" fill="none" stroke="var(--neon-cyan)" stroke-width="1"/></svg>
       </div>
       <div class="stat-cell">
-        <div class="stat-label">Sistem Skoru</div>
+        <div class="stat-label">Sistem Sağlık Skoru</div>
         <div class="stat-value green" id="s-rate">—</div>
         <svg class="stat-sparkline"><polyline points="0,15 40,10 80,12 120,5 160,8 200,4" fill="none" stroke="var(--neon-green)" stroke-width="1"/></svg>
       </div>
@@ -1062,8 +1062,8 @@
     <span style="cursor:pointer" onclick="toggleTerminal()">[ESC] KAPAT</span>
   </div>
   <div class="terminal-body" id="terminalOutput">
-    <div style="color:var(--text-secondary)">Sovereign AGI Control Plane v13.04.1 Initialized...</div>
-    <div style="color:var(--text-secondary)">Listening for secure mesh commands. Type 'help' for options.</div>
+    <div style="color:var(--text-secondary)">Egemen YAZ Kontrol Düzlemi v13.04.1 Başlatıldı...</div>
+    <div style="color:var(--text-secondary)">Güvenli mesh komutları bekleniyor. Seçenekler için 'help' yazın.</div>
   </div>
   <div class="terminal-input-row">
     <span class="terminal-prompt">></span>
@@ -1148,8 +1148,8 @@ function switchView(view, btn) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   if (btn) btn.classList.add('active');
   
-  const titles = { ops: 'Operations', fleet: 'Fleet Hub', mesh: 'Mesh Topoloji', gov: 'Governance' };
-  document.getElementById('viewTitle').textContent = titles[view] || 'Sovereign AGI';
+  const titles = { ops: 'Operasyonlar', fleet: 'Filo Merkezi', mesh: 'Mesh Topolojisi', gov: 'Yönetişim' };
+  document.getElementById('viewTitle').textContent = titles[view] || 'Egemen YAZ';
 }
 
 let projectCache = [];
@@ -1702,32 +1702,32 @@ async function processCommand(fullCmd) {
 
   switch(cmd) {
     case 'help':
-      appendOutput('Available commands: help, clear, freeze, recalibrate, stats, switch [view]');
+      appendOutput('Mevcut komutlar: help, clear, freeze, recalibrate, stats, switch [görünüm]');
       break;
     case 'clear':
       termOutput.innerHTML = '';
       break;
     case 'freeze':
       try {
-        const res = await apiFetch('/api/v1/mesh/actions/freeze', 'POST', { operator_id: 'OP-01', reason: args.join(' ') || 'Manual Override' });
-        appendOutput(`SYSTEM STATUS: ${res.status} - ${res.message}`, 'var(--neon-red)');
-      } catch(e) { appendOutput(`ERROR: ${e.message}`, 'var(--neon-red)'); }
+        const res = await apiFetch('/api/v1/mesh/actions/freeze', 'POST', { operator_id: 'OP-01', reason: args.join(' ') || 'Manuel Müdahale' });
+        appendOutput(`SİSTEM DURUMU: ${res.status} - ${res.message}`, 'var(--neon-red)');
+      } catch(e) { appendOutput(`HATA: ${e.message}`, 'var(--neon-red)'); }
       break;
     case 'recalibrate':
-      appendOutput('Broadcasting mesh recalibration pulse...', 'var(--neon-cyan)');
+      appendOutput('Mesh rekalibrasyon sinyali gönderiliyor...', 'var(--neon-cyan)');
       try {
-        await apiFetch('/api/v1/mesh/actions/recalibrate', 'POST', { operator_id: 'OP-01', reason: 'Operator Request' });
-        appendOutput('SUCCESS: Regional sync complete.', 'var(--neon-green)');
-      } catch(e) { appendOutput(`ERROR: ${e.message}`, 'var(--neon-red)'); }
+        await apiFetch('/api/v1/mesh/actions/recalibrate', 'POST', { operator_id: 'OP-01', reason: 'Operatör Talebi' });
+        appendOutput('BAŞARILI: Bölgesel senkronizasyon tamamlandı.', 'var(--neon-green)');
+      } catch(e) { appendOutput(`HATA: ${e.message}`, 'var(--neon-red)'); }
       break;
     case 'switch':
       if (args[0]) {
         switchView(args[0], document.querySelector(`.nav-item[title*="${args[0]}"]`));
-        appendOutput(`Switching to view: ${args[0]}`);
+        appendOutput(`Görünüm değiştiriliyor: ${args[0]}`);
       }
       break;
     default:
-      appendOutput(`Unknown command: ${cmd}. Type 'help' for support.`, 'var(--neon-amber)');
+      appendOutput(`Bilinmeyen komut: ${cmd}. Destek için 'help' yazın.`, 'var(--neon-amber)');
   }
 }
 </script>

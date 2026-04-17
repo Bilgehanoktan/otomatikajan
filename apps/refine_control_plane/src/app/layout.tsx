@@ -16,11 +16,10 @@ import React, { Suspense } from "react";
 import { Providers } from "./providers";
 import LayoutWrapper from "../components/LayoutWrapper";
 
-export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Sovereign AGI | Control Plane",
-  description: "Refine Ops Control Dashboard",
+  title: "Egemen YAZ | Kontrol Düzlemi",
+  description: "Otonom Yazılım Geliştirme Operasyonları Kontrol Paneli",
 };
 
 export default function RootLayout({
@@ -29,15 +28,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}>
+    <html lang="tr" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}>
       <body className="h-full bg-[#0b0c10] text-[#c5c6c7] overflow-hidden" suppressHydrationWarning>
-        <Providers>
-          <Suspense fallback={<div className="h-full bg-[#0b0c10]" />}>
+        <Suspense fallback={<div className="h-full bg-[#0b0c10]" />}>
+          <Providers>
             <LayoutWrapper>
               {children}
             </LayoutWrapper>
-          </Suspense>
-        </Providers>
+          </Providers>
+        </Suspense>
       </body>
     </html>
   );

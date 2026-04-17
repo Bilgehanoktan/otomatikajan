@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from libs.db.models import Base
+from libs.db.base import Base
 from services.observability.logging import get_logger
 logger = get_logger("db.session")
 
@@ -116,8 +116,10 @@ class _LazySessionLocal:
     def __call__(self):
         return _get_session_factory()()
 
-AsyncSessionLocal = _LazySessionLocal()
-async_session = AsyncSessionLocal  # Faz 12.1/12.2 Geriye Dönük Uyumluluk
+# Aliases for different architectural styles
+async_session_factory = _LazySessionLocal()
+AsyncSessionLocal = async_session_factory
+async_session = async_session_factory
 
 
 # Celery Fork Safety: Worker process baslatildiginda engine'i temizle

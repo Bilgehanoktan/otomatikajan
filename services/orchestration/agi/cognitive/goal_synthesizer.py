@@ -198,15 +198,16 @@ class GoalSynthesizer:
         except Exception as e:
             _log.error(f"[GOAL_SYNTH] Otonom fırsat çıkarım hatası: {e}")
 
-    def _parse_json(self, text: str) -> Optional[Dict]:
+    def _parse_json(self, text: str) -> Optional[Any]:
         import re
-        match = re.search(r'\{.*\}', text, re.DOTALL)
+        import json
+        # Hem obje hem liste için genişletilmiş regex
+        match = re.search(r'(\[.*\]|\{.*\})', text, re.DOTALL)
         if match:
             try:
-                import json
-                return json.loads(match.group())
-            except:
-                pass
+                return json.loads(match.group(1))
+            except Exception as e:
+                _log.warning(f"[GOAL_SYNTH] JSON parse hatası (ayrıştırma sonrası): {e}")
         return None
 
 # --- Background Task Definition ---

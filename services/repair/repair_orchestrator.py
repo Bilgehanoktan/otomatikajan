@@ -138,6 +138,9 @@ class RepairOrchestrator:
         self.arch_memory = arch_memory or architecture_memory
         self.policy      = policy     or policy_engine
 
+        from services.governance.lineage_service import LineageService
+        self.lineage_service = LineageService()
+
         self._jobs_cache: dict[str, RepairJob] = {}
         self._hydrated = False
         
@@ -184,6 +187,7 @@ class RepairOrchestrator:
             plan: Optional[Any] = None
             patch: Optional[Any] = None
             validation: Optional[Any] = None
+            decision_id: Optional[str] = None
             extra: dict = field(default_factory=dict)
 
         self.PipelineContext = PipelineContext
@@ -220,6 +224,19 @@ class RepairOrchestrator:
 
         _log.info(f"Repair job başlatıldı (DB): {job.job_id} — {incident.symptom[:80]}")
 
+        # 4. Governance Lineage (Initial Decision)
+        try:
+            from services.governance.lineage_service import LineageService
+            lineage = await LineageService.log_decision(
+                decision_type="REPAIR",
+                component_name="RepairOrchestrator",
+                rationale=f"Triggered repair for incident {incident.incident_id}",
+                trigger_event=incident.dict() if hasattr(incident, "dict") else {"id": incident.incident_id}
+            )
+            job.meta["decision_id"] = str(lineage.id)
+        except Exception as le:
+            _log.warning(f"Lineage logging failed: {le}")
+
         # Pipeline'ı arka planda çalıştır
         asyncio.create_task(self._run_pipeline(job, incident))
         return job
@@ -249,6 +266,19 @@ class RepairOrchestrator:
         """Executes a scientific repair tournament without committing changes."""
         _log.info(f"Starting SHADOW Repair Cycle [Phase 28] for {incident_type}")
         
+        # 0. Governance Lineage (Shadow Decision)
+        try:
+            from services.governance.lineage_service import LineageService
+            lineage = await LineageService.log_decision(
+                decision_type="SHADOW_REPAIR",
+                component_name="RepairOrchestrator",
+                rationale=f"Shadow repair tournament for {incident_type}",
+                trigger_event=payload,
+                metadata={"phase": "28_shadow"}
+            )
+            payload["decision_id"] = str(lineage.id)
+        except Exception: pass
+
         # 1. Multi-Candidate Generation
         candidates = await self.candidate_gen.generate_variants(incident_type, payload)
         

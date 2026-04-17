@@ -37,7 +37,7 @@ class CostTracker:
     def calculate_cost(self, model: str, input_tokens: int, output_tokens: int) -> float:
         return calculate_cost(model, input_tokens, output_tokens)
 
-    def record(self, provider: str, model: str, agent_id: str, input_tokens: int, output_tokens: int,
+    async def record(self, provider: str, model: str, agent_id: str, input_tokens: int, output_tokens: int,
                latency_s: float, success: bool, project_id: str | None = None) -> CostRecord:
         rec = CostRecord(
             provider=provider,
@@ -51,15 +51,14 @@ class CostTracker:
             project_id=project_id
         )
         self._records.append(rec)
-        self._monthly_total += rec.cost_usd
-        self._check_budget()
         return rec
 
     async def persist(self, db, rec: CostRecord):
         from libs.db.models.core_models import LLMCostLog, Project, SovereignEvidence  # lazy
+        from services.governance.budget_service import BudgetService # Phase 30
         from sqlalchemy import update, select
         
-        # Log entry
+        # 1. Log entry
         db.add(LLMCostLog(
             provider=rec.provider, model=rec.model, agent_id=rec.agent_id,
             input_tokens=rec.input_tokens, output_tokens=rec.output_tokens,
@@ -67,48 +66,21 @@ class CostTracker:
             project_id=rec.project_id
         ))
         
-        # Update project total_cost if linked
         if rec.project_id and rec.success:
-            # 1. Update total_cost
+            # 2. Update total_cost
             await db.execute(
                 update(Project)
                 .where(Project.id == rec.project_id)
                 .values(total_cost=Project.total_cost + rec.cost_usd)
             )
 
-            # 2. Check Project-level budget drift for Evidence
-            res = await db.execute(select(Project).where(Project.id == rec.project_id))
-            proj = res.scalar_one_or_none()
-            if proj and proj.budget_limit > 0:
-                ratio = proj.total_cost / proj.budget_limit
-                if ratio >= 0.8 and ratio < 1.0 and not proj.metadata.get("drift_evidence_80"):
-                    # Log 80% budget warning evidence
-                    db.add(SovereignEvidence(
-                        evidence_type="economic_drift",
-                        severity="warning",
-                        project_id=proj.id,
-                        payload={
-                            "reason": "Project budget reached 80%",
-                            "total_cost": proj.total_cost,
-                            "budget_limit": proj.budget_limit,
-                            "ratio": round(ratio, 2)
-                        }
-                    ))
-                    proj.metadata["drift_evidence_80"] = True
-                elif ratio >= 1.0 and not proj.metadata.get("drift_evidence_100"):
-                    # Log 100% budget exhaustion evidence
-                    db.add(SovereignEvidence(
-                        evidence_type="economic_drift",
-                        severity="critical",
-                        project_id=proj.id,
-                        payload={
-                            "reason": "Project budget exhausted",
-                            "total_cost": proj.total_cost,
-                            "budget_limit": proj.budget_limit,
-                            "ratio": round(ratio, 2)
-                        }
-                    ))
-                    proj.metadata["drift_evidence_100"] = True
+            # 3. Budget Governance (Phase 30: DB-truth + Cache)
+            is_safe = await BudgetService.check_circuit_breaker(rec.project_id, rec.cost_usd)
+            if not is_safe:
+                # Bütçe aşıldıysa kanıt oluştur (Hizmet zaten uyarı basıyor, kanıtı buraya ekliyoruz)
+                total = await BudgetService.get_total_consumption(rec.project_id)
+                await BudgetService.log_budget_evidence(rec.project_id, total, 0) # limit fetch inside
+
 
     def _check_budget(self):
         ratio = self._monthly_total / MONTHLY_BUDGET_USD if MONTHLY_BUDGET_USD > 0 else 0.0

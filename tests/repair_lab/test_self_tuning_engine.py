@@ -4,9 +4,12 @@ from services.improve.self_tuning_engine import SelfTuningEngine
 from services.improve.repair_bench import RepairBenchService, BenchResult
 from datetime import datetime, timezone
 
+from unittest.mock import MagicMock
+
 @pytest.mark.asyncio
 async def test_self_tuning_generates_recs():
-    bench = RepairBenchService()
+    mock_orch = MagicMock()
+    bench = RepairBenchService(model_orch=mock_orch)
     # Mock some data
     for _ in range(10):
         bench.results_history.append(BenchResult(
@@ -21,5 +24,5 @@ async def test_self_tuning_generates_recs():
         ))
     
     engine = SelfTuningEngine(bench_service=bench)
-    recs = await engine.generate_recommendations()
+    recs = await engine.generate_and_persist_recommendations()
     assert len(recs) >= 0 # Depends on logic

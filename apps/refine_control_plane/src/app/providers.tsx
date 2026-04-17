@@ -5,13 +5,26 @@ import { Refine } from "@refinedev/core";
 import routerProvider from "@refinedev/nextjs-router";
 import dataProvider from "@refinedev/simple-rest";
 
-const API_URL = "http://localhost:8000/api/v1";
+const isServer = typeof window === "undefined";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
+
+const mockDataProvider = {
+  getList: () => Promise.resolve({ data: [], total: 0 }),
+  getOne: () => Promise.resolve({ data: {} }),
+  create: () => Promise.resolve({ data: {} }),
+  update: () => Promise.resolve({ data: {} }),
+  deleteOne: () => Promise.resolve({ data: {} }),
+  custom: () => Promise.resolve({ data: {} }),
+  getApiUrl: () => API_URL,
+} as any;
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  const activeDataProvider = isServer ? mockDataProvider : dataProvider(API_URL);
+
   return (
     <Refine
       routerProvider={routerProvider}
-      dataProvider={dataProvider(API_URL)}
+      dataProvider={activeDataProvider}
       resources={[
         {
           name: "workflows",
@@ -80,9 +93,44 @@ export function Providers({ children }: { children: React.ReactNode }) {
           meta: { label: "Doğrulayıcı Ağı" },
         },
         {
+          name: "governance-lineage",
+          list: "/governance-lineage",
+          meta: { label: "Karar Soyağacı" },
+        },
+        {
+          name: "compliance",
+          list: "/compliance",
+          meta: { label: "Uyum ve Denetim" },
+        },
+        {
+          name: "policy-proposals",
+          list: "/policy-proposals",
+          meta: { label: "Anayasa Teklifleri" },
+        },
+        {
+          name: "training",
+          list: "/training",
+          meta: { label: "Tatbikat Merkezi" },
+        },
+        {
           name: "self-tuning",
           list: "/self-tuning",
           meta: { label: "Ayar Konsolu" },
+        },
+        {
+          name: "audit-bundles",
+          list: "/compliance/audit-bundles",
+          meta: { label: "Denetim Paketleri" },
+        },
+        {
+          name: "handover-status",
+          list: "/ops/handover-status",
+          meta: { label: "Rollout Merkezi" },
+        },
+        {
+          name: "launch-gates",
+          list: "/ops/launch-gates",
+          meta: { label: "Lansman Kapıları" },
         },
       ]}
       options={{

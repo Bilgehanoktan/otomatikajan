@@ -33,6 +33,7 @@ class TaskComplexity(str, Enum):
     MEDIUM   = "medium"    # Test yazımı, standart API, refactor
     HIGH     = "high"      # Mimari karar, bug analizi, güvenlik
     CRITICAL = "critical"  # Self-repair, güvenlik açığı, race condition
+    REASONING = "reasoning" # Phase 30: Derin teşhis ve düşünme gerektiren işler
 
 
 # ── Model Katalog ────────────────────────────────────────────
@@ -43,18 +44,21 @@ _MODEL_MAP: dict[str, dict[TaskComplexity, str]] = {
         TaskComplexity.MEDIUM:   "gpt-4o-mini",
         TaskComplexity.HIGH:     "gpt-4o",
         TaskComplexity.CRITICAL: "gpt-4o",
+        TaskComplexity.REASONING: "gpt-5.4-thinking",
     },
     "anthropic": {
         TaskComplexity.LOW:      "claude-3-5-haiku-20241022",
         TaskComplexity.MEDIUM:   "claude-3-5-haiku-20241022",
         TaskComplexity.HIGH:     "claude-3-5-sonnet-20241022",
         TaskComplexity.CRITICAL: "claude-3-5-sonnet-20241022",
+        TaskComplexity.REASONING: "claude-3-7-sonnet-reasoning",
     },
     "gemini": {
-        TaskComplexity.LOW:      "gemini-2.0-flash",
-        TaskComplexity.MEDIUM:   "gemini-2.0-flash",
-        TaskComplexity.HIGH:     "gemini-2.0-flash",
-        TaskComplexity.CRITICAL: "gemini-2.0-flash",
+        TaskComplexity.LOW:      "gemini-1.5-flash",
+        TaskComplexity.MEDIUM:   "gemini-1.5-pro",
+        TaskComplexity.HIGH:     "gemini-1.5-pro",
+        TaskComplexity.CRITICAL: "gemini-1.5-pro",
+        TaskComplexity.REASONING: "gemini-1.5-pro", # Default to Pro if no specific reasoning model listed
     },
     "nvidia": {
         TaskComplexity.LOW:      "qwen/qwen3.5-397b-a17b",
@@ -148,6 +152,12 @@ class ModelRouter:
     def __init__(self, default_provider: str = "anthropic"):
         self.default_provider = default_provider
         self._routing_log: list[dict] = []
+        self.REASONING_MODELS = ["gpt-5.4-thinking", "claude-3-7-sonnet-reasoning", "o3-mini-high"]
+
+    async def check_context_window(self, model: str, prompt_tokens: int) -> bool:
+        """Tanılama sırasında bağlam penceresi aşımını kontrol eder."""
+        limit = 200000 if any(kw in model for kw in ["thinking", "reasoning", "o3"]) else 128000
+        return prompt_tokens < limit
 
     def route(
         self,
@@ -256,6 +266,10 @@ class ModelRouter:
 
     def _select_provider(self, complexity: TaskComplexity, role: str) -> str:
         """Complexity ve role göre en uygun sağlayıcıyı seç."""
+        # Reasoning -> OpenAI Thinking or Anthropic Reasoning
+        if complexity == TaskComplexity.REASONING:
+            return "openai" # gpt-5.4-thinking is top-tier
+
         # Critical / High -> NVIDIA (CHAMPION) > Anthropic öncelikli
         if complexity in (TaskComplexity.CRITICAL, TaskComplexity.HIGH):
             return "nvidia" # New champion model
@@ -276,6 +290,7 @@ class ModelRouter:
             TaskComplexity.MEDIUM:   0.25,
             TaskComplexity.HIGH:     1.0,
             TaskComplexity.CRITICAL: 1.5,
+            TaskComplexity.REASONING: 2.0,
         }[complexity]
 
     @staticmethod

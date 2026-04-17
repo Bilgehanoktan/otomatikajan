@@ -20,13 +20,18 @@ import QuorumHealthPanel from "../../components/chaos/QuorumHealthPanel";
 import FailoverTimeline from "../../components/chaos/FailoverTimeline";
 import OperatorConsole from "../../components/chaos/OperatorConsole";
 
-const API_BASE = "http://localhost:8000/api/v1";
+const API_BASE = "/api/v1";
 
 export default function MeshHub() {
+  const [isClient, setIsClient] = useState(false);
   const [meshData, setMeshData] = useState<any>(null);
   const [timeline, setTimeline] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [interceptActive, setInterceptActive] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const fetchMeshState = async () => {
     try {

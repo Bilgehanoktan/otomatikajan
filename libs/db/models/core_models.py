@@ -23,21 +23,7 @@ except ImportError:
     Vector = None
     _VECTOR_AVAILABLE = False
 
-# Cross-DB JSON Compatibility (SRE Fallback)
-from sqlalchemy import JSON as SA_JSON
-from sqlalchemy.dialects.postgresql import JSONB as PG_JSONB
-
-def SmartJSON():
-    """Postgres'te JSONB, diğerlerinde (SQLite) JSON döner."""
-    return PG_JSONB().with_variant(SA_JSON(), "sqlite")
-
-
-def utcnow():
-    return datetime.now(timezone.utc)
-
-
-class Base(DeclarativeBase):
-    pass
+from libs.db.base import Base, utcnow, SmartJSON, GUID
 
 
 # ── Kullanıcılar ─────────────────────────────────────────

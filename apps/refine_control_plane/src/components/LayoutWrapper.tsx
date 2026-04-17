@@ -14,9 +14,13 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
     const { query: { data } } = useCustom({
         url: `${apiUrl}/workflows/stats/summary`,
         method: "get",
+        queryOptions: {
+            staleTime: 30000, // 30 seconds
+            refetchOnWindowFocus: false,
+        }
     });
 
-    const isCrisis = ((data?.data as any)?.health || 100) < 70;
+    const isCrisis = ((data?.data as any)?.success_rate_pct || 100) < 70;
     
     React.useEffect(() => {
         setMounted(true);

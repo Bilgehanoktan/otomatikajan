@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useList } from "@refinedev/core";
 import { 
   FileText, 
@@ -15,10 +16,18 @@ import {
 } from "lucide-react";
 
 export default function AuditPage() {
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => setIsClient(true), []);
+
   const { query: { data: improvementsData, isLoading: isImprovementsLoading } } = useList({
     resource: "improvements",
-    sorters: [{ field: "created_at", order: "desc" }]
+    sorters: [{ field: "created_at", order: "desc" }],
+    queryOptions: {
+      enabled: isClient
+    }
   });
+
+  if (!isClient) return <div className="min-h-screen bg-[#0b0c10]" />;
 
   const improvements = improvementsData?.data ?? [];
 

@@ -1,9 +1,13 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useList, useUpdate } from "@refinedev/core";
 import { CheckSquare, XSquare, Cpu, Clock, AlertCircle } from "lucide-react";
 
 export default function ApprovalsPage() {
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => setIsClient(true), []);
+
   const { query: { data, isLoading, isError, refetch } } = useList({
     resource: "approvals",
     filters: [
@@ -13,9 +17,13 @@ export default function ApprovalsPage() {
         value: "pending",
       },
     ],
+    queryOptions: {
+      enabled: isClient
+    }
   });
 
   const { mutate: updateApproval } = useUpdate();
+  if (!isClient) return <div className="min-h-screen bg-[#0b0c10]" />;
 
   const handleDecision = (id: string, status: "approved" | "rejected") => {
     updateApproval({

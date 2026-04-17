@@ -113,7 +113,13 @@ class UnifiedGalacticCortex:
             stmt = stmt.where(Memory.category == category)
         
         res = await db.execute(stmt.limit(limit))
-        return [{"id": str(m.id), "agent_id": m.agent_id, "body": m.body, "category": m.category, "importance": m.importance, "created_at": m.created_at.isoformat()} for m in res.scalars().all()]
+        return [{"id": str(m.id), "agent_id": m.agent_id, "body": m.body, "category": m.category, "importance": m.importance, "created_at": m.created_at.isoformat(), "metadata": m.metadata_} for m in res.scalars().all()]
+
+    async def get_negative_patterns(self, db: AsyncSession, limit: int = 20) -> List[Dict[str, Any]]:
+        """Negatif örüntüleri (hataları) döner."""
+        stmt = select(Memory).where(Memory.category == "negative_lesson").order_by(desc(Memory.created_at))
+        res = await db.execute(stmt.limit(limit))
+        return [{"id": str(m.id), "body": m.body, "metadata": m.metadata_} for m in res.scalars().all()]
 
 
 # Singleton

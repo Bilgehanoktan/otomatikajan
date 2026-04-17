@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Egemen YAZ | Mission Control — Backend Core Engine</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --teal: #66fcf1;
+            --teal-dim: #45a29e;
+            --bg-deep: #050810;
+            --bg-panel: rgba(10, 14, 24, 0.85);
+            --bg-card: rgba(15, 20, 35, 0.7);
+            --border: rgba(102, 252, 241, 0.08);
+            --border-bright: rgba(102, 252, 241, 0.25);
+            --text-dim: #4a5568;
+            --text-mid: #718096;
+            --text-body: #a0aec0;
+            --text-bright: #e2e8f0;
+            --red: #fc6675;
+            --green: #48bb78;
+            --amber: #f6ad55;
+            --purple: #b794f4;
+        }
+
+        html, body { height: 100%; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-deep);
+            color: var(--text-body);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* ── BACKGROUND ─────────────────────────────── */
+        .bg-grid {
+            position: fixed; inset: 0; z-index: 0;
+            background-image:
+                linear-gradient(rgba(102,252,241,0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(102,252,241,0.025) 1px, transparent 1px);
+            background-size: 48px 48px;
+            pointer-events: none;
+        }
+        .bg-glow-1 {
+            position: fixed; top: -20%; left: -10%;
+            width: 60vw; height: 60vw; border-radius: 50%;
+            background: radial-gradient(circle, rgba(102,252,241,0.04) 0%, transparent 70%);
+            pointer-events: none; z-index: 0;
+        }
+        .bg-glow-2 {
+            position: fixed; bottom: -20%; right: -10%;
+            width: 50vw; height: 50vw; border-radius: 50%;
+            background: radial-gradient(circle, rgba(69,162,158,0.04) 0%, transparent 70%);
+            pointer-events: none; z-index: 0;
+        }
+
+        /* ── LAYOUT ─────────────────────────────────── */
+        .layout { max-width: 1400px; margin: 0 auto; padding: 0 28px 60px; position: relative; z-index: 1; }
+
+        /* ── TOPBAR ─────────────────────────────────── */
+        .topbar {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 28px;
+            background: rgba(5,8,16,0.95);
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 100;
+            backdrop-filter: blur(20px);
+        }
+        .topbar-left { display: flex; align-items: center; gap: 10px; }
+        .topbar-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 8px var(--teal); animation: breathe 2s ease-in-out infinite; }
+        .topbar-label { font-size: 10px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--teal-dim); font-family: 'JetBrains Mono', monospace; }
+        .topbar-time { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--text-dim); }
+        .topbar-right { display: flex; gap: 8px; align-items: center; }
+        .topbar-link {
+            font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+            padding: 6px 14px; border-radius: 6px; text-decoration: none; transition: all 0.2s;
+            border: 1px solid var(--border); color: var(--text-body);
+        }
+        .topbar-link:hover { border-color: var(--border-bright); color: var(--teal); background: rgba(102,252,241,0.05); }
+        .topbar-link.primary { border-color: var(--border-bright); color: var(--teal); }
+
+        /* ── HERO IDENTITY BLOCK ────────────────────── */
+        .hero {
+            padding: 56px 0 40px;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 40px;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 40px;
+        }
+        .hero-engine-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(102,252,241,0.06); border: 1px solid var(--border-bright);
+            border-radius: 999px; padding: 4px 12px 4px 8px;
+            font-size: 10px; font-weight: 700; color: var(--teal);
+            letter-spacing: 0.15em; text-transform: uppercase;
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 16px;
+        }
+        .hero-engine-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: breathe 1.5s ease-in-out infinite; }
+        .hero-title {
+            font-size: clamp(32px, 5vw, 60px);
+            font-weight: 900; line-height: 1; letter-spacing: -0.03em;
+            color: #fff; text-transform: uppercase;
+        }
+        .hero-title span { color: var(--teal); }
+        .hero-subtitle {
+            margin-top: 10px; font-size: 13px; color: var(--text-mid);
+            letter-spacing: 0.05em;
+        }
+        .hero-meta {
+            display: flex; gap: 24px; margin-top: 20px; flex-wrap: wrap;
+        }
+        .hero-meta-item { display: flex; align-items: center; gap: 8px; }
+        .hero-meta-key {
+            font-size: 9px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase;
+            color: var(--text-dim); font-family: 'JetBrains Mono', monospace;
+        }
+        .hero-meta-val {
+            font-size: 11px; font-weight: 600; color: var(--text-bright);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .hero-meta-val.live { color: var(--green); }
+        .hero-meta-val.warn { color: var(--amber); }
+
+        /* Sağ taraf: bağlantı durumu kutusu */
+        .conn-box {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 16px; padding: 24px 28px;
+            min-width: 220px; text-align: center;
+        }
+        .conn-status-ring {
+            width: 64px; height: 64px; border-radius: 50%;
+            border: 2px solid rgba(102,252,241,0.15);
+            box-shadow: 0 0 0 8px rgba(102,252,241,0.04), 0 0 30px rgba(102,252,241,0.1);
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 12px; background: rgba(102,252,241,0.06);
+        }
+        .conn-status-ring svg { width: 28px; height: 28px; stroke: var(--teal); fill: none; stroke-width: 1.5; }
+        .conn-label { font-size: 18px; font-weight: 900; color: #fff; letter-spacing: -0.02em; }
+        .conn-sub { font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
+        .conn-latency { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--teal); margin-top: 10px; }
+
+        /* ── METRIC STRIP ───────────────────────────── */
+        .metric-strip {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+        .metric-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 12px; padding: 18px 20px;
+            transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s;
+        }
+        .metric-card:hover { border-color: var(--border-bright); box-shadow: 0 0 20px rgba(102,252,241,0.06); transform: translateY(-1px); }
+        .metric-card.hero {
+            grid-column: span 1;
+            padding: 24px 28px;
+            border-color: rgba(102,252,241,0.12);
+            background: linear-gradient(135deg, rgba(102,252,241,0.04) 0%, var(--bg-card) 100%);
+        }
+        .metric-label {
+            font-size: 9px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase;
+            color: var(--text-dim); margin-bottom: 8px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .metric-value { font-size: 28px; font-weight: 900; color: #fff; line-height: 1; transition: color 0.5s; }
+        .metric-card.hero .metric-value { font-size: 40px; }
+        .metric-value.teal { color: var(--teal); }
+        .metric-value.green { color: var(--green); }
+        .metric-value.red { color: var(--red); }
+        .metric-value.amber { color: var(--amber); }
+        .metric-sub { font-size: 10px; color: var(--text-dim); margin-top: 4px; font-family: 'JetBrains Mono', monospace; transition: color 0.5s; }
+        .metric-bar { height: 3px; background: rgba(255,255,255,0.05); border-radius: 99px; margin-top: 12px; overflow: hidden; }
+        .metric-card.hero .metric-bar { height: 4px; }
+        /* Health ring */
+        .health-ring { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; flex-shrink: 0; }
+        .health-ring svg { width: 48px; height: 48px; transform: rotate(-90deg); }
+        .health-ring circle { fill: none; stroke-width: 3; }
+        .health-ring .ring-bg { stroke: rgba(255,255,255,0.05); }
+        .health-ring .ring-fg { stroke: var(--green); stroke-linecap: round; transition: stroke-dashoffset 1s ease, stroke 0.5s; }
+        .health-ring-val { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: #fff; font-family: 'JetBrains Mono', monospace; }
+        .metric-bar-fill { height: 100%; border-radius: 99px; transition: width 1s ease; }
+
+        /* ── SECTION GRID ───────────────────────────── */
+        .section-grid {
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        @media (max-width: 900px) {
+            .section-grid { grid-template-columns: 1fr; }
+            .hero { grid-template-columns: 1fr; }
+        }
+
+        /* ── PANEL ──────────────────────────────────── */
+        .panel {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 16px; overflow: hidden;
+        }
+        .panel-head {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(5,8,16,0.5);
+        }
+        .panel-title {
+            font-size: 10px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase;
+            color: var(--text-bright); display: flex; align-items: center; gap: 8px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .panel-title-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--teal); }
+        .panel-badge {
+            font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+            padding: 3px 8px; border-radius: 999px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .panel-badge.live { background: rgba(72,187,120,0.1); color: var(--green); border: 1px solid rgba(72,187,120,0.2); }
+        .panel-body { padding: 16px 20px; }
+
+        /* ── TERMINAL / EVENT STREAM ─────────────── */
+        #log-terminal {
+            height: 340px; overflow-y: auto; font-family: 'JetBrains Mono', monospace;
+            font-size: 11px; line-height: 1.7;
+            display: flex; flex-direction: column; gap: 1px;
+            background: rgba(0,0,0,0.2); border-radius: 8px;
+            padding: 8px 0;
+        }
+        #log-terminal::-webkit-scrollbar { width: 4px; }
+        #log-terminal::-webkit-scrollbar-track { background: transparent; }
+        #log-terminal::-webkit-scrollbar-thumb { background: rgba(102,252,241,0.15); border-radius: 99px; }
+        .log-tag-warn { color: var(--amber); }
+        .log-tag-err { color: var(--red); }
+        .log-tag-info { color: var(--teal); }
+        .log-msg { color: var(--text-body); }
+
+        /* ── QUICK NAV ──────────────────────────────── */
+        .quick-nav { display: flex; flex-direction: column; gap: 8px; padding: 16px 20px; }
+        .quick-link {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 14px; border-radius: 10px;
+            background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+            text-decoration: none; transition: all 0.2s; cursor: pointer;
+        }
+        .quick-link:hover { background: rgba(102,252,241,0.05); border-color: var(--border-bright); }
+        .quick-link-left { display: flex; align-items: center; gap: 10px; }
+        .quick-link-icon { width: 28px; height: 28px; border-radius: 7px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .quick-link-name { font-size: 12px; font-weight: 600; color: var(--text-bright); }
+        .quick-link-sub { font-size: 9px; color: var(--text-dim); margin-top: 1px; }
+        .quick-link-arrow { color: var(--text-dim); font-size: 14px; }
+        .quick-link:hover .quick-link-arrow { color: var(--teal); }
+
+        /* ── API ROUTE TABLE ────────────────────────── */
+        .route-table { width: 100%; border-collapse: collapse; }
+        .route-table th {
+            font-size: 9px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase;
+            color: var(--text-dim); text-align: left; padding: 8px 12px;
+            border-bottom: 1px solid var(--border); font-family: 'JetBrains Mono', monospace;
+        }
+        .route-table td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+        .route-table tr:last-child td { border-bottom: none; }
+        .route-table tr:hover td { background: rgba(255,255,255,0.02); }
+        .method { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; display: inline-block; }
+        .method.get { background: rgba(102,252,241,0.08); color: var(--teal); }
+        .method.post { background: rgba(183,148,244,0.1); color: var(--purple); }
+        .method.patch { background: rgba(246,173,85,0.1); color: var(--amber); }
+        .route-path { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--text-body); }
+        .route-desc { font-size: 11px; color: var(--text-dim); }
+
+        /* ── ANIMATIONS ─────────────────────────────── */
+        @keyframes breathe { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+        @keyframes fadeup { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+        .animate-fadeup { animation: fadeup 0.6s ease both; }
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+    </style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-glow-1"></div>
+<div class="bg-glow-2"></div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+    <div class="topbar-left">
+        <div class="topbar-dot"></div>
+        <span class="topbar-label">Egemen YAZ &mdash; Backend Core Engine</span>
+        <span class="topbar-label" style="color:var(--text-dim)">|</span>
+        <span class="topbar-label" style="color:var(--text-dim)">PORT 8000</span>
+    </div>
+    <span id="topbar-time" class="topbar-time">--:--:--</span>
+    <div class="topbar-right">
+        <a href="http://localhost:3100" target="_blank" class="topbar-link primary">Kontrol Paneli →</a>
+        <a href="/docs" class="topbar-link">Swagger</a>
+        <a href="/redoc" class="topbar-link">ReDoc</a>
+    </div>
+</div>
+
+<div class="layout">
+
+    <!-- HERO IDENTITY -->
+    <section class="hero animate-fadeup">
+        <div>
+            <div class="hero-engine-badge">
+                <div class="hero-engine-badge-dot"></div>
+                Backend Core Engine · Aktif
+            </div>
+            <h1 class="hero-title">
+                Mission<br><span>Control</span>
+            </h1>
+            <p class="hero-subtitle">Sovereign AGI — Otonom Yazılım Geliştirme Operasyon Kalbi</p>
+            <div class="hero-meta">
+                <div class="hero-meta-item">
+                    <span class="hero-meta-key">Versiyon</span>
+                    <span class="hero-meta-val">v13.04.1</span>
+                </div>
+                <div class="hero-meta-item">
+                    <span class="hero-meta-key">API</span>
+                    <span class="hero-meta-val">/api/v1</span>
+                </div>
+                <div class="hero-meta-item">
+                    <span class="hero-meta-key">Ortam</span>
+                    <span class="hero-meta-val warn">PILOT ROLLOUT</span>
+                </div>
+                <div class="hero-meta-item">
+                    <span class="hero-meta-key">Bölge</span>
+                    <span class="hero-meta-val">SOV-M-1</span>
+                </div>
+                <div class="hero-meta-item">
+                    <span class="hero-meta-key">Bağlantı</span>
+                    <span class="hero-meta-val live" id="conn-status">KONTROL EDİLİYOR...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="conn-box animate-fadeup delay-2">
+            <div class="conn-status-ring">
+                <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.636 5.636a9 9 0 1012.728 0M12 3v9"/></svg>
+            </div>
+            <div class="conn-label" id="conn-label">ONLINE</div>
+            <div class="conn-sub">Core Engine Bağlantısı</div>
+            <div class="conn-latency" id="conn-latency">Ölçülüyor...</div>
+        </div>
+    </section>
+
+    <!-- KPI BANDI — Faz 2: Önem sırasına göre boyutlandırılmış -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:20px;" class="animate-fadeup delay-1">
+
+        <!-- HERO: Sistem Sağlık Skoru -->
+        <div class="metric-card hero" style="grid-column:span 2;display:flex;align-items:center;gap:24px;">
+            <div class="health-ring" id="health-ring">
+                <svg viewBox="0 0 52 52">
+                    <circle class="ring-bg" cx="26" cy="26" r="22"/>
+                    <circle class="ring-fg" id="health-arc" cx="26" cy="26" r="22" stroke-dasharray="138.23" stroke-dashoffset="138.23"/>
+                </svg>
+                <div class="health-ring-val" id="health-ring-val">—</div>
+            </div>
+            <div style="flex:1;">
+                <div class="metric-label">Sistem Sağlık Skoru</div>
+                <div class="metric-value green" id="m-health" style="font-size:44px;">—</div>
+                <div class="metric-sub" id="m-health-label">Hesaplanıyor...</div>
+            </div>
+        </div>
+
+        <!-- HERO: Aktif Birimler -->
+        <div class="metric-card hero" style="grid-column:span 2;display:flex;align-items:center;gap:24px;">
+            <div style="width:48px;height:48px;border-radius:12px;background:rgba(102,252,241,0.06);border:1px solid rgba(102,252,241,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="24" height="24" fill="none" stroke="var(--teal)" stroke-width="1.5" viewBox="0 0 24 24"><path d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+            </div>
+            <div style="flex:1;">
+                <div class="metric-label">Aktif Ajan / Birimler</div>
+                <div class="metric-value teal" id="m-agents" style="font-size:44px;">—</div>
+                <div class="metric-sub" id="m-agents-sub">Bağlanıyor...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- İKİNCİL KPI SERİSİ -->
+    <div class="metric-strip animate-fadeup delay-1" style="grid-template-columns:repeat(6,1fr);">
+        <div class="metric-card">
+            <div class="metric-label">API Gecikmesi</div>
+            <div class="metric-value teal" id="m-latency">—</div>
+            <div class="metric-sub">ms</div>
+            <div class="metric-bar"><div class="metric-bar-fill" id="mb-latency" style="background:var(--teal);width:0%"></div></div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">DB Durumu</div>
+            <div class="metric-value green" id="m-db">—</div>
+            <div class="metric-sub" id="m-db-sub">Kontrol ediliyor</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Operasyon Maliyeti</div>
+            <div class="metric-value amber" id="m-cost">—</div>
+            <div class="metric-sub" id="m-cost-sub">Bütçe kullanımı</div>
+            <div class="metric-bar"><div class="metric-bar-fill" id="mb-cost" style="background:var(--amber);width:0%"></div></div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Canary Başarısı</div>
+            <div class="metric-value green" id="m-canary">—</div>
+            <div class="metric-sub" id="m-canary-sub">Son 7 gün</div>
+            <div class="metric-bar"><div class="metric-bar-fill" id="mb-canary" style="background:var(--green);width:0%"></div></div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Başarı Oranı</div>
+            <div class="metric-value green" id="m-success">—</div>
+            <div class="metric-sub">Workflow</div>
+            <div class="metric-bar"><div class="metric-bar-fill" id="mb-success" style="background:var(--green);width:0%"></div></div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Aktif İş Akışları</div>
+            <div class="metric-value teal" id="m-running">—</div>
+            <div class="metric-sub" id="m-running-sub">/ <span id="m-total">0</span> toplam</div>
+            <div class="metric-bar"><div class="metric-bar-fill" id="mb-running" style="background:var(--teal);width:0%"></div></div>
+        </div>
+    </div>
+
+    <!-- MAIN SECTION -->
+    <div class="section-grid animate-fadeup delay-2">
+
+        <!-- LIVE EVENT STREAM -->
+        <div class="panel">
+            <div class="panel-head" style="flex-wrap:wrap;gap:8px;">
+                <div class="panel-title">
+                    <div class="panel-title-dot" style="animation:breathe 1.5s ease-in-out infinite"></div>
+                    Live Event Stream
+                </div>
+                <div class="ev-filters">
+                    <button class="ev-filter-btn active" data-filter="all" onclick="setEventFilter('all',this)">Tümü</button>
+                    <button class="ev-filter-btn" data-filter="alert" onclick="setEventFilter('alert',this)">Alert</button>
+                    <button class="ev-filter-btn" data-filter="failover" onclick="setEventFilter('failover',this)">Failover</button>
+                    <button class="ev-filter-btn" data-filter="repair" onclick="setEventFilter('repair',this)">Repair</button>
+                    <button class="ev-filter-btn" data-filter="budget" onclick="setEventFilter('budget',this)">Budget</button>
+                    <button class="ev-filter-btn" data-filter="quorum" onclick="setEventFilter('quorum',this)">Quorum</button>
+                    <button class="ev-filter-btn" data-filter="governance" onclick="setEventFilter('governance',this)">Governance</button>
+                    <button class="ev-filter-btn" data-filter="workflow" onclick="setEventFilter('workflow',this)">Workflow</button>
+                    <span class="ev-ws-badge ws-off" id="ws-badge">POLLING</span>
+                </div>
+            </div>
+            <div class="panel-body" style="padding:8px 12px;">
+                <div id="log-terminal"></div>
+            </div>
+        </div>
+
+        <!-- SAĞ KOLON -->
+        <div style="display:flex;flex-direction:column;gap:20px;">
+
+            <!-- HIZLI ERİŞİM -->
+            <div class="panel">
+                <div class="panel-head">
+                    <div class="panel-title"><div class="panel-title-dot"></div>Hızlı Erişim</div>
+                </div>
+                <div class="quick-nav">
+                    <a href="http://localhost:3100" target="_blank" class="quick-link">
+                        <div class="quick-link-left">
+                            <div class="quick-link-icon" style="background:rgba(102,252,241,0.08)">
+                                <svg width="14" height="14" fill="none" stroke="var(--teal)" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                            </div>
+                            <div>
+                                <div class="quick-link-name">Kontrol Paneli</div>
+                                <div class="quick-link-sub">localhost:3100 · Refine UI</div>
+                            </div>
+                        </div>
+                        <span class="quick-link-arrow">→</span>
+                    </a>
+                    <a href="/docs" class="quick-link">
+                        <div class="quick-link-left">
+                            <div class="quick-link-icon" style="background:rgba(183,148,244,0.08)">
+                                <svg width="14" height="14" fill="none" stroke="var(--purple)" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            </div>
+                            <div>
+                                <div class="quick-link-name">Swagger API Docs</div>
+                                <div class="quick-link-sub">OpenAPI · Tüm endpoint'ler</div>
+                            </div>
+                        </div>
+                        <span class="quick-link-arrow">→</span>
+                    </a>
+                    <a href="/api/v1/workflows" class="quick-link">
+                        <div class="quick-link-left">
+                            <div class="quick-link-icon" style="background:rgba(246,173,85,0.08)">
+                                <svg width="14" height="14" fill="none" stroke="var(--amber)" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h8m-8 6h16"/></svg>
+                            </div>
+                            <div>
+                                <div class="quick-link-name">Workflow Listesi</div>
+                                <div class="quick-link-sub">GET /api/v1/workflows</div>
+                            </div>
+                        </div>
+                        <span class="quick-link-arrow">→</span>
+                    </a>
+                    <a href="/health" class="quick-link">
+                        <div class="quick-link-left">
+                            <div class="quick-link-icon" style="background:rgba(72,187,120,0.08)">
+                                <svg width="14" height="14" fill="none" stroke="var(--green)" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            </div>
+                            <div>
+                                <div class="quick-link-name">Sağlık Kontrolü</div>
+                                <div class="quick-link-sub">GET /health</div>
+                            </div>
+                        </div>
+                        <span class="quick-link-arrow">→</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- SİSTEM BİLGİSİ -->
+            <div class="panel">
+                <div class="panel-head">
+                    <div class="panel-title"><div class="panel-title-dot"></div>Sistem Kimliği</div>
+                </div>
+                <div class="panel-body" style="font-family:'JetBrains Mono',monospace;font-size:10px;line-height:2;color:var(--text-dim);">
+                    <div style="display:flex;justify-content:space-between;"><span>ENGINE</span><span style="color:var(--text-bright)">Egemen YAZ Core</span></div>
+                    <div style="display:flex;justify-content:space-between;"><span>BUILD</span><span style="color:var(--text-bright)">v13.04.1-f30</span></div>
+                    <div style="display:flex;justify-content:space-between;"><span>FRAMEWORK</span><span style="color:var(--text-bright)">FastAPI + Async</span></div>
+                    <div style="display:flex;justify-content:space-between;"><span>DB</span><span style="color:var(--text-bright)">PostgreSQL · pgvector</span></div>
+                    <div style="display:flex;justify-content:space-between;"><span>QUEUE</span><span style="color:var(--text-bright)">Celery · Redis</span></div>
+                    <div style="display:flex;justify-content:space-between;"><span>UPTIME</span><span style="color:var(--green)" id="uptime-val">HESAPLANIYOR</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API ROUTES TABLE -->
+    <div class="panel animate-fadeup delay-3">
+        <div class="panel-head">
+            <div class="panel-title"><div class="panel-title-dot"></div>Temel API Yolları</div>
+            <a href="/docs" style="font-size:10px;color:var(--teal);text-decoration:none;font-family:'JetBrains Mono',monospace;">Tümünü Swagger'da gör →</a>
+        </div>
+        <div style="overflow-x:auto;">
+            <table class="route-table">
+                <tr>
+                    <th>Yöntem</th>
+                    <th>Yol</th>
+                    <th>Açıklama</th>
+                </tr>
+                <tr>
+                    <td><span class="method get">GET</span></td>
+                    <td class="route-path">/api/v1/workflows</td>
+                    <td class="route-desc">Tüm iş akışlarını listele</td>
+                </tr>
+                <tr>
+                    <td><span class="method post">POST</span></td>
+                    <td class="route-path">/api/v1/workflows</td>
+                    <td class="route-desc">Yeni iş akışı başlat</td>
+                </tr>
+                <tr>
+                    <td><span class="method get">GET</span></td>
+                    <td class="route-path">/api/v1/workflows/stats/summary</td>
+                    <td class="route-desc">Toplu metrikler (başarı oranı, aktif, hata)</td>
+                </tr>
+                <tr>
+                    <td><span class="method get">GET</span></td>
+                    <td class="route-path">/api/v1/approvals</td>
+                    <td class="route-desc">Onay bekleyen işlemler</td>
+                </tr>
+                <tr>
+                    <td><span class="method patch">PATCH</span></td>
+                    <td class="route-path">/api/v1/approvals/:id</td>
+                    <td class="route-desc">Onay / red işlemi yap</td>
+                </tr>
+                <tr>
+                    <td><span class="method get">GET</span></td>
+                    <td class="route-path">/api/v1/incidents</td>
+                    <td class="route-desc">Operasyonel olaylar</td>
+                </tr>
+                <tr>
+                    <td><span class="method get">GET</span></td>
+                    <td class="route-path">/api/v1/fleet/projects</td>
+                    <td class="route-desc">Filo operasyonları</td>
+                </tr>
+                <tr>
+                    <td><span class="method get">GET</span></td>
+                    <td class="route-path">/health</td>
+                    <td class="route-desc">Sistem sağlık kontrolü</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+</div><!-- /layout -->
+
+<script>
+    // ── SAAT ───────────────────────────────────────────────
+    const startTime = Date.now();
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('topbar-time').textContent =
+            now.toLocaleTimeString('tr-TR', { hour12: false });
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const h = Math.floor(elapsed / 3600).toString().padStart(2, '0');
+        const m = Math.floor((elapsed % 3600) / 60).toString().padStart(2, '0');
+        const s = (elapsed % 60).toString().padStart(2, '0');
+        const el = document.getElementById('uptime-val');
+        if (el) el.textContent = `${h}:${m}:${s}`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // ── YARDIMCI ──────────────────────────────────────────
+    function setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+    function setBar(id, pct) { const el = document.getElementById(id); if (el) el.style.width = Math.min(pct, 100) + '%'; }
+    function setColor(id, clr) { const el = document.getElementById(id); if (el) el.style.color = clr; }
+
+    // ── HEALTH RING ─────────────────────────────────────
+    const CIRC = 2 * Math.PI * 22;
+    function updateHealthRing(score) {
+        const arc = document.getElementById('health-arc');
+        const val = document.getElementById('health-ring-val');
+        if (!arc) return;
+        const offset = CIRC - (score / 100) * CIRC;
+        arc.style.strokeDashoffset = offset;
+        if (score >= 80) arc.style.stroke = 'var(--green)';
+        else if (score >= 60) arc.style.stroke = 'var(--amber)';
+        else arc.style.stroke = 'var(--red)';
+        if (val) val.textContent = Math.round(score);
+    }
+
+    // ───────────────────────────────────────────────────────
+    // FAZ 3: LIVE EVENT STREAM
+    // ───────────────────────────────────────────────────────
+    let activeFilter = 'all';    // kategori filtresi
+    let lastSeq = 0;             // polling için son görülen seq
+    let wsConnected = false;     // WebSocket bağlı mı?
+    let eventWs = null;          // WebSocket referansı
+    const seenSeqs = new Set();  // çift olayı engelleme
+
+    // Kategori ikonları (SVG inline)
+    const CAT_ICONS = {
+        alert:      '⚠',
+        failover:   '⚡',
+        repair:     '🔧',
+        budget:     '💰',
+        quorum:     '🗳',
+        governance: '🏦',
+        workflow:   '⚙',
+    };
+
+    function setEventFilter(filter, btn) {
+        activeFilter = filter;
+        // Toggle active class
+        document.querySelectorAll('.ev-filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        // Re-filter visible lines
+        document.querySelectorAll('.ev-line').forEach(line => {
+            if (filter === 'all' || line.dataset.cat === filter) {
+                line.style.display = '';
+            } else {
+                line.style.display = 'none';
+            }
+        });
+    }
+
+    function renderEvent(ev) {
+        if (seenSeqs.has(ev.seq)) return;
+        seenSeqs.add(ev.seq);
+        if (seenSeqs.size > 300) {
+            const oldest = [...seenSeqs].slice(0, 100);
+            oldest.forEach(s => seenSeqs.delete(s));
+        }
+
+        const terminal = document.getElementById('log-terminal');
+        if (!terminal) return;
+
+        const line = document.createElement('div');
+        line.className = `ev-line sev-${ev.severity}`;
+        line.dataset.cat = ev.category;
+
+        // Filtre kontrolu
+        if (activeFilter !== 'all' && ev.category !== activeFilter) {
+            line.style.display = 'none';
+        }
+
+        const ts = ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString('tr-TR', { hour12: false }) : '--:--:--';
+        const sevClass = `s-${ev.severity}`;
+        const msgClass = ev.severity === 'critical' ? 'crit-msg' : ev.severity === 'warning' ? 'warn-msg' : '';
+        const catIcon = CAT_ICONS[ev.category] || '•';
+
+        line.innerHTML = `
+            <span class="ev-ts">${ts}</span>
+            <span class="ev-sev ${sevClass}">${ev.severity === 'critical' ? 'CRIT' : ev.severity === 'warning' ? 'WARN' : 'INFO'}</span>
+            <span class="ev-cat" title="${ev.category}">${catIcon} ${ev.category}</span>
+            <span class="ev-msg ${msgClass}">${ev.message || ev.type}</span>
+        `;
+        terminal.appendChild(line);
+        requestAnimationFrame(() => line.classList.add('show'));
+        terminal.scrollTop = terminal.scrollHeight;
+
+        // Max 120 satır tut
+        while (terminal.children.length > 120) {
+            terminal.removeChild(terminal.firstChild);
+        }
+
+        // seq takip
+        if (ev.seq > lastSeq) lastSeq = ev.seq;
+    }
+
+    // ── WebSocket bağlantısı ─────────────────────────────
+    function connectEventWs() {
+        try {
+            const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            eventWs = new WebSocket(`${proto}//${location.host}/ws/events`);
+
+            eventWs.onopen = () => {
+                wsConnected = true;
+                const badge = document.getElementById('ws-badge');
+                if (badge) {
+                    badge.textContent = 'WS CANLI';
+                    badge.className = 'ev-ws-badge ws-on';
+                }
+                renderEvent({
+                    seq: -1, timestamp: new Date().toISOString(),
+                    severity: 'info', category: 'alert', type: 'SYSTEM_INFO',
+                    message: 'WebSocket bağlantısı kuruldu — canlı akış aktif'
+                });
+            };
+
+            eventWs.onmessage = (e) => {
+                try {
+                    const ev = JSON.parse(e.data);
+                    renderEvent(ev);
+                } catch {}
+            };
+
+            eventWs.onclose = () => {
+                wsConnected = false;
+                const badge = document.getElementById('ws-badge');
+                if (badge) {
+                    badge.textContent = 'POLLING';
+                    badge.className = 'ev-ws-badge ws-off';
+                }
+                // Yeniden bağlanma — 5sn sonra
+                setTimeout(connectEventWs, 5000);
+            };
+
+            eventWs.onerror = () => {
+                wsConnected = false;
+                eventWs.close();
+            };
+        } catch {
+            wsConnected = false;
+            setTimeout(connectEventWs, 5000);
+        }
+    }
+
+    // ── Polling fallback ────────────────────────────────
+    async function pollEvents() {
+        if (wsConnected) return; // WS aktifse polling gereksiz
+        try {
+            const res = await fetch(`/api/v1/events/stream?since_seq=${lastSeq}&limit=30`);
+            if (!res.ok) return;
+            const data = await res.json();
+            (data.events || []).forEach(ev => renderEvent(ev));
+        } catch {}
+    }
+
+    // ── Birleşik KPI polling (değişmedi) ────────────────
+    let pollCount = 0;
+    async function pollDashboard() {
+        const t0 = performance.now();
+        try {
+            const res = await fetch('/api/v1/health/dashboard');
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const d = await res.json();
+            const clientLatency = Math.round(performance.now() - t0);
+            pollCount++;
+
+            const hs = d.health_score ?? 0;
+            const hl = d.health_label || 'unknown';
+            setText('m-health', hs + '%');
+            updateHealthRing(hs);
+            const hlColor = hs >= 80 ? 'var(--green)' : hs >= 60 ? 'var(--amber)' : 'var(--red)';
+            setColor('m-health', hlColor);
+            const labelMap = { healthy: 'SAĞLIKLI', degraded: 'BOZULMUŞ', critical: 'KRİTİK' };
+            setText('m-health-label', labelMap[hl] || hl.toUpperCase());
+            setColor('m-health-label', hlColor);
+
+            const agents = d.active_agents ?? 0;
+            setText('m-agents', agents);
+            setText('m-agents-sub', agents > 0 ? 'Çalışıyor' : 'Bekleniyor');
+            setColor('m-agents-sub', agents > 0 ? 'var(--green)' : 'var(--text-dim)');
+
+            const apiLat = d.api_latency_ms ?? clientLatency;
+            setText('m-latency', apiLat);
+            setBar('mb-latency', Math.min(apiLat / 500 * 100, 100));
+            setColor('m-latency', apiLat < 100 ? 'var(--green)' : apiLat < 300 ? 'var(--amber)' : 'var(--red)');
+
+            const dbOk = d.db_status === 'connected';
+            setText('m-db', dbOk ? 'BAĞLI' : 'KESİK');
+            setColor('m-db', dbOk ? 'var(--green)' : 'var(--red)');
+            setText('m-db-sub', dbOk ? 'PostgreSQL · pgvector' : 'Bağlantı hatası');
+
+            const cost = d.cost || {};
+            const costPct = cost.budget_used_pct ?? 0;
+            setText('m-cost', '$' + (cost.total_usd ?? 0).toFixed(2));
+            setText('m-cost-sub', '%' + costPct.toFixed(0) + ' / $' + (cost.budget_usd ?? 100));
+            setBar('mb-cost', costPct);
+            const costColor = costPct < 70 ? 'var(--green)' : costPct < 90 ? 'var(--amber)' : 'var(--red)';
+            setColor('m-cost', costColor);
+            const costBarEl = document.getElementById('mb-cost');
+            if (costBarEl) costBarEl.style.background = costColor;
+
+            const canary = d.canary || {};
+            const canaryRate = canary.success_rate ?? 0;
+            setText('m-canary', canaryRate + '%');
+            setText('m-canary-sub', `${canary.promoted ?? 0} başarılı / ${canary.total_patches_7d ?? 0} toplam`);
+            setBar('mb-canary', canaryRate);
+            const canaryColor = canaryRate >= 80 ? 'var(--green)' : canaryRate >= 50 ? 'var(--amber)' : 'var(--red)';
+            setColor('m-canary', canaryColor);
+            const canaryBarEl = document.getElementById('mb-canary');
+            if (canaryBarEl) canaryBarEl.style.background = canaryColor;
+
+            const wf = d.workflows || {};
+            const total = wf.total || 0;
+            setText('m-running', wf.running ?? 0);
+            setText('m-total', total);
+            setText('m-running-sub', `/ ${total} toplam`);
+            setBar('mb-running', total ? (wf.running / total * 100) : 0);
+
+            const suc = wf.success_rate_pct ?? 0;
+            setText('m-success', suc + '%');
+            setBar('mb-success', suc);
+            setColor('m-success', suc >= 80 ? 'var(--green)' : suc >= 50 ? 'var(--amber)' : 'var(--red)');
+
+            setText('conn-status', 'BAĞLI');
+            setColor('conn-status', 'var(--green)');
+            setText('conn-label', 'ONLINE');
+            setColor('conn-label', '#fff');
+            setText('conn-latency', `Gecikme: ${apiLat}ms (poll #${pollCount})`);
+
+        } catch (e) {
+            setText('conn-status', 'KESİLDİ');
+            setColor('conn-status', 'var(--red)');
+            setText('conn-label', 'OFFLINE');
+            setColor('conn-label', 'var(--red)');
+            setText('conn-latency', 'Bağlantı yok');
+            updateHealthRing(0);
+        }
+    }
+
+    // ── BOOTSTRAP ─────────────────────────────────────────
+
+    // Başlangıç olayları
+    renderEvent({ seq: 0, timestamp: new Date().toISOString(), severity: 'info', category: 'alert', type: 'SYSTEM_INFO', message: 'Mission Control başlatıldı — Event Stream aktif' });
+    renderEvent({ seq: 0, timestamp: new Date().toISOString(), severity: 'info', category: 'workflow', type: 'SYSTEM_INFO', message: 'Port 8000 iç ağına bağlandı' });
+
+    // WebSocket bağlantısını başlat
+    connectEventWs();
+
+    // KPI polling
+    pollDashboard();
+    setInterval(pollDashboard, 8000);
+
+    // Event polling fallback (WS yoksa 4sn'de bir)
+    setInterval(pollEvents, 4000);
+</script>
+</body>
+</html>

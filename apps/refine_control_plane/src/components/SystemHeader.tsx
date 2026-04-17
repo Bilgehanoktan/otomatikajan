@@ -16,9 +16,17 @@ const SystemHeaderContent = () => {
     const { query: { data } } = useCustom({
         url: `${apiUrl}/workflows/stats/summary`,
         method: "get",
+        queryOptions: {
+            staleTime: 30000,
+            refetchOnWindowFocus: false,
+        }
     });
 
     const stats = data?.data as any;
+    const running = stats?.running || 0;
+    const pending = stats?.pending || 0;
+    const failed = stats?.failed || 0;
+    const successRate = stats?.success_rate_pct || 100;
     const isCrisisMode = (stats?.health || 100) < 70;
 
     return (
@@ -48,26 +56,24 @@ const SystemHeaderContent = () => {
                     <div className="flex items-center gap-2">
                         <Activity size={14} className={isCrisisMode ? "text-red-500" : "text-[#66fcf1]"} />
                         <div className="flex flex-col">
-                            <span className="text-[10px] text-gray-500 leading-none">ACTIVE JOBS</span>
-                            <span className={`text-xs font-bold ${isCrisisMode ? "text-red-400" : "text-white"}`}>{stats?.running || 0}</span>
+                            <span className="text-[10px] text-gray-400 uppercase tracking-tighter font-semibold">Aktif İşler</span>
+                            <div className="text-xs font-bold text-white">{running}</div>
                         </div>
                     </div>
                     
-                    {!isCrisisMode && (
-                        <div className="flex items-center gap-2 animate-in slide-in-from-right-4 duration-500">
-                            <ShieldCheck size={14} className="text-green-400" />
-                            <div className="flex flex-col">
-                                <span className="text-[10px] text-gray-500 leading-none">UPTIME</span>
-                                <span className="text-xs font-bold text-white">99.9%</span>
-                            </div>
+                    <div className="flex items-center gap-2">
+                        <ShieldCheck size={14} className="text-green-400" />
+                        <div className="flex flex-col">
+                            <span className="text-[10px] text-gray-400 uppercase tracking-tighter font-semibold">Başarı Oranı</span>
+                            <div className="text-xs font-bold text-white">%{successRate}</div>
                         </div>
-                    )}
+                    </div>
 
                     <div className="flex items-center gap-2">
                         <Cpu size={14} className={isCrisisMode ? "text-red-500" : "text-[#45a29e]"} />
                         <div className="flex flex-col">
-                            <span className="text-[10px] text-gray-500 leading-none">LOAD</span>
-                            <span className={`text-xs font-bold ${isCrisisMode ? "text-red-400" : "text-white"}`}>{stats?.load || "12%"}</span>
+                            <span className="text-[10px] text-gray-400 uppercase tracking-tighter font-semibold">Hatalar</span>
+                            <div className="text-xs font-bold text-red-400">{failed}</div>
                         </div>
                     </div>
                 </div>

@@ -16,7 +16,7 @@ from sqlalchemy import (
     String, Text, Index,
 )
 from sqlalchemy.dialects.postgresql import UUID
-from libs.db.models import Base, SmartJSON
+from libs.db.base import Base, SmartJSON
 
 
 def _utcnow():

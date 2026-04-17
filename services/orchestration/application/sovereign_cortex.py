@@ -389,7 +389,7 @@ class SovereignCortex:
             _log.info("[SOVEREIGN-EVOLUTION] Otonom öz-evrim dögüsü manuel tetiklendi.")
             if self.improvement_coordinator:
                 # 1. Mevcut fırsatları tara
-                opportunities = await improvement_observer.scan()
+                opportunities = await self.improvement_coordinator.observer.scan()
                 if opportunities:
                     # 2. Koordinatör üzerinden işle
                     await self.improvement_coordinator._process_opportunities(opportunities)

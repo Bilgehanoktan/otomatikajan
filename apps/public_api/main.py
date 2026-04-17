@@ -101,45 +101,46 @@ except Exception as _inc_err:
 
 # ── Dashboard & Control Plane (Unified Routing) ───────────
 _dash_legacy = os.path.join(ROOT_DIR, "hub_interaction", "dashboard")
-_dash_modern = os.path.join(ROOT_DIR, "apps", "control_plane")
+_dash_modern = os.path.join(ROOT_DIR, "apps", "refine_control_plane", "out")
 
-# Prioritize Phase 13.04 Control Plane as the primary dashboard
-_active_dash = _dash_modern if os.path.isdir(_dash_modern) else _dash_legacy
+# Prioritize Modern Control Plane
+_active_dash = _dash_modern if os.path.exists(os.path.join(_dash_modern, "index.html")) else _dash_legacy
 
 if os.path.isdir(_active_dash):
-    # Mount the active dashboard directory under /static
+    # 1. Mount the whole directory under /static for general access
     app.mount("/static", StaticFiles(directory=_active_dash), name="static")
     
-    # Also mount under /control-plane/static for internal compatibility if modern
-    if _active_dash == _dash_modern:
-        app.mount("/control-plane/static", StaticFiles(directory=_active_dash), name="control_plane_static")
-        logger.info(f"[DASHBOARD] Modern Control Plane mounted from {_active_dash}")
-    else:
-        logger.info(f"[DASHBOARD] Legacy Dashboard mounted from {_active_dash}")
+    # 2. Specifically mount /_next for Next.js internal assets
+    _next_dir = os.path.join(_active_dash, "_next")
+    if os.path.exists(_next_dir):
+        app.mount("/_next", StaticFiles(directory=_next_dir), name="next_assets")
+        logger.info(f"[DASHBOARD] Next.js assets mounted from {_next_dir}")
 
+    # 3. Handle root level files (favicon, manifest, etc.)
+    @app.get("/{file_path:path}", include_in_schema=False)
+    async def catch_all_static(file_path: str):
+        # Skip if it looks like an API call
+        if file_path.startswith("api/") or file_path.startswith("ws/"):
+            return None # Process via routers
+            
+        full_path = os.path.join(_active_dash, file_path)
+        if os.path.isfile(full_path):
+            return FileResponse(full_path)
+            
+        # Fallback to index.html for SPA routing
+        index_path = os.path.join(_active_dash, "index.html")
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+            
+        return None # Let FastAPI handle other routes (like health)
+
+    logger.info(f"[DASHBOARD] Active Dashboard ({'Modern' if _active_dash == _dash_modern else 'Legacy'}) served from {_active_dash}")
+    
     # Ensure uploads directory exists
     _up = "uploads"
     if not os.path.exists(_up):
         os.makedirs(_up)
     app.mount("/uploads", StaticFiles(directory=_up), name="uploads")
-
-    @app.get("/", include_in_schema=False)
-    @app.get("/control-plane", include_in_schema=False)
-    @app.get("/control-plane/", include_in_schema=False)
-    async def serve_dashboard():
-        index_path = os.path.join(_active_dash, "index.html")
-        if not os.path.exists(index_path):
-            return {"error": "Dashboard index.html not found", "path": index_path}
-            
-        return FileResponse(
-            index_path,
-            headers={
-                "Cache-Control": "no-cache, no-store, must-revalidate",
-                "Pragma": "no-cache",
-                "Expires": "0",
-                "X-Sovereign-AGI-UI": "Faz-13.04-Modern" if _active_dash == _dash_modern else "Legacy"
-            },
-        )
 else:
     logger.warning("[DASHBOARD] No dashboard directory found. Root / will 404.")
 
