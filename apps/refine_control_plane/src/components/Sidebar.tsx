@@ -63,6 +63,7 @@ const SidebarContent = () => {
     const { menuItems, selectedKey } = useMenu();
     const { mutate: logout } = useLogout();
     const { data: identity } = useGetIdentity<{ name: string }>();
+    const [isCollapsed, setIsCollapsed] = React.useState(false);
 
     // Define Grouping
     const groups = [
@@ -88,54 +89,84 @@ const SidebarContent = () => {
         <Link
             key={item.key}
             href={item.route ?? "/"}
-            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-300 group relative ${
+            title={isCollapsed ? item.label : ""}
+            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-400 group relative ${
                 selectedKey === item.key
-                    ? "bg-[#66fcf1]/10 text-[#66fcf1] border border-[#66fcf1]/20 shadow-[0_0_15px_rgba(102,252,241,0.05)]"
+                    ? "bg-[var(--primary)]/8 text-[var(--primary)] border border-[var(--primary)]/15 shadow-[0_0_20px_rgba(102,252,241,0.06)]"
                     : "text-gray-400 hover:text-white hover:bg-white/5"
-            }`}
+            } ${isCollapsed ? "justify-center px-0 w-12 mx-auto" : ""}`}
         >
             {/* Active Indicator Bar */}
             {selectedKey === item.key && (
-                <div className="absolute left-[-1rem] top-1/2 -translate-y-1/2 w-1 h-6 bg-[#66fcf1] rounded-r-full shadow-[0_0_8px_#66fcf1]" />
+                <div className={`absolute ${isCollapsed ? "-left-1" : "-left-4"} top-1/2 -translate-y-1/2 w-1.5 h-6 bg-[var(--primary)] rounded-r-full shadow-[0_0_12px_var(--primary)] animate-pulse`} />
             )}
 
-            <span className={`transition-colors duration-300 ${selectedKey === item.key ? "text-[#66fcf1]" : "text-gray-500 group-hover:text-gray-300"}`}>
-                {icons[item.name] || <LayoutDashboard size={18} />}
+            <span className={`transition-all duration-400 ${selectedKey === item.key ? "text-[var(--primary)] scale-110" : "text-gray-500 group-hover:text-gray-300"} ${isCollapsed ? "scale-125" : ""}`}>
+                {icons[item.name] || <LayoutDashboard size={20} />}
             </span>
-            <span className="font-medium text-xs capitalize tracking-tight">{item.label}</span>
-
-            {/* Premium Hover Tooltip (Only visible if needed or as extra hint) */}
-            <div className="absolute left-full ml-4 px-2 py-1 bg-[#1f2833] text-[#66fcf1] text-[10px] font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 whitespace-nowrap border border-[#66fcf1]/20 shadow-xl">
-                {item.label}
-            </div>
+            {!isCollapsed && (
+                <span className={`font-bold text-[11px] uppercase tracking-wider transition-all truncate ${selectedKey === item.key ? "tracking-[0.1em]" : "tracking-tight"}`}>
+                    {item.label}
+                </span>
+            )}
+            
+            {/* Tooltip for Collapsed State */}
+            {isCollapsed && (
+                <div className="absolute left-16 bg-black border border-white/10 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 translate-x-1 group-hover:translate-x-0 transition-all pointer-events-none z-[100] whitespace-nowrap shadow-xl text-[var(--primary)]">
+                    {item.label}
+                </div>
+            )}
         </Link>
     );
 
     return (
-        <aside className="w-64 h-full glass border-r border-white/5 flex flex-col overflow-hidden">
-            <div className="p-6 border-b border-white/5 bg-[#0b0c10]/20">
+        <aside className={`${isCollapsed ? "w-20" : "w-64"} h-full glass border-r border-white/5 flex flex-col overflow-hidden transition-all duration-500 ease-in-out`}>
+            <div className={`p-6 border-b border-white/5 bg-[#0b0c10]/40 relative group/header transition-all duration-500 ${isCollapsed ? "px-4" : ""}`}>
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 premium-gradient rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(102,252,241,0.3)] shrink-0">
-                        <Cpu className="text-black" size={24} />
+                    <div className="relative group">
+                        <div className={`w-10 h-10 premium-gradient rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(102,252,241,0.25)] shrink-0 animate-breathe transition-all ${isCollapsed ? "w-12 h-12" : ""}`}>
+                            <Cpu className="text-black" size={isCollapsed ? 28 : 24} />
+                        </div>
+                        <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-[#0b0c10] shadow-[0_0_8px_#48bb78] z-10" />
                     </div>
-                    <div className="overflow-hidden">
-                        <h1 className="font-black text-lg tracking-tighter text-white leading-none">EGEMEN YAZ</h1>
-                        <p className="text-[10px] uppercase tracking-[0.2em] text-[#45a29e] font-black mt-1">CORE ENGINE</p>
-                    </div>
+                    {!isCollapsed && (
+                        <div className="overflow-hidden animate-in fade-in slide-in-from-left-2 duration-500">
+                            <h1 className="font-black text-lg tracking-tighter text-white leading-none">EGEMEN <span className="text-[var(--primary)]">YAZ</span></h1>
+                            <p className="text-[8px] uppercase tracking-[0.3em] text-[#45a29e] font-black mt-1.5 opacity-80">SOVEREIGN CORE</p>
+                        </div>
+                    )}
                 </div>
+
+                {/* Collapse Toggle Button */}
+                <button 
+                    onClick={() => setIsCollapsed(!isCollapsed)}
+                    className={`absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black border border-white/10 flex items-center justify-center text-gray-500 hover:text-[var(--primary)] transition-all shadow-lg z-20 opacity-0 group-hover/header:opacity-100 ${isCollapsed ? "rotate-180" : ""}`}
+                >
+                    <LayoutDashboard size={12} />
+                </button>
             </div>
 
-            <nav className="flex-1 px-4 py-6 space-y-8 overflow-y-auto overflow-x-hidden custom-scrollbar">
+            <nav className={`flex-1 px-4 py-6 space-y-9 overflow-y-auto overflow-x-hidden custom-scrollbar transition-all ${isCollapsed ? "px-2" : ""}`}>
                 {groups.map((group) => {
                     const groupItems = menuItems.filter(item => group.items.includes(item.name));
                     if (groupItems.length === 0) return null;
 
                     return (
-                        <div key={group.title} className="space-y-2">
-                            <h3 className="px-4 text-[9px] font-black text-gray-600 uppercase tracking-[0.2em]">
-                                {group.title}
-                            </h3>
-                            <div className="space-y-1">
+                        <div key={group.title} className="space-y-3">
+                            {!isCollapsed && (
+                                <div className="flex items-center gap-2 px-4 mb-1 animate-in fade-in duration-700">
+                                    <div className="w-1 h-1 rounded-full bg-[var(--primary)]/30" />
+                                    <h3 className="text-[9px] font-black text-gray-500 uppercase tracking-[0.25em]">
+                                        {group.title}
+                                    </h3>
+                                </div>
+                            )}
+                            {isCollapsed && (
+                                <div className="w-full flex justify-center mb-1">
+                                    <div className="w-6 h-px bg-white/5" />
+                                </div>
+                            )}
+                            <div className={`space-y-1 ${isCollapsed ? "flex flex-col items-center" : ""}`}>
                                 {groupItems.map(renderMenuItem)}
                             </div>
                         </div>
@@ -156,23 +187,31 @@ const SidebarContent = () => {
                 })()}
             </nav>
 
-            <div className="p-4 border-t border-white/5 bg-[#0b0c10]/40">
-                <div className="glass-card mb-4 p-3 flex items-center gap-3 !rounded-xl">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#66fcf1] to-[#45a29e] flex items-center justify-center text-[10px] font-black text-black">
-                        {identity?.name?.charAt(0) || "M"}
+            <div className={`p-4 border-t border-white/5 bg-[#0b0c10]/40 transition-all ${isCollapsed ? "p-2" : ""}`}>
+                {!isCollapsed ? (
+                    <div className="glass-card mb-4 p-3 flex items-center gap-3 !rounded-xl animate-in fade-in duration-500">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#66fcf1] to-[#45a29e] flex items-center justify-center text-[10px] font-black text-black">
+                            {identity?.name?.charAt(0) || "M"}
+                        </div>
+                        <div className="overflow-hidden">
+                            <p className="text-xs font-black text-white truncate">{identity?.name || "MİMAR"}</p>
+                            <p className="text-[9px] text-[#45a29e] uppercase font-bold truncate tracking-widest">Sistem Operatörü</p>
+                        </div>
                     </div>
-                    <div className="overflow-hidden">
-                        <p className="text-xs font-black text-white truncate">{identity?.name || "MİMAR"}</p>
-                        <p className="text-[9px] text-[#45a29e] uppercase font-bold truncate tracking-widest">Sistem Operatörü</p>
+                ) : (
+                    <div className="flex justify-center mb-4 pt-1">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-[#66fcf1] to-[#45a29e] flex items-center justify-center text-[12px] font-black text-black shadow-[0_0_15px_rgba(102,252,241,0.2)]">
+                            {identity?.name?.charAt(0) || "M"}
+                        </div>
                     </div>
-                </div>
+                )}
                 
                 <button 
                     onClick={() => logout()}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-[10px] font-black text-red-400/70 hover:text-red-400 hover:bg-red-400/5 rounded-xl transition-all uppercase tracking-widest"
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-[10px] font-black text-red-400/70 hover:text-red-400 hover:bg-red-400/5 rounded-xl transition-all uppercase tracking-widest ${isCollapsed ? "justify-center px-0" : ""}`}
                 >
                     <LogOut size={16} />
-                    <span>Oturumu Kapat</span>
+                    {!isCollapsed && <span>Oturumu Kapat</span>}
                 </button>
             </div>
         </aside>

@@ -107,6 +107,25 @@ _DEFAULT_POLICIES: list[PolicyRule] = [
         enabled=True,
         value=True,
     ),
+    # ── SOV-CAL-01 Promoted Parameters ──────────────────────
+    PolicyRule(
+        name="risk_threshold",
+        description="Otonom onayı tetikleyen risk eşiği (SOV-CAL-01)",
+        enabled=True, # Promoted
+        value=0.78,
+    ),
+    PolicyRule(
+        name="budget_throttle",
+        description="Bütçe kısıtlaması yüzdesi (SOV-CAL-01)",
+        enabled=True, # Promoted
+        value=0.40,
+    ),
+    PolicyRule(
+        name="radical_strategy_penalty",
+        description="Radikal stratejiler için ceza katsayısı (SOV-CAL-01)",
+        enabled=True, # Promoted
+        value=1.1,
+    ),
 ]
 
 

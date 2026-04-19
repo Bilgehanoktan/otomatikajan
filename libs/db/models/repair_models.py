@@ -15,8 +15,7 @@ from sqlalchemy import (
     Boolean, Column, DateTime, Float, Integer,
     String, Text, Index,
 )
-from sqlalchemy.dialects.postgresql import UUID
-from libs.db.base import Base, SmartJSON
+from libs.db.base import Base, SmartJSON, GUID
 
 
 def _utcnow():
@@ -27,7 +26,7 @@ def _utcnow():
 class RepairIncident(Base):
     __tablename__ = "repair_incidents"
 
-    id               = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id               = Column(GUID, primary_key=True, default=uuid.uuid4)
     incident_id      = Column(String(64), unique=True, nullable=False, index=True)
     source           = Column(String(32), nullable=False)      # runtime_log | ci_failure | ...
     severity         = Column(String(16), nullable=False, index=True)   # low|medium|high|critical
@@ -55,7 +54,7 @@ class RepairIncident(Base):
 class RepairJobRecord(Base):
     __tablename__ = "repair_jobs"
 
-    id             = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id             = Column(GUID, primary_key=True, default=uuid.uuid4)
     job_id         = Column(String(64), unique=True, nullable=False, index=True)
     incident_id    = Column(String(64), nullable=False, index=True)
     status         = Column(String(64), nullable=False, default="new", index=True)
@@ -80,7 +79,7 @@ class RepairJobRecord(Base):
 class RepairProposal(Base):
     __tablename__ = "repair_proposals"
 
-    id                  = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id                  = Column(GUID, primary_key=True, default=uuid.uuid4)
     pr_id               = Column(String(64), unique=True, nullable=False, index=True)
     job_id              = Column(String(64), nullable=False, index=True)
     incident_id         = Column(String(64), nullable=False)
@@ -104,7 +103,7 @@ class RepairProposal(Base):
 class RepairPatchLog(Base):
     __tablename__ = "repair_patch_logs"
 
-    id               = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id               = Column(GUID, primary_key=True, default=uuid.uuid4)
     record_id        = Column(String(64), unique=True, nullable=False, index=True)
     job_id           = Column(String(64), nullable=False, index=True)
     incident_id      = Column(String(64), nullable=False)
@@ -127,7 +126,7 @@ class RepairPatchLog(Base):
 class VectorLessonModel(Base):
     __tablename__ = "repair_vector_lessons"
 
-    id           = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id           = Column(GUID, primary_key=True, default=uuid.uuid4)
     lesson_id    = Column(String(64), unique=True, nullable=False, index=True)
     symptom      = Column(Text, nullable=False)
     module       = Column(String(128), nullable=False, index=True)
@@ -148,7 +147,7 @@ class VectorLessonModel(Base):
 class RepairBenchmarkRun(Base):
     __tablename__ = "repair_benchmark_runs"
 
-    id           = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id           = Column(GUID, primary_key=True, default=uuid.uuid4)
     run_id       = Column(String(64), unique=True, nullable=False, index=True)
     project_id   = Column(String(64), index=True) # Scope
     cluster_id   = Column(String(64), index=True)
@@ -165,7 +164,7 @@ class RepairBenchmarkRun(Base):
 class RepairTournament(Base):
     __tablename__ = "repair_tournaments"
 
-    id               = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id               = Column(GUID, primary_key=True, default=uuid.uuid4)
     tournament_id    = Column(String(64), unique=True, nullable=False, index=True)
     run_id           = Column(String(64), nullable=True, index=True)
     incident_id      = Column(String(64), nullable=False, index=True)
@@ -181,7 +180,7 @@ class RepairTournament(Base):
 class RepairCandidate(Base):
     __tablename__ = "repair_candidates"
 
-    id            = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id            = Column(GUID, primary_key=True, default=uuid.uuid4)
     candidate_id  = Column(String(64), unique=True, nullable=False, index=True)
     tournament_id = Column(String(64), nullable=False, index=True)
     strategy      = Column(String(32), nullable=False) # conservative | radical | etc
@@ -205,7 +204,7 @@ class RepairCandidate(Base):
 class VerifierResult(Base):
     __tablename__ = "verifier_results"
 
-    id            = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id            = Column(GUID, primary_key=True, default=uuid.uuid4)
     result_id     = Column(String(64), unique=True, nullable=False, index=True)
     candidate_id  = Column(String(64), nullable=False, index=True)
     verifier_name = Column(String(64), nullable=False) # build | regression | economic etc
@@ -218,7 +217,7 @@ class VerifierResult(Base):
 class RepairMemory(Base):
     __tablename__ = "repair_memories"
 
-    id               = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id               = Column(GUID, primary_key=True, default=uuid.uuid4)
     memory_id        = Column(String(64), unique=True, nullable=False, index=True)
     incident_id      = Column(String(64), nullable=False, index=True)
     project_id       = Column(String(64), index=True)
@@ -236,7 +235,7 @@ class RepairMemory(Base):
 class RepairPattern(Base):
     __tablename__ = "repair_patterns"
 
-    id             = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id             = Column(GUID, primary_key=True, default=uuid.uuid4)
     pattern_id     = Column(String(64), unique=True, nullable=False, index=True)
     subsystem      = Column(String(128), index=True)
     strategy       = Column(String(32))
@@ -249,7 +248,7 @@ class RepairPattern(Base):
 class SelfTuningSuggestion(Base):
     __tablename__ = "self_tuning_suggestions"
 
-    id              = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id              = Column(GUID, primary_key=True, default=uuid.uuid4)
     suggestion_id   = Column(String(64), unique=True, nullable=False, index=True)
     parameter_name  = Column(String(64), nullable=False)
     current_value   = Column(Float, nullable=False)

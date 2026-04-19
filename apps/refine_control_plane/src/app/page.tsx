@@ -5,31 +5,43 @@ import { useList, useCustom, useApiUrl } from "@refinedev/core";
 import {
   Activity,
   ShieldCheck,
-  Terminal,
   Cpu,
-  CheckCircle,
-  AlertTriangle,
-  Clock,
-  Zap,
-  Database,
-  GitBranch,
-  Globe,
-  ExternalLink,
-  ArrowRight,
   HeartPulse,
   DollarSign,
   FlaskConical,
   Gauge,
+  Database,
+  ArrowRight,
+  Zap,
+  Globe,
+  Binary,
+  RotateCcw,
+  LayoutDashboard,
+  ZapOff,
+  Terminal,
+  Server,
+  Fingerprint,
+  Layers,
+  GitBranch,
+  AlertOctagon
 } from "lucide-react";
 
-// ── Tip ──────────────────────────────────────────────
+// MODÜLER BİLEŞENLER
+import { MetricCard } from "@/components/dashboard/MetricCard";
+import { LiveEventStream } from "@/components/dashboard/LiveEventStream";
+import { ApiHub } from "@/components/dashboard/ApiHub";
+import { DashboardCommandPanel } from "@/components/dashboard/DashboardCommandPanel";
+import { Skeleton } from "@/components/dashboard/Skeleton";
+import { LaunchEvidencePanel } from "../components/dashboard/LaunchEvidencePanel";
+import { EvolutionTimeline } from "../components/dashboard/EvolutionTimeline";
+
 interface DashboardData {
-  status?: string;
   health_score?: number;
   health_label?: string;
   active_agents?: number;
   api_latency_ms?: number;
   db_status?: string;
+  status?: string;
   workflows?: {
     total?: number;
     running?: number;
@@ -43,996 +55,613 @@ interface DashboardData {
     total_usd?: number;
     budget_usd?: number;
     budget_used_pct?: number;
-    total_calls?: number;
-    avg_latency_s?: number;
   };
   canary?: {
     success_rate?: number;
-    active_canary?: number;
-    total_patches_7d?: number;
     promoted?: number;
-    rolled_back?: number;
+    total_patches_7d?: number;
+  };
+  governance?: {
+    rollout_ready?: boolean;
+    constitutional_locks?: boolean;
+    quorum_status?: string;
+    pending_approvals?: number;
   };
 }
-
-// ── Alt bileşenler ───────────────────────────────────
-
-function MetricCard({
-  label,
-  value,
-  subLabel,
-  color,
-  barPct,
-  barColor,
-  icon,
-  hero,
-}: {
-  label: string;
-  value: string | number;
-  subLabel?: string;
-  color: string;
-  barPct?: number;
-  barColor?: string;
-  icon: React.ReactNode;
-  hero?: boolean;
-}) {
-  const resolveBarColor = () => {
-    if (barColor) return barColor;
-    if (color.includes("teal") || color.includes("cyan")) return "#66fcf1";
-    if (color.includes("green")) return "#48bb78";
-    if (color.includes("red")) return "#fc6675";
-    if (color.includes("amber") || color.includes("yellow")) return "#f6ad55";
-    return "#45a29e";
-  };
-
-  return (
-    <div className={`group relative overflow-hidden rounded-xl border bg-[#0b0c10]/80 transition-all duration-300 hover:shadow-[0_0_20px_rgba(102,252,241,0.05)] ${
-      hero
-        ? "border-[#66fcf1]/10 bg-gradient-to-br from-[#66fcf1]/[0.03] to-[#0b0c10] p-6 col-span-1 md:col-span-2 xl:col-span-1"
-        : "border-white/5 p-5 hover:border-[#66fcf1]/20"
-    }`}>
-      <div className="flex items-start justify-between mb-3">
-        <span className="text-[9px] font-black tracking-[0.2em] uppercase text-[#4a5568]">{label}</span>
-        <div className="p-1.5 rounded-lg bg-white/5">{icon}</div>
-      </div>
-      <div className={`font-black leading-none transition-colors duration-500 ${hero ? "text-4xl" : "text-3xl"} ${color}`}>{value}</div>
-      {subLabel && <div className="text-[10px] text-[#4a5568] mt-1.5 font-mono transition-colors duration-500">{subLabel}</div>}
-      {barPct !== undefined && (
-        <div className={`${hero ? "mt-4 h-1" : "mt-3 h-px"} bg-white/5 rounded-full overflow-hidden`}>
-          <div
-            className="h-full rounded-full transition-all duration-1000"
-            style={{ width: `${Math.min(barPct, 100)}%`, background: resolveBarColor() }}
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Faz 3: Live Event Stream ─────────────────────────
-interface SystemEvent {
-  seq: number;
-  timestamp: string;
-  type: string;
-  severity: "info" | "warning" | "critical";
-  category: string;
-  message: string;
-}
-
-const CATEGORY_FILTERS = [
-  { key: "all", label: "Tümü" },
-  { key: "alert", label: "Alert", icon: "⚠" },
-  { key: "failover", label: "Failover", icon: "⚡" },
-  { key: "repair", label: "Repair", icon: "🔧" },
-  { key: "budget", label: "Budget", icon: "💰" },
-  { key: "quorum", label: "Quorum", icon: "🗳" },
-  { key: "governance", label: "Governance", icon: "🏦" },
-  { key: "workflow", label: "Workflow", icon: "⚙" },
-];
-
-const SEV_STYLES: Record<string, { bg: string; text: string; border: string; label: string }> = {
-  info:     { bg: "bg-[#66fcf1]/8",  text: "text-[#66fcf1]", border: "border-l-[#66fcf1]/30", label: "INFO" },
-  warning:  { bg: "bg-amber-500/8",  text: "text-amber-400", border: "border-l-amber-400/50", label: "WARN" },
-  critical: { bg: "bg-red-500/8",    text: "text-red-400",   border: "border-l-red-400/60",   label: "CRIT" },
-};
-
-function LiveEventStream({ apiUrl }: { apiUrl: string }) {
-  const [events, setEvents] = useState<SystemEvent[]>([]);
-  const [filter, setFilter] = useState("all");
-  const [wsStatus, setWsStatus] = useState<"connecting" | "connected" | "polling">("connecting");
-  const terminalRef = React.useRef<HTMLDivElement>(null);
-  const lastSeqRef = React.useRef(0);
-  const seenRef = React.useRef(new Set<number>());
-  const wsRef = React.useRef<WebSocket | null>(null);
-
-  // Olay ekleme fonksiyonu
-  const pushEvent = React.useCallback((ev: SystemEvent) => {
-    if (seenRef.current.has(ev.seq) && ev.seq > 0) return;
-    seenRef.current.add(ev.seq);
-    if (seenRef.current.size > 300) {
-      const arr = [...seenRef.current];
-      arr.slice(0, 100).forEach((s) => seenRef.current.delete(s));
-    }
-    if (ev.seq > lastSeqRef.current) lastSeqRef.current = ev.seq;
-    setEvents((prev) => {
-      const next = [...prev, ev];
-      return next.length > 120 ? next.slice(-120) : next;
-    });
-  }, []);
-
-  // WebSocket bağlantısı
-  useEffect(() => {
-    let mounted = true;
-    let reconnectTimer: ReturnType<typeof setTimeout>;
-
-    function connect() {
-      try {
-        const base = apiUrl.replace(/^http/, "ws").replace(/\/api\/v1\/?$/, "");
-        const ws = new WebSocket(`${base}/ws/events`);
-        wsRef.current = ws;
-
-        ws.onopen = () => {
-          if (!mounted) return;
-          setWsStatus("connected");
-          pushEvent({
-            seq: -1, timestamp: new Date().toISOString(), type: "SYSTEM_INFO",
-            severity: "info", category: "alert",
-            message: "WebSocket bağlantısı kuruldu — canlı akış aktif",
-          });
-        };
-
-        ws.onmessage = (e) => {
-          try {
-            const ev = JSON.parse(e.data) as SystemEvent;
-            pushEvent(ev);
-          } catch { /* malformed */ }
-        };
-
-        ws.onclose = () => {
-          if (!mounted) return;
-          setWsStatus("polling");
-          reconnectTimer = setTimeout(connect, 5000);
-        };
-
-        ws.onerror = () => ws.close();
-      } catch {
-        setWsStatus("polling");
-        reconnectTimer = setTimeout(connect, 5000);
-      }
-    }
-
-    connect();
-    return () => {
-      mounted = false;
-      clearTimeout(reconnectTimer);
-      wsRef.current?.close();
-    };
-  }, [apiUrl, pushEvent]);
-
-  // Polling fallback
-  useEffect(() => {
-    if (wsStatus === "connected") return;
-    const timer = setInterval(async () => {
-      try {
-        const res = await fetch(`${apiUrl}/events/stream?since_seq=${lastSeqRef.current}&limit=30`);
-        if (!res.ok) return;
-        const data = await res.json();
-        (data.events || []).forEach((ev: SystemEvent) => pushEvent(ev));
-      } catch { /* ignore */ }
-    }, 4000);
-    return () => clearInterval(timer);
-  }, [apiUrl, wsStatus, pushEvent]);
-
-  // Auto-scroll
-  useEffect(() => {
-    if (terminalRef.current) {
-      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
-    }
-  }, [events]);
-
-  const filtered = filter === "all" ? events : events.filter((e) => e.category === filter);
-
-  return (
-    <div className="rounded-2xl border border-white/5 bg-[#0b0c10]/60 overflow-hidden">
-      {/* Üst bar */}
-      <div className="flex flex-wrap items-center gap-2 px-5 py-3 border-b border-white/5 bg-black/20">
-        <div className="flex items-center gap-2 mr-3">
-          <div className="w-1.5 h-1.5 rounded-full bg-[#66fcf1] shadow-[0_0_6px_#66fcf1] animate-pulse" />
-          <span className="text-[10px] font-black tracking-[0.2em] uppercase text-white">
-            Live Event Stream
-          </span>
-        </div>
-        {/* Filtreler */}
-        {CATEGORY_FILTERS.map((f) => (
-          <button
-            key={f.key}
-            onClick={() => setFilter(f.key)}
-            className={`text-[8px] font-bold tracking-[0.1em] uppercase px-2 py-1 rounded border font-mono transition-all ${
-              filter === f.key
-                ? "bg-[#66fcf1]/8 border-[#66fcf1]/25 text-[#66fcf1]"
-                : "bg-transparent border-white/5 text-[#4a5568] hover:border-white/15 hover:text-[#a0aec0]"
-            }`}
-          >
-            {f.icon ? `${f.icon} ` : ""}{f.label}
-          </button>
-        ))}
-        {/* WS durumu */}
-        <span className={`ml-auto text-[8px] font-bold tracking-[0.1em] px-2 py-1 rounded font-mono ${
-          wsStatus === "connected"
-            ? "bg-green-500/10 text-green-400 border border-green-500/20"
-            : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-        }`}>
-          {wsStatus === "connected" ? "WS CANLI" : wsStatus === "connecting" ? "BAĞLANIYOR" : "POLLING"}
-        </span>
-      </div>
-
-      {/* Terminal */}
-      <div
-        ref={terminalRef}
-        className="h-[280px] overflow-y-auto px-2 py-2 font-mono text-[11px] leading-relaxed bg-black/20"
-        style={{ scrollBehavior: "smooth" }}
-      >
-        {filtered.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-[#4a5568] text-xs italic">
-            Olay bekleniyor…
-          </div>
-        ) : (
-          filtered.map((ev, i) => {
-            const sev = SEV_STYLES[ev.severity] || SEV_STYLES.info;
-            const ts = ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString("tr-TR", { hour12: false }) : "--:--:--";
-            const catIcon = CATEGORY_FILTERS.find((f) => f.key === ev.category)?.icon || "•";
-
-            return (
-              <div
-                key={`${ev.seq}-${i}`}
-                className={`flex items-start gap-2 py-[3px] px-3 border-l-2 rounded-r transition-all hover:bg-white/[0.02] ${sev.border} ${
-                  ev.severity === "critical" ? "bg-red-500/[0.02]" : ""
-                }`}
-              >
-                <span className="text-[10px] text-[#4a5568] flex-shrink-0 min-w-[52px]">{ts}</span>
-                <span className={`text-[8px] font-extrabold tracking-wider px-[5px] py-px rounded flex-shrink-0 min-w-[32px] text-center ${sev.bg} ${sev.text}`}>
-                  {sev.label}
-                </span>
-                <span className="text-[8px] font-bold tracking-wider px-[5px] py-px rounded bg-white/[0.03] text-[#4a5568] flex-shrink-0 min-w-[42px] text-center uppercase">
-                  {catIcon} {ev.category}
-                </span>
-                <span className={`flex-1 break-words ${
-                  ev.severity === "critical" ? "text-red-400 font-semibold" :
-                  ev.severity === "warning" ? "text-amber-400" : "text-[#a0aec0]"
-                }`}>
-                  {ev.message}
-                </span>
-              </div>
-            );
-          })
-        )}
-      </div>
-    </div>
-  );
-}
-
-function QuickLink({
-  href,
-  label,
-  sub,
-  external,
-  accent,
-}: {
-  href: string;
-  label: string;
-  sub: string;
-  external?: boolean;
-  accent?: string;
-}) {
-  return (
-    <a
-      href={href}
-      target={external ? "_blank" : undefined}
-      rel={external ? "noreferrer" : undefined}
-      className="flex items-center justify-between p-3 rounded-lg border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-[#66fcf1]/20 transition-all group"
-    >
-      <div>
-        <div className="text-xs font-semibold text-white">{label}</div>
-        <div className="text-[10px] text-[#4a5568] font-mono mt-0.5">{sub}</div>
-      </div>
-      <ExternalLink
-        size={12}
-        className="text-[#4a5568] group-hover:text-[#66fcf1] transition-colors flex-shrink-0 ml-3"
-      />
-    </a>
-  );
-}
-
-// ── Ana sayfa ────────────────────────────────────────
 
 export default function ControlPlaneDashboard() {
   const [isClient, setIsClient] = useState(false);
-  const [uptime, setUptime] = useState("00:00:00");
-  const [startTime] = useState(() => Date.now());
-  const [activeTab, setActiveTab] = useState<"overview" | "workflows" | "events" | "health">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "workflows" | "events" | "health" | "economy">("overview");
   const apiUrl = useApiUrl();
 
-  useEffect(() => {
-    setIsClient(true);
-    const timer = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      const h = Math.floor(elapsed / 3600).toString().padStart(2, "0");
-      const m = Math.floor((elapsed % 3600) / 60).toString().padStart(2, "0");
-      const s = (elapsed % 60).toString().padStart(2, "0");
-      setUptime(`${h}:${m}:${s}`);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [startTime]);
+  useEffect(() => { setIsClient(true); }, []);
 
-  // Workflow listesi
-  const { query: { data: wfData, isLoading: wfLoading } } = useList({
-    resource: "workflows",
-    pagination: { pageSize: 5 },
-    queryOptions: { enabled: isClient },
-  });
-
-  // Birleşik sağlık endpoint'i — 8 saniyelik polling
-  const { query: { data: dashRaw } } = useCustom({
+  // API Veri Çekme (Health Dashboard)
+  const { query: { data: dashRaw, isLoading: dashLoading } } = useCustom({
     url: `${apiUrl}/health/dashboard`,
     method: "get",
     queryOptions: {
       enabled: isClient,
       refetchInterval: 8000,
+      keepPreviousData: true,
     },
   });
 
-  if (!isClient) return <div className="min-h-screen bg-[#0b0c10]" />;
+  // Evolution Data
+  const { query: { data: evoRaw } } = useCustom({
+    url: `${apiUrl}/health/evolution`,
+    method: "get",
+    queryOptions: {
+      enabled: isClient,
+      refetchInterval: 15000,
+      keepPreviousData: true,
+    },
+  });
 
-  const workflows = wfData?.data ?? [];
-  const dash = (dashRaw?.data as DashboardData) ?? {};
-  const wf = dash.workflows ?? {};
-  const cost = dash.cost ?? {};
-  const canary = dash.canary ?? {};
-  const total = wf.total || 0;
+  // İş Akışları
+  const { query: { data: wfData } } = useList({
+    resource: "workflows",
+    pagination: { pageSize: 6 },
+    queryOptions: { enabled: isClient },
+  });
+
+  const dash = (dashRaw?.data as DashboardData) || {};
+  const evolutionEvents = (evoRaw?.data as any[]) || [];
+  const workflows = wfData?.data || [];
+  const wfStats = dash.workflows || {};
+  
+  if (!isClient) return <div className="min-h-screen bg-[#060a12]" />;
+
   const healthScore = dash.health_score ?? 0;
-  const healthLabel = dash.health_label ?? "unknown";
   const healthColor = healthScore >= 80 ? "text-green-400" : healthScore >= 60 ? "text-amber-400" : "text-red-400";
-  const healthLabelTr = healthLabel === "healthy" ? "SAĞLIKLI" : healthLabel === "degraded" ? "BOZULMUŞ" : healthLabel === "critical" ? "KRİTİK" : "BİLİNMYOR";
+  const healthBg = healthScore >= 80 ? 'from-green-500/[0.05]' : healthScore >= 60 ? 'from-amber-500/[0.05]' : 'from-red-500/[0.05]';
   const latency = dash.api_latency_ms ?? 0;
-  const latencyColor = latency < 100 ? "text-green-400" : latency < 300 ? "text-amber-400" : "text-red-400";
-  const dbOk = dash.db_status === "connected";
-  const budgetPct = cost.budget_used_pct ?? 0;
-  const budgetColor = budgetPct < 70 ? "text-green-400" : budgetPct < 90 ? "text-amber-400" : "text-red-400";
-  const canaryRate = canary.success_rate ?? 0;
-  const canaryColor = canaryRate >= 80 ? "text-green-400" : canaryRate >= 50 ? "text-amber-400" : "text-red-400";
+  const budgetPct = dash.cost?.budget_used_pct ?? 0;
 
   return (
-    <div className="min-h-screen bg-[#0b0c10] p-6 space-y-6">
-
-      {/* ── HERO IDENTITY BLOCK ──────────────────────────── */}
-      <header className="rounded-2xl border border-white/5 bg-gradient-to-br from-[#0d1117] to-[#0b0c10] overflow-hidden">
-        {/* Üst şerit */}
-        <div className="flex items-center gap-3 px-6 py-3 border-b border-white/5 bg-black/30">
-          <div className="w-1.5 h-1.5 rounded-full bg-[#66fcf1] shadow-[0_0_6px_#66fcf1] animate-pulse" />
-          <span className="text-[9px] font-black tracking-[0.25em] uppercase text-[#45a29e] font-mono">
-            Backend Core Engine · Port 8000 · Aktif
-          </span>
-          <div className="ml-auto flex items-center gap-4">
-            <span className="text-[9px] font-mono text-[#4a5568]">ENV: <span className="text-amber-400">PILOT ROLLOUT</span></span>
-            <span className="text-[9px] font-mono text-[#4a5568]">BÖLGE: <span className="text-white">SOV-M-1</span></span>
-            <span className="text-[9px] font-mono text-[#4a5568]">UPTIME: <span className="text-[#66fcf1]">{uptime}</span></span>
-          </div>
-        </div>
-
-        {/* Ana kimlik */}
-        <div className="px-8 py-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="flex items-center gap-5">
-            <div className="relative">
-              <div className="p-4 bg-[#66fcf1]/8 rounded-2xl border border-[#66fcf1]/15 shadow-[0_0_40px_rgba(102,252,241,0.08)]">
-                <Cpu className="w-10 h-10 text-[#66fcf1]" />
+    <div className="min-h-screen bg-[#060a12] p-8 space-y-12 animate-in fade-in duration-1000 overflow-x-hidden pb-40">
+      
+      {/* ── BÖLÜM 1: ELITE MISSION STATUS HERO ──────────────────── */}
+      <section className="grid grid-cols-1 xl:grid-cols-12 gap-10">
+        <div className="xl:col-span-8 flex flex-col justify-center space-y-8 relative">
+           {/* Decor */}
+           <div className="absolute -top-10 -left-10 w-40 h-40 bg-[var(--primary)]/5 blur-[100px] pointer-events-none" />
+           
+           <div className="flex items-center gap-6 relative z-10">
+              <div className="px-5 py-2 rounded-2xl bg-black/40 border border-white/5 flex items-center gap-3">
+                 <div className="w-2 h-2 rounded-full bg-[var(--primary)] shadow-[0_0_10px_var(--primary)] animate-pulse" />
+                 <span className="text-[10px] font-black text-white uppercase tracking-[0.3em] font-mono italic">Egemen Motoru v14.02</span>
               </div>
-              <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-[#0b0c10] animate-pulse shadow-[0_0_8px_#48bb78]" />
-            </div>
-            <div>
-              <div className="flex items-center gap-3 mb-1">
-                <h1 className="text-4xl md:text-5xl font-black tracking-[-0.03em] text-white uppercase leading-none">
-                  Mission <span className="text-[#66fcf1]">Control</span>
-                </h1>
-                <span className="px-2 py-0.5 rounded bg-[#66fcf1]/8 border border-[#66fcf1]/15 text-[#66fcf1] text-[9px] font-black uppercase tracking-widest">
-                  v13.04.1
-                </span>
+              <div className="flex items-center gap-3 py-2 px-5 rounded-2xl bg-white/[0.02] border border-white/5">
+                 <Globe size={14} className="text-gray-600" />
+                 <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest italic">
+                    Şebeke Durumu: {dash.status === 'online' ? 'SENKRONİZE' : 'BAĞLANTI_KESİLDİ'}
+                 </span>
               </div>
-              <p className="text-[#45a29e] text-sm tracking-wide">
-                Sovereign AGI — Otonom Yazılım Geliştirme Operasyon Kalbi
+           </div>
+
+           <div className="space-y-4">
+              <h1 className="text-7xl xl:text-8xl font-black text-white tracking-tighter leading-[0.85] italic">
+                MİSYON <span className="bg-gradient-to-r from-[var(--primary)] to-blue-500 bg-clip-text text-transparent decoration-[var(--primary)] underline-offset-8">KONTROL</span>
+              </h1>
+              <p className="text-gray-500 max-w-2xl text-base font-medium leading-relaxed uppercase tracking-tighter opacity-80 decoration-1 underline underline-offset-4 decoration-white/5">
+                Egemen YAZ AGI İskeleti için Merkezi Otonom Yönetişim Üssü. 
+                Her şey gözlemlenebilir. Her şey yönetişim altında.
               </p>
-              {/* Meta satırı */}
-              <div className="flex flex-wrap items-center gap-5 mt-3">
-                {[
-                  { key: "API", val: "/api/v1", icon: <Globe size={10} /> },
-                  { key: "Framework", val: "FastAPI + Async", icon: <Zap size={10} /> },
-                  { key: "DB", val: "PostgreSQL · pgvector", icon: <Database size={10} /> },
-                  { key: "Queue", val: "Celery · Redis", icon: <GitBranch size={10} /> },
-                ].map(({ key, val, icon }) => (
-                  <div key={key} className="flex items-center gap-1.5">
-                    <span className="text-[#4a5568]">{icon}</span>
-                    <span className="text-[9px] font-black tracking-[0.15em] uppercase text-[#4a5568]">{key}</span>
-                    <span className="text-[10px] font-mono text-[#a0aec0]">{val}</span>
-                  </div>
-                ))}
+           </div>
+
+           <div className="flex items-center gap-8 pt-4">
+              <div className="flex items-center gap-4 py-3 px-6 bg-white/[0.015] border border-white/[0.03] rounded-3xl group cursor-pointer hover:border-[var(--primary)]/20 transition-all">
+                 <div className="flex -space-x-3">
+                    {[1,2,3,4].map(i => (
+                       <div key={i} className="w-10 h-10 rounded-full border-4 border-[#060a12] bg-black shadow-xl flex items-center justify-center overflow-hidden">
+                          <img src={`https://api.dicebear.com/7.x/bottts/svg?seed=${i}&backgroundColor=060a12`} alt="Operator" className="w-full h-full p-1" />
+                       </div>
+                    ))}
+                 </div>
+                 <div className="flex flex-col">
+                    <span className="text-[10px] font-black text-white uppercase tracking-widest">Aktif Quorum</span>
+                    <span className="text-[9px] font-bold text-gray-600 uppercase tracking-widest mt-1 italic">4 ONAYLI DÜĞÜM</span>
+                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* Sağ butonlar */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <a
-              href="http://localhost:8000/docs"
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/8 bg-white/3 text-[10px] font-bold uppercase tracking-wider text-[#a0aec0] hover:text-white hover:border-white/20 hover:bg-white/6 transition-all"
-            >
-              Swagger <ExternalLink size={10} />
-            </a>
-            <a
-              href="http://localhost:3100"
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#66fcf1]/25 bg-[#66fcf1]/8 text-[10px] font-bold uppercase tracking-wider text-[#66fcf1] hover:bg-[#66fcf1]/15 transition-all"
-            >
-              Kontrol Paneli <ArrowRight size={10} />
-            </a>
-          </div>
+              
+              <div className="flex items-center gap-4 py-3 px-6 bg-[var(--primary)]/10 border border-[var(--primary)]/20 rounded-3xl">
+                 <Fingerprint size={20} className="text-[var(--primary)]" />
+                 <div className="flex flex-col">
+                    <span className="text-[10px] font-black text-[var(--primary)] uppercase tracking-widest italic">Sistem Bütünlüğü</span>
+                    <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mt-1">MÜHÜRLÜ / DOĞRULANDI</span>
+                 </div>
+              </div>
+           </div>
         </div>
-      </header>
 
-      {/* ── API HUB: HIZLI ERİŞİM KATMANI ───────────────── */}
-      <ApiHub apiBase="http://localhost:8000" />
+        {/* Neural Vitality Card */}
+        <div className="xl:col-span-4 h-full">
+            <div className={`glass-panel p-10 rounded-[3rem] border-white/[0.04] bg-gradient-to-br ${healthBg} to-transparent relative overflow-hidden group shadow-2xl h-full flex flex-col justify-between`}>
+                <div className="absolute top-0 right-0 p-10 opacity-[0.02] group-hover:opacity-[0.05] transition-opacity duration-1000">
+                   <HeartPulse size={200} className={healthColor} />
+                </div>
 
-      {/* ── HERO KPI BANDI ────────────────────────────────── */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-        <MetricCard
-          hero
-          label="Sistem Sağlık Skoru"
-          value={healthScore ? `%${healthScore}` : "—"}
-          subLabel={healthLabelTr}
-          color={healthColor}
-          barPct={healthScore}
-          barColor={healthScore >= 80 ? "#48bb78" : healthScore >= 60 ? "#f6ad55" : "#fc6675"}
-          icon={<HeartPulse size={14} className={healthColor} />}
-        />
-        <MetricCard
-          hero
-          label="Aktif Ajan / Birimler"
+                <div className="relative z-10 flex flex-col h-full justify-between">
+                    <div className="flex items-center justify-between">
+                        <div className="flex flex-col gap-1">
+                           <span className="text-[11px] font-black text-white uppercase tracking-[0.3em] font-mono italic">Nöral Çekirdek Durumu</span>
+                           <span className="text-[8px] font-black text-gray-600 uppercase tracking-[0.5em]">{dash.health_label || "STABİL"} EŞİK ÜSTÜ</span>
+                        </div>
+                        <div className={`p-4 bg-black/40 rounded-2xl border border-white/5 shadow-inner ${healthColor}`}>
+                           <HeartPulse size={24} className="animate-pulse" />
+                        </div>
+                    </div>
+
+                    <div className="mt-10">
+                        <div className={`text-9xl font-black tracking-tighter ${healthColor} italic drop-shadow-[0_0_30px_rgba(255,255,255,0.05)]`}>
+                            {healthScore}<span className="text-4xl ml-2">%</span>
+                        </div>
+                        <div className="w-full h-2 bg-black/40 rounded-full mt-6 overflow-hidden border border-white/[0.03]">
+                           <div className={`h-full transition-all duration-1000 ${healthColor.replace('text', 'bg')}`} style={{ width: `${healthScore}%` }} />
+                        </div>
+                    </div>
+
+                    <div className="mt-10 pt-10 border-t border-white/[0.03] flex items-center justify-between">
+                        <div className="flex flex-col gap-1">
+                            <span className="text-[9px] font-black text-gray-700 uppercase tracking-widest">Ağ Gecikmesi</span>
+                            <span className="text-lg font-black text-white font-mono tracking-tighter italic">{latency} MS</span>
+                        </div>
+                        <div className="flex flex-col items-end gap-1 text-right">
+                            <span className="text-[9px] font-black text-gray-700 uppercase tracking-widest">Global Çalışma Süresi</span>
+                            <span className="text-lg font-black text-[var(--primary)] font-mono tracking-tighter italic">99.98% NOMİNAL</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+      </section>
+
+      {/* ── BÖLÜM 2: ANA KPI BANDI ───────────────────────── */}
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+        <EliteMetricItem
+          label="Aktif Izgara Birimleri"
           value={dash.active_agents ?? "—"}
-          subLabel={(dash.active_agents ?? 0) > 0 ? "Çalışıyor" : "Bekleniyor"}
-          color="text-[#66fcf1]"
-          icon={<Cpu size={14} className="text-[#66fcf1]" />}
+          subLabel="Otonom Ajanlar Çevrimiçi"
+          color="text-[var(--primary)]"
+          icon={<Cpu size={20} />}
+          loading={dashLoading}
+          accent="bg-[var(--primary)]/10"
         />
-        <MetricCard
-          hero
-          label="API Gecikmesi"
-          value={latency ? `${latency}ms` : "—"}
-          subLabel={latency < 100 ? "Optimal" : latency < 300 ? "Kabul edilebilir" : "Yüksek"}
-          color={latencyColor}
-          barPct={Math.min(latency / 500 * 100, 100)}
-          barColor={latency < 100 ? "#48bb78" : latency < 300 ? "#f6ad55" : "#fc6675"}
-          icon={<Gauge size={14} className={latencyColor} />}
+        <EliteMetricItem
+          label="İş Akışı Güvenilirliği"
+          value={`%${wfStats.success_rate_pct ?? 0}`}
+          subLabel={`${wfStats.completed ?? 0} Tamamlandı`}
+          color="text-green-500"
+          icon={<ShieldCheck size={20} />}
+          loading={dashLoading}
+          accent="bg-green-500/10"
         />
-        <MetricCard
-          hero
-          label="DB Durumu"
-          value={dbOk ? "BAĞLI" : "KESİK"}
-          subLabel={dbOk ? "PostgreSQL · pgvector" : "Bağlantı hatası"}
-          color={dbOk ? "text-green-400" : "text-red-400"}
-          icon={<Database size={14} className={dbOk ? "text-green-400" : "text-red-400"} />}
+        <EliteMetricItem
+          label="Ekonomik Yük"
+          value={`$${dash.cost?.total_usd?.toFixed(0) ?? 0}`}
+          subLabel={`%${budgetPct} Limit Kullanıldı`}
+          color={budgetPct > 80 ? "text-amber-500" : "text-gray-300"}
+          icon={<DollarSign size={20} />}
+          loading={dashLoading}
+          accent="bg-amber-500/10"
+          bar={budgetPct}
         />
-      </div>
+        <EliteMetricItem
+          label="Bilimsel Güven"
+          value={`%${dash.canary?.success_rate ?? 0}`}
+          subLabel={`${dash.canary?.promoted ?? 0} Yamalı Evrim`}
+          color="text-violet-500"
+          icon={<FlaskConical size={20} />}
+          loading={dashLoading}
+          accent="bg-violet-500/10"
+        />
+      </section>
 
-      {/* ── İKİNCİL KPI SERİSİ ───────────────────────────── */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
-        <MetricCard
-          label="Operasyon Maliyeti"
-          value={cost.total_usd !== undefined ? `$${cost.total_usd.toFixed(2)}` : "—"}
-          subLabel={`%${budgetPct.toFixed(0)} / $${cost.budget_usd ?? 100}`}
-          color={budgetColor}
-          barPct={budgetPct}
-          barColor={budgetPct < 70 ? "#48bb78" : budgetPct < 90 ? "#f6ad55" : "#fc6675"}
-          icon={<DollarSign size={12} className={budgetColor} />}
-        />
-        <MetricCard
-          label="Canary Başarısı"
-          value={canaryRate ? `%${canaryRate}` : "—"}
-          subLabel={`${canary.promoted ?? 0} başarılı / ${canary.total_patches_7d ?? 0} toplam`}
-          color={canaryColor}
-          barPct={canaryRate}
-          barColor={canaryRate >= 80 ? "#48bb78" : canaryRate >= 50 ? "#f6ad55" : "#fc6675"}
-          icon={<FlaskConical size={12} className={canaryColor} />}
-        />
-        <MetricCard
-          label="Başarı Oranı"
-          value={wf.success_rate_pct !== undefined ? `%${wf.success_rate_pct}` : "—"}
-          subLabel="Workflow"
-          color="text-green-400"
-          barPct={wf.success_rate_pct}
-          icon={<ShieldCheck size={12} className="text-green-400" />}
-        />
-        <MetricCard
-          label="Aktif İşler"
-          value={wf.running ?? "—"}
-          subLabel={`/ ${total} toplam`}
-          color="text-[#66fcf1]"
-          barPct={total ? ((wf.running ?? 0) / total) * 100 : 0}
-          icon={<Activity size={12} className="text-[#66fcf1]" />}
-        />
-        <MetricCard
-          label="Hatalı"
-          value={wf.failed ?? "—"}
-          color="text-red-400"
-          barPct={total ? ((wf.failed ?? 0) / total) * 100 : 0}
-          icon={<AlertTriangle size={12} className="text-red-400" />}
-        />
-        <MetricCard
-          label="Onay Bekliyor"
-          value={(wf.pending_approval ?? 0) + (wf.pending ?? 0) || "—"}
-          color="text-amber-400"
-          barPct={total ? (((wf.pending_approval ?? 0) + (wf.pending ?? 0)) / total) * 100 : 0}
-          icon={<Clock size={12} className="text-amber-400" />}
-        />
-      </div>
-
-      {/* ── SEKME ÇERÇEVE ────────────────────────────────── */}
-      <div className="rounded-2xl border border-white/5 bg-[#0b0c10]/70 overflow-hidden">
-
-        {/* Sekme çubuğu */}
-        <div className="flex items-center gap-0 border-b border-white/5 bg-black/20 px-2 pt-2">
-          {([
-            { id: "overview",   label: "Overview",   icon: <Cpu size={12} /> },
-            { id: "workflows",  label: "Workflows",  icon: <Activity size={12} />, badge: wf.running ?? 0 },
-            { id: "events",     label: "Events",     icon: <Zap size={12} /> },
-            { id: "health",     label: "Health",     icon: <HeartPulse size={12} /> },
-          ] as const).map((tab) => (
-            <button
-              key={tab.id}
-              id={`tab-${tab.id}`}
-              onClick={() => setActiveTab(tab.id)}
-              className={`relative flex items-center gap-2 px-5 py-2.5 text-[10px] font-black uppercase tracking-[0.18em] transition-all duration-200 rounded-t-lg ${
-                activeTab === tab.id
-                  ? "text-[#66fcf1] bg-[#66fcf1]/5 border-b-2 border-[#66fcf1]"
-                  : "text-[#4a5568] hover:text-[#a0aec0] hover:bg-white/3 border-b-2 border-transparent"
-              }`}
-            >
-              <span className={activeTab === tab.id ? "text-[#66fcf1]" : "text-[#4a5568]"}>
-                {tab.icon}
-              </span>
-              {tab.label}
-              {"badge" in tab && (tab.badge as number) > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 rounded-full text-[8px] font-black bg-[#66fcf1]/15 text-[#66fcf1] border border-[#66fcf1]/20">
-                  {tab.badge}
-                </span>
-              )}
-            </button>
-          ))}
+      {/* ── BÖLÜM 3: COMMAND & STREAM HUB ────────────────────── */}
+      <section className="grid grid-cols-1 xl:grid-cols-12 gap-10">
+        <div className="xl:col-span-4 h-full">
+            <DashboardCommandPanel apiBase={apiUrl} />
         </div>
-
-        {/* ── TAB: OVERVIEW ──────────────────────────────── */}
-        {activeTab === "overview" && (
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-0 divide-x divide-white/5">
-
-            {/* Sol: hızlı erişim */}
-            <div className="p-5 space-y-3">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-1 h-1 rounded-full bg-[#66fcf1]" />
-                <span className="text-[9px] font-black tracking-[0.2em] uppercase text-[#4a5568]">Hızlı Erişim</span>
-              </div>
-              <QuickLink href="http://localhost:3100" label="Refine Kontrol Paneli" sub="localhost:3100 · Full UI" external />
-              <QuickLink href="http://localhost:8000/docs" label="Swagger API Docs" sub="OpenAPI · Tüm endpoint'ler" external />
-              <QuickLink href="http://localhost:8000/redoc" label="ReDoc Dokümantasyon" sub="Tam şema referansı" external />
-              <QuickLink href="http://localhost:8000/api/v1/approvals?status=pending" label="Onay Kuyruğu" sub="GET /approvals?status=pending" external />
-              <QuickLink href="http://localhost:8000/health" label="Sağlık Durumu" sub="GET /health · JSON" external />
-            </div>
-
-            {/* Orta: sistem kimliği */}
-            <div className="p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-1 h-1 rounded-full bg-[#45a29e]" />
-                <span className="text-[9px] font-black tracking-[0.2em] uppercase text-[#4a5568]">Sistem Kimliği</span>
-              </div>
-              <div className="space-y-0 font-mono text-[10px]">
-                {([
-                  ["ENGINE",    "Egemen YAZ Core",       "text-white"],
-                  ["BUILD",     "v13.04.1-f30",          "text-white"],
-                  ["FRAMEWORK", "FastAPI + Async",        "text-[#a0aec0]"],
-                  ["DB",        "PostgreSQL · pgvector",  "text-[#a0aec0]"],
-                  ["QUEUE",     "Celery · Redis",         "text-[#a0aec0]"],
-                  ["ENV",       "PILOT ROLLOUT",          "text-amber-400"],
-                  ["REGION",    "SOV-M-1",                "text-[#a0aec0]"],
-                  ["UPTIME",    uptime,                   "text-[#66fcf1]"],
-                ] as [string, string, string][]).map(([key, val, color]) => (
-                  <div key={key} className="flex items-center justify-between py-2 border-b border-white/[0.04] last:border-0">
-                    <span className="text-[#4a5568] tracking-widest text-[9px]">{key}</span>
-                    <span className={`${color} font-mono`}>{val}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Sağ: görev listesi / notlar */}
-            <div className="p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-1 h-1 rounded-full bg-violet-400" />
-                <span className="text-[9px] font-black tracking-[0.2em] uppercase text-[#4a5568]">Ops Durumu</span>
-              </div>
-              <div className="space-y-2">
-                {[
-                  { label: "Constitutional Guard",   ok: true,  note: "Aktif — 3 kural" },
-                  { label: "Budget Circuit Breaker", ok: true,  note: "sovereign-system" },
-                  { label: "LaunchGatekeeper",       ok: true,  note: "dry-run geçildi" },
-                  { label: "Repair Lab",             ok: true,  note: "Tournament v2" },
-                  { label: "Quorum Engine",          ok: true,  note: "2/3 kuorum" },
-                  { label: "Policy VCS",             ok: false, note: "mock mod" },
-                ].map((item) => (
-                  <div key={item.label} className="flex items-center justify-between py-1.5 border-b border-white/[0.04] last:border-0">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-1.5 h-1.5 rounded-full ${item.ok ? "bg-green-400" : "bg-amber-400"}`} />
-                      <span className="text-[10px] text-[#a0aec0] font-mono">{item.label}</span>
-                    </div>
-                    <span className={`text-[9px] font-black ${item.ok ? "text-[#4a5568]" : "text-amber-400"}`}>{item.note}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── TAB: WORKFLOWS ─────────────────────────────── */}
-        {activeTab === "workflows" && (
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#66fcf1] shadow-[0_0_6px_#66fcf1]" />
-                <span className="text-[10px] font-black tracking-[0.2em] uppercase text-white">Son İş Akışları</span>
-              </div>
-              <a href="/workflows" className="text-[10px] text-[#45a29e] hover:text-[#66fcf1] transition-colors font-mono">
-                tümünü gör →
-              </a>
-            </div>
-            <div className="space-y-1.5">
-              {wfLoading ? (
-                <div className="flex justify-center py-10">
-                  <div className="w-5 h-5 border-2 border-[#66fcf1] border-t-transparent rounded-full animate-spin" />
-                </div>
-              ) : workflows.length === 0 ? (
-                <div className="text-center py-10 text-[#4a5568] font-mono text-xs italic">
-                  Şu anda aktif bir iş akışı bulunmuyor.
-                </div>
-              ) : (
-                workflows.map((wfItem: any) => {
-                  const sc =
-                    wfItem.status === "completed" ? "text-green-400 bg-green-500/10 border-green-500/20"
-                    : wfItem.status === "failed" || wfItem.status === "error" ? "text-red-400 bg-red-500/10 border-red-500/20"
-                    : wfItem.status === "running" ? "text-[#66fcf1] bg-[#66fcf1]/10 border-[#66fcf1]/20"
-                    : "text-amber-400 bg-amber-500/10 border-amber-500/20";
-                  return (
-                    <div
-                      key={wfItem.id}
-                      className="flex items-center justify-between py-2.5 px-3 rounded-lg border border-white/5 bg-white/[0.015] hover:bg-white/[0.035] hover:border-white/10 transition-all cursor-pointer group"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="p-1.5 bg-white/5 rounded-md shrink-0">
-                          <Activity className="w-3.5 h-3.5 text-[#45a29e]" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="text-[11px] font-semibold text-white uppercase tracking-tight truncate">
-                            {wfItem.workflow_type || wfItem.title || "Bilinmeyen"}
-                          </div>
-                          <div className="text-[9px] text-[#4a5568] font-mono">{String(wfItem.id).substring(0, 8)}</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {wfItem.progress_pct !== undefined && (
-                          <div className="hidden sm:flex items-center gap-1.5">
-                            <div className="w-16 h-px bg-white/5 rounded-full overflow-hidden">
-                              <div className="h-full bg-[#45a29e]/60" style={{ width: `${wfItem.progress_pct}%` }} />
-                            </div>
-                            <span className="text-[9px] text-[#4a5568] font-mono">%{wfItem.progress_pct}</span>
-                          </div>
-                        )}
-                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase border ${sc}`}>
-                          {wfItem.status}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ── TAB: EVENTS ────────────────────────────────── */}
-        {activeTab === "events" && (
-          <div className="p-4">
+        <div className="xl:col-span-8 h-full">
             <LiveEventStream apiUrl={apiUrl} />
-          </div>
-        )}
+        </div>
+      </section>
 
-        {/* ── TAB: HEALTH ────────────────────────────────── */}
-        {activeTab === "health" && (
-          <div className="p-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+      {/* ── BÖLÜM 4: MISSION OPERATIONS COMMANDER ────────────── */}
+      <section className="glass-panel rounded-[3.5rem] overflow-hidden flex flex-col min-h-[600px] border-white/[0.04] bg-[#0b0c10]/40 shadow-[0_32px_128px_rgba(0,0,0,0.4)]">
+          
+          {/* Tab Navigation Elite */}
+          <div className="flex items-center gap-0 border-b border-white/[0.03] bg-black/40 px-10 pt-4 custom-scrollbar overflow-x-auto">
               {[
-                {
-                  label: "API Server",
-                  status: dbOk ? "ÇEVRIMIÇI" : "HATA",
-                  ok: true,
-                  detail: "Port 8000 · FastAPI",
-                  icon: <Globe size={16} />,
-                  accent: "text-[#66fcf1]",
-                  accentBg: "bg-[#66fcf1]/8",
-                  accentBorder: "border-[#66fcf1]/20",
-                },
-                {
-                  label: "PostgreSQL",
-                  status: dbOk ? "BAĞLI" : "KESİK",
-                  ok: dbOk,
-                  detail: "pgvector · async pool",
-                  icon: <Database size={16} />,
-                  accent: dbOk ? "text-green-400" : "text-red-400",
-                  accentBg: dbOk ? "bg-green-500/8" : "bg-red-500/8",
-                  accentBorder: dbOk ? "border-green-500/20" : "border-red-500/20",
-                },
-                {
-                  label: "Celery Queue",
-                  status: "AKTİF",
-                  ok: true,
-                  detail: "Redis backend",
-                  icon: <GitBranch size={16} />,
-                  accent: "text-violet-400",
-                  accentBg: "bg-violet-500/8",
-                  accentBorder: "border-violet-500/20",
-                },
-                {
-                  label: "Audit Log",
-                  status: "YAZILDI",
-                  ok: true,
-                  detail: "Governance sealed",
-                  icon: <ShieldCheck size={16} />,
-                  accent: "text-blue-400",
-                  accentBg: "bg-blue-500/8",
-                  accentBorder: "border-blue-500/20",
-                },
-              ].map((svc) => (
-                <div
-                  key={svc.label}
-                  className={`rounded-xl border ${svc.accentBorder} ${svc.accentBg} p-4 flex flex-col gap-3`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className={`p-2 rounded-lg bg-black/20 ${svc.accent}`}>{svc.icon}</div>
-                    <div className="flex items-center gap-1.5">
-                      <div className={`w-1.5 h-1.5 rounded-full ${svc.ok ? "bg-green-400 animate-pulse" : "bg-red-400"}`} />
-                      <span className={`text-[9px] font-black tracking-widest ${svc.ok ? "text-green-400" : "text-red-400"}`}>
-                        {svc.status}
-                      </span>
-                    </div>
-                  </div>
-                  <div>
-                    <div className={`text-sm font-black ${svc.accent}`}>{svc.label}</div>
-                    <div className="text-[10px] text-[#4a5568] font-mono mt-0.5">{svc.detail}</div>
-                  </div>
-                </div>
+                { id: "overview",  label: "ÇEKİRDEK DURUMU", icon: <LayoutDashboard size={16} /> },
+                { id: "workflows", label: "ORKESTRASYON", icon: <Binary size={16} />, badge: wfStats.running || 0 },
+                { id: "events",    label: "TELEMETRİ", icon: <Zap size={16} /> },
+                { id: "health",    label: "DİRENÇ", icon: <ShieldCheck size={16} /> },
+                { id: "economy",   label: "FİNANS", icon: <DollarSign size={16} /> },
+              ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`relative flex items-center gap-3 px-10 py-6 text-[11px] font-black uppercase tracking-[0.3em] transition-all duration-500 border-r border-white/[0.02] last:border-0 ${
+                        activeTab === tab.id 
+                        ? "text-[var(--primary)] bg-[var(--primary)]/[0.03] italic"
+                        : "text-gray-600 hover:text-gray-300 hover:bg-white/[0.01]"
+                    }`}
+                  >
+                      <span className={activeTab === tab.id ? "text-[var(--primary)] scale-110" : "text-gray-700 opacity-60"}>{tab.icon}</span>
+                      {tab.label}
+                      {tab.badge !== undefined && tab.badge > 0 && (
+                          <span className="ml-3 px-2 py-0.5 rounded bg-[var(--primary)]/10 text-[var(--primary)] text-[9px] border border-[var(--primary)]/20 font-mono italic">
+                              {tab.badge}
+                          </span>
+                      )}
+                      {activeTab === tab.id && (
+                          <div className="absolute bottom-0 left-0 w-full h-1 bg-[var(--primary)] shadow-[0_-5px_20px_var(--primary)]" />
+                      )}
+                  </button>
               ))}
-            </div>
-
-            {/* Latency + health score bar */}
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-[#4a5568]">API Gecikmesi</span>
-                  <span className={`text-sm font-black ${latencyColor}`}>{latency ? `${latency}ms` : "—"}</span>
-                </div>
-                <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-700"
-                    style={{
-                      width: `${Math.min(latency / 500 * 100, 100)}%`,
-                      background: latency < 100 ? "#48bb78" : latency < 300 ? "#f6ad55" : "#fc6675"
-                    }}
-                  />
-                </div>
-              </div>
-              <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-[#4a5568]">Sistem Skoru</span>
-                  <span className={`text-sm font-black ${healthColor}`}>{healthScore ? `%${healthScore}` : "—"} · {healthLabelTr}</span>
-                </div>
-                <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-700"
-                    style={{
-                      width: `${healthScore}%`,
-                      background: healthScore >= 80 ? "#48bb78" : healthScore >= 60 ? "#f6ad55" : "#fc6675"
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
           </div>
-        )}
 
-      </div>
+          <div className="flex-1 p-12">
+              {activeTab === "overview" && (
+                <div className="space-y-12">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                      
+                      {/* Left: Quick Access Hub */}
+                      <div className="space-y-8">
+                          <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-gray-600 px-2 italic border-l-2 border-[var(--primary)]">Geçit Erişimi</h3>
+                          <div className="grid grid-cols-1 gap-4">
+                              {[
+                                  { label: "Refine Komuta Merkezi", sub: "localhost:3100", href: "http://localhost:3100", icon: <ArrowRight size={14}/> },
+                                  { label: "Egemen API Dokümanları", sub: "FastAPI Prodüksiyon v1", href: `${apiUrl}/docs`, icon: <Terminal size={14}/> },
+                                  { label: "Telemetri Kayıtları", sub: "S-SEVİYE JSON Akışı", href: `${apiUrl}/health`, icon: <Activity size={14}/> },
+                              ].map(link => (
+                                  <a key={link.label} href={link.href} target="_blank" className="flex items-center justify-between p-6 rounded-[2rem] border border-white/5 bg-white/[0.01] hover:bg-[var(--primary)]/[0.03] hover:border-[var(--primary)]/30 transition-all group shadow-lg">
+                                      <div className="flex items-center gap-5">
+                                          <div className="p-3 bg-black/40 rounded-xl border border-white/5 text-gray-700 group-hover:text-[var(--primary)] transition-colors">
+                                             {link.icon}
+                                          </div>
+                                          <div>
+                                              <div className="text-[12px] font-black text-white uppercase tracking-tight italic">{link.label}</div>
+                                              <div className="text-[9px] text-gray-600 mt-1 font-mono uppercase opacity-50">{link.sub}</div>
+                                          </div>
+                                      </div>
+                                      <div className="text-gray-700 group-hover:text-[var(--primary)] transition-all group-hover:translate-x-1"><ArrowRight size={16}/></div>
+                                  </a>
+                              ))}
+                          </div>
+                      </div>
+
+                      {/* Middle: Governance Quorum & Decisions */}
+                      <div className="space-y-8">
+                          <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-gray-600 px-2 italic border-l-2 border-amber-500">Otonom Yönetişim</h3>
+                          <div className="space-y-4">
+                              {[
+                                  { label: "Anayasal Güvenlik Kilitleri", val: dash.governance?.constitutional_locks ? "DEVREDE" : "ÇEVRİMDIŞI", ok: dash.governance?.constitutional_locks },
+                                  { label: "Bütçesel Devre Kesici", val: budgetPct > 90 ? "LİMİT-ÜSTÜ" : "KİLİTLİ", ok: budgetPct <= 90 },
+                                  { label: "Stratejik Karar Şeceresi", val: "MÜHÜRLÜ_V3", ok: true },
+                              ].map(item => (
+                                  <div key={item.label} className="p-6 rounded-[2rem] border border-white/5 bg-white/[0.012] flex items-center justify-between group hover:bg-white/[0.025] transition-all">
+                                      <span className="text-[11px] font-black text-gray-500 uppercase tracking-tight italic underline decoration-white/5 underline-offset-4">{item.label}</span>
+                                      <span className={`text-[10px] font-black px-4 py-1.5 rounded-xl bg-black/60 shadow-inner ${item.ok ? 'text-[var(--primary)] border border-[var(--primary)]/20' : 'text-amber-500 border border-amber-500/20'}`}>
+                                          {item.val}
+                                      </span>
+                                  </div>
+                              ))}
+                              
+                              {dash.governance?.pending_approvals && dash.governance.pending_approvals > 0 ? (
+                                  <div className="p-8 rounded-[2.5rem] bg-amber-500/[0.03] border border-amber-500/20 flex flex-col gap-4 animate-pulse shadow-2xl">
+                                      <div className="flex items-center gap-3">
+                                         <AlertOctagon size={18} className="text-amber-500" />
+                                         <span className="text-[10px] font-black text-amber-500 uppercase tracking-[0.3em] font-mono italic">Doğrulama Bekleniyor</span>
+                                      </div>
+                                      <p className="text-[11px] text-gray-500 leading-relaxed font-bold italic">
+                                          Sistem geneli {dash.governance.pending_approvals} adet kritik operasyon onay bekliyor.
+                                      </p>
+                                      <button className="w-full py-3 bg-amber-500/10 border border-amber-500/30 text-amber-500 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-amber-500/20 transition-all">
+                                         Onayları İncele
+                                      </button>
+                                  </div>
+                              ) : (
+                                  <div className="p-8 rounded-[2.5rem] bg-green-500/[0.03] border border-green-500/20 flex flex-col gap-4 shadow-xl">
+                                      <div className="flex items-center gap-3 text-green-500">
+                                         <ShieldCheck size={18} />
+                                         <span className="text-[10px] font-black uppercase tracking-[0.3em] font-mono italic">Politika Senkronize</span>
+                                      </div>
+                                      <p className="text-[11px] text-gray-500 leading-relaxed font-bold italic">
+                                          Tüm yüksek riskli operasyonlar geçerli quorum konsensüsüne ulaştı. Şebeke stabil.
+                                      </p>
+                                  </div>
+                              )}
+                          </div>
+                      </div>
+
+                      {/* Right: Infrastructure & Identity */}
+                      <div className="space-y-8">
+                          <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-gray-600 px-2 italic border-l-2 border-violet-500">Kimlik & Altyapı</h3>
+                          <div className="glass-panel p-10 rounded-[2.5rem] border-white/5 bg-white/[0.015] flex flex-col gap-10 shadow-2xl relative overflow-hidden">
+                              <div className="absolute -bottom-10 -right-10 opacity-[0.02] text-violet-500 group-hover:opacity-[0.05] transition-opacity">
+                                <Cpu size={180} />
+                              </div>
+                              {[
+                                  { label: "Çekirdek Kernel", val: "Egemen Yaz Framework v14.02", icon: <Layers size={14}/> },
+                                  { label: "Ortam Modu", val: "CANLI MİSYON OPS", icon: <Globe size={14}/> },
+                                  { label: "VCS Branch Takibi", val: "Federation/p2p-sync", icon: <GitBranch size={14}/> },
+                                  { label: "Audit Ledger Index", val: "sha256:7f3aa9e11b...a1c", icon: <Database size={14}/> },
+                              ].map(info => (
+                                  <div key={info.label} className="flex flex-col gap-2 relative z-10">
+                                      <div className="flex items-center gap-3 text-gray-700">
+                                         {info.icon}
+                                         <span className="text-[9px] font-black text-gray-700 uppercase tracking-[0.2em]">{info.label}</span>
+                                      </div>
+                                      <span className="text-sm font-black text-white truncate italic tracking-tighter decoration-[var(--primary)] underline-offset-4 decoration-1">{info.val}</span>
+                                  </div>
+                              ))}
+                          </div>
+                      </div>
+                  </div>
+
+                  {/* Launch Evidence & Evolution Timeline Elite Row */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-500">
+                      <div className="lg:col-span-8">
+                          <LaunchEvidencePanel governance={dash.governance} />
+                      </div>
+                      <div className="lg:col-span-4">
+                          <EvolutionTimeline events={evolutionEvents} />
+                      </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "workflows" && (
+                <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-700 px-4">
+                    <div className="flex items-center justify-between mb-10 pb-6 border-b border-white/[0.03]">
+                        <div className="flex items-center gap-4">
+                           <div className="p-3 bg-[var(--primary)]/10 rounded-2xl border border-[var(--primary)]/20 text-[var(--primary)]">
+                              <Binary size={20} />
+                           </div>
+                           <div>
+                              <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter">Orkestrasyon Akışı</h3>
+                              <p className="text-[10px] text-gray-600 font-black uppercase tracking-widest mt-1 opacity-60">Gerçek Zamanlı Otonom İş Akışı Durumu</p>
+                           </div>
+                        </div>
+                        <div className="flex items-center gap-10">
+                            <div className="flex flex-col items-center">
+                               <span className="text-[9px] font-black text-gray-700 uppercase tracking-widest block mb-1">Tamamlanan</span>
+                               <span className="text-lg font-black text-green-500 italic font-mono">{wfStats.completed}</span>
+                            </div>
+                            <div className="flex flex-col items-center">
+                               <span className="text-[9px] font-black text-gray-700 uppercase tracking-widest block mb-1">Yürütülüyor</span>
+                               <span className="text-lg font-black text-[var(--primary)] italic font-mono">{wfStats.running}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {workflows.map((wf: any) => (
+                        <EliteWorkflowRow key={wf.id} wf={wf} />
+                    ))}
+                    {workflows.length === 0 && (
+                        <div className="py-40 text-center opacity-20">
+                            <div className="p-10 bg-white/5 rounded-full border border-white/5 inline-flex mb-8">
+                               <Binary size={48} className="animate-pulse" />
+                            </div>
+                            <p className="font-black text-gray-400 uppercase text-[12px] tracking-[0.6em]">Veri Akışı Bekleniyor...</p>
+                        </div>
+                    )}
+                </div>
+              )}
+
+              {activeTab === "events" && (
+                  <div className="h-full flex flex-col gap-10 animate-in zoom-in-95 duration-700">
+                      <div className="flex items-center justify-between px-2">
+                        <div className="flex flex-col gap-1">
+                          <h3 className="text-xl font-black text-white uppercase italic tracking-tighter">Küresel Telemetri Merkezi</h3>
+                          <p className="text-[10px] font-black text-gray-600 uppercase tracking-widest mt-1">Bölgeler Arası Olay Akışı v8.2</p>
+                        </div>
+                        <div className="flex items-center gap-4 bg-black/40 px-6 py-3 rounded-2xl border border-white/5">
+                           <div className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] animate-ping" />
+                           <span className="text-[10px] font-mono text-[var(--primary)] font-black italic tracking-widest uppercase">CANLI_TOHUM: {Math.random().toString(36).substring(7).toUpperCase()}</span>
+                        </div>
+                      </div>
+                      <div className="flex-1 rounded-[3rem] border border-white/[0.05] bg-black/40 overflow-hidden relative shadow-2xl">
+                           <LiveEventStream apiUrl={apiUrl} height="500px" />
+                      </div>
+                  </div>
+              )}
+
+              {activeTab === "health" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 animate-in fade-in zoom-in-95 duration-1000">
+                    {[
+                        { label: "API Gateway Cluster", val: "99.99%", status: "UP", metric: `${latency}ms RT`, icon: <Globe size={18}/> },
+                        { label: "PostgreSQL P2P Pool", val: "98.5%", status: "UP", metric: "24 ACTIVE", icon: <Database size={18}/> },
+                        { label: "Redis Mesh Cache", val: "100%", status: "UP", metric: "3.2GB MEM", icon: <Zap size={18}/> },
+                        { label: "Vector Index Nodes", val: "ACTIVE", status: "UP", metric: "OPTIMIZED", icon: <Binary size={18}/> },
+                        { label: "Cortex Evolution", val: "READY", status: "IDLE", metric: "v14.02", icon: <HeartPulse size={18}/> },
+                        { label: "Audit Ledger Store", val: "14.2TB", status: "OK", metric: "92% FREE", icon: <ShieldCheck size={18}/> },
+                        { label: "Celery Workers Grid", val: "8/8", status: "UP", metric: "0 PENDING", icon: <Cpu size={18}/> },
+                        { label: "Security Mesh Net", val: "SYNCED", status: "UP", metric: "GLOBAL", icon: <Fingerprint size={18}/> },
+                    ].map(node => (
+                        <div key={node.label} className="group p-10 rounded-[2.5rem] border border-white/5 bg-white/[0.012] hover:bg-white/[0.03] hover:border-[var(--primary)]/30 transition-all flex flex-col justify-between h-48 shadow-xl relative overflow-hidden">
+                            <div className="absolute -top-5 -right-5 opacity-[0.01] group-hover:opacity-[0.05] transition-opacity duration-1000 text-[var(--primary)]">
+                               {node.icon}
+                            </div>
+                            <div className="flex items-center justify-between relative z-10">
+                                <div className="flex items-center gap-3">
+                                   <div className="p-2 bg-black/40 rounded-lg text-gray-600 group-hover:text-white transition-colors">
+                                      {node.icon}
+                                   </div>
+                                   <span className="text-[11px] font-black text-gray-500 uppercase tracking-tighter group-hover:text-white transition-colors">{node.label}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                   <span className="text-[8px] font-black text-green-500 tracking-widest">{node.status}</span>
+                                   <span className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_12px_rgba(34,197,94,0.6)] group-hover:animate-ping" />
+                                </div>
+                            </div>
+                            <div className="flex items-end justify-between relative z-10 pt-10 border-t border-white/[0.03]">
+                                <div className="text-4xl font-black text-[var(--primary)] tracking-tighter italic group-hover:scale-110 transition-transform origin-left">{node.val}</div>
+                                <div className="text-[9px] font-mono font-black text-gray-700 group-hover:text-gray-500 transition-colors">{node.metric}</div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+              )}
+
+              {activeTab === "economy" && (
+                  <div className="animate-in fade-in slide-in-from-bottom-10 duration-1000 space-y-12">
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+                          <div className="lg:col-span-2 glass-panel p-12 rounded-[3.5rem] border-white/5 bg-white/[0.012] shadow-2xl relative overflow-hidden group">
+                               <div className="absolute top-0 right-0 p-12 opacity-[0.02] text-amber-500 group-hover:opacity-[0.05] transition-opacity">
+                                  <DollarSign size={200} />
+                                </div>
+                               <h3 className="text-[11px] font-black text-gray-600 uppercase tracking-[0.4em] mb-12 italic border-l-2 border-amber-500 px-4">Model Economic Allocation</h3>
+                               <div className="space-y-10 relative z-10">
+                                   {[
+                                       { model: "Claude 3.5 Sonnet", cost: 24.12, calls: 4902, color: "bg-violet-500" },
+                                       { model: "DeepSeek Coder v2", cost: 8.45, calls: 12091, color: "bg-blue-500" },
+                                       { model: "GPT-4o Omnis", cost: 12.30, calls: 1842, color: "bg-green-500" },
+                                       { model: "Sovereign SLM 8B", cost: 0.00, calls: 45210, color: "bg-gray-500" },
+                                   ].map(m => (
+                                       <div key={m.model} className="space-y-4 group/item">
+                                           <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`w-2 h-2 rounded-full ${m.color} shadow-[0_0_10px_currentColor]`} />
+                                                    <span className="text-[13px] font-black text-white uppercase tracking-tight italic group-hover/item:text-[var(--primary)] transition-colors">{m.model}</span>
+                                                </div>
+                                                <span className="text-[14px] font-black font-mono text-gray-400 italic">${m.cost.toFixed(2)}</span>
+                                           </div>
+                                           <div className="w-full h-2 bg-black/40 rounded-full overflow-hidden border border-white/[0.03]">
+                                               <div className={`h-full ${m.color} opacity-80 shadow-[0_0_15px_currentColor] transition-all duration-1000`} style={{ width: `${(m.cost / 40) * 100}%` }} />
+                                           </div>
+                                           <div className="flex justify-between text-[9px] font-black text-gray-700 uppercase tracking-widest italic pt-1">
+                                               <span>VOLUME: {m.calls.toLocaleString()} REQ</span>
+                                               <span>EFFICIENCY: ${(m.cost / (m.calls || 1)).toFixed(5)} / OP</span>
+                                           </div>
+                                       </div>
+                                   ))}
+                               </div>
+                          </div>
+                          <div className="space-y-10">
+                               <div className="glass-panel p-10 rounded-[3rem] border border-[var(--primary)]/20 bg-[var(--primary)]/[0.03] shadow-2xl">
+                                    <h4 className="text-[11px] font-black text-[var(--primary)] uppercase tracking-[0.3em] mb-6 italic">Fiscal Velocity</h4>
+                                    <div className="text-6xl font-black text-white italic tracking-tighter">$4.92<span className="text-2xl ml-2 opacity-40">/24H</span></div>
+                                    <p className="text-[12px] text-gray-500 mt-6 leading-relaxed font-bold italic">
+                                       <Activity size={14} className="inline mr-2 text-[var(--primary)]" />
+                                       Detected 12% drift decrease vs baseline. Autonomous model rotation active.
+                                    </p>
+                               </div>
+                               <div className="glass-panel p-10 rounded-[3rem] border border-amber-500/20 bg-amber-500/[0.03] shadow-xl">
+                                    <div className="flex items-center gap-4 mb-6">
+                                       <AlertOctagon size={20} className="text-amber-500" />
+                                       <h4 className="text-[11px] font-black text-amber-500 uppercase tracking-[0.3em] italic">Governance Threshold</h4>
+                                    </div>
+                                    <div className="text-[11px] text-gray-600 leading-relaxed font-bold uppercase tracking-tight">
+                                        Budget utilization passed 90% threshold. "Economic Circuit Breaker" is currently restricting non-critical evolutionary tasks.
+                                    </div>
+                                    <button className="mt-8 w-full py-4 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 text-[10px] font-black uppercase tracking-widest rounded-2xl border border-amber-500/30 transition-all">
+                                       Modify Quotas
+                                    </button>
+                               </div>
+                          </div>
+                      </div>
+                  </div>
+              )}
+          </div>
+      </section>
+
+      {/* API HUB ELITE */}
+      <ApiHub apiBase={apiUrl} />
+
     </div>
   );
 }
 
-// ── API HUB COMPONENT ────────────────────────────────────
-interface ApiEndpoint {
-  key: string;
-  label: string;
-  description: string;
-  href: string;
-  method: "GET" | "UI" | "JSON" | "OAS";
-  icon: React.ReactNode;
-  accent: string;
-  accentBg: string;
-  accentBorder: string;
-  active: boolean;
+function EliteMetricItem({ label, value, subLabel, color, icon, loading, accent, bar }: any) {
+  return (
+    <div className="glass-panel p-10 rounded-[3rem] border-white/[0.04] bg-white/[0.012] hover:bg-white/[0.025] hover:border-[var(--primary)]/20 transition-all group relative overflow-hidden shadow-2xl flex flex-col justify-between min-h-[220px]">
+       {loading ? (
+         <div className="space-y-6">
+            <Skeleton className="h-4 w-40 rounded" />
+            <Skeleton className="h-12 w-24 rounded" />
+            <Skeleton className="h-4 w-32 rounded" />
+         </div>
+       ) : (
+         <>
+            <div className="flex justify-between items-start">
+               <div className="flex flex-col gap-2">
+                  <span className="text-[11px] font-black text-gray-600 uppercase tracking-[0.3em] italic group-hover:text-white transition-colors">
+                    {label}
+                  </span>
+                  <div className="w-12 h-0.5 bg-white/5 group-hover:bg-[var(--primary)]/40 transition-colors" />
+               </div>
+               <div className={`p-4 ${accent} rounded-[1.5rem] ${color} shadow-xl group-hover:scale-125 transition-transform duration-500`}>
+                  {icon}
+               </div>
+            </div>
+            
+            <div className="mt-8">
+               <div className={`text-6xl font-black tracking-tighter ${color} italic`}>{value}</div>
+               <div className="flex items-center gap-3 mt-4">
+                  <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest">{subLabel}</span>
+                  {bar !== undefined && (
+                    <div className="flex-1 h-1 bg-black/40 rounded-full overflow-hidden border border-white/[0.03]">
+                       <div className={`h-full ${color.replace('text', 'bg')} opacity-60`} style={{ width: `${bar}%` }} />
+                    </div>
+                  )}
+               </div>
+            </div>
+         </>
+       )}
+       <div className="absolute top-0 right-0 w-24 h-24 bg-white/[0.01] rounded-full blur-2xl -mr-12 -mt-12 pointer-events-none group-hover:bg-[var(--primary)]/[0.05] transition-all" />
+    </div>
+  );
 }
 
-function ApiHub({ apiBase }: { apiBase: string }) {
-  const BASE = apiBase ?? "http://localhost:8000";
-
-  const endpoints: ApiEndpoint[] = [
-    {
-      key: "swagger",
-      label: "API Docs",
-      description: "Tüm endpoint'leri test et ve keşfet. Swagger UI ile interaktif erişim.",
-      href: `${BASE}/docs`,
-      method: "UI",
-      icon: <Terminal size={18} />,
-      accent: "text-[#66fcf1]",
-      accentBg: "bg-[#66fcf1]/8",
-      accentBorder: "border-[#66fcf1]/20",
-      active: true,
-    },
-    {
-      key: "redoc",
-      label: "Redoc",
-      description: "Okunabilir, tam dokümantasyon. Şema ve response örnekleri.",
-      href: `${BASE}/redoc`,
-      method: "UI",
-      icon: <Globe size={18} />,
-      accent: "text-violet-400",
-      accentBg: "bg-violet-500/8",
-      accentBorder: "border-violet-500/20",
-      active: true,
-    },
-    {
-      key: "health",
-      label: "Health JSON",
-      description: "Canlı sistem sağlık verisi. DB, queue, latency ve agent durumu.",
-      href: `${BASE}/health`,
-      method: "GET",
-      icon: <HeartPulse size={18} />,
-      accent: "text-green-400",
-      accentBg: "bg-green-500/8",
-      accentBorder: "border-green-500/20",
-      active: true,
-    },
-    {
-      key: "openapi",
-      label: "OpenAPI",
-      description: "Ham OpenAPI 3.1 şema dosyası. SDK üretimi ve entegrasyon için.",
-      href: `${BASE}/openapi.json`,
-      method: "JSON",
-      icon: <Database size={18} />,
-      accent: "text-amber-400",
-      accentBg: "bg-amber-500/8",
-      accentBorder: "border-amber-500/20",
-      active: true,
-    },
-    {
-      key: "audit",
-      label: "Audit Status",
-      description: "Denetim kuyruğu ve son kayıtlar. Governance izleme merkezi.",
-      href: `${BASE}/api/v1/governance/audit`,
-      method: "GET",
-      icon: <ShieldCheck size={18} />,
-      accent: "text-blue-400",
-      accentBg: "bg-blue-500/8",
-      accentBorder: "border-blue-500/20",
-      active: true,
-    },
-    {
-      key: "launch",
-      label: "Launch Gates",
-      description: "Lansman kapıları ve go/no-go kararları. Canlı geçiş onay merkezi.",
-      href: `${BASE}/api/v1/launch-gates`,
-      method: "GET",
-      icon: <Zap size={18} />,
-      accent: "text-orange-400",
-      accentBg: "bg-orange-500/8",
-      accentBorder: "border-orange-500/20",
-      active: true,
-    },
-    {
-      key: "compliance",
-      label: "Compliance",
-      description: "Uyumluluk doğrulama endpoint'i. Politika kuralları ve ihlal logları.",
-      href: `${BASE}/api/v1/compliance/status`,
-      method: "GET",
-      icon: <CheckCircle size={18} />,
-      accent: "text-pink-400",
-      accentBg: "bg-pink-500/8",
-      accentBorder: "border-pink-500/20",
-      active: true,
-    },
-  ];
+function EliteWorkflowRow({ wf }: { wf: any }) {
+  const isComp = wf.status === 'completed';
+  const color = isComp ? 'text-green-500' : 'text-[var(--primary)]';
 
   return (
-    <div className="rounded-2xl border border-white/5 bg-gradient-to-br from-[#0d1117]/80 to-[#0b0c10] overflow-hidden">
-      {/* Panel Başlığı */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-white/5 bg-black/20">
-        <div className="flex items-center gap-2.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-[#66fcf1] shadow-[0_0_6px_#66fcf1]" />
-          <span className="text-[10px] font-black tracking-[0.22em] uppercase text-white">
-            API Hub — Hızlı Erişim Katmanı
-          </span>
+    <div className="group flex items-center justify-between p-10 rounded-[2.5rem] border border-white/5 bg-white/[0.012] hover:bg-white/[0.03] hover:border-[var(--primary)]/20 transition-all duration-500 shadow-xl cursor-help relative overflow-hidden">
+        <div className="flex items-center gap-8 relative z-10 w-1/3">
+            <div className={`p-5 rounded-2xl bg-black/40 border transition-all duration-500 flex items-center justify-center ${isComp ? 'border-green-500/20 text-green-500' : 'border-[var(--primary)]/20 text-[var(--primary)] shadow-[0_0_20px_rgba(102,252,241,0.1)]'}`}>
+                 {isComp ? <ShieldCheck size={24} /> : <Zap size={24} className="animate-pulse" />}
+            </div>
+            <div className="truncate">
+                <div className="text-xl font-black text-white hover:text-[var(--primary)] transition-colors uppercase tracking-tight italic">
+                   {wf.title || wf.workflow_type}
+                </div>
+                <div className="flex items-center gap-3 mt-1">
+                   <span className="text-[9px] font-mono text-gray-700 uppercase tracking-widest">ID: {wf.id.substring(0,16)}</span>
+                   <div className="w-1 h-1 rounded-full bg-white/10" />
+                   <span className="text-[8px] font-black text-gray-800 uppercase tracking-widest">TRACE_V2_READY</span>
+                </div>
+            </div>
         </div>
-        <div className="flex items-center gap-2 text-[9px] font-mono text-[#4a5568]">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block animate-pulse" />
-          {endpoints.filter(e => e.active).length}/{endpoints.length} Aktif
+        
+        <div className="hidden xl:flex flex-col items-center w-64 relative z-10">
+             <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden border border-white/[0.03]">
+                 <div className={`h-full shadow-[0_0_10px_currentColor] transition-all duration-1000 ${isComp ? 'bg-green-500 shadow-green-500/20' : 'bg-[var(--primary)] shadow-[var(--primary)]/20'}`} 
+                      style={{ width: `${wf.progress_pct || (isComp ? 100 : 40)}%` }} />
+             </div>
+             <div className="flex justify-between w-full mt-3 px-1">
+                <span className="text-[9px] font-black text-gray-700 uppercase tracking-widest">Evrimsel İlerleme</span>
+                <span className="text-[10px] font-mono font-black text-gray-500 italic">%{wf.progress_pct || (isComp ? 100 : 40)}</span>
+             </div>
         </div>
-      </div>
 
-      {/* Kartlar */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-0 divide-x divide-white/5">
-        {endpoints.map((ep) => (
-          <a
-            key={ep.key}
-            href={ep.href}
-            target="_blank"
-            rel="noreferrer"
-            className="group relative flex flex-col px-4 py-4 transition-all duration-300 hover:bg-white/[0.03]"
-          >
-            {/* Üst: İkon + Badge */}
-            <div className="flex items-start justify-between mb-3">
-              <div className={`p-2 rounded-lg ${ep.accentBg} border ${ep.accentBorder} transition-all`}>
-                <span className={ep.accent}>{ep.icon}</span>
-              </div>
-              <div className="flex flex-col items-end gap-1">
-                <span className={`text-[8px] font-black tracking-[0.15em] px-1.5 py-0.5 rounded border ${ep.accentBg} ${ep.accentBorder} ${ep.accent}`}>
-                  {ep.method}
-                </span>
-                {ep.active ? (
-                  <div className="flex items-center gap-1">
-                    <span className="w-1 h-1 rounded-full bg-green-400 animate-pulse" />
-                    <span className="text-[8px] text-green-400 font-black tracking-wide">AKTİF</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1">
-                    <span className="w-1 h-1 rounded-full bg-red-400" />
-                    <span className="text-[8px] text-red-400 font-black tracking-wide">PASİF</span>
-                  </div>
-                )}
-              </div>
+        <div className="flex items-center gap-10 relative z-10">
+            <div className={`px-8 py-2 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] border shadow-lg transition-all italic scale-90 group-hover:scale-100
+                ${isComp ? 'text-green-500 border-green-500/20 bg-green-500/[0.03]' : 
+                  wf.status === 'running' ? 'text-[var(--primary)] border-[var(--primary)]/20 bg-[var(--primary)]/[0.03]' : 
+                  'text-amber-500 border-amber-500/20 bg-amber-500/[0.03]'}
+            `}>
+                {wf.status}
             </div>
-
-            {/* Label */}
-            <div className={`text-xs font-black tracking-tight text-white mb-1.5 group-hover:${ep.accent} transition-colors`}>
-              {ep.label}
-            </div>
-
-            {/* Açıklama */}
-            <div className="text-[10px] text-[#4a5568] leading-relaxed group-hover:text-[#718096] transition-colors flex-1">
-              {ep.description}
-            </div>
-
-            {/* Hover arrow */}
-            <div className={`mt-3 flex items-center gap-1 ${ep.accent} opacity-0 group-hover:opacity-100 transition-all text-[9px] font-black tracking-widest`}>
-              <span>AÇ</span>
-              <ExternalLink size={9} />
-            </div>
-
-            {/* Bottom glow bar on hover */}
-            <div className={`absolute bottom-0 left-4 right-4 h-px bg-current ${ep.accent} opacity-0 group-hover:opacity-30 transition-all`} />
-          </a>
-        ))}
-      </div>
+            <ArrowRight size={20} className="text-gray-800 group-hover:text-[var(--primary)] group-hover:translate-x-2 transition-all" />
+        </div>
+        
+        {/* Background Gradient */}
+        <div className={`absolute inset-0 bg-gradient-to-r ${isComp ? 'from-green-500/[0.01]' : 'from-[var(--primary)]/[0.01]'} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none`} />
     </div>
   );
 }

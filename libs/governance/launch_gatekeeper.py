@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 from datetime import datetime, timezone, timedelta
 from libs.db.session import get_db
 from libs.llm.cost_tracker import CostTracker

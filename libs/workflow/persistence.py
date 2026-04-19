@@ -11,13 +11,21 @@ class WorkflowPersistence:
     async def save_instance(instance: WorkflowInstance):
         async with AsyncSessionLocal() as session:
             # Sync to Project table
-            stmt = update(Project).where(Project.id == UUID(instance.id)).values(
-                status=instance.status.value,
-                execution_context=instance.context,
-                started_at=instance.started_at,
-                completed_at=instance.completed_at,
-                updated_at=datetime.utcnow()
-            )
+            db_status = instance.status.value.upper()
+            if db_status == "FAILED":
+                db_status = "ERROR"
+            
+            values = {
+                "status": db_status,
+                "execution_context": instance.context,
+                "started_at": instance.started_at,
+                "completed_at": instance.completed_at,
+                "updated_at": datetime.utcnow()
+            }
+            if "final_report" in instance.context:
+                values["report"] = instance.context["final_report"]
+            
+            stmt = update(Project).where(Project.id == UUID(instance.id)).values(**values)
             await session.execute(stmt)
             await session.commit()
 
@@ -30,7 +38,10 @@ class WorkflowPersistence:
             existing = res.scalar_one_or_none()
             
             if existing:
-                existing.status = step.status.value
+                db_step_status = step.status.value.upper()
+                if db_step_status == "FAILED":
+                    db_step_status = "ERROR"
+                existing.status = db_step_status
                 existing.result = str(step.output_data) if step.output_data else ""
                 existing.attempts = step.retries
                 existing.completed_at = step.completed_at
@@ -57,7 +68,7 @@ class WorkflowPersistence:
                     prompt=step.input_data.get("prompt", ""),
                     input_data=step.input_data,
                     input_schema=step.input_schema,
-                    status=step.status.value,
+                    status="ERROR" if step.status.value.upper() == "FAILED" else step.status.value.upper(),
                     attempts=step.retries,
                     dependencies=step.dependencies,
                     internal_monologue=step.output_data.get("internal_monologue", "") if step.output_data else ""
@@ -99,7 +110,7 @@ class WorkflowPersistence:
             return WorkflowInstance(
                 id=str(project.id),
                 workflow_type=project.workflow_template,
-                status=WorkflowStatus(project.status.lower()),
+                status=WorkflowStatus(project.status.value),
                 steps=steps,
                 context=project.execution_context or {},
                 created_at=project.created_at,

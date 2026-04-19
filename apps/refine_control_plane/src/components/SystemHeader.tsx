@@ -8,7 +8,9 @@ import {
     Cpu, 
     Bell,
     Settings,
-    Search
+    Search,
+    Plus,
+    UserCircle
 } from "lucide-react";
 
 const SystemHeaderContent = () => {
@@ -30,63 +32,86 @@ const SystemHeaderContent = () => {
     const isCrisisMode = (stats?.health || 100) < 70;
 
     return (
-        <header className="h-16 border-b border-white/5 px-8 flex items-center justify-between glass sticky top-0 z-50">
+        <header className="h-16 border-b border-white/5 px-8 flex items-center justify-between glass-panel sticky top-0 z-50 backdrop-blur-xl">
             <div className="flex items-center gap-6">
                 {!isCrisisMode && (
-                    <div className="relative group animate-in fade-in duration-500">
-                        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-[#66fcf1] transition-colors" />
+                    <div className="relative group animate-in fade-in duration-700">
+                        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-[var(--primary)] transition-all duration-300" />
                         <input 
                             type="text" 
-                            placeholder="Search neural traces..." 
-                            className="bg-white/5 border border-white/5 rounded-full pl-10 pr-4 py-1.5 text-xs text-gray-300 focus:outline-none focus:border-[#66fcf1]/30 focus:bg-white/[0.08] transition-all w-64"
+                            placeholder="Sovereign Core'da iz sür..." 
+                            className="bg-white/5 border border-white/5 rounded-full pl-11 pr-5 py-2 text-[11px] font-medium text-gray-300 focus:outline-none focus:border-[var(--primary)]/30 focus:bg-white/[0.08] focus:ring-4 focus:ring-[var(--primary)]/5 transition-all w-72 placeholder:text-gray-600"
                         />
                     </div>
                 )}
                 {isCrisisMode && (
-                    <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/30 animate-pulse">
-                        <span className="w-2 h-2 bg-red-500 rounded-full" />
-                        <span className="text-[10px] font-black text-red-500 uppercase tracking-tighter">Operational Crisis Mode Active</span>
+                    <div className="flex items-center gap-3 px-4 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 animate-pulse">
+                        <span className="w-2 h-2 bg-red-400 rounded-full shadow-[0_0_8px_rgba(248,113,113,0.5)]" />
+                        <span className="text-[10px] font-black text-red-400 uppercase tracking-[0.1em]">Kritik Operasyonel Risk</span>
                     </div>
                 )}
             </div>
 
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-8">
                 {/* System Metrics */}
-                <div className="hidden md:flex items-center gap-8 border-r border-white/10 pr-6">
-                    <div className="flex items-center gap-2">
-                        <Activity size={14} className={isCrisisMode ? "text-red-500" : "text-[#66fcf1]"} />
+                <div className="hidden xl:flex items-center gap-10 border-r border-white/10 pr-8">
+                    <div className="flex items-center gap-3 group">
+                        <div className={`p-2 rounded-lg ${isCrisisMode ? "bg-red-500/10" : "bg-[var(--primary)]/5"} border border-white/5`}>
+                            <Activity size={14} className={isCrisisMode ? "text-red-400" : "text-[var(--primary)]"} />
+                        </div>
                         <div className="flex flex-col">
-                            <span className="text-[10px] text-gray-400 uppercase tracking-tighter font-semibold">Aktif İşler</span>
-                            <div className="text-xs font-bold text-white">{running}</div>
+                            <span className="text-[9px] text-gray-500 uppercase tracking-[0.2em] font-black">Aktif</span>
+                            <div className="text-xs font-black text-white">{running}</div>
                         </div>
                     </div>
                     
-                    <div className="flex items-center gap-2">
-                        <ShieldCheck size={14} className="text-green-400" />
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-green-500/5 border border-white/5">
+                            <ShieldCheck size={14} className="text-green-400" />
+                        </div>
                         <div className="flex flex-col">
-                            <span className="text-[10px] text-gray-400 uppercase tracking-tighter font-semibold">Başarı Oranı</span>
-                            <div className="text-xs font-bold text-white">%{successRate}</div>
+                            <span className="text-[9px] text-gray-500 uppercase tracking-[0.2em] font-black">Başarı</span>
+                            <div className="text-xs font-black text-green-400">%{successRate}</div>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                        <Cpu size={14} className={isCrisisMode ? "text-red-500" : "text-[#45a29e]"} />
+                    <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${isCrisisMode ? "bg-red-500/10" : "bg-white/5"} border border-white/5`}>
+                            <Cpu size={14} className={isCrisisMode ? "text-red-400" : "text-[#45a29e]"} />
+                        </div>
                         <div className="flex flex-col">
-                            <span className="text-[10px] text-gray-400 uppercase tracking-tighter font-semibold">Hatalar</span>
-                            <div className="text-xs font-bold text-red-400">{failed}</div>
+                            <span className="text-[9px] text-gray-500 uppercase tracking-[0.2em] font-black">Hata</span>
+                            <div className="text-xs font-black text-red-400">{failed}</div>
                         </div>
                     </div>
                 </div>
 
-                {/* Actions */}
-                <div className="flex items-center gap-3">
-                    <button className="p-2 text-gray-500 hover:text-white hover:bg-white/5 rounded-lg transition-colors relative">
-                        <Bell size={18} />
-                        <span className="absolute top-2 right-2 w-2 h-2 bg-red-400 rounded-full border-2 border-[#0b0c10]" />
+                {/* Actions & User */}
+                <div className="flex items-center gap-5">
+                    <button className="hidden lg:flex items-center gap-2.5 px-5 py-2 bg-[var(--primary)] text-[#0b0c10] text-[11px] font-black uppercase rounded-xl hover:shadow-[0_0_25px_var(--primary-glow)] hover:-translate-y-0.5 transition-all active:scale-95 group">
+                        <Plus size={16} className="group-hover:rotate-90 transition-all duration-300" />
+                        <span>Başlat</span>
                     </button>
-                    <button className="p-2 text-gray-500 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
-                        <Settings size={18} />
-                    </button>
+
+                    <div className="flex items-center gap-1 bg-white/5 border border-white/5 p-1 rounded-2xl">
+                        <button className="p-2.5 text-gray-400 hover:text-[var(--primary)] hover:bg-white/5 rounded-xl transition-all relative group" title="Nöral Bildirimler">
+                            <Bell size={18} />
+                            <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-400 rounded-full border-2 border-[#0b0c10]" />
+                        </button>
+                        <button className="p-2.5 text-gray-500 hover:text-white hover:bg-white/5 rounded-xl transition-all" title="Sistem Ayarları">
+                            <Settings size={18} />
+                        </button>
+                    </div>
+
+                    <div className="flex items-center gap-4 pl-5 border-l border-white/10">
+                        <div className="flex flex-col items-end">
+                            <span className="text-[11px] text-white font-black tracking-tight">OPERATÖR</span>
+                            <span className="text-[8px] text-[var(--secondary)] font-black uppercase tracking-[0.25em]">Egemen Yaz</span>
+                        </div>
+                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[var(--primary)]/20 to-transparent border border-[var(--primary)]/30 flex items-center justify-center group cursor-pointer hover:border-[var(--primary)]/60 transition-all">
+                            <UserCircle size={26} className="text-[var(--primary)] group-hover:scale-110 transition-all" />
+                        </div>
+                    </div>
                 </div>
             </div>
         </header>

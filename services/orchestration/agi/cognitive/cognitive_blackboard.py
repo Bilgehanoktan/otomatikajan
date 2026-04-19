@@ -15,8 +15,11 @@ class CognitiveBlackboard:
 
     def __init__(self, goal_id: str):
         self.goal_id = goal_id
-        self.redis = get_redis_client()
         self._key = f"agi:blackboard:{goal_id}"
+
+    async def _get_redis(self):
+        """Asenkron olarak Redis istemcisini döner."""
+        return await get_redis_client()
 
     async def post_discovery(self, source_agent: str, discovery: str, confidence: float = 1.0):
         """Yeni bir keşif (Bilgi) ekle."""
@@ -53,8 +56,6 @@ class CognitiveBlackboard:
 
     async def get_working_context(self) -> Dict[str, Any]:
         """Ajanların kullanımı için tüm 'Aktif Hafıza' yı özet olarak döner."""
-        if not self.redis: return {}
-        
         discoveries = await self._get_list("discoveries")
         warnings = await self._get_list("warnings")
         hypothesis = await self._get_hash("active_hypothesis")
@@ -68,32 +69,37 @@ class CognitiveBlackboard:
 
     async def clear(self):
         """Hafızayı temizle (Görev bittiğinde)."""
-        if self.redis:
-            await self.redis.delete(self._key)
+        redis = await self._get_redis()
+        if redis:
+            await redis.delete(self._key)
 
     # ── Internal Helpers ─────────────────────────────────────
     async def _push_to_list(self, subkey: str, data: dict):
-        if not self.redis: return
+        redis = await self._get_redis()
+        if not redis: return
         full_key = f"{self._key}:{subkey}"
-        await self.redis.rpush(full_key, json.dumps(data))
-        await self.redis.expire(full_key, 3600 * 24) # 24 saat TTL
+        await redis.rpush(full_key, json.dumps(data))
+        await redis.expire(full_key, 3600 * 24) # 24 saat TTL
 
     async def _get_list(self, subkey: str) -> List[dict]:
-        if not self.redis: return []
+        redis = await self._get_redis()
+        if not redis: return []
         full_key = f"{self._key}:{subkey}"
-        items = await self.redis.lrange(full_key, 0, -1)
+        items = await redis.lrange(full_key, 0, -1)
         return [json.loads(i) for i in items]
 
     async def _set_hash(self, subkey: str, data: dict):
-        if not self.redis: return
+        redis = await self._get_redis()
+        if not redis: return
         full_key = f"{self._key}:{subkey}"
-        await self.redis.set(full_key, json.dumps(data))
-        await self.redis.expire(full_key, 3600 * 24)
+        await redis.set(full_key, json.dumps(data))
+        await redis.expire(full_key, 3600 * 24)
 
     async def _get_hash(self, subkey: str) -> Optional[dict]:
-        if not self.redis: return None
+        redis = await self._get_redis()
+        if not redis: return None
         full_key = f"{self._key}:{subkey}"
-        data = await self.redis.get(full_key)
+        data = await redis.get(full_key)
         return json.loads(data) if data else None
 
 # Helper function to get blackboard for a task

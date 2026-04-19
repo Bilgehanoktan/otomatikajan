@@ -10,10 +10,8 @@ from datetime import datetime, timezone
 from sqlalchemy import (
     Column, DateTime, String, Text, ForeignKey, Integer, Enum as SAEnum
 )
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-
-from libs.db.base import Base, SmartJSON, utcnow
+from libs.db.base import Base, SmartJSON, utcnow, GUID
 
 class SignoffStatus(str, enum.Enum):
     PENDING = "PENDING"
@@ -39,13 +37,14 @@ class ProductionSignoff(Base):
     Her kritik bileşenin (Repair, Orchestrator, Auth) üretim durumu burada tescillenir.
     """
     __tablename__ = "production_signoffs"
+    __table_args__ = {"extend_existing": True}
 
-    id             = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id             = Column(GUID, primary_key=True, default=uuid.uuid4)
     component_name = Column(String(100), nullable=False, index=True)
     version        = Column(String(50), nullable=False)
     status         = Column(SAEnum(SignoffStatus), default=SignoffStatus.PENDING, nullable=False)
     
-    approver_id    = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    approver_id    = Column(GUID, ForeignKey("users.id"), nullable=True)
     approver_note  = Column(Text, nullable=True)
     
     evidence_summary = Column(SmartJSON(), nullable=True) # Test ID'leri, rapor linkleri
@@ -64,7 +63,7 @@ class ValidationResult(Base):
     """
     __tablename__ = "validation_results"
 
-    id             = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id             = Column(GUID, primary_key=True, default=uuid.uuid4)
     component_name = Column(String(100), nullable=False, index=True)
     test_suite     = Column(String(100), nullable=False) # e.g. "SecurityMesh", "EconomicAudit"
     
@@ -74,7 +73,7 @@ class ValidationResult(Base):
     metrics        = Column(SmartJSON(), nullable=True) # {regression_score: 0.98, cost_variance: 0.02...}
     raw_logs       = Column(Text, nullable=True)
     
-    signoff_id     = Column(UUID(as_uuid=True), ForeignKey("production_signoffs.id"), nullable=True)
+    signoff_id     = Column(GUID, ForeignKey("production_signoffs.id"), nullable=True)
     
     created_at     = Column(DateTime(timezone=True), default=utcnow, nullable=False)
 
@@ -85,7 +84,7 @@ class HandoverEvent(Base):
     """
     __tablename__ = "handover_events"
 
-    id             = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id             = Column(GUID, primary_key=True, default=uuid.uuid4)
     asset_id       = Column(String(100), nullable=False, index=True) # e.g. "fleet_101", "budget_api"
     
     source_owner   = Column(String(100), nullable=False) # "SystemManager", "AutonomousGuard"
@@ -103,7 +102,7 @@ class QuorumRequirement(Base):
     """
     __tablename__ = "signoff_quorum_requirements"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
     component_type = Column(String(100), nullable=False) # "REPAIR", "SCALING", "SECURITY", "CONSTITUTION"
     risk_level = Column(String(50), default="LOW")  # LOW, MEDIUM, HIGH, CRITICAL
     
@@ -118,9 +117,9 @@ class MultiPartySignoff(Base):
     """
     __tablename__ = "multi_party_signoffs"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    signoff_id = Column(UUID(as_uuid=True), ForeignKey("production_signoffs.id"), nullable=True)
-    proposal_id = Column(UUID(as_uuid=True), ForeignKey("policy_proposals.id"), nullable=True)
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    signoff_id = Column(GUID, ForeignKey("production_signoffs.id"), nullable=True)
+    proposal_id = Column(GUID, ForeignKey("policy_proposals.id"), nullable=True)
     
     approver_id = Column(String(100), nullable=False) # User or Agent ID
     status = Column(SAEnum(SignoffStatus), default=SignoffStatus.SIGNED)
@@ -135,7 +134,7 @@ class PolicyProposal(Base):
     """
     __tablename__ = "policy_proposals"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
     title = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
     

@@ -89,9 +89,19 @@ class QuorumService:
             )
             approvals = count_result.scalars().all()
             
-            # Get requirement (mocked risk level for now, usually derived from component)
-            req = await QuorumService.get_requirement(main_signoff.component_name, "HIGH") 
-            required = req.required_quorum if req else 1
+            # Quorum Relaxation Logic (SOV-CAL-01)
+            # Tier-1, low-risk, economic-only, no constitutional effect
+            is_relaxed = False
+            evidence = main_signoff.evidence_summary or {}
+            if (main_signoff.component_name == "ECONOMIC" and 
+                evidence.get("tier") == 1 and 
+                evidence.get("risk_level") == "LOW" and 
+                not evidence.get("constitutional_effect", False)):
+                is_relaxed = True
+
+            # Get requirement
+            req = await QuorumService.get_requirement(main_signoff.component_name, "HIGH" if not is_relaxed else "LOW") 
+            required = req.required_quorum if req else (1 if is_relaxed else 2)
             
             if len(approvals) >= required:
                 main_signoff.status = SignoffStatus.SIGNED

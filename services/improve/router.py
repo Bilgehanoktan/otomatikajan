@@ -123,20 +123,59 @@ async def get_tuning_suggestions():
         # Map to UI expectation if real data exists
         return [
             {
-                "id": s.id,
-                "suggestion_id": s.suggestion_id,
-                "parameter_name": s.parameter_name,
+                "id": s.suggestion_id,
+                "parameter": s.parameter_name,
                 "current_value": s.current_value,
-                "suggested_value": s.proposed_value,
                 "proposed_value": s.proposed_value,
-                "rationale": s.reason,
                 "reason": s.reason,
-                "expected_impact": s.expected_impact,
-                "confidence_score": 0.9, # Default for real data
+                "impact": s.expected_impact,
+                "confidence": 0.92,
                 "status": s.status,
                 "created_at": s.created_at
             } for s in suggestions
         ]
+
+@router.get("/evolution/feed")
+async def get_evolution_feed():
+    async with session_scope() as session:
+        # Get latest memory entries as the feed
+        result = await session.execute(
+            select(DBMemory).order_by(DBMemory.recorded_at.desc()).limit(20)
+        )
+        memories = result.scalars().all()
+        return [
+            {
+                "id": m.memory_id,
+                "success": m.outcome == "success",
+                "component": f"{m.subsystem} :: {m.patch_strategy.upper()}",
+                "rationale": f"Verified via mesh for {m.incident_id}. Score: {m.score:.2f}",
+                "created_at": m.recorded_at
+            } for m in memories
+        ]
+
+@router.get("/evolution/status")
+async def get_evolution_status():
+    async with session_scope() as session:
+        # Check if any benchmark is currently running
+        from libs.db.models.repair_models import RepairBenchmarkRun
+        result = await session.execute(
+            select(RepairBenchmarkRun).order_by(RepairBenchmarkRun.created_at.desc()).limit(1)
+        )
+        latest_run = result.scalar_one_or_none()
+        
+        is_running = latest_run.status == "running" if latest_run else False
+        
+        # Mock failure counts for UI risk indicators (Phase 28 calibration)
+        return {
+            "is_running": is_running,
+            "failure_counts": {
+                "auth.layer": 2,
+                "workflow.api": 0,
+                "governance.core": 1,
+                "economic.mesh": 0
+            },
+            "stuck_threshold": 5
+        }
 
 @router.get("/memory/patterns")
 async def get_memory_patterns():

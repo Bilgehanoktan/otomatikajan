@@ -237,71 +237,53 @@ def is_db_degraded() -> bool:
 
 
 async def close_db():
-    await _get_engine().dispose()
-    print("👋 Veritabanı bağlantısı kapatıldı.")
+    await get_engine().dispose()
+    print("Veritabanı bağlantısı kapatıldı.")
 
 
-@asynccontextmanager
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """Sistem genelinde güvenli veritabanı oturumu sağlar."""
+    """
+    Sistem genelinde veritabanı oturumu sağlayan temel async generator.
+    FastAPI Depends() ile tam uyumludur.
+    """
     async with AsyncSessionLocal() as session:
         try:
             yield session
-            # Sadece aktif bir işlem varsa commit yap
             if session.in_transaction():
                 await session.commit()
         except Exception as e:
-            # Kritik: Hata anında derhal geri al
             try:
                 if session.is_active:
                     await session.rollback()
             except Exception as rb_err:
                 logger.error(f"DB Rollback hatası (get_db): {rb_err}")
-            
-            from sqlalchemy.exc import IntegrityError, PendingRollbackError
-            if isinstance(e, (IntegrityError, PendingRollbackError)):
-                 logger.warning(f"DB Oturum Çakışması/Zehirlenmesi Yakalandı: {e}")
-            else:
-                 logger.error(f"DB Kritik Hata: {e}", exc_info=True)
-            raise
-        finally:
-            # Oturumu kapatmadan önce temizlik
-            await session.close()
-
-
-async def get_db_dep() -> AsyncGenerator[AsyncSession, None]:
-    """FastAPI Depends enjeksiyonu — async generator olmalı."""
-    async with AsyncSessionLocal() as session:
-        try:
-            yield session
-            if session.in_transaction():
-                await session.commit()
-        except Exception as e:
-            # SRE Hardening: Hata anında oturumu temizle
-            try:
-                if session.is_active:
-                    await session.rollback()
-            except Exception as rb_err:
-                logger.error(f"DB Rollback hatası (get_db_dep): {rb_err}")
-            
-            # Log & Re-raise
-            from sqlalchemy.exc import IntegrityError, PendingRollbackError
-            if isinstance(e, (IntegrityError, PendingRollbackError)):
-                logger.warning(f"DB Bağımlılık Oturum Zehirlenmesi: {e}")
-            else:
-                logger.error(f"DB İşlem Hatası: {e}")
             raise
         finally:
             await session.close()
 
 
-session_scope = get_db
+@asynccontextmanager
+async def get_db_ctx() -> AsyncGenerator[AsyncSession, None]:
+    """
+    'async with get_db_ctx()' kullanımına uygun context manager.
+    Dahili kod blokları için tasarlanmıştır.
+    """
+    async for db in get_db():
+        yield db
+
+
+def get_db_dep():
+    """FastAPI alias for get_db."""
+    return get_db()
+
+
+session_scope = get_db_ctx
 
 # ── Redis (Faz 12.1) ──────────────────────────────────
 _redis_instance = None
 
 async def get_redis_client():
-    """Redis bağlantısını döner. (SRE Hardening: Host/Docker tespiti)"""
+    """Redis bağlantısını döner ve gerekirse ilklendirir."""
     global _redis_instance
     if _redis_instance is not None:
         return _redis_instance
@@ -310,40 +292,35 @@ async def get_redis_client():
         import redis.asyncio as redis
         from libs.config import REDIS_URL
         
-        # SRE: URL tespiti ve normalizasyon
-        url = REDIS_URL
-        if not url:
-            # Fallback zinciri
-            if os.getenv("DOCKER_CONTAINER", "false").lower() == "true":
-                url = "redis://redis:6379/0"
-            else:
-                url = "redis://127.0.0.1:6380/0"
+        url = REDIS_URL or (
+            "redis://redis:6379/0" if os.getenv("DOCKER_CONTAINER", "false").lower() == "true" 
+            else "redis://127.0.0.1:6380/0"
+        )
 
-        # SRE Robustness: DNS fail durumunda veya Docker algılandığında 'redis' ismine güven.
-        # Konteyner içinde 127.0.0.1:6380 kullanımı felakete (connection refused) yol açar.
-        # SRE Robustness: URL icinde localhost gecerse ama 6379 ise ve baglanamazsa 6380 dene
-        # Phase 27 R-03: Multi-port discovery
         potential_ports = [6379, 6380, 56380]
         for port in potential_ports:
             try:
                 test_url = url.replace("6380", str(port)).replace("6379", str(port))
-                logger.debug(f"Redis: Trying connection to {test_url}...")
                 _redis_instance = redis.from_url(
                     test_url, 
                     decode_responses=True,
-                    socket_connect_timeout=0.5,
-                    retry_on_timeout=False
+                    socket_connect_timeout=0.5
                 )
                 await _redis_instance.ping()
-                logger.info(f"Redis: Successfully connected to {test_url} (R-03 Active)")
+                logger.info(f"Redis: Connected to {test_url}")
                 return _redis_instance
             except Exception:
                 continue
 
-        logger.warning(f"Redis: All potential ports failed. Staying in degraded mode.")
+        logger.warning("Redis: Multi-port discovery failed. Degraded mode.")
         _redis_instance = None
         return None
     except Exception as e:
-        logger.warning(f"Redis baglantisi kurulamadi ({url}): {e}")
+        logger.warning(f"Redis initialization failed: {e}")
         return None
+
+def get_redis_sync():
+    """Sadece zaten ilklendirilmişse Redis istemcisini döner (Senkron bloklar için)."""
+    global _redis_instance
+    return _redis_instance
 

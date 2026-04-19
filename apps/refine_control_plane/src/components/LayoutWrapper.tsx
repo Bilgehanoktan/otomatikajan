@@ -3,6 +3,7 @@
 import React from "react";
 import Sidebar from "./Sidebar";
 import { SystemHeader } from "./SystemHeader";
+import { CommandPalette } from "./dashboard/CommandPalette";
 
 import { useApiUrl, useCustom } from "@refinedev/core";
 
@@ -70,6 +71,9 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
                     </div>
                 </main>
             </div>
+
+            {/* Global Services */}
+            <CommandPalette />
         </div>
     );
 }

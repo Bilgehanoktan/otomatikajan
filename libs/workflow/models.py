@@ -8,19 +8,25 @@ class StepStatus(str, Enum):
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
+    ERROR = "failed"
     SKIPPED = "skipped"
     WAITING = "waiting" # Waiting for dependencies or approval
     REPLAY_PENDING = "replay_pending"
 
 class WorkflowStatus(str, Enum):
     PENDING = "PENDING"
+    QUEUED = "QUEUED"
     RUNNING = "RUNNING"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
+    ERROR = "ERROR"
     CANCELLED = "CANCELLED"
     WAITING_APPROVAL = "WAITING_APPROVAL"
+    PENDING_APPROVAL = "PENDING_APPROVAL"
     REPLAYING = "REPLAYING"
     PAUSED = "PAUSED"
+    PARTIAL_COMPLETE = "PARTIAL_COMPLETE"
+    RETRYING = "RETRYING"
 
 class ReplayMode(str, Enum):
     SAME_INPUT = "same_input"         # Just retry the step

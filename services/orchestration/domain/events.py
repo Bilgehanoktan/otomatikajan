@@ -56,7 +56,7 @@ class EventBus:
             
         try:
             from libs.db.session import get_redis_client
-            self._redis_conn = get_redis_client()
+            self._redis_conn = await get_redis_client()
             
             if self._redis_conn is not None:
                 # Listener başlat

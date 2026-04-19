@@ -246,6 +246,32 @@ async def get_repair_memory():
             for k, v in stats.items()
         ]
 
+@router.get("/memory/details")
+async def get_repair_memory_details(subsystem: str = Query(...), limit: int = 50):
+    """Belirli bir alt sistem için detaylı tamir geçmişini döner."""
+    async with AsyncSessionLocal() as db:
+        q = (
+            select(RepairMemory)
+            .where(RepairMemory.subsystem == subsystem)
+            .order_by(desc(RepairMemory.recorded_at))
+            .limit(limit)
+        )
+        res = await db.execute(q)
+        memories = res.scalars().all()
+        
+        return [
+            {
+                "id": str(m.memory_id),
+                "incident_id": m.incident_id,
+                "outcome": m.outcome,
+                "failure_reason": m.failure_reason or "N/A",
+                "score": m.score,
+                "recorded_at": m.recorded_at,
+                "rejections": m.verifier_rejections or []
+            }
+            for m in memories
+        ]
+
 @router.post("/run")
 async def trigger_lab_run(cortex=Depends(get_sovereign_cortex)):
     """Otonom tamir benchmark turunu başlatır."""

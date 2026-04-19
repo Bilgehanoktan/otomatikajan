@@ -40,3 +40,5 @@ cases:
     title: "Shared CPU Core Performance Degradation"
   - id: "re-020-rollback-loop"
     title: "Unstable Deployment Causing Infinite Rollback-Retry"
+  - id: "re-canary-v103"
+    title: "Baseline-v10.3 Canary Validation"

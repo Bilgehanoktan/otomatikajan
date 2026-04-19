@@ -311,6 +311,13 @@ class CodeRepairStrategy(RecoveryStrategy):
             from services.repair.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
             from services.repair.domain.agent_state import AgentState
             
+            # L5 Extensions
+            from services.repair.infrastructure.github_intel import GitHubIntelAnalyzer
+            
+            # Fetch global intelligence proactively
+            intel_analyzer = GitHubIntelAnalyzer()
+            github_intel = await intel_analyzer.fetch_issue_context(str(snapshot.dominant_error))
+            
             # Severity belirle (Agent durumuna göre)
             severity = IncidentSeverity.HIGH
             if snapshot.state == AgentState.DEAD:
@@ -326,7 +333,10 @@ class CodeRepairStrategy(RecoveryStrategy):
                 context={
                     "agent_id": snapshot.agent_id,
                     "subtask_prompt": subtask.prompt[:500],
-                    "fail_streak": snapshot.fail_streak
+                    "fail_streak": snapshot.fail_streak,
+                    "github_intel": github_intel,          # L5 Feature: Global context
+                    "ast_patching_enabled": True,          # L5 Feature: Surgical diff
+                    "sandbox_verification_enabled": True   # L5 Feature: Ephemeral tests
                 }
             )
 
@@ -340,7 +350,7 @@ class CodeRepairStrategy(RecoveryStrategy):
             return RecoveryResult(
                 success=True,
                 strategy=self.name,
-                message=f"Otonom onarım başlatıldı (Job: {job.job_id}). Hata: {snapshot.dominant_error}",
+                message=f"L5 Otonom onarım başlatıldı (Sealed Sandbox + GitHub Intel) (Job: {job.job_id}).",
                 duration_s=time.time() - t0
             )
 

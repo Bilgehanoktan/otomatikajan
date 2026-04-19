@@ -12,7 +12,7 @@ from sqlalchemy import (
     Boolean, Column, DateTime, Float, ForeignKey,
     Integer, String, Text, Index, Enum as SAEnum,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, relationship, backref
 import enum
 
@@ -30,7 +30,7 @@ from libs.db.base import Base, utcnow, SmartJSON, GUID
 class User(Base):
     __tablename__ = "users"
 
-    id             = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id             = Column(GUID, primary_key=True, default=uuid.uuid4)
     email          = Column(String(255), unique=True, nullable=False, index=True)
     hashed_password= Column(String(255), nullable=False)   # bcrypt hash
     is_active      = Column(Boolean, default=True)
@@ -45,8 +45,8 @@ class User(Base):
 class RefreshToken(Base):
     __tablename__ = "refresh_tokens"
 
-    id         = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id    = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
+    id         = Column(GUID, primary_key=True, default=uuid.uuid4)
+    user_id    = Column(GUID, ForeignKey("users.id", ondelete="CASCADE"))
     token      = Column(Text, unique=True, nullable=False)
     expires_at = Column(DateTime(timezone=True), nullable=False)
     revoked    = Column(Boolean, default=False, nullable=False)
@@ -56,20 +56,38 @@ class RefreshToken(Base):
 
 
 class ProjectStatus(str, enum.Enum):
-    PENDING = "PENDING"
-    QUEUED = "QUEUED"
-    RUNNING = "RUNNING"
+    PENDING          = "PENDING"
+    pending          = "pending"
+    QUEUED           = "QUEUED"
+    queued           = "queued"
+    RUNNING          = "RUNNING"
+    running          = "running"
+    WAITING          = "WAITING"
+    waiting          = "waiting"
     PENDING_APPROVAL = "PENDING_APPROVAL"
-    WAITING_APPROVAL = "WAITING_APPROVAL" # Alternative name for clarity
-    REPLAYING = "REPLAYING"
-    RETRYING = "RETRYING"         # Added for schema sync
-    COMPLETED = "COMPLETED"
+    WAITING_APPROVAL = "WAITING_APPROVAL"
+    REPLAYING        = "REPLAYING"
+    RETRYING         = "RETRYING"
+    COMPLETED        = "COMPLETED"
+    completed        = "completed"
     PARTIAL_COMPLETE = "PARTIAL_COMPLETE"
-    ERROR = "ERROR"
-    CANCELLED = "CANCELLED"
-    PAUSED = "PAUSED"
-    INTERRUPTED = "INTERRUPTED"    # Kesintiye uÄŸrayan (Zombi deÄŸil, kurtarÄ±labilir)
-    RESUMING = "RESUMING"          # Otonom olarak devam ettiriliyor
+    ERROR            = "ERROR"
+    error            = "error"
+    FAILED           = "FAILED"
+    failed           = "failed"
+    CANCELLED        = "CANCELLED"
+    PAUSED           = "PAUSED"
+    INTERRUPTED      = "INTERRUPTED"
+    RESUMING         = "RESUMING"
+
+    @classmethod
+    def _missing_(cls, value):
+        """Handle case-insensitive lookup automatically."""
+        if isinstance(value, str):
+            for member in cls:
+                if member.value.upper() == value.upper():
+                    return member
+        return None
 
 class ProjectSource(str, enum.Enum):
     API = "api"
@@ -90,8 +108,8 @@ class TaskPriority(str, enum.Enum):
 class Project(Base):
     __tablename__ = "projects"
 
-    id           = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    owner_id     = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    id           = Column(GUID, primary_key=True, default=uuid.uuid4)
+    owner_id     = Column(GUID, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     title        = Column(String(500), nullable=False)
     description  = Column(Text, default="")
     status       = Column(SAEnum(ProjectStatus, native_enum=False, length=32), default=ProjectStatus.PENDING, nullable=False, index=True)
@@ -119,7 +137,7 @@ class Project(Base):
     execution_context   = Column(SmartJSON(), default=dict)
     review_required     = Column(Boolean, default=False, nullable=False)
     checkpoint_data     = Column(SmartJSON(), default=dict)  # AGI Dayanıklılık: Son güvenli durum verisi
-    goal_id             = Column(UUID(as_uuid=True), ForeignKey("sovereign_goals.id", ondelete="SET NULL"), nullable=True)
+    goal_id             = Column(GUID, ForeignKey("sovereign_goals.id", ondelete="SET NULL"), nullable=True)
     
     # ── Faz 23: Multi-Project Fleet & Isolation ──
     isolation_tier      = Column(Integer, default=2, nullable=False, index=True) 
@@ -164,8 +182,8 @@ class Project(Base):
 class SubTask(Base):
     __tablename__ = "subtasks"
 
-    id            = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    project_id    = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"))
+    id            = Column(GUID, primary_key=True, default=uuid.uuid4)
+    project_id    = Column(GUID, ForeignKey("projects.id", ondelete="CASCADE"))
     agent_id      = Column(String(64), nullable=False, index=True)
     action        = Column(String(128), default="run_agent", nullable=False)
     prompt        = Column(Text, nullable=False)
@@ -187,7 +205,7 @@ class SubTask(Base):
     review_notes  = Column(SmartJSON(), default=list)
     causal_anchor = Column(Text, default="")         # Faz 12.3: Bu adımın ana çıkarımı (Anchor)
     inhibition_signals = Column(SmartJSON(), default=list) # Faz 12.3: Negatif sinapslar / Kısıtlar
-    parent_id     = Column(UUID(as_uuid=True), ForeignKey("subtasks.id"), nullable=True)
+    parent_id     = Column(GUID, ForeignKey("subtasks.id"), nullable=True)
     dependencies  = Column(SmartJSON(), default=list)
     created_at    = Column(DateTime(timezone=True), default=utcnow)
 
@@ -201,8 +219,8 @@ class SubTask(Base):
 class LLMCostLog(Base):
     __tablename__ = "llm_cost_logs"
 
-    id            = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    project_id    = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=True)
+    id            = Column(GUID, primary_key=True, default=uuid.uuid4)
+    project_id    = Column(GUID, ForeignKey("projects.id", ondelete="CASCADE"), nullable=True)
     provider      = Column(String(64), nullable=False, index=True)
     model         = Column(String(128), nullable=False)
     agent_id      = Column(String(64), nullable=False)
@@ -222,7 +240,7 @@ class LLMCostLog(Base):
 class DomainEventLog(Base):
     __tablename__ = "domain_event_logs"
 
-    id         = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id         = Column(GUID, primary_key=True, default=uuid.uuid4)
     event_type = Column(String(128), nullable=False, index=True)
     agent_id   = Column(String(64), default="system")
     severity   = Column(String(32), default="info")
@@ -236,7 +254,7 @@ class DomainEventLog(Base):
 class AgentHealthLog(Base):
     __tablename__ = "agent_health_logs"
 
-    id         = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id         = Column(GUID, primary_key=True, default=uuid.uuid4)
     agent_id   = Column(String(64), nullable=False, index=True)
     score      = Column(Float, nullable=False)
     state      = Column(String(32), default="healthy")
@@ -254,7 +272,7 @@ class SovereignGoal(Base):
     """
     __tablename__ = "sovereign_goals"
 
-    id               = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id               = Column(GUID, primary_key=True, default=uuid.uuid4)
     title            = Column(String(512), nullable=False)
     vision_statement = Column(Text, nullable=False)     # "Tam otonom Geliştirici AGI olmak"
     priority         = Column(Integer, default=50)      # 1-100
@@ -274,8 +292,8 @@ class SovereignGoal(Base):
 class WebhookSubscription(Base):
     __tablename__ = "webhook_subscriptions"
 
-    id         = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    owner_id   = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
+    id         = Column(GUID, primary_key=True, default=uuid.uuid4)
+    owner_id   = Column(GUID, ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
     url        = Column(String(2048), nullable=False)
     events     = Column(SmartJSON(), default=list)
     secret     = Column(String(64), nullable=False)
@@ -289,7 +307,7 @@ class WebhookSubscription(Base):
 class RateLimitCounter(Base):
     __tablename__ = "rate_limit_counters"
 
-    id         = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id         = Column(GUID, primary_key=True, default=uuid.uuid4)
     key        = Column(String(256), unique=True, nullable=False, index=True)
     count      = Column(Integer, default=0)
     window_end = Column(DateTime(timezone=True), nullable=False)
@@ -301,8 +319,8 @@ class TaskLog(Base):
     """Her görev durum değişikliği, hata ve önemli olay buraya yazılır."""
     __tablename__ = "task_logs"
 
-    id         = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    id         = Column(GUID, primary_key=True, default=uuid.uuid4)
+    project_id = Column(GUID, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
     level      = Column(String(16), default="info", nullable=False)
     # level: "debug" | "info" | "warning" | "error" | "critical"
     event      = Column(String(128), nullable=False, index=True)
@@ -328,12 +346,12 @@ class ApiMetric(Base):
     """
     __tablename__ = "api_metrics"
 
-    id           = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id           = Column(GUID, primary_key=True, default=uuid.uuid4)
     endpoint     = Column(String(256), nullable=False, index=True)
     method       = Column(String(8), nullable=False)
     status_code  = Column(Integer, nullable=False, index=True)
     response_ms  = Column(Float, nullable=False)           # milisaniye
-    user_id      = Column(UUID(as_uuid=True), nullable=True)
+    user_id      = Column(GUID, nullable=True)
     ip_address   = Column(String(64), default="")
     trace_id     = Column(String(32), default="", index=True)
     error_type   = Column(String(128), default="")
@@ -354,8 +372,8 @@ class WorkflowEvent(Base):
     """
     __tablename__ = "workflow_events"
 
-    id           = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    project_id   = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=True, index=True) # Changed to support system-wide events
+    id           = Column(GUID, primary_key=True, default=uuid.uuid4)
+    project_id   = Column(GUID, ForeignKey("projects.id", ondelete="CASCADE"), nullable=True, index=True) # Changed to support system-wide events
     event_type   = Column(String(64), nullable=False, index=True)
     # event_type: "workflow_started", "step_scheduled", "step_started", 
     #             "step_completed", "step_failed", "context_updated", "workflow_completed",
@@ -387,7 +405,7 @@ class ModelRouterLog(Base):
     """
     __tablename__ = "model_router_logs"
 
-    id               = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id               = Column(GUID, primary_key=True, default=uuid.uuid4)
     prompt_snippet   = Column(String(500), default="")
     agent_role       = Column(String(64), nullable=False, index=True)
     complexity       = Column(String(32), nullable=False, index=True)
@@ -407,14 +425,14 @@ class TelegramUser(Base):
     """Telegram bot erişim izni verilen kullanıcılar."""
     __tablename__ = "telegram_users"
 
-    id           = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id           = Column(GUID, primary_key=True, default=uuid.uuid4)
     telegram_id  = Column(String(32), unique=True, nullable=False, index=True)
     username     = Column(String(128), default="")
     full_name    = Column(String(256), default="")
     is_authorized= Column(Boolean, default=False, nullable=False)
     is_admin     = Column(Boolean, default=False)
     # İlişkili sistem kullanıcısı (opsiyonel)
-    user_id      = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    user_id      = Column(GUID, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     last_seen_at = Column(DateTime(timezone=True), nullable=True)
     command_count= Column(Integer, default=0)
     created_at   = Column(DateTime(timezone=True), default=utcnow, nullable=False)
@@ -427,13 +445,13 @@ class TelegramCommandLog(Base):
     """Telegram'dan gelen tüm komutlar loglanır."""
     __tablename__ = "telegram_command_logs"
 
-    id           = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id           = Column(GUID, primary_key=True, default=uuid.uuid4)
     telegram_id  = Column(String(32), nullable=False, index=True)
     command      = Column(String(64), nullable=False)
     arguments    = Column(Text, default="")
     response     = Column(Text, default="")
     success      = Column(Boolean, default=True)
-    project_id   = Column(UUID(as_uuid=True), nullable=True)  # komuttan oluşan görev
+    project_id   = Column(GUID, nullable=True)  # komuttan oluşan görev
     created_at   = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
 
 
@@ -444,7 +462,7 @@ class Memory(Base):
     """
     __tablename__ = "memories"
 
-    id          = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id          = Column(GUID, primary_key=True, default=uuid.uuid4)
     agent_id    = Column(String(64), nullable=False, index=True)
     body        = Column("content", Text, nullable=False)            # DB'de 'content' olarak geçer
     category    = Column(String(64), default="general", nullable=False, index=True)
@@ -453,8 +471,8 @@ class Memory(Base):
     tags        = Column(SmartJSON(), default=list)                        # DB'de JSONB
     expires_at  = Column(DateTime(timezone=True), nullable=True)
     project_id  = Column(String(64), nullable=True, index=True)      # DB'de 'character varying'
-    parent_id   = Column(UUID(as_uuid=True), ForeignKey("memories.id"), nullable=True, index=True) # Causal Anchoring
-    cause_id    = Column(UUID(as_uuid=True), nullable=True, index=True) # Linked to a specific event or ErrorID
+    parent_id   = Column(GUID, ForeignKey("memories.id"), nullable=True, index=True) # Causal Anchoring
+    cause_id    = Column(GUID, nullable=True, index=True) # Linked to a specific event or ErrorID
     created_at  = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
 
 
@@ -462,19 +480,19 @@ class Memory(Base):
 class CEOSuggestedTask(Base):
     __tablename__ = "ceo_suggested_tasks"
 
-    id               = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    opportunity_id   = Column(UUID(as_uuid=True), ForeignKey("improvement_opportunities.id"))
+    id               = Column(GUID, primary_key=True, default=uuid.uuid4)
+    opportunity_id   = Column(GUID, ForeignKey("improvement_opportunities.id"))
     title            = Column(String(512), nullable=False)
     description      = Column(Text)
     priority         = Column(String(32), default="medium")
     owner_agent_hint = Column(String(64), default="architect")
     status           = Column(String(32), default="suggested")
-    parent_id        = Column(UUID(as_uuid=True), ForeignKey("ceo_suggested_tasks.id"), nullable=True) # Hiyerarşik planlama
+    parent_id        = Column(GUID, ForeignKey("ceo_suggested_tasks.id"), nullable=True) # Hiyerarşik planlama
     plan_hierarchy   = Column(SmartJSON(), default=dict) # {"step_index": 1, "total_steps": 3, "depends_on": [...]}
     reasoning_summary= Column(Text)
     impact_projection= Column(SmartJSON(), default=dict)
-    created_task_id  = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=True)
-    goal_id          = Column(UUID(as_uuid=True), ForeignKey("sovereign_goals.id"), nullable=True) # North Star Link
+    created_task_id  = Column(GUID, ForeignKey("projects.id"), nullable=True)
+    goal_id          = Column(GUID, ForeignKey("sovereign_goals.id"), nullable=True) # North Star Link
     created_at       = Column(DateTime(timezone=True), default=utcnow)
     updated_at       = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
@@ -487,7 +505,7 @@ class CEOSuggestedTask(Base):
 class ImprovementOpportunity(Base):
     __tablename__ = "improvement_opportunities"
 
-    id               = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id               = Column(GUID, primary_key=True, default=uuid.uuid4)
     source_type      = Column(String(64), nullable=False)   # logs, performance, anomaly
     source_ref       = Column(String(256))
     title            = Column(String(512), nullable=False)
@@ -516,8 +534,8 @@ class ImprovementOpportunity(Base):
 class CEODecision(Base):
     __tablename__ = "ceo_decisions"
 
-    id               = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    opportunity_id   = Column(UUID(as_uuid=True), ForeignKey("improvement_opportunities.id"))
+    id               = Column(GUID, primary_key=True, default=uuid.uuid4)
+    opportunity_id   = Column(GUID, ForeignKey("improvement_opportunities.id"))
     decision_type    = Column(String(64)) # suggest_task, auto_approve, ignore
     decision_summary = Column(Text)
     decision_source  = Column(String(64), default="llm")
@@ -528,9 +546,9 @@ class CEODecision(Base):
 class CEOPerformanceLog(Base):
     __tablename__ = "ceo_performance_logs"
 
-    id               = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    suggestion_id    = Column(UUID(as_uuid=True), ForeignKey("ceo_suggested_tasks.id"))
-    project_id       = Column(UUID(as_uuid=True), ForeignKey("projects.id"))
+    id               = Column(GUID, primary_key=True, default=uuid.uuid4)
+    suggestion_id    = Column(GUID, ForeignKey("ceo_suggested_tasks.id"))
+    project_id       = Column(GUID, ForeignKey("projects.id"))
     agent_id         = Column(String(64))
     opportunity_type = Column(String(64))
     success          = Column(Boolean, default=True)
@@ -544,8 +562,8 @@ class SkillExecutionLog(Base):
     """Her beceri (skill) çalıştırıldığında buraya kaydedilir."""
     __tablename__ = "skill_execution_logs"
 
-    id           = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    project_id   = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=True, index=True)
+    id           = Column(GUID, primary_key=True, default=uuid.uuid4)
+    project_id   = Column(GUID, ForeignKey("projects.id", ondelete="CASCADE"), nullable=True, index=True)
     agent_id     = Column(String(64), nullable=True, index=True)
     skill_id     = Column(String(64), nullable=False, index=True)
     success      = Column(Boolean, default=True, nullable=False)
@@ -565,8 +583,8 @@ class SovereignCodeResult(Base):
     """
     __tablename__ = "sovereign_code_results"
 
-    id             = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    project_id     = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    id             = Column(GUID, primary_key=True, default=uuid.uuid4)
+    project_id     = Column(GUID, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
     title          = Column(String(512), nullable=False)
     language       = Column(String(64), default="mixed")
     technologies   = Column(SmartJSON(), default=list) # ["react", "fastapi"]
@@ -587,8 +605,8 @@ class SovereignCodeFile(Base):
     """
     __tablename__ = "sovereign_code_files"
 
-    id             = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    result_id      = Column(UUID(as_uuid=True), ForeignKey("sovereign_code_results.id", ondelete="CASCADE"), nullable=False, index=True)
+    id             = Column(GUID, primary_key=True, default=uuid.uuid4)
+    result_id      = Column(GUID, ForeignKey("sovereign_code_results.id", ondelete="CASCADE"), nullable=False, index=True)
     filename       = Column(String(256), nullable=False)
     path           = Column(String(1024), nullable=False)
     content        = Column(Text, nullable=False)
@@ -608,7 +626,7 @@ class SovereignModelPolicy(Base):
     """
     __tablename__ = "sovereign_model_policies"
 
-    id               = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id               = Column(GUID, primary_key=True, default=uuid.uuid4)
     agent_role       = Column(String(64), nullable=False, unique=True, index=True)
     winner_provider  = Column(String(64), nullable=False)
     runner_up        = Column(String(64), nullable=True)
@@ -625,7 +643,7 @@ class ModelBenchmarking(Base):
     """
     __tablename__ = "model_benchmarking"
 
-    id               = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id               = Column(GUID, primary_key=True, default=uuid.uuid4)
     agent_role       = Column(String(64), nullable=False, index=True)
     provider         = Column(String(64), nullable=False, index=True)
     avg_latency      = Column(Float, default=0.0)
@@ -642,8 +660,8 @@ class SystemImprovement(Base):
     """
     __tablename__ = "system_improvements"
 
-    id               = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    opportunity_id   = Column(UUID(as_uuid=True), ForeignKey("improvement_opportunities.id"), nullable=True)
+    id               = Column(GUID, primary_key=True, default=uuid.uuid4)
+    opportunity_id   = Column(GUID, ForeignKey("improvement_opportunities.id"), nullable=True)
     target_file      = Column(String(512), nullable=False)
     instruction      = Column(Text, nullable=False)
     proposed_patch   = Column(Text, nullable=False)   # Unified diff or full file
@@ -664,8 +682,8 @@ class ApprovalRequest(Base):
     """
     __tablename__ = "approval_requests"
 
-    id            = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    project_id    = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    id            = Column(GUID, primary_key=True, default=uuid.uuid4)
+    project_id    = Column(GUID, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
     step_id       = Column(String(128), nullable=True)
     request_type  = Column(String(64), nullable=False) # budget, autonomy, risk_score
     reason        = Column(Text, nullable=False)
@@ -687,13 +705,13 @@ class OperationalIncident(Base):
     """
     __tablename__ = "operational_incidents"
 
-    id            = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id            = Column(GUID, primary_key=True, default=uuid.uuid4)
     incident_type = Column(String(64), nullable=False, index=True) # stuck_workflow, budget_breach, safety_violation
     severity      = Column(String(16), default="medium")
     message       = Column(Text, nullable=False)
     
     status        = Column(String(32), default="open", index=True) # open, investigating, resolved, archived
-    project_id    = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="SET NULL"), nullable=True)
+    project_id    = Column(GUID, ForeignKey("projects.id", ondelete="SET NULL"), nullable=True)
     
     payload       = Column(SmartJSON(), default=dict)
     resolved_at   = Column(DateTime(timezone=True), nullable=True)
@@ -709,13 +727,13 @@ class SovereignEvidence(Base):
     """
     __tablename__ = "sovereign_evidence"
 
-    id               = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id               = Column(GUID, primary_key=True, default=uuid.uuid4)
     evidence_type    = Column(String(64), nullable=False, index=True) # self_healing, economic_drift, failover, rollback
     severity         = Column(String(16), default="info")
     
-    project_id       = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="SET NULL"), nullable=True)
-    incident_id      = Column(UUID(as_uuid=True), ForeignKey("operational_incidents.id", ondelete="SET NULL"), nullable=True)
-    improvement_id   = Column(UUID(as_uuid=True), ForeignKey("system_improvements.id", ondelete="SET NULL"), nullable=True)
+    project_id       = Column(GUID, ForeignKey("projects.id", ondelete="SET NULL"), nullable=True)
+    incident_id      = Column(GUID, ForeignKey("operational_incidents.id", ondelete="SET NULL"), nullable=True)
+    improvement_id   = Column(GUID, ForeignKey("system_improvements.id", ondelete="SET NULL"), nullable=True)
     
     # Derinlemesine Kanıt Verisi: decision_logic, risk_delta, cost_delta, validation_tokens
     payload          = Column(SmartJSON(), default=dict)

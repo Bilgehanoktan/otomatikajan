@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { useShow } from "@refinedev/core";
 import { 
     Card, 
     Typography, 
@@ -12,8 +11,11 @@ import {
     Button, 
     Space, 
     Alert,
-    Empty
+    Empty,
+    Input,
+    notification
 } from "antd";
+import { useShow, useNavigation } from "@refinedev/core";
 
 // Use direct imports for Ant Design Icons to avoid build resolution issues
 import PlayCircleOutlined from "@ant-design/icons/lib/icons/PlayCircleOutlined";
@@ -27,9 +29,43 @@ import RocketOutlined from "@ant-design/icons/lib/icons/RocketOutlined";
 const { Title, Text, Paragraph } = Typography;
 
 export default function WorkflowDetailClient() {
-    const { query: { data, isLoading, isError } } = useShow({
+    const { list } = useNavigation();
+    const { query: { data, isLoading, isError, refetch } } = useShow({
         resource: "workflows",
     });
+
+    const handleApprove = async () => {
+        const notes = (document.getElementById("approval-notes") as HTMLTextAreaElement)?.value || "";
+        try {
+            const response = await fetch(`/api/v1/workflows/${workflow.id}/approve`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    operator_id: "admin_human",
+                    notes: notes
+                })
+            });
+
+            if (response.ok) {
+                notification.success({
+                    message: "Workflow Approved",
+                    description: "The workflow has been authorized and re-queued for execution.",
+                    placement: "topRight"
+                });
+                refetch();
+            } else {
+                notification.error({
+                    message: "Approval Failed",
+                    description: "System rejected the approval request. Check backend logs.",
+                });
+            }
+        } catch (err) {
+            notification.error({
+                message: "Network Error",
+                description: "Failed to connect to the Mission Control API.",
+            });
+        }
+    };
 
     const workflow = data?.data;
 
@@ -47,11 +83,15 @@ export default function WorkflowDetailClient() {
     );
 
     const getStatusTag = (status: string) => {
-        switch (status) {
+        const s = status.toUpperCase();
+        switch (s) {
             case "RUNNING": return <Tag icon={<SyncOutlined spin />} color="processing">RUNNING</Tag>;
             case "COMPLETED": return <Tag icon={<CheckCircleOutlined />} color="success">COMPLETED</Tag>;
             case "FAILED": return <Tag icon={<ExclamationCircleOutlined />} color="error">FAILED</Tag>;
-            default: return <Tag>{status}</Tag>;
+            case "WAITING_APPROVAL":
+            case "PENDING_APPROVAL":
+                return <Tag icon={<ClockCircleOutlined />} color="warning">WAITING APPROVAL</Tag>;
+            default: return <Tag color="default">{s}</Tag>;
         }
     };
 
@@ -126,6 +166,32 @@ export default function WorkflowDetailClient() {
                     />
                 ) : (
                     <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={<span style={{ color: "#45a29e" }}>No artifacts generated yet.</span>} />
+                )}
+
+                {/* Approval Section */}
+                {workflow.status.toLowerCase() === "waiting_approval" && (
+                    <div style={{ marginTop: "24px", padding: "16px", background: "rgba(255, 169, 64, 0.05)", borderRadius: "8px", border: "1px border dashed rgba(255, 169, 64, 0.3)" }}>
+                        <Title level={5} style={{ color: "#ffa940" }}><ExclamationCircleOutlined /> Manual Approval Required</Title>
+                        <Paragraph style={{ color: "#c5c6c7" }}>
+                            This workflow has reached a critical gate and requires manual authorization to proceed.
+                        </Paragraph>
+                        <Space direction="vertical" style={{ width: "100%" }}>
+                            <Input.TextArea 
+                                placeholder="Enter approval notes for audit trail..." 
+                                rows={3} 
+                                style={{ background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff" }}
+                                id="approval-notes"
+                            />
+                            <Button 
+                                type="primary" 
+                                icon={<CheckCircleOutlined />} 
+                                style={{ background: "#ffa940", borderColor: "#ffa940" }}
+                                onClick={() => handleApprove()}
+                            >
+                                Approve & Resume Execution
+                            </Button>
+                        </Space>
+                    </div>
                 )}
             </Card>
         </div>

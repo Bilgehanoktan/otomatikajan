@@ -6,7 +6,7 @@ from libs.db.session import AsyncSessionLocal
 from libs.db.models.core_models import User, Project, OperationalIncident, SystemImprovement, ProjectStatus, SubTask
 
 async def bootstrap():
-    print("🚀 Starting Sovereign AGI Pilot Bootstrap...")
+    print("Starting Sovereign AGI Pilot Bootstrap...")
     async with AsyncSessionLocal() as session:
         # 1. Create Default Admin User
         result = await session.execute(select(User).filter_by(email="admin@sovereign.agi"))

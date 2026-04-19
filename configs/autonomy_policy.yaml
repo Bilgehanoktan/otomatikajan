@@ -1,36 +1,18 @@
-# Sovereign AGI Autonomy Policy Configuration
-# Defines global autonomy levels (L1-L4) as used by services.governance.autonomy_policy.AutonomyEngine
-
-current_global_level: L1 # P0 Safety Default for Phase 14 Go-Live
-
+current_global_level: "L3"
 levels:
   L1:
-    name: "Passive / Manual Approval"
-    description: "Every action requires explicit human approval."
     auto_execute: false
     requires_approval: true
-    max_risk_score: 0.0
-
+    max_risk_score: 0.1
   L2:
-    name: "Self-Correction"
-    description: "Automatic execution for low-risk self-repair tasks."
     auto_execute: true
     requires_approval_above_risk: true
     max_risk_score: 0.4
-
   L3:
-    name: "High Autonomy"
-    description: "Automatic execution for most workflows; approval for high-risk only."
     auto_execute: true
     requires_approval_above_risk: true
-    max_risk_score: 0.7
-
+    max_risk_score: 0.8
   L4:
-    name: "Full Sovereign / Whitelist"
-    description: "Full autonomy except for whitelisted critical tools."
     auto_execute: true
     requires_approval: false
-    whitelisted_tools:
-      - "wallet_withdraw"
-      - "delete_project"
-      - "modify_rbac"
+    whitelisted_tools: ["*"]

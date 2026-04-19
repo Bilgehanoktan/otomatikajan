@@ -59,5 +59,6 @@ class PatchTournament:
             completed_at=completed_at
         )
 
-        logger.info(f"[TOURNAMENT] Winner for {case.id}: {winner_id} with score {winner_eval.scores.total_score:.2f} if winner_eval else 0")
+        score_str = f"{winner_eval.scores.total_score:.2f}" if winner_eval else "0.00"
+        logger.info(f"[TOURNAMENT] Winner for {case.id}: {winner_id} with score {score_str}")
         return result

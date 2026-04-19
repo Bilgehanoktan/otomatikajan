@@ -330,7 +330,7 @@ class SovereignCortex:
         from libs.memory.retrieval import context_builder
         from services.orchestration.domain.models import ProblemFrame, TaskType, RiskLevel
         
-        strategic_context = await context_builder.build_context(f"{title} {description}")
+        strategic_context = await context_builder.build_context(agent_id="sovereign_planner", task_text=f"{title} {description}")
         cognitive_memory = "Synaptic synergy active"
         
         from services.orchestration.agi.world import service_graph, task_state_graph

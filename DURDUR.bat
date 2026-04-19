@@ -1,20 +1,21 @@
 @echo off
+title Sovereign AGI | Sistem Durdurma
 chcp 65001 >nul
-title AI Yazilim Sirketi - Durdur
+echo ----------------------------------------------------
+echo    EGEMEN YAZ - Servisler Durduruluyor...
+echo ----------------------------------------------------
 
-cd /d "%~dp0"
+:: 1. Port bazlı temizlik (PowerShell)
+echo [*] Aktif servisler taranıyor ve sonlandırılıyor...
 
-echo [1/2] Proje durduruluyor ve siliniyor...
-docker compose down
+powershell -Command "foreach ($port in @(8000, 3000, 3100)) { $connections = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue; if ($connections) { foreach ($conn in $connections) { Write-Host \"[!] Port $port üzerindeki süreç kapatılıyor (PID: $($conn.OwningProcess))\"; Stop-Process -Id $conn.OwningProcess -Force -ErrorAction SilentlyContinue } } }"
 
-echo [2/3] Tum ghost containerlar temizleniyor...
-for /f "tokens=*" %%i in ('docker ps -aq 2^>nul') do (
-    docker stop %%i >nul 2>&1
-    docker rm -f %%i >nul 2>&1
-)
+:: 2. Genel Kalıntı Temizliği
+taskkill /F /IM node.exe /T >nul 2>&1
+taskkill /F /IM python.exe /T /FI "COMMANDLINE eq *uvicorn*" >nul 2>&1
 
-echo [3/3] Git Oto-Commit servisi durduruluyor...
-taskkill /F /FI "WINDOWTITLE eq AI_COMPANY_GIT_AUTO_COMMIT*" /T >nul 2>&1
-
-echo SISTEM DURDURULDU VE TEMIZLENDI.
-pause
+echo.
+echo ----------------------------------------------------
+echo    KONTROL PANELI VE SERVISLER DURDURULDU.
+echo ----------------------------------------------------
+timeout /t 3

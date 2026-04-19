@@ -34,15 +34,67 @@ async def lifespan(app: FastAPI):
         from services.orchestration.application.sovereign_cortex import get_sovereign_cortex
         cortex = get_sovereign_cortex()
         
-        # Start core cognitive loops
-        await cortex.start()
-        logger.info("[STARTUP] SovereignCortex cognitive loops started.")
+        # Start core cognitive loops (Asynchronous startup to prevent blocking the web server)
+        asyncio.create_task(cortex.start())
+        logger.info("[STARTUP] SovereignCortex cognitive loops initiated in background.")
         
         # Initialize Workflow Engine & Actions
         from libs.workflow.runner import get_engine
         _ = get_engine() 
         logger.info("[STARTUP] WorkflowEngine initialized and default actions registered.")
+
+        # 3. Job Queue In-Process Background Workers
+        from services.orchestration.application.job_queue import job_queue
+        if job_queue.backend_name == "inprocess":
+            from libs.workflow.runner import run_project_workflow
+            
+            async def _project_handler(**payload):
+                p_id = payload.get("db_project_id") or payload.get("project_id")
+                logger.info(f"[JOB-QUEUE] EXEC: {p_id} ({payload.get('title')})")
+                try:
+                    await run_project_workflow(
+                        project_id=p_id,
+                        title=payload.get("title", "Untitled"),
+                        description=payload.get("description", ""),
+                        workflow_template=payload.get("workflow_template", "default"),
+                        quality_profile=payload.get("quality_profile", "standard"),
+                    )
+                    logger.info(f"[JOB-QUEUE] SUCCESS: {p_id}")
+                except Exception as ex:
+                    logger.error(f"[JOB-QUEUE] FAILED: {p_id} | Error: {ex}")
+                    # Note: WorkflowEngine already handles DB error marking if it crashes inside engine.execute
+
+            async def _dummy_handler(**payload):
+                logger.info(f"🔔 [JOB-QUEUE] Background task triggered (InProcess): {payload}")
+
+            job_queue.register("run_project", _project_handler)
+            job_queue.register("send_webhook", _dummy_handler)
+            job_queue.register("cleanup", _dummy_handler)
+            
+            await job_queue.start(num_workers=4)
+            logger.info("[STARTUP] In-process JobQueue workers started (Resilient Mode).")
         
+        # 4. Standby Mode: PRMR Readiness Audit (Low Frequency)
+        async def _prmr_audit_loop():
+            from services.governance.standby_manager import StandbyManager
+            logger.info("[STANDBY] PRMR Readiness Audit loop started (Interval: 15m).")
+            
+            while StandbyManager.is_in_standby():
+                try:
+                    # Run the external script logic (or imported function)
+                    from prmr_readiness_audit import run_audit
+                    await run_audit()
+                except Exception as audit_err:
+                    logger.warning(f"[STANDBY-AUDIT] Audit failed: {audit_err}")
+                
+                # Sleep for 15 minutes (900 seconds)
+                await asyncio.sleep(900)
+            
+            logger.info("[STANDBY] TRIGGER DETECTED. Exiting Standby Audit Loop. Primary Initiation authorized.")
+
+        asyncio.create_task(_prmr_audit_loop())
+        logger.info("[STANDBY] System is in STANDBY MODE. Awaiting trigger: 'Hazır, PRMR-01 Faz 1’i yeniden başlat.'")
+
     except Exception as e:
         logger.error(f"[STARTUP] Component Init Failed: {e}", exc_info=True)
 
@@ -54,10 +106,10 @@ async def lifespan(app: FastAPI):
     try:
         from services.orchestration.application.sovereign_cortex import get_sovereign_cortex
         cortex = get_sovereign_cortex()
-        await cortex.stop()
+        await cortex.shutdown()
         logger.info("[SHUTDOWN] SovereignCortex stopped.")
     except Exception as e:
-        logger.warning(f"[SHUTDOWN] Cortex stop error: {e}")
+        logger.warning(f"[SHUTDOWN] Cortex shutdown error: {e}")
 
     try:
         await close_db()

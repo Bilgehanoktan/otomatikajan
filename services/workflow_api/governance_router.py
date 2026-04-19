@@ -6,7 +6,31 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from pydantic import BaseModel
 
+from services.governance.standby_manager import StandbyManager
+
 router = APIRouter(prefix="/api/v1", tags=["Governance Control Plane"])
+
+class StandbyCommand(BaseModel):
+    command: str
+
+@router.post("/governance/standby/reactivate")
+async def reactivate_from_standby(cmd: StandbyCommand):
+    """
+    Exits Standby Mode if the correct trigger phrase is provided.
+    Trigger: "Hazır, PRMR-01 Faz 1’i yeniden başlat."
+    """
+    success = StandbyManager.check_trigger(cmd.command)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Invalid reactivation command string. Persistence remains in STANDBY."
+        )
+    return {"status": "REACTIVATED", "message": "Trigger phrase accepted. Standby Mode exited."}
+
+@router.get("/governance/standby/status")
+async def get_standby_status():
+    """Returns the current standby/reactivation status."""
+    return StandbyManager.get_status_report()
 
 class ApprovalOut(BaseModel):
     id: str
@@ -88,6 +112,15 @@ class PolicyEvolutionOut(BaseModel):
     new_value: Dict[str, Any] = None
     change_reason: str
     decision_id: Optional[str] = None
+    created_at: datetime
+
+class IncidentOut(BaseModel):
+    id: str
+    incident_type: str
+    severity: str
+    message: str
+    status: str
+    project_id: Optional[str] = None
     created_at: datetime
 
 @router.get("/approvals", response_model=List[ApprovalOut])
@@ -442,6 +475,74 @@ async def list_audit_bundles(response: Response):
     
     response.headers["x-total-count"] = str(len(bundles))
     return bundles
+
+@router.get("/incidents", response_model=List[IncidentOut])
+async def list_incidents(
+    response: Response,
+    status: Optional[str] = Query(None),
+    limit: int = Query(50),
+    offset: int = Query(0),
+):
+    from libs.db.session import AsyncSessionLocal
+    from libs.db.models.core_models import OperationalIncident
+    from sqlalchemy import select, desc, func
+
+    async with AsyncSessionLocal() as session:
+        # Phase 23: Incident tracking logic
+        query = select(OperationalIncident).order_by(desc(OperationalIncident.created_at)).offset(offset).limit(limit)
+        if status:
+            query = query.filter(OperationalIncident.status == status)
+        
+        result = await session.execute(query)
+        items = result.scalars().all()
+        
+        # Refine requirement: Total count in Header for pagination
+        total_query = select(func.count(OperationalIncident.id))
+        if status:
+            total_query = total_query.filter(OperationalIncident.status == status)
+        total = await session.scalar(total_query)
+        response.headers["x-total-count"] = str(total or 0)
+        
+        return [
+            IncidentOut(
+                id=str(item.id),
+                incident_type=item.incident_type,
+                severity=item.severity,
+                message=item.message,
+                status=item.status,
+                project_id=str(item.project_id) if item.project_id else None,
+                created_at=item.created_at
+            ) for item in items
+        ]
+
+@router.patch("/incidents/{id}", response_model=IncidentOut)
+async def update_incident(id: str, data: Dict[str, Any]):
+    from libs.db.session import AsyncSessionLocal
+    from libs.db.models.core_models import OperationalIncident
+    from sqlalchemy import select
+
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(OperationalIncident).filter(OperationalIncident.id == id))
+        item = result.scalar_one_or_none()
+        if not item:
+            raise HTTPException(status_code=404, detail="Incident not found")
+        
+        for key, value in data.items():
+            if hasattr(item, key):
+                setattr(item, key, value)
+        
+        await session.commit()
+        await session.refresh(item)
+        
+        return IncidentOut(
+            id=str(item.id),
+            incident_type=item.incident_type,
+            severity=item.severity,
+            message=item.message,
+            status=item.status,
+            project_id=str(item.project_id) if item.project_id else None,
+            created_at=item.created_at
+        )
 
 @router.get("/ops/launch-gates")
 async def get_launch_gates():

@@ -172,8 +172,8 @@ async def create_project(req: ProjectCreate):
     """
     from libs.db.session import AsyncSessionLocal
     from libs.db.repositories.repository import ProjectRepository
-    from workers.workflow_worker.tasks.project_tasks import run_project_task
     from libs.db.models.core_models import ProjectSource
+    from services.orchestration.application.job_queue import job_queue
     async with AsyncSessionLocal() as db:
         project = await ProjectRepository.create(
             db,
@@ -187,21 +187,15 @@ async def create_project(req: ProjectCreate):
         await db.commit()
         await db.refresh(project)
 
-    # Dispatch to worker
-    try:
-        run_project_task.apply_async(
-            kwargs={
-                "db_project_id": str(project.id),
-                "title": project.title,
-                "description": project.description or "",
-                "workflow_template": project.workflow_template or "default",
-                "quality_profile": project.quality_profile or "standard",
-            },
-            queue="projects",
-        )
-    except Exception as e:
-        # Log but don't fail (DB record is created)
-        print(f"Failed to dispatch Celery task: {e}")
+    # Dispatch to standardized job queue (Respects auto-fallback to in-process)
+    await job_queue.enqueue(
+        "run_project",
+        db_project_id=str(project.id),
+        title=project.title,
+        description=project.description or "",
+        workflow_template=project.workflow_template or "default",
+        quality_profile=project.quality_profile or "standard",
+    )
 
     return {"id": str(project.id), "status": "queued"}
 
@@ -337,23 +331,17 @@ async def retry_workflow(project_id: str):
         )
         await db.commit()
 
-    # Enqueue via Celery
-    try:
-        from workers.workflow_worker.tasks.project_tasks import run_project_task
-        task = run_project_task.apply_async(
-            kwargs={
-                "db_project_id": project_id,
-                "title": project.title,
-                "description": project.description or "",
-                "workflow_template": project.workflow_template or "default",
-                "quality_profile": project.quality_profile or "standard",
-            },
-            queue="projects",
-        )
-        return RetryResponse(message="Workflow re-queued successfully", task_id=task.id)
-    except Exception as e:
-        # Celery may not be connected — still return success (queued in DB)
-        return RetryResponse(message=f"Queued in DB (Celery unavailable: {e})", task_id=project_id)
+    # Enqueue via standardized job queue
+    from services.orchestration.application.job_queue import job_queue
+    await job_queue.enqueue(
+        "run_project",
+        db_project_id=project_id,
+        title=project.title,
+        description=project.description or "",
+        workflow_template=project.workflow_template or "default",
+        quality_profile=project.quality_profile or "standard",
+    )
+    return RetryResponse(message="Workflow re-queued successfully", task_id=project_id)
 
 
 @router.post("/{project_id}/cancel")
@@ -417,7 +405,7 @@ async def approve_workflow(project_id: str, req: ApprovalRequest):
             raise HTTPException(status_code=404, detail="Project not found")
 
         p_status = project.status.value if hasattr(project.status, "value") else str(project.status)
-        if p_status.lower() != "pending_approval":
+        if p_status.lower() not in ("pending_approval", "waiting_approval"):
             raise HTTPException(status_code=409, detail=f"Project is not pending approval (status: {p_status})")
 
         # Hardening: Save to Workflow Audit Trail
@@ -437,7 +425,26 @@ async def approve_workflow(project_id: str, req: ApprovalRequest):
             notes=f"[APPROVED BY {req.operator_id}] {req.notes}",
             review_required=False,
         )
+        # Faz 13.04: Reset waiting steps to PENDING to break deadlock on resumption
+        from libs.db.models.core_models import SubTask, ProjectStatus
+        from sqlalchemy import update
+        await db.execute(
+            update(SubTask)
+            .where(SubTask.project_id == uid, SubTask.status == "WAITING")
+            .values(status=ProjectStatus.PENDING)
+        )
         await db.commit()
+
+    # Dispatch to standardized job queue to resume execution
+    from services.orchestration.application.job_queue import job_queue
+    await job_queue.enqueue(
+        "run_project",
+        db_project_id=project_id,
+        title=project.title,
+        description=project.description or "",
+        workflow_template=project.workflow_template or "default",
+        quality_profile=project.quality_profile or "standard",
+    )
 
     return {"message": "Workflow approved and re-queued", "project_id": project_id}
 

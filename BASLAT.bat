@@ -1,60 +1,48 @@
 @echo off
-setlocal disabledelayedexpansion
+title Sovereign AGI | Görev Kontrol Merkezi (DEBUG MODU)
 chcp 65001 >nul
-title Sovereign AGI - Baslat (v4.1.0 - Phase 17 Sovereign Pilot)
-
 echo ----------------------------------------------------
-echo    Sovereign AGI (DeerFlow) - Baslatiliyor
-echo    Bilesen: Fleet Operations Cockpit (Phase 17)
+echo    EGEMEN YAZ - Sovereign AGI Başlatılıyor...
 echo ----------------------------------------------------
 
-:: 0. On Kontrol: Sistem Butunlugu (Quality Guard)
-echo [*] Sistem butunlugu kontrol ediliyor (Quality Guard)...
-python scripts\verify_system_integrity.py
+:: 1. Bağımlılık Kontrolü
+echo [*] Bağımlılıklar kontrol ediliyor...
+set "PY_CMD=python"
+where python >nul 2>&1
 if %errorlevel% neq 0 (
-    echo [!] UYARI: Sistem butunluk kontrolu tamamlanamadi.
-    echo [!] Nedeni: Veritabani henuz baslatilmamis olabilir. Devam ediliyor...
+    where py >nul 2>&1
+    if %errorlevel% neq 0 (
+        echo [!] HATA: Python bulunamadı.
+        pause
+        exit /b 1
+    )
+    set "PY_CMD=py"
 )
 
-:: 1. Docker Kontrol
-echo [*] Docker kontrol ediliyor...
-docker info >nul 2>&1
+where npm >nul 2>&1
 if %errorlevel% neq 0 (
-    echo [!] HATA: Docker calismiyor. Lutfen Docker Desktop'i baslatin.
+    echo [!] HATA: npm bulunamadı.
+    pause
     exit /b 1
 )
 
-:: 2. Eski Surecleri Temizle
-echo [*] Artık surecler temizleniyor...
-powershell -Command "Get-CimInstance Win32_Process -Filter \"name='python.exe' and (commandline like '%%hub_interaction.telegram_bot%%')\" | Stop-Process -Force" >nul 2>&1
+:: 2. Port Temizliği
+echo [*] Portlar temizleniyor...
+powershell -NoProfile -Command "foreach ($port in @(8000, 3000, 3100)) { $p = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue; if ($p) { Stop-Process -Id $p.OwningProcess -Force -ErrorAction SilentlyContinue } }"
 
-:: 3. Docker Compose Islemleri
-cd /d "%~dp0"
-echo [1/3] Mevcut konteynerlar durduruluyor...
-docker compose down --remove-orphans >nul 2>&1
+:: 3. Başlatma
+echo [1/2] Mission Control API (8000) başlatılıyor...
+:: /k parametresi hata durumunda pencerenin açık kalmasını sağlar
+start "Backend (8000)" cmd /k "title Backend (8000) && %PY_CMD% -m uvicorn services.workflow_api.main:app --host 0.0.0.0 --port 8000 --reload"
 
-echo [2/3] Bilesenler insa ediliyor (Build)...
-docker compose build --quiet
-if %errorlevel% neq 0 (
-    echo [!] Build hatasi olustu.
-    exit /b 1
-)
+echo [2/2] Sovereign Cockpit UI (3100) başlatılıyor...
+start "Frontend (3100)" cmd /k "title Frontend (3100) && cd /d %~dp0apps\refine_control_plane && npm run dev -- -p 3100"
 
-echo [3/3] Sovereign Mesh baslatiliyor...
-docker compose up -d
-if %errorlevel% neq 0 (
-    echo [!] Servisler baslatilamadi. 
-    exit /b 1
-)
-
-:: 4. Servislerin Hazir Olmasini Bekle
-echo [*] Sovereign AGI uyaniyor...
-echo ====================================================
-echo    Sovereign AGI Kontrol Paneli Hazir!
 echo.
-echo    Dashboard (Cockpit): http://localhost:8000
-echo    Operator Action API: http://localhost:8000/docs
-echo    Mesh Status (API):   http://localhost:8000/api/v1/mesh/status
-echo    Fleet Hub (API):     http://localhost:8000/api/v1/fleet/projects
-echo ====================================================
+echo ----------------------------------------------------
+echo    KONTROL PANELLERİ AÇILDI.
 echo.
+echo    Hata durumunda açılan pencerelerdeki mesajları kontrol edin.
+echo    Durdurmak için pencereleri kapatabilir veya DURDUR.bat kullanabilirsiniz.
+echo ----------------------------------------------------
+timeout /t 5
