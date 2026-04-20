@@ -290,7 +290,9 @@ async def list_projects(
 @router.get("/{project_id}", response_model=WorkflowOut)
 async def get_workflow(project_id: str):
     """Get full workflow detail with step trace and event history."""
+    from libs.workflow.persistence import WorkflowPersistence
     project, subtasks = await _get_project_with_subtasks(project_id)
+
     out = _map_workflow(project, subtasks)
     
     # Map history to UI format (step, msg, timestamp)

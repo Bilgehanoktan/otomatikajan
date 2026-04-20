@@ -228,6 +228,8 @@ async def init_db():
                 _DB_ERROR = f"SQLite Fallback da başarısız: {e2}"
         
         logger.error(f"[ERR] Kritik DB Başlatma Hatası: {_DB_ERROR}")
+
+
         # Uygulama çökmesin ama degraded mode'da kalsın
 
 def is_db_degraded() -> bool:

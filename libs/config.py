@@ -119,8 +119,10 @@ if _is_in_docker:
     else:
         DATABASE_URL = _raw_db_url
 else:
-    # Host modunda çalışıyorken env yoksa localhost'a düş
-    DATABASE_URL = _raw_db_url or "postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/ai_company"
+    # Host modunda çalışıyorken env yoksa localhost'a düş (SRE: Default 5433 for Sovereign Standard)
+    DATABASE_URL = _raw_db_url or "postgresql+asyncpg://postgres:postgres@127.0.0.1:5433/ai_company"
+
+
 
 DB_POOL_SIZE   = int(os.getenv("DB_POOL_SIZE", "10"))
 DB_MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", "20"))

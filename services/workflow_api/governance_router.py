@@ -13,6 +13,15 @@ router = APIRouter(prefix="/api/v1", tags=["Governance Control Plane"])
 class StandbyCommand(BaseModel):
     command: str
 
+class GovernanceStatusOut(BaseModel):
+    is_running: bool
+    standby_mode: bool
+    failure_counts: Dict[str, int]
+    stuck_threshold: int
+    active_drills: int
+    health_score: float
+    __sqv_meta: Optional[Dict[str, Any]] = None
+
 @router.post("/governance/standby/reactivate")
 async def reactivate_from_standby(cmd: StandbyCommand):
     """
@@ -27,10 +36,27 @@ async def reactivate_from_standby(cmd: StandbyCommand):
         )
     return {"status": "REACTIVATED", "message": "Trigger phrase accepted. Standby Mode exited."}
 
-@router.get("/governance/standby/status")
 async def get_standby_status():
     """Returns the current standby/reactivation status."""
     return StandbyManager.get_status_report()
+
+@router.get("/governance/status", response_model=GovernanceStatusOut)
+async def get_governance_status():
+    """
+    Returns a unified governance status report for the Evolution Hub.
+    Satisfies frontend telemetry requirements.
+    """
+    standby = StandbyManager.get_status_report()
+    
+    # Placeholder metrics until full observability integration
+    return GovernanceStatusOut(
+        is_running=not standby.get("is_standby", True),
+        standby_mode=standby.get("is_standby", True),
+        failure_counts={}, # Aggregated from TaskLog if needed
+        stuck_threshold=5,
+        active_drills=0,
+        health_score=0.95 if not standby.get("is_standby", True) else 0.5
+    )
 
 class ApprovalOut(BaseModel):
     id: str
