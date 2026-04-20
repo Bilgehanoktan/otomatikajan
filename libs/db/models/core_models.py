@@ -99,10 +99,54 @@ class ProjectSource(str, enum.Enum):
     CONTROL_PLANE = "control_plane"
 
 class TaskPriority(str, enum.Enum):
-    CRITICAL = "critical"
-    HIGH = "high"
-    MEDIUM = "medium"
-    LOW = "low"
+    CRITICAL = "CRITICAL"
+    HIGH     = "HIGH"
+    MEDIUM   = "MEDIUM"
+    LOW      = "LOW"
+
+    @classmethod
+    def _missing_(cls, value):
+        """
+        Ultra-Resilient Lookup Handler (Phase 4 Hardening).
+        Supports:
+        - Turkish (KRİTİK, YÜKSEK, ORTA, DÜŞÜK)
+        - Turkish ASCII (KRITIK, YUKSEK, DUSUK)
+        - English (CRITICAL, HIGH, MEDIUM, LOW)
+        - All casing permutations (yüksek, Medium, etc.)
+        """
+        if not isinstance(value, str):
+            return None
+            
+        # Normalize: Upper and mapping
+        val = value.upper().strip()
+        
+        # Explicit Mapping Table
+        mapping = {
+            # Turkish variants
+            "KRİTİK": "CRITICAL",
+            "KRITIK": "CRITICAL",
+            "YÜKSEK": "HIGH",
+            "YUKSEK": "HIGH",
+            "ORTA":   "MEDIUM",
+            "DÜŞÜK":  "LOW",
+            "DUSUK":  "LOW",
+            # English aliases
+            "MEDIUM": "MEDIUM",
+            "NORMAL": "MEDIUM",
+            "URGENT": "CRITICAL",
+        }
+        
+        target = mapping.get(val, val)
+        
+        # Check by member value
+        for member in cls:
+            if member.value == target:
+                return member
+        # Check by member name
+        try:
+            return cls[target]
+        except KeyError:
+            return None
 
 # ── Projeler ─────────────────────────────────────────────
 class Project(Base):

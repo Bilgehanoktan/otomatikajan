@@ -174,8 +174,22 @@ async def create_project(req: ProjectCreate):
     """
     from libs.db.session import AsyncSessionLocal
     from libs.db.repositories.repository import ProjectRepository
-    from libs.db.models.core_models import ProjectSource
+    from libs.db.models.core_models import ProjectSource, TaskPriority
     from services.orchestration.application.job_queue import job_queue
+
+    # Normalization Guard: Protect against case-insensitive and localized inputs
+    p_val = (req.priority or "MEDIUM").upper().strip()
+    mapping = {
+        "YÜKSEK": "HIGH", "YUKSEK": "HIGH",
+        "ORTA": "MEDIUM", "DÜŞÜK": "LOW", "DUSUK": "LOW",
+        "KRİTİK": "CRITICAL", "KRITIK": "CRITICAL"
+    }
+    normalized_priority = mapping.get(p_val, p_val)
+    
+    # Ensure it's a valid enum member name
+    if normalized_priority not in [m.name for m in TaskPriority]:
+        normalized_priority = "MEDIUM"
+
     async with AsyncSessionLocal() as db:
         project = await ProjectRepository.create(
             db,
@@ -183,7 +197,7 @@ async def create_project(req: ProjectCreate):
             description=req.description,
             workflow_template=req.workflow_template,
             quality_profile=req.quality_profile,
-            priority=req.priority,
+            priority=normalized_priority,
             source=ProjectSource.CONTROL_PLANE
         )
         await db.commit()

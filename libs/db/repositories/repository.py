@@ -37,7 +37,7 @@ class ProjectRepository:
         owner_id=None,
         job_id: str = "",
         source: str = "api",
-        priority: str = "medium",
+        priority: str = "MEDIUM",
         tags: list | None = None,
         deadline=None,
         assigned_agent: str = "",
@@ -51,6 +51,21 @@ class ProjectRepository:
         is_pilot: bool = False,
         status: str = ProjectStatus.PENDING.value,
     ) -> Project:
+        # Defense-in-depth: Normalize priority string to valid TaskPriority
+        from libs.db.models.core_models import TaskPriority
+        
+        p_val = str(priority or "MEDIUM").upper().strip()
+        mapping = {
+            "YÜKSEK": "HIGH", "YUKSEK": "HIGH",
+            "ORTA": "MEDIUM", "DÜŞÜK": "LOW", "DUSUK": "LOW",
+            "KRİTİK": "CRITICAL", "KRITIK": "CRITICAL"
+        }
+        normalized_priority = mapping.get(p_val, p_val)
+        
+        # Fallback to MEDIUM if still invalid
+        if normalized_priority not in [m.name for m in TaskPriority]:
+            normalized_priority = "MEDIUM"
+
         project = Project(
             id=uuid.uuid4(),
             title=title,
@@ -59,7 +74,7 @@ class ProjectRepository:
             job_id=job_id,
             status=status,
             source=source,
-            priority=priority,
+            priority=normalized_priority,
             tags=tags or [],
             deadline=deadline,
             assigned_agent=assigned_agent,
