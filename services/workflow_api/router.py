@@ -32,10 +32,13 @@ class StepOut(BaseModel):
 
 class WorkflowOut(BaseModel):
     id: str
+    name: str
     workflow_type: str
     status: str
+    source: str
     steps: List[StepOut]
     context_keys: List[str]
+    payload: Dict[str, Any] = {}
     created_at: Optional[datetime] = None
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
@@ -153,10 +156,13 @@ def _map_workflow(project, subtasks) -> WorkflowOut:
 
     return WorkflowOut(
         id=str(project.id),
+        name=project.title,
         workflow_type=project.workflow_template or "default",
         status=p_status.lower(),
+        source=project.source.value if hasattr(project.source, "value") else str(project.source),
         steps=steps,
         context_keys=ctx_keys,
+        payload=project.execution_context or {},
         created_at=project.created_at,
         started_at=project.started_at,
         completed_at=project.completed_at,
@@ -287,9 +293,16 @@ async def get_workflow(project_id: str):
     project, subtasks = await _get_project_with_subtasks(project_id)
     out = _map_workflow(project, subtasks)
     
-    # Load durable history (Phase 13.04)
-    from libs.workflow.persistence import WorkflowPersistence
-    out.history = await WorkflowPersistence.load_history(project_id)
+    # Map history to UI format (step, msg, timestamp)
+    raw_history = await WorkflowPersistence.load_history(project_id)
+    out.history = [
+        {
+            "step": h["event_type"].replace("_", " ").title(),
+            "msg": h["payload"].get("msg") or h["payload"].get("details") or f"Event {h['event_type']} processed.",
+            "timestamp": h["created_at"].isoformat()
+        }
+        for h in raw_history
+    ]
     
     # Load related governance data (Approvals & Incidents)
     from libs.db.session import AsyncSessionLocal
@@ -302,7 +315,7 @@ async def get_workflow(project_id: str):
         out.related_approvals = [
             {
                 "id": str(a.id),
-                "type": a.request_type,
+                "request_type": a.request_type,
                 "status": a.status,
                 "reason": a.reason,
                 "created_at": a.created_at
@@ -314,7 +327,7 @@ async def get_workflow(project_id: str):
         out.related_incidents = [
             {
                 "id": str(i.id),
-                "type": i.incident_type,
+                "incident_type": i.incident_type,
                 "status": i.status,
                 "severity": i.severity,
                 "message": i.message,
