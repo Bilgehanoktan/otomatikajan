@@ -17,7 +17,7 @@ interface ResourceHeaderProps {
   };
 }
 
-export function ResourceHeader({ title, subtitle, icon, badge, onBack, actions }: ResourceHeaderProps) {
+export function ResourceHeader({ title, subtitle, icon, badge, onBack, actions, staleMeta }: ResourceHeaderProps) {
   return (
     <header className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
       <div className="flex items-center gap-6">

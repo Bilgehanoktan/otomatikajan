@@ -161,7 +161,13 @@ export default function AuditPage() {
                                         <span className="text-[10px] font-mono text-gray-500 leading-none">0x72a...8e11</span>
                                      </div>
                                      <div className="flex items-center gap-4">
-                                        <button className="text-[10px] font-black text-[var(--primary)] uppercase tracking-widest flex items-center gap-2 hover:translate-x-1 transition-transform">
+                                        <button 
+                                          onClick={() => {
+                                            if (item.project_id) window.open(`/workflows/${item.project_id}`, '_blank');
+                                            else window.open('/governance-lineage', '_blank');
+                                          }}
+                                          className="text-[10px] font-black text-[var(--primary)] uppercase tracking-widest flex items-center gap-2 hover:translate-x-1 transition-transform"
+                                        >
                                            Full Decision Proof <ExternalLink size={12} />
                                         </button>
                                      </div>

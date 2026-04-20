@@ -71,8 +71,9 @@ async def lifespan(app: FastAPI):
             job_queue.register("send_webhook", _dummy_handler)
             job_queue.register("cleanup", _dummy_handler)
             
-            await job_queue.start(num_workers=4)
-            logger.info("[STARTUP] In-process JobQueue workers started (Resilient Mode).")
+            # SRE Hardening: Background startup to prevent blocking the web server
+            asyncio.create_task(job_queue.start(num_workers=4))
+            logger.info("[STARTUP] In-process JobQueue workers initiated in background (Resilient Mode).")
         
         # 4. Standby Mode: PRMR Readiness Audit (Low Frequency)
         async def _prmr_audit_loop():

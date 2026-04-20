@@ -6,7 +6,7 @@ import time
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, Optional
 from sqlalchemy import select, func
-from libs.db.session import get_db
+from libs.db.session import get_db, get_db_ctx
 from libs.db.models.core_models import LLMCostLog, Project, SovereignEvidence
 from services.observability.logging import get_logger
 
@@ -37,7 +37,7 @@ class BudgetService:
     @staticmethod
     async def _fetch_from_db(project_id: Optional[str] = None) -> float:
         """Sorguyu llm_cost_logs tablosundan çeker."""
-        async with get_db() as db:
+        async with get_db_ctx() as db:
             query = select(func.sum(LLMCostLog.cost_usd))
             if project_id:
                 query = query.where(LLMCostLog.project_id == project_id)
@@ -55,7 +55,7 @@ class BudgetService:
         """
         Proje bazlı bütçeyi kontrol eder. Limit aşılmışsa False döner.
         """
-        async with get_db() as db:
+        async with get_db_ctx() as db:
             res = await db.execute(select(Project).where(Project.id == project_id))
             proj = res.scalar_one_or_none()
             
@@ -73,7 +73,7 @@ class BudgetService:
     @staticmethod
     async def log_budget_evidence(project_id: str, total_consumed: float, limit: float):
         """Bütçe durumunu SovereignEvidence olarak kaydeder."""
-        async with get_db() as db:
+        async with get_db_ctx() as db:
             evidence = SovereignEvidence(
                 evidence_type="economic_drift",
                 severity="critical" if total_consumed >= limit else "warning",

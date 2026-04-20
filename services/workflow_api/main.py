@@ -108,7 +108,7 @@ def create_app() -> FastAPI:
     @app.get("/api/v1/health/dashboard")
     async def dashboard_stats(
         cortex=Depends(get_sovereign_cortex),
-        db=Depends(get_db_dep)
+        db=Depends(get_db)
     ):
         t0 = _time.monotonic()
         result: dict = {
@@ -196,7 +196,7 @@ def create_app() -> FastAPI:
         return result
 
     @app.get("/api/v1/health/evolution")
-    async def evolution_timeline(db=Depends(get_db_dep)):
+    async def evolution_timeline(db=Depends(get_db)):
         """Fetch real autonomous repair events for the evolution timeline."""
         events = []
         try:

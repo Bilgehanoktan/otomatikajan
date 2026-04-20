@@ -7,7 +7,7 @@ from typing import List, Dict, Any, Optional
 from libs.llm.model_orchestrator import ModelOrchestrator
 from services.orchestration.agi.task_governance import SubTask, TaskStatus
 from services.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
-from libs.db.session import get_db
+from libs.db.session import get_db, get_db_ctx
 
 _log = logging.getLogger("agi_goal_decomposer")
 
@@ -58,7 +58,7 @@ class GoalDecomposer:
         wisdom_brief = ""
         past_plans_brief = ""
         try:
-            async with get_db() as db:
+            async with get_db_ctx() as db:
                 # 1. Benzer geçmiş görevleri (episodeları) bul
                 memories = await synaptic_cortex.search(db, f"{title} {description}", category="episode", top_k=3)
                 # 2. Sentezlenmiş Bilgelikleri (Dream Cycle Wisdom) bul

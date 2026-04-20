@@ -8,7 +8,7 @@ import logging
 import sys
 from datetime import datetime, timedelta
 from sqlalchemy import text
-from libs.db.session import init_db, get_db, session_scope
+from libs.db.session import init_db, get_db, get_db_ctx, session_scope
 from libs.db.models.core_models import Base, FederationTrust
 from services.orchestration.trust_governor import trust_governor
 from services.orchestration.federation_router import FederationRouter, FederationTask
@@ -20,7 +20,7 @@ TEST_PROJECT_ID = "00000000-0000-0000-0000-000000000001"
 async def setup_test_db():
     print("--- [R-09] DB Initialization ---")
     await init_db()
-    async with get_db() as session:
+    async with get_db_ctx() as session:
         # Create tables if not exist (using Base.metadata.create_all via init_db logic or direct)
         # In this env, init_db handles it via engine.begin()
         pass

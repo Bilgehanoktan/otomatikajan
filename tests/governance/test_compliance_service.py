@@ -30,9 +30,9 @@ async def test_evidence_sealing():
     assert len(hash_val) == 64 # SHA-256
     
     # Verify persistence
-    from libs.db.session import get_db
+    from libs.db.session import get_db, get_db_ctx
     from sqlalchemy import select
-    async with get_db() as session:
+    async with get_db_ctx() as session:
         res = await session.execute(select(EvidenceSeal).where(EvidenceSeal.target_id == record_id))
         seal = res.scalar_one()
         assert seal.seal_signature == hash_val

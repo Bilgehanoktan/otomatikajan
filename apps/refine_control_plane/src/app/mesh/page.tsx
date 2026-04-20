@@ -29,6 +29,7 @@ import FailoverTimeline from "../../components/chaos/FailoverTimeline";
 import OperatorConsole from "../../components/chaos/OperatorConsole";
 import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 import { Skeleton } from "@/components/dashboard/Skeleton";
+import { safeFetchJson } from "@/lib/api";
 
 const API_BASE = "/api/v1";
 
@@ -43,12 +44,10 @@ export default function MeshHub() {
 
   const fetchMeshState = async () => {
     try {
-      const topoRes = await fetch(`${API_BASE}/fleet/mesh/topology`);
-      const topoData = await topoRes.json();
+      const topoData = await safeFetchJson(`${API_BASE}/fleet/mesh/topology`);
       setMeshData(topoData);
 
-      const evidenceRes = await fetch(`${API_BASE}/fleet/evidence?limit=15`);
-      const evidenceData = await evidenceRes.json();
+      const evidenceData = await safeFetchJson(`${API_BASE}/fleet/evidence?limit=15`);
       
       const formattedTimeline = evidenceData.map((e: any) => ({
           event_id: e.id,

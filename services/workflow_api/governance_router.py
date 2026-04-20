@@ -39,6 +39,11 @@ class ApprovalOut(BaseModel):
     reason: str
     status: str
     created_at: datetime
+    # Added for detail view
+    agent_id: Optional[str] = None
+    decided_by: Optional[str] = None
+    decided_at: Optional[datetime] = None
+    comment: Optional[str] = None
 
 class ImprovementOut(BaseModel):
     id: str
@@ -122,6 +127,16 @@ class IncidentOut(BaseModel):
     status: str
     project_id: Optional[str] = None
     created_at: datetime
+    payload: Optional[Dict[str, Any]] = None
+
+class ApprovalDecision(BaseModel):
+    approve: bool
+    reason: str
+    decided_by: str
+
+class IncidentResolve(BaseModel):
+    resolution_notes: str
+    operator_id: str
 
 @router.get("/approvals", response_model=List[ApprovalOut])
 async def list_approvals(
@@ -155,9 +170,79 @@ async def list_approvals(
                 request_type=i.request_type,
                 reason=i.reason,
                 status=i.status,
-                created_at=i.created_at
+                created_at=i.created_at,
+                agent_id=i.step_id,
+                decided_by=i.approver_id,
+                decided_at=i.decision_at,
+                comment=i.comment
             ) for i in items
         ]
+@router.get("/approvals/{id}", response_model=ApprovalOut)
+async def get_approval(id: str):
+    from libs.db.session import AsyncSessionLocal
+    from libs.db.models.core_models import ApprovalRequest
+    from sqlalchemy import select
+
+    async with AsyncSessionLocal() as db:
+        res = await db.execute(select(ApprovalRequest).where(ApprovalRequest.id == id))
+        i = res.scalar_one_or_none()
+        if not i:
+            raise HTTPException(status_code=404, detail="Approval request not found")
+
+        return ApprovalOut(
+            id=str(i.id),
+            project_id=str(i.project_id),
+            request_type=i.request_type,
+            reason=i.reason,
+            status=i.status,
+            created_at=i.created_at,
+            agent_id=i.step_id,
+            decided_by=i.approver_id,
+            decided_at=i.decision_at,
+            comment=i.comment
+        )
+
+@router.post("/approvals/{id}/decide")
+async def decide_approval(id: str, dec: ApprovalDecision):
+    from libs.db.session import AsyncSessionLocal
+    from libs.db.models.core_models import ApprovalRequest
+    from services.governance.lineage_service import LineageService
+    from sqlalchemy import select
+
+    async with AsyncSessionLocal() as db:
+        res = await db.execute(select(ApprovalRequest).where(ApprovalRequest.id == id))
+        i = res.scalar_one_or_none()
+        if not i:
+            raise HTTPException(status_code=404, detail="Approval request not found")
+
+        old_status = i.status
+        i.status = "APPROVED" if dec.approve else "REJECTED"
+        i.approver_id = dec.decided_by
+        i.decision_at = datetime.now(timezone.utc)
+        i.comment = dec.reason
+        
+        # Record Lineage (Phase 29 Integration)
+        lineage = await LineageService.log_decision(
+            decision_type="MANUAL_INTERVENTION",
+            component_name="QuorumCenter",
+            rationale=f"Operator {dec.decided_by} {i.status}: {dec.reason}",
+            outcome=i.status,
+            meta_data={
+                "approval_id": id,
+                "project_id": str(i.project_id),
+                "old_status": old_status,
+                "new_status": i.status
+            }
+        )
+        
+        await db.commit()
+        await db.refresh(i)
+        
+        return {
+            "status": i.status, 
+            "decided_at": i.decision_at,
+            "lineage_id": str(lineage.id) if lineage else None
+        }
 
 @router.get("/improvements", response_model=List[ImprovementOut])
 async def list_improvements(
@@ -336,7 +421,6 @@ async def list_lineage(
                 component_name=i.component_name,
                 rationale=i.rationale,
                 trigger_event=i.trigger_event,
-                outcome=i.outcome,
                 created_at=i.created_at,
                 integrity_hash=getattr(i, "integrity_hash", None)
             ) for i in items
@@ -511,9 +595,71 @@ async def list_incidents(
                 message=item.message,
                 status=item.status,
                 project_id=str(item.project_id) if item.project_id else None,
-                created_at=item.created_at
+                created_at=item.created_at,
+                payload=item.payload
             ) for item in items
         ]
+
+@router.get("/incidents/{id}", response_model=IncidentOut)
+async def get_incident(id: str):
+    from libs.db.session import AsyncSessionLocal
+    from libs.db.models.core_models import OperationalIncident
+    from sqlalchemy import select
+
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(OperationalIncident).filter(OperationalIncident.id == id))
+        item = result.scalar_one_or_none()
+        if not item:
+            raise HTTPException(status_code=404, detail="Incident not found")
+
+        return IncidentOut(
+            id=str(item.id),
+            incident_type=item.incident_type,
+            severity=item.severity,
+            message=item.message,
+            status=item.status,
+            project_id=str(item.project_id) if item.project_id else None,
+            created_at=item.created_at,
+            payload=item.payload
+        )
+
+@router.post("/incidents/{id}/resolve")
+async def resolve_incident(id: str, dec: IncidentResolve):
+    from libs.db.session import AsyncSessionLocal
+    from libs.db.models.core_models import OperationalIncident
+    from services.governance.lineage_service import LineageService
+    from sqlalchemy import select
+
+    async with AsyncSessionLocal() as db:
+        res = await db.execute(select(OperationalIncident).where(OperationalIncident.id == id))
+        i = res.scalar_one_or_none()
+        if not i:
+            raise HTTPException(status_code=404, detail="Incident not found")
+
+        i.status = "resolved"
+        i.resolved_at = datetime.now(timezone.utc)
+        
+        # Record Lineage (Phase 29 Integration)
+        lineage = await LineageService.log_decision(
+            decision_type="INCIDENT_RESOLUTION",
+            component_name="IncidentCenter",
+            rationale=f"Operator {dec.operator_id} resolved incident: {dec.resolution_notes}",
+            outcome="RESOLVED",
+            meta_data={
+                "incident_id": id,
+                "project_id": str(i.project_id) if i.project_id else None,
+                "operator_id": dec.operator_id
+            }
+        )
+        
+        await db.commit()
+        await db.refresh(i)
+        
+        return {
+            "status": i.status, 
+            "resolved_by": dec.operator_id,
+            "lineage_id": str(lineage.id) if lineage else None
+        }
 
 @router.patch("/incidents/{id}", response_model=IncidentOut)
 async def update_incident(id: str, data: Dict[str, Any]):

@@ -30,15 +30,15 @@ def configure_middleware(app: FastAPI):
     # 2. Performance & Request Logging Middleware
     app.add_middleware(RequestTimeLoggingMiddleware)
     
-    # 3. OTel Middleware (Lazy optional)
-    try:
-        from libs.observability.middleware import get_otel_middleware
-        otel_mw = get_otel_middleware()
-        if otel_mw:
-            app.add_middleware(otel_mw)
-            logger.info("[MIDDLEWARE] OTel Tracing enabled.")
-    except Exception as e:
-        logger.warning(f"[MIDDLEWARE] OTel could not be initialized: {e}")
+    # 3. OTel Middleware (Disabled for Resilient Mode Stability)
+    # try:
+    #     from libs.observability.middleware import get_otel_middleware
+    #     otel_mw = get_otel_middleware()
+    #     if otel_mw:
+    #         app.add_middleware(otel_mw)
+    #         logger.info("[MIDDLEWARE] OTel Tracing enabled.")
+    # except Exception as e:
+    #     logger.warning(f"[MIDDLEWARE] OTel could not be initialized: {e}")
 
 class RequestTimeLoggingMiddleware(BaseHTTPMiddleware):
     """Logs request duration and basic metadata."""

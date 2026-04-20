@@ -6,7 +6,7 @@ from typing import List, Dict, Any, Optional
 
 from services.observability.logging import get_logger
 from libs.llm.model_orchestrator import ModelOrchestrator
-from libs.db.session import session_scope, get_db
+from libs.db.session import session_scope, get_db, get_db_ctx
 from libs.db.repositories.repository import ImprovementRepository, ProjectRepository, EventLogRepository
 from services.orchestration.agi.schemas import SourceType
 from services.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
@@ -142,7 +142,7 @@ class GoalSynthesizer:
 
     async def _extract_evolution_opportunities_from_memory(self):
         """UGC'deki negatif örüntüleri analiz eder ve iyileştirme fırsatları üretir."""
-        async with get_db() as db:
+        async with get_db_ctx() as db:
             failures = await synaptic_cortex.get_negative_patterns(db, limit=20)
         
         if not failures: return

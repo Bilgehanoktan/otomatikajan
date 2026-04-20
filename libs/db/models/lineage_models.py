@@ -28,6 +28,7 @@ class DecisionLineage(Base):
     trigger_event = Column(JSON, nullable=True) # The event data that triggered this
     rationale = Column(String, nullable=True) # AI reasoning
     confidence_score = Column(Float, default=1.0)
+    outcome = Column(String, nullable=True) # e.g. "APPROVED", "REJECTED", "SUCCESS"
     
     # Phase 30: Integrity check for institutional scale
     integrity_hash = Column(String(64), nullable=True, index=True)

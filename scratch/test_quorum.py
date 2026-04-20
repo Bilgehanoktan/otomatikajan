@@ -1,13 +1,13 @@
 import asyncio
 import uuid
-from libs.db.session import get_db
+from libs.db.session import get_db, get_db_ctx
 from libs.db.models.governance_models import PolicyProposal, MultiPartySignoff, QuorumRequirement
 from services.governance.quorum_service import QuorumService
 from sqlalchemy import select, delete
 
 async def test_quorum_service_proposal():
     print("--- Testing QuorumService for PolicyProposals ---")
-    async with get_db() as db:
+    async with get_db_ctx() as db:
         # 1. Cleanup old tests
         await db.execute(delete(MultiPartySignoff).where(MultiPartySignoff.approver_id == "test_approver_1"))
         await db.execute(delete(PolicyProposal).where(PolicyProposal.title == "Test Policy Change"))

@@ -10,8 +10,9 @@ interface SafeFetchOptions extends RequestInit {
 }
 
 /**
- * Basic Data Sealing (Demonstration level encryption)
- * In production, this would use SubtleCrypto with a derived key.
+ * Basic Data Sealing (Demonstration level obfuscation)
+ * Note: Since localStorage is not truly encrypted unless we use SubtleCrypto with a derived key,
+ * this is officially termed as 'Sealed Offline Cache' rather than 'Encrypted' to maintain accurate security terminology.
  */
 const SQV_SECRET = "BASE-10.2-PROTECTED";
 const seal = (data: string): string => {
@@ -61,7 +62,7 @@ export async function safeFetchJson<T = any>(url: string, options: SafeFetchOpti
             
             const data = JSON.parse(raw) as T;
             
-            // 2. Başarılı veriyi Cache'e mühürle (Encrypted SWR Fallback)
+            // 2. Başarılı veriyi Cache'e mühürle (Sealed Offline Cache)
             if (useOfflineFallback && typeof window !== 'undefined') {
                 try {
                     const payload = JSON.stringify({
@@ -82,7 +83,7 @@ export async function safeFetchJson<T = any>(url: string, options: SafeFetchOpti
     // Tüm ağ denemeleri çöktü.
     console.error(`[Mesh API] İletişim tamamen çöktü: ${url}. Hata: ${lastError?.message}`);
     
-    // 3. Degraded Mode: Çevrimdışı Geri Dönüş (Sealed Offline Fallback)
+    // 3. Degraded Mode: Çevrimdışı Geri Dönüş (Sealed Offline Cache)
     if (useOfflineFallback && typeof window !== 'undefined') {
         try {
             const cipher = localStorage.getItem(cache_key);

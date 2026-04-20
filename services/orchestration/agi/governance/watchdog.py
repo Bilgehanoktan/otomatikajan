@@ -99,8 +99,8 @@ class GovernanceWatchdog:
             # 3. Faz 42: Bilişsel Ketleme (Reinforcement Learning)
             try:
                 from services.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
-                from libs.db.session import get_db
-                async with get_db() as db:
+                from libs.db.session import get_db, get_db_ctx
+                async with get_db_ctx() as db:
                     await synaptic_cortex.save_architectural_inhibition(
                         db=db,
                         rule_id=v.rule_id,
@@ -113,8 +113,8 @@ class GovernanceWatchdog:
         # Update instinct count badge
         try:
             from services.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
-            from libs.db.session import get_db
-            async with get_db() as db:
+            from libs.db.session import get_db, get_db_ctx
+            async with get_db_ctx() as db:
                 inhibs = await synaptic_cortex.get_architectural_inhibitions(db, limit=100)
                 self._instinct_count = len(inhibs)
         except:

@@ -18,7 +18,7 @@ class ReflectionEngine:
         from services.orchestration.agi.learning.distiller import skill_distiller
         from services.orchestration.agi.learning.wisdom_synthesizer import wisdom_synthesizer
         from services.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
-        from libs.db.session import get_db
+        from libs.db.session import get_db, get_db_ctx
 
         try:
             episode = EpisodeRecord(
@@ -40,7 +40,7 @@ class ReflectionEngine:
             is_eligible = await memory_gate.evaluate_eligibility(reflected_episode)
             if not is_eligible: return
 
-            async with get_db() as db:
+            async with get_db_ctx() as db:
                 await synaptic_cortex.save_thought_thread(db, f"Task '{task.title}' completed.", context_id="global")
                 # More persistence logic...
             

@@ -1,6 +1,6 @@
 import asyncio
 from sqlalchemy import text
-from libs.db.session import get_db
+from libs.db.session import get_db, get_db_ctx
 
 async def apply_migration():
     sql_path = "e:/ai_company_faz12.1/libs/db/migrations/manual/migration_phase30.sql"
@@ -11,7 +11,7 @@ async def apply_migration():
 
     # Split by double semicolon or handle blocks if necessary
     # Since it's a small script, we execute it in a transaction
-    async with get_db() as db:
+    async with get_db_ctx() as db:
         print("Executing migration...")
         # Note: SQLAlchemy execute(text(...)) handles parameter binding, 
         # but for schema changes we can wrap the whole content.

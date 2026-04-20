@@ -11,7 +11,7 @@ from typing import Dict, Any, Optional
 from datetime import datetime
 
 # Import DB session for SQLite fallback logic
-from libs.db.session import get_redis_client, get_db
+from libs.db.session import get_redis_client, get_db, get_db_ctx
 from sqlalchemy import text
 from services.observability.logging import get_logger
 
@@ -34,7 +34,7 @@ class GlobalStateFabric:
     async def _ensure_db_table(self):
         """Ensures the mesh_fabric table exists in SQLite for shared local state."""
         if self._initialized_db: return
-        async with get_db() as session:
+        async with get_db_ctx() as session:
             await session.execute(text("""
                 CREATE TABLE IF NOT EXISTS mesh_fabric (
                     key TEXT PRIMARY KEY,
@@ -60,7 +60,7 @@ class GlobalStateFabric:
         # SQLite Shared State Fallback (R-03 Durable Activation)
         try:
             await self._ensure_db_table()
-            async with get_db() as session:
+            async with get_db_ctx() as session:
                 # SRE: Ensure we are in a transaction explicitly for SQLite safety
                 await session.execute(text("""
                     INSERT INTO mesh_fabric (key, value, updated_at)
@@ -91,7 +91,7 @@ class GlobalStateFabric:
         # SQLite Shared State Fallback
         try:
             await self._ensure_db_table()
-            async with get_db() as session:
+            async with get_db_ctx() as session:
                 result = await session.execute(
                     text("SELECT value FROM mesh_fabric WHERE key = :key"), {"key": key}
                 )
@@ -124,7 +124,7 @@ class GlobalStateFabric:
         # SQLite View Fallback
         try:
             await self._ensure_db_table()
-            async with get_db() as session:
+            async with get_db_ctx() as session:
                 result = await session.execute(
                     text("SELECT key, value FROM mesh_fabric WHERE key LIKE 'region:%'")
                 )
@@ -151,7 +151,7 @@ class GlobalStateFabric:
         # SQLite Lock Fallback (R-03 Durable Consensus)
         try:
             await self._ensure_db_table()
-            async with get_db() as session:
+            async with get_db_ctx() as session:
                 # 1. Clear expired locks
                 await session.execute(text("""
                     DELETE FROM mesh_fabric WHERE key = :lock_key AND updated_at < :expiry
@@ -191,7 +191,7 @@ class GlobalStateFabric:
 
         # SQLite Lock Release
         try:
-            async with get_db() as session:
+            async with get_db_ctx() as session:
                 await session.execute(text("""
                     DELETE FROM mesh_fabric WHERE key = :lock_key AND value = :owner
                 """), {"lock_key": f"lock:{lock_id}", "owner": owner_id})

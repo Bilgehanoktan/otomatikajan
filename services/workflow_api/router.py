@@ -41,6 +41,8 @@ class WorkflowOut(BaseModel):
     completed_at: Optional[datetime] = None
     final_report: Optional[str] = None
     history: List[Dict[str, Any]] = []
+    related_approvals: List[Dict[str, Any]] = []
+    related_incidents: List[Dict[str, Any]] = []
 
 
 class ProjectListItem(BaseModel):
@@ -265,8 +267,6 @@ async def list_projects(
                 has_active_workflow=p_status.lower() in ("running", "pending", "resuming"),
             ))
         return items
-
-
 @router.get("/{project_id}", response_model=WorkflowOut)
 async def get_workflow(project_id: str):
     """Get full workflow detail with step trace and event history."""
@@ -277,6 +277,37 @@ async def get_workflow(project_id: str):
     from libs.workflow.persistence import WorkflowPersistence
     out.history = await WorkflowPersistence.load_history(project_id)
     
+    # Load related governance data (Approvals & Incidents)
+    from libs.db.session import AsyncSessionLocal
+    from libs.db.models.core_models import ApprovalRequest, OperationalIncident
+    from sqlalchemy import select
+
+    async with AsyncSessionLocal() as db:
+        # Fetch Approvals
+        app_res = await db.execute(select(ApprovalRequest).where(ApprovalRequest.project_id == project_id))
+        out.related_approvals = [
+            {
+                "id": str(a.id),
+                "type": a.request_type,
+                "status": a.status,
+                "reason": a.reason,
+                "created_at": a.created_at
+            } for a in app_res.scalars().all()
+        ]
+
+        # Fetch Incidents
+        inc_res = await db.execute(select(OperationalIncident).where(OperationalIncident.project_id == project_id))
+        out.related_incidents = [
+            {
+                "id": str(i.id),
+                "type": i.incident_type,
+                "status": i.status,
+                "severity": i.severity,
+                "message": i.message,
+                "created_at": i.created_at
+            } for i in inc_res.scalars().all()
+        ]
+
     return out
 
 

@@ -1,12 +1,12 @@
 from typing import List, Dict, Any, Optional
 from sqlalchemy import select
-from libs.db.session import get_db
+from libs.db.session import get_db, get_db_ctx
 from libs.db.models.governance_models import PolicyProposal
 
 class ProposalService:
     @staticmethod
     async def create_proposal(title: str, description: str, scope: str, changes: Dict[str, Any], author: str) -> PolicyProposal:
-        async with get_db() as session:
+        async with get_db_ctx() as session:
             proposal = PolicyProposal(
                 title=title,
                 description=description,

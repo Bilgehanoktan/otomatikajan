@@ -74,12 +74,12 @@ export default function SelfTuningPage() {
 
   const handleAction = async (id: string, status: 'approved' | 'rejected') => {
     try {
-      const response = await fetch(`/api/v1/repair-lab/tuning/suggestions/${id}/apply`, {
+      const response = await safeFetchJson(`/api/v1/repair-lab/tuning/suggestions/${id}/apply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })
       });
-      if (response.ok) {
+      if (response.status || response.id) {
         setSuggestions(prev => prev.map(s => s.id === id ? { ...s, status } : s));
       }
     } catch (err) {

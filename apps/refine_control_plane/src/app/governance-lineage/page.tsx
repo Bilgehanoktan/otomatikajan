@@ -204,10 +204,23 @@ function EliteLineageRow({ item, isLast }: { item: any, isLast: boolean }) {
                 </div>
 
                 <div className="flex xl:flex-col items-center gap-4 min-w-[200px]">
-                    <button className="flex-1 w-full py-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
+                    <button 
+                        onClick={() => {
+                            if (item.trigger_event?.approval_id) window.open(`/approvals/${item.trigger_event.approval_id}`, '_blank');
+                            else if (item.trigger_event?.incident_id) window.open(`/incidents/${item.trigger_event.incident_id}`, '_blank');
+                            else if (item.trigger_event?.project_id) window.open(`/workflows/${item.trigger_event.project_id}`, '_blank');
+                            else notification.info({ message: "Evidence Context", description: "This node is purely autonomous/internal with no external detail page available." });
+                        }}
+                        className="flex-1 w-full py-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
+                    >
                         Inspect Evidence
                     </button>
-                    <button className="flex-1 w-full py-4 border border-[var(--primary)]/20 text-[var(--primary)]/70 hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
+                    <button 
+                        onClick={() => {
+                            if (item.root_id) window.location.href = `/governance-lineage?root_id=${item.root_id}`;
+                        }}
+                        className="flex-1 w-full py-4 border border-[var(--primary)]/20 text-[var(--primary)]/70 hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
+                    >
                         View Root Cause
                     </button>
                     <button 

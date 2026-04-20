@@ -1,6 +1,6 @@
 import asyncio
 import uuid
-from libs.db.session import get_db
+from libs.db.session import get_db, get_db_ctx
 from libs.db.models.core_models import Project, OperationalIncident
 from libs.db.repositories.repository import ProjectRepository, OperationalIncidentRepository
 from services.governance.project_scope import PilotGuard, ProjectScope
@@ -10,7 +10,7 @@ from services.improve.proposal_engine import ProposalEngine
 async def verify_pilot_governance():
     print("--- Phase 15 Verification: Pilot Governance ---")
     
-    async with get_db() as session:
+    async with get_db_ctx() as session:
         # 1. Create a Pilot Project
         pilot_project = await ProjectRepository.create(
             db=session,

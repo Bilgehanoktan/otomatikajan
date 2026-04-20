@@ -1,13 +1,13 @@
 from typing import List, Dict, Any, Optional
 from sqlalchemy import select, and_
-from libs.db.session import get_db
+from libs.db.session import get_db, get_db_ctx
 from libs.db.models.governance_models import QuorumRequirement, MultiPartySignoff, ProductionSignoff, PolicyProposal, SignoffStatus
 from services.governance.policy_vcs_service import PolicyVCSService
 
 class QuorumService:
     @staticmethod
     async def get_requirement(component_type: str, risk_level: str = "LOW") -> Optional[QuorumRequirement]:
-        async with get_db() as session:
+        async with get_db_ctx() as session:
             result = await session.execute(
                 select(QuorumRequirement).where(
                     and_(
@@ -20,7 +20,7 @@ class QuorumService:
 
     @staticmethod
     async def register_quorum_requirement(component: str, risk: str, count: int, desc: str = None) -> QuorumRequirement:
-        async with get_db() as session:
+        async with get_db_ctx() as session:
             # Check if exists
             existing = await QuorumService.get_requirement(component, risk)
             if existing:
@@ -43,7 +43,7 @@ class QuorumService:
     @staticmethod
     async def add_signoff(target_id: str, approver_id: str, note: str = None) -> MultiPartySignoff:
         """Adds an approval to a specific signoff or proposal record."""
-        async with get_db() as session:
+        async with get_db_ctx() as session:
             # Determine if it's a signoff or proposal
             is_proposal = False
             res = await session.execute(select(PolicyProposal).where(PolicyProposal.id == target_id))
@@ -71,7 +71,7 @@ class QuorumService:
     @staticmethod
     async def check_and_update_main_signoff(signoff_id: str):
         """Checks if enough approvals are collected and updates the ProductionSignoff status."""
-        async with get_db() as session:
+        async with get_db_ctx() as session:
             # Get main signoff
             result = await session.execute(select(ProductionSignoff).where(ProductionSignoff.id == signoff_id))
             main_signoff = result.scalar_one_or_none()
@@ -110,7 +110,7 @@ class QuorumService:
     @staticmethod
     async def check_and_update_policy_proposal(proposal_id: str):
         """Checks if enough approvals are collected and triggers Git commit if approved."""
-        async with get_db() as session:
+        async with get_db_ctx() as session:
             # Get proposal
             result = await session.execute(select(PolicyProposal).where(PolicyProposal.id == proposal_id))
             proposal = result.scalar_one_or_none()

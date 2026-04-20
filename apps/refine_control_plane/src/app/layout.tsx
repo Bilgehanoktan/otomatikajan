@@ -22,6 +22,8 @@ export const metadata: Metadata = {
   description: "Otonom Yazılım Geliştirme Operasyonları Kontrol Paneli",
 };
 
+import { AntdRegistry } from "@ant-design/nextjs-registry";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -31,11 +33,13 @@ export default function RootLayout({
     <html lang="tr" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}>
       <body className="h-full bg-[#0b0c10] text-[#c5c6c7] overflow-hidden" suppressHydrationWarning>
         <Suspense fallback={<div className="h-full bg-[#0b0c10]" />}>
-          <Providers>
-            <LayoutWrapper>
-              {children}
-            </LayoutWrapper>
-          </Providers>
+          <AntdRegistry>
+            <Providers>
+              <LayoutWrapper>
+                {children}
+              </LayoutWrapper>
+            </Providers>
+          </AntdRegistry>
         </Suspense>
       </body>
     </html>

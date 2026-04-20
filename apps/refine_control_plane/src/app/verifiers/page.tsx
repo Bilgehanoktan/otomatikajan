@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 import { Skeleton } from "@/components/dashboard/Skeleton";
+import { safeFetchJson } from "@/lib/api";
 
 export default function VerifiersPage() {
   const [isClient, setIsClient] = useState(false);
@@ -31,9 +32,8 @@ export default function VerifiersPage() {
     setIsClient(true);
     const fetchVerifiers = async () => {
       try {
-        const response = await fetch('/api/v1/repair-lab/verifiers');
-        const data = await response.json();
-        setVerifiers(data);
+        const data = await safeFetchJson('/api/v1/repair-lab/verifiers');
+        setVerifiers(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("Doğrulayıcı verileri alınamadı", err);
       } finally {

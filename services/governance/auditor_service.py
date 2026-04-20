@@ -4,7 +4,7 @@ import os
 import zipfile
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
-from libs.db.session import get_db
+from libs.db.session import get_db, get_db_ctx
 from libs.db.models.compliance_models import AuditBundle
 from services.governance.compliance_service import ComplianceService
 from services.observability.logging import get_logger
@@ -22,7 +22,7 @@ class AuditorService:
         """
         os.makedirs(AuditorService.EXPORT_DIR, exist_ok=True)
         
-        async with get_db() as session:
+        async with get_db_ctx() as session:
             # Fetch bundle
             from sqlalchemy import select
             result = await session.execute(select(AuditBundle).where(AuditBundle.id == bundle_id))

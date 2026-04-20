@@ -9,7 +9,7 @@ from services.governance.lineage_service import LineageService
 from services.governance.budget_service import BudgetService
 from libs.governance.constitutional_guard import ConstitutionalGuard
 from libs.llm.model_router import ModelRouter, TaskComplexity
-from libs.db.session import get_db
+from libs.db.session import get_db, get_db_ctx
 
 async def test_lineage_integrity():
     print("--- 1. Lineage Integrity Test ---")
@@ -23,7 +23,7 @@ async def test_lineage_integrity():
     )
     decision_id = lineage.id
     
-    async with get_db() as db:
+    async with get_db_ctx() as db:
         from libs.db.models.lineage_models import DecisionLineage
         from sqlalchemy import select
         res = await db.execute(select(DecisionLineage).where(DecisionLineage.id == decision_id))

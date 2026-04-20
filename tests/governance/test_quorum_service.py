@@ -27,12 +27,12 @@ async def test_quorum_signoff_logic():
     await QuorumService.register_quorum_requirement("critical_policy", "HIGH", 2)
     
     # 2. Create a main signoff in DB manually or via service (if exists)
-    from libs.db.session import get_db
+    from libs.db.session import get_db, get_db_ctx
     from libs.db.models.governance_models import ProductionSignoff
     import uuid
     
     signoff_id = uuid.uuid4()
-    async with get_db() as session:
+    async with get_db_ctx() as session:
         main = ProductionSignoff(
             id=signoff_id,
             component_name="critical_policy",
@@ -45,7 +45,7 @@ async def test_quorum_signoff_logic():
     # 3. Add first signoff
     await QuorumService.add_signoff(str(signoff_id), "operator_1", "Looks good")
     
-    async with get_db() as session:
+    async with get_db_ctx() as session:
         from sqlalchemy import select
         res = await session.execute(select(ProductionSignoff).where(ProductionSignoff.id == signoff_id))
         main = res.scalar_one()
@@ -54,7 +54,7 @@ async def test_quorum_signoff_logic():
     # 4. Add second signoff
     await QuorumService.add_signoff(str(signoff_id), "operator_2", "Approved")
     
-    async with get_db() as session:
+    async with get_db_ctx() as session:
         res = await session.execute(select(ProductionSignoff).where(ProductionSignoff.id == signoff_id))
         main = res.scalar_one()
         assert main.status == SignoffStatus.SIGNED # Now signed!

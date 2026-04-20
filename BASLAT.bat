@@ -1,5 +1,5 @@
 @echo off
-title Sovereign AGI | Görev Kontrol Merkezi (DEBUG MODU)
+title "Sovereign AGI | Görev Kontrol Merkezi (DEBUG MODU)"
 chcp 65001 >nul
 echo ----------------------------------------------------
 echo    EGEMEN YAZ - Sovereign AGI Başlatılıyor...

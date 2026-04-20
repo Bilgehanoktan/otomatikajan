@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from sqlalchemy import select, and_
 from sqlalchemy.orm import selectinload
-from libs.db.session import get_db
+from libs.db.session import get_db, get_db_ctx
 from libs.db.models.compliance_models import RetentionPolicy, AuditBundle, EvidenceSeal
 from libs.db.models.lineage_models import DecisionLineage, PolicyEvolution
 from libs.db.models.governance_models import ProductionSignoff, ValidationResult
@@ -12,7 +12,7 @@ from libs.db.models.governance_models import ProductionSignoff, ValidationResult
 class ComplianceService:
     @staticmethod
     async def get_retention_policy(category: str) -> Optional[RetentionPolicy]:
-        async with get_db() as session:
+        async with get_db_ctx() as session:
             result = await session.execute(
                 select(RetentionPolicy).where(RetentionPolicy.data_category == category)
             )
@@ -20,7 +20,7 @@ class ComplianceService:
 
     @staticmethod
     async def create_retention_policy(category: str, hot: int, warm: int, cold: int, description: str = None) -> RetentionPolicy:
-        async with get_db() as session:
+        async with get_db_ctx() as session:
             policy = RetentionPolicy(
                 data_category=category,
                 hot_retention_days=hot,
@@ -39,7 +39,7 @@ class ComplianceService:
         Creates a sealed audit bundle of evidence within a time range.
         Gather real data from lineage, evolution, and signoffs.
         """
-        async with get_db() as session:
+        async with get_db_ctx() as session:
             # 1. Collect Lineage
             lineage_res = await session.execute(
                 select(DecisionLineage).where(
@@ -114,7 +114,7 @@ class ComplianceService:
 
     @staticmethod
     async def list_audit_bundles() -> List[AuditBundle]:
-        async with get_db() as session:
+        async with get_db_ctx() as session:
             result = await session.execute(select(AuditBundle).order_by(AuditBundle.created_at.desc()))
             return list(result.scalars().all())
 
@@ -124,7 +124,7 @@ class ComplianceService:
         seal_payload = f"{table}|{target_id}|{datetime.now(timezone.utc).isoformat()}"
         signature = hashlib.sha256(seal_payload.encode()).hexdigest()
         
-        async with get_db() as session:
+        async with get_db_ctx() as session:
             seal = EvidenceSeal(
                 target_table=table,
                 target_id=target_id,

@@ -19,7 +19,7 @@ class CognitivePlanner:
         from services.orchestration.agi.cognitive.agi_goal_decomposer import agi_goal_decomposer
         from services.orchestration.agi.governance.watchdog import governance_watchdog
         from services.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
-        from libs.db.session import get_db
+        from libs.db.session import get_db, get_db_ctx
         from services.orchestration.agi.schemas import PlanProposal
         
         all_agents = build_agents()
@@ -52,7 +52,7 @@ class CognitivePlanner:
         predicted_violations = await governance_watchdog.predict_violations(subtasks)
         if predicted_violations:
             _log.warning(f"[PLANNER] Predicted violations found: {len(predicted_violations)}. Inhibiting...")
-            async with get_db() as db:
+            async with get_db_ctx() as db:
                 for v in predicted_violations:
                     await synaptic_cortex.save_architectural_inhibition(db=db, rule_id=v.rule_id, target=v.target, description=f"[PREDICTION] {v.description}")
         

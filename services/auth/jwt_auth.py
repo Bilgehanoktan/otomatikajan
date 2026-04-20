@@ -32,7 +32,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from libs.db.session import get_db_dep
+from libs.db.session import get_db
 from libs.db.models import User, RefreshToken
 
 # ─── JWT Konfigürasyonu — TEK KAYNAK ─────────────────────
@@ -320,7 +320,7 @@ auth_service = AuthService()
 # ── FastAPI Depends ────────────────────────────────────────
 async def get_current_user(
     request: Request,
-    db: AsyncSession = Depends(get_db_dep),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Kullanıcıyı doğrular.
@@ -357,7 +357,7 @@ async def get_current_user(
 
 async def get_optional_user(
     credentials: HTTPAuthorizationCredentials = Depends(_bearer),
-    db: AsyncSession = Depends(get_db_dep),
+    db: AsyncSession = Depends(get_db),
 ):
     """Token varsa kullanıcıyı döndür, yoksa None döndür (dev mode)."""
     if not credentials:
@@ -393,7 +393,7 @@ async def optional_admin(user=Depends(get_optional_user)):
 
 # ── Endpoint'ler ──────────────────────────────────────────
 @router.post("/register", response_model=dict, summary="Yeni kullanıcı kaydı")
-async def register(req: RegisterRequest, response: Response, request: Request, db: AsyncSession = Depends(get_db_dep)):
+async def register(req: RegisterRequest, response: Response, request: Request, db: AsyncSession = Depends(get_db)):
     user = await auth_service.register(db, req.email, req.password)
     # Kayıt sonrası otomatik login — UX iyileştirmesi
     res = await auth_service.login(db, req.email, req.password)
@@ -402,7 +402,7 @@ async def register(req: RegisterRequest, response: Response, request: Request, d
 
 
 @router.post("/login", response_model=TokenResponse, summary="Giriş — token al")
-async def login(req: LoginRequest, response: Response, request: Request, db: AsyncSession = Depends(get_db_dep)):
+async def login(req: LoginRequest, response: Response, request: Request, db: AsyncSession = Depends(get_db)):
     res = await auth_service.login(db, req.email, req.password)
     set_auth_cookies(response, res.access_token, res.refresh_token, request=request)
     return res
@@ -413,7 +413,7 @@ async def refresh_token(
     request: Request,
     response: Response,
     body: Optional[dict] = None,
-    db: AsyncSession = Depends(get_db_dep)
+    db: AsyncSession = Depends(get_db)
 ):
     # 1. Öncelik: Body
     rt = (body or {}).get("refresh_token", "")
@@ -434,7 +434,7 @@ async def refresh_token(
 @router.post("/logout", summary="Tüm oturumları kapat")
 async def logout_all(
     user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_db_dep),
+    db: AsyncSession = Depends(get_db),
 ):
     count = await auth_service.revoke_all(db, str(user.id))
     return {"revoked_sessions": count}

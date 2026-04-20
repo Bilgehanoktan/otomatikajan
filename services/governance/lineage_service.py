@@ -2,7 +2,7 @@ import hashlib
 import json
 from typing import Dict, Any, Optional
 from datetime import datetime
-from libs.db.session import get_db
+from libs.db.session import get_db, get_db_ctx
 from libs.db.models.lineage_models import DecisionLineage, PolicyEvolution
 from services.observability.logging import get_logger
 
@@ -14,6 +14,7 @@ class LineageService:
         decision_type: str,
         component_name: str,
         rationale: str,
+        outcome: Optional[str] = None,
         parent_id: Optional[str] = None,
         root_id: Optional[str] = None,
         trigger_event: Optional[Dict[str, Any]] = None,
@@ -24,7 +25,7 @@ class LineageService:
         Otonom bir kararı soyağacına kaydeder. 
         Her karar bir 'integrity_hash' ile mühürlenir.
         """
-        async with get_db() as db:
+        async with get_db_ctx() as db:
             # Hash calculation for Proof Fabric
             parent_hash = ""
             if parent_id:
@@ -33,13 +34,14 @@ class LineageService:
                     parent_hash = parent_result.integrity_hash or ""
 
             # Payload for hash
-            payload = f"{decision_type}|{component_name}|{rationale}|{parent_hash}"
+            payload = f"{decision_type}|{component_name}|{rationale}|{outcome or ''}|{parent_hash}"
             integrity_hash = hashlib.sha256(payload.encode()).hexdigest()
 
             lineage = DecisionLineage(
                 decision_type=decision_type,
                 component_name=component_name,
                 rationale=rationale,
+                outcome=outcome,
                 parent_id=parent_id,
                 root_id=root_id or parent_id,
                 trigger_event=trigger_event,
@@ -50,7 +52,7 @@ class LineageService:
             db.add(lineage)
             await db.commit()
             await db.refresh(lineage)
-            logger.info(f"Lineage Logged (Sealed): {decision_type} for {component_name} (ID: {lineage.id})")
+            logger.info(f"Lineage Logged (Sealed): {decision_type} ({outcome}) for {component_name} (ID: {lineage.id})")
             return lineage
 
     @staticmethod

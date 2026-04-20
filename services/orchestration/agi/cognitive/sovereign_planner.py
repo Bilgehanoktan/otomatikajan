@@ -6,7 +6,7 @@ from services.orchestration.agi.task_governance import GovernedTask, GovernanceS
 import uuid
 import uuid
 from services.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex
-from libs.db.session import get_db
+from libs.db.session import get_db, get_db_ctx
 
 _log = logging.getLogger("agi_sovereign_planner")
 
@@ -29,7 +29,7 @@ class SovereignPlanner:
         # Faz 46: Stratejik Geri Çağırma (Hafızadan başarılı planları ve BİLGELİKLERİ bul)
         wisdom_brief = ""
         try:
-            async with get_db() as db:
+            async with get_db_ctx() as db:
                 # 1. Geçmişteki başarılı görevleri ara
                 memories = await synaptic_cortex.search(db, f"{title} {description}", category="episode", top_k=3)
                 

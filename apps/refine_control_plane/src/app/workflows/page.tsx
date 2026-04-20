@@ -26,11 +26,12 @@ export default function WorkflowList() {
   const [isClient, setIsClient] = useState(false);
   useEffect(() => setIsClient(true), []);
 
-  const { query: { data, isLoading, isError, refetch } } = useList({
+  const { query } = useList({
     resource: "workflows",
     sorters: [{ field: "started_at", order: "desc" }],
     queryOptions: { enabled: isClient }
   });
+  const { data, isLoading, isError, refetch, error } = query;
   const { show } = useNavigation();
 
   if (!isClient) return <div className="min-h-screen bg-[#060a12]" />;
@@ -98,7 +99,9 @@ export default function WorkflowList() {
                        {[1,2,3,4,5].map(i => <Skeleton key={i} className="h-28 rounded-3xl" />)}
                     </div>
                  ) : isError ? (
-                    <div className="py-20 text-center text-red-500 font-mono text-[10px] uppercase tracking-widest">Workflow Telemetry Offline</div>
+                    <div className="py-20 text-center text-red-500 font-mono text-[10px] uppercase tracking-widest">
+                       Workflow Telemetry Offline: {String(error?.message || "Bilinmeyen hata")}
+                    </div>
                  ) : (
                     workflows.map((wf: any) => (
                        <EliteWorkflowItem 

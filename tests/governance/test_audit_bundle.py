@@ -20,9 +20,9 @@ async def test_audit_bundle_creation():
     assert bundle.integrity_hash == "PENDING"
     
     # Verify in DB
-    from libs.db.session import get_db
+    from libs.db.session import get_db, get_db_ctx
     from sqlalchemy import select
-    async with get_db() as session:
+    async with get_db_ctx() as session:
         res = await session.execute(select(AuditBundle).where(AuditBundle.id == bundle.id))
         db_bundle = res.scalar_one()
         assert db_bundle.created_by == "admin_operator"

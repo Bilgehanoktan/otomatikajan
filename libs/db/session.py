@@ -43,9 +43,9 @@ def get_engine():
 
     # Eğer engine yoksa VEYA mevcut loop değişmişse (Celery/Asyncio mismatch) yenile
     if _engine is None or (curr_active_loop is not None and _last_loop is not curr_active_loop):
-        with _lock:
-            # Re-check under lock
-            if _engine is None or (curr_active_loop is not None and _last_loop is not curr_active_loop):
+        # SRE Hardening: Thread-safe engine creation without blocking the main event loop
+        # Sadece ilk çağrıda engine oluşturulur.
+        if _engine is None or (curr_active_loop is not None and _last_loop is not curr_active_loop):
                 logger.debug(f"SQLAlchemy: Creating engine for loop {id(curr_active_loop)} (URL: {DATABASE_URL.split('@')[-1]})")
                 try:
                     # SRE Hardening: Provider-aware connect_args (Faz 12.1)
@@ -101,8 +101,7 @@ def _get_session_factory():
     
     # Engine yenilenmiş olabilir, factory'i de kontrol et
     if _async_session_factory is None or _async_session_factory.kw["bind"] is not engine:
-        with _lock:
-            if _async_session_factory is None or _async_session_factory.kw["bind"] is not engine:
+        if _async_session_factory is None or _async_session_factory.kw["bind"] is not engine:
                 _async_session_factory = async_sessionmaker(
                     engine,
                     class_=AsyncSession,

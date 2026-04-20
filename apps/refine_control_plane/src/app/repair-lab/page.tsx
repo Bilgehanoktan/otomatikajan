@@ -21,6 +21,7 @@ import {
 import { PatchTournamentBoard, VerifierMatrix } from "@/components/repair/LabComponents";
 import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 import { Skeleton } from "@/components/dashboard/Skeleton";
+import { safeFetchJson } from "@/lib/api";
 
 export default function RepairLabPage() {
   const [benchmarks, setBenchmarks] = useState<any[]>([]);
@@ -33,18 +34,15 @@ export default function RepairLabPage() {
 
   const fetchData = async () => {
     try {
-      const benchRes = await fetch('/api/v1/repair-lab/benchmarks');
-      const benchData = await benchRes.json();
+      const benchData = await safeFetchJson('/api/v1/repair-lab/benchmarks');
       setBenchmarks(Array.isArray(benchData) ? benchData : []);
 
-      const tourRes = await fetch('/api/v1/repair-lab/tournaments');
-      const tourData = await tourRes.json();
+      const tourData = await safeFetchJson('/api/v1/repair-lab/tournaments');
       if (tourData && tourData.length > 0) {
         const latest = tourData[0];
         setTournament(latest);
 
-        const matrixRes = await fetch(`/api/v1/repair-lab/verifiers/matrix?tournament_id=${latest.id}`);
-        const matrixData = await matrixRes.json();
+        const matrixData = await safeFetchJson(`/api/v1/repair-lab/verifiers/matrix?tournament_id=${latest.id}`);
         setMatrix(matrixData);
       }
     } catch (err) {
@@ -64,7 +62,7 @@ export default function RepairLabPage() {
   const runLab = async () => {
     setLoading(true);
     try {
-      await fetch('/api/v1/repair-lab/run', { method: 'POST' });
+      await safeFetchJson('/api/v1/repair-lab/run', { method: 'POST' });
       // We don't use window.alert in elite UI, but for now we follow the existing pattern with a small delay
       setTimeout(fetchData, 2000);
     } catch (err) {

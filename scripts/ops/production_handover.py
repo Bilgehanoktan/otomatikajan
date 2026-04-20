@@ -5,7 +5,7 @@ import argparse
 from datetime import datetime, timezone, timedelta
 from libs.governance.launch_gatekeeper import LaunchGatekeeper
 from services.governance.auditor_service import AuditorService
-from libs.db.session import get_db
+from libs.db.session import get_db, get_db_ctx
 from libs.db.models.core_models import Project, ProjectStatus
 from services.observability.logging import get_logger
 from sqlalchemy import update
@@ -60,7 +60,7 @@ async def run_production_handover(project_id: str, dry_run: bool):
     else:
         print("\nStep 3: Sealing Production Status...")
         try:
-            async with get_db() as db:
+            async with get_db_ctx() as db:
                 # Update project to show it is now production-hardened
                 await db.execute(
                     update(Project)

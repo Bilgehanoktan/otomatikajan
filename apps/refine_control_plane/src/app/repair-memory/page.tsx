@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 import { Skeleton } from "@/components/dashboard/Skeleton";
+import { safeFetchJson } from "@/lib/api";
 
 export default function RepairMemoryPage() {
   const [isClient, setIsClient] = useState(false);
@@ -32,8 +33,7 @@ export default function RepairMemoryPage() {
     setIsClient(true);
     const fetchMemory = async () => {
       try {
-        const response = await fetch('/api/v1/repair-lab/memory/heatmaps');
-        const data = await response.json();
+        const data = await safeFetchJson('/api/v1/repair-lab/memory/heatmaps');
         setSubsystems(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("Tamir hafızası alınamadı", err);
@@ -48,8 +48,7 @@ export default function RepairMemoryPage() {
     setSelectedSS(ss);
     setDetailsLoading(true);
     try {
-      const response = await fetch(`/api/v1/repair-lab/memory/details?subsystem=${encodeURIComponent(ss)}`);
-      const data = await response.json();
+      const data = await safeFetchJson(`/api/v1/repair-lab/memory/details?subsystem=${encodeURIComponent(ss)}`);
       setDetails(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Detaylar alınamadı", err);

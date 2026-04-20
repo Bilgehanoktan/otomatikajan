@@ -124,33 +124,40 @@ class JobQueue(BaseQueueCapabilities):
             from libs.db.session import AsyncSessionLocal
             from libs.db.repositories.repository import ProjectRepository
             
-            async with AsyncSessionLocal() as db:
-                # Sadece aktif (tamamlanmamış) işleri çekelim
-                active_statuses = ["PENDING", "RUNNING", "QUEUED", "RETRYING", "PAUSED"]
-                projects = await ProjectRepository.list_recent(db, limit=100)
-                
-                count = 0
-                for p in projects:
-                    # status enum veya string gelebilir, normalize edelim
-                    p_status = str(p.status.value if hasattr(p.status, "value") else p.status).upper()
+            # SRE Hardening: Timeout to prevent startup hang on DB lock
+            async def _do_hydration():
+                async with AsyncSessionLocal() as db:
+                    # Sadece aktif (tamamlanmamış) işleri çekelim
+                    active_statuses = ["PENDING", "RUNNING", "QUEUED", "RETRYING", "PAUSED"]
+                    projects = await ProjectRepository.list_recent(db, limit=100)
                     
-                    if p_status in active_statuses:
-                        job_id = p.job_id or str(p.id)
-                        if job_id not in self._jobs:
-                            job = Job(
-                                id=job_id,
-                                type="run_project",
-                                payload={"db_project_id": str(p.id), "title": p.title},
-                                status=self._map_db_status_to_job(p_status),
-                                created_at=p.created_at.isoformat() if p.created_at else ""
-                            )
-                            self._jobs[job.id] = job
-                            if job.status in (JobStatus.PENDING, JobStatus.RUNNING, JobStatus.RETRYING):
-                                await self._queue.put(job)
-                            count += 1
-                
-                _log.info(f"Successfully hydrated {count} tasks into JobQueue.")
-                return count
+                    count = 0
+                    for p in projects:
+                        # status enum veya string gelebilir, normalize edelim
+                        p_status = str(p.status.value if hasattr(p.status, "value") else p.status).upper()
+                        
+                        if p_status in active_statuses:
+                            job_id = p.job_id or str(p.id)
+                            if job_id not in self._jobs:
+                                job = Job(
+                                    id=job_id,
+                                    type="run_project",
+                                    payload={"db_project_id": str(p.id), "title": p.title},
+                                    status=self._map_db_status_to_job(p_status),
+                                    created_at=p.created_at.isoformat() if p.created_at else ""
+                                )
+                                self._jobs[job.id] = job
+                                if job.status in (JobStatus.PENDING, JobStatus.RUNNING, JobStatus.RETRYING):
+                                    await self._queue.put(job)
+                                count += 1
+                    return count
+
+            count = await asyncio.wait_for(_do_hydration(), timeout=5.0)
+            _log.info(f"Successfully hydrated {count} tasks into JobQueue.")
+            return count
+        except asyncio.TimeoutError:
+            _log.warning("Hydration TIMEOUT: Database might be locked. Skipping hydration for safer startup.")
+            return 0
         except Exception as e:
             _log.error(f"Failed to hydrate tasks: {e}", exc_info=True)
             return 0
