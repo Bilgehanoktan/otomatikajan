@@ -159,7 +159,7 @@ export default function WorkflowDetailClient() {
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 400px", gap: "24px" }}>
                 <div>
-                    <Card bordered={false} className="glass-card" style={{ background: "rgba(11, 12, 16, 0.6)", backdropFilter: "blur(20px)", border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: "16px", marginBottom: "24px" }}>
+                    <Card variant="borderless" className="glass-card" style={{ background: "rgba(11, 12, 16, 0.6)", backdropFilter: "blur(20px)", border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: "16px", marginBottom: "24px" }}>
                         <Title level={5} style={{ color: "#66fcf1" }}>Internal Configuration</Title>
                         <pre style={{ background: "rgba(0,0,0,0.5)", padding: "16px", borderRadius: "12px", border: "1px solid rgba(69, 162, 158, 0.1)", color: "#c5c6c7", overflowX: "auto" }}>
                             {JSON.stringify(workflow.payload, null, 2)}
@@ -167,7 +167,7 @@ export default function WorkflowDetailClient() {
                     </Card>
 
                     {/* Step History */}
-                    <Card bordered={false} className="glass-card" style={{ background: "rgba(11, 12, 16, 0.4)", border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: "16px" }}>
+                    <Card variant="borderless" className="glass-card" style={{ background: "rgba(11, 12, 16, 0.4)", border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: "16px" }}>
                         <Title level={5} style={{ color: "#fff", marginBottom: "24px" }}>Evolution Steps</Title>
                         <Steps
                             direction="vertical"
@@ -188,7 +188,7 @@ export default function WorkflowDetailClient() {
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
                     {/* Governance Context Panel */}
-                    <Card bordered={false} className="glass-card" style={{ background: "linear-gradient(135deg, rgba(11,12,16,0.6) 0%, rgba(20,25,35,0.4) 100%)", border: "1px solid rgba(102, 252, 241, 0.1)", borderRadius: "16px" }}>
+                    <Card variant="borderless" className="glass-card" style={{ background: "linear-gradient(135deg, rgba(11,12,16,0.6) 0%, rgba(20,25,35,0.4) 100%)", border: "1px solid rgba(102, 252, 241, 0.1)", borderRadius: "16px" }}>
                         <Title level={5} style={{ color: "#66fcf1", display: "flex", alignItems: "center", gap: "8px" }}>
                             <SafetyOutlined /> Governance Context
                         </Title>
@@ -247,7 +247,7 @@ export default function WorkflowDetailClient() {
 
                     {/* Manual Approval Action (Only if waiting) */}
                     {(workflow.status?.toLowerCase() === 'waiting_approval' || workflow.status?.toLowerCase() === 'pending_approval') && (
-                        <Card bordered={false} style={{ background: "rgba(102, 252, 241, 0.05)", border: "1px dashed #66fcf1", borderRadius: "16px" }}>
+                        <Card variant="borderless" style={{ background: "rgba(102, 252, 241, 0.05)", border: "1px dashed #66fcf1", borderRadius: "16px" }}>
                             <Title level={5} style={{ color: "#66fcf1" }}>Action Required</Title>
                             <Paragraph style={{ color: "#c5c6c7", fontSize: "13px" }}>
                                 This workflow is currently suspended awaiting institutional sign-off.

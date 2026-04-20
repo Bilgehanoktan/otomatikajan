@@ -150,7 +150,7 @@ export default function IncidentDetailClient() {
             </Card>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "20px" }}>
-                <Card bordered={false} className="glass-card" style={{ background: "rgba(18, 10, 10, 0.6)", backdropFilter: "blur(20px)", border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: "16px" }}>
+                <Card variant="borderless" className="glass-card" style={{ background: "rgba(18, 10, 10, 0.6)", backdropFilter: "blur(20px)", border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: "16px" }}>
                     <Title level={5} style={{ color: "#ff7875", display: "flex", alignItems: "center", gap: "8px" }}>
                         <WarningOutlined /> Manifest & Logs
                     </Title>
@@ -196,7 +196,7 @@ export default function IncidentDetailClient() {
                 </Card>
 
                 {/* INCIDENT TIMELINE */}
-                <Card bordered={false} className="glass-card" style={{ background: "rgba(11, 12, 16, 0.4)", border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: "16px" }}>
+                <Card variant="borderless" className="glass-card" style={{ background: "rgba(11, 12, 16, 0.4)", border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: "16px" }}>
                     <Title level={5} style={{ color: "#fff", marginBottom: "24px", display: "flex", alignItems: "center", gap: "8px" }}>
                         <HistoryOutlined /> Incident Lifecycle
                     </Title>

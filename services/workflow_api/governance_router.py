@@ -109,6 +109,7 @@ class DecisionLineageOut(BaseModel):
     rationale: str
     trigger_event: Optional[Dict[str, Any]] = None
     outcome: Optional[str] = None
+    confidence_score: float = 1.0
     created_at: datetime
     integrity_hash: Optional[str] = None
 
@@ -419,6 +420,7 @@ async def trigger_validation(component_name: str):
     return {"status": "triggered", "component": component_name}
 
 @router.get("/governance/lineage", response_model=List[DecisionLineageOut])
+@router.get("/governance/lineages", response_model=List[DecisionLineageOut])
 async def list_lineage(
     response: Response,
     limit: int = Query(50),
@@ -447,6 +449,8 @@ async def list_lineage(
                 component_name=i.component_name,
                 rationale=i.rationale,
                 trigger_event=i.trigger_event,
+                outcome=i.outcome,
+                confidence_score=getattr(i, "confidence_score", 1.0),
                 created_at=i.created_at,
                 integrity_hash=getattr(i, "integrity_hash", None)
             ) for i in items

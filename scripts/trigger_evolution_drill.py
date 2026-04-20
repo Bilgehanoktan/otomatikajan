@@ -14,7 +14,7 @@ from libs.db.models.lineage_models import DecisionLineage
 from sqlalchemy import select
 
 async def run_drill():
-    print("🚀 Starting Autonomous Evolution Drill...")
+    print("[DRILL] Starting Autonomous Evolution Drill...")
     
     # 1. Ensure DB is ready
     await init_db()
@@ -24,18 +24,18 @@ async def run_drill():
     
     # 3. Simulate an "Opportunity" if observer is too quiet
     # For this drill, we just trigger the loop
-    print("🧠 Triggering self-evolution cycle...")
+    print("[CORTEX] Triggering self-evolution cycle...")
     # trigger_self_evolution is async and returns a summary or triggers background tasks
     # We call it directly to see if it executes without errors
     try:
         await cortex.trigger_self_evolution()
-        print("✅ Evolution cycle triggered successfully.")
+        print("[SUCCESS] Evolution cycle triggered successfully.")
     except Exception as e:
-        print(f"❌ Evolution cycle failed: {e}")
+        print(f"[FAILED] Evolution cycle failed: {e}")
         return
 
     # 4. Check DecisionLineage for any new entries
-    print("📊 Verifying Decision Lineage records...")
+    print("[VERIFY] Verifying Decision Lineage records...")
     async with AsyncSessionLocal() as db:
         result = await db.execute(
             select(DecisionLineage).order_by(DecisionLineage.created_at.desc()).limit(5)
@@ -47,9 +47,9 @@ async def run_drill():
             for d in decisions:
                 print(f" - [{d.created_at}] {d.decision_type} in {d.component_name}: {d.rationale[:50]}...")
         else:
-            print("⚠️ No decisions found in lineage. (Loop might be running in background or no opportunities found)")
+            print("[WARNING] No decisions found in lineage. (Loop might be running in background or no opportunities found)")
 
-    print("\n🏁 Drill completed.")
+    print("\n[FINISH] Drill completed.")
 
 if __name__ == "__main__":
     asyncio.run(run_drill())

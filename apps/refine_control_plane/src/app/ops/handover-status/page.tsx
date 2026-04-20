@@ -12,11 +12,11 @@ import {
     Cpu,
     Lock
 } from "lucide-react";
-import { useNavigation } from "@refinedev/core";
+import { useRouter } from "next/navigation";
 import { AuditBundleModal } from "@/components/ops/AuditBundleModal";
 
 export default function HandoverStatusPage() {
-    const { push } = useNavigation();
+    const router = useRouter();
     const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
     const [selectedRollout, setSelectedRollout] = useState<any>(null);
     const [frozenRollouts, setFrozenRollouts] = useState<Set<string>>(new Set());
@@ -38,7 +38,7 @@ export default function HandoverStatusPage() {
 
     const handleLogIzle = (id: string) => {
         // Navigate to workflow detail for logs
-        push(`/workflows/${id}`);
+        router.push(`/workflows/${id}`);
     };
 
     const handleAuditPaketi = (rollout: any) => {

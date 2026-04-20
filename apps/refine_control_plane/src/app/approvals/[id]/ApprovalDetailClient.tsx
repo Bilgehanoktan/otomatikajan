@@ -157,7 +157,7 @@ export default function ApprovalDetailClient() {
             </Card>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "20px" }}>
-                <Card bordered={false} className="glass-card" style={{ background: "rgba(11, 12, 16, 0.6)", backdropFilter: "blur(20px)", border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: "16px" }}>
+                <Card variant="borderless" className="glass-card" style={{ background: "rgba(11, 12, 16, 0.6)", backdropFilter: "blur(20px)", border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: "16px" }}>
                     <Title level={5} style={{ color: "#66fcf1", display: "flex", alignItems: "center", gap: "8px" }}>
                         <SafetyOutlined /> Rationale & Evidence
                     </Title>
@@ -213,7 +213,7 @@ export default function ApprovalDetailClient() {
                 </Card>
 
                 {/* HISTORY TIMELINE */}
-                <Card bordered={false} className="glass-card" style={{ background: "rgba(11, 12, 16, 0.4)", border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: "16px" }}>
+                <Card variant="borderless" className="glass-card" style={{ background: "rgba(11, 12, 16, 0.4)", border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: "16px" }}>
                     <Title level={5} style={{ color: "#fff", marginBottom: "24px", display: "flex", alignItems: "center", gap: "8px" }}>
                         <HistoryOutlined /> Audit Timeline
                     </Title>
