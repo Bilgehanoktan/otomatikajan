@@ -38,6 +38,9 @@ export default function WorkflowList() {
 
   const workflows = data?.data ?? [];
   const activeJobs = workflows.filter(w => w.status?.toLowerCase() === 'running').length;
+  
+  // Extract global stale meta if the provider switched to Degraded Mode
+  const staleMeta = (workflows as any).__sqv_meta;
 
   return (
     <div className="min-h-screen p-8 bg-[#060a12] text-gray-300 animate-in fade-in duration-1000 overflow-x-hidden">
@@ -47,6 +50,7 @@ export default function WorkflowList() {
         subtitle="Real-time Autonomous Orchestration & Decision Traces" 
         icon={<Activity size={32} />}
         badge="Engine Core v13"
+        staleMeta={staleMeta}
         actions={
           <div className="flex items-center gap-8">
              <div className="flex flex-col items-end border-r border-white/5 pr-8">

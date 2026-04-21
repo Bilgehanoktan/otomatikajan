@@ -18,10 +18,12 @@ import {
   Gavel,
   Scale
 } from "lucide-react";
+import { App } from "antd";
 import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 import { Skeleton } from "@/components/dashboard/Skeleton";
 
 export default function ApprovalsPage() {
+  const { notification } = App.useApp();
   const [isClient, setIsClient] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -55,11 +57,16 @@ export default function ApprovalsPage() {
 
   const handleCreateDirective = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // In a real app, you'd call a creation API here
+    notification.success({
+       message: "Directive Broadcasted",
+       description: "The emergency directive has been propagated across the mesh network.",
+       placement: "topRight"
+    });
     setIsModalOpen(false);
   };
 
   const requests = data?.data ?? [];
+  const staleMeta = (requests as any).__sqv_meta;
 
   if (!isClient) return <div className="min-h-screen bg-[#060a12]" />;
 
@@ -71,6 +78,7 @@ export default function ApprovalsPage() {
         subtitle="Multi-Operator Governance Gates & Manual Intervention" 
         icon={<CheckSquare size={32} />}
         badge="L3-L4 Gates"
+        staleMeta={staleMeta}
         actions={
           <div className="flex items-center gap-8">
              <div className="flex flex-col items-end border-r border-white/5 pr-8">

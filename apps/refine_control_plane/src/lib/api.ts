@@ -43,7 +43,9 @@ export async function safeFetchJson<T = any>(url: string, options: SafeFetchOpti
                 await new Promise(res => setTimeout(res, Math.min(1500 * Math.pow(2, attempt - 1), 8000)));
             }
             
-            const res = await fetch(url, init);
+            // Phase 32: Force include cookies for Auth
+            const fetchInit = { ...init, credentials: "include" as RequestCredentials };
+            const res = await fetch(url, fetchInit);
             const contentType = res.headers.get("content-type") || "";
             const raw = await res.text();
             
@@ -97,7 +99,7 @@ export async function safeFetchJson<T = any>(url: string, options: SafeFetchOpti
                 console.info(`[Degraded Mode] ⚠️ Aktif API reddedildi. Son başarılı Gölge-Veri (T-${ageSeconds}s) sunuluyor.`);
                 
                 // Stale veri görünürlüğü için metadata enjeksiyonu
-                if (parsed.data && typeof parsed.data === 'object' && !Array.isArray(parsed.data)) {
+                if (parsed.data && typeof parsed.data === 'object') {
                     (parsed.data as any)["__sqv_meta"] = {
                         is_stale: true,
                         age_seconds: ageSeconds,
@@ -113,7 +115,68 @@ export async function safeFetchJson<T = any>(url: string, options: SafeFetchOpti
         }
     }
     
-    // Eğer geçmiş veri de yoksa (İlk açılışta çöktüyse) çaresizce fırlat,
-    // ancak Exception handler (ör. React Error Boundary) onu seçecektir.
+    // Eğer geçmiş veri de yoksa (İlk açılışta çöktüyse) çaresizce fırlat
     throw lastError || new Error("Bilinmeyen Ağ Hatası");
 }
+
+/**
+ * Standard fetch adapter that wraps safeFetchJson for standard data-providers (Refine).
+ */
+export async function safeFetchAdapter(url: string, options: RequestInit = {}): Promise<Response> {
+    try {
+        const data = await safeFetchJson(url, options as SafeFetchOptions);
+        
+        // Return a polyfilled Response object that Refine expectations
+        return new Response(JSON.stringify(data), {
+            status: 200,
+            statusText: "OK",
+            headers: {
+                "Content-Type": "application/json",
+                // Pass back the stale flag if exists so the data-provider doesn't block it
+                "X-Sqv-Stale": data?.__sqv_meta?.is_stale ? "true" : "false"
+            }
+        });
+    } catch (err: any) {
+        // If everything fails, return a 500 JSON response instead of a raw crash
+        return new Response(JSON.stringify({
+            error: "internal_server_error",
+            detail: err.message
+        }), {
+            status: 500,
+            statusText: "Internal Server Error",
+            headers: { "Content-Type": "application/json" }
+        });
+    }
+}
+
+/**
+ * Axios-compatible wrapper for safeFetchJson.
+ * The Refine simple-rest provider expects an object with method functions (get, post, etc.)
+ * and each method must return an object with a 'data' property (AxiosResponse).
+ */
+export const safeHttpClient = {
+    get: async (url: string, config: any = {}) => {
+        const data = await safeFetchJson(url, { ...config, method: "GET" });
+        return { data, status: 200, statusText: "OK", headers: {}, config };
+    },
+    post: async (url: string, data: any, config: any = {}) => {
+        const responseData = await safeFetchJson(url, { ...config, method: "POST", body: JSON.stringify(data) });
+        return { data: responseData, status: 200, statusText: "OK", headers: {}, config };
+    },
+    put: async (url: string, data: any, config: any = {}) => {
+        const responseData = await safeFetchJson(url, { ...config, method: "PUT", body: JSON.stringify(data) });
+        return { data: responseData, status: 200, statusText: "OK", headers: {}, config };
+    },
+    patch: async (url: string, data: any, config: any = {}) => {
+        const responseData = await safeFetchJson(url, { ...config, method: "PATCH", body: JSON.stringify(data) });
+        return { data: responseData, status: 200, statusText: "OK", headers: {}, config };
+    },
+    delete: async (url: string, config: any = {}) => {
+        const data = await safeFetchJson(url, { ...config, method: "DELETE" });
+        return { data, status: 200, statusText: "OK", headers: {}, config };
+    },
+    request: async (config: any = {}) => {
+        const data = await safeFetchJson(config.url, config);
+        return { data, status: 200, statusText: "OK", headers: {}, config };
+    },
+};

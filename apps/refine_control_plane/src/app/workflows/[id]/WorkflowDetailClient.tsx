@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
     Card, 
     Typography, 
@@ -13,7 +13,7 @@ import {
     Alert,
     Empty,
     Input,
-    notification,
+    App,
     Row,
     Col,
     Statistic
@@ -29,18 +29,33 @@ import ArrowLeftOutlined from "@ant-design/icons/lib/icons/ArrowLeftOutlined";
 import RocketOutlined from "@ant-design/icons/lib/icons/RocketOutlined";
 import BranchesOutlined from "@ant-design/icons/lib/icons/BranchesOutlined";
 import SafetyOutlined from "@ant-design/icons/lib/icons/SafetyOutlined";
-import NodeIndexOutlined from "@ant-design/icons/lib/icons/NodeIndexOutlined";
+import ThunderboltOutlined from "@ant-design/icons/lib/icons/ThunderboltOutlined";
 import { safeFetchJson } from "@/lib/api";
 
 const { Title, Text, Paragraph } = Typography;
 
 export default function WorkflowDetailClient() {
+    const { notification } = App.useApp();
     const { list } = useNavigation();
     const { query: { data, isLoading, isError, refetch } } = useShow({
         resource: "workflows",
     });
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [autoRefresh, setAutoRefresh] = useState(true);
+
+    const workflow = data?.data;
+
+    // Auto-Refresh Logic for Running Workflows
+    useEffect(() => {
+        let interval: any;
+        if (autoRefresh && workflow && (workflow.status === "RUNNING" || workflow.status === "WAITING_APPROVAL")) {
+            interval = setInterval(() => {
+                refetch();
+            }, 5000); // 5s refresh interval
+        }
+        return () => clearInterval(interval);
+    }, [autoRefresh, workflow?.status, refetch]);
 
     const handleApprove = async () => {
         const notes = (document.getElementById("approval-notes") as HTMLTextAreaElement)?.value || "";
@@ -78,8 +93,6 @@ export default function WorkflowDetailClient() {
         }
     };
 
-    const workflow = data?.data;
-
     // Loading state
     if (isLoading) return <Card loading />;
 
@@ -112,15 +125,40 @@ export default function WorkflowDetailClient() {
         }
     };
 
+    const steps = workflow.steps || [];
+    // Find the current active step index
+    const currentStepIndex = steps.findIndex((s: any) => 
+        s.status === "running" || s.status === "processing" || s.status === "pending" || s.status === "queued"
+    );
+    // If all are completed, current index is steps.length
+    const activeIndex = currentStepIndex === -1 ? steps.length : currentStepIndex;
+
     return (
-        <div style={{ padding: "24px" }}>
-            <Button 
-                icon={<ArrowLeftOutlined />} 
-                onClick={() => list("workflows")} 
-                style={{ marginBottom: "16px", background: "transparent", border: "1px solid rgba(255,255,255,0.1)", color: "#aaa" }}
-            >
-                Back to Mission Feed
-            </Button>
+        <div style={{ padding: "24px", minHeight: "100vh", backgroundColor: "#060a12" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "16px" }}>
+                <Button 
+                    icon={<ArrowLeftOutlined />} 
+                    onClick={() => list("workflows")} 
+                    style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.1)", color: "#aaa" }}
+                >
+                    Back to Mission Feed
+                </Button>
+                <Space>
+                    {workflow.status === "RUNNING" && (
+                        <Tag color="cyan" style={{ border: "1px solid rgba(102, 252, 241, 0.4)", background: "rgba(102, 252, 241, 0.05)" }}>
+                           <SyncOutlined spin /> LIVE UPDATING
+                        </Tag>
+                    )}
+                    <Button 
+                       size="small" 
+                       type={autoRefresh ? "primary" : "default"} 
+                       onClick={() => setAutoRefresh(!autoRefresh)}
+                       style={{ fontSize: "10px", height: "24px" }}
+                    >
+                        Auto-Sync: {autoRefresh ? "ON" : "OFF"}
+                    </Button>
+                </Space>
+            </div>
 
             {/* PREMIUM HEADER BAND */}
             <Card variant="borderless" style={{ background: "linear-gradient(90deg, rgba(10,12,18,0.8) 0%, rgba(20,25,35,0.4) 100%)", borderRadius: "12px", border: "1px solid rgba(102, 252, 241, 0.15)", marginBottom: "20px" }}>
@@ -144,9 +182,9 @@ export default function WorkflowDetailClient() {
                     </Col>
                     <Col span={4}>
                         <Statistic 
-                            title={<span style={{ color: "#45a29e", fontSize: "10px" }}>CREATED AT</span>}
-                            value={new Date(workflow.created_at).toLocaleTimeString()}
-                            valueStyle={{ color: "#aaa", fontSize: "16px", fontFamily: "monospace" }}
+                            title={<span style={{ color: "#45a29e", fontSize: "10px" }}>TYPE</span>}
+                            value={workflow.workflow_type?.toUpperCase() || 'GENERIC'}
+                            valueStyle={{ color: "#66fcf1", fontSize: "18px", fontWeight: "bold" }}
                         />
                     </Col>
                     <Col span={8} style={{ textAlign: "right" }}>
@@ -158,99 +196,84 @@ export default function WorkflowDetailClient() {
             </Card>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 400px", gap: "24px" }}>
-                <div>
-                    <Card variant="borderless" className="glass-card" style={{ background: "rgba(11, 12, 16, 0.6)", backdropFilter: "blur(20px)", border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: "16px", marginBottom: "24px" }}>
-                        <Title level={5} style={{ color: "#66fcf1" }}>Internal Configuration</Title>
-                        <pre style={{ background: "rgba(0,0,0,0.5)", padding: "16px", borderRadius: "12px", border: "1px solid rgba(69, 162, 158, 0.1)", color: "#c5c6c7", overflowX: "auto" }}>
-                            {JSON.stringify(workflow.payload, null, 2)}
-                        </pre>
+                <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                    {/* Execution Plan View */}
+                    <Card 
+                        variant="borderless" 
+                        className="glass-card" 
+                        style={{ background: "rgba(11, 12, 16, 0.6)", backdropFilter: "blur(20px)", border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: "16px" }}
+                        title={<span style={{ color: "#fff", fontSize: "14px", fontWeight: "bold", textTransform: "uppercase", letterSpacing: "1px" }}><ThunderboltOutlined style={{ color: "#66fcf1" }} /> Execution Plan</span>}
+                    >
+                        {steps.length === 0 ? (
+                            <Empty description={<span style={{ color: "#666" }}>No execution steps defined.</span>} />
+                        ) : (
+                            <Steps
+                                direction="vertical"
+                                current={activeIndex}
+                                items={steps.map((s: any, i: number) => {
+                                    const isCurrent = i === activeIndex;
+                                    const isError = s.status === "failed" || s.status === "error";
+                                    const isFinished = s.status === "completed" || s.status === "success";
+                                    
+                                    return {
+                                        title: (
+                                            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                                <span style={{ color: isCurrent ? "#66fcf1" : isError ? "#f5222d" : "#fff", fontWeight: isCurrent ? "900" : "bold" }}>
+                                                    {s.name}
+                                                </span>
+                                                <Tag color={isFinished ? "green" : isError ? "red" : isCurrent ? "blue" : "default"} style={{ fontSize: "9px", borderRadius: "4px" }}>
+                                                    {s.status.toUpperCase()}
+                                                </Tag>
+                                            </div>
+                                        ),
+                                        description: (
+                                            <div style={{ marginTop: "8px", padding: "12px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "8px" }}>
+                                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                                                    <Text type="secondary" style={{ fontSize: "11px", color: "#666" }}>Action: <span style={{ color: "#aaa" }}>{s.action}</span></Text>
+                                                    {s.completed_at && <Text type="secondary" style={{ fontSize: "10px" }}>{new Date(s.completed_at).toLocaleTimeString()}</Text>}
+                                                </div>
+                                                
+                                                {s.output_summary && (
+                                                    <Paragraph style={{ color: "#45a29e", fontSize: "12px", background: "rgba(69,162,158,0.05)", padding: "8px", borderRadius: "4px", margin: 0 }}>
+                                                        <Text strong style={{ color: "#66fcf1", fontSize: "10px", display: "block", marginBottom: "4px" }}>OUTPUT SUMMARY</Text>
+                                                        {s.output_summary}
+                                                    </Paragraph>
+                                                )}
+
+                                                {s.error && (
+                                                    <Alert
+                                                        type="error"
+                                                        message={<span style={{ fontSize: "11px", fontWeight: "bold" }}>FAILURE DETECTED</span>}
+                                                        description={<span style={{ fontSize: "11px", fontFamily: "monospace" }}>{s.error}</span>}
+                                                        style={{ marginTop: "8px", border: "none", background: "rgba(245,34,45,0.1)" }}
+                                                    />
+                                                )}
+                                            </div>
+                                        ),
+                                        icon: isCurrent && s.status === "running" ? <SyncOutlined spin style={{ color: "#66fcf1" }} /> : undefined,
+                                        status: isError ? "error" : isFinished ? "finish" : isCurrent ? "process" : "wait"
+                                    };
+                                })}
+                            />
+                        )}
                     </Card>
 
-                    {/* Step History */}
+                    {/* Technical Payload (JSON) */}
                     <Card variant="borderless" className="glass-card" style={{ background: "rgba(11, 12, 16, 0.4)", border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: "16px" }}>
-                        <Title level={5} style={{ color: "#fff", marginBottom: "24px" }}>Evolution Steps</Title>
-                        <Steps
-                            direction="vertical"
-                            current={workflow.history?.length || 0}
-                            items={(workflow.history || []).map((h: any, i: number) => ({
-                                title: <span style={{ color: "#fff" }}>{h.step}</span>,
-                                description: (
-                                    <div style={{ color: "#aaa", fontSize: "12px" }}>
-                                        {h.details || h.msg || "Executing autonomous sub-task..."}
-                                        <div style={{ marginTop: "4px", opacity: 0.6 }}>{new Date(h.timestamp).toLocaleString()}</div>
-                                    </div>
-                                ),
-                                status: i === (workflow.history?.length - 1) ? "process" : "finish"
-                            }))}
-                        />
+                        <Title level={5} style={{ color: "#45a29e", fontSize: "12px", textTransform: "uppercase" }}>Core Context Payload</Title>
+                        <pre style={{ background: "rgba(0,0,0,0.5)", padding: "16px", borderRadius: "12px", border: "1px solid rgba(69, 162, 158, 0.1)", color: "#c5c6c7", overflowX: "auto", fontSize: "11px", fontFamily: "monospace" }}>
+                            {JSON.stringify(workflow.payload, null, 2)}
+                        </pre>
                     </Card>
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-                    {/* Governance Context Panel */}
-                    <Card variant="borderless" className="glass-card" style={{ background: "linear-gradient(135deg, rgba(11,12,16,0.6) 0%, rgba(20,25,35,0.4) 100%)", border: "1px solid rgba(102, 252, 241, 0.1)", borderRadius: "16px" }}>
-                        <Title level={5} style={{ color: "#66fcf1", display: "flex", alignItems: "center", gap: "8px" }}>
-                            <SafetyOutlined /> Governance Context
-                        </Title>
-                        <Divider style={{ borderColor: "rgba(255,255,255,0.05)", margin: "12px 0" }} />
-                        
-                        <Space direction="vertical" style={{ width: "100%" }} size="large">
-                            {/* Related Approvals */}
-                            <div>
-                                <Text strong style={{ color: "#45a29e", fontSize: "11px", textTransform: "uppercase" }}>Pending Quorum Requests</Text>
-                                {(workflow.related_approvals && workflow.related_approvals.length > 0) ? (
-                                    <List
-                                        size="small"
-                                        dataSource={workflow.related_approvals}
-                                        renderItem={(item: any) => (
-                                            <List.Item 
-                                                actions={[<Button size="small" type="link" onClick={() => window.open(`/approvals/${item.id}`, '_blank')}>VIEW</Button>]}
-                                                style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
-                                            >
-                                                <List.Item.Meta
-                                                    title={<Text style={{ color: "#fff", fontSize: "13px" }}>{item.request_type}</Text>}
-                                                    description={<Tag color={item.status === 'APPROVED' ? 'success' : 'warning'}>{item.status}</Tag>}
-                                                />
-                                            </List.Item>
-                                        )}
-                                    />
-                                ) : (
-                                    <Paragraph style={{ color: "#666", fontSize: "12px", marginTop: "8px" }}>No active approval blocks detected.</Paragraph>
-                                )}
-                            </div>
-
-                            {/* Related Incidents */}
-                            <div>
-                                <Text strong style={{ color: "#ff4d4f", fontSize: "11px", textTransform: "uppercase" }}>Operational Anomaly Logs</Text>
-                                {(workflow.related_incidents && workflow.related_incidents.length > 0) ? (
-                                    <List
-                                        size="small"
-                                        dataSource={workflow.related_incidents}
-                                        renderItem={(item: any) => (
-                                            <List.Item 
-                                                actions={[<Button size="small" type="link" danger onClick={() => window.open(`/incidents/${item.id}`, '_blank')}>DEBUG</Button>]}
-                                                style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
-                                            >
-                                                <List.Item.Meta
-                                                    title={<Text style={{ color: "#fff", fontSize: "13px" }}>{item.incident_type}</Text>}
-                                                    description={<Tag color="error">{item.severity}</Tag>}
-                                                />
-                                            </List.Item>
-                                        )}
-                                    />
-                                ) : (
-                                    <Paragraph style={{ color: "#666", fontSize: "12px", marginTop: "8px" }}>Environment state nominal (no anomalies).</Paragraph>
-                                )}
-                            </div>
-                        </Space>
-                    </Card>
-
-                    {/* Manual Approval Action (Only if waiting) */}
+                    {/* Manual Approval Action */}
                     {(workflow.status?.toLowerCase() === 'waiting_approval' || workflow.status?.toLowerCase() === 'pending_approval') && (
                         <Card variant="borderless" style={{ background: "rgba(102, 252, 241, 0.05)", border: "1px dashed #66fcf1", borderRadius: "16px" }}>
                             <Title level={5} style={{ color: "#66fcf1" }}>Action Required</Title>
                             <Paragraph style={{ color: "#c5c6c7", fontSize: "13px" }}>
-                                This workflow is currently suspended awaiting institutional sign-off.
+                                This mission is currently suspended awaiting institutional authorization. Enter rationale and sign-off to proceed.
                             </Paragraph>
                             <Space direction="vertical" style={{ width: "100%" }}>
                                 <Input.TextArea 
@@ -272,6 +295,64 @@ export default function WorkflowDetailClient() {
                             </Space>
                         </Card>
                     )}
+
+                    {/* Governance Context Panel */}
+                    <Card variant="borderless" className="glass-card" style={{ background: "linear-gradient(135deg, rgba(11,12,16,0.6) 0%, rgba(20,25,35,0.4) 100%)", border: "1px solid rgba(102, 252, 241, 0.1)", borderRadius: "16px" }}>
+                        <Title level={5} style={{ color: "#66fcf1", fontSize: "14px", display: "flex", alignItems: "center", gap: "8px" }}>
+                            <SafetyOutlined /> Governance Integrity
+                        </Title>
+                        <Divider style={{ borderColor: "rgba(255,255,255,0.05)", margin: "12px 0" }} />
+                        
+                        <Space direction="vertical" style={{ width: "100%" }} size="large">
+                            {/* Related Approvals */}
+                            <div>
+                                <Text strong style={{ color: "#45a29e", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px" }}>QUORUM REQUESTS</Text>
+                                {(workflow.related_approvals && workflow.related_approvals.length > 0) ? (
+                                    <List
+                                        size="small"
+                                        dataSource={workflow.related_approvals}
+                                        renderItem={(item: any) => (
+                                            <List.Item 
+                                                actions={[<Button size="small" type="link" onClick={() => window.open(`/approvals/${item.id}`, '_blank')}>VIEW</Button>]}
+                                                style={{ borderBottom: "1px solid rgba(255,255,255,0.05)", padding: "8px 0" }}
+                                            >
+                                                <List.Item.Meta
+                                                    title={<Text style={{ color: "#fff", fontSize: "12px" }}>{item.request_type}</Text>}
+                                                    description={<Tag color={item.status === 'APPROVED' ? 'success' : 'warning'} style={{ fontSize: "9px" }}>{item.status}</Tag>}
+                                                />
+                                            </List.Item>
+                                        )}
+                                    />
+                                ) : (
+                                    <Paragraph style={{ color: "#555", fontSize: "11px", marginTop: "12px", fontStyle: "italic" }}>No blocking approvals.</Paragraph>
+                                )}
+                            </div>
+
+                            {/* Related Incidents */}
+                            <div>
+                                <Text strong style={{ color: "#ff4d4f", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px" }}>ANOMALY LOGS</Text>
+                                {(workflow.related_incidents && workflow.related_incidents.length > 0) ? (
+                                    <List
+                                        size="small"
+                                        dataSource={workflow.related_incidents}
+                                        renderItem={(item: any) => (
+                                            <List.Item 
+                                                actions={[<Button size="small" type="link" danger onClick={() => window.open(`/incidents/${item.id}`, '_blank')}>DEBUG</Button>]}
+                                                style={{ borderBottom: "1px solid rgba(255,255,255,0.05)", padding: "8px 0" }}
+                                            >
+                                                <List.Item.Meta
+                                                    title={<Text style={{ color: "#fff", fontSize: "12px" }}>{item.incident_type}</Text>}
+                                                    description={<Tag color="error" style={{ fontSize: "9px" }}>{item.severity} SEVERITY</Tag>}
+                                                />
+                                            </List.Item>
+                                        )}
+                                    />
+                                ) : (
+                                    <Paragraph style={{ color: "#555", fontSize: "11px", marginTop: "12px", fontStyle: "italic" }}>Environment state nominal.</Paragraph>
+                                )}
+                            </div>
+                        </Space>
+                    </Card>
                 </div>
             </div>
         </div>

@@ -34,6 +34,9 @@ from services.governance import mesh_actions_api
 # Phase 28 Integration: Autonomous Repair Lab
 from services.workflow_api import repair_lab_router, governance_router
 
+# Phase 32 Integration: Multi-Operator Identity
+from services.auth.router import router as auth_router
+
 logger = get_logger("workflow_api")
 
 def create_app() -> FastAPI:
@@ -58,6 +61,7 @@ def create_app() -> FastAPI:
     app.include_router(mesh_actions_api.router)
     app.include_router(repair_lab_router.router)
     app.include_router(governance_router.router)
+    app.include_router(auth_router, prefix="/api/v1/auth", tags=["Auth"])
 
     # Global Exception Handlers for JSON Stabilization
     @app.exception_handler(StarletteHTTPException)

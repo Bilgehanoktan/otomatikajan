@@ -45,6 +45,7 @@ export default function IncidentsPage() {
   };
 
   const incidents = data?.data ?? [];
+  const staleMeta = (incidents as any).__sqv_meta;
 
   if (!isClient) return <div className="min-h-screen bg-[#060a12]" />;
 
@@ -56,6 +57,7 @@ export default function IncidentsPage() {
         subtitle="Real-time Chaos Monitoring & Autonomous Mitigation" 
         icon={<AlertTriangle size={32} />}
         badge="Critical Ops"
+        staleMeta={staleMeta}
         actions={
           <div className="flex items-center gap-8">
              <div className="flex items-center gap-4 border-r border-white/5 pr-8">

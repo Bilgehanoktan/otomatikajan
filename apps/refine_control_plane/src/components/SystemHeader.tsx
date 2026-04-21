@@ -12,8 +12,10 @@ import {
     Plus,
     UserCircle
 } from "lucide-react";
+import { App } from "antd";
 
 const SystemHeaderContent = () => {
+    const { notification } = App.useApp();
     const apiUrl = useApiUrl();
     const { query: { data } } = useCustom({
         url: `${apiUrl}/workflows/stats/summary`,
@@ -88,17 +90,30 @@ const SystemHeaderContent = () => {
 
                 {/* Actions & User */}
                 <div className="flex items-center gap-5">
-                    <button className="hidden lg:flex items-center gap-2.5 px-5 py-2 bg-[var(--primary)] text-[#0b0c10] text-[11px] font-black uppercase rounded-xl hover:shadow-[0_0_25px_var(--primary-glow)] hover:-translate-y-0.5 transition-all active:scale-95 group">
+                    <button 
+                        onClick={() => notification.info({
+                            message: "Global İş Akışı",
+                            description: "Yeni bir sistem operasyonu için yetkilendirme bekleniyor.",
+                            placement: "topRight"
+                        })}
+                        className="hidden lg:flex items-center gap-2.5 px-5 py-2 bg-[var(--primary)] text-[#0b0c10] text-[11px] font-black uppercase rounded-xl hover:shadow-[0_0_25px_var(--primary-glow)] hover:-translate-y-0.5 transition-all active:scale-95 group"
+                    >
                         <Plus size={16} className="group-hover:rotate-90 transition-all duration-300" />
                         <span>Başlat</span>
                     </button>
 
                     <div className="flex items-center gap-1 bg-white/5 border border-white/5 p-1 rounded-2xl">
-                        <button className="p-2.5 text-gray-400 hover:text-[var(--primary)] hover:bg-white/5 rounded-xl transition-all relative group" title="Nöral Bildirimler">
+                        <button 
+                            onClick={() => notification.info({ message: "Nöral Bildirimler", description: "Son 24 saat içinde 3 kritik onay talebi ve 1 sistem anomalisi tespit edildi." })}
+                            className="p-2.5 text-gray-400 hover:text-[var(--primary)] hover:bg-white/5 rounded-xl transition-all relative group" title="Nöral Bildirimler"
+                        >
                             <Bell size={18} />
                             <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-400 rounded-full border-2 border-[#0b0c10]" />
                         </button>
-                        <button className="p-2.5 text-gray-500 hover:text-white hover:bg-white/5 rounded-xl transition-all" title="Sistem Ayarları">
+                        <button 
+                            onClick={() => notification.info({ message: "Sistem Ayarları", description: "Otonom çekirdek ayarları şu an kilitli. L3 yetkisi gerekiyor." })}
+                            className="p-2.5 text-gray-500 hover:text-white hover:bg-white/5 rounded-xl transition-all" title="Sistem Ayarları"
+                        >
                             <Settings size={18} />
                         </button>
                     </div>

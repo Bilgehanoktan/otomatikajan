@@ -10,7 +10,7 @@ import {
     Space, 
     Alert,
     Input,
-    notification,
+    App,
     Row,
     Col,
     Statistic,
@@ -32,6 +32,7 @@ import { safeFetchJson } from "@/lib/api";
 const { Title, Text, Paragraph } = Typography;
 
 export default function IncidentDetailClient() {
+    const { notification } = App.useApp();
     const { query: { data, isLoading, isError, refetch } } = useShow({
         resource: "incidents",
     });

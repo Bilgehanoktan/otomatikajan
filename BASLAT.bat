@@ -1,34 +1,14 @@
 @echo off
-title "Sovereign AGI | Görev Kontrol Merkezi (DEBUG MODU)"
+title "Sovereign AGI | Görev Kontrol Merkezi"
 chcp 65001 >nul
 echo ----------------------------------------------------
 echo    EGEMEN YAZ - Sovereign AGI Başlatılıyor...
 echo ----------------------------------------------------
 
-:: 1. Bağımlılık Kontrolü
-echo [*] Bağımlılıklar kontrol ediliyor...
-set "PY_CMD=python"
-where python >nul 2>&1
-if %errorlevel% neq 0 (
-    where py >nul 2>&1
-    if %errorlevel% neq 0 (
-        echo [!] HATA: Python bulunamadı.
-        pause
-        exit /b 1
-    )
-    set "PY_CMD=py"
-)
+:: 1. Altyapı Temizliği (Zombie Port ve Süreç Kontrolü)
+echo [*] Altyapı cerrahi kontrolü yapılıyor...
+python infra\port_surgeon.py
 
-where npm >nul 2>&1
-if %errorlevel% neq 0 (
-    echo [!] HATA: npm bulunamadı.
-    pause
-    exit /b 1
-)
-
-:: 2. Port Temizliği
-echo [*] Portlar temizleniyor...
-powershell -NoProfile -Command "foreach ($port in @(8000, 3000, 3100)) { $p = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue; if ($p) { Stop-Process -Id $p.OwningProcess -Force -ErrorAction SilentlyContinue } }"
 
 :: 3. Başlatma
 echo [1/2] Mission Control API (8000) başlatılıyor...

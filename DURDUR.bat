@@ -1,18 +1,14 @@
 @echo off
-title Sovereign AGI | Sistem Durdurma
+title "Sovereign AGI | Sistem Durdurma"
 chcp 65001 >nul
 echo ----------------------------------------------------
 echo    EGEMEN YAZ - Servisler Durduruluyor...
 echo ----------------------------------------------------
 
-:: 1. Port bazlı temizlik (PowerShell)
-echo [*] Aktif servisler taranıyor ve sonlandırılıyor...
+:: 1. Altyapı Cerrahi Temizlik
+echo [*] Aktif servisler ve hayalet portlar temizleniyor...
+python infra\port_surgeon.py
 
-powershell -Command "foreach ($port in @(8000, 3000, 3100)) { $connections = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue; if ($connections) { foreach ($conn in $connections) { Write-Host \"[!] Port $port üzerindeki süreç kapatılıyor (PID: $($conn.OwningProcess))\"; Stop-Process -Id $conn.OwningProcess -Force -ErrorAction SilentlyContinue } } }"
-
-:: 2. Genel Kalıntı Temizliği
-taskkill /F /IM node.exe /T >nul 2>&1
-taskkill /F /IM python.exe /T /FI "COMMANDLINE eq *uvicorn*" >nul 2>&1
 
 echo.
 echo ----------------------------------------------------
