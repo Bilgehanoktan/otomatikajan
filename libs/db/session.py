@@ -46,7 +46,7 @@ def get_engine():
         # SRE Hardening: Thread-safe engine creation without blocking the main event loop
         # Sadece ilk çağrıda engine oluşturulur.
         if _engine is None or (curr_active_loop is not None and _last_loop is not curr_active_loop):
-                logger.debug(f"SQLAlchemy: Creating engine for loop {id(curr_active_loop)} (URL: {DATABASE_URL.split('@')[-1]})")
+                logger.info(f"SQLAlchemy: Creating engine for loop {id(curr_active_loop)} (URL: {DATABASE_URL})")
                 try:
                     # SRE Hardening: Provider-aware connect_args (Faz 12.1)
                     connect_args = {}
@@ -82,8 +82,11 @@ def get_engine():
                         ) from e
                     
                     logger.warning(f"SQLAlchemy: Ana DB (Postgres) bağlantısı kurulamadı: {e}. SQLite Fallback aktif ediliyor.")
-                    # Fallback to Local SQLite
-                    sqlite_url = "sqlite+aiosqlite:///./runtime/data/cortex_local.db"
+                    # SRE Hardening: Force project-root anchor to avoid "Split-Brain" databases in relative CWDs
+                    _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                    sqlite_path = os.path.join(_root, "runtime", "data", "cortex_local.db")
+                    logger.info(f"SQLAlchemy: Fallback SQLite path anchored to: {sqlite_path}")
+                    sqlite_url = f"sqlite+aiosqlite:///{sqlite_path.replace('\\', '/')}"
                     _engine = create_async_engine(sqlite_url)
                     # Explicitly track degraded state
                     global _DB_DEGRADED
@@ -217,7 +220,9 @@ async def init_db():
         _DB_ERROR = str(e)
         if "sqlite" not in str(get_engine().url):
             logger.warning(f"Postgres bağlantısı başlatma sırasında başarısız oldu: {e}. SQLite'a zorlanıyor...")
-            sqlite_url = "sqlite+aiosqlite:///./runtime/data/cortex_local.db"
+            _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            sqlite_path = os.path.join(_root, "runtime", "data", "cortex_local.db")
+            sqlite_url = f"sqlite+aiosqlite:///{sqlite_path.replace('\\', '/')}"
             _engine = create_async_engine(sqlite_url)
             try:
                 await run_init(_engine)

@@ -134,7 +134,7 @@ export default function WorkflowDetailClient() {
     const activeIndex = currentStepIndex === -1 ? steps.length : currentStepIndex;
 
     return (
-        <div style={{ padding: "24px", minHeight: "100vh", backgroundColor: "#060a12" }}>
+        <div style={{ padding: "24px", minHeight: "100%", backgroundColor: "#060a12", display: "flex", flexDirection: "column", gap: "24px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "16px" }}>
                 <Button 
                     icon={<ArrowLeftOutlined />} 

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { notification } from "antd";
+import { App } from "antd";
 import { 
     GitBranch, 
     Clock, 
@@ -25,6 +25,15 @@ import { Skeleton } from "@/components/dashboard/Skeleton";
 import { safeFetchJson } from "@/lib/api";
 
 export default function GovernanceLineagePage() {
+    return (
+        <App>
+            <GovernanceLineageContent />
+        </App>
+    );
+}
+
+function GovernanceLineageContent() {
+    const { notification } = App.useApp();
     const [isClient, setIsClient] = useState(false);
     useEffect(() => setIsClient(true), []);
 

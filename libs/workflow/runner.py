@@ -267,14 +267,18 @@ async def run_project_workflow(
     from libs.workflow.persistence import WorkflowPersistence
     existing = await WorkflowPersistence.load_instance(project_id)
 
-    if existing and existing.status not in [WorkflowStatus.PENDING]:
+    if existing and existing.status not in [WorkflowStatus.PENDING] and len(existing.steps) > 0:
         logger.info(
             f"[WorkflowRunner] Resuming existing workflow {project_id} "
-            f"(status={existing.status})"
+            f"(status={existing.status}, steps={len(existing.steps)})"
         )
         instance = existing
     else:
-        logger.info(f"[WorkflowRunner] Building fresh workflow for project {project_id}")
+        if existing and len(existing.steps) == 0:
+            logger.warning(f"[WorkflowRunner] Project {project_id} is {existing.status} but has 0 steps. Building fresh steps.")
+        else:
+            logger.info(f"[WorkflowRunner] Building fresh workflow for project {project_id}")
+        
         instance = build_project_workflow(
             project_id=project_id,
             title=title,

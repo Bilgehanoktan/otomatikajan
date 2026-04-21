@@ -9,7 +9,7 @@ import asyncio
 import uuid
 from typing import List, Dict, Any
 from services.repair.repair_orchestrator import RepairOrchestrator
-from services.repair.schemas.incident import IncidentRecord
+from services.repair.schemas.incident import IncidentRecord, IncidentSource, IncidentSeverity
 from services.observability.logging import get_logger
 from services.governance.signoff_registry import SignoffRegistry
 from libs.db.models.governance_models import ValidationType, ValidationStatus
@@ -60,16 +60,18 @@ class DrillEngine:
         # 1. Sentetik bir incident oluştur
         incident = IncidentRecord(
             incident_id=f"drill_{uuid.uuid4().hex[:8]}",
+            source=IncidentSource.MANUAL,
+            severity=IncidentSeverity.MEDIUM,
+            service="DrillSystem",
+            module="GovernanceWatchdog",
             symptom=f"DRILL SCENARIO: {scenario_name}",
-            module="DrillSystem",
-            severity="info",
             context={"mode": "drill", "scenario": scenario_name}
         )
         
         # 2. RepairOrchestrator'ı SHADOW modda tetikle
         result = await self.orchestrator.shadow_repair_cycle(
             incident_type="DRILL_GOVERNANCE",
-            payload={"scenario": scenario_name, "incident": incident.dict()}
+            payload={"scenario": scenario_name, "incident": incident.to_dict()}
         )
         
         # 3. Sonucu Registry'e "DRILL" olarak kaydet

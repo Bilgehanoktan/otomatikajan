@@ -18,12 +18,13 @@
     "us-east-1": {
       "latency_from_us-east-1": 0,
       "last_latency_check": 1776286004.2161596,
-      "updated_at": "2026-04-16T03:48:45.825612",
+      "updated_at": "2026-04-21T18:50:27.823220",
       "health_status": "NOMINAL",
       "health_score": 0.1,
-      "latency_from_source": 1500.0
+      "latency_from_source": 1500.0,
+      "manual_trigger": true
     }
   },
-  "last_update": "2026-04-16T03:48:45.826326",
+  "last_update": "2026-04-21T18:50:27.823241",
   "version": "1.0"
 }

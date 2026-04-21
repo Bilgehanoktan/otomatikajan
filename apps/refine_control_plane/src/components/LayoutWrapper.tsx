@@ -63,8 +63,8 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
                         </div>
                     )}
 
-                    <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#66fcf1]/5 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/2" />
-                    <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[#45a29e]/5 blur-[120px] rounded-full translate-y-1/2 -translate-x-1/2" />
+                    <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#66fcf1]/5 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[#45a29e]/5 blur-[120px] rounded-full translate-y-1/2 -translate-x-1/2 pointer-events-none" />
                     
                     <div className={`relative z-10 transition-all duration-500 ${isCrisis ? 'filter grayscale-[0.2] brightness-90' : ''}`}>
                         {children}

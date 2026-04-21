@@ -57,28 +57,23 @@ class RefreshToken(Base):
 
 class ProjectStatus(str, enum.Enum):
     PENDING          = "PENDING"
-    pending          = "pending"
     QUEUED           = "QUEUED"
-    queued           = "queued"
     RUNNING          = "RUNNING"
-    running          = "running"
     WAITING          = "WAITING"
-    waiting          = "waiting"
     PENDING_APPROVAL = "PENDING_APPROVAL"
     WAITING_APPROVAL = "WAITING_APPROVAL"
     REPLAYING        = "REPLAYING"
     RETRYING         = "RETRYING"
     COMPLETED        = "COMPLETED"
-    completed        = "completed"
     PARTIAL_COMPLETE = "PARTIAL_COMPLETE"
     ERROR            = "ERROR"
-    error            = "error"
     FAILED           = "FAILED"
-    failed           = "failed"
     CANCELLED        = "CANCELLED"
     PAUSED           = "PAUSED"
     INTERRUPTED      = "INTERRUPTED"
     RESUMING         = "RESUMING"
+    resuming         = "resuming"
+    PENDING_APPROVAL_AUTO = "PENDING_APPROVAL_AUTO"
 
     @classmethod
     def _missing_(cls, value):
@@ -90,13 +85,24 @@ class ProjectStatus(str, enum.Enum):
         return None
 
 class ProjectSource(str, enum.Enum):
-    API = "api"
-    MANUAL = "manual"
-    TELEGRAM = "telegram"
-    SCHEDULED = "scheduled"
-    QUEUE_STUCK = "queue_stuck"
-    APPROVAL_TIMEOUT = "approval_timeout"
-    CONTROL_PLANE = "control_plane"
+    API = "API"
+    MANUAL = "MANUAL"
+    TELEGRAM = "TELEGRAM"
+    SCHEDULED = "SCHEDULED"
+    QUEUE_STUCK = "QUEUE_STUCK"
+    APPROVAL_TIMEOUT = "APPROVAL_TIMEOUT"
+    CONTROL_PLANE = "CONTROL_PLANE"
+
+    @classmethod
+    def _missing_(cls, value):
+        """Ultra-Resilient Lookup for Source."""
+        if not isinstance(value, str):
+            return None
+        val = value.upper().strip()
+        for member in cls:
+            if member.value == val:
+                return member
+        return None
 
 class TaskPriority(str, enum.Enum):
     CRITICAL = "CRITICAL"
