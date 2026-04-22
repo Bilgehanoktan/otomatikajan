@@ -112,6 +112,7 @@ export default function WorkflowDetailClient() {
     );
 
     const getStatusTag = (status: string) => {
+        if (!status) return <Tag color="default">UNKNOWN</Tag>;
         const s = status.toUpperCase();
         switch (s) {
             case "RUNNING": return <Tag icon={<SyncOutlined spin />} color="processing">RUNNING</Tag>;

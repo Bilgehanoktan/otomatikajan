@@ -7,7 +7,8 @@ import dataProvider from "@refinedev/simple-rest";
 import { safeHttpClient } from "@/lib/api";
 
 const isServer = typeof window === "undefined";
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
+// Force relative path on client to ensure Next.js proxy is used and avoid CORS/Failed to fetch issues
+const API_URL = isServer ? (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1") : "/api/v1";
 
 const mockDataProvider = {
   getList: () => Promise.resolve({ data: [], total: 0 }),
@@ -44,13 +45,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
       return { success: true, redirectTo: "/login" };
     },
     check: async () => {
-      const response = await fetch(`${API_URL}/auth/me`, { credentials: "include" });
-      if (response.ok) {
-        return { authenticated: true };
-      }
-      // Dev Mode Auto Login: Eğer token yoksa otonom oturum aç
-      console.warn("Dev Mode Auto-Login triggered for admin@sovereign.agi");
       try {
+        const response = await fetch(`${API_URL}/auth/me`, { credentials: "include" });
+        if (response.ok) {
+          return { authenticated: true };
+        }
+        
+        // Dev Mode Auto Login: Eğer token yoksa otonom oturum aç
+        console.warn("Dev Mode Auto-Login triggered for admin@sovereign.agi");
         const auto = await fetch(`${API_URL}/auth/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -58,24 +60,30 @@ export function Providers({ children }: { children: React.ReactNode }) {
           credentials: "include"
         });
         if (auto.ok) return { authenticated: true };
-      } catch (e) { console.error("Auto login failed", e); }
+      } catch (e) { 
+        console.error("Auth check/auto-login failed due to network error", e); 
+      }
       
       return { authenticated: false, redirectTo: "/login" };
     },
     getPermissions: async () => {
-      const response = await fetch(`${API_URL}/auth/me`, { credentials: "include" });
-      if (response.ok) {
-        const data = await response.json();
-        return data.is_admin ? ["admin"] : ["user"];
-      }
+      try {
+        const response = await fetch(`${API_URL}/auth/me`, { credentials: "include" });
+        if (response.ok) {
+          const data = await response.json();
+          return data.is_admin ? ["admin"] : ["user"];
+        }
+      } catch (e) { console.error("Permission check failed", e); }
       return null;
     },
     getIdentity: async () => {
-      const response = await fetch(`${API_URL}/auth/me`, { credentials: "include" });
-      if (response.ok) {
-        const data = await response.json();
-        return { id: data.id, name: data.email, avatar: "https://api.dicebear.com/7.x/identicon/svg?seed=admin" };
-      }
+      try {
+        const response = await fetch(`${API_URL}/auth/me`, { credentials: "include" });
+        if (response.ok) {
+          const data = await response.json();
+          return { id: data.id, name: data.email, avatar: "https://api.dicebear.com/7.x/identicon/svg?seed=admin" };
+        }
+      } catch (e) { console.error("Identity check failed", e); }
       return null;
     },
     onError: async (error) => {

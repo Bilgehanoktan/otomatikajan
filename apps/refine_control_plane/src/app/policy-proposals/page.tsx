@@ -41,7 +41,7 @@ export default function PolicyProposalsPage() {
 
   const handleApprove = (id: string) => {
     mutate({
-      url: `/governance/proposals/${id}/approve`,
+      url: `/api/v1/governance/proposals/${id}/approve`,
       method: "post",
       values: {},
       successNotification: {

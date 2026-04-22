@@ -141,6 +141,7 @@ function EliteLineageMetric({ label, val, icon, accent }: any) {
 }
 
 function EliteLineageRow({ item, isLast }: { item: any, isLast: boolean }) {
+    const { notification } = App.useApp();
     const [payloadOpen, setPayloadOpen] = useState(false);
     
     return (

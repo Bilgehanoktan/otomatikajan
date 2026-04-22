@@ -6,7 +6,7 @@ from services.observability.logging import get_logger
 logger = get_logger("governance.standby")
 
 class StandbyManager:
-    STATE_FILE = "runtime/data/standby_control.json"
+    STATE_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "runtime", "data", "standby_control.json")
     TRIGGER_PHRASE = "Hazır, PRMR-01 Faz 1’i yeniden başlat."
 
     @staticmethod

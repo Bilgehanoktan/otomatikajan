@@ -36,11 +36,12 @@ export default function WorkflowList() {
 
   if (!isClient) return <div className="min-h-screen bg-[#060a12]" />;
 
-  const workflows = data?.data ?? [];
+  const workflowsRaw = data?.data;
+  const workflows = Array.isArray(workflowsRaw) ? workflowsRaw : [];
   const activeJobs = workflows.filter(w => w.status?.toLowerCase() === 'running').length;
   
   // Extract global stale meta if the provider switched to Degraded Mode
-  const staleMeta = (workflows as any).__sqv_meta;
+  const staleMeta = (data as any)?.__sqv_meta || (workflows as any).__sqv_meta;
 
   return (
     <div className="min-h-screen p-8 bg-[#060a12] text-gray-300 animate-in fade-in duration-1000 overflow-x-hidden">

@@ -40,15 +40,13 @@ export default function SelfTuningPage() {
 
   const fetchData = async () => {
     try {
-      const API_BASE = "http://localhost:8000/api/v1";
-      
-      const sugData = await safeFetchJson(`${API_BASE}/governance/proposals?status=pending`);
+      const sugData = await safeFetchJson(`/api/v1/governance/proposals?status=pending`);
       setSuggestions(sugData || []);
 
-      const feedData = await safeFetchJson(`${API_BASE}/governance/lineage?limit=20`);
+      const feedData = await safeFetchJson(`/api/v1/governance/lineage?limit=20`);
       setEvolutionFeed(feedData || []);
 
-      const statusData = await safeFetchJson(`${API_BASE}/governance/status`);
+      const statusData = await safeFetchJson(`/api/v1/governance/status`);
       setEvolutionStatus(statusData);
 
       // Check for stale metadata in any of the responses to trigger the global degraded label

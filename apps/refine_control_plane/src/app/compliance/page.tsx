@@ -41,7 +41,7 @@ export default function CompliancePage() {
     const formData = new FormData(e.currentTarget);
     
     mutate({
-      url: `/compliance/audit-bundles`,
+      url: `/api/v1/compliance/audit-bundles`,
       method: "post",
       values: {
         name: formData.get("name"),

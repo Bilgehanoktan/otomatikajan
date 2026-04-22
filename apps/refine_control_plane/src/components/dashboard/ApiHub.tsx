@@ -40,7 +40,7 @@ export function ApiHub({ apiBase }: { apiBase: string }) {
     { label: "API Dokümanları", sub: "Swagger UI v14", icon: <Zap size={20} />, href: `${apiBase}/docs`, color: "text-[var(--primary)]", bg: "bg-[var(--primary)]/10" },
     { label: "Mimari Şema", sub: "Redoc Spécs", icon: <GitBranch size={20} />, href: `${apiBase}/redoc`, color: "text-violet-400", bg: "bg-violet-400/10" },
     { label: "Sistem Durumu", sub: "Health JSON Akışı", icon: <Globe size={20} />, href: `${apiBase}/health`, color: "text-blue-400", bg: "bg-blue-400/10" },
-    { label: "Denetim Kayıtları", sub: "Audit Ledger API", icon: <Database size={20} />, href: `${apiBase}/api/v1/health/dashboard`, color: "text-amber-400", bg: "bg-amber-400/10" },
+    { label: "Denetim Kayıtları", sub: "Audit Ledger API", icon: <Database size={20} />, href: `${apiBase}/health/dashboard`, color: "text-amber-400", bg: "bg-amber-400/10" },
   ];
 
   return (

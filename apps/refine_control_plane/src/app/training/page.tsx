@@ -47,7 +47,7 @@ export default function TrainingDrillsPage() {
   const triggerDrill = async (scenario: string) => {
     setIsRunning(true);
     mutate({
-       url: `/governance/drills/trigger`,
+       url: "/governance/drills/trigger",
        method: "post",
        values: { scenario },
        successNotification: {

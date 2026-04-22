@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import { Rocket, ShieldAlert, FileSearch, ShieldCheck, Play, ArrowRight, Loader2 } from "lucide-react";
+import { safeFetchJson } from "@/lib/api";
+import { App } from "antd";
 
 interface CommandButtonProps {
   label: string;
@@ -36,20 +38,29 @@ function CommandButton({ label, sub, icon, color, onClick, loading }: CommandBut
 }
 
 export function DashboardCommandPanel({ apiBase }: { apiBase: string }) {
+  const { notification } = App.useApp();
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
   const handleAction = async (action: string, endpoint: string, method: string = "POST") => {
     setLoadingAction(action);
     try {
-      // Simulate real call structure to port 8000
-      const res = await fetch(`${apiBase}${endpoint}`, {
+      // Phase 32: Use safeFetchJson for resilience and auth-cookie inclusion
+      const data = await safeFetchJson(`/api/v1${endpoint}`, {
         method,
         headers: { "Content-Type": "application/json" },
       });
-      const data = await res.json();
-      alert(`Komut İletildi: ${data.message || "Başarılı"}`);
-    } catch (err) {
-      alert("Hata: Backend (Port 8000) erişilemedi.");
+      
+      notification.success({
+        message: "Komut İletildi",
+        description: data.message || "İşlem başarıyla tetiklendi.",
+        placement: "bottomRight"
+      });
+    } catch (err: any) {
+      notification.error({
+        message: "Bağlantı Hatası",
+        description: `Backend servisine ulaşılamadı veya geçersiz yanıt alındı. Hata: ${err.message}`,
+        placement: "bottomRight"
+      });
     } finally {
       setLoadingAction(null);
     }
@@ -99,7 +110,7 @@ export function DashboardCommandPanel({ apiBase }: { apiBase: string }) {
           icon={<ShieldCheck size={18} />}
           color="text-green-400"
           loading={loadingAction === "approvals"}
-          onClick={() => window.open(`${apiBase.replace("/api/v1", "")}/api/v1/approvals?status=pending`, "_blank")}
+          onClick={() => window.open(`/approvals?status=pending`, "_blank")}
         />
       </div>
 

@@ -44,8 +44,8 @@ export default function IncidentsPage() {
     });
   };
 
-  const incidents = data?.data ?? [];
-  const staleMeta = (incidents as any).__sqv_meta;
+  const incidents = Array.isArray(data?.data) ? data.data : [];
+  const staleMeta = (data?.data as any)?.__sqv_meta || (incidents as any).__sqv_meta;
 
   if (!isClient) return <div className="min-h-screen bg-[#060a12]" />;
 

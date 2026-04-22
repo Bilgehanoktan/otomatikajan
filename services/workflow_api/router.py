@@ -114,7 +114,8 @@ async def _get_project_with_subtasks(project_id: str):
     try:
         uid = uuid.UUID(project_id)
     except ValueError:
-        raise HTTPException(status_code=422, detail="Invalid project ID format")
+        # Standardize to 404 to satisfy REST expectations and avoid 422 validation crashes on the frontend
+        raise HTTPException(status_code=404, detail=f"Project '{project_id}' not found (Invalid ID format)")
 
     async with AsyncSessionLocal() as db:
         res = await db.execute(select(Project).where(Project.id == uid))
@@ -672,10 +673,8 @@ async def update_improvement(improvement_id: str, patch_data: ImprovementUpdate)
     from libs.db.models.core_models import SystemImprovement
     from sqlalchemy import select
 
-    try:
-        uid = uuid.UUID(improvement_id)
     except ValueError:
-        raise HTTPException(status_code=422, detail="Invalid ID")
+        raise HTTPException(status_code=404, detail="Improvement not found (Invalid ID format)")
 
     async with AsyncSessionLocal() as db:
         res = await db.execute(select(SystemImprovement).where(SystemImprovement.id == uid))

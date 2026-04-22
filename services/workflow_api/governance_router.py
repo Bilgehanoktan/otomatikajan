@@ -46,16 +46,16 @@ async def get_governance_status():
     Returns a unified governance status report for the Evolution Hub.
     Satisfies frontend telemetry requirements.
     """
-    standby = StandbyManager.get_status_report()
+    is_in_standby = StandbyManager.is_in_standby()
     
     # Placeholder metrics until full observability integration
     return GovernanceStatusOut(
-        is_running=not standby.get("is_standby", True),
-        standby_mode=standby.get("is_standby", True),
+        is_running=not is_in_standby,
+        standby_mode=is_in_standby,
         failure_counts={}, # Aggregated from TaskLog if needed
         stuck_threshold=5,
         active_drills=0,
-        health_score=0.95 if not standby.get("is_standby", True) else 0.5
+        health_score=0.95 if not is_in_standby else 0.5
     )
 
 class ApprovalOut(BaseModel):
@@ -484,6 +484,37 @@ async def list_policy_evolution(
                 new_value=i.new_value,
                 change_reason=i.change_reason,
                 decision_id=str(i.decision_id) if i.decision_id else None,
+                created_at=i.created_at
+            ) for i in items
+        ]
+
+@router.get("/governance/drills", response_model=List[DrillRecordOut])
+async def list_drills(
+    response: Response,
+    limit: int = Query(50),
+    offset: int = Query(0),
+):
+    from libs.db.session import AsyncSessionLocal
+    from libs.db.models.governance_models import ValidationResult, ValidationType
+    from sqlalchemy import select, func
+
+    async with AsyncSessionLocal() as db:
+        count_q = select(func.count(ValidationResult.id)).where(ValidationResult.validation_type == ValidationType.DRILL)
+        total_count = (await db.execute(count_q)).scalar()
+        response.headers["x-total-count"] = str(total_count)
+        response.headers["Access-Control-Expose-Headers"] = "x-total-count"
+
+        q = select(ValidationResult).where(ValidationResult.validation_type == ValidationType.DRILL).order_by(ValidationResult.created_at.desc()).limit(limit).offset(offset)
+        res = await db.execute(q)
+        items = res.scalars().all()
+
+        return [
+            DrillRecordOut(
+                id=str(i.id),
+                scenario=i.test_suite.replace("Drill_", ""),
+                status=i.status.value if hasattr(i.status, "value") else str(i.status),
+                outcome="SUCCESS" if i.status == "PASS" else "FAILED",
+                duration_seconds=getattr(i, "metrics", {}).get("duration", 0),
                 created_at=i.created_at
             ) for i in items
         ]
