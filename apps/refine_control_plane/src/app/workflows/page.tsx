@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 import { Skeleton } from "@/components/dashboard/Skeleton";
+import { Workflow, Incident } from "@/types/mission-control";
 
 export default function WorkflowList() {
   const [isClient, setIsClient] = useState(false);
@@ -37,7 +38,7 @@ export default function WorkflowList() {
   if (!isClient) return <div className="min-h-screen bg-[#060a12]" />;
 
   const workflowsRaw = data?.data;
-  const workflows = Array.isArray(workflowsRaw) ? workflowsRaw : [];
+  const workflows = Array.isArray(workflowsRaw) ? (workflowsRaw as unknown as Workflow[]) : [];
   const activeJobs = workflows.filter(w => w.status?.toLowerCase() === 'running').length;
   
   // Extract global stale meta if the provider switched to Degraded Mode

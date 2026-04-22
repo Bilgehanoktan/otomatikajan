@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 import { Skeleton } from "@/components/dashboard/Skeleton";
+import { Incident } from "@/types/mission-control";
 
 export default function IncidentsPage() {
   const [isClient, setIsClient] = useState(false);
@@ -44,8 +45,9 @@ export default function IncidentsPage() {
     });
   };
 
-  const incidents = Array.isArray(data?.data) ? data.data : [];
-  const staleMeta = (data?.data as any)?.__sqv_meta || (incidents as any).__sqv_meta;
+  const incidentsRaw = data?.data;
+  const incidents = Array.isArray(incidentsRaw) ? (incidentsRaw as unknown as Incident[]) : [];
+  const staleMeta = (data as any)?.__sqv_meta || (incidents as any).__sqv_meta;
 
   if (!isClient) return <div className="min-h-screen bg-[#060a12]" />;
 

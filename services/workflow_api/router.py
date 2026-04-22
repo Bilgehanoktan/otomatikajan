@@ -368,7 +368,7 @@ async def retry_workflow(project_id: str):
     try:
         uid = uuid.UUID(project_id)
     except ValueError:
-        raise HTTPException(status_code=422, detail="Invalid project ID")
+        raise HTTPException(status_code=404, detail="Project not found (Invalid ID format)")
 
     async with AsyncSessionLocal() as db:
         res = await db.execute(select(Project).where(Project.id == uid))
@@ -416,7 +416,7 @@ async def cancel_workflow(project_id: str):
     try:
         uid = uuid.UUID(project_id)
     except ValueError:
-        raise HTTPException(status_code=422, detail="Invalid project ID")
+        raise HTTPException(status_code=404, detail="Project not found (Invalid ID format)")
 
     async with AsyncSessionLocal() as db:
         res = await db.execute(select(Project).where(Project.id == uid))
@@ -447,7 +447,7 @@ async def approve_workflow(project_id: str, req: ApprovalRequest):
     try:
         uid = uuid.UUID(project_id)
     except ValueError:
-        raise HTTPException(status_code=422, detail="Invalid project ID")
+        raise HTTPException(status_code=404, detail="Project not found (Invalid ID format)")
 
     persistence = WorkflowPersistence()
 
