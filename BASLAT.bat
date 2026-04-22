@@ -1,28 +1,52 @@
 @echo off
-title "Sovereign AGI | Görev Kontrol Merkezi"
-chcp 65001 >nul
-echo ----------------------------------------------------
-echo    EGEMEN YAZ - Sovereign AGI Başlatılıyor...
-echo ----------------------------------------------------
+chcp 65001 >nul 2>&1
+title Sovereign AGI - Gorev Kontrol Merkezi
 
-:: 1. Altyapı Temizliği (Zombie Port ve Süreç Kontrolü)
-echo [*] Altyapı cerrahi kontrolü yapılıyor...
-python infra\port_surgeon.py
+echo ====================================================
+echo    EGEMEN YAZ - Sovereign AGI Baslatiliyor...
+echo ====================================================
+echo.
 
+:: ---- Degiskenler ----
+set "PROJECT_ROOT=%~dp0"
+set "PY_CMD=C:\Python314\python.exe"
+set "BACKEND_PORT=8000"
+set "FRONTEND_PORT=3100"
 
-:: 3. Başlatma
-echo [1/2] Mission Control API (8000) başlatılıyor...
-:: /k parametresi hata durumunda pencerenin açık kalmasını sağlar
-start "Backend (8000)" cmd /k "title Backend (8000) && %PY_CMD% -m uvicorn services.workflow_api.main:app --host 0.0.0.0 --port 8000 --reload"
+:: ---- 1. Altyapi Temizligi ----
+echo [1/3] Altyapi cerrahi kontrolu yapiliyor...
+if exist "%PROJECT_ROOT%infra\port_surgeon.py" (
+    "%PY_CMD%" "%PROJECT_ROOT%infra\port_surgeon.py"
+) else (
+    echo [!] port_surgeon.py bulunamadi, atlaniyor...
+)
 
-echo [2/2] Sovereign Cockpit UI (3100) başlatılıyor...
-start "Frontend (3100)" cmd /k "title Frontend (3100) && cd /d %~dp0apps\refine_control_plane && npm run dev -- -p 3100"
+:: Kisa bekleme - portlarin serbest kalmasi icin
+timeout /t 2 /nobreak >nul
+
+:: ---- 2. Backend Baslatma ----
+echo [2/3] Mission Control API (%BACKEND_PORT%) baslatiliyor...
+set "BACKEND_CMD=cd /d %PROJECT_ROOT% && %PY_CMD% -m uvicorn services.workflow_api.main:app --host 0.0.0.0 --port %BACKEND_PORT% --reload"
+start "Backend-%BACKEND_PORT%" cmd /k "%BACKEND_CMD%"
+
+:: Backend'in ayaga kalkmasi icin bekleme
+echo      Backend baslatildi, ayaga kalkma bekleniyor...
+timeout /t 4 /nobreak >nul
+
+:: ---- 3. Frontend Baslatma ----
+echo [3/3] Sovereign Cockpit UI (%FRONTEND_PORT%) baslatiliyor...
+set "FRONTEND_CMD=cd /d %PROJECT_ROOT%apps\refine_control_plane && npm run dev -- -p %FRONTEND_PORT%"
+start "Frontend-%FRONTEND_PORT%" cmd /k "%FRONTEND_CMD%"
 
 echo.
-echo ----------------------------------------------------
-echo    KONTROL PANELLERİ AÇILDI.
+echo ====================================================
+echo    KONTROL PANELLERI ACILDI.
 echo.
-echo    Hata durumunda açılan pencerelerdeki mesajları kontrol edin.
-echo    Durdurmak için pencereleri kapatabilir veya DURDUR.bat kullanabilirsiniz.
-echo ----------------------------------------------------
+echo    Backend  : http://localhost:%BACKEND_PORT%
+echo    Frontend : http://localhost:%FRONTEND_PORT%
+echo.
+echo    Hata durumunda acilan pencerelerdeki mesajlari
+echo    kontrol edin.
+echo    Durdurmak icin DURDUR.bat kullanin.
+echo ====================================================
 timeout /t 5

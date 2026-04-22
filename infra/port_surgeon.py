@@ -1,62 +1,102 @@
+"""
+Sovereign AGI | Infrastructure Port Surgeon
+Temizlik araci: Belirtilen portlarda asili kalan surecleri tespit edip kapatir.
+"""
 import os
 import subprocess
 import sys
 import time
 
-def kill_process_by_port(port):
-    """Portu kullanan tüm süreçleri bulur ve zorla kapatır."""
+
+# Temizlenecek portlar
+TARGET_PORTS = [8000, 3100, 3000]
+
+# Bu scriptin kendi PID'si - kendimizi oldurmeyelim
+MY_PID = str(os.getpid())
+
+
+def kill_process_by_port(port: int) -> bool:
+    """Portu kullanan tum surecleri bulur ve zorla kapatir."""
     try:
-        # Netstat ile portu kullanan PID'leri bul
-        result = subprocess.check_output(f"netstat -ano | findstr :{port}", shell=True).decode('utf-8')
+        result = subprocess.check_output(
+            f"netstat -ano | findstr :{port}",
+            shell=True,
+            stderr=subprocess.DEVNULL
+        ).decode("utf-8", errors="replace")
+
         pids = set()
-        for line in result.strip().split('\n'):
+        for line in result.strip().split("\n"):
             parts = line.split()
             if len(parts) > 4:
-                pid = parts[-1]
-                if pid != "0":
+                pid = parts[-1].strip()
+                # PID 0 ve kendi PID'imizi atlayalim
+                if pid != "0" and pid != MY_PID and pid.isdigit():
                     pids.add(pid)
-        
+
+        if not pids:
+            print(f"    Port {port}: Temiz (asili surec yok)")
+            return False
+
         for pid in pids:
-            print(f"[*] Port {port} üzerinde asılı kalan süreç kapatılıyor (PID: {pid})...")
-            subprocess.run(f"taskkill /F /PID {pid} /T", shell=True, stderr=subprocess.DEVNULL)
+            print(f"    Port {port}: Asili surec kapatiliyor (PID: {pid})...")
+            subprocess.run(
+                f"taskkill /F /PID {pid}",
+                shell=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
         return True
+
     except subprocess.CalledProcessError:
+        print(f"    Port {port}: Temiz (asili surec yok)")
         return False
 
-def cleanup_system():
+
+def cleanup_cache():
+    """Gecici cache dosyalarini temizler."""
+    print("[*] Cache temizligi yapiliyor...")
+    cache_path = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)),
+        "apps", "refine_control_plane", ".next", "cache"
+    )
+    if os.path.exists(cache_path):
+        try:
+            subprocess.run(
+                f'rd /s /q "{cache_path}"',
+                shell=True,
+                stderr=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+            )
+            print("    .next/cache temizlendi.")
+        except Exception:
+            print("    .next/cache temizlenemedi (atlaniyor).")
+    else:
+        print("    Cache dizini temiz.")
+
+
+def main():
     print("=== SOVEREIGN AGI | INFRA SURGEON ===")
-    ports = [8000, 3100, 3000]
-    
-    # 1. Port bazlı temizlik
-    for port in ports:
-        kill_process_by_port(port)
-        
-    # 2. Dosya Sistemi Temizliği (Kalıntılar)
-    print("[*] Cache ve geçici dosyalar temizleniyor...")
-    paths_to_clean = [
-        "**/__pycache__",
-        "apps/refine_control_plane/.next/cache"
-    ]
-    
-    for path in paths_to_clean:
-        if "**" in path:
-            # Recursive pycache cleaning
-            subprocess.run(f'for /d /r . %d in (__pycache__) do @if exist "%d" rd /s /q "%d"', shell=True, stderr=subprocess.DEVNULL)
-        elif os.path.exists(path):
-            subprocess.run(f'rd /s /q "{path}"', shell=True, stderr=subprocess.DEVNULL)
+    print(f"    Kendi PID: {MY_PID} (korunuyor)")
+    print()
 
-    # 3. Genel kalıntı temizliği (uvicorn ve node)
-    print("[*] Süreç kalıntıları temizleniyor...")
-    commands = [
-        'taskkill /F /IM node.exe /T',
-        'taskkill /F /IM python.exe /T /FI "COMMANDLINE eq *uvicorn*"'
-    ]
-    for cmd in commands:
-        subprocess.run(cmd, shell=True, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+    # 1. Port bazli temizlik
+    print("[*] Port bazli surec temizligi baslatiliyor...")
+    cleaned = False
+    for port in TARGET_PORTS:
+        if kill_process_by_port(port):
+            cleaned = True
 
-    # 4. Kısa bekleme (OS'un portu serbest bırakması için)
-    time.sleep(1)
-    print("[OK] Sistem tamamen sterilize edildi. Başlatılmaya hazır.")
+    # 2. Cache temizligi
+    cleanup_cache()
+
+    # 3. Portlarin serbest kalmasi icin kisa bekleme
+    if cleaned:
+        print("[*] Portlarin serbest kalmasi bekleniyor...")
+        time.sleep(1)
+
+    print()
+    print("[OK] Sistem sterilize edildi. Baslatilmaya hazir.")
+
 
 if __name__ == "__main__":
-    cleanup_system()
+    main()
