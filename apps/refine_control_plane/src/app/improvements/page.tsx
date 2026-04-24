@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useList, useUpdate, useNavigation } from "@refinedev/core";
+import { SystemImprovement } from "@/types/mission-control";
 import { 
     Cpu, 
     ShieldCheck, 
@@ -136,7 +137,7 @@ export default function ImprovementsPage() {
                          ) : isError ? (
                             <div className="py-20 text-center text-red-500 font-mono text-[10px] uppercase tracking-widest">Evolution Telemetry Offline</div>
                          ) : (
-                            improvements.map((improvement: any) => (
+                            improvements.map((improvement: SystemImprovement) => (
                                <EliteImprovementItem 
                                  key={improvement.id} 
                                  improvement={improvement} 

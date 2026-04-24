@@ -35,3 +35,7 @@ def register_routers(app: FastAPI):
     
     # Repair Lab & Self-Tuning
     app.include_router(repair_lab_router)
+
+    # Phase 31: Autonomous Learning
+    from services.governance.learning_api import router as learning_router
+    app.include_router(learning_router, prefix="/api/v1")

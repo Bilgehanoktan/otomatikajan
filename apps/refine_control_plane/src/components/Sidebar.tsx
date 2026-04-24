@@ -28,7 +28,11 @@ import {
     Signature,
     Rocket,
     FileArchive,
-    Target
+    Target,
+    Fingerprint,
+    Brain,
+    Sparkles,
+    ShieldOff
 } from "lucide-react";
 
 const icons: Record<string, React.ReactNode> = {
@@ -57,6 +61,10 @@ const icons: Record<string, React.ReactNode> = {
     "audit-bundles": <FileArchive size={20} />,
     "handover-status": <Rocket size={20} />,
     "launch-gates": <Target size={20} />,
+    "learning/fingerprints": <Fingerprint size={20} />,
+    "learning/strategy-memory": <Brain size={20} />,
+    "learning/negative-patterns": <ShieldOff size={20} />,
+    "learning/adaptation-candidates": <Sparkles size={20} />,
 };
 
 const SidebarContent = () => {
@@ -77,7 +85,17 @@ const SidebarContent = () => {
         },
         {
             title: "OTONOM GELİŞİM",
-            items: ["improvements", "repair-lab", "repair-memory", "self-tuning", "verifiers", "training"]
+            items: [
+                "improvements", 
+                "repair-lab", 
+                "repair-memory", 
+                "self-tuning", 
+                "learning/fingerprints",
+                "learning/strategy-memory",
+                "learning/adaptation-candidates",
+                "verifiers", 
+                "training"
+            ]
         },
         {
             title: "RAPORLAMA",

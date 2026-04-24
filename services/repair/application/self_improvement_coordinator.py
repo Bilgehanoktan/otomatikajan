@@ -4,8 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
 
-from hub_cortex.improvement_engine.observer import ImprovementObserver
-from hub_cortex.improvement_engine.models import ImprovementOpportunity
+from services.repair.improvement.observer import ImprovementObserver, ImprovementOpportunity
 from services.orchestration.application.self_updater import SelfUpdater
 from services.orchestration.domain.events import event_bus
 from services.observability.logging import get_logger
@@ -103,8 +102,7 @@ class SelfImprovementCoordinator:
         Stage 1: Analyze opportunity, generate patch, verify in shadow, and save to DB.
         Does NOT touch the real disk.
         """
-        from libs.db.session import AsyncSessionLocal
-        from libs.db.models.core_models import SystemImprovement, SystemImprovementStatus
+        from libs.db.models.core_models import SystemImprovement
         from services.orchestration.application.shadow_runner import ShadowRunner
         
         affected_files = getattr(op, "affected_files", []) or []
@@ -118,7 +116,7 @@ class SelfImprovementCoordinator:
                 instruction = f"FIX RECURRING ERROR: {op.description}. Evidence: {op.evidence_detail}"
                 
                 # Shadow Runner ile izole ortamda deneme yap
-                shadow = ShadowRunner(self.updater.workspace_root)
+                shadow = ShadowRunner(self.updater.project_root)
                 shadow_path = await shadow.create_shadow_copy(file_path)
                 
                 # LLM'den dÃ¼zeltme iste (shadow dosya Ã¼zerinde)
@@ -139,7 +137,7 @@ class SelfImprovementCoordinator:
                         target_file=file_path,
                         instruction=instruction,
                         proposed_patch=suggested_code,
-                        status=SystemImprovementStatus.PENDING,
+                        status="pending",
                         test_results={
                             "valid": is_valid,
                             "report": test_report,
@@ -162,12 +160,12 @@ class SelfImprovementCoordinator:
         Scan for APPROVED improvements and apply them to the real disk.
         """
         from libs.db.session import AsyncSessionLocal
-        from libs.db.models.core_models import SystemImprovement, SystemImprovementStatus
+        from libs.db.models.core_models import SystemImprovement
         from sqlalchemy import select
 
         async with AsyncSessionLocal() as db:
             res = await db.execute(
-                select(SystemImprovement).where(SystemImprovement.status == SystemImprovementStatus.APPROVED)
+                select(SystemImprovement).where(SystemImprovement.status == "approved")
             )
             approved_list = res.scalars().all()
 
@@ -179,16 +177,16 @@ class SelfImprovementCoordinator:
             for imp in approved_list:
                 try:
                     # Physically apply the patch
-                    target_path = Path(self.updater.workspace_root) / imp.target_file
+                    target_path = Path(self.updater.project_root) / imp.target_file
                     with open(target_path, "w", encoding="utf-8") as f:
                         f.write(imp.proposed_patch)
                     
-                    imp.status = SystemImprovementStatus.APPLIED
+                    imp.status = "applied"
                     imp.applied_at = datetime.now(timezone.utc)
                     logger.info(f"SUCCESSFULLY APPLIED PATCH to {imp.target_file}")
                 except Exception as e:
                     logger.error(f"Failed to apply patch {imp.id}: {e}")
-                    imp.status = SystemImprovementStatus.FAILED
+                    imp.status = "failed"
                 
             await db.commit()
 

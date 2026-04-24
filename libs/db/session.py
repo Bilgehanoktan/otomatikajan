@@ -18,11 +18,11 @@ from libs.db.base import Base
 from services.observability.logging import get_logger
 logger = get_logger("db.session")
 
-# Repair modelleri Base.metadata'ya kayıt için import edilmeli
 try:
-    import libs.db.models.repair_models  # noqa: F401 — tablo tanımlarını Base'e ekler
+    import libs.db.models.repair_models  # noqa: F401
+    import libs.db.models.learning_models # noqa: F401
 except Exception as e:
-    logger.warning(f"Repair modelleri yuklenemedi: {e}")
+    logger.warning(f"Modeller yuklenemedi: {e}")
 
 from libs.config import DATABASE_URL, DB_POOL_SIZE, DB_MAX_OVERFLOW, DB_POOL_TIMEOUT
 
@@ -86,7 +86,7 @@ def get_engine():
                     _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
                     sqlite_path = os.path.join(_root, "runtime", "data", "cortex_local.db")
                     logger.info(f"SQLAlchemy: Fallback SQLite path anchored to: {sqlite_path}")
-                    sqlite_url = f"sqlite+aiosqlite:///{sqlite_path.replace('\\', '/')}"
+                    sqlite_url = f"sqlite+aiosqlite:///{sqlite_path.replace('\\', '/')}?timeout=30"
                     _engine = create_async_engine(sqlite_url)
                     # Explicitly track degraded state
                     global _DB_DEGRADED

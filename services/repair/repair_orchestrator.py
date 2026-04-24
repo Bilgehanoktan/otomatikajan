@@ -480,8 +480,27 @@ class RepairOrchestrator:
             try:
                 self._record_metric(job, incident, None, None, "failed",
                                     time.time() - t_start)
-            except Exception:
-                pass
+                
+                # Phase 31: Learning from Failure
+                from services.governance.learning_orchestrator import LearningOrchestrator
+                await LearningOrchestrator.record_learning(
+                    incident_data={
+                        "id": incident.incident_id,
+                        "incident_type": incident.module,
+                        "message": incident.symptom,
+                        "exception_type": type(e).__name__,
+                        "component": "RepairOrchestrator"
+                    },
+                    outcome_data={
+                        "final_outcome": "FAILED",
+                        "root_cause": str(e),
+                        "repair_latency_s": time.time() - t_start,
+                        "strategy_used": "AUTONOMOUS_REPAIR",
+                        "workflow_id": job.job_id
+                    }
+                )
+            except Exception as le:
+                _log.debug(f"Learning from failure failed: {le}")
         finally:
             await self._persist_job(job)
 
@@ -555,6 +574,28 @@ class RepairOrchestrator:
         """Bellek kaydı ve metrik."""
         await self._save_vector_lesson(ctx.job, ctx.incident, "success" if ctx.validation_passed else "failed")
         self._record_metric(ctx.job, ctx.incident, ctx.ticket, ctx.plan, "success" if ctx.validation_passed else "failed", 0)
+        
+        # Phase 31: Learning Integration
+        try:
+            from services.governance.learning_orchestrator import LearningOrchestrator
+            await LearningOrchestrator.record_learning(
+                incident_data={
+                    "id": ctx.incident.incident_id,
+                    "incident_type": ctx.incident.module,
+                    "message": ctx.incident.symptom,
+                    "component": "RepairOrchestrator"
+                },
+                outcome_data={
+                    "final_outcome": "SUCCESS" if ctx.validation_passed else "FAILED",
+                    "root_cause": ctx.ticket.rationale if ctx.ticket else "unknown",
+                    "strategy_used": ctx.winner.strategy_name if hasattr(ctx, "winner") else "AUTONOMOUS_REPAIR",
+                    "verification_score": ctx.tournament_score if hasattr(ctx, "tournament_score") else 1.0,
+                    "workflow_id": ctx.job.job_id,
+                    "applied_patch": ctx.job.diff
+                }
+            )
+        except Exception as le:
+            _log.debug(f"Learning from release failed: {le}")
 
     async def _persist_job(self, job: "RepairJob") -> None:
         """Job durumunu DB'ye yaz (sessiz hata)."""

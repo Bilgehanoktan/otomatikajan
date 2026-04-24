@@ -123,6 +123,29 @@ async def get_mesh_topology():
         "region_count": {"total": 4, "healthy": 3}
     }
 
+@router.get("/economics/summary")
+async def get_economics_summary():
+    """
+    Returns aggregated cost metrics for the global fleet.
+    Used by the 'analytics/costs' resource in the dashboard.
+    """
+    # Real data from economic_engine (Phase 24)
+    summary = economic_engine.get_total_spend_summary()
+    
+    # Format for Refine 'useOne' expectation
+    return {
+        "total_cost_usd": summary.get("total_spend", 0.0),
+        "budget_limit_usd": 1000.0,
+        "usage_pct": min((summary.get("total_spend", 0.0) / 1000.0) * 100, 100),
+        "top_projects": [
+            {
+                "id": p_id,
+                "title": f"Project-{p_id[:8]}",
+                "cost_usd": cost
+            } for p_id, cost in list(economic_engine._project_budgets.items())[:5]
+        ]
+    }
+
 @router.get("/evidence")
 async def get_mesh_evidence(limit: int = 10):
     """

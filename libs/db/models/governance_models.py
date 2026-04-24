@@ -44,7 +44,7 @@ class ProductionSignoff(Base):
     version        = Column(String(50), nullable=False)
     status         = Column(SAEnum(SignoffStatus), default=SignoffStatus.PENDING, nullable=False)
     
-    approver_id    = Column(GUID, ForeignKey("users.id"), nullable=True)
+    approver_id    = Column(GUID, ForeignKey("operators.id"), nullable=True)
     approver_note  = Column(Text, nullable=True)
     
     evidence_summary = Column(SmartJSON(), nullable=True) # Test ID'leri, rapor linkleri
@@ -53,8 +53,8 @@ class ProductionSignoff(Base):
     created_at     = Column(DateTime(timezone=True), default=utcnow, nullable=False)
     updated_at     = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
-    # Approver user ile ilişki (Opsiyonel, sistem otonom onay da verebilir)
-    approver = relationship("User", foreign_keys=[approver_id])
+    # Approver operator ile ilişki (Opsiyonel, sistem otonom onay da verebilir)
+    approver = relationship("Operator", foreign_keys=[approver_id])
 
 class ValidationResult(Base):
     """

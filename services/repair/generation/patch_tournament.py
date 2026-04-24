@@ -38,16 +38,41 @@ class PatchTournament:
                 except Exception as e:
                     logger.error(f"Verifier {verifier.__class__.__name__} failed for candidate {c.id}: {e}")
             
-            # 2. Unified Scoring Logic (Higher is Better)
+            # 2. Strategy Trust Part (Phase 31 & PEL-SIF-02)
+            strategy_trust = 0.5 # Default middle-ground
+            try:
+                from services.governance.learning_orchestrator import LearningOrchestrator
+                memory = await LearningOrchestrator.get_strategy_memory(c.strategy_name)
+                if memory:
+                    strategy_trust = memory.trust_score
+                    # Penalty for negative patterns or low success
+                    if memory.failure_count > memory.success_count:
+                        strategy_trust *= 0.8
+            except Exception as e:
+                logger.debug(f"Could not fetch strategy memory for {c.strategy_name}: {e}")
+
+            # 3. Unified Scoring Logic (Higher is Better)
             risk_part = (1.0 - c.risk_score) * self.risk_weight
             cost_normal = max(0, 1.0 - (c.estimated_cost / 1000.0))
             cost_part = cost_normal * self.cost_weight
             verifier_part = verifier_score * self.verifier_weight
+            trust_part = strategy_trust * 0.2 # New 20% weight for historical trust
             
-            unified_score = round(risk_part + cost_part + verifier_part, 4)
+            unified_score = round(risk_part + cost_part + verifier_part + trust_part, 4)
+            
+            # SIF-03: Enrich candidate with breakdown for UI visibility
+            c.score_breakdown = {
+                "base_risk_part": round(risk_part, 4),
+                "cost_part": round(cost_part, 4),
+                "verifier_part": round(verifier_part, 4),
+                "strategy_trust_part": round(trust_part, 4),
+                "trust_score_raw": round(strategy_trust, 4),
+                "is_autonomous_eligible": strategy_trust >= 0.8
+            }
+            
             scored_candidates.append((c, unified_score))
             
-            logger.info(f"Candidate '{c.strategy_name}' -> Verifier Score: {verifier_score:.2f} | Unified: {unified_score}")
+            logger.info(f"Candidate '{c.strategy_name}' [Score: {unified_score}] -> Trust: {strategy_trust:.2f} (Eligible: {c.score_breakdown['is_autonomous_eligible']})")
             
         # 3. Selection
         winner, winning_score = max(scored_candidates, key=lambda x: x[1])

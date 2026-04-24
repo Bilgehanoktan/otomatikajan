@@ -1,74 +1,43 @@
 """
-JWT Auth — Faz 3 + Güvenlik Revizyonu
-• Access (15dk) + Refresh (7gün) token çifti
-• bcrypt parola hash
-• Token rotasyonu — eski refresh geçersiz
-• Revocation: iptal edilen refresh token'lar DB'de işaretlenir
-• JWT_SECRET tek kaynaktan okunur (config modülü)
-• OWASP: secret min 64 karakter, rastgele üretilmeli
+JWT Auth & Sovereign Identity Framework (SIF-01)
+Supports Scoped Permissions + Operator/System Identity differentiation.
 """
 
 import os
 import secrets
 import time
 import logging
+import uuid
 from datetime import datetime, timedelta, timezone
-from typing import AsyncGenerator, Any, Optional, Union, TYPE_CHECKING
+from typing import AsyncGenerator, Any, Optional, Union, List, Dict
 
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request, Cookie
-
-logger = logging.getLogger(__name__)
-
-# bcrypt lazy import — import-time crash önler; kurulu değilse hashlib.pbkdf2 fallback
-try:
-    import bcrypt as _bcrypt
-    _BCRYPT_OK = True
-except ImportError:
-    _bcrypt = None  # type: ignore
-    _BCRYPT_OK = False
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import select, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from libs.db.session import get_db
-from libs.db.models import User, RefreshToken
+from libs.db.models import Operator, SystemIdentity, PermissionGrant, RefreshToken
+from libs.config import JWT_SECRET, APP_ENV
 
-# ─── JWT Konfigürasyonu — TEK KAYNAK ─────────────────────
-from libs.config import JWT_SECRET
+logger = logging.getLogger(__name__)
+
 JWT_ALGORITHM = "HS256"
-
-# Geliştirme modunda uyarı ver, üretimde hard fail (main.py'de kontrol edilir)
 if not JWT_SECRET:
-    JWT_SECRET = secrets.token_hex(64)   # Her yeniden başlatmada yeni — dev only!
-    print(
-        "UYARI: JWT_SECRET ayarlanmamış. "
-        "Her yeniden başlatmada oturum invalidate olur. "
-        "Üretim için JWT_SECRET env değişkenini ayarlayın (min 64 karakter)."
-    )
-    if os.getenv("APP_ENV") == "production":
-        raise RuntimeError("CRITICAL: APP_ENV=production ama JWT_SECRET ayarlanmamış! Sistem güvenli başlatılamaz.")
-elif len(JWT_SECRET) < 64:
-    print(
-        f"UYARI: JWT_SECRET çok kısa ({len(JWT_SECRET)} karakter). "
-        "OWASP en iyi uygulamalarına göre min 64 karakter gereklidir. "
-        "Örnek üretim: python -c \"import secrets; print(secrets.token_hex(64))\""
-    )
-    if os.getenv("APP_ENV") == "production":
-        raise RuntimeError("CRITICAL: JWT_SECRET production için 64 karakterden kısa olamaz!")
+    JWT_SECRET = secrets.token_hex(64)
 
 ACCESS_MINUTES = int(os.getenv("JWT_ACCESS_MINUTES", "15"))
 REFRESH_DAYS   = int(os.getenv("JWT_REFRESH_DAYS", "7"))
 
-router  = APIRouter()
 _bearer = HTTPBearer(auto_error=False)
-
 
 # ── Pydantic Modelleri ─────────────────────────────────────
 class RegisterRequest(BaseModel):
     email:    str
     password: str
+    username: Optional[str] = None
 
 class LoginRequest(BaseModel):
     email:    str
@@ -77,13 +46,12 @@ class LoginRequest(BaseModel):
 class TokenResponse(BaseModel):
     access_token:  str
     refresh_token: str
-    is_admin:      bool = False
+    role:          str
     token_type:    str = "bearer"
-    expires_in:    int = ACCESS_MINUTES * 60   # saniye cinsinden
-    roles:         list[str] = []
+    expires_in:    int = ACCESS_MINUTES * 60
+    permissions:   List[str] = []
 
-
-# ── Token Üretimi / Doğrulama ─────────────────────────────
+# ── Helper: Token Üretimi / Doğrulama ─────────────────────────────
 def _make_token(payload: dict, expires_delta: timedelta) -> str:
     data = {**payload, "exp": datetime.now(timezone.utc) + expires_delta,
             "iat": datetime.now(timezone.utc)}
@@ -97,344 +65,337 @@ def _decode_token(token: str) -> dict:
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Geçersiz token")
 
-
 # ── Cookie Yardımcıları ───────────────────────────────────
 def set_auth_cookies(response: Response, access_token: str, refresh_token: str, request: Request = None):
-    """httpOnly cookie'leri ayarlar. Local / HTTP uyumluluğu için secure flag'i smart kontrol edilir."""
-    from libs.config import APP_ENV
-    
-    # SRE Hardening: localhost veya 127.0.0.1 ise secure=False (HTTPS zorunluluğunu kaldır)
     is_secure = APP_ENV == "production"
     if request:
         host = request.url.hostname or ""
-        if host in ("localhost", "127.0.0.1", "0.0.0.0", "::1", "::ffff:127.0.0.1"):
-            is_secure = False
-        elif request.url.scheme == "http":
+        if host in ("localhost", "127.0.0.1") or request.url.scheme == "http":
             is_secure = False
 
-    # Access Token (15 dk)
-    response.set_cookie(
-        key="access_token",
-        value=access_token,
-        httponly=True,
-        max_age=ACCESS_MINUTES * 60,
-        expires=ACCESS_MINUTES * 60,
-        samesite="lax",
-        secure=is_secure,
-    )
-    # Refresh Token (7 gün)
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        max_age=REFRESH_DAYS * 24 * 3600,
-        expires=REFRESH_DAYS * 24 * 3600,
-        samesite="lax",
-        secure=is_secure,
-    )
+    response.set_cookie(key="access_token", value=access_token, httponly=True, max_age=ACCESS_MINUTES * 60, samesite="lax", secure=is_secure)
+    response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, max_age=REFRESH_DAYS * 24 * 3600, samesite="lax", secure=is_secure)
 
 def clear_auth_cookies(response: Response):
-    """Cookie'leri temizler."""
     response.delete_cookie("access_token")
     response.delete_cookie("refresh_token")
 
+# ── Access Control Service (SIF-01) ──────────────────────
+class AccessControlService:
+    @staticmethod
+    async def is_allowed(
+        db: AsyncSession, 
+        identity_id: uuid.UUID, 
+        identity_type: str, 
+        permission: str, 
+        scope_type: str = "global", 
+        scope_value: str = "global",
+        role: str = None
+    ) -> tuple[bool, str]: # SIF-03: Now returns (allowed, reason)
+        """
+        Dinamik yetki kontrolü.
+        Prime operatörler her şeye yetkilidir.
+        """
+        # 1. PRIME yetkisi kontrolü
+        if role == "SOVEREIGN_PRIME":
+            return True, "Override: PRIME privileges granted."
+
+        # SIF-04: Autonomous Trust & Quarantine Response
+        if identity_type == "system":
+            res = await db.execute(select(SystemIdentity).where(SystemIdentity.id == identity_id))
+            sys_id = res.scalar_one_or_none()
+            if sys_id:
+                if sys_id.quarantined_at:
+                    return False, f"SIF-04: Identity QUARANTINED due to: {sys_id.risk_reason or 'Security Breach'}"
+                if sys_id.risk_level == "CRITICAL" and not permission.endswith(".view"):
+                    return False, "SIF-04: Autonomous write-lock active due to CRITICAL risk level."
+                if sys_id.trust_score < 40 and permission.startswith("workflow."):
+                    return False, f"SIF-04: Insufficient Trust Score ({sys_id.trust_score}) for sensitive operations."
+
+        # 2. SIF-02: Check for ANY Explicit DENY first (Deny overrides everything)
+        deny_query = select(PermissionGrant).where(
+            and_(
+                PermissionGrant.operator_id == identity_id if identity_type == "operator" else PermissionGrant.system_id == identity_id,
+                PermissionGrant.permission == permission,
+                PermissionGrant.effect == "deny"
+            )
+        )
+        
+        # Scope kontrolü (Deny için genişten dara doğru bak)
+        if scope_type != "global":
+            deny_query = deny_query.where(
+                or_(
+                    PermissionGrant.scope_type == "global",
+                    and_(PermissionGrant.scope_type == scope_type, PermissionGrant.scope_value == scope_value)
+                )
+            )
+        else:
+            deny_query = deny_query.where(PermissionGrant.scope_type == "global")
+
+        deny_res = await db.execute(deny_query)
+        if deny_res.scalar_one_or_none():
+            return False, f"SIF-03: Access blocked by an Explicit Deny rule for '{permission}'"
+
+        # 3. Check for ALLOW
+        query = select(PermissionGrant).where(
+            and_(
+                PermissionGrant.operator_id == identity_id if identity_type == "operator" else PermissionGrant.system_id == identity_id,
+                PermissionGrant.permission == permission,
+                PermissionGrant.effect == "allow"
+            )
+        )
+        
+        # Scope kontrolü (En dardan en genişe bak: project -> global)
+        if scope_type != "global":
+            query = query.where(
+                or_(
+                    PermissionGrant.scope_type == "global",
+                    and_(PermissionGrant.scope_type == scope_type, PermissionGrant.scope_value == scope_value)
+                )
+            )
+        else:
+            query = query.where(PermissionGrant.scope_type == "global")
+
+        res = await db.execute(query)
+        if res.scalar_one_or_none():
+            return True, "Authorized via Permission Matrix (Allow)"
+
+        return False, f"Missing required permission '{permission}' for scope '{scope_type}:{scope_value}'"
 
 # ── Auth Service ──────────────────────────────────────────
 class AuthService:
-
-    async def register(self, db: AsyncSession, email: str, password: str) -> "User":
-        from libs.db.models import User
-        existing = await db.execute(select(User).where(User.email == email))
+    async def register(self, db: AsyncSession, email: str, password: str, username: str = None) -> Operator:
+        from bcrypt import hashpw, gensalt
+        existing = await db.execute(select(Operator).where(Operator.email == email))
         if existing.scalar_one_or_none():
             raise HTTPException(status_code=409, detail="Bu e-posta zaten kayıtlı")
 
-        # Parola politikası
         if len(password) < 8:
             raise HTTPException(status_code=422, detail="Parola en az 8 karakter olmalıdır")
 
-        if not _BCRYPT_OK or _bcrypt is None:
-            if os.getenv("APP_ENV") == "production":
-                raise RuntimeError("CRITICAL: bcrypt paketi production ortamında zorunludur!")
-            raise RuntimeError("bcrypt kurulu değil: pip install bcrypt")
-        
-        # Analyzer guard
-        assert _bcrypt is not None
-        hashed = _bcrypt.hashpw(password.encode(), _bcrypt.gensalt(rounds=12)).decode()
-        user = User(email=email, hashed_password=hashed)
-        db.add(user)
+        hashed = hashpw(password.encode(), gensalt(rounds=12)).decode()
+        operator = Operator(
+            email=email, 
+            username=username or email.split('@')[0], 
+            hashed_password=hashed,
+            role="AUDIT_OBSERVER"
+        )
+        db.add(operator)
         await db.flush()
-        return user
+        return operator
 
     async def login(self, db: AsyncSession, email: str, password: str) -> TokenResponse:
-        from libs.db.models import User, RefreshToken
-        result = await db.execute(select(User).where(User.email == email))
-        user   = result.scalar_one_or_none()
+        from bcrypt import checkpw
+        result = await db.execute(select(Operator).where(Operator.email == email))
+        operator = result.scalar_one_or_none()
 
-        # Zamanlama saldırısını önle — her zaman hash kontrol et
-        if not user:
-            (_BCRYPT_OK and _bcrypt is not None) and _bcrypt.checkpw(b"dummy", _bcrypt.hashpw(b"dummy", _bcrypt.gensalt()))
+        if not operator or not checkpw(password.encode(), operator.hashed_password.encode()):
             raise HTTPException(status_code=401, detail="Hatalı e-posta veya parola")
 
-        if not _BCRYPT_OK or _bcrypt is None or not _bcrypt.checkpw(password.encode(), user.hashed_password.encode()):
-            raise HTTPException(status_code=401, detail="Hatalı e-posta veya parola")
-        
-        assert _bcrypt is not None
-
-        if not user.is_active:
+        if not operator.is_active:
             raise HTTPException(status_code=403, detail="Hesap devre dışı")
 
-        access  = _make_token({
-            "sub": str(user.id),
-            "email": user.email,
+        access = _make_token({
+            "sub": str(operator.id),
+            "email": operator.email,
             "type": "access",
-            "roles": ["admin"] if user.is_admin else ["user"]
+            "identity_type": "operator",
+            "role": operator.role
         }, timedelta(minutes=ACCESS_MINUTES))
-        refresh = _make_token({"sub": str(user.id), "type": "refresh"},
-                               timedelta(days=REFRESH_DAYS))
+        
+        refresh = _make_token({"sub": str(operator.id), "type": "refresh"}, timedelta(days=REFRESH_DAYS))
 
-        rt = RefreshToken(
-            user_id=user.id,
-            token=refresh,
-            expires_at=datetime.now(timezone.utc) + timedelta(days=REFRESH_DAYS),
-            revoked=False,
-        )
+        # Refresh token'ı kaydet
+        rt = RefreshToken(user_id=operator.id, token=refresh, expires_at=datetime.now(timezone.utc) + timedelta(days=REFRESH_DAYS))
         db.add(rt)
-        roles = ["admin"] if user.is_admin else ["user"]
+        
         return TokenResponse(
             access_token=access,
             refresh_token=refresh,
-            is_admin=user.is_admin,
-            roles=roles
+            role=operator.role,
+            permissions=[] # Opsiyonel: Frontend için doldurulabilir
         )
 
     async def refresh(self, db: AsyncSession, refresh_token: str) -> TokenResponse:
-        """
-        Token rotasyonu:
-        1. Refresh token'ı doğrula
-        2. DB'de revoked=False olduğunu kontrol et
-        3. Eski token'ı iptal et (revocation)
-        4. Yeni çift üret
-        """
-        # from libs.db.models import User, RefreshToken # Removed, now top-level
-        from sqlalchemy import update
-
         payload = _decode_token(refresh_token)
         if payload.get("type") != "refresh":
             raise HTTPException(status_code=401, detail="Geçersiz token tipi")
 
-        # DB'de geçerli mi kontrol et (revocation)
         result = await db.execute(
             select(RefreshToken).where(
-                RefreshToken.token  == refresh_token,
-                RefreshToken.revoked == False,       # noqa: E712
+                RefreshToken.token == refresh_token,
+                RefreshToken.revoked == False,
             )
         )
         rt = result.scalar_one_or_none()
         if not rt:
-            raise HTTPException(
-                status_code=401,
-                detail="Refresh token bulunamadı, süresi dolmuş veya iptal edilmiş",
-            )
+            raise HTTPException(status_code=401, detail="Refresh token geçersiz")
 
-        # Token rotasyonu: eski token'ı iptal et
         rt.revoked = True
         await db.flush()
 
-        # Kullanıcıyı al ve yeni çift üret
-        user_res = await db.execute(select(User).where(User.id == rt.user_id))
-        user = user_res.scalar_one_or_none()
-        if not user or not user.is_active:
-            raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı veya devre dışı")
+        res = await db.execute(select(Operator).where(Operator.id == rt.user_id))
+        operator = res.scalar_one_or_none()
+        if not operator or not operator.is_active:
+            raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı")
 
-        access  = _make_token({
-            "sub": str(user.id),
-            "email": user.email,
+        access = _make_token({
+            "sub": str(operator.id),
+            "email": operator.email,
             "type": "access",
-            "roles": ["admin"] if user.is_admin else ["user"]
+            "identity_type": "operator",
+            "role": operator.role
         }, timedelta(minutes=ACCESS_MINUTES))
-        new_refresh = _make_token({"sub": str(user.id), "type": "refresh"},
-                                   timedelta(days=REFRESH_DAYS))
-
-        new_rt = RefreshToken(
-            user_id=user.id,
-            token=new_refresh,
-            expires_at=datetime.now(timezone.utc) + timedelta(days=REFRESH_DAYS),
-            revoked=False,
-        )
+        
+        new_refresh = _make_token({"sub": str(operator.id), "type": "refresh"}, timedelta(days=REFRESH_DAYS))
+        new_rt = RefreshToken(user_id=operator.id, token=new_refresh, expires_at=datetime.now(timezone.utc) + timedelta(days=REFRESH_DAYS))
         db.add(new_rt)
-        roles = ["admin"] if user.is_admin else ["user"]
+
         return TokenResponse(
             access_token=access,
             refresh_token=new_refresh,
-            is_admin=user.is_admin,
-            roles=roles
+            role=operator.role
         )
 
-    async def revoke_all(self, db: AsyncSession, user_id: str) -> int:
-        """Kullanıcının tüm aktif refresh token'larını iptal eder (logout all)."""
-        from libs.db.models import RefreshToken
+    async def revoke_all(self, db: AsyncSession, user_id: uuid.UUID) -> int:
         from sqlalchemy import update
-        import uuid
-        
-        try:
-            uid = uuid.UUID(user_id) if isinstance(user_id, str) else user_id
-        except ValueError:
-            return 0
-
         result = await db.execute(
             update(RefreshToken)
-            .where(RefreshToken.user_id == uid, RefreshToken.revoked == False)  # noqa
+            .where(RefreshToken.user_id == user_id, RefreshToken.revoked == False)
             .values(revoked=True)
         )
         return result.rowcount
 
-    async def get_user_from_token(self, db: AsyncSession, token: str) -> Any:
-        from libs.db.models import User
-        import uuid
-        from sqlalchemy import select
+    # SIF-02: API Key Lifecycle Management
+    async def create_api_key(self, db: AsyncSession, identity_id: uuid.UUID, name: str) -> str:
+        """Generates a new API Key and stores its hash."""
+        import secrets
+        from hashlib import sha256
         
+        raw_key = f"sov_{secrets.token_urlsafe(32)}"
+        key_hash = sha256(raw_key.encode()).hexdigest()
+        
+        # Update SystemIdentity with the new hash (Simplified for now)
+        from sqlalchemy import update
+        await db.execute(
+            update(SystemIdentity)
+            .where(SystemIdentity.id == identity_id)
+            .values(api_key_hash=key_hash)
+        )
+        await db.commit()
+        return raw_key
+
+    async def get_identity_from_token(self, db: AsyncSession, token: str) -> Dict[str, Any]:
         payload = _decode_token(token)
-        if payload.get("type") != "access":
-            raise HTTPException(status_code=401, detail="Access token gerekli")
-            
-        # Ensure ID is a UUID object for SQLAlchemy/SQLite compatibility
-        user_id_str = payload.get("sub")
-        if not user_id_str:
-            raise HTTPException(status_code=401, detail="Token'da 'sub' eksik")
-            
-        try:
-            user_id = uuid.UUID(user_id_str)
-        except ValueError:
-            raise HTTPException(status_code=401, detail="Geçersiz kullanıcı ID formatı")
+        identity_id = uuid.UUID(payload["sub"])
+        identity_type = payload.get("identity_type", "operator")
+        
+        if identity_type == "operator":
+            res = await db.execute(select(Operator).where(Operator.id == identity_id))
+            obj = res.scalar_one_or_none()
+        else:
+            res = await db.execute(select(SystemIdentity).where(SystemIdentity.id == identity_id))
+            obj = res.scalar_one_or_none()
 
-        result = await db.execute(select(User).where(User.id == user_id))
-        user   = result.scalar_one_or_none()
-        if not user or not user.is_active:
-            raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı veya devre dışı")
-        return user
-
+        if not obj or not obj.is_active:
+            raise HTTPException(status_code=401, detail="Kimlik bulunamadı veya pasif")
+            
+        return {
+            "id": obj.id,
+            "obj": obj,
+            "type": identity_type,
+            "role": getattr(obj, "role", "GUEST"),
+            "email": getattr(obj, "email", None),
+            "name": getattr(obj, "name", getattr(obj, "username", "Unknown"))
+        }
 
 auth_service = AuthService()
-
+access_service = AccessControlService()
 
 # ── FastAPI Depends ────────────────────────────────────────
-async def get_current_user(
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    Kullanıcıyı doğrular.
-    Faz 12.1 Resilience: 
-    - JWT Hataları (401): Sessiz fallback / Redirect.
-    - DB Hataları: 500 at (Refresh döngüsü oluşmaması için).
-    """
-    from sqlalchemy.exc import SQLAlchemyError
-    
-    header_token = None
-    auth_header = request.headers.get("Authorization")
-    if auth_header and auth_header.startswith("Bearer "):
-        header_token = auth_header.split(" ")[1]
-        try:
-            return await auth_service.get_user_from_token(db, header_token)
-        except SQLAlchemyError as se:
-            logger.error(f"[AUTH-RESILIENCE] DB Hatası (Header): {se}")
-            raise HTTPException(status_code=500, detail="Kimlik doğrulama sunucusu meşgul (DB).")
-        except Exception:
-            pass
-    
-    cookie_token = request.cookies.get("access_token")
-    if cookie_token:
-        try:
-            return await auth_service.get_user_from_token(db, cookie_token)
-        except SQLAlchemyError as se:
-            logger.error(f"[AUTH-RESILIENCE] DB Hatası (Cookie): {se}")
-            raise HTTPException(status_code=500, detail="Kimlik doğrulama sunucusu meşgul (DB).")
-        except Exception:
-            pass
-            
-    raise HTTPException(status_code=401, detail="Oturum geçersiz veya yetkilendirme gerekli")
-
-
-async def get_optional_user(
-    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
-    db: AsyncSession = Depends(get_db),
-):
-    """Token varsa kullanıcıyı döndür, yoksa None döndür (dev mode)."""
-    if not credentials:
-        return None
-    try:
-        return await auth_service.get_user_from_token(db, credentials.credentials)
-    except Exception:
-        return None
-
-
-async def require_admin(user=Depends(get_current_user)):
-    if not getattr(user, "is_admin", False):
-        raise HTTPException(status_code=403, detail="Admin yetkisi gerekli")
-    return user
-
-
-async def optional_admin(user=Depends(get_optional_user)):
-    """Dev modunda veya kullanıcı admin ise izin ver."""
-    from libs.config import is_prod, is_dev
-    if is_prod:
-        # Üretimde her zaman gerçek admin yetkisi aranır.
-        if not user or not getattr(user, "is_admin", False):
-            raise HTTPException(status_code=403, detail="Üretim ortamında admin yetkisi zorunludur")
-        return user
-
-    if is_dev:
-        return user
-
-    if not user or not getattr(user, "is_admin", False):
-        raise HTTPException(status_code=403, detail="Admin yetkisi gerekli")
-    return user
-
-
-# ── Endpoint'ler ──────────────────────────────────────────
-@router.post("/register", response_model=dict, summary="Yeni kullanıcı kaydı")
-async def register(req: RegisterRequest, response: Response, request: Request, db: AsyncSession = Depends(get_db)):
-    user = await auth_service.register(db, req.email, req.password)
-    # Kayıt sonrası otomatik login — UX iyileştirmesi
-    res = await auth_service.login(db, req.email, req.password)
-    set_auth_cookies(response, res.access_token, res.refresh_token, request=request)
-    return {"id": str(user.id), "email": user.email, "created": True, "token": res.access_token}
-
-
-@router.post("/login", response_model=TokenResponse, summary="Giriş — token al")
-async def login(req: LoginRequest, response: Response, request: Request, db: AsyncSession = Depends(get_db)):
-    res = await auth_service.login(db, req.email, req.password)
-    set_auth_cookies(response, res.access_token, res.refresh_token, request=request)
-    return res
-
-
-@router.post("/refresh", response_model=TokenResponse, summary="Token rotasyonu")
-async def refresh_token(
-    request: Request,
-    response: Response,
-    body: Optional[dict] = None,
-    db: AsyncSession = Depends(get_db)
-):
-    # 1. Öncelik: Body
-    rt = (body or {}).get("refresh_token", "")
-    
-    # 2. İkincil: Cookie Fallback (Silent Refresh)
-    if not rt:
-        rt = request.cookies.get("refresh_token", "")
+async def get_current_identity(request: Request, db: AsyncSession = Depends(get_db)):
+    # 1. API Key Check (for System Identities/Agents)
+    api_key = request.headers.get("X-API-KEY")
+    if api_key:
+        # SRE Hardening: Simple hash check for now, can be extended to bcrypt
+        from hashlib import sha256
+        key_hash = sha256(api_key.encode()).hexdigest()
         
-    if not rt:
-        raise HTTPException(status_code=422, detail="refresh_token gerekli")
+        res = await db.execute(select(SystemIdentity).where(SystemIdentity.api_key_hash == key_hash))
+        sys_id = res.scalar_one_or_none()
+        
+        if sys_id and sys_id.is_active:
+            # SIF-03: Update usage telemetry
+            from datetime import datetime
+            now = datetime.utcnow()
+            
+            # SIF-04: Burst Usage Detection & Trust Penalty
+            if sys_id.last_used_at:
+                # timezone farkını handle et
+                last_used = sys_id.last_used_at
+                if last_used.tzinfo:
+                    from datetime import timezone
+                    now_tz = datetime.now(timezone.utc)
+                    diff = (now_tz - last_used).total_seconds()
+                else:
+                    diff = (now - last_used).total_seconds()
+
+                if diff < 0.1: # Burst detection (10 req/sec)
+                    sys_id.trust_score = max(0, sys_id.trust_score - 5)
+                    sys_id.risk_level = "HIGH" if sys_id.trust_score < 60 else "MEDIUM"
+                    
+                    # Auto-Quarantine if trust is decimated
+                    if sys_id.trust_score < 20:
+                        sys_id.quarantined_at = now
+                        sys_id.risk_level = "CRITICAL"
+                        sys_id.risk_reason = "Autonomous Response: High-frequency burst abuse detected."
+
+            sys_id.last_used_at = now
+            await db.commit()
+            
+            return {
+                "id": str(sys_id.id),
+                "name": sys_id.name,
+                "role": sys_id.role,
+                "type": "system",
+                "is_active": sys_id.is_active
+            }
+        elif sys_id:
+            raise HTTPException(status_code=401, detail="Sistem kimliği pasif.")
+        # Fallthrough to JWT if API Key is invalid (optional policy)
+
+    # 2. JWT Check (for Operators)
+    token = request.cookies.get("access_token") or request.headers.get("Authorization", "").replace("Bearer ", "")
+    if not token:
+        raise HTTPException(status_code=401, detail="Oturum veya API Anahtarı gerekli")
     
-    res = await auth_service.refresh(db, rt)
-    # Yeni token'ları cookie olarak da set et (Önemli: Rotasyon)
-    set_auth_cookies(response, res.access_token, res.refresh_token, request=request)
-    return res
+    return await auth_service.get_identity_from_token(db, token)
 
+def require_permission(permission: str, scope_type: str = "global"):
+    """
+    Kullanım: Depends(require_permission("workflow.execute"))
+    """
+    async def checker(request: Request, identity: dict = Depends(get_current_identity), db: AsyncSession = Depends(get_db)):
+        # Scope value'yu request'ten (path param) çıkarmaya çalış
+        scope_value = request.path_params.get("project_id") or request.path_params.get("id")
+        # 3. Kapsamlı Yetki Kontrolü
+        allowed, reason = await access_service.is_allowed(
+            db, 
+            identity_id=identity["id"],
+            identity_type=identity["type"],
+            permission=permission,
+            scope_type=scope_type,
+            scope_value=scope_value,
+            role=identity["role"]
+        )
+        
+        if not allowed:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"SIF-03 ACCESS DENIED: {reason}"
+            )
+        return identity
+    return checker
 
-@router.post("/logout", summary="Tüm oturumları kapat")
-async def logout_all(
-    user=Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    count = await auth_service.revoke_all(db, str(user.id))
-    return {"revoked_sessions": count}
+# Legacy support for transitions
+get_current_user = get_current_identity

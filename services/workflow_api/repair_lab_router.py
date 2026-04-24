@@ -22,10 +22,11 @@ from libs.db.models.repair_models import (
     RepairPattern,
     SelfTuningSuggestion
 )
+from libs.db.models.learning_models import StrategyMemory, NegativePatternMemory
 from services.orchestration.application.sovereign_cortex import get_sovereign_cortex
 from services.improve.repair_bench import RepairBenchService
 
-router = APIRouter(prefix="/api/v1/repair-lab", tags=["Autonomous Repair Lab"])
+router = APIRouter(prefix="/repair-lab", tags=["Autonomous Repair Lab"])
 
 # ── Response Schemas ──────────────────────────────────────────────────────────
 
@@ -34,6 +35,7 @@ class CandidateSummary(BaseModel):
     score: float
     status: str
     type: str
+    score_breakdown: Optional[Dict[str, Any]] = None
 
 class TournamentOut(BaseModel):
     id: str
@@ -107,12 +109,47 @@ async def list_tournaments(limit: int = 20):
                         strategy=c.strategy,
                         score=c.final_score,
                         status=c.status,
-                        type=c.candidate_type or "code"
+                        type=c.candidate_type or "code",
+                        score_breakdown=c.score_breakdown if hasattr(c, "score_breakdown") else None
                     )
                     for c in candidates
                 ]
             ))
         return results
+
+@router.get("/learning/insights")
+async def get_learning_insights():
+    """Öğrenme motorundaki strateji hafızasını ve cezalandırılan paternleri döner."""
+    async with AsyncSessionLocal() as db:
+        # Fetch Trusted Strategies
+        s_res = await db.execute(select(StrategyMemory).order_by(desc(StrategyMemory.trust_score)))
+        memories = s_res.scalars().all()
+        
+        # Fetch Negative Patterns
+        n_res = await db.execute(select(NegativePatternMemory).order_by(desc(NegativePatternMemory.penalty_weight)))
+        negatives = n_res.scalars().all()
+        
+        return {
+            "strategies": [
+                {
+                    "name": m.strategy_name,
+                    "trust_score": m.trust_score,
+                    "state": m.state,
+                    "success": m.success_count,
+                    "rollbacks": m.rollback_count,
+                    "avg_score": m.avg_verification_score
+                } for m in memories
+            ],
+            "penalized_patterns": [
+                {
+                    "strategy": n.strategy_name,
+                    "reason": n.failure_reason or n.rollback_reason,
+                    "penalty": n.penalty_weight,
+                    "occurrences": n.occurrence_count,
+                    "blast_radius": n.blast_radius
+                } for n in negatives
+            ]
+        }
 
 @router.get("/verifiers/matrix")
 async def get_verifier_matrix(tournament_id: Optional[str] = None):

@@ -29,6 +29,9 @@ export default function PolicyProposalsPage() {
   const [isClient, setIsClient] = useState(false);
   const [selectedProposal, setSelectedProposal] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isJustifyOpen, setIsJustifyOpen] = useState(false);
+  const [justification, setJustification] = useState("");
+  const [approvingId, setApprovingId] = useState<string | null>(null);
 
   useEffect(() => setIsClient(true), []);
 
@@ -39,17 +42,20 @@ export default function PolicyProposalsPage() {
 
   const { mutate } = useCustomMutation();
 
-  const handleApprove = (id: string) => {
+  const handleApprove = (id: string, comment: string) => {
     mutate({
       url: `/api/v1/governance/proposals/${id}/approve`,
       method: "post",
-      values: {},
+      values: { note: comment },
       successNotification: {
         message: "Onay Kaydedildi",
-        description: "Politika teklifi için onayınız işlendi.",
+        description: "Kurumsal mühürleme başarıyla tamamlandı.",
         type: "success",
       },
     });
+    setIsJustifyOpen(false);
+    setJustification("");
+    refetch();
   };
 
   if (!isClient) return <div className="min-h-screen bg-[#060a12]" />;
@@ -151,10 +157,23 @@ export default function PolicyProposalsPage() {
                           </div>
 
                           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-6 border-t border-white/[0.03]">
-                             <StatBlock label="Quorum Level" val="2/3 SIGNED-OFF" icon={<Activity size={12}/>} />
-                             <StatBlock label="Global Consensus" val="66%" icon={<CheckCircle size={12}/>} />
-                             <StatBlock label="Git Lineage" val={proposal.git_commit_sha?.substring(0, 8) || "UNSEALED"} icon={<GitGraph size={12}/>} />
-                          </div>
+                              <div className="flex flex-col gap-2">
+                                <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-widest text-gray-700">
+                                   <span>Consensus Quorum</span>
+                                   <span className={proposal.current_signoffs >= proposal.required_signoffs ? "text-green-500" : "text-[var(--primary)]"}>
+                                      {proposal.current_signoffs} / {proposal.required_signoffs}
+                                   </span>
+                                </div>
+                                <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                                   <div 
+                                     className="h-full bg-[var(--primary)] shadow-[0_0_8px_rgba(102,252,241,0.5)] transition-all duration-1000"
+                                     style={{ width: `${(proposal.current_signoffs / proposal.required_signoffs) * 100}%` }}
+                                   />
+                                </div>
+                              </div>
+                              <StatBlock label="Signatories" val={proposal.signatories?.length > 0 ? proposal.signatories.join(", ") : "WAITING"} icon={<CheckCircle size={12}/>} />
+                              <StatBlock label="Git Lineage" val={proposal.git_commit_sha?.substring(0, 8) || "UNSEALED"} icon={<GitGraph size={12}/>} />
+                           </div>
                        </div>
                     ))
                  )}
@@ -192,11 +211,14 @@ export default function PolicyProposalsPage() {
                    </div>
 
                    <button 
-                     onClick={() => handleApprove(selectedProposal.id)}
+                     onClick={() => {
+                       setApprovingId(selectedProposal.id);
+                       setIsJustifyOpen(true);
+                     }}
                      disabled={selectedProposal.status !== "PROPOSED"}
                      className="w-full flex items-center justify-center gap-3 py-5 bg-[var(--primary)] text-[#060a12] font-black text-[11px] uppercase tracking-widest rounded-2xl hover:shadow-[0_8px_32px_rgba(102,252,241,0.4)] transition-all active:scale-95 disabled:opacity-40"
                    >
-                      <CheckCircle size={18} />
+                      <ShieldCheck size={18} />
                       <span>Kurumsal Sign-off Ver</span>
                    </button>
                 </div>

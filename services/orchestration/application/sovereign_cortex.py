@@ -121,9 +121,9 @@ class SovereignCortex:
 
     @property
     def improvement_coordinator(self):
-        """Lazy-loaded SelfImprovementCoordinator"""
+        """Lazy-loaded SelfImprovementCoordinator (Advanced repair version)"""
         if self._improvement_coordinator is None:
-            from services.governance.evolution.self_improvement_coordinator import SelfImprovementCoordinator
+            from services.repair.application.self_improvement_coordinator import SelfImprovementCoordinator
             from services.repair.improvement.observer import observer as improvement_observer
             self._improvement_coordinator = SelfImprovementCoordinator(
                 self.self_updater, improvement_observer

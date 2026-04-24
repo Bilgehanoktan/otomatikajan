@@ -3,7 +3,7 @@ from typing import Dict, Any
 from libs.db.session import AsyncSessionLocal
 from services.improve.metrics_service import ImprovementMetricsService
 
-router = APIRouter(prefix="/api/v1/metrics/phase17", tags=["Phase 17 Metrics"])
+router = APIRouter(prefix="/metrics/phase17", tags=["Phase 17 Metrics"])
 
 @router.get("")
 @router.get("/")

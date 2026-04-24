@@ -119,8 +119,10 @@ if _is_in_docker:
     else:
         DATABASE_URL = _raw_db_url
 else:
-    # Host modunda çalışıyorken env yoksa localhost'a düş (SRE: Default 5433 for Sovereign Standard)
-    DATABASE_URL = _raw_db_url or "postgresql+asyncpg://postgres:postgres@127.0.0.1:5433/ai_company"
+    # Force SQLite for stable operational state (Phase 31 Stabilization)
+    _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sqlite_path = os.path.join(_root, "runtime", "data", "cortex_local.db")
+    DATABASE_URL = _raw_db_url or f"sqlite+aiosqlite:///{sqlite_path.replace('\\', '/')}"
 
 
 

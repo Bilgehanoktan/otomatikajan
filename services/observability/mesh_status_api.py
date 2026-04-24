@@ -12,7 +12,7 @@ from services.orchestration.mesh_state_store import mesh_state_store
 from services.governance.policy_sync import PolicySync
 from services.observability.global_audit_aggregator import GlobalAuditAggregator
 
-router = APIRouter(prefix="/api/v1/mesh", tags=["Mesh Observability"])
+router = APIRouter(prefix="/mesh", tags=["Mesh Observability"])
 
 @router.get("/status")
 async def get_mesh_status() -> Dict[str, Any]:

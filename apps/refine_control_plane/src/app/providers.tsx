@@ -22,6 +22,7 @@ const mockDataProvider = {
 
 import { ConfigProvider, theme, App } from "antd";
 import type { AuthProvider } from "@refinedev/core";
+import { accessControlProvider } from "@/providers/accessControlProvider";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   // Global Resilience Armor: Wrapping dataProvider with safeHttpClient
@@ -48,6 +49,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
       try {
         const response = await fetch(`${API_URL}/auth/me`, { credentials: "include" });
         if (response.ok) {
+          const data = await response.json();
+          localStorage.setItem("auth", JSON.stringify({ role: data.role }));
           return { authenticated: true };
         }
         
@@ -71,7 +74,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
         const response = await fetch(`${API_URL}/auth/me`, { credentials: "include" });
         if (response.ok) {
           const data = await response.json();
-          return data.is_admin ? ["admin"] : ["user"];
+          localStorage.setItem("auth", JSON.stringify({ role: data.role }));
+          return data.roles;
         }
       } catch (e) { console.error("Permission check failed", e); }
       return null;
@@ -100,12 +104,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
           borderRadius: 8,
         },
       }}
+      wave={{ disabled: true }}
     >
       <App>
         <Refine
           routerProvider={routerProvider}
           dataProvider={activeDataProvider}
           authProvider={authProvider}
+          accessControlProvider={accessControlProvider}
           resources={[
             {
               name: "workflows",
@@ -124,6 +130,16 @@ export function Providers({ children }: { children: React.ReactNode }) {
               list: "/incidents",
               show: "/incidents/:id",
               meta: { label: "Olaylar" },
+            },
+            {
+              name: "projects",
+              list: "/fleet/projects",
+              meta: { label: "Projeler" },
+            },
+            {
+              name: "analytics/costs",
+              list: "/fleet/economics/summary",
+              meta: { label: "Maliyet Analizi" },
             },
             {
               name: "costs",
@@ -201,7 +217,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
               meta: { label: "Ayar Konsolu" },
             },
             {
-              name: "audit-bundles",
+              name: "compliance/audit-bundles",
               list: "/compliance/audit-bundles",
               meta: { label: "Denetim Paketleri" },
             },
@@ -214,6 +230,27 @@ export function Providers({ children }: { children: React.ReactNode }) {
               name: "launch-gates",
               list: "/ops/launch-gates",
               meta: { label: "Lansman Kapıları" },
+            },
+            {
+              name: "learning/fingerprints",
+              list: "/learning/fingerprints",
+              show: "/learning/fingerprints/:id",
+              meta: { label: "Hata Parmak İzleri", parent: "learning" },
+            },
+            {
+              name: "learning/strategy-memory",
+              list: "/learning/strategy-memory",
+              meta: { label: "Strateji Belleği", parent: "learning" },
+            },
+            {
+              name: "learning/negative-patterns",
+              list: "/learning/negative-patterns",
+              meta: { label: "Negatif Kalıplar", parent: "learning" },
+            },
+            {
+              name: "learning/adaptation-candidates",
+              list: "/learning/adaptation-candidates",
+              meta: { label: "Adaptasyon Adayları", parent: "learning" },
             },
           ]}
           options={{

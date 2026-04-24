@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useList, useUpdate } from "@refinedev/core";
+import { ApprovalRequest } from "@/types/mission-control";
 import { 
   CheckSquare, 
   XSquare, 
@@ -135,7 +136,7 @@ export default function ApprovalsPage() {
                        </p>
                     </div>
                  ) : (
-                    requests.map((req: any) => (
+                    requests.map((req: ApprovalRequest) => (
                        <EliteApprovalCard 
                          key={req.id} 
                          request={req} 

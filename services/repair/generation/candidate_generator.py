@@ -14,6 +14,9 @@ class RepairCandidate(BaseModel):
     estimated_cost: float = 0.0
     confidence: float = 0.0
     reasoning: str = ""
+    # SIF-03: Detailed scoring metadata
+    score_breakdown: Optional[Dict[str, Any]] = None
+    is_autonomous_eligible: bool = False
 
 class CandidateGenerator:
     """Generates a diverse set of repair candidates for a given incident."""

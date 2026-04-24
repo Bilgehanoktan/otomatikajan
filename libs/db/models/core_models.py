@@ -26,33 +26,6 @@ except ImportError:
 from libs.db.base import Base, utcnow, SmartJSON, GUID
 
 
-# ── Kullanıcılar ─────────────────────────────────────────
-class User(Base):
-    __tablename__ = "users"
-
-    id             = Column(GUID, primary_key=True, default=uuid.uuid4)
-    email          = Column(String(255), unique=True, nullable=False, index=True)
-    hashed_password= Column(String(255), nullable=False)   # bcrypt hash
-    is_active      = Column(Boolean, default=True)
-    is_admin       = Column(Boolean, default=False)
-    created_at     = Column(DateTime(timezone=True), default=utcnow, nullable=False)
-
-    projects = relationship("Project", back_populates="owner", lazy="select")
-    tokens   = relationship("RefreshToken", back_populates="user", lazy="select")
-
-
-# ── JWT Refresh Token'ları ────────────────────────────────
-class RefreshToken(Base):
-    __tablename__ = "refresh_tokens"
-
-    id         = Column(GUID, primary_key=True, default=uuid.uuid4)
-    user_id    = Column(GUID, ForeignKey("users.id", ondelete="CASCADE"))
-    token      = Column(Text, unique=True, nullable=False)
-    expires_at = Column(DateTime(timezone=True), nullable=False)
-    revoked    = Column(Boolean, default=False, nullable=False)
-    created_at = Column(DateTime(timezone=True), default=utcnow)
-
-    user = relationship("User", back_populates="tokens")
 
 
 class ProjectStatus(str, enum.Enum):
@@ -159,7 +132,7 @@ class Project(Base):
     __tablename__ = "projects"
 
     id           = Column(GUID, primary_key=True, default=uuid.uuid4)
-    owner_id     = Column(GUID, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    owner_id     = Column(GUID, ForeignKey("operators.id", ondelete="SET NULL"), nullable=True)
     title        = Column(String(500), nullable=False)
     description  = Column(Text, default="")
     status       = Column(SAEnum(ProjectStatus, native_enum=False, length=32), default=ProjectStatus.PENDING, nullable=False, index=True)
@@ -216,7 +189,7 @@ class Project(Base):
     started_at   = Column(DateTime(timezone=True), nullable=True)
     completed_at = Column(DateTime(timezone=True), nullable=True)
 
-    owner    = relationship("User", back_populates="projects")
+    owner    = relationship("Operator", backref="projects")
     subtasks = relationship("SubTask", back_populates="project",
                             lazy="select", cascade="all, delete-orphan")
     cost_logs= relationship("LLMCostLog", back_populates="project",
@@ -343,14 +316,14 @@ class WebhookSubscription(Base):
     __tablename__ = "webhook_subscriptions"
 
     id         = Column(GUID, primary_key=True, default=uuid.uuid4)
-    owner_id   = Column(GUID, ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
+    owner_id   = Column(GUID, ForeignKey("operators.id", ondelete="CASCADE"), nullable=True)
     url        = Column(String(2048), nullable=False)
     events     = Column(SmartJSON(), default=list)
     secret     = Column(String(64), nullable=False)
     is_active  = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), default=utcnow)
 
-    owner = relationship("User")
+    owner = relationship("Operator")
 
 
 # ── Rate Limit Sayacı (Redis yoksa DB fallback) ───────────
@@ -482,12 +455,12 @@ class TelegramUser(Base):
     is_authorized= Column(Boolean, default=False, nullable=False)
     is_admin     = Column(Boolean, default=False)
     # İlişkili sistem kullanıcısı (opsiyonel)
-    user_id      = Column(GUID, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    user_id      = Column(GUID, ForeignKey("operators.id", ondelete="SET NULL"), nullable=True)
     last_seen_at = Column(DateTime(timezone=True), nullable=True)
     command_count= Column(Integer, default=0)
     created_at   = Column(DateTime(timezone=True), default=utcnow, nullable=False)
 
-    user = relationship("User")
+    user = relationship("Operator")
 
 
 # ── Telegram Komut Logu (Faz 4) ──────────────────────────

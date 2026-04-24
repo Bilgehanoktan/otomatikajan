@@ -10,8 +10,13 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+import uuid
 
-router = APIRouter(prefix="/api/v1/workflows", tags=["Workflow Control Plane"])
+from libs.db.session import get_db
+from services.auth.jwt_auth import require_permission
+
+router = APIRouter(prefix="/workflows", tags=["Workflow Control Plane"])
 
 
 # ── Response Schemas ──────────────────────────────────────────────────────────
@@ -99,8 +104,7 @@ class ImprovementOut(BaseModel):
     test_results: Optional[Dict[str, Any]] = None
 
 
-class ImprovementUpdate(BaseModel):
-    status: str
+
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -171,6 +175,44 @@ def _map_workflow(project, subtasks) -> WorkflowOut:
         history=[],  # Will be populated by the caller if needed
     )
 
+
+@router.get("/steps", response_model=List[StepOut])
+async def list_steps(
+    project_id: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db),
+    identity: Dict[str, Any] = Depends(require_permission("workflow.view"))
+):
+    """List sub-tasks (steps) for a specific project or all projects."""
+    from libs.db.models.core_models import SubTask
+    from sqlalchemy import select
+
+    query = select(SubTask)
+    if project_id:
+        try:
+            uid = uuid.UUID(project_id)
+            query = query.where(SubTask.project_id == uid)
+        except ValueError:
+            return []
+
+    res = await db.execute(query)
+    subtasks = res.scalars().all()
+    
+    items = []
+    for st in subtasks:
+        status_val = st.status.value if hasattr(st.status, "value") else str(st.status)
+        items.append(StepOut(
+            id=str(st.id),
+            name=st.title,
+            action=st.action or "unknown",
+            status=status_val.lower(),
+            started_at=st.started_at,
+            completed_at=st.completed_at,
+            retries=0, # Placeholder or add to model if available
+            error=getattr(st, "causal_anchor", None) if status_val.lower() in ("error", "failed") else None,
+            dependencies=st.dependencies if isinstance(st.dependencies, list) else [],
+            output_summary=st.result_summary,
+        ))
+    return items
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
@@ -358,7 +400,10 @@ async def diagnose_workflow_step(project_id: str, step_id: str):
     return suggestion
 
 @router.post("/workflows/{project_id}/replay", response_model=Dict[str, Any])
-async def retry_workflow(project_id: str):
+async def retry_workflow(
+    project_id: str,
+    identity: Dict[str, Any] = Depends(require_permission("workflow.retry"))
+):
     """Re-enqueue a failed/error project for execution."""
     from libs.db.session import AsyncSessionLocal
     from libs.db.models.core_models import Project, ProjectStatus
@@ -389,6 +434,7 @@ async def retry_workflow(project_id: str):
             status=ProjectStatus.QUEUED,
             error_detail="",
             retry_count=project.retry_count + 1,
+            notes=f"[RETRY BY {identity['name']}]"
         )
         await db.commit()
 
@@ -436,7 +482,11 @@ async def cancel_workflow(project_id: str):
 
 
 @router.post("/{project_id}/approve")
-async def approve_workflow(project_id: str, req: ApprovalRequest):
+async def approve_workflow(
+    project_id: str, 
+    req: ApprovalRequest,
+    identity: Dict[str, Any] = Depends(require_permission("workflow.approve"))
+):
     """Approve a workflow pending manual review with audit trail."""
     from libs.db.session import AsyncSessionLocal
     from libs.db.models.core_models import Project, ProjectStatus
@@ -452,14 +502,6 @@ async def approve_workflow(project_id: str, req: ApprovalRequest):
     persistence = WorkflowPersistence()
 
     async with AsyncSessionLocal() as db:
-        # Hardening: RBAC Authorization
-        from libs.db.models.core_models import User
-        user_res = await db.execute(select(User).where(User.email == req.operator_id))
-        user = user_res.scalar_one_or_none()
-        if not user or not user.is_admin:
-            if req.operator_id != "admin_human":
-                raise HTTPException(status_code=403, detail="Operator not authorized to approve workflows.")
-
         res = await db.execute(select(Project).where(Project.id == uid))
         project = res.scalar_one_or_none()
         if not project:
@@ -474,16 +516,17 @@ async def approve_workflow(project_id: str, req: ApprovalRequest):
             project_id, 
             "workflow_approved", 
             payload={
-                "operator_id": req.operator_id,
+                "operator_id": str(identity["id"]),
+                "operator_name": identity["name"],
                 "notes": req.notes,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             }
         )
 
         await ProjectRepository.update_fields(
             db, project.id,
             status=ProjectStatus.QUEUED,
-            notes=f"[APPROVED BY {req.operator_id}] {req.notes}",
+            notes=f"[APPROVED BY {identity['name']}] {req.notes}",
             review_required=False,
         )
         # Faz 13.04: Reset waiting steps to PENDING to break deadlock on resumption
@@ -511,7 +554,11 @@ async def approve_workflow(project_id: str, req: ApprovalRequest):
 
 
 @router.post("/{project_id}/replay")
-async def replay_workflow(project_id: str, req: ReplayRequest):
+async def replay_workflow(
+    project_id: str, 
+    req: ReplayRequest,
+    identity: Dict[str, Any] = Depends(require_permission("workflow.replay"))
+):
     """Trigger a durable replay of a workflow with hardening & audit trail."""
     from libs.workflow.persistence import WorkflowPersistence
     from libs.workflow.engine import WorkflowEngine
@@ -524,24 +571,9 @@ async def replay_workflow(project_id: str, req: ReplayRequest):
     if not instance:
         raise HTTPException(status_code=404, detail="Workflow instance not found")
         
-    # Hardening: Final RBAC Authorization with Dynamic Roles
-    from libs.db.session import AsyncSessionLocal
-    from libs.db.models.core_models import User
-    from libs.auth.rbac import is_authorized
-    from sqlalchemy import select
-    
     async with AsyncSessionLocal() as db:
-        res = await db.execute(select(User).where(User.email == req.operator_id))
-        user = res.scalar_one_or_none()
-        
-        # Determine actual role
-        user_role = user.role if (user and hasattr(user, "role")) else "operator"
-        if req.operator_id == "admin_human" or (user and user.is_admin):
-            user_role = "admin"
-            
-        if not is_authorized(user_role, "workflow:replay"):
-            logger.warning(f"Unauthorized replay attempt by {req.operator_id} (Role: {user_role})")
-            raise HTTPException(status_code=403, detail=f"Operator role '{user_role}' is not authorized to trigger replays.")
+        # Permission verified by Depends
+        pass
 
     status_str = instance.status.value if hasattr(instance.status, "value") else str(instance.status)
     if status_str.lower() in ["running", "replaying"]:
@@ -562,7 +594,8 @@ async def replay_workflow(project_id: str, req: ReplayRequest):
         payload={
             "mode": req.mode,
             "reason": req.reason,
-            "operator_id": req.operator_id,
+            "operator_id": str(identity["id"]),
+            "operator_name": identity["name"],
             "overrides_keys": list(req.overrides.keys()) if req.overrides else []
         }
     )
@@ -588,12 +621,14 @@ async def replay_workflow(project_id: str, req: ReplayRequest):
 
 @router.get("/stats/summary")
 async def workflow_stats():
-    """Aggregate stats for control plane header metrics."""
+    """Aggregate stats for control plane header metrics including systemic anomalies."""
     from libs.db.session import AsyncSessionLocal
     from libs.db.models.core_models import Project, ProjectStatus
+    from libs.db.models.learning_models import ErrorFingerprint
     from sqlalchemy import select, func
 
     async with AsyncSessionLocal() as db:
+        # 1. Project stats
         result = await db.execute(
             select(
                 Project.status,
@@ -601,6 +636,13 @@ async def workflow_stats():
             ).group_by(Project.status)
         )
         rows = result.all()
+        
+        # 2. Systemic anomalies count (Error Fingerprints)
+        f_count = (await db.execute(select(func.count(ErrorFingerprint.id)).where(ErrorFingerprint.is_active == True))).scalar() or 0
+        
+        # 3. Pending Improvements count
+        from libs.db.models.core_models import SystemImprovement
+        i_count = (await db.execute(select(func.count(SystemImprovement.id)).where(SystemImprovement.status == "pending"))).scalar() or 0
 
     counts: Dict[str, int] = {}
     for row in rows:
@@ -610,7 +652,8 @@ async def workflow_stats():
     total = sum(counts.values())
     running = counts.get("running", 0)
     completed = counts.get("completed", 0) + counts.get("partial_complete", 0)
-    failed = counts.get("error", 0) + counts.get("failed", 0)
+    # Add systemic anomalies and pending patches to failed count to ensure visibility in the header
+    failed = counts.get("error", 0) + counts.get("failed", 0) + f_count + i_count
     pending = counts.get("pending", 0) + counts.get("queued", 0)
     pending_approval = counts.get("pending_approval", 0)
 
@@ -624,88 +667,13 @@ async def workflow_stats():
         "pending": pending,
         "pending_approval": pending_approval,
         "success_rate_pct": success_rate,
+        "systemic_anomalies": f_count,
+        "pending_improvements": i_count,
         "status_breakdown": counts,
     }
 
 
-# ── Improvement Endpoints (Self-Healing) ───────────────────────────────────
 
-@router.get("/improvements/list", response_model=List[ImprovementOut], tags=["Self-Healing"])
-async def list_improvements(
-    response: Response,
-    limit: int = Query(50, ge=1, le=200),
-    offset: int = Query(0, ge=0),
-):
-    """List system improvement proposals."""
-    from libs.db.session import AsyncSessionLocal
-    from libs.db.models.core_models import SystemImprovement
-    from sqlalchemy import select, func
-
-    async with AsyncSessionLocal() as db:
-        count_q = select(func.count(SystemImprovement.id))
-        total_count = (await db.execute(count_q)).scalar()
-        response.headers["X-Total-Count"] = str(total_count)
-        response.headers["Access-Control-Expose-Headers"] = "X-Total-Count"
-
-        q = select(SystemImprovement).order_by(SystemImprovement.created_at.desc()).limit(limit).offset(offset)
-        res = await db.execute(q)
-        improvements = res.scalars().all()
-
-        return [
-            ImprovementOut(
-                id=str(i.id),
-                opportunity_id=str(i.opportunity_id),
-                target_file=i.target_file,
-                instruction=i.instruction,
-                proposed_patch=i.proposed_patch,
-                status=i.status.value if hasattr(i.status, "value") else str(i.status),
-                created_at=i.created_at,
-                test_results=i.test_results,
-            )
-            for i in improvements
-        ]
-
-
-@router.patch("/improvements/{improvement_id}", response_model=ImprovementOut, tags=["Self-Healing"])
-async def update_improvement(improvement_id: str, patch_data: ImprovementUpdate):
-    """Approve or reject a patch."""
-    from libs.db.session import AsyncSessionLocal
-    from libs.db.models.core_models import SystemImprovement
-    from sqlalchemy import select
-
-    except ValueError:
-        raise HTTPException(status_code=404, detail="Improvement not found (Invalid ID format)")
-
-    async with AsyncSessionLocal() as db:
-        res = await db.execute(select(SystemImprovement).where(SystemImprovement.id == uid))
-        improvement = res.scalar_one_or_none()
-        if not improvement:
-            raise HTTPException(status_code=404, detail="Improvement not found")
-
-        # Update status
-        improvement.status = patch_data.status
-        
-        # If approved, we would normally trigger the effector here.
-        # For Phase 4, we'll log the approval. The effector will be triggered
-        # by the coordinator scanning for 'approved' patches.
-        
-        if patch_data.status == "approved":
-            # Optional: Trigger effector background task
-            pass
-
-        await db.commit()
-        await db.refresh(improvement)
-
-        return ImprovementOut(
-            id=str(improvement.id),
-            opportunity_id=str(improvement.opportunity_id),
-            target_file=improvement.target_file,
-            instruction=improvement.instruction,
-            proposed_patch=improvement.proposed_patch,
-            status=improvement.status.value if hasattr(improvement.status, "value") else str(improvement.status),
-            created_at=improvement.created_at,
-            test_results=improvement.test_results,
-        )
 
 
 @router.get("/analytics/failure-clusters", tags=["Analytics"])

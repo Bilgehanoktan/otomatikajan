@@ -76,8 +76,13 @@ export function LiveEventStream({ apiUrl }: { apiUrl: string }) {
           // Relative URL case (e.g. /api/v1)
           const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
           const host = window.location.host;
+          
+          // SRE Hardening: In local development, Next.js proxy (3100) doesn't always handle WS.
+          // Fallback to backend port (8000) directly if on localhost.
+          const wsHost = host.includes("localhost:3100") ? host.replace("3100", "8000") : host;
+          
           const cleanPath = apiUrl.replace(/\/api\/v1\/?$/, "");
-          wsUrl = `${protocol}//${host}${cleanPath}/ws/events`;
+          wsUrl = `${protocol}//${wsHost}${cleanPath}/ws/events`;
         }
 
         const ws = new WebSocket(wsUrl);

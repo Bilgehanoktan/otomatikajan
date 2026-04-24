@@ -21,35 +21,39 @@ class WeightOptimizer:
     
     async def calculate_optimal_weights(self) -> Dict[str, float]:
         """Analyzes historical outcomes to optimize tournament arbitration."""
-        _log.info("Starting Weight Optimization Cycle based on Repair Memory.")
+        _log.info("Starting Weight Optimization Cycle based on Learning Fabric [PEL-SIF-02].")
         
         try:
-            # Analyze last 50 outcomes
-            stats = await self.memory.get_performance_stats("Conservative_Stability") # Example strategy check
-            # In a real system, we would iterate over all strategies and correlate weights with MTTR/Success
+            # 1. Fetch Global Learning Stats (Phase 31 integration)
+            from services.governance.learning_orchestrator import LearningOrchestrator
+            stats = await LearningOrchestrator.get_global_learning_stats()
             
-            # Heuristic: If success rate is high (>90%), we can prioritize LOWER COST
-            # If success rate is low (<70%), we MUST prioritize HIGHER RISK SENSITIVITY
-            
-            # For Phase 28, we'll implement a reactive weight adjustment
-            total_cases = 10 # Ideally from memory.get_total_count()
-            success_count = 10 # Mocking our recent 100% run
-            
-            success_rate = success_count / total_cases if total_cases > 0 else 1.0
+            success_rate = stats.get("success_rate", 1.0)
+            rollbacks = stats.get("total_rollbacks", 0)
+            rejects = stats.get("total_rejects", 0)
             
             new_weights = self.default_weights.copy()
             
-            if success_rate > 0.9:
-                _log.info("High success rate detected. Shifting bias toward Efficiency.")
+            # 2. Logic: If system is performing well, favor efficiency (cost)
+            if success_rate > 0.9 and rollbacks == 0 and rejects == 0:
+                _log.info("System is stable. Shifting bias toward Efficiency (Cost).")
                 new_weights["risk_weight"] = 0.3
                 new_weights["cost_weight"] = 0.3
                 new_weights["verifier_weight"] = 0.4
-            elif success_rate < 0.7:
-                _log.warning("Low success rate detected. Hardening Risk and Verification gates.")
+            
+            # 3. Logic: If system has high failure or rollbacks, harden the gates
+            elif success_rate < 0.7 or rollbacks > 2 or rejects > 3:
+                _log.warning(f"Instability detected (Success: {success_rate:.2f}, Rollbacks: {rollbacks}). Hardening Risk and Verification.")
                 new_weights["risk_weight"] = 0.5
                 new_weights["cost_weight"] = 0.1
                 new_weights["verifier_weight"] = 0.4
-                
+            
+            # 4. Logic: If many operator rejects, increase human review importance (Risk)
+            if rejects > 5:
+                _log.warning("High operator rejection rate. Increasing Risk sensitivity.")
+                new_weights["risk_weight"] += 0.1
+                new_weights["verifier_weight"] -= 0.1
+
             return new_weights
         except Exception as e:
             _log.error(f"Weight optimization failed: {e}")
