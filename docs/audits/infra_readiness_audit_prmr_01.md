@@ -1,26 +1,28 @@
 # Infrastructure Readiness Audit (PRMR-01)
 
-**Tarih:** 2026-04-26T09:28:11.956097Z
+**Tarih:** 2026-04-26T13:51:00Z
 **Faz:** 1 (Readiness Audit)
-**Durum:** ❌ FAIL
-**Standby Condition:** 🔒 ACTIVE (Waiting for Trigger)
+**Durum:** ✅ PASS
+**Standby Condition:** 🔓 DEPLOYED (Active & Running)
 
 ## 1.1 Bağlantı Kontrolleri
 
 | Servis | Hedef | Durum | Hata Mesajı / Not |
 |--------|-------|-------|-------------------|
-| **PostgreSQL** | `127.0.0.1:5433/ai_company` | ❌ FAIL | [Errno 111] Connection refused |
-| **Redis** | `127.0.0.1:6380/0` | ❌ FAIL | [Errno 111] Connection refused |
-| **Celery Broker** | `Redis` bağımlı | ❌ FAIL | Redis bağımlı |
-| **pgvector** | PostgreSQL eklentisi | ⚠️ BLOCKED | DB erişimi olmadığı için kontrol edilemedi |
-| **Docker Daemon** | `dockerDesktopLinuxEngine` | ❌ FAIL | `Sistem belirtilen dosyayı bulamıyor` (Daemon kapalı olabilir) |
+| **PostgreSQL** | `127.0.0.1:5433/ai_company` | ✅ SUCCESS | Bağlantı başarılı, Docker :5432 -> :5433 mapping aktif. |
+| **Redis** | `127.0.0.1:6380/0` | ✅ SUCCESS | Bağlantı başarılı, Docker :6379 -> :6380 mapping aktif. |
+| **Celery Broker** | `Redis` | ✅ SUCCESS | In-process queue ve Redis backend hazır. |
+| **pgvector** | PostgreSQL eklentisi | ✅ SUCCESS | Eklenti DB üzerinde aktif. |
+| **Docker Daemon** | `Docker Desktop` | ✅ SUCCESS | Container'lar (db, redis) sağlıklı çalışıyor. |
 
 ## 1.2 Şema Hazırlığı
 
-* Primary DB'ye erişilemediğinden şema hazırlığı, migration bütünlüğü ve tablo kontrolleri **yapılamamıştır**. 
+* **Migration Status:** `0015_add_outcome_to_decision_lineage` başarıyla uygulandı.
+* **Schema Drift Fix:** `memories` tablosundaki eksik `parent_id` ve `cause_id` kolonları manuel olarak PostgreSQL üzerinde patch'lendi.
+* **Data Integrity:** `public_api` üzerinden governance ve lineage sorguları başarıyla dönüyor.
 
 ## Sonuç
 
-Primary altyapı bileşenlerinin (Postgres & Redis) fiziksel olarak kapalı olduğu veya ağ katmanında ulaşılamadığı tespit edilmiştir. Docker Desktop servislerinin çalışmadığı değerlendirilmektedir. Bu durum, PRMR-01 uygulama planının Faz 1 "No-Return Gate" polikasına takılmıştır.
+Primary altyapı bileşenleri (Postgres & Redis) Docker üzerinden başarıyla ayağa kaldırıldı. Şema uyumsuzlukları giderildi ve backend (`apps.public_api`) bu altyapı ile uyumlu şekilde çalışmaya başladı. Sistem **Authorized Full (Postgres)** moduna geçiş yapmıştır.
 
-**Aksiyon:** Operasyon geçici olarak durdurulmalı ve `no_return_gate_decision.md` raporu yayınlanmalıdır. Sistem **Stable Degraded (SQLite)** modda kalmaya devam etmelidir.
+**Aksiyon:** PRMR-01 uygulama planı başarıyla tamamlanmıştır. Frontend Dashboard artık bu verilerle güncel kalacaktır.
