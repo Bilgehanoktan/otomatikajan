@@ -2,29 +2,41 @@
 chcp 65001 >nul 2>&1
 title Sovereign AGI - Sistem Durdurma
 
+echo.
 echo ====================================================
 echo    EGEMEN YAZ - Servisler Durduruluyor...
 echo ====================================================
 echo.
 
 set "PROJECT_ROOT=%~dp0"
-set "PY_CMD=C:\Python314\python.exe"
 
-:: 1. Port bazli cerrahi temizlik
-echo [1/2] Aktif servisler ve hayalet portlar temizleniyor...
+:: Python komutunu belirle
+set "PY_CMD=python"
+where python >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    set "PY_CMD=C:\Python314\python.exe"
+)
+
+:: ---- Docker Durdurma ----
+where docker >nul 2>&1
+if %ERRORLEVEL% equ 0 (
+    docker info >nul 2>&1
+    if %ERRORLEVEL% equ 0 (
+        echo [DOCKER] Konteynerler durduruluyor...
+        docker compose -f "%PROJECT_ROOT%docker-compose.yml" down
+    )
+)
+
+:: ---- Lokal Temizlik ----
+echo [TEMIZLIK] Aktif servisler ve hayalet portlar temizleniyor...
 if exist "%PROJECT_ROOT%infra\port_surgeon.py" (
     "%PY_CMD%" "%PROJECT_ROOT%infra\port_surgeon.py"
 ) else (
     echo [!] port_surgeon.py bulunamadi, manuel temizlik yapiliyor...
     taskkill /F /IM node.exe /T >nul 2>&1
-    for /f "tokens=5" %%p in ('netstat -ano ^| findstr :8000 ^| findstr LISTENING') do (
-        taskkill /F /PID %%p /T >nul 2>&1
-    )
+    taskkill /F /IM uvicorn.exe /T >nul 2>&1
+    taskkill /F /IM python.exe /T >nul 2>&1
 )
-
-:: 2. Durumu onayla
-echo [2/2] Sistem durumu dogrulaniyor...
-timeout /t 2 /nobreak >nul
 
 echo.
 echo ====================================================
