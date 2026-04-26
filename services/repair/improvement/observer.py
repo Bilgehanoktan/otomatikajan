@@ -66,18 +66,29 @@ class ImprovementObserver:
                 # Hata mesajlarına göre gruplama yaparak "pattern" yakala
                 # Faz 12.1: Hatalı dosyaları da çekmek için SubTask ile join yapıyoruz
                 from libs.db.models.core_models import SubTask
-                from sqlalchemy import cast, String
+                from sqlalchemy import cast, String, case
+
+                # Dialect-aware JSON extraction
+                is_postgres = session.bind.dialect.name == "postgresql"
+                
+                if is_postgres:
+                    target_file_col = SubTask.input_data["target_file"].as_string()
+                    # Postgres'te UUID karşılaştırması daha direkt yapılabilir
+                    id_comparison = cast(SubTask.id, String) == WorkflowEvent.step_id
+                else:
+                    target_file_col = func.json_extract(SubTask.input_data, "$.target_file")
+                    id_comparison = func.replace(cast(SubTask.id, String), "-", "") == func.replace(WorkflowEvent.step_id, "-", "")
+
                 stmt = (
                     select(
                         func.min(WorkflowEvent.step_id).label("sample_step_id"),
                         WorkflowEvent.payload["error"].as_string().label("error_msg"),
                         func.count().label("err_count"),
-                        func.json_extract(SubTask.input_data, "$.target_file").label("target_file")
+                        target_file_col.label("target_file")
                     )
                     .join(
                         SubTask,
-                        # SQLite UUID formatÄ± (hex) ile WorkflowEvent (string-tireli) uyuÅŸmazlÄ±ÄŸÄ±nÄ± Ã§Ã¶z
-                        func.replace(cast(SubTask.id, String), "-", "") == func.replace(WorkflowEvent.step_id, "-", ""),
+                        id_comparison,
                         isouter=True
                     )
                     .where(WorkflowEvent.event_type == "step_failed")
