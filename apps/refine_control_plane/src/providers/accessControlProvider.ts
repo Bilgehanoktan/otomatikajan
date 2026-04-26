@@ -5,7 +5,7 @@ import { AccessControlProvider } from "@refinedev/core";
  * Enforces role-based visibility and action restrictions on the frontend.
  */
 export const accessControlProvider: AccessControlProvider = {
-  can: async ({ resource, action, params }) => {
+  can: async ({ resource, action }) => {
     // 1. Get identity from localStorage (stored during login)
     const auth = localStorage.getItem("auth");
     if (!auth) {
@@ -20,7 +20,7 @@ export const accessControlProvider: AccessControlProvider = {
     }
 
     // 3. Role-Based Matrix
-    const matrix: Record<string, any> = {
+    const matrix: Record<string, { resources: string[]; actions: string[] }> = {
       AUDIT_OBSERVER: {
         resources: ["audit", "compliance", "lineage"],
         actions: ["list", "show"],

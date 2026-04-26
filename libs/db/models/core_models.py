@@ -542,6 +542,7 @@ class ImprovementOpportunity(Base):
     priority_score   = Column(Float, default=0.0, index=True)
     pattern_hash     = Column(String(64), unique=True)
     evidence_detail  = Column(Text)
+    affected_files   = Column(JSONB, default=list) # Phase 12.1: Tracking affected files
     status           = Column(String(32), default="open", index=True) # open, suggested, resolved
     created_at       = Column(DateTime(timezone=True), default=utcnow)
 

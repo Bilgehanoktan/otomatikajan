@@ -16,12 +16,14 @@ const { Text, Title } = Typography;
 export default function NegativePatternsList() {
   const { tableProps } = useTable({
     resource: "learning/negative-patterns",
-    initialSorter: [
-      {
-        field: "penalty_weight",
-        order: "desc",
-      },
-    ],
+    sorters: {
+      initial: [
+        {
+          field: "penalty_weight",
+          order: "desc",
+        },
+      ]
+    },
   });
 
   return (

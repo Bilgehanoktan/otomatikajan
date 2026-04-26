@@ -255,7 +255,7 @@ async def create_project(req: ProjectCreate):
     # Dispatch to standardized job queue (Respects auto-fallback to in-process)
     await job_queue.enqueue(
         "run_project",
-        db_project_id=str(project.id),
+        project_id=str(project.id),
         title=project.title,
         description=project.description or "",
         workflow_template=project.workflow_template or "default",
@@ -442,7 +442,7 @@ async def retry_workflow(
     from services.orchestration.application.job_queue import job_queue
     await job_queue.enqueue(
         "run_project",
-        db_project_id=project_id,
+        project_id=project_id,
         title=project.title,
         description=project.description or "",
         workflow_template=project.workflow_template or "default",
@@ -543,14 +543,19 @@ async def approve_workflow(
     from services.orchestration.application.job_queue import job_queue
     await job_queue.enqueue(
         "run_project",
-        db_project_id=project_id,
+        project_id=project_id,
         title=project.title,
         description=project.description or "",
         workflow_template=project.workflow_template or "default",
         quality_profile=project.quality_profile or "standard",
     )
 
-    return {"message": "Workflow approved and re-queued", "project_id": project_id}
+    return {
+        "status": "success",
+        "msg": "Workflow approved and re-queued",
+        "message": "Workflow approved and re-queued", 
+        "project_id": project_id
+    }
 
 
 @router.post("/{project_id}/replay")
@@ -571,6 +576,7 @@ async def replay_workflow(
     if not instance:
         raise HTTPException(status_code=404, detail="Workflow instance not found")
         
+    from libs.db.session import AsyncSessionLocal
     async with AsyncSessionLocal() as db:
         # Permission verified by Depends
         pass

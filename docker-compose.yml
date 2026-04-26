@@ -205,8 +205,7 @@ services:
       - ./libs/vendor/deer-flow/skills:/app/skills:ro
       - ./libs:/app/backend/packages/harness/deerflow/hub_cortex:ro
       - ./services:/app/backend/packages/harness/deerflow/hub_guardian:ro
-      # Sadece Docker sandbox kullanacaksan:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - ./services:/app/backend/packages/harness/deerflow/hub_guardian:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8010/health"]
       interval: 30s
@@ -258,7 +257,7 @@ services:
       DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/ai_company
       REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
       DOCKER_CONTAINER: "true"
-      PAYLOAD_PUBLIC_SERVER_URL: http://localhost:3105
+      PAYLOAD_PUBLIC_SERVER_URL: http://localhost:3100
       NEXT_PUBLIC_API_URL: http://app:8000
     ports:
       - "3100:3100"

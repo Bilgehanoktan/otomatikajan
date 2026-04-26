@@ -40,7 +40,7 @@ class ImprovementObserver:
                 "reason": opp.description,
                 "severity": opp.severity,
                 "affected_files": opp.affected_files,
-                "evidence": opp.evidence,
+                "evidence": getattr(opp, "evidence_detail", ""),
             }
             for opp in opportunities
         ]
@@ -62,29 +62,41 @@ class ImprovementObserver:
             async with AsyncSessionLocal() as session:
                 # Son 24 saatteki hatalarÄ± grupla
                 yesterday = datetime.now(timezone.utc) - timedelta(days=1)
-                
-                # Hata mesajlarÄ±na gÃ¶re gruplama yaparak "pattern" yakala
-                # Not: Payload iÃ§indeki hatayÄ± parse etmek iÃ§in basit bir model
+
+                # Hata mesajlarına göre gruplama yaparak "pattern" yakala
+                # Faz 12.1: Hatalı dosyaları da çekmek için SubTask ile join yapıyoruz
+                from libs.db.models.core_models import SubTask
+                from sqlalchemy import cast, String
                 stmt = (
                     select(
-                        WorkflowEvent.step_id,
+                        func.min(WorkflowEvent.step_id).label("sample_step_id"),
                         WorkflowEvent.payload["error"].as_string().label("error_msg"),
-                        func.count().label("err_count")
+                        func.count().label("err_count"),
+                        func.json_extract(SubTask.input_data, "$.target_file").label("target_file")
+                    )
+                    .join(
+                        SubTask,
+                        # SQLite UUID formatÄ± (hex) ile WorkflowEvent (string-tireli) uyuÅŸmazlÄ±ÄŸÄ±nÄ± Ã§Ã¶z
+                        func.replace(cast(SubTask.id, String), "-", "") == func.replace(WorkflowEvent.step_id, "-", ""),
+                        isouter=True
                     )
                     .where(WorkflowEvent.event_type == "step_failed")
                     .where(WorkflowEvent.created_at >= yesterday)
-                    .group_by("error_msg", WorkflowEvent.step_id)
-                    .having(func.count() >= 2) # En az 2 kez tekrarlananlarÄ± al
+                    .group_by("error_msg", "target_file")
+                    .having(func.count() >= 2)
                 )
-                
+
                 res = await session.execute(stmt)
                 for row in res.all():
-                    step_id, error_msg, count = row
-                    
-                    # Bu pattern daha Ã¶nce kaydedilmiÅŸ mi? (hash kontrolÃ¼)
+                    step_id, error_msg, count, target_file = row
+
+                    # Bu pattern daha önce kaydedilmiş mi?
                     pattern_hash = ImprovementOpportunity.generate_hash("agent_failure", f"{step_id}:{error_msg}")
-                    
-                    # Existing check (basitleÅŸtirilmiÅŸ)
+
+                    # JSON'dan tırnaklarla gelebilir (SQLite/PG), temizle
+                    clean_file = target_file.strip('"') if target_file else None
+                    affected_files = [clean_file] if clean_file and clean_file != "null" else []
+
                     opp = ImprovementOpportunity(
                         id=uuid.uuid4(),
                         source_type="agent_failure",
@@ -95,10 +107,11 @@ class ImprovementObserver:
                         category="reliability",
                         evidence_detail=error_msg,
                         pattern_hash=pattern_hash,
+                        affected_files=affected_files,
                         status="open"
                     )
                     opportunities.append(opp)
-                    
+
         except Exception as e:
             logger.error(f"Agent failure scanning failed: {e}")
 

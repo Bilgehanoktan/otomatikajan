@@ -115,19 +115,15 @@ class SelfImprovementCoordinator:
                 # 1. Shadow Workspace'de dÃ¼zeltme Ã¼ret ve test et
                 instruction = f"FIX RECURRING ERROR: {op.description}. Evidence: {op.evidence_detail}"
                 
-                # Shadow Runner ile izole ortamda deneme yap
-                shadow = ShadowRunner(self.updater.project_root)
-                shadow_path = await shadow.create_shadow_copy(file_path)
-                
-                # LLM'den dÃ¼zeltme iste (shadow dosya Ã¼zerinde)
+                # LLM'den dÃ¼zeltme iste
                 suggested_code = await self.updater.propose_fix(file_path, instruction)
                 
-                # Shadow dosyayÄ± gÃ¼ncelle
-                with open(shadow_path, "w", encoding="utf-8") as f:
-                    f.write(suggested_code)
+                # Shadow Runner ile izole ortamda doÄŸrula
+                shadow = ShadowRunner(self.updater.project_root)
+                validation = await asyncio.to_thread(shadow.validate_candidate, file_path, suggested_code)
                 
-                # DoÄŸrulama (Syntax + Tests)
-                is_valid, test_report = await shadow.verify_shadow(shadow_path)
+                is_valid = validation.get("syntax_ok", False) and (validation.get("pytest_ok") is not False)
+                test_report = f"Syntax: {validation.get('syntax_ok')}, Pytest: {validation.get('pytest_ok')}"
                 
                 # 2. VeritabanÄ±na 'Pending' olarak kaydet
                 async with AsyncSessionLocal() as db:

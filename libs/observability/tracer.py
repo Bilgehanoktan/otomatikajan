@@ -18,20 +18,35 @@ from __future__ import annotations
 import os
 from contextlib import contextmanager
 from typing import Any, Dict, Generator, Optional
+import inspect
 
 # ─── Service metadata ─────────────────────────────────────────────────────────
 SERVICE_NAME    = os.getenv("OTEL_SERVICE_NAME", "sovereign-agi")
 SERVICE_VERSION = os.getenv("SERVICE_VERSION", "13.04")
 OTEL_ENDPOINT   = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
-OTEL_ENABLED    = os.getenv("OTEL_ENABLED", "true").lower() in ("1", "true", "yes")
+OTEL_ENABLED    = os.getenv("OTEL_ENABLED", "false").lower() in ("1", "true", "yes")
 
 # ─── Try to import OTel SDK ───────────────────────────────────────────────────
 _OTEL_AVAILABLE = False
 
+def _is_endpoint_reachable(url: str) -> bool:
+    """Hızlı bir socket kontrolü ile endpoint'in ulaşılamaz olduğunu saptar."""
+    import socket
+    from urllib.parse import urlparse
+    try:
+        p = urlparse(url)
+        host = p.hostname or "localhost"
+        port = p.port or (4317 if "grpc" in url else 80)
+        with socket.create_connection((host, port), timeout=0.5):
+            return True
+    except Exception:
+        return False
+
 try:
-    if OTEL_ENABLED:
+    if OTEL_ENABLED and _is_endpoint_reachable(OTEL_ENDPOINT):
         from opentelemetry import trace as _ot_trace
         from opentelemetry import context as _ot_context
+        # ... (diğer importlar aynı kalsın)
         from opentelemetry.sdk.trace import TracerProvider as _TracerProvider
         from opentelemetry.sdk.trace.export import BatchSpanProcessor as _BatchSpanProcessor
         from opentelemetry.sdk.resources import Resource as _Resource
@@ -41,7 +56,7 @@ try:
             TraceContextTextMapPropagator as _Propagator,
         )
 
-        # Try OTLP gRPC exporter first, fall back to HTTP
+        # OTLP gRPC/HTTP exporter logic
         try:
             from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
                 OTLPSpanExporter as _Exporter,
@@ -67,9 +82,12 @@ try:
         _ot_trace.set_tracer_provider(_provider)
         _propagator = _Propagator()
         _OTEL_AVAILABLE = True
+    else:
+        if OTEL_ENABLED:
+            print(f"⚠️ [OTEL] Endpoint {OTEL_ENDPOINT} unreachable. Tracing DISABLED to prevent log noise.")
 
 except Exception:
-    pass  # OTel not installed — all calls become no-ops
+    pass
 
 
 # ─── Public API ───────────────────────────────────────────────────────────────
@@ -131,7 +149,7 @@ def traced(name: Optional[str] = None):
                 return func(*args, **kwargs)
 
         import asyncio
-        return async_wrapper if asyncio.iscoroutinefunction(func) else sync_wrapper
+        return async_wrapper if inspect.iscoroutinefunction(func) else sync_wrapper
     return decorator
 
 

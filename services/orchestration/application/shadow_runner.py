@@ -24,6 +24,10 @@ class ShadowRunner:
         "__pycache__",
         "node_modules",
         ".pytest_cache",
+        "libs/vendor",  # CRITICAL: Do not copy massive vendor libs
+        "runtime/shadow_workspace", # Do not copy existing shadows
+        "artifacts",
+        "brain"
     }
 
     def __init__(self, project_root: str | None = None, timeout_seconds: int = 180):

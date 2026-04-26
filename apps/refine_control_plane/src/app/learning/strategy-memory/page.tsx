@@ -17,12 +17,14 @@ const { Text } = Typography;
 export default function StrategyMemoryList() {
   const { tableProps } = useTable({
     resource: "learning/strategy-memory",
-    initialSorter: [
-      {
-        field: "trust_score",
-        order: "desc",
-      },
-    ],
+    sorters: {
+      initial: [
+        {
+          field: "trust_score",
+          order: "desc",
+        },
+      ]
+    },
   });
 
   return (

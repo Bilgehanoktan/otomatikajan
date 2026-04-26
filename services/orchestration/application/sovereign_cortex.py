@@ -142,8 +142,8 @@ class SovereignCortex:
     def repair_orch(self):
         """Lazy-loaded RepairOrchestrator"""
         if self._repair_orch is None:
-            from services.repair.application.orchestrator import RepairOrchestrator
-            self._repair_orch = RepairOrchestrator(model_orch=self.model_orch)
+            from services.orchestration.application.orchestrator import CentralExecutive
+            self._repair_orch = CentralExecutive(model_orch=self.model_orch)
         return self._repair_orch
 
     @property
@@ -266,7 +266,7 @@ class SovereignCortex:
         except Exception as e:
             _log.error(f"Self-Improvement initialization failed: {e}")
 
-    async def coordinate_goal(self, title: str, description: str, project_id: str = None, workflow_template: str = None, quality_profile: str = None, acceptance_criteria: str = None, execution_context: Dict[str, Any] = None) -> Any:
+    async def coordinate_goal(self, title: str, description: str, project_id: str = None, workflow_template: str = None, quality_profile: str = None, acceptance_criteria: str = None, execution_context: Dict[str, Any] = None, **kwargs) -> Any:
         if not self._is_running: await self.start()
         task_id = project_id or str(uuid.uuid4())
         _log.info(f"[SOVEREIGN] Hedef koordinasyonu başlatıldı: {title} ({task_id})")
@@ -296,9 +296,9 @@ class SovereignCortex:
             task.execution_context.update(execution_context)
 
         # 1. Metabolic & Safety Pre-checks
-        from services.orchestration.agi.metabolic_governor import metabolic_governor
-        from services.orchestration.agi.axiology_engine import axiology_engine
-        from libs.memory.pruner import memory_pruner
+        from services.orchestration.application.metabolic_governor import metabolic_governor
+        from services.orchestration.agi.cognitive.axiology_engine import axiology_engine
+        from services.orchestration.agi.cognitive.memory_pruner import memory_pruner
         
         if self.affective.energy < 0.3:
             _log.info(f"[SOVEREIGN-DREAM] Düşük enerji tespiti ({self.affective.energy:.2f}). Bilişsel Sıkıştırma başlatılıyor...")

@@ -18,7 +18,7 @@ except ImportError:
     pass
 try:
     from libs.db.models import (
-        ImprovementOpportunity, CEOSuggestedTask, CEODecision, 
+        ImprovementOpportunity, CEOSuggestedTask, CEODecision,
         Project, CEOPerformanceLog, SovereignGoal # Faz 79: North Star Goals
     )
 except ImportError:
@@ -47,24 +47,24 @@ class CEOEngine:
         Active projelerin North Star hedeflerine katkısını denetler.
         """
         if not goal: return
-        
+
         logger.info(f"👔 CEO Engine: Strategic Audit for Goal '{goal.title}' started.")
         # Bu hedefle ilişkili projeleri bul
         from libs.db.models import Project
         stmt = select(Project).where(Project.goal_id == goal.id, Project.status == 'active')
         res = await db.execute(stmt)
         projects = res.scalars().all()
-        
+
         for project in projects:
             # Projenin son durumunu ve KPI'lara etkisini analiz et
             impact = await self._verify_north_star_progress(db, goal, project)
-            
+
             if impact.get("deviation_detected"):
                 logger.warning(f"👔 CEO Audit: Project '{project.title}' shows deviation from goal! Realigning...")
                 await self.realign_project(db, project, impact["reason"])
             else:
                 logger.info(f"👔 CEO Audit: Project '{project.title}' is aligned. (Impact Delta: {impact.get('delta', 0)})")
-            
+
         # Eğer hedef gerçekleşmişse/KPI'lar tutmuşsa statüsünü güncelle
         # Otonom pivot yeteneği
         if await self._check_goal_completion(db, goal):
@@ -78,19 +78,19 @@ class CEOEngine:
         """
         # Şimdilik basitleştirilmiş mantık: Goal içindeki kpis objesi ile son metrikleri karşılaştır
         current_kpis = goal.kpis or {}
-        
+
         # Son 1 saatlik metrikleri al (Basitleştirilmiş)
         try:
             from libs.db.repositories.repository import ApiMetricRepository
             metrics = await ApiMetricRepository.get_summary(db, since_hours=1)
-            
+
             # Örnek: 'latency' KPI'ı varsa denetle
             if "latency_target" in current_kpis:
                 current_latency = metrics.get("avg_latency", 0)
                 target = current_kpis["latency_target"]
                 if current_latency > target * 1.5: # %50'den fazla sapma
                     return {"deviation_detected": True, "reason": f"Latency regression: {current_latency}ms > {target}ms", "delta": current_latency - target}
-            
+
             return {"deviation_detected": False, "delta": 0}
         except Exception as e:
             logger.error(f"KPI verification error: {e}")
@@ -103,10 +103,10 @@ class CEOEngine:
         project.notes = f"CEO Realignment: {reason}. (Applied at {datetime.now(timezone.utc)})"
         # Eğer sapma kritiksse durdur!
         if "regression" in reason.lower():
-            logger.important(f"👔 CEO Engine: Critical regression in '{project.title}'. STALLING project.")
+            logger.warning(f"👔 CEO Engine: Critical regression in '{project.title}'. STALLING project.")
             project.status = "error"
             project.error_detail = f"CEO Realignment: {reason}"
-        
+
     async def _check_goal_completion(self, db, goal: SovereignGoal) -> bool:
         """Hedefin tamamlanıp tamamlanmadığını son KPI verilerine göre kontrol eder."""
         # TODO: LLM tabanlı 'Success verification' eklenecek.
@@ -115,7 +115,7 @@ class CEOEngine:
     async def run_scan(self):
         """Main entry point for periodic background scanning."""
         logger.info("CEO Engine: Starting system scan...")
-        
+
         # --- PHASE 3: Resource Governance Health Check ---
         try:
             await ResourceGovernor.evaluate_emergency_status()
@@ -127,7 +127,7 @@ class CEOEngine:
             try:
                 from libs.config import MONTHLY_BUDGET
                 from libs.db.repositories.repository import CostRepository
-                
+
                 # Sadece repo ve metod varsa await et
                 if hasattr(CostRepository, 'total_cost'):
                     total_spent = await CostRepository.total_cost(db)
@@ -144,7 +144,7 @@ class CEOEngine:
                     "CRITICAL: Bütçe tabloları (llm_cost_logs vb.) bulunamadı! "
                     "Lütfen 'alembic upgrade head' ile veritabanını güncelleyin."
                 ) from e
-            
+
             # --- PHASE 53: NAS & Policy Optimization (The 'Other' Strategy Motor) ---
             try:
                 from services.orchestration.ceo.optimizer import CEOStochasticOptimizer
@@ -176,7 +176,7 @@ class CEOEngine:
                     for anomaly in drift_anomalies:
                         logger.warning(f"👔 CEO Engine: Drift Detected! {anomaly['message']}")
                         await self._record_decision(db, "DRIFT_MITIGATION", anomaly)
-                    
+
                     # FAZ 12.1: Drift tespit edildiğinde politikaları evrimleştir!
                     evolution_engine = PolicyEvolutionEngine(model_orch=self.model_orch)
                     logger.info("👔 CEO Engine: Triggering autonomous policy evolution due to drift.")
@@ -185,13 +185,13 @@ class CEOEngine:
                 # 3. Agent ROI & Efficiency
                 roi_stats = await CEOForecaster.calculate_agent_roi()
                 efficiency_findings = await CEOForecaster.audit_token_efficiency()
-                
+
                 for inefficient in efficiency_findings:
-                    logger.important(f"👔 CEO Engine: Inefficient Agent '{inefficient['agent_id']}' detected! Throttling...")
+                    logger.warning(f"👔 CEO Engine: Inefficient Agent '{inefficient['agent_id']}' detected! Throttling...")
                     await self._record_decision(db, "THROTTLE_AGENT", inefficient)
             except Exception as e:
                 logger.error(f"👔 CEO Engine Phase 2 audit failed: {e}")
-            
+
             opportunities = []
             # Map auditor findings to CEOEngine internal format
             for f in auditor_findings:
@@ -205,17 +205,20 @@ class CEOEngine:
                     "evidence": f["evidence"],
                     "evidence_detail": str(f["evidence"])
                 })
-            
+
             # 1.1 Visual UX Scan (Faz 12)
             try:
-                from hub_cortex.improvement_engine.visual_observer import VisualUXObserver
-                visual_obs = VisualUXObserver(db, self.model_orch)
-                visual_ops = await visual_obs.scan()
+                from services.repair.improvement.observer import ImprovementObserver
+                # VisualUXObserver şu an için devre dışı veya yeri değişti
+                # from hub_cortex.improvement_engine.visual_observer import VisualUXObserver
+                # visual_obs = VisualUXObserver(db, self.model_orch)
+                # visual_ops = await visual_obs.scan()
+                visual_ops = []
                 if visual_ops:
                     logger.info(f"👔 CEO Engine: Found {len(visual_ops)} visual/UX opportunities.")
                     opportunities.extend(visual_ops)
             except Exception as v_err:
-                logger.error(f"CEO Engine visual scan failed: {v_err}")
+                logger.error(f"CEO Engine visual/improvement scan failed: {v_err}")
 
             # 1.2 Repair Health Scan (Faz 12)
 
@@ -235,18 +238,18 @@ class CEOEngine:
                     })
             except Exception as e:
                 logger.error(f"CEO Forecaster failed during scan: {e}")
-            
+
             # 2. Score and persist opportunities
             logger.debug(f"👔 CEO Engine: Scoring {len(opportunities)} opportunities...")
             scored_opportunities = await self.score_opportunities(opportunities)
             logger.debug("👔 CEO Engine: Persisting opportunities to DB...")
             await self._persist_opportunities(db, scored_opportunities)
             await db.commit()
-            
+
             # 3. Decide next actions and create suggestions
             logger.debug("👔 CEO Engine: Deciding next actions based on scored opportunities...")
             await self.decide_next_actions(db, scored_opportunities)
-            
+
             self.last_scan_at = datetime.now(timezone.utc)
             logger.info(f"CEO Engine: Scan complete. Found {len(scored_opportunities)} opportunities.")
             return scored_opportunities
@@ -261,7 +264,7 @@ class CEOEngine:
             stmt = select(SovereignGoal).where(SovereignGoal.status == "active").order_by(desc(SovereignGoal.priority))
             res = await db.execute(stmt)
             goal = res.scalars().first()
-            
+
             if not goal:
                 logger.info("👔 CEO Engine: Aktif bir North Star Hedefi bulunamadı. GoalSynthesizer tetikleniyor...")
                 from services.orchestration.agi.cognitive.goal_synthesizer import GoalSynthesizer
@@ -277,8 +280,8 @@ class CEOEngine:
     async def _scan_strategic_gaps(self, db) -> List[Dict[str, Any]]:
         """Scans for strategic architectural gaps."""
         try:
-            from hub_cortex.improvement_engine.observer import ImprovementObserver
-            obs = ImprovementObserver(db, self.model_orch)
+            from services.repair.improvement.observer import ImprovementObserver
+            obs = ImprovementObserver()
             return await obs.scan()
         except Exception as e:
             logger.error(f"CEO Engine strategic scan failed: {e}")
@@ -288,20 +291,20 @@ class CEOEngine:
         """Scans for tasks that are stalled or in problematic states."""
         ops = []
         now = datetime.now(timezone.utc)
-        
+
         # Check for long-queued tasks
         recent_queued = await ProjectRepository.list_recent(db, limit=50, status="queued")
         for p in recent_queued:
             updated = getattr(p, "updated_at", p.created_at)
             if updated.tzinfo is None: updated = updated.replace(tzinfo=timezone.utc)
-            
+
             elapsed = (now - updated).total_seconds()
             if elapsed > 600: # 10 minutes
                 # --- Faz 8: Kurtarma Mekanizması ---
                 # Eğer görev 'queued' ise ve 10 dakikadır tepki yoksa, ya Redis silinmiş ya da worker takılmıştır.
                 # Önce görevi 'error' durumuna çekelim ki CEO engine yeni bir 'Düzeltme' görevi açabilsin.
                 logger.warning(f"👔 CEO Engine: Proje '{p.title}' ({p.id}) kuyrukta takılı kalmış ({int(elapsed)}s).")
-                
+
                 # Eğer bu bir CEO göreviyse ve 'queued' ise, doğrudan yeniden kuyruğa sokmayı deneyebiliriz (opsiyonel)
                 # Şimdilik temizlik için status'u 'error' yapalım, engine zaten 'queue_stuck' fırsatı oluşturuyor.
                 if p.status == "queued":
@@ -322,13 +325,13 @@ class CEOEngine:
                     "evidence": {"project_id": str(p.id), "time_in_status": elapsed},
                     "evidence_detail": f"Project '{p.title}' stuck in queue for {int(elapsed)}s. Threshold: 600s."
                 })
-                
+
         # Check for approval timeouts
         pending_approval = await ProjectRepository.list_recent(db, limit=50, status="pending_approval")
         for p in pending_approval:
             updated = getattr(p, "updated_at", p.created_at)
             if updated.tzinfo is None: updated = updated.replace(tzinfo=timezone.utc)
-            
+
             elapsed = (now - updated).total_seconds()
             if elapsed > 1800: # 30 minutes
                 source_type = "approval_timeout"
@@ -344,7 +347,7 @@ class CEOEngine:
                     "evidence": {"project_id": str(p.id), "time_in_status": elapsed},
                     "evidence_detail": f"Approval pending for {int(elapsed)}s on '{p.title}'. Human intervention may be needed."
                 })
-        
+
         return ops
 
     def _get_repair_health_summary(self) -> Dict[str, Any]:
@@ -392,27 +395,27 @@ class CEOEngine:
                 perf_stmt = select(func.avg(CEOPerformanceLog.impact_score)).where(CEOPerformanceLog.success == True)
                 avg_impact_res = await db_perf.execute(perf_stmt)
                 avg_impact = avg_impact_res.scalar() or 50
-            
+
             # Rule-based scoring
             severity_weights = {"critical": 100, "high": 75, "medium": 50, "low": 25}
             impact_score = severity_weights.get(data["severity"], 50)
             urgency_score = 70 if data["source_type"] in ["queue_stuck", "approval_timeout", "recurring_error"] else 30
             confidence_score = 0.9 # Observer is usually confident
             effort_score = 40 # Estimated
-            
+
             # priority_score = impact * 0.4 + urgency * 0.3 + confidence * 20 - effort * 0.1
             priority_score = (impact_score * 0.45) + (urgency_score * 0.35) + (confidence_score * 20) - (effort_score * 0.1)
-            
+
             # Category bonus
             if data.get("category") == "security":
                 priority_score += 15
-            
+
             # Learning Bonus: Increase priority if the system has been succeeding lately
             if avg_impact > 70:
                 priority_score += 5
             elif avg_impact < 40:
                 priority_score -= 5 # System is cautious if failing
-            
+
             data.update({
                 "impact_score": impact_score,
                 "urgency_score": urgency_score,
@@ -421,7 +424,7 @@ class CEOEngine:
                 "priority_score": round(priority_score, 2)
             })
             scored.append(data)
-            
+
         return sorted(scored, key=lambda x: x["priority_score"], reverse=True)
 
     async def _persist_opportunities(self, db, scored_ops: List[Dict[str, Any]]):
@@ -447,7 +450,7 @@ class CEOEngine:
                 )
                 if existing.scalars().first():
                     continue
-            
+
             new_id = uuid.uuid4()
             new_op = ImprovementOpportunity(
                 id=new_id,
@@ -473,7 +476,7 @@ class CEOEngine:
         """Turns high-priority opportunities into suggested tasks using LLM reasoning."""
         from sqlalchemy import func, select
         from datetime import datetime, timedelta, timezone
-        
+
         # 1. Production Hardening: Global Cooldown / Throttling (Faz 12.1)
         # Son 1 saat içinde oto-onaylanan (Auto-Approve) görev sayısını kontrol et.
         hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
@@ -515,20 +518,20 @@ class CEOEngine:
         stmt = select(ImprovementOpportunity).where(ImprovementOpportunity.status == "open").order_by(ImprovementOpportunity.priority_score.desc()).limit(5)
         res = await db.execute(stmt)
         persisted_ops = res.scalars().all()
-        
+
         # Merge scan results (dicts) with persisted (objs)
         all_to_eval = []
         seen_refs = set()
-        
+
         for op_obj in persisted_ops:
             all_to_eval.append(op_obj)
             if op_obj.source_ref: seen_refs.add(op_obj.source_ref)
-            
+
         for op_data in opportunities:
             if op_data.get("source_ref") not in seen_refs:
                 # Convert dict to temp obj for uniform interface
                 all_to_eval.append(op_data)
-        
+
         # Sort combined list by priority
         all_to_eval.sort(key=lambda x: x.priority_score if hasattr(x, "priority_score") else x.get("priority_score", 0), reverse=True)
 
@@ -537,7 +540,7 @@ class CEOEngine:
             # API yükünü dağıtmak için 0.5 - 2.0 sn arası rastgele bekleme ekle
             import random
             await asyncio.sleep(random.uniform(0.5, 2.0))
-            
+
             p_score = op.priority_score if hasattr(op, "priority_score") else op.get("priority_score", 0)
             o_title = op.title if hasattr(op, "title") else op.get("title", "Unknown")
 
@@ -553,7 +556,7 @@ class CEOEngine:
         from services.orchestration.indexing.system_indexer import SystemIndexer
         from services.orchestration.agency.loader import get_agency_loader
         agency_loader = get_agency_loader()
-        
+
         indexer = SystemIndexer()
         # Fetch relevant code context
         context = indexer.get_context_for_task(query=f"{op.title} {op.source_type}", limit=3)
@@ -575,7 +578,7 @@ class CEOEngine:
             context=context + goal_context,
             specialist_list_str=specialist_list_str
         )
-        
+
         try:
             response = await self.model_orch.complete(
                 messages=[{"role": "system", "content": "Sistem verilerini yorumlayan ve uzman gizli ajanları görevlendiren CEO'sunuz. Her zaman Türkçe yanıt verirsiniz."},
@@ -590,7 +593,7 @@ class CEOEngine:
                 return json.loads(json_match.group())
         except Exception as e:
             logger.error(f"CEO Delegation failed: {e}")
-        
+
         # Fallback to rule-based legacy roles if LLM fails
         return {
             "title": f"Düzeltme: {op.title}",
@@ -606,11 +609,11 @@ class CEOEngine:
         MEVCUT FIRSAT: {op.title}
         ESKİ ÖNERİ: {prev_suggestion.get('title')}
         ELEŞTİRMEN GERİ BİLDİRİMİ: {critique.get('reason')}
-        
-        Yukarıdaki eleştiriyi dikkate alarak öneriyi geliştirin ve hataları düzeltin. 
+
+        Yukarıdaki eleştiriyi dikkate alarak öneriyi geliştirin ve hataları düzeltin.
         Yanıtınız mutlaka JSON formatında olmalıdır.
         """
-        
+
         try:
             response = await self.model_orch.complete(
                 messages=[
@@ -627,13 +630,13 @@ class CEOEngine:
                 return json.loads(json_match.group())
         except Exception as e:
             logger.error(f"CEO Refinement failed: {e}")
-            
+
         return prev_suggestion # Return old one if refinement fails
 
     async def _create_suggestion_from_op(self, db, op_item: Any):
         """Logic to generate a task suggestion from an opportunity, delegating to Specialists."""
         from sqlalchemy import select
-        
+
         # Normalize op_item to object if it's a dict (though ideally it's an object from the DB)
         if isinstance(op_item, dict):
             # Fallback path for Dict inputs (though we prefer objects for ID access)
@@ -648,7 +651,7 @@ class CEOEngine:
             if not op_obj: return
         else:
             op_obj = op_item
-        
+
         # Check if a suggestion already exists for this op
         res_sug = await db.execute(
             select(CEOSuggestedTask).where(CEOSuggestedTask.opportunity_id == op_obj.id).limit(1)
@@ -664,7 +667,7 @@ class CEOEngine:
         # PHASE 2.2: Reflective Reasoning Loop (Self-Critique & Refinement)
         logger.info(f"👔 CEO Engine: Generating suggestion for {op_obj.title}...")
         ai_suggestion = await self._generate_suggestion_with_llm(op_obj, active_goal)
-        
+
         if not ai_suggestion or "title" not in ai_suggestion:
             logger.error("👔 CEO Engine: Suggestion generation failed (Empty or Invalid JSON).")
             return
@@ -676,10 +679,10 @@ class CEOEngine:
 
         while refinement_count < max_refinements:
             logger.info(f"👔 CEO Engine: Critique Phase (Refinement {refinement_count}) for: {ai_suggestion.get('title')}")
-            
+
             critique = await self._critique_suggestion(op_obj, ai_suggestion, active_goal)
             logger.debug(f"👔 CEO Engine: Parsed Critique: {critique}")
-            
+
             deliberation_logs.append({
                 "iteration": refinement_count,
                 "suggestion": ai_suggestion.copy(),
@@ -690,13 +693,13 @@ class CEOEngine:
                 if refinement_count > 0:
                     logger.info(f"👔 CEO Engine: Strategy validated after {refinement_count} refinement(s).")
                 break
-            
+
             action = critique.get("action", "refine")
-            
+
             if action == "cancel":
                 logger.warning(f"👔 CEO Engine: Strategy CANCELLED by critic: {critique.get('reason')}")
                 return
-            
+
             if action == "fallback":
                 logger.info(f"👔 CEO Engine: Switching to FALLBACK strategy: {critique.get('reason')}")
                 ai_suggestion["title"] = f"Güvenli Onarım: {op_obj.title}"
@@ -704,7 +707,7 @@ class CEOEngine:
                 ai_suggestion["is_roadmap"] = False
                 ai_suggestion["confidence"] = 0.6
                 break
-            
+
             if action == "refine":
                 logger.info(f"👔 CEO Engine: REFINING strategy based on critic feedback: {critique.get('reason')}")
                 ai_suggestion = await self._refine_suggestion_with_llm(op_obj, ai_suggestion, critique)
@@ -712,7 +715,7 @@ class CEOEngine:
             else:
                 # Default to valid if action unknown
                 break
-        
+
         # --- Reflective Loop End ---
 
         confidence = ai_suggestion.get("confidence", 0.5)
@@ -737,7 +740,7 @@ class CEOEngine:
             goal_id=active_goal.id if active_goal else None
         )
         db.add(new_suggestion)
-        
+
         # 2. Eğer Yol Haritası (Roadmap) ise Alt Görevleri Oluştur
         execution_target = new_suggestion
         if is_roadmap and steps:
@@ -758,17 +761,17 @@ class CEOEngine:
                 )
                 db.add(child_sug)
                 child_tasks.append(child_sug)
-            
+
             # İlk adımı otomatik onay hedefi olarak belirle
             if child_tasks:
                 execution_target = child_tasks[0]
                 agent_id = execution_target.owner_agent_hint
 
         await db.flush()
-        
+
         # Mark op as suggested
         op_obj.status = "suggested"
-        
+
         # Record decision
         decision = CEODecision(
             id=uuid.uuid4(),
@@ -778,32 +781,32 @@ class CEOEngine:
             decision_source="llm_agent"
         )
         db.add(decision)
-        
+
         # --- AUTO-EXECUTION LOGIC ---
         if not getattr(self, "_throttle_auto_exec", False) and confidence >= 0.9 and op_obj.priority_score >= 60:
             logger.info(f"CEO Engine: AUTO-EXECUTING {'first step of ' if is_roadmap else ''}task '{execution_target.title}'")
-            
+
             await self._approve_and_enqueue(
-                db, 
-                execution_target, 
-                op_obj, 
-                is_auto=True, 
+                db,
+                execution_target,
+                op_obj,
+                is_auto=True,
                 reasoning=ai_suggestion.get('reasoning')
             )
-            
+
             decision.decision_type = "auto_approve"
             decision.decision_summary = f"Auto-Approved {'Roadmap' if is_roadmap else 'Task'}: {execution_target.title}"
-            
+
         await db.flush()
 
     async def _approve_and_enqueue(self, db, suggestion, opportunity, is_auto=True, reasoning=None):
         """Helper to create a Project and move a suggestion to queue."""
         from libs.db.models import Project
         from libs.db.repositories.repository import TaskLogRepository
-        
+
         proj_id = uuid.uuid4()
         label = "[AUTO-CEO]" if is_auto else "[MANUAL-CEO]"
-        
+
         new_project = Project(
             id=proj_id,
             title=f"{label} {suggestion.title}",
@@ -820,11 +823,11 @@ class CEOEngine:
         db.add(new_project)
         suggestion.status = "approved"
         suggestion.created_task_id = proj_id
-        
+
         # --- ENQUEUE TO JOB QUEUE ---
         try:
             from services.orchestration.application.job_queue import job_queue
-            
+
             job = await job_queue.enqueue(
                 "run_project",
                 db_project_id=str(proj_id),
@@ -836,7 +839,7 @@ class CEOEngine:
             )
             new_project.status = "queued"
             new_project.job_id = job.id
-            
+
             await TaskLogRepository.write(
                 db, proj_id, "queued",
                 f"{'Otomatik' if is_auto else 'Manuel'} olarak başlatıldı ve ortak kuyruğa atıldı. (İş ID: {job.id})",
@@ -854,33 +857,33 @@ class CEOEngine:
         """Kullanıcının Dashboard'dan verdiği onayı işler."""
         from libs.db.session import session_scope
         from sqlalchemy import select
-        
+
         async with session_scope() as db:
             # Önce öneriyi bul
             res = await db.execute(select(CEOSuggestedTask).where(CEOSuggestedTask.id == suggestion_id))
             suggestion = res.scalars().first()
-            
+
             if not suggestion:
                 return {"success": False, "error": "Öneri bulunamadı."}
-            
+
             if suggestion.status != "suggested":
                 return {"success": False, "error": f"Öneri zaten '{suggestion.status}' durumunda."}
-                
+
             # Bağlı fırsatı bul (varsa)
             opportunity = None
             if suggestion.opportunity_id:
                 res_op = await db.execute(select(ImprovementOpportunity).where(ImprovementOpportunity.id == suggestion.opportunity_id))
                 opportunity = res_op.scalars().first()
-            
+
             # Onayla ve kuyruğa at
             proj_id = await self._approve_and_enqueue(
-                db, 
-                suggestion, 
-                opportunity, 
-                is_auto=False, 
+                db,
+                suggestion,
+                opportunity,
+                is_auto=False,
                 reasoning="Dashboard Manuel Onay"
             )
-            
+
             if proj_id:
                 await db.commit()
                 return {"success": True, "project_id": str(proj_id)}
@@ -892,14 +895,14 @@ class CEOEngine:
         """Provides a quick summary for the CEO Dashboard API."""
         async with session_scope() as db:
             from sqlalchemy import func, select
-            
+
             # 1. Temel Metrikler
             res_ops = await db.execute(select(func.count(ImprovementOpportunity.id)).where(ImprovementOpportunity.status == "open"))
             open_ops = res_ops.scalar() or 0
-            
+
             res_sug = await db.execute(select(func.count(CEOSuggestedTask.id)).where(CEOSuggestedTask.status == "suggested"))
             suggested_tasks = res_sug.scalar() or 0
-            
+
             # 2. Faz 8: Stratejik Görünüm ve Tahminleme
             try:
                 outlook = await CEOForecaster.get_strategic_outlook()
@@ -949,14 +952,14 @@ class CEOEngine:
         GEREKÇE: {suggestion.get('reasoning')}
         ROADMAP: {suggestion.get('is_roadmap')}
         {goal_context}
-        
-        Bu stratejik kararı bir 'Sovereign Critic' olarak değerlendir. 
+
+        Bu stratejik kararı bir 'Sovereign Critic' olarak değerlendir.
         Halüsinasyon var mı? Öneri fırsatla örtüşüyor mu? Güvenlik riski var mı? Maliyet makul mü? Stratejik hedefle uyumlu mu?
-        
-        Eğer öneri küçük düzeltmelerle iyileşebilecekse 'refine', 
-        kesinlikle yanlış veya riskliyse 'cancel', 
+
+        Eğer öneri küçük düzeltmelerle iyileşebilecekse 'refine',
+        kesinlikle yanlış veya riskliyse 'cancel',
         riski azaltmak için standart bir çözüme dönmek gerekiyorsa 'fallback' aksiyonunu seç.
-        
+
         JSON Formatı: {{'is_valid': bool, 'reason': '...', 'action': 'proceed/refine/fallback/cancel'}}
         """
         try:
@@ -982,9 +985,9 @@ class CEOEngine:
         logger.info("CEO Engine: Starting outcome evaluation...")
         async with session_scope() as db:
             from sqlalchemy import select
-            
+
             # 1. Fetch completed CEO projects that haven't been evaluated yet
-            # We check projects where ceo_managed=True AND status='completed' 
+            # We check projects where ceo_managed=True AND status='completed'
             # AND there's no entry in CEOPerformanceLog for them.
             res = await db.execute(
                 select(Project)
@@ -992,7 +995,7 @@ class CEOEngine:
                 .where(Project.status == "completed")
             )
             completed_projects = res.scalars().all()
-            
+
             for project in completed_projects:
                 # Check if already evaluated
                 perf_check = await db.execute(
@@ -1000,21 +1003,21 @@ class CEOEngine:
                 )
                 if perf_check.scalars().first():
                     continue
-                
+
                 logger.info(f"CEO Engine: Evaluating result of project '{project.title}'")
-                
+
                 # 2. Get the original suggestion and opportunity
                 sug_res = await db.execute(select(CEOSuggestedTask).where(CEOSuggestedTask.id == project.suggestion_id))
                 suggestion = sug_res.scalars().first()
                 if not suggestion: continue
-                
+
                 op_res = await db.execute(select(ImprovementOpportunity).where(ImprovementOpportunity.id == suggestion.opportunity_id))
                 opportunity = op_res.scalars().first()
-                
+
                 # 3. Analyze results (Summary of logs + Final Report)
                 # In a real scenario, we'd use LLM to read project.report and logs
                 success = "Success" in (project.report or "") or project.progress_pct == 100
-                
+
                 # 4. Record Performance
                 perf_log = CEOPerformanceLog(
                     id=uuid.uuid4(),
@@ -1027,11 +1030,11 @@ class CEOEngine:
                     final_reasoning=f"Proje şu durumla tamamlandı: {project.status}. Rapor analizi başarının sağlandığını gösteriyor."
                 )
                 db.add(perf_log)
-                
+
                 if success and opportunity:
                     opportunity.status = "resolved"
                     logger.info(f"CEO Engine: Opportunity '{opportunity.title}' marked as RESOLVED.")
-                
+
                 # --- PHASE 2.1: Roadmap Progression ---
                 # Eğer bu bir yol haritasının (Roadmap) bir adımıysa, bir sonraki adımı tetikle.
                 if success and suggestion and suggestion.parent_id:
@@ -1040,24 +1043,24 @@ class CEOEngine:
                         CEOSuggestedTask.parent_id == suggestion.parent_id,
                         CEOSuggestedTask.status == "suggested"
                     ).order_by(CEOSuggestedTask.plan_hierarchy["step_index"].astext.cast(Integer))
-                    
+
                     from sqlalchemy import Integer
                     next_res = await db.execute(next_step_stmt.limit(1))
                     next_sug = next_res.scalars().first()
-                    
+
                     if next_sug:
                         logger.info(f"CEO Engine: Yol haritasında bir sonraki adım bulundu: '{next_sug.title}'")
                         # Bir sonraki adımı otomatik onaya gönder (Eğer ana plan onaylıysa/mantıklıysa)
                         # Şimdilik doğrudan manuel onaya da düşebilir ama otonom modda oto-onay deneriz.
                         await self._auto_approve_next_step(db, next_sug, project)
-            
+
             await db.commit()
 
     async def _auto_approve_next_step(self, db, suggestion: CEOSuggestedTask, prev_project: Project):
         """Yol haritasındaki bir sonraki adımı otomatik olarak başlatır."""
         from libs.db.models import Project
         from libs.db.repositories.repository import TaskLogRepository
-        
+
         proj_id = uuid.uuid4()
         new_project = Project(
             id=proj_id,
@@ -1075,7 +1078,7 @@ class CEOEngine:
         db.add(new_project)
         suggestion.status = "approved"
         suggestion.created_task_id = proj_id
-        
+
         # Enqueue Logic (Celery app globalden gelmeli)
         try:
             from workers.workflow_worker.tasks.celery_app import celery_app
@@ -1092,15 +1095,6 @@ class CEOEngine:
             new_project.status = "error"
             new_project.error_detail = str(e)
 
-
-_ceo_engine = None
-
-def get_ceo_engine() -> CEOEngine:
-    global _ceo_engine
-    if _ceo_engine is None:
-        from services.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
-        _ceo_engine = CEOEngine(orchestrator.model_orch)
-    return _ceo_engine
     async def _record_decision(self, db, decision_type: str, data: Dict[str, Any]):
         """CEO kararlarını veritabanına kaydeder."""
         from libs.db.models import CEODecision
@@ -1116,3 +1110,12 @@ def get_ceo_engine() -> CEOEngine:
             await db.commit()
         except:
             await db.rollback()
+
+_ceo_engine = None
+
+def get_ceo_engine() -> CEOEngine:
+    global _ceo_engine
+    if _ceo_engine is None:
+        from services.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
+        _ceo_engine = CEOEngine(orchestrator.model_orch)
+    return _ceo_engine

@@ -53,6 +53,7 @@ const icons: Record<string, React.ReactNode> = {
     "repair-lab": <Cpu size={20} />,
     "repair-memory": <History size={20} />,
     verifiers: <Activity size={20} />,
+    axiology: <Scale size={20} />,
     "self-tuning": <Settings size={20} />,
     "governance-lineage": <Settings2 size={20} />,
     training: <Dna size={20} />,
@@ -80,8 +81,8 @@ const SidebarContent = () => {
             items: ["dashboard", "workflows", "agents", "incidents", "fleet"]
         },
         {
-            title: "YÖNETİŞİM & GÜVENLİK",
-            items: ["approvals", "audit", "compliance", "safety", "mesh", "federation", "governance-lineage", "policy-proposals"]
+            title: "YÃ–NETÄ°ÅžÄ°M & GÃœVENLÄ°K",
+            items: ["approvals", "audit", "axiology", "compliance", "safety", "mesh", "federation", "governance-lineage", "policy-proposals"]
         },
         {
             title: "OTONOM GELİŞİM",

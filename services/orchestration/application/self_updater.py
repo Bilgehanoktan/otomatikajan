@@ -39,7 +39,7 @@ class SelfUpdater:
     ALLOWED_TOP_LEVELS = {
         "core", "api", "agents", "llm", "services", "orchestration", 
         "observability", "db", "tasks", "quality", "improve", "heal", "utils", "webhooks",
-        "dashboard", "packages", "apps", "external"
+        "dashboard", "packages", "apps", "external", "libs"
     }
     
     HIGH_RISK_PATHS = {
@@ -414,3 +414,34 @@ MEVCUT DOSYA:
                 logger.warning(f"Kritik hata: rollback tetikleniyor -> {snapshot_tag}")
                 rb_mgr.rollback_to_tag(snapshot_tag)
             return f"Başarısız: {e}"
+
+    async def propose_fix(self, target_file_path: str, instruction: str) -> str:
+        """
+        Düşük riskli - Sadece ddzeltme kodu üretir, dosyaya yazmaz.
+        """
+        full_path = self._resolve_target_path(target_file_path)
+        relative_path = full_path.relative_to(self.project_root)
+        original_code = full_path.read_text(encoding="utf-8")
+        
+        related_context = self.indexer.get_context_for_task(
+            query=f"{relative_path.as_posix()} {instruction}",
+            limit=4
+        )
+        
+        prompt = f"""
+GÜNCELLEME ÖNERİSİ ÜRET: {relative_path.as_posix()}
+İSTEK: {instruction}
+
+KURAL: Sadece TAM ve ÇALIŞIR Python dosyasını ```python ... ``` bloğunda döndür.
+
+MEVCUT DOSYA:
+```python
+{original_code}
+```
+"""
+        raw_response = await self.model_orch.complete(
+            messages=[{"role": "user", "content": prompt}],
+            preferred_agent="engineering-system-architect",
+        )
+        raw_text = self._normalize_llm_output(raw_response)
+        return self._extract_code(raw_text)

@@ -32,6 +32,7 @@ async def test_state_corruption_fallback():
 
     dummy_task = FederationTask(
         task_id="corruption-task",
+        project_id="test-project",
         goal_description="Verify fallback",
         required_expertise=["logic"],
         context={}

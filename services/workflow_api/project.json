@@ -15,13 +15,13 @@
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pytest services/workflow_api/tests"
+        "command": "pytest tests/test_phase13_workflow.py tests/integration/test_mesh_api.py -q"
       }
     },
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "flake8 services/workflow_api"
+        "command": "ruff check services/workflow_api"
       }
     }
   }

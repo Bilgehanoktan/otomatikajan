@@ -136,7 +136,7 @@ export default function ApprovalsPage() {
                        </p>
                     </div>
                  ) : (
-                    requests.map((req: ApprovalRequest) => (
+                    requests.map((req: any) => (
                        <EliteApprovalCard 
                          key={req.id} 
                          request={req} 

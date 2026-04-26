@@ -1,1 +1,3 @@
-from hub_infra.api.router_registry import *
+from libs.infra.router_registry import register_routers
+
+__all__ = ["register_routers"]

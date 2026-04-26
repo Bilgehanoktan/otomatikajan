@@ -33,4 +33,3 @@ escalation:
   p1:
     notify: ["SLACK_ALERTS"]
     action: "LEVEL_B_CANARY_ROLLBACK"
-

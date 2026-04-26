@@ -142,7 +142,7 @@ class JobQueue(BaseQueueCapabilities):
                                 job = Job(
                                     id=job_id,
                                     type="run_project",
-                                    payload={"db_project_id": str(p.id), "title": p.title},
+                                    payload={"project_id": str(p.id), "title": p.title, "description": p.description or ""},
                                     status=self._map_db_status_to_job(p_status),
                                     created_at=p.created_at.isoformat() if p.created_at else ""
                                 )

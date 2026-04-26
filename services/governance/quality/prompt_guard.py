@@ -25,3 +25,21 @@ def enforce_output_contract(text: str, must_be_json: bool = False) -> str:
             # JSON değilse ham metni dön
             pass
     return text.strip()
+
+def validate_tool_param(params: dict) -> bool:
+    """Validates tool parameters against security guardrails."""
+    # Simple check for malicious patterns in strings
+    forbidden = [";", "&&", "||", "|", "`", "$(", "${"]
+
+    def check_val(v):
+        if isinstance(v, str):
+            for f in forbidden:
+                if f in v:
+                    return False
+        elif isinstance(v, dict):
+            return all(check_val(x) for x in v.values())
+        elif isinstance(v, list):
+            return all(check_val(x) for x in v)
+        return True
+
+    return check_val(params)

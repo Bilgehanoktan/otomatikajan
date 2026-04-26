@@ -126,7 +126,10 @@ class CEOStochasticOptimizer:
             func.avg(LLMCostLog.latency_s).label("avg_latency"),
             func.avg(LLMCostLog.cost_usd).label("avg_cost"),
             func.avg(cast(LLMCostLog.success, Integer)).label("success_rate")
-        ).where(LLMCostLog.created_at >= yesterday).group_by(LLMCostLog.agent_role, LLMCostLog.provider)
+        ).where(
+            LLMCostLog.created_at >= yesterday,
+            LLMCostLog.agent_role != None
+        ).group_by(LLMCostLog.agent_role, LLMCostLog.provider)
         
         results = await db.execute(stmt)
         

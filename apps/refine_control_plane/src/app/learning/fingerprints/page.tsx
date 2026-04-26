@@ -16,12 +16,14 @@ const { Text, Title } = Typography;
 export default function FingerprintList() {
   const { tableProps } = useTable({
     resource: "learning/fingerprints",
-    initialSorter: [
-      {
-        field: "recurrence_count",
-        order: "desc",
-      },
-    ],
+    sorters: {
+      initial: [
+        {
+          field: "recurrence_count",
+          order: "desc",
+        },
+      ]
+    },
   });
 
   return (

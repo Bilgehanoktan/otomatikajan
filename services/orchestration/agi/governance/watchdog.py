@@ -14,14 +14,14 @@ class GovernanceWatchdog:
     Sistemi periyodik olarak mimari/politika kural dışı durumlar için tarar.
     Tespit edilenleri RepairOrchestrator üzerinden otonom onarır.
     """
-    
+
     def __init__(self, project_root: str = ".", interval_seconds: int = 60, model_orch = None):
         self.project_root = project_root
         self.interval_seconds = interval_seconds
         self.model_orch = model_orch
         self._running = False
         self._last_audit_score = 1.0 # 0.0 to 1.0
-        self._instinct_count = 0 
+        self._instinct_count = 0
         self._prevented_count = 0 # Faz 43: Önlenen İhlaller
 
     async def predict_violations(self, subtasks: List[Any]) -> List[GovernanceViolation]:
@@ -36,11 +36,11 @@ class GovernanceWatchdog:
             for v in prompt_violations:
                 v.agent_id = st.agent_id # İhlali yapan ajanı işaretle
                 predicted.append(v)
-        
+
         if predicted:
             self._prevented_count += len(predicted)
             _log.warning(f"[GOVERNANCE-PREDICTION] {len(predicted)} olası ihlal engellendi ve re-planning tetiklendi.")
-            
+
         return predicted
 
     async def start(self):
@@ -65,24 +65,37 @@ class GovernanceWatchdog:
     async def audit_and_repair(self):
         """Sistemi denetler ve gerekirse onarım başlatır."""
         violations = await GovernanceRules.audit_project_structure(self.project_root)
-        
+
         if not violations:
             self._last_audit_score = 1.0
             return
 
-        # Puan hesapla (basit)
-        self._last_audit_score = max(0.0, 1.0 - (len(violations) * 0.1))
-        _log.warning(f"[GOVERNANCE] {len(violations)} kural ihlali tespit edildi! Sağlık Skoru: {self._last_audit_score:.2f}")
+        # Puan hesapla (Ağırlıklı Skorlama - Faz 12.1)
+        # CRITICAL: 0.3, HIGH: 0.15, MEDIUM: 0.05, LOW: 0.01
+        penalty_weights = {
+            "critical": 0.3,
+            "high": 0.15,
+            "medium": 0.05,
+            "low": 0.01
+        }
+
+        total_penalty = 0.0
+        for v in violations:
+            sev = v.severity.value if hasattr(v.severity, "value") else str(v.severity)
+            total_penalty += penalty_weights.get(sev.lower(), 0.05)
+
+        self._last_audit_score = max(0.0, 1.0 - total_penalty)
+        _log.warning(f"[GOVERNANCE] {len(violations)} kural ihlali tespit edildi! Toplam Ceza: {total_penalty:.2f} | Sağlık Skoru: {self._last_audit_score:.2f}")
 
         # Her ihlal için RepairOrchestrator tetikle
         from services.repair.application.orchestrator import get_repair_orchestrator
         orch = get_repair_orchestrator(model_orch=self.model_orch)
-        
+
         from services.repair.schemas.incident import IncidentRecord
 
         for v in violations:
             _log.info(f"[GOVERNANCE] Otonom onarım başlatılıyor: {v.rule_id} ({v.target})")
-            
+
             # 1. Incident Hazırla
             incident = IncidentRecord(
                 incident_id=f"gov_v_{int(time.time())}_{v.rule_id}",
@@ -92,7 +105,7 @@ class GovernanceWatchdog:
                 stack_trace="",
                 context=GovernanceRules.get_repair_payload(v)["context"]
             )
-            
+
             # 2. Onarımı tetikle
             await orch.start_repair(incident)
 

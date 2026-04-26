@@ -43,6 +43,7 @@ export default function IncidentDetailClient() {
 
     const handleResolve = async () => {
         const notes = (document.getElementById("resolution-notes") as HTMLTextAreaElement)?.value || "Manually resolved";
+        if (!incident) return;
         setIsSubmitting(true);
         try {
             const response = await safeFetchJson(`/api/v1/incidents/${incident.id}/resolve`, {

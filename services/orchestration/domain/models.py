@@ -16,6 +16,7 @@ class SourceType(Enum):
     EVENT_STREAM = "event_stream"
     MONITORING = "monitoring"
     EPISODE_REF = "episode_ref"
+    SYSTEM_EVOLUTION = "system_evolution"
 
 @dataclass
 class UnifiedInput:
@@ -103,9 +104,13 @@ class PlanStep:
 @dataclass
 class PlanProposal:
     """Tartışma (Debate) sürecindeki ham plan önerisi."""
-    agent_id: str
-    content: str
+    agent_id: str = "architect"
+    content: str = ""
+    title: Optional[str] = None
+    steps: List[str] = field(default_factory=list)
+    risk_level: RiskLevel = RiskLevel.LOW
     confidence: float = 1.0
+    task_id: Optional[str] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 @dataclass

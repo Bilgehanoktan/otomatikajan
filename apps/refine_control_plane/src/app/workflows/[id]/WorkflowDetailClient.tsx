@@ -60,6 +60,11 @@ export default function WorkflowDetailClient() {
     const handleApprove = async () => {
         const notes = (document.getElementById("approval-notes") as HTMLTextAreaElement)?.value || "";
         setIsSubmitting(true);
+        if (!workflow?.id) {
+            notification.error({ message: "Error", description: "Workflow not found." });
+            return;
+        }
+
         try {
             const response = await safeFetchJson(`/api/v1/workflows/${workflow.id}/approve`, {
                 method: "POST",
@@ -70,7 +75,7 @@ export default function WorkflowDetailClient() {
                 })
             });
 
-            if (response.status || response.msg) {
+            if (response.status === "success" || response.message || response.msg) {
                 notification.success({
                     message: "Workflow Approved",
                     description: "The workflow has been authorized and re-queued for execution.",
@@ -170,7 +175,7 @@ export default function WorkflowDetailClient() {
                             <Title level={3} style={{ color: "#fff", margin: 0, fontWeight: 900 }}>{workflow.name || "Unnamed Sequence"}</Title>
                             <Space style={{ marginTop: "4px" }}>
                                 {getStatusTag(workflow.status)}
-                                <Text type="secondary" style={{ fontSize: "11px", fontFamily: "monospace" }}>#{workflow.id.substring(0,8)}</Text>
+                                <Text type="secondary" style={{ fontSize: "11px", fontFamily: "monospace" }}>#{String(workflow.id).substring(0,8)}</Text>
                             </Space>
                         </div>
                     </Col>
@@ -314,7 +319,7 @@ export default function WorkflowDetailClient() {
                                         dataSource={workflow.related_approvals}
                                         renderItem={(item: any) => (
                                             <List.Item 
-                                                actions={[<Button size="small" type="link" onClick={() => window.open(`/approvals/${item.id}`, '_blank')}>VIEW</Button>]}
+                                                actions={[<Button key="view-approval" size="small" type="link" onClick={() => window.open(`/approvals/${item.id}`, '_blank')}>VIEW</Button>]}
                                                 style={{ borderBottom: "1px solid rgba(255,255,255,0.05)", padding: "8px 0" }}
                                             >
                                                 <List.Item.Meta
@@ -338,7 +343,7 @@ export default function WorkflowDetailClient() {
                                         dataSource={workflow.related_incidents}
                                         renderItem={(item: any) => (
                                             <List.Item 
-                                                actions={[<Button size="small" type="link" danger onClick={() => window.open(`/incidents/${item.id}`, '_blank')}>DEBUG</Button>]}
+                                                actions={[<Button key="debug-incident" size="small" type="link" danger onClick={() => window.open(`/incidents/${item.id}`, '_blank')}>DEBUG</Button>]}
                                                 style={{ borderBottom: "1px solid rgba(255,255,255,0.05)", padding: "8px 0" }}
                                             >
                                                 <List.Item.Meta

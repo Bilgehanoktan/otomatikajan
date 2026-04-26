@@ -36,6 +36,7 @@ async def test_automatic_failover_routing():
     # 2. Route a new task
     dummy_task = FederationTask(
         task_id="failover-task-001",
+        project_id="test-project",
         goal_description="Verify health-based rerouting",
         required_expertise=["backend_refactoring"],
         context={}

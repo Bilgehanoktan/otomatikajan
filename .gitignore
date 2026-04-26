@@ -55,3 +55,13 @@ build/
 
 # NX Cache
 .nx/
+
+incidents.json
+libs.db.bak
+
+# Geçici scratch/test dosyalarý
+scratch/
+lint_output.txt
+configs/corrupt_mesh_state.json
+docker-compose.docker-sandbox.yml
+libs/utils/

@@ -17,35 +17,40 @@ class PatchVerifier:
     def __init__(self, sandbox_runner: SandboxRunner):
         self.sandbox_runner = sandbox_runner
 
-    async def verify_patch(self, patch: str, context: Dict[str, Any]) -> bool:
+    async def verify_patch(self, patch: str, context: Dict[str, Any]) -> Dict[str, Any]:
         """
-        context beklenen alanlar:
-        - target_file
-        - verification_commands: list[str]
+        GeliÅŸmiÅŸ doÄŸrulama: Ã–nce Axiology (Etik/GÃ¼venlik), sonra Sandbox.
         """
-        target_file = context.get("target_file")
-        verification_commands = context.get("verification_commands", [])
+        from services.orchestration.agi.cognitive.axiology_engine import axiology_engine
 
+        target_file = context.get("target_file", "core/orchestrator.py")
+        logger.info(f"Yama doÄŸrulanÄ±yor: {target_file}")
+
+        # 1. Axiology Denetimi (BiliÅŸsel Bariyer)
+        audit = await axiology_engine.evaluate_alignment(patch, context="improvement_patch")
+        if audit.get("decision") == "reject":
+            logger.error(f"Axiology reddetti: {audit.get('rejection_reason')}")
+            return {"success": False, "reason": "axiology_reject", "audit": audit}
+
+        if audit.get("decision") == "flag":
+            logger.warning(f"Axiology uyardÄ±: {audit.get('justification')}")
+            # EÄŸer corrective_action varsa, Gate bunu kullanarak tekrar deneyebilir
+            if audit.get("corrective_action"):
+                return {"success": False, "reason": "axiology_retry_suggested", "audit": audit}
+
+        # 2. Sandbox Testi (Teknik Bariyer)
         if not patch or not patch.strip():
-            logger.error("Boş patch doğrulanamaz")
-            return False
-
-        if not target_file:
-            logger.error("Verifier context içinde target_file yok")
-            # Fallback for old system or mock tests
-            target_file = "dummy.py"
+            return {"success": False, "reason": "empty_patch"}
 
         try:
             with tempfile.TemporaryDirectory() as tmpdir:
                 workdir = Path(tmpdir)
                 target_path = workdir / Path(target_file).name
-
-                # Patch içeriğini yaz
                 target_path.write_text(patch, encoding="utf-8")
 
+                verification_commands = context.get("verification_commands", [])
                 if not verification_commands:
-                    # Varsayılan: Sadece sözdizimi kontrolü (mock)
-                    return True
+                    return {"success": True, "audit": audit}
 
                 for cmd in verification_commands:
                     result = await self.sandbox_runner.run_command(
@@ -55,9 +60,9 @@ class PatchVerifier:
                     )
                     if result.get("status") != "success":
                         logger.error("Verifier command failed: %s", cmd)
-                        return False
+                        return {"success": False, "reason": "test_failure", "cmd": cmd}
 
-                return True
+                return {"success": True, "audit": audit}
 
         except Exception as e:
             logger.exception("PatchVerifier hata verdi: %s", e)

@@ -17,7 +17,7 @@ async def test_audit_bundle_creation():
     )
     
     assert bundle.bundle_name == "Q2_2026_Audit"
-    assert bundle.integrity_hash == "PENDING"
+    assert bundle.integrity_hash == "SEALED"
     
     # Verify in DB
     from libs.db.session import get_db, get_db_ctx

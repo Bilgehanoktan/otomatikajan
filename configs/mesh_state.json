@@ -1,30 +1,43 @@
 {
   "regions": {
     "eu-central-1": {
-      "latency_from_us-east-1": 85,
+      "latency_from_us-east-1": 85.0,
       "last_latency_check": 1776286003.650719,
-      "updated_at": "2026-04-16T03:48:45.826320",
+      "updated_at": "2026-04-25T23:44:16.950941",
       "health_status": "NOMINAL",
       "health_score": 1.0,
-      "latency_from_source": 85.0
+      "latency_from_source": 85.0,
+      "name": "Frankfurt (Standby)",
+      "latency": 42,
+      "status": "HEALTHY",
+      "load": 0.12
     },
     "ap-southeast-1": {
       "health_score": 0.85,
-      "updated_at": "2026-04-15T20:57:14.462813",
+      "updated_at": "2026-04-25T23:43:15.182126",
       "latency_from_us-east-1": 193.22805856037422,
       "last_latency_check": 1776286004.2164931,
-      "health_status": "NOMINAL"
+      "health_status": "NOMINAL",
+      "name": "Singapore",
+      "latency": 115,
+      "status": "HEALTHY",
+      "load": 0.08
     },
     "us-east-1": {
-      "latency_from_us-east-1": 0,
+      "latency_from_us-east-1": 1500.0,
       "last_latency_check": 1776286004.2161596,
-      "updated_at": "2026-04-21T18:50:27.823220",
-      "health_status": "NOMINAL",
+      "updated_at": "2026-04-25T23:44:16.949976",
+      "health_status": "DEGRADED",
       "health_score": 0.1,
       "latency_from_source": 1500.0,
-      "manual_trigger": true
+      "manual_trigger": true,
+      "name": "North Virginia (Master)",
+      "latency": 11,
+      "status": "HEALTHY",
+      "load": 0.45,
+      "error": null
     }
   },
-  "last_update": "2026-04-21T18:50:27.823241",
+  "last_update": "2026-04-25T23:44:16.950951",
   "version": "1.0"
 }

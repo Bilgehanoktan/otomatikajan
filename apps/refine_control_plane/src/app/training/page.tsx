@@ -33,7 +33,7 @@ export default function TrainingDrillsPage() {
 
   useEffect(() => setIsClient(true), []);
 
-  const { data: drillsData, isLoading: isDrillsLoading, isError } = useList({
+  const { query: { data: drillsData, isLoading: isDrillsLoading, isError } } = useList({
     resource: "governance/drills",
     queryOptions: { enabled: isClient }
   });

@@ -1,6 +1,7 @@
 
 from __future__ import annotations
 import uuid
+import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
@@ -10,6 +11,7 @@ from services.governance.standby_manager import StandbyManager
 from services.auth.jwt_auth import require_permission
 
 router = APIRouter(tags=["Governance Control Plane"])
+logger = logging.getLogger(__name__)
 
 class StandbyCommand(BaseModel):
     command: str
@@ -98,6 +100,16 @@ class IncidentOut(BaseModel):
 class IncidentResolve(BaseModel):
     resolution_notes: str
     operator_id: str
+
+class AxiologyLogOut(BaseModel):
+    id: str
+    decision: str
+    context: str
+    justification: str
+    scores: Dict[str, float]
+    created_at: datetime
+    corrective_action: Optional[str] = None
+    target_preview: Optional[str] = None
 
 class SignoffOut(BaseModel):
     id: str
@@ -1265,12 +1277,42 @@ async def get_launch_gates():
 @router.post("/ops/handover")
 async def trigger_handover(project_id: str, dry_run: bool = True):
     from scripts.ops.production_handover import run_production_handover
-    # We run the script logic asynchronously
-    # In a real system, this would be a background task
     import asyncio
     try:
-        # Note: run_production_handover is an async function in the script now
         await run_production_handover(project_id, dry_run)
         return {"status": "success", "project_id": project_id, "dry_run": dry_run}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/governance/axiology-logs", response_model=List[AxiologyLogOut])
+async def list_axiology_logs(
+    response: Response,
+    limit: int = Query(50),
+    offset: int = Query(0),
+):
+    from libs.db.session import AsyncSessionLocal
+    from libs.db.models.core_models import SovereignEvidence
+    from sqlalchemy import select, func
+
+    async with AsyncSessionLocal() as db:
+        count_q = select(func.count(SovereignEvidence.id)).where(SovereignEvidence.evidence_type == "axiology_audit")
+        total_count = (await db.execute(count_q)).scalar()
+        response.headers["x-total-count"] = str(total_count)
+        response.headers["Access-Control-Expose-Headers"] = "x-total-count"
+
+        q = select(SovereignEvidence).where(SovereignEvidence.evidence_type == "axiology_audit").order_by(SovereignEvidence.created_at.desc()).limit(limit).offset(offset)
+        res = await db.execute(q)
+        items = res.scalars().all()
+
+        return [
+            AxiologyLogOut(
+                id=str(i.id),
+                decision=i.payload.get("decision", "unknown"),
+                context=i.payload.get("context", "unknown"),
+                justification=i.payload.get("justification", ""),
+                scores=i.payload.get("scores", {}),
+                created_at=i.created_at,
+                corrective_action=i.payload.get("corrective_action"),
+                target_preview=i.payload.get("target_preview")
+            ) for i in items
+        ]

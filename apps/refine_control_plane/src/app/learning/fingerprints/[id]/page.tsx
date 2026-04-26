@@ -32,9 +32,9 @@ import { DateField } from "@refinedev/antd";
 const { Title, Text, Paragraph } = Typography;
 
 export default function FingerprintDetail() {
-  const { queryResult } = useShow();
+  const { query } = useShow();
   const { list } = useNavigation();
-  const { data, isLoading } = queryResult;
+  const { data, isLoading } = query;
 
   const record = data?.data as any;
   const fp = record?.fingerprint;

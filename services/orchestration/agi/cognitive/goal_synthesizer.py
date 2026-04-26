@@ -34,7 +34,7 @@ class GoalSynthesizer:
         
         # 1. Ham Veri (Opportunities) Toplama
         async with session_scope() as db:
-            opportunities = await ImprovementRepository.list_open(limit=50)
+            opportunities = await ImprovementRepository.list_open(db, limit=50)
         
         if len(opportunities) < 3:
             _log.info("[GOAL_SYNTH] Sentez için yeterli fırsat birikmedi (< 3).")

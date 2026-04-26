@@ -11,7 +11,8 @@ import {
   Copy, 
   Check,
   AlertTriangle,
-  Cpu
+  Cpu,
+  Lock
 } from "lucide-react";
 import { useCustomMutation, useList } from "@refinedev/core";
 import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
@@ -23,7 +24,7 @@ export default function IdentityManagerPage() {
 
   useEffect(() => setIsClient(true), []);
 
-  const { data: identities, isLoading } = useList({
+  const { query: { data: identities, isLoading } } = useList({
     resource: "auth/identities", // We'll ensure this exists
     queryOptions: { enabled: isClient }
   });

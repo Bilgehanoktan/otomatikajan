@@ -30,7 +30,7 @@ const SEV_STYLES: Record<string, { bg: string; text: string; border: string; lab
   critical: { bg: "bg-red-500/[0.12]",     text: "text-red-400",    border: "border-l-red-400/70",   label: "CRIT" },
 };
 
-export function LiveEventStream({ apiUrl }: { apiUrl: string }) {
+export function LiveEventStream({ apiUrl, height }: { apiUrl: string, height?: string }) {
   const [events, setEvents] = useState<SystemEvent[]>([]);
   const [filter, setFilter] = useState("all");
   const [wsStatus, setWsStatus] = useState<"connecting" | "connected" | "polling" | "offline">("connecting");

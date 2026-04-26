@@ -10,7 +10,7 @@ import SettingOutlined from "@ant-design/icons/lib/icons/SettingOutlined";
 import GlobalOutlined from "@ant-design/icons/lib/icons/GlobalOutlined";
 import ApartmentOutlined from "@ant-design/icons/lib/icons/ApartmentOutlined";
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 
 export default function ScopedPoliciesPage() {
   // Mock data for Phase 30 WOW factor (In real usage, this would be a custom fetcher)
@@ -53,7 +53,7 @@ export default function ScopedPoliciesPage() {
       />
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
-        <Card title="Küresel Temel (Global Base)" icon={<GlobalOutlined />}>
+        <Card title={<Space><GlobalOutlined /> Küresel Temel (Global Base)</Space>}>
            <Text type="secondary">Tüm birimler için geçerli varsayılan kurallar.</Text>
            <div style={{ marginTop: "16px" }}>
              <Tag color="cyan">Retainment: 90 Regular / 3y Cold</Tag>
@@ -63,7 +63,7 @@ export default function ScopedPoliciesPage() {
            <Button type="link" style={{ marginTop: "12px", padding: 0 }}>Global Anayasayı Görüntüle</Button>
         </Card>
 
-        <Card title="Overlay Katmanları" icon={<SettingOutlined />}>
+        <Card title={<Space><SettingOutlined /> Overlay Katmanları</Space>}>
            <Table 
              dataSource={departments}
              pagination={false}

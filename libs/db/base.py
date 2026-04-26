@@ -55,5 +55,15 @@ class GUID(TypeDecorator):
         if value is None:
             return value
         if not isinstance(value, uuid.UUID):
-            return uuid.UUID(value)
+            # Ensure it is a string for processing
+            val_str = str(value).replace("-", "")
+            try:
+                # If it has 32 chars, it's a valid hex UUID
+                if len(val_str) == 32:
+                    return uuid.UUID(hex=val_str)
+                # Fallback to standard constructor
+                return uuid.UUID(str(value))
+            except (ValueError, TypeError):
+                # If all else fails, return as is or log (but don't crash)
+                return value
         return value

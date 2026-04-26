@@ -28,7 +28,7 @@ export interface Workflow {
   source: string;
   steps: WorkflowStep[];
   context_keys: string[];
-  payload: Record<string, any>;
+  payload: Record<string, unknown>;
   created_at?: string;
   started_at?: string;
   completed_at?: string;
@@ -44,7 +44,7 @@ export interface Incident {
   message: string;
   project_id?: string;
   created_at: string;
-  payload?: Record<string, any>;
+  payload?: Record<string, unknown>;
   __sqv_meta?: SqvMeta;
 }
 
@@ -82,6 +82,6 @@ export interface SystemImprovement {
   status: string;
   created_at: string;
   risk_score?: number;
-  test_results?: any;
+  test_results?: Record<string, unknown>;
   __sqv_meta?: SqvMeta;
 }

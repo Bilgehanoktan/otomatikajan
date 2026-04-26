@@ -58,10 +58,10 @@ class ProviderStats:
     @property
     def health_score(self) -> float:
         if not self.history: return 1.0
-        
+
         # Recent success rate
         recent_success_rate = sum(self.history) / len(self.history)
-        
+
         # Latency Penalty (Slow models are less preferred)
         latency_penalty = 1.0
         avg = self.avg_latency
@@ -70,7 +70,7 @@ class ProviderStats:
             latency_penalty = max(0.4, 1.0 - (avg - 5.0) / 10.0)
 
         base = recent_success_rate * latency_penalty
-        
+
         # Karantina Kontrolü
         if self.quarantine_until > time.time():
             return 0.0
@@ -89,7 +89,7 @@ class ProviderStats:
         self.total_latency += latency
         self.penalty_multiplier = 1
         self.circuit       = CircuitState.CLOSED
-        
+
         # Faz 12.3: Gecikme Kontrolü
         if latency > self.LATENCY_THRESHOLD:
             self.latency_streak += 1
@@ -111,14 +111,14 @@ class ProviderStats:
         self.history.append(False)
         if len(self.history) > self.WINDOW_SIZE:
             self.history.pop(0)
-        
+
         # Increase backoff penalty
         self.penalty_multiplier = min(self.penalty_multiplier * 2, 32)
-        
+
         if self.history.count(False) >= self.OPEN_THRESHOLD:
             self.circuit = CircuitState.OPEN
             logger.error(f"Devre Kesici AÇILDI (OPEN): {self.name} geçici olarak devredışı. Ceza: {self.penalty_multiplier}x")
-            
+
             # Faz 12.1: Otonom Karantina (Eğer çok sık hata alıyorsa 1 saat kapat)
             if self.penalty_multiplier >= 16:
                 self.quarantine_until = time.time() + 3600
@@ -127,7 +127,7 @@ class ProviderStats:
     def is_available(self) -> bool:
         if self.quarantine_until > time.time():
             return False
-            
+
         if self.circuit in (CircuitState.CLOSED, CircuitState.HALF_OPEN): return True
         # Backoff adjusts the duration
         # 429 rate limit errors increase the penalty_multiplier rapidly
@@ -150,21 +150,21 @@ class ProviderStats:
         """API anahtarının bir placeholder (örnek değer) olup olmadığını kontrol eder."""
         key = self.api_key
         if not key: return True
-        
+
         # Bilinen placeholder değerleri ve desenleri
         placeholders = [
             "sk-...", "sk-ant-...", "AI...", "your-", "key-", "...", "abc...",
             "YOUR_API_KEY", "YOUR_OPENAI_KEY", "PLACEHOLDER"
         ]
-        
+
         # Eğer anahtar listedeki bir placeholder'a tam eşitse
         if any(key == p for p in placeholders):
             return True
-            
+
         # Çok kısa anahtarlar da muhtemelen placeholder'dır (gerçek anahtarlar genelde 30+ karakter)
-        if len(key) < 20: 
+        if len(key) < 20:
             return True
-            
+
         return False
 
 # ── 3. Sağlayıcılar ve Rota Politikası ───────────────────
@@ -183,28 +183,28 @@ PROVIDERS: list[ProviderStats] = [
 ROUTING_POLICY: dict[str, list[str]] = {
     # Architect: High-end models for decision making
     "architect": ["nvidia", "anthropic", "openai", "groq", "openrouter", "gemini"],
-    
+
     # Backend Dev: Coding expertise
     "backend_dev": ["nvidia", "openai", "groq", "openrouter", "gemini", "anthropic"],
-    
+
     # QA Engineer: Large context and speed (Balanced)
     "qa_engineer": ["openai", "gemini", "groq", "openrouter"],
-    
+
     # Security: Precise and strict
     "security": ["nvidia", "anthropic", "openai", "groq"],
-    
+
     # Tech Writer: Fluent and cheap
     "tech_writer": ["gemini", "openai", "groq", "openrouter", "anthropic"],
-    
+
     # System Controller: Decision/Planning
     "system_controller": ["openai", "groq", "anthropic", "gemini"],
-    
+
     # Strategist: Planning/Reasoning
     "strategist": ["nvidia", "anthropic", "openai", "groq"],
-    
+
     # Visual Auditor: Vision-capable models
     "visual_auditor": ["gemini", "openai", "groq"],
-    
+
     # General fallback: Distributed load
     "general": ["openai", "gemini", "groq", "openrouter", "anthropic"]
 }
@@ -249,13 +249,26 @@ class ModelOrchestrator:
                 placeholders.append(p.name)
             else:
                 found.append(p.name)
-        
+
         if found:
             logger.info(f"[LLM] Hazır sağlayıcılar: {', '.join(found)}")
         if placeholders:
             logger.warning(f"[LLM] Placeholder anahtar tespit edildi (atlanacak): {', '.join(placeholders)}")
         if missing:
             logger.debug(f"[LLM] Anahtarı eksik sağlayıcılar: {', '.join(missing)}")
+
+    async def get_fallback_chain(self, agent_role: str) -> List[str]:
+        """Ajan rolüne göre sıralanmış (sağlık odaklı) sağlayıcı zincirini döner. (Tests/CEO compat)"""
+        base_providers = ROUTING_POLICY.get(agent_role, ROUTING_POLICY["general"])
+        available_stats = []
+        for p_name in base_providers:
+            p_stat = self.providers.get(p_name)
+            if p_stat and p_stat.api_key and not p_stat.is_placeholder_key():
+                available_stats.append(p_stat)
+
+        # Health score'a göre sırala (azalan)
+        available_stats.sort(key=lambda x: x.health_score, reverse=True)
+        return [p.name for p in available_stats]
 
     @traced("ModelOrchestrator.complete_task")
     async def complete_task(
@@ -269,8 +282,8 @@ class ModelOrchestrator:
         # ── BÜTÇE KONTROLÜ (Phase 7) ──
         if project_id:
             try:
-                from db.session import AsyncSessionLocal
-                from db.models import Project
+                from libs.db.session import AsyncSessionLocal
+                from libs.db.models import Project
                 async with AsyncSessionLocal() as db:
                     proj = await db.get(Project, project_id)
                     if proj and proj.budget_limit > 0 and proj.total_cost >= proj.budget_limit:
@@ -283,7 +296,7 @@ class ModelOrchestrator:
 
         # ── DİNAMİK PROMPT YAMASI ──
         try:
-            from core.prompt_manager import prompt_manager
+            from agents.prompts.prompt_manager import prompt_manager
             system_prompt = prompt_manager.apply_patch(agent_role, system_prompt)
         except Exception as e:
             logger.warning(f"Prompt patch hatası: {e}")
@@ -297,10 +310,10 @@ class ModelOrchestrator:
             p_stat = self.providers.get(p_name)
             if p_stat and p_stat.api_key and not p_stat.is_placeholder_key():
                 available_stats.append(p_stat)
-        
+
         # Health score'a göre sırala (azalan)
         available_stats.sort(key=lambda x: x.health_score, reverse=True)
-        
+
         # En tepedeki 2 taneyi kendi içinde karıştır (Eşit sağlıkta olanları randomize et)
         top_tier = [p for p in available_stats if p.health_score >= 0.8]
         if len(top_tier) >= 2:
@@ -311,13 +324,13 @@ class ModelOrchestrator:
 
         last_error = None
         skipped_details = []
-        
+
         for provider_name in preferred_providers:
             provider = self.providers.get(provider_name)
-            
+
             if not provider:
                 continue
-                
+
             if not provider.api_key:
                 skipped_details.append(f"{provider_name} (Key Yok)")
                 continue
@@ -325,7 +338,7 @@ class ModelOrchestrator:
             if provider.is_placeholder_key():
                 skipped_details.append(f"{provider_name} (Placeholder)")
                 continue
-                
+
             if not provider.is_available():
                 skipped_details.append(f"{provider_name} (Circuit Open)")
                 continue
@@ -335,31 +348,31 @@ class ModelOrchestrator:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt}
             ]
-            
+
             try:
                 result = await self._call(provider, messages, max_tokens=2048, project_id=project_id)
                 return result
-                
+
             except Exception as e:
                 last_error = e
                 # Rate Limit (429) tespiti
                 is_rate_limit = "429" in str(e) or "rate_limit" in str(e).lower()
-                
+
                 if is_rate_limit:
                     logger.error(f"RATE LIMIT (429) hit on {provider.name}. Applying extra penalty.")
                     provider.penalty_multiplier = max(provider.penalty_multiplier * 4, 16)
                     provider.circuit = CircuitState.OPEN # Hemen kapat
-                
+
                 logger.warning(f"Sağlayıcı Hatası ({provider.name}): {str(e)}. Fallback modele geçiliyor.")
                 err_summary = str(e)[:50]
                 skipped_details.append(f"{provider.name} (Hata: {err_summary}...)")
                 continue
-                
+
         # Eğer tüm modeller başarısız olduysa veya atlandıysa açıklayıcı bir hata fırlat
         error_msg = f"Task {task_id} için tüm modeller başarısız oldu (Rol: {agent_role})."
         if skipped_details:
             error_msg += f" [Detaylar: {', '.join(skipped_details)}]"
-        
+
         if last_error:
             error_msg += f" Son hata: {last_error}"
         else:
@@ -399,7 +412,7 @@ class ModelOrchestrator:
                         text = await self._call_openai(client, provider, messages, max_tokens)
                     else:
                         raise ValueError(f"Bilinmeyen sağlayıcı: {provider.name}")
-                        
+
                 latency = time.time() - t0
                 provider.record_success(latency)
 
@@ -424,14 +437,19 @@ class ModelOrchestrator:
                     metrics.record_llm_call(
                         provider=provider.name, latency_s=latency, success=True, tokens=est_tokens, cost_usd=est_cost
                     )
-                    
+
                     # In-memory Tracker & DB Persistence
-                    rec = cost_tracker.record(
+                    record_coro = cost_tracker.record(
                         provider=provider.name, model=provider.model, agent_id="orchestrator",
-                        input_tokens=est_tokens, output_tokens=out_tokens, 
+                        input_tokens=est_tokens, output_tokens=out_tokens,
                         latency_s=latency, success=True, project_id=project_id
                     )
-                    
+                    import inspect
+                    if inspect.iscoroutine(record_coro):
+                        rec = await record_coro
+                    else:
+                        rec = record_coro
+
                     # Arka planda DB'ye yaz (fire and forget tarzı ama await etmek daha güvenli)
                     async with AsyncSessionLocal() as db:
                         await cost_tracker.persist(db, rec)
@@ -509,7 +527,7 @@ class ModelOrchestrator:
         # Anthropic 'system' rolünü ayrı bir parametre olarak ister
         sys_msg = next((m["content"] for m in messages if m["role"] == "system"), "")
         usr_msgs = [m for m in messages if m["role"] != "system"]
-        
+
         # Proxy desteği
         base_url = os.getenv("CLAUDE_PROXY_URL") or p.base_url
         if base_url and not base_url.endswith("/messages"):
@@ -529,15 +547,15 @@ class ModelOrchestrator:
         return resp.json()["content"][0]["text"]
 
     async def _call_gemini(self, client, p, messages, max_tokens) -> str:
-        # Gemini 'system' mesajını contents'in başına veya systemInstruction'a koyar. 
+        # Gemini 'system' mesajını contents'in başına veya systemInstruction'a koyar.
         # Basitlik için tüm rolleri tek metin yapıyoruz.
         combined_text = "\n".join([f"{m['role'].upper()}: {m['content']}" for m in messages])
         contents = [{"parts": [{"text": combined_text}]}]
-        
+
         # Dinamik URL oluşturma
         api_version = "v1beta"
         url = f"{p.base_url.rstrip('/')}/{api_version}/models/{p.model}:generateContent"
-        
+
         resp = await client.post(
             f"{url}?key={p.api_key}",
             json={"contents": contents, "generationConfig": {"maxOutputTokens": max_tokens}},
@@ -566,7 +584,7 @@ class ModelOrchestrator:
 
         # Faz 12: Dynamic routing — prompt karmaşıklığına göre provider seç
         try:
-            from llm.model_router import get_model_router
+            from libs.llm.model_router import get_model_router
             router   = get_model_router()
             prompt_text = " ".join(str(m.get("content", "")) for m in messages)
             decision = router.route(prompt_text, agent_role=preferred_agent)
@@ -604,14 +622,14 @@ class ModelOrchestrator:
         """Analyze one or more images using a vision-capable model (Gemini or OpenAI)."""
         if isinstance(images, str):
             images = [images]
-            
+
         provider = self.providers.get(preferred_provider)
         if not provider or not provider.api_key or not provider.is_available():
             # Fallback to gemini if preferred is not available
             provider = self.providers.get("gemini")
             if not provider or not provider.api_key:
                 provider = self.providers.get("openai")
-        
+
         if not provider or not provider.api_key:
             raise RuntimeError("Vision support requires Gemini or OpenAI API key.")
 
@@ -623,7 +641,7 @@ class ModelOrchestrator:
                     parts = [{"text": prompt}]
                     for img in images:
                         parts.append({"inline_data": {"mime_type": "image/png", "data": img}})
-                        
+
                     contents = [{"parts": parts}]
                     resp = await client.post(
                         f"https://generativelanguage.googleapis.com/v1beta/models/{provider.model}:generateContent?key={provider.api_key}",
@@ -636,7 +654,7 @@ class ModelOrchestrator:
                     content_parts = [{"type": "text", "text": prompt}]
                     for img in images:
                         content_parts.append({"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img}"}})
-                        
+
                     messages = [{"role": "user", "content": content_parts}]
                     resp = await client.post(
                         provider.base_url,
@@ -647,9 +665,30 @@ class ModelOrchestrator:
                     text = resp.json()["choices"][0]["message"]["content"]
                 else:
                     raise ValueError(f"Vision not implemented for {provider.name}")
-            
+
             latency = time.time() - t0
             provider.record_success(latency)
+
+            # Phase 12.1: Vision Cost Tracking
+            try:
+                from libs.llm.cost_tracker import cost_tracker
+                from libs.llm.cost_calc import estimate_tokens
+                from libs.db.session import AsyncSessionLocal
+
+                in_tokens = estimate_tokens(prompt)
+                out_tokens = estimate_tokens(text)
+
+                rec = await cost_tracker.record(
+                    provider=provider.name, model=provider.model, agent_id="vision",
+                    input_tokens=in_tokens, output_tokens=out_tokens,
+                    latency_s=latency, success=True
+                )
+                async with AsyncSessionLocal() as db:
+                    await cost_tracker.persist(db, rec)
+                    await db.commit()
+            except Exception as e:
+                logger.warning(f"Vision cost tracking error: {e}")
+
             return text
         except Exception as e:
             provider.record_failure()
@@ -670,3 +709,6 @@ class ModelOrchestrator:
             }
             for p in self.providers.values()
         ]
+
+# ── Global Singleton Instance ──
+model_orchestrator = ModelOrchestrator()

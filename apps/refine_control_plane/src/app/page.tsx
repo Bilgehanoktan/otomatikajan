@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useList, useCustom, useApiUrl } from "@refinedev/core";
 import {
   Activity,
@@ -73,8 +73,12 @@ export default function ControlPlaneDashboard() {
   const [isClient, setIsClient] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "workflows" | "events" | "health" | "economy">("overview");
   const apiUrl = useApiUrl();
+  const [liveSeed, setLiveSeed] = useState("");
 
-  useEffect(() => { setIsClient(true); }, []);
+  useEffect(() => {
+    setLiveSeed(Math.random().toString(36).substring(7).toUpperCase());
+    setIsClient(true);
+  }, []);
 
   // API Veri Çekme (Health Dashboard)
   const { query: { data: dashRaw, isLoading: dashLoading } } = useCustom({
@@ -83,7 +87,6 @@ export default function ControlPlaneDashboard() {
     queryOptions: {
       enabled: isClient,
       refetchInterval: 8000,
-      keepPreviousData: true,
     },
   });
 
@@ -94,7 +97,6 @@ export default function ControlPlaneDashboard() {
     queryOptions: {
       enabled: isClient,
       refetchInterval: 15000,
-      keepPreviousData: true,
     },
   });
 
@@ -460,7 +462,7 @@ export default function ControlPlaneDashboard() {
                         </div>
                         <div className="flex items-center gap-4 bg-black/40 px-6 py-3 rounded-2xl border border-white/5">
                            <div className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] animate-ping" />
-                           <span className="text-[10px] font-mono text-[var(--primary)] font-black italic tracking-widest uppercase">CANLI_TOHUM: {Math.random().toString(36).substring(7).toUpperCase()}</span>
+                           <span className="text-[10px] font-mono text-[var(--primary)] font-black italic tracking-widest uppercase">CANLI_TOHUM: {liveSeed}</span>
                         </div>
                       </div>
                       <div className="flex-1 rounded-[3rem] border border-white/[0.05] bg-black/40 overflow-hidden relative shadow-2xl">

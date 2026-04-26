@@ -9,8 +9,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .sovereign_auditor import sovereign_auditor
-from hub_cortex.improvement_engine.proposer import proposer
-from hub_cortex.improvement_engine.cognitive_verifier import cognitive_verifier
+from services.repair.improvement.proposer import proposer
+from services.repair.improvement.cognitive_verifier import cognitive_verifier
 from services.orchestration.agi.operational.patching_sandbox import patching_sandbox
 from services.orchestration.agi.security.audit_gate import audit_gate
 from services.orchestration.agi.monitoring.provenance_engine_45 import provenance_engine_45

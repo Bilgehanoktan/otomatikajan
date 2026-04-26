@@ -39,7 +39,8 @@ class AutonomousEvolutionOrchestrator:
         self.failure_counter: Dict[str, int] = {}
         self.STUCK_THRESHOLD = 3
         self.DAILY_BUDGET_PERCENT = 0.05  # %5 günlük limit
-        self.loop_delay = 300  # 5 dakika
+        self.loop_delay = 300  # Default 5 min
+        self.dynamic_delay = 300
 
     async def start(self):
         """Evrim döngüsünü başlatır."""
@@ -59,11 +60,17 @@ class AutonomousEvolutionOrchestrator:
             try:
                 logger.info("--- New Evolution Cycle Starting ---")
                 
-                # 0. BÜTÇE KONTROLÜ (Institutional Governing Circuit Breaker)
-                # Global bütçeyi kontrol ediyor (System Project ID: sovereign-system)
+                # 0.1 Dinamik Gecikme Ayarı (Metabolik Adaptasyon)
+                budget_status = await BudgetService.get_remaining_budget("sovereign-system")
+                if budget_status < 0.1: # %10 bütçe kaldıysa yavaşla
+                    self.dynamic_delay = self.loop_delay * 10
+                    logger.info(f"🐢 Low budget detected. Slowing down evolution: {self.dynamic_delay}s")
+                else:
+                    self.dynamic_delay = self.loop_delay
+
                 if not await BudgetService.check_circuit_breaker("sovereign-system", 0.01):
                     logger.warning("⚠️ Institutional budget circuit breaker ACTIVE. Evolution paused.")
-                    await asyncio.sleep(self.loop_delay * 5)
+                    await asyncio.sleep(self.dynamic_delay * 2)
                     continue
 
                 # 1. PLANLA
@@ -127,11 +134,13 @@ class AutonomousEvolutionOrchestrator:
     async def _generate_evolution_plan(self) -> Optional[Dict[str, Any]]:
         """Sistemin neresini geliştireceğine karar verir."""
         todos = self._scan_for_todos()
+        errors = self._scan_for_errors()
         
         prompt = f"""
 SİSTEM EVRİM PLANI OLUŞTURUCU
 Proje Kökü: {self.project_root}
-Bulunan TODO'lar: {todos[:10]}
+Bulunan TODO'lar: {todos[:5]}
+Son Hatalar/Darboğazlar: {errors[:5]}
 
 GÖREV: Sistemin kod kalitesini, performansını veya yönetişim bütünlüğünü artıracak BİR ADET kritik geliştirme seç.
 Dönüş Formatı (Sadece JSON):
@@ -171,7 +180,12 @@ Dönüş Formatı (Sadece JSON):
                             results.append(str(p.relative_to(self.project_root)))
                     except:
                         continue
-        return results
+    def _scan_for_errors(self) -> List[str]:
+        """Runtime loglarından veya incident'lardan hata paternlerini yakalar."""
+        # Basitlik için şu an runtime/logs dizinini veya incident tablosunu tarayabilir.
+        # Şimdilik en çok fail veren dosyaları failure_counter'dan alıyoruz.
+        sorted_failures = sorted(self.failure_counter.items(), key=lambda x: x[1], reverse=True)
+        return [f"{file} ({count} failures)" for file, count in sorted_failures if count > 0]
 
     async def _diagnose_and_unstick(self, target_file: str, last_error: str):
         """Tıkanma durumunda 3-tier kurtarma politikası uygular."""

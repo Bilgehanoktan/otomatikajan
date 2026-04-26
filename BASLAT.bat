@@ -9,7 +9,9 @@ echo.
 
 :: ---- Degiskenler ----
 set "PROJECT_ROOT=%~dp0"
-set "PY_CMD=C:\Python314\python.exe"
+set "PY_CMD=python"
+where python >nul 2>&1
+if %ERRORLEVEL% neq 0 set "PY_CMD=C:\Python314\python.exe"
 set "BACKEND_PORT=8000"
 set "FRONTEND_PORT=3100"
 
@@ -26,7 +28,7 @@ timeout /t 2 /nobreak >nul
 
 :: ---- 2. Backend Baslatma ----
 echo [2/3] Mission Control API (%BACKEND_PORT%) baslatiliyor...
-set "BACKEND_CMD=cd /d %PROJECT_ROOT% && %PY_CMD% -m uvicorn services.workflow_api.main:app --host 0.0.0.0 --port %BACKEND_PORT% --reload"
+set "BACKEND_CMD=cd /d "%PROJECT_ROOT%" && "%PY_CMD%" -m uvicorn services.workflow_api.main:app --host 0.0.0.0 --port %BACKEND_PORT% --reload"
 start "Backend-%BACKEND_PORT%" cmd /k "%BACKEND_CMD%"
 
 :: Backend'in ayaga kalkmasi icin bekleme
@@ -35,7 +37,7 @@ timeout /t 4 /nobreak >nul
 
 :: ---- 3. Frontend Baslatma ----
 echo [3/3] Sovereign Cockpit UI (%FRONTEND_PORT%) baslatiliyor...
-set "FRONTEND_CMD=cd /d %PROJECT_ROOT%apps\refine_control_plane && npm run dev -- -p %FRONTEND_PORT%"
+set "FRONTEND_CMD=cd /d "%PROJECT_ROOT%apps\refine_control_plane" && npm run dev -- -p %FRONTEND_PORT%"
 start "Frontend-%FRONTEND_PORT%" cmd /k "%FRONTEND_CMD%"
 
 echo.

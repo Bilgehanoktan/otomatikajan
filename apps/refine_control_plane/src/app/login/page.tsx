@@ -2,22 +2,22 @@
 
 import React, { useState } from "react";
 import { useLogin } from "@refinedev/core";
-import { 
-  Form, 
-  Input, 
-  Button, 
-  Checkbox, 
-  Card, 
-  Typography, 
-  Space, 
+import {
+  Form,
+  Input,
+  Button,
+  Checkbox,
+  Card,
+  Typography,
+  Space,
   Layout,
   Alert,
   ConfigProvider,
   theme
 } from "antd";
-import { 
-  LockOutlined, 
-  UserOutlined, 
+import {
+  LockOutlined,
+  UserOutlined,
   RocketOutlined,
   SafetyOutlined,
   SafetyCertificateOutlined
@@ -27,7 +27,7 @@ import { Tooltip } from "antd";
 const { Title, Text } = Typography;
 
 export default function LoginPage() {
-  const { mutate: login, isLoading } = useLogin();
+  const { mutate: login, isPending } = useLogin();
   const [error, setError] = useState<string | null>(null);
 
   const onFinish = (values: any) => {
@@ -42,30 +42,30 @@ export default function LoginPage() {
   return (
     <Layout style={{ minHeight: "100vh", background: "#060a12", display: "flex", justifyContent: "center", alignItems: "center" }}>
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, overflow: "hidden", pointerEvents: "none" }}>
-         <div style={{ 
-           position: "absolute", 
-           top: "-10%", 
-           right: "-5%", 
-           width: "40%", 
-           height: "60%", 
+         <div style={{
+           position: "absolute",
+           top: "-10%",
+           right: "-5%",
+           width: "40%",
+           height: "60%",
            background: "radial-gradient(circle, rgba(102, 252, 241, 0.05) 0%, transparent 70%)",
            filter: "blur(60px)"
          }} />
-         <div style={{ 
-           position: "absolute", 
-           bottom: "-10%", 
-           left: "-5%", 
-           width: "40%", 
-           height: "60%", 
+         <div style={{
+           position: "absolute",
+           bottom: "-10%",
+           left: "-5%",
+           width: "40%",
+           height: "60%",
            background: "radial-gradient(circle, rgba(102, 252, 241, 0.03) 0%, transparent 70%)",
            filter: "blur(60px)"
          }} />
       </div>
 
-      <Card 
-        style={{ 
-          width: 400, 
-          background: "rgba(26, 28, 34, 0.8)", 
+      <Card
+        style={{
+          width: 400,
+          background: "rgba(26, 28, 34, 0.8)",
           backdropFilter: "blur(12px)",
           border: "1px solid rgba(102, 252, 241, 0.15)",
           boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.8)",
@@ -73,11 +73,11 @@ export default function LoginPage() {
         }}
       >
         <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div style={{ 
-            display: "inline-flex", 
-            padding: 16, 
-            borderRadius: "50%", 
-            background: "rgba(102, 252, 241, 0.1)", 
+          <div style={{
+            display: "inline-flex",
+            padding: 16,
+            borderRadius: "50%",
+            background: "rgba(102, 252, 241, 0.1)",
             marginBottom: 16,
             border: "1px solid rgba(102, 252, 241, 0.2)"
           }}>
@@ -111,12 +111,12 @@ export default function LoginPage() {
             name="email"
             rules={[{ required: true, message: "Lütfen e-posta adresinizi girin!" }]}
           >
-            <Input 
-              prefix={<UserOutlined style={{ color: "rgba(102, 252, 241, 0.5)" }} />} 
-              placeholder="E-posta" 
+            <Input
+              prefix={<UserOutlined style={{ color: "rgba(102, 252, 241, 0.5)" }} />}
+              placeholder="E-posta"
               size="large"
-              style={{ 
-                background: "rgba(11, 12, 16, 0.6)", 
+              style={{
+                background: "rgba(11, 12, 16, 0.6)",
                 border: "1px solid rgba(102, 252, 241, 0.1)",
                 color: "#fff"
               }}
@@ -131,8 +131,8 @@ export default function LoginPage() {
               prefix={<LockOutlined style={{ color: "rgba(102, 252, 241, 0.5)" }} />}
               placeholder="Şifre"
               size="large"
-              style={{ 
-                background: "rgba(11, 12, 16, 0.6)", 
+              style={{
+                background: "rgba(11, 12, 16, 0.6)",
                 border: "1px solid rgba(102, 252, 241, 0.1)",
                 color: "#fff"
               }}
@@ -149,16 +149,16 @@ export default function LoginPage() {
           </Form.Item>
 
           <Form.Item style={{ marginBottom: 0 }}>
-            <Button 
-              type="primary" 
-              htmlType="submit" 
-              loading={isLoading} 
-              block 
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={isPending}
+              block
               size="large"
-              style={{ 
-                height: 48, 
-                background: "#66fcf1", 
-                color: "#0b0c10", 
+              style={{
+                height: 48,
+                background: "#66fcf1",
+                color: "#0b0c10",
                 fontWeight: "bold",
                 border: "none",
                 borderRadius: 8,

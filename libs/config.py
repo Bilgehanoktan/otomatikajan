@@ -26,6 +26,7 @@ def validate_production_config():
         "JWT_SECRET": JWT_SECRET,
         "DATABASE_URL": DATABASE_URL,
         "ANTHROPIC_API_KEY": ANTHROPIC_API_KEY,
+        "WEBHOOK_SECRET": WEBHOOK_SECRET,
     }
     
     # Opsiyonel ama önerilenler (Uyarı basar)
@@ -39,10 +40,14 @@ def validate_production_config():
         raise RuntimeError(f"Üretim ortamı için kritik değişkenler eksik: {missing}")
 
     # Şablon/Zayıf şifre kontrolü
-    for name, secret in [("ADMIN_SECRET", ADMIN_SECRET), ("JWT_SECRET", JWT_SECRET)]:
+    for name, secret in [
+        ("ADMIN_SECRET", ADMIN_SECRET),
+        ("JWT_SECRET", JWT_SECRET),
+        ("WEBHOOK_SECRET", WEBHOOK_SECRET),
+    ]:
         is_weak = any(tpl in secret for tpl in WEAK_TEMPLATES)
         if is_weak:
-            raise RuntimeError(f"{name} üretim ortamı için kabul edilemez (Template eşleşmesi)!")
+            raise RuntimeError(f"{name} üretim ortamı için kabul edilemez!")
     
     if len(JWT_SECRET) < 64:
         raise RuntimeError("JWT_SECRET üretim ortamı için en az 64 karakter olmalı!")
@@ -58,7 +63,7 @@ try:
     _base_dir = os.path.dirname(os.path.abspath(__file__))
     # Öncelik: .env -> .env.local (Host mode)
     if os.path.exists(".env"):
-        load_dotenv(".env", override=False)
+        load_dotenv(".env", override=True)
     if os.path.exists(".env.local"):
         load_dotenv(".env.local", override=True) # local SHOULD override environment
         

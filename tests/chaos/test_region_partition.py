@@ -37,6 +37,7 @@ async def test_region_partition_behavior():
     router = MeshRouter()
     dummy_task = FederationTask(
         task_id="chaos-task-001",
+        project_id="test-project",
         goal_description="Test under partition",
         required_expertise=["logic"],
         context={"risk": "HIGH"}

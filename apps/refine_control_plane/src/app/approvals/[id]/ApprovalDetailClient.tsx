@@ -47,6 +47,7 @@ export default function ApprovalDetailClient() {
         const comment = (document.getElementById("approval-comment") as HTMLTextAreaElement)?.value || `Manually ${decision}`;
         setIsSubmitting(true);
         try {
+            if (!approval) return;
             const response = await safeFetchJson(`/api/v1/approvals/${approval.id}/decide`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -128,7 +129,7 @@ export default function ApprovalDetailClient() {
                             <Title level={3} style={{ color: "#fff", margin: 0, fontWeight: 900 }}>{approval.request_type}</Title>
                             <Space style={{ marginTop: "4px" }}>
                                 {getStatusTag(approval.status)}
-                                <Text type="secondary" style={{ fontSize: "11px", fontFamily: "monospace" }}>#{approval.id.substring(0,8)}</Text>
+                                <Text type="secondary" style={{ fontSize: "11px", fontFamily: "monospace" }}>#{approval.id?.toString().substring(0,8)}</Text>
                             </Space>
                         </div>
                     </Col>
@@ -142,7 +143,7 @@ export default function ApprovalDetailClient() {
                     <Col span={4}>
                         <Statistic 
                             title={<span style={{ color: "#45a29e", fontSize: "10px" }}>SOURCE PROJECT</span>}
-                            value={approval.project_id?.substring(0,8) || 'N/A'}
+                            value={approval.project_id?.toString().substring(0,8) || 'N/A'}
                             valueStyle={{ color: "#fff", fontSize: "18px", fontFamily: "monospace" }}
                         />
                     </Col>

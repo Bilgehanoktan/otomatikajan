@@ -35,7 +35,7 @@ export default function PolicyProposalsPage() {
 
   useEffect(() => setIsClient(true), []);
 
-  const { data: proposalData, isLoading: isProposalsLoading, isError, refetch } = useList({
+  const { query: { data: proposalData, isLoading: isProposalsLoading, isError, refetch } } = useList({
     resource: "governance/proposals",
     queryOptions: { enabled: isClient }
   });

@@ -18,43 +18,72 @@ class ImprovementGate:
     async def run_cycle(self):
         """Kendi kendini iyileştirme döngüsünü başlatır."""
         from libs.config import ENABLE_AUTONOMOUS_IMPROVEMENT, IMPROVEMENT_AUTO_APPLY_THRESHOLD
+        from libs.db.session import AsyncSessionLocal
+        from libs.db.models.core_models import ImprovementOpportunity
+
         logger.info(f"Self-Improvement loop started. Auto-apply: {ENABLE_AUTONOMOUS_IMPROVEMENT}")
-        
+
         # 1. Gözlemle (Problemleri Bul)
-        issues = await observer.scan_for_issues()
-        if not issues:
+        opportunities = await observer.scan()
+        if not opportunities:
             logger.info("No issues found for improvement.")
             return
 
-        for issue in issues:
-            # Mükerrer kontrolü
-            if any(p["issue"].get("reason") == issue["reason"] for p in self.active_proposals):
-                continue
+        async with AsyncSessionLocal() as session:
+            for opp in opportunities:
+                # Mükerrer kontrolü (DB üzerinden)
+                # Not: pattern_hash sayesinde aynı problem tekrar kaydedilmez (unique constraint var core_models'da)
+                try:
+                    session.add(opp)
+                    await session.commit()
+                    logger.info(f"New ImprovementOpportunity recorded: {opp.title}")
+                except Exception:
+                    await session.rollback() # Zaten varsa devam et
 
-            # 2. Öneri Al
-            patch = await proposer.propose_fix(issue)
-            if not patch:
-                continue
-                
-            # 3. Doğrula
-            success = await verifier.verify_patch(patch, issue)
-            
-            if success:
-                proposal = {
-                    "issue": issue,
-                    "patch": patch,
-                    "status": "pending_approval",
-                    "confidence": 0.85 # Mock confidence for now
+                # 2. Öneri Al
+                issue_dict = {
+                    "reason": opp.description,
+                    "affected_files": opp.affected_files,
+                    "agent_id": opp.source_ref
                 }
-                
-                # Otonom Uygulama Kontrolü
-                if ENABLE_AUTONOMOUS_IMPROVEMENT and proposal["confidence"] >= IMPROVEMENT_AUTO_APPLY_THRESHOLD:
-                    logger.warning(f"Self-Improvement: Otomatik uygulama başlatılıyor! Sebep: {issue['reason']}")
-                    await self.apply_proposal(proposal)
-                    await self._report_improvement(proposal, auto=True)
-                else:
-                    self.active_proposals.append(proposal)
-                    logger.warning(f"Self-Improvement: Yeni bir çözüm onay bekliyor! Ajan: {issue['agent_id']}")
+
+                patch = await proposer.propose_fix(issue_dict)
+                if not patch:
+                    continue
+
+                # 3. DoÄŸrula
+                v_result = await verifier.verify_patch(patch, issue_dict)
+
+                # --- Faz 12.1: Otonom Strateji DeÄŸiÅŸimi (Retry Logic) ---
+                if v_result.get("reason") == "axiology_retry_suggested":
+                    suggestion = v_result["audit"].get("corrective_action", "")
+                    logger.warning(f"Axiology strateji deÄŸiÅŸimi Ã¶nerdi: {suggestion}")
+
+                    # Yeni strateji ile tekrar proposal iste (basitleÅŸtirilmiÅŸ: proposer'a ipucu ver)
+                    issue_dict["instruction_hint"] = suggestion
+                    patch = await proposer.propose_fix(issue_dict)
+                    if patch:
+                        v_result = await verifier.verify_patch(patch, issue_dict)
+
+                if v_result.get("success"):
+                    proposal = {
+                        "issue": issue_dict,
+                        "patch": patch,
+                        "status": "pending_approval",
+                        "confidence": 0.85,
+                        "audit": v_result.get("audit")
+                    }
+
+                    # Otonom Uygulama KontrolÃ¼
+                    if ENABLE_AUTONOMOUS_IMPROVEMENT and proposal["confidence"] >= IMPROVEMENT_AUTO_APPLY_THRESHOLD:
+                        logger.warning(f"Self-Improvement: Otomatik uygulama baÅŸlatÄ±lÄ±yor! Sebep: {opp.description}")
+                        await self.apply_proposal(proposal)
+                        await self._report_improvement(proposal, auto=True)
+                    else:
+                        # Mükerrer teklif kontrolü (RAM listesinde)
+                        if not any(p["issue"]["reason"] == opp.description for p in self.active_proposals):
+                            self.active_proposals.append(proposal)
+                            logger.warning(f"Self-Improvement: Yeni bir çözüm onay bekliyor! Ajan: {opp.source_ref}")
 
     async def _report_improvement(self, proposal: Dict, auto: bool = False):
         """İyileştirme sonucunu kullanıcıya raporlar (WS üzerinden)."""
@@ -83,18 +112,18 @@ class ImprovementGate:
 
         issue = proposal["issue"]
         patch = proposal["patch"]
-        
-        target_file = issue.get("agent_id", "core/orchestrator.py")
-        if not target_file.endswith(".py") and "/" not in target_file:
-             target_file = f"agents/{target_file}.py"
+
+        # Faz 12.1: Hatalı dosya yerine etkilenen dosyayı hedefle
+        affected = issue.get("affected_files", [])
+        target_file = affected[0] if affected else "core/orchestrator.py"
 
         logger.info(f"Yama uygulanıyor: {target_file}")
-        
+
         await orchestrator.self_updater.modify_system_file(
             target_file_path=target_file,
             instruction=f"Apply this optimized fix: {patch}"
         )
-        
+
         # Uygulananı listeden kaldır
         if proposal in self.active_proposals:
             self.active_proposals.remove(proposal)

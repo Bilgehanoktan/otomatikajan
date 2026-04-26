@@ -55,14 +55,16 @@ export function Providers({ children }: { children: React.ReactNode }) {
         }
         
         // Dev Mode Auto Login: Eğer token yoksa otonom oturum aç
-        console.warn("Dev Mode Auto-Login triggered for admin@sovereign.agi");
-        const auto = await fetch(`${API_URL}/auth/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: "admin@sovereign.agi", password: "admin1234" }),
-          credentials: "include"
-        });
-        if (auto.ok) return { authenticated: true };
+        if (process.env.NODE_ENV === "development") {
+          console.warn("Dev Mode Auto-Login triggered for admin@sovereign.agi");
+          const auto = await fetch(`${API_URL}/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: "admin@sovereign.agi", password: "admin1234" }),
+            credentials: "include"
+          });
+          if (auto.ok) return { authenticated: true };
+        }
       } catch (e) { 
         console.error("Auth check/auto-login failed due to network error", e); 
       }
@@ -250,7 +252,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
             {
               name: "learning/adaptation-candidates",
               list: "/learning/adaptation-candidates",
-              meta: { label: "Adaptasyon Adayları", parent: "learning" },
+              meta: { label: "Adaptasyon AdaylarÄ±", parent: "learning" },
+            },
+            {
+              name: "axiology",
+              list: "/axiology",
+              show: "/axiology/:id",
+              meta: { label: "BiliÅŸsel Denetim" },
             },
           ]}
           options={{

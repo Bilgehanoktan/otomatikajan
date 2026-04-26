@@ -18,17 +18,20 @@ class PatchProposer:
         agent_id = issue.get('agent_id') or issue.get('evidence', {}).get('agent_id') or "system"
         evidence = issue.get('evidence') or "Kanıt yok"
 
+        instruction_hint = issue.get('instruction_hint', "")
+        hint_str = f"\n        STRATEJÄ°K TALÄ°MAT: {instruction_hint}\n" if instruction_hint else ""
+
         prompt = f"""
-        Sistem Otopilot: Kendi Kendini İyileştirme Modu
+        Sistem Otopilot: Kendi Kendini Ä°yileÅŸtirme Modu
         Tespit Edilen Sorun: {reason}
         Ajan: {agent_id}
-        Kanıtlar: {evidence}
-        
-        Sistemden alınan bu verilerle uzman bir mühendis gibi davranarak sorunu kalıcı olarak çözmek için bir aksiyon öner. 
-        Eğer bir kod değişikliği gerekiyorsa, bunu standart DIFF formatında sun.
-        Eğer yapılandırma değişikliği gerekiyorsa (timeout artırımı, retry sayısını artırma vb.), bunu bir JSON objesi olarak 'config_patch' altında belirt.
+        KanÄ±tlar: {evidence}{hint_str}
 
-        Önemli: Cevap sadece çözüm içermeli.
+        Sistemden alÄ±nan bu verilerle uzman bir mÃ¼hendis gibi davranarak sorunu kalÄ±cÄ± olarak Ã§Ã¶zmek iÃ§in bir aksiyon Ã¶ner.
+        EÄŸer bir kod deÄŸiÅŸikliÄŸi gerekiyorsa, bunu standart DIFF formatÄ±nda sun.
+        EÄŸer yapÄ±landÄ±rma deÄŸiÅŸikliÄŸi gerekiyorsa (timeout artÄ±rÄ±mÄ±, retry sayÄ±sÄ±nÄ± artÄ±rma vb.), bunu bir JSON objesi olarak 'config_patch' altÄ±nda belirt.
+
+        Ã–nemli: Cevap sadece Ã§Ã¶zÃ¼m iÃ§ermeli.
         """
         try:
             response = await self.model.generate(prompt)

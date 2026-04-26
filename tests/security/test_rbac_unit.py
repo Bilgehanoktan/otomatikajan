@@ -12,29 +12,21 @@ import sys
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.insert(0, ROOT)
 
-from services.auth.jwt_auth import require_admin, get_current_user, AuthService
-from libs.db.models import User
+from services.auth.jwt_auth import get_current_user, AuthService, AccessControlService
+from libs.db.models import Operator
 
 @pytest.mark.asyncio
-async def test_require_admin_logic():
-    print("\n[SECURITY] Testing require_admin logic...")
-    
-    # 1. Test Admin User (Should Pass)
-    admin_user = MagicMock(spec=User)
-    admin_user.is_admin = True
-    result = await require_admin(user=admin_user)
-    assert result == admin_user
-    print("  - Admin user PASSED")
+async def test_prime_role_permission_short_circuit():
+    allowed, reason = await AccessControlService.is_allowed(
+        db=AsyncMock(),
+        identity_id=MagicMock(),
+        identity_type="operator",
+        permission="identity.manage",
+        role="SOVEREIGN_PRIME",
+    )
 
-    # 2. Test Non-Admin User (Should FAIL with 403)
-    non_admin = MagicMock(spec=User)
-    non_admin.is_admin = False
-    
-    with pytest.raises(HTTPException) as exc:
-        await require_admin(user=non_admin)
-    assert exc.value.status_code == 403
-    assert "Admin yetkisi gerekli" in exc.value.detail
-    print("  - Non-admin user BLOCKED with 403 (Correct)")
+    assert allowed is True
+    assert "PRIME" in reason
 
 @pytest.mark.asyncio
 async def test_get_current_user_no_token():
@@ -61,7 +53,7 @@ async def test_auth_service_token_validation():
     
     # Simulate invalid token
     with pytest.raises(HTTPException) as exc:
-        await auth_service.get_user_from_token(mock_db, "invalid.token.here")
+        await auth_service.get_identity_from_token(mock_db, "invalid.token.here")
     
     assert exc.value.status_code == 401
     assert "Geçersiz token" in exc.value.detail

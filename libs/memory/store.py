@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
-    from db.models import Memory
+    from libs.db.models import Memory
 
 
 def _np():
@@ -46,7 +46,7 @@ class MemoryStore:
         importance: float = 0.5,
         metadata: dict | None = None,
     ) -> 'Memory':
-        from db.models import Memory
+        from libs.db.models import Memory
         # embedding = await get_embedding(body) # DB'de kolon yok, şimdilik devre dışı
         mem = Memory(
             agent_id=agent_id,
@@ -89,7 +89,7 @@ class MemoryStore:
         token_budget: int = 2000,
     ) -> list[dict]:
         from sqlalchemy import select
-        from db.models import Memory
+        from libs.db.models import Memory
 
         q_emb = await get_embedding(query)
 

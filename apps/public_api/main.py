@@ -25,7 +25,7 @@ from fastapi.staticfiles import StaticFiles
 try:
     from dotenv import load_dotenv as _load_dotenv
     if os.path.exists(".env"):
-        _load_dotenv(".env", override=False)
+        _load_dotenv(".env", override=True)
     if os.path.exists(".env.local"):
         _load_dotenv(".env.local", override=False)
     env = os.getenv("APP_ENV", os.getenv("ENVIRONMENT", "development"))
@@ -48,7 +48,7 @@ if _ENV == "production":
     except Exception as e:
         print(f"BEKLENMEDİK KURULUM HATASI: {e}")
         sys.exit(1)
-        
+
 
 # ── Core singleton'ları ───────────────────────────────────
 from services.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
@@ -109,33 +109,15 @@ _active_dash = _dash_modern if os.path.exists(os.path.join(_dash_modern, "index.
 if os.path.isdir(_active_dash):
     # 1. Mount the whole directory under /static for general access
     app.mount("/static", StaticFiles(directory=_active_dash), name="static")
-    
+
     # 2. Specifically mount /_next for Next.js internal assets
     _next_dir = os.path.join(_active_dash, "_next")
     if os.path.exists(_next_dir):
         app.mount("/_next", StaticFiles(directory=_next_dir), name="next_assets")
         logger.info(f"[DASHBOARD] Next.js assets mounted from {_next_dir}")
 
-    # 3. Handle root level files (favicon, manifest, etc.)
-    @app.get("/{file_path:path}", include_in_schema=False)
-    async def catch_all_static(file_path: str):
-        # Skip if it looks like an API call
-        if file_path.startswith("api/") or file_path.startswith("ws/"):
-            return None # Process via routers
-            
-        full_path = os.path.join(_active_dash, file_path)
-        if os.path.isfile(full_path):
-            return FileResponse(full_path)
-            
-        # Fallback to index.html for SPA routing
-        index_path = os.path.join(_active_dash, "index.html")
-        if os.path.exists(index_path):
-            return FileResponse(index_path)
-            
-        return None # Let FastAPI handle other routes (like health)
-
     logger.info(f"[DASHBOARD] Active Dashboard ({'Modern' if _active_dash == _dash_modern else 'Legacy'}) served from {_active_dash}")
-    
+
     # Ensure uploads directory exists
     _up = "uploads"
     if not os.path.exists(_up):
@@ -158,7 +140,7 @@ async def websocket_logs(ws: WebSocket):
     if not token:
         # Alt-metot: Sec-WebSocket-Protocol veya Authorization Header
         token = ws.headers.get("authorization", "").replace("Bearer ", "")
-    
+
     if not token:
         # 3. Öncelik: Cookie (access_token) - Dashboard uyumluluğu için
         token = ws.cookies.get("access_token")
@@ -207,7 +189,7 @@ async def health_check():
     from libs.db.session import is_db_available, db_error
     from services.orchestration.agency.loader import agency_loader
     from services.observability.memory_governor import memory_governor
-    
+
     db_ok = await is_db_available()
     current_agents = len(orchestrator._agents) if hasattr(orchestrator, "_agents") else 0
     specialists = len(agency_loader.agents)
@@ -228,7 +210,7 @@ async def health_check():
         "heal_score": heal_engine.system_health_score() if hasattr(heal_engine, "system_health_score") else 1.0,
         "ws_clients": ws_manager.client_count,
         "db": {
-            "available": db_ok, 
+            "available": db_ok,
             "error": db_error() if not db_ok else "",
             "is_fallback": (await import_db_degraded())
         },
@@ -275,7 +257,7 @@ async def deep_health_check():
     ]
     required = ["metabolism_loop", "memory_governor"]
     missing_tasks = [r for r in required if not any(r in task_name for task_name in active_tasks)]
-    
+
     if missing_tasks:
         logger.warning(f"Derin Sağlık Kontrolü Başarısız: Eksik AML görevleri -> {missing_tasks}")
         return JSONResponse(status_code=503, content={"status": "degraded", "missing": missing_tasks})
@@ -318,7 +300,7 @@ def _get_process_memory() -> str:
 
 def _get_repair_health_summary() -> dict:
     try:
-        from services.repair.application.orchestrator import get_repair_orchestrator
+        from services.repair.repair_orchestrator import get_repair_orchestrator
         orch = get_repair_orchestrator(model_orch=getattr(orchestrator, "model_orch", None))
         stats = orch.stats()
         return {
@@ -341,3 +323,24 @@ async def global_exception_handler(request, exc):
             "detail": str(exc) if _ENV == "development" else "Gizlendi",
         },
     )
+
+
+# ── Final Catch-all for SPA ───────────────────────────────
+# MUST be the last route to avoid intercepting /health or /api
+if os.path.isdir(_active_dash):
+    @app.get("/{file_path:path}", include_in_schema=False)
+    async def catch_all_static(file_path: str):
+        # Skip if it looks like an API call
+        if file_path.startswith("api/") or file_path.startswith("ws/"):
+            return None # Process via routers
+
+        full_path = os.path.join(_active_dash, file_path)
+        if os.path.isfile(full_path):
+            return FileResponse(full_path)
+
+        # Fallback to index.html for SPA routing
+        index_path = os.path.join(_active_dash, "index.html")
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+
+        return None

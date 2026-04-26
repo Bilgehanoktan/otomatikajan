@@ -26,7 +26,7 @@ from libs.db.models.learning_models import StrategyMemory, NegativePatternMemory
 from services.orchestration.application.sovereign_cortex import get_sovereign_cortex
 from services.improve.repair_bench import RepairBenchService
 
-router = APIRouter(prefix="/repair-lab", tags=["Autonomous Repair Lab"])
+router = APIRouter(tags=["Autonomous Repair Lab"])
 
 # ── Response Schemas ──────────────────────────────────────────────────────────
 
@@ -58,6 +58,29 @@ class TuningSuggestionOut(BaseModel):
     impact: str
     status: str
     created_at: datetime
+
+@router.get("/improvements")
+async def list_improvements(limit: int = 20):
+    """Sistem tarafindan tespit edilen iyileshtirme firsatlarini ve otonom tamir kayitlarini listeler."""
+    from libs.db.models.lineage_models import DecisionLineage
+    async with AsyncSessionLocal() as db:
+        # 'SYSTEM_EVOLUTION' veya 'SELF_HEAL' tipindeki kararlari getir
+        q = select(DecisionLineage).order_by(desc(DecisionLineage.created_at)).limit(limit)
+        res = await db.execute(q)
+        items = res.scalars().all()
+        
+        return [
+            {
+                "id": str(i.id),
+                "title": f"Evolution: {i.component_name}",
+                "component": i.component_name,
+                "description": i.rationale,
+                "status": "completed" if i.meta_data.get("success", False) else "failed",
+                "risk_level": i.meta_data.get("risk_level", "low"),
+                "created_at": i.created_at
+            }
+            for i in items
+        ]
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 

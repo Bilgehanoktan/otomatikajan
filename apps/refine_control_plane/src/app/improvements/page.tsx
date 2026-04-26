@@ -137,7 +137,7 @@ export default function ImprovementsPage() {
                          ) : isError ? (
                             <div className="py-20 text-center text-red-500 font-mono text-[10px] uppercase tracking-widest">Evolution Telemetry Offline</div>
                          ) : (
-                            improvements.map((improvement: SystemImprovement) => (
+                             improvements.map((improvement: any) => (
                                <EliteImprovementItem 
                                  key={improvement.id} 
                                  improvement={improvement} 

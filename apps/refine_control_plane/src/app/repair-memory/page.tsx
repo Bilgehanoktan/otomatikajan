@@ -1,284 +1,227 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { 
-  Activity, 
-  Brain, 
-  ShieldCheck, 
-  AlertTriangle, 
-  Clock, 
-  BarChart3, 
-  ChevronRight, 
-  Zap, 
-  Binary, 
-  Fingerprint,
-  RotateCcw,
-  Search,
-  Filter,
-  Cpu
+import React from "react";
+import { useCustom, useApiUrl } from "@refinedev/core";
+import { Card, Row, Col, Typography, Progress, Table, Tag, Space, Tooltip, Empty, Spin } from "antd";
+import {
+  History,
+  BrainCircuit,
+  ZapOff,
+  CheckCircle2,
+  XCircle,
+  Activity,
+  FileWarning,
+  TrendingUp,
+  Brain
 } from "lucide-react";
-import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
-import { Skeleton } from "@/components/dashboard/Skeleton";
-import { safeFetchJson } from "@/lib/api";
+
+const { Title, Text } = Typography;
 
 export default function RepairMemoryPage() {
-  const [isClient, setIsClient] = useState(false);
-  const [subsystems, setSubsystems] = useState<any[]>([]);
-  const [details, setDetails] = useState<any[]>([]);
-  const [selectedSS, setSelectedSS] = useState<string | null>(null);
-  const [detailsLoading, setDetailsLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const apiUrl = useApiUrl();
 
-  useEffect(() => {
-    setIsClient(true);
-    const fetchMemory = async () => {
-      try {
-        const data = await safeFetchJson('/api/v1/repair-lab/memory/heatmaps');
-        setSubsystems(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error("Tamir hafızası alınamadı", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchMemory();
-  }, []);
+  // Fetch Heatmaps
+  const { query: { data: heatmapData, isLoading: heatmapLoading } } = useCustom({
+    url: `${apiUrl}/memory/heatmaps`,
+    method: "get",
+  });
 
-  const fetchDetails = async (ss: string) => {
-    setSelectedSS(ss);
-    setDetailsLoading(true);
-    try {
-      const data = await safeFetchJson(`/api/v1/repair-lab/memory/details?subsystem=${encodeURIComponent(ss)}`);
-      setDetails(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("Detaylar alınamadı", err);
-    } finally {
-      setDetailsLoading(false);
-    }
-  };
+  // Fetch Learning Insights
+  const { query: { data: insightData, isLoading: insightLoading } } = useCustom({
+    url: `${apiUrl}/learning/insights`,
+    method: "get",
+  });
 
-  if (!isClient) return <div className="min-h-screen bg-[#060a12]" />;
+  const heatmaps = heatmapData?.data || [];
+  const strategies = insightData?.data?.strategies || [];
+  const negatives = insightData?.data?.penalized_patterns || [];
+
+  const isLoading = heatmapLoading || insightLoading;
 
   return (
-    <div className="min-h-screen p-8 bg-[#060a12] text-gray-300 animate-in fade-in duration-1000 overflow-x-hidden relative">
-      
-      <ResourceHeader 
-        title="Repair Memory" 
-        subtitle="Cognitive Risk Heatmaps & Subsystem Reliability Ledger" 
-        icon={<Brain size={32} />}
-        badge="Neural-V3 Active"
-        actions={
-          <div className="flex items-center gap-8">
-             <div className="flex flex-col items-end border-r border-white/5 pr-8">
-                <span className="text-[9px] text-gray-500 font-black uppercase tracking-widest leading-none">Experience Layer</span>
-                <span className="text-sm font-black text-orange-500 mt-2 font-mono tracking-tighter italic">RELIABLE</span>
-             </div>
-             <button 
-                onClick={() => window.location.reload()}
-                className="p-4 bg-white/5 border border-white/5 rounded-2xl text-gray-500 hover:text-white transition-all active:scale-95"
-             >
-                <RotateCcw size={18} />
-             </button>
-          </div>
-        }
-      />
-
-      {/* METRICS GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
-         <EliteMemoryMetric label="Resolved Patterns" val={subsystems.length > 0 ? subsystems.reduce((acc, s) => acc + (s.failure || 0), 0) : 0} icon={<Binary size={16} />} accent="text-orange-500" />
-         <EliteMemoryMetric label="Avg. Reliability" val="94.2%" icon={<ShieldCheck size={16} />} accent="text-green-500" />
-         <EliteMemoryMetric label="Learning Cycles" val="12.4k" icon={<Activity size={16} />} accent="text-[var(--primary)]" />
+    <div className="p-8 space-y-10 animate-in fade-in duration-1000">
+      <div className="flex justify-between items-end">
+        <div>
+          <h1 className="text-4xl font-black tracking-tighter text-white mb-2">
+            OTONOM <span className="text-[var(--primary)]">HAFIZA</span>
+          </h1>
+          <p className="text-[#45a29e] font-bold uppercase tracking-[0.3em] text-[10px]">
+            Repair Memory & Strategy Learning Engine
+          </p>
+        </div>
+        <div className="flex gap-4">
+           <div className="px-6 py-3 glass rounded-2xl border border-white/5 flex items-center gap-4">
+              <Brain className="text-[var(--primary)]" size={20} />
+              <div className="text-right">
+                <div className="text-xs font-black text-white">{strategies.length} Strateji</div>
+                <div className="text-[8px] text-gray-500 uppercase font-black">Aktif HafÄ±za</div>
+              </div>
+           </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-        {loading ? (
-          [1,2,3,4,5,6,7,8].map(i => <Skeleton key={i} className="h-64 rounded-[2rem]" />)
-        ) : subsystems.length === 0 ? (
-          <div className="col-span-full py-40 text-center opacity-30 flex flex-col items-center gap-6">
-             <div className="p-10 bg-white/5 rounded-full border border-white/5">
-                <Brain size={64} className="text-gray-700" />
-             </div>
-             <p className="font-black text-gray-700 uppercase tracking-[0.3em] italic max-w-xs leading-loose">
-                Hafızada henüz kayıtlı tamir deseni bulunmuyor. Sistem öğrendikçe burası dolacaktır.
-             </p>
-          </div>
-        ) : (
-          subsystems.map((sub: any, idx: number) => (
-            <EliteMemoryNode 
-              key={idx} 
-              subsystem={sub} 
-              index={idx + 1} 
-              onAnalyze={() => fetchDetails(sub.subsystem)}
-            />
-          ))
-        )}
-      </div>
-
-      {/* DETAIL SIDE PANEL */}
-      {selectedSS && (
+      {isLoading ? (
+        <div className="h-64 flex items-center justify-center">
+          <Spin size="large" />
+        </div>
+      ) : (
         <>
-          <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity animate-in fade-in" 
-            onClick={() => setSelectedSS(null)}
-          />
-          <div className="fixed right-0 top-0 bottom-0 w-full max-w-2xl bg-[#0a0f1a] border-l border-white/10 z-50 p-10 overflow-y-auto animate-in slide-in-from-right duration-500 shadow-2xl">
-            <div className="flex justify-between items-center mb-10">
-               <div>
-                  <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">
-                    <span className="text-orange-500">Analysis:</span> {selectedSS}
-                  </h2>
-                  <p className="text-[10px] text-gray-600 font-mono tracking-[0.3em] mt-2 italic">HISTORICAL EXPERIENCE LEDGER</p>
-               </div>
-               <button 
-                 onClick={() => setSelectedSS(null)}
-                 className="p-4 bg-white/5 rounded-2xl border border-white/5 text-gray-500 hover:text-white transition-all"
-               >
-                 <RotateCcw size={20} />
-               </button>
+          {/* 1. Heatmap Grid */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 px-4">
+               <Activity className="text-[var(--primary)]" size={18} />
+               <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">Alt Sistem BaÅŸarÄ± YoÄŸunluk HaritasÄ±</h3>
             </div>
-
-            {detailsLoading ? (
-              <div className="space-y-6">
-                 {[1,2,3,4].map(i => <Skeleton key={i} className="h-32 rounded-3xl" />)}
-              </div>
-            ) : details.length === 0 ? (
-              <div className="py-20 text-center opacity-20 italic uppercase tracking-widest text-sm">No detail records found.</div>
-            ) : (
-              <div className="space-y-6">
-                 {details.map((d, idx) => (
-                   <div key={idx} className="glass-panel p-6 rounded-3xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-all group">
-                      <div className="flex justify-between items-start mb-4">
-                         <div className="flex items-center gap-3">
-                            <div className={`w-2 h-2 rounded-full ${d.outcome === 'success' ? 'bg-green-500 glow-teal' : 'bg-red-500 glow-red'}`} />
-                            <span className="text-xs font-black text-white uppercase tracking-wider">{d.outcome}</span>
-                         </div>
-                         <span className="text-[10px] text-gray-600 font-mono italic">
-                            {new Date(d.recorded_at).toLocaleString()}
-                         </span>
+            <Row gutter={[16, 16]}>
+              {heatmaps.map((ss: any) => (
+                <Col span={6} key={ss.subsystem}>
+                  <Card className="glass-card !bg-[#0e1320]/40 border-none !p-6 hover:translate-y-[-4px] transition-all cursor-default group">
+                    <div className="flex justify-between items-start mb-6">
+                      <div className="p-3 bg-white/5 rounded-xl group-hover:bg-[var(--primary)]/10 transition-colors">
+                        <History size={20} className="text-gray-400 group-hover:text-[var(--primary)]" />
                       </div>
-                      
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                         <div className="p-3 bg-black/40 rounded-xl border border-white/5">
-                            <span className="text-[9px] text-gray-700 font-black uppercase block mb-1">Incident ID</span>
-                            <span className="text-xs font-mono text-gray-400">{d.incident_id?.substring(0, 16)}...</span>
-                         </div>
-                         <div className="p-3 bg-black/40 rounded-xl border border-white/5">
-                            <span className="text-[9px] text-gray-700 font-black uppercase block mb-1">Reliability Score</span>
-                            <span className="text-xs font-mono text-white font-bold">{(d.score * 100).toFixed(1)}%</span>
-                         </div>
+                      <div className="text-right">
+                        <Text className="text-[10px] text-gray-500 font-black uppercase block tracking-tighter">BaÅŸarÄ± OranÄ±</Text>
+                        <Text className="text-lg font-black text-white">%{Math.round(ss.rate * 100)}</Text>
                       </div>
-
-                      {d.failure_reason && d.failure_reason !== 'N/A' && (
-                        <div className="p-4 bg-red-500/5 border border-red-500/10 rounded-2xl mb-4">
-                           <span className="text-[9px] text-red-500/60 font-black uppercase mb-2 block tracking-widest">Failure Diagnosis</span>
-                           <p className="text-xs text-red-100/70 italic leading-relaxed">{d.failure_reason}</p>
+                    </div>
+                    <Title level={5} className="!text-white tracking-tight !m-0 !mb-4 uppercase text-xs">{ss.subsystem}</Title>
+                    <Progress
+                      percent={ss.rate * 100}
+                      strokeColor={ss.rate > 0.7 ? "#66fcf1" : ss.rate > 0.4 ? "#f6ad55" : "#f56565"}
+                      trailColor="rgba(255,255,255,0.05)"
+                      strokeWidth={8}
+                      showInfo={false}
+                    />
+                    <div className="flex justify-between mt-4 text-[9px] font-bold uppercase tracking-tighter">
+                       <span className="text-green-500 flex items-center gap-1"><CheckCircle2 size={10} /> {ss.success} Ok</span>
+                       <span className="text-red-500 flex items-center gap-1"><XCircle size={10} /> {ss.failure} Fail</span>
+                    </div>
+                  </Card>
+                </Col>
+              ))}
+              {heatmaps.length === 0 && (
+                 <Col span={24}>
+                   <Card className="glass-card !bg-[#0e1320]/20 border-dashed border-white/5 !p-12 flex flex-col items-center justify-center">
+                     <Empty
+                       image={Empty.PRESENTED_IMAGE_SIMPLE}
+                       description={
+                        <div className="text-center">
+                          <Text className="text-[11px] font-black uppercase tracking-widest text-gray-500 block mb-2">BiliÅŸsel KuluÃ§ka Evresi</Text>
+                          <Text className="text-[10px] text-gray-600">Sistem henÃ¼z otonom tamir tecrÃ¼besi biriktiriyor. Veriler toplandÄ±kÃ§a harita canlanacaktÄ±r.</Text>
                         </div>
-                      )}
-
-                      {d.rejections && d.rejections.length > 0 && (
-                        <div>
-                           <span className="text-[9px] text-gray-700 font-black uppercase mb-2 block tracking-widest">Verifier Rejections</span>
-                           <div className="flex flex-wrap gap-2">
-                              {d.rejections.map((v: string, i: number) => (
-                                <span key={i} className="px-2 py-0.5 bg-red-500/10 border border-red-500/20 text-red-500 text-[9px] font-bold uppercase rounded-md tracking-tighter">
-                                  {v}
-                                </span>
-                              ))}
-                           </div>
-                        </div>
-                      )}
-                   </div>
-                 ))}
-              </div>
-            )}
+                       }
+                     />
+                   </Card>
+                 </Col>
+              )}
+            </Row>
           </div>
+
+          <Row gutter={[24, 24]}>
+            {/* 2. Strategy Trust Score */}
+            <Col span={14}>
+              <Card className="glass-panel !bg-[#0b0c10]/40 border-white/5 !p-8 h-full">
+                <div className="flex items-center gap-3 mb-8">
+                  <BrainCircuit className="text-[var(--primary)]" size={24} />
+                  <Title level={4} className="!text-white !m-0 tracking-tighter uppercase text-sm">Strateji GÃ¼ven ve Verimlilik Matrisi</Title>
+                </div>
+                <Table
+                  dataSource={strategies}
+                  pagination={false}
+                  className="custom-table"
+                  rowKey="name"
+                >
+                  <Table.Column
+                    title={<span className="label-tech">STRATEJÄ°</span>}
+                    dataIndex="name"
+                    render={(val) => <Text className="font-black text-[var(--primary)] uppercase text-[10px] tracking-widest">{val}</Text>}
+                  />
+                  <Table.Column
+                    title={<span className="label-tech">GÃœVEN PUANI</span>}
+                    dataIndex="trust_score"
+                    render={(val) => (
+                      <div className="flex items-center gap-3">
+                        <Progress percent={val * 100} size="small" strokeColor="#66fcf1" showInfo={false} className="w-24" />
+                        <Text className="text-white font-mono text-[10px]">{Math.round(val * 100)}%</Text>
+                      </div>
+                    )}
+                  />
+                  <Table.Column
+                    title={<span className="label-tech">BAÅžARI / ROLLBACK</span>}
+                    render={(_, r: any) => (
+                      <Space size={12}>
+                        <Tag color="success" className="!rounded-full border-none font-bold text-[9px] px-3">+{r.success}</Tag>
+                        <Tag color="error" className="!rounded-full border-none font-bold text-[9px] px-3">-{r.rollbacks}</Tag>
+                      </Space>
+                    )}
+                  />
+                  <Table.Column
+                    title={<span className="label-tech">DURUM</span>}
+                    dataIndex="state"
+                    render={(val) => (
+                      <Tag className={`!rounded-full font-black uppercase text-[8px] border-none px-3 ${val === 'PROMOTED' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                        {val}
+                      </Tag>
+                    )}
+                  />
+                </Table>
+              </Card>
+            </Col>
+
+            {/* 3. Negative Patterns */}
+            <Col span={10}>
+              <Card className="glass-panel !bg-[#0b0c10]/40 border-white/5 !p-8 h-full">
+                <div className="flex items-center gap-3 mb-8">
+                  <ZapOff className="text-red-500" size={24} />
+                  <Title level={4} className="!text-white !m-0 tracking-tighter uppercase text-sm">CezalandÄ±rÄ±lan Negatif KalÄ±plar</Title>
+                </div>
+                <div className="space-y-4">
+                  {negatives.map((n: any, idx: number) => (
+                    <div key={idx} className="p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-red-500/30 transition-all group">
+                       <div className="flex justify-between items-start mb-3">
+                          <Tag color="error" className="!rounded-full border-none font-black text-[8px] uppercase">{n.strategy}</Tag>
+                          <div className="text-right">
+                             <Text className="text-[10px] text-red-400 font-bold block leading-none">-{Math.round(n.penalty * 100)} Puan</Text>
+                             <Text className="text-[8px] text-gray-600 uppercase font-black">Ceza AÄŸÄ±rlÄ±ÄŸÄ±</Text>
+                          </div>
+                       </div>
+                       <Text className="text-gray-300 text-[11px] block italic mb-2">"{n.reason}"</Text>
+                       <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-1 text-[9px] text-gray-500 font-bold">
+                             <TrendingUp size={10} /> {n.occurrences} Tekrar
+                          </div>
+                          <div className="flex items-center gap-1 text-[9px] text-gray-500 font-bold">
+                             <FileWarning size={10} /> Etki: {n.blast_radius || 'SÄ±nÄ±rlÄ±'}
+                          </div>
+                       </div>
+                    </div>
+                  ))}
+                  {negatives.length === 0 && (
+                    <Empty description={<span className="text-[10px] font-black uppercase text-gray-600 tracking-widest">KÄ±sÄ±tlanan kalÄ±p yok</span>} />
+                  )}
+                </div>
+              </Card>
+            </Col>
+          </Row>
         </>
       )}
-    </div>
-  );
-}
 
-function EliteMemoryMetric({ label, val, icon, accent }: any) {
-  return (
-    <div className="glass-panel p-8 rounded-[2rem] border-white/5 bg-white/[0.01] hover:bg-white/[0.02] transition-all relative overflow-hidden group">
-       <div className="flex justify-between items-center mb-6">
-          <span className="text-[10px] text-gray-600 font-black uppercase tracking-widest">{label}</span>
-          <div className="p-3 bg-black/40 rounded-xl border border-white/5 text-gray-600 group-hover:text-white transition-colors">
-            {icon}
-          </div>
-       </div>
-       <h3 className={`text-4xl font-black tracking-tighter ${accent}`}>{val}</h3>
-    </div>
-  );
-}
-
-function EliteMemoryNode({ subsystem, index, onAnalyze }: { subsystem: any, index: number, onAnalyze: () => void }) {
-  const risk = 1 - (subsystem.rate || 0);
-
-  return (
-    <div className="glass-panel p-8 rounded-[2.5rem] border border-white/5 bg-white/[0.015] hover:bg-white/[0.035] hover:border-orange-500/30 transition-all group relative overflow-hidden shadow-xl">
-       <div 
-         className="absolute -top-10 -right-10 w-32 h-32 bg-orange-500/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"
-         style={{ opacity: 0.1 + risk * 0.4 }}
-       />
-       
-       <div className="relative z-10 flex flex-col h-full">
-          <div className="flex justify-between items-start mb-8">
-             <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center font-black text-orange-500 text-xs shadow-xl">
-                   {index < 10 ? `0${index}` : index}
-                </div>
-                <div>
-                   <h3 className="text-sm font-black text-white uppercase tracking-tight group-hover:text-orange-400 transition-colors truncate max-w-[120px]">
-                     {subsystem.subsystem}
-                   </h3>
-                   <p className="text-[8px] text-gray-700 font-mono tracking-[0.2em] mt-1 uppercase">NODE_ACTIVE</p>
-                </div>
-             </div>
-             <div className="p-2 bg-black/40 rounded-lg border border-white/5">
-                <Fingerprint size={12} className="text-gray-700" />
-             </div>
-          </div>
-
-          <div className="flex-1 flex flex-col justify-end gap-6">
-             <div className="flex justify-between items-end">
-                <div>
-                   <span className="text-[9px] font-black text-gray-700 uppercase tracking-widest block mb-1">Success Rate</span>
-                   <span className={`text-4xl font-black tracking-tighter italic ${
-                     subsystem.rate > 0.8 ? 'text-green-500' : subsystem.rate > 0.5 ? 'text-orange-500' : 'text-red-500'
-                   }`}>
-                      {(subsystem.rate * 100).toFixed(0)}%
-                   </span>
-                </div>
-                <div className="text-right">
-                   <span className="text-[9px] font-black text-gray-700 uppercase tracking-widest block mb-1">Risk Factor</span>
-                   <span className="text-xl font-black text-white font-mono tracking-tighter">{(risk * 100).toFixed(0)}</span>
-                </div>
-             </div>
-
-             <div className="space-y-3">
-                <div className="h-1.5 w-full bg-black/40 rounded-full overflow-hidden border border-white/[0.03]">
-                   <div 
-                     className={`h-full transition-all duration-[2000ms] shadow-[0_0_10px_rgba(255,255,255,0.1)]
-                        ${risk > 0.7 ? 'bg-gradient-to-r from-red-600 to-red-400' : 
-                          risk > 0.4 ? 'bg-gradient-to-r from-orange-600 to-orange-400' : 
-                          'bg-gradient-to-r from-green-600 to-green-400'}
-                     `}
-                     style={{ width: `${risk * 100}%` }}
-                   />
-                </div>
-                <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-gray-700">
-                   <span>{subsystem.failure} Logged Failures</span>
-                   <span 
-                     onClick={onAnalyze}
-                     className="text-orange-500/80 cursor-pointer hover:text-orange-400 transition-colors italic group-hover:translate-x-1 duration-500 translate-all"
-                   >
-                      Analyze →
-                   </span>
-                </div>
-             </div>
-          </div>
-       </div>
+      <style jsx global>{`
+        .custom-table .ant-table { background: transparent !important; color: #888 !important; }
+        .custom-table .ant-table-thead > tr > th {
+          background: rgba(255,255,255,0.02) !important;
+          border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+          color: #555 !important;
+          padding: 12px 16px !important;
+        }
+        .custom-table .ant-table-tbody > tr > td {
+          border-bottom: 1px solid rgba(255,255,255,0.03) !important;
+          padding: 16px !important;
+        }
+        .custom-table .ant-table-tbody > tr:hover > td { background: rgba(102, 252, 241, 0.02) !important; }
+        .label-tech { font-size: 9px; font-weight: 900; letter-spacing: 0.25em; text-transform: uppercase; color: #555; }
+      `}</style>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-﻿# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Makefile â€” AI YazÄ±lÄ±m Åirketi
 # KullanÄ±m: make <hedef>
 # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -34,7 +34,7 @@ install:
 
 # â”€â”€ GeliÅŸtirme â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 dev:
-	uvicorn hub_infra.api.main:app --reload --host 0.0.0.0 --port 8000 \
+	uvicorn apps.public_api.main:app --reload --host 0.0.0.0 --port 8000 \
 	    --log-level debug
 
 # â”€â”€ Testler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -88,16 +88,16 @@ migrate-rollback:
 
 # â”€â”€ Celery â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 celery:
-	celery -A hub_infra.worker.tasks.celery_app worker \
+	celery -A workers.workflow_worker.tasks.celery_app worker \
 	    --loglevel=info \
 	    --queues=critical,default,background \
 	    --concurrency=2
 
 celery-beat:
-	celery -A hub_infra.worker.tasks.celery_app beat --loglevel=info
+	celery -A workers.workflow_worker.tasks.celery_app beat --loglevel=info
 
 celery-monitor:
-	celery -A hub_infra.worker.tasks.celery_app events
+	celery -A workers.workflow_worker.tasks.celery_app events
 
 # â”€â”€ YardÄ±mcÄ± â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 secret:
@@ -124,9 +124,9 @@ async def main():\n\
     try:\n\
         from dotenv import load_dotenv; load_dotenv('.env',override=False)\n\
     except ImportError: pass\n\
-    from hub_infra.persistence.session import AsyncSessionLocal,init_db\n\
-    from hub_infra.persistence.auth.jwt_auth import AuthService\n\
-    from hub_infra.persistence.models import User\n\
+    from libs.db.session import AsyncSessionLocal,init_db\n\
+    from services.auth.jwt_auth import AuthService\n\
+    from libs.db.models.auth_models import Operator\n\
     from sqlalchemy import update\n\
     await init_db()\n\
     email=input('Admin e-posta: ')\n\
@@ -134,7 +134,7 @@ async def main():\n\
     async with AsyncSessionLocal() as db:\n\
         try:\n\
             u=await AuthService().register(db,email,pw)\n\
-            await db.execute(update(User).where(User.id==u.id).values(is_admin=True))\n\
+            await db.execute(update(Operator).where(Operator.id==u.id).values(role='SOVEREIGN_PRIME'))\n\
             await db.commit()\n\
             print(f'âœ… Admin oluÅŸturuldu: {email}')\n\
         except Exception as e: print(f'Hata: {e}')\n\
@@ -142,7 +142,7 @@ async def run_it(): asyncio.run(main())\n\
 run_it()"
 
 run:
-	uvicorn hub_infra.api.main:app --reload --host 0.0.0.0 --port 8000
+	uvicorn apps.public_api.main:app --reload --host 0.0.0.0 --port 8000
 
 run-prod:
-	gunicorn hub_infra.api.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+	gunicorn apps.public_api.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000

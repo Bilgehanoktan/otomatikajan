@@ -14,28 +14,37 @@ from services.improve.router import router as repair_lab_router
 def register_routers(app: FastAPI):
     """
     Registers all service routers to the main FastAPI application.
+    All API endpoints are prefixed with /api/v1 to avoid conflicts with
+    static dashboard files served at the root.
     """
-    # Auth Service (mapped to /api/v1/auth)
-    app.include_router(auth_router, prefix="/api/v1/auth", tags=["Auth"])
-    
-    # Workflow API (contains /api/v1 prefix in its own definition)
-    app.include_router(workflow_router)
-    
-    # Phase 17 Metrics API
-    app.include_router(metrics_router)
-    
-    # Governance & Self-Healing
-    from services.workflow_api.governance_router import router as governance_router
-    app.include_router(governance_router)
-    
-    # Observability & Actions
-    app.include_router(mesh_router)
-    app.include_router(fleet_router, prefix="/api/v1")
-    app.include_router(mesh_actions_router)
-    
-    # Repair Lab & Self-Tuning
-    app.include_router(repair_lab_router)
+    from fastapi import APIRouter
+    api_v1 = APIRouter(prefix="/api/v1")
 
-    # Phase 31: Autonomous Learning
+    # 1. Auth Service (mapped to /api/v1/auth)
+    api_v1.include_router(auth_router, prefix="/auth", tags=["Auth"])
+
+    # 2. Workflow API (Now correctly mapped to /api/v1/workflows)
+    api_v1.include_router(workflow_router)
+
+    # 3. Phase 17 Metrics API (Now mapped to /api/v1/metrics/phase17)
+    api_v1.include_router(metrics_router)
+
+    # 4. Governance & Self-Healing (Now mapped to /api/v1/...)
+    # This includes critical endpoints like /approvals, /incidents, /improvements
+    from services.workflow_api.governance_router import router as governance_router
+    api_v1.include_router(governance_router)
+
+    # 5. Observability & Fleet Status
+    api_v1.include_router(mesh_router)
+    api_v1.include_router(fleet_router) # Fleet router prefix handling
+    api_v1.include_router(mesh_actions_router)
+
+    # 6. Repair Lab & Self-Tuning
+    api_v1.include_router(repair_lab_router)
+
+    # 7. Phase 31: Autonomous Learning
     from services.governance.learning_api import router as learning_router
-    app.include_router(learning_router, prefix="/api/v1")
+    api_v1.include_router(learning_router)
+
+    # Register the unified API router
+    app.include_router(api_v1)
