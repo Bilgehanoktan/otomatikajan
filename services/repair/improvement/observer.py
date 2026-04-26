@@ -69,7 +69,8 @@ class ImprovementObserver:
                 from sqlalchemy import cast, String, case
 
                 # Dialect-aware JSON extraction
-                is_postgres = session.bind.dialect.name == "postgresql"
+                from libs.config import DATABASE_URL
+                is_postgres = "postgresql" in DATABASE_URL.lower()
                 
                 if is_postgres:
                     target_file_col = SubTask.input_data["target_file"].as_string()
