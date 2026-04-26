@@ -274,7 +274,7 @@ async def get_metrics():
 async def _get_redis_status() -> dict:
     try:
         from libs.db.session import get_redis_client
-        r = get_redis_client()
+        r = await get_redis_client()
         if r:
             await r.ping()
             return {"available": True}

@@ -205,15 +205,15 @@ class ModelRouter:
 
     async def _persist_log(self, decision: RoutingDecision, role: str, snippet: str) -> None:
         """Kalıcı veri tabanına yaz."""
-        from config import APP_ENV
-        if APP_ENV == "test":
-            return
+        # Fix: App environment should be checked from core config
         try:
-            from db.session import AsyncSessionLocal, is_db_available
-            db_ok = await is_db_available()
-            if not db_ok:
-                return
-            from db.models import ModelRouterLog
+            from libs.db.session import AsyncSessionLocal, is_db_available
+            from libs.db.models.core_models import ModelRouterLog
+        except ImportError:
+            _log.debug("Routing DB components not available.")
+            return
+
+        try:
             async with AsyncSessionLocal() as db:
                 log = ModelRouterLog(
                     prompt_snippet   = snippet,

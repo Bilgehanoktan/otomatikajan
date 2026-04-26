@@ -794,30 +794,36 @@ async def list_lineage(
     from sqlalchemy import select, func
 
     async with AsyncSessionLocal() as db:
-        count_q = select(func.count(DecisionLineage.id))
-        total_count = (await db.execute(count_q)).scalar()
-        response.headers["x-total-count"] = str(total_count)
-        response.headers["Access-Control-Expose-Headers"] = "x-total-count"
+        try:
+            count_q = select(func.count(DecisionLineage.id))
+            total_count = (await db.execute(count_q)).scalar()
+            response.headers["x-total-count"] = str(total_count)
+            response.headers["Access-Control-Expose-Headers"] = "x-total-count"
 
-        q = select(DecisionLineage).order_by(DecisionLineage.created_at.desc()).limit(limit).offset(offset)
-        res = await db.execute(q)
-        items = res.scalars().all()
+            q = select(DecisionLineage).order_by(DecisionLineage.created_at.desc()).limit(limit).offset(offset)
+            res = await db.execute(q)
+            items = res.scalars().all()
 
-        return [
-            DecisionLineageOut(
-                id=str(i.id),
-                parent_id=str(i.parent_id) if i.parent_id else None,
-                root_id=str(i.root_id) if i.root_id else None,
-                decision_type=i.decision_type,
-                component_name=i.component_name,
-                rationale=i.rationale,
-                trigger_event=i.trigger_event,
-                outcome=i.outcome,
-                confidence_score=getattr(i, "confidence_score", 1.0),
-                created_at=i.created_at,
-                integrity_hash=getattr(i, "integrity_hash", None)
-            ) for i in items
-        ]
+            return [
+                DecisionLineageOut(
+                    id=str(i.id),
+                    parent_id=str(i.parent_id) if i.parent_id else None,
+                    root_id=str(i.root_id) if i.root_id else None,
+                    decision_type=i.decision_type,
+                    component_name=i.component_name,
+                    rationale=i.rationale,
+                    trigger_event=i.trigger_event,
+                    outcome=getattr(i, "outcome", None),
+                    confidence_score=getattr(i, "confidence_score", 1.0),
+                    created_at=i.created_at,
+                    integrity_hash=getattr(i, "integrity_hash", None)
+                ) for i in items
+            ]
+        except Exception as exc:
+            logger.warning("Decision lineage fallback activated: %s", exc)
+            response.headers["x-total-count"] = "0"
+            response.headers["Access-Control-Expose-Headers"] = "x-total-count"
+            return []
 
 @router.get("/policies/evolution", response_model=List[PolicyEvolutionOut])
 async def list_policy_evolution(

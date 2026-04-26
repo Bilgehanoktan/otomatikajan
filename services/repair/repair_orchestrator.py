@@ -14,7 +14,7 @@ import asyncio
 import time
 import uuid
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from services.repair.schemas.repair_job import RepairJob, RepairJobStatus
 from services.repair.schemas.incident import IncidentRecord

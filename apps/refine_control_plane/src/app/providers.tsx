@@ -7,8 +7,8 @@ import dataProvider from "@refinedev/simple-rest";
 import { safeHttpClient } from "@/lib/api";
 
 const isServer = typeof window === "undefined";
-// Force relative path on client to ensure Next.js proxy is used and avoid CORS/Failed to fetch issues
-const API_URL = isServer ? (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1") : "/api/v1";
+// Direct backend connection for proper cookie-based auth (proxy strips cookies)
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
 const mockDataProvider = {
   getList: () => Promise.resolve({ data: [], total: 0 }),

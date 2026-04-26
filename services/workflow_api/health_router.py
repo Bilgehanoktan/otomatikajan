@@ -3,6 +3,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
 import json
 import asyncio
+import logging
 from sqlalchemy import select, func, desc
 
 from libs.db.session import AsyncSessionLocal
@@ -11,6 +12,7 @@ from libs.db.models.learning_models import ErrorFingerprint
 from libs.db.models.lineage_models import DecisionLineage
 
 router = APIRouter(prefix="/health", tags=["System Health & Metrics"])
+logger = logging.getLogger(__name__)
 
 # WebSocket Connection Manager
 class ConnectionManager:
@@ -98,17 +100,21 @@ async def get_evolution_history(limit: int = 15):
     Returns the system evolution timeline from decision lineage.
     """
     async with AsyncSessionLocal() as db:
-        q = select(DecisionLineage).order_by(desc(DecisionLineage.created_at)).limit(limit)
-        res = await db.execute(q)
-        items = res.scalars().all()
-        
+        try:
+            q = select(DecisionLineage).order_by(desc(DecisionLineage.created_at)).limit(limit)
+            res = await db.execute(q)
+            items = res.scalars().all()
+        except Exception as exc:
+            logger.warning("Evolution history fallback activated: %s", exc)
+            items = []
+
         return [
             {
                 "id": str(i.id),
                 "type": i.decision_type,
                 "component": i.component_name,
                 "rationale": i.rationale,
-                "outcome": i.outcome or "N/A",
+                "outcome": getattr(i, "outcome", None) or "N/A",
                 "timestamp": i.created_at
             }
             for i in items
@@ -123,19 +129,23 @@ async def get_events_stream(since_seq: int = 0, limit: int = 50):
     Uses DecisionLineage as the source of events.
     """
     async with AsyncSessionLocal() as db:
-        # Map DecisionLineage to SystemEvent
-        q = select(DecisionLineage).where(DecisionLineage.id > since_seq).order_by(DecisionLineage.id).limit(limit)
-        res = await db.execute(q)
-        items = res.scalars().all()
-        
+        try:
+            q = select(DecisionLineage).where(DecisionLineage.id > since_seq).order_by(DecisionLineage.id).limit(limit)
+            res = await db.execute(q)
+            items = res.scalars().all()
+        except Exception as exc:
+            logger.warning("Events stream fallback activated: %s", exc)
+            items = []
+
         events = []
         for i in items:
+            outcome = getattr(i, "outcome", None) or ""
             severity = "info"
-            if "FAIL" in (i.outcome or "").upper() or "ERROR" in (i.rationale or "").upper():
+            if "FAIL" in outcome.upper() or "ERROR" in (i.rationale or "").upper():
                 severity = "critical"
             elif "WARN" in (i.rationale or "").upper():
                 severity = "warning"
-                
+
             events.append({
                 "seq": i.id,
                 "timestamp": i.created_at.isoformat() if i.created_at else datetime.now(timezone.utc).isoformat(),
@@ -144,7 +154,7 @@ async def get_events_stream(since_seq: int = 0, limit: int = 50):
                 "category": "governance" if "GOV" in i.decision_type else "workflow",
                 "message": f"[{i.component_name}] {i.rationale}"
             })
-            
+
         return {"events": events}
 
 # This will be registered as /ws/events in main.py
@@ -153,12 +163,17 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         # Send initial events
         async with AsyncSessionLocal() as db:
-            q = select(DecisionLineage).order_by(desc(DecisionLineage.created_at)).limit(20)
-            res = await db.execute(q)
-            items = res.scalars().all()
+            try:
+                q = select(DecisionLineage).order_by(desc(DecisionLineage.created_at)).limit(20)
+                res = await db.execute(q)
+                items = res.scalars().all()
+            except Exception as exc:
+                logger.warning("Websocket lineage fallback activated: %s", exc)
+                items = []
             for i in reversed(items):
                 severity = "info"
-                if "FAIL" in (i.outcome or "").upper() or "ERROR" in (i.rationale or "").upper():
+                outcome = getattr(i, "outcome", None) or ""
+                if "FAIL" in outcome.upper() or "ERROR" in (i.rationale or "").upper():
                     severity = "critical"
                 
                 ev = {

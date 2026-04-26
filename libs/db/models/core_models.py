@@ -45,7 +45,6 @@ class ProjectStatus(str, enum.Enum):
     PAUSED           = "PAUSED"
     INTERRUPTED      = "INTERRUPTED"
     RESUMING         = "RESUMING"
-    resuming         = "resuming"
     PENDING_APPROVAL_AUTO = "PENDING_APPROVAL_AUTO"
 
     @classmethod
@@ -68,12 +67,12 @@ class ProjectSource(str, enum.Enum):
 
     @classmethod
     def _missing_(cls, value):
-        """Ultra-Resilient Lookup for Source."""
+        """Ultra-Resilient Lookup for Source (Case-Insensitive)."""
         if not isinstance(value, str):
             return None
         val = value.upper().strip()
         for member in cls:
-            if member.value == val:
+            if member.value.upper() == val:
                 return member
         return None
 
@@ -126,6 +125,60 @@ class TaskPriority(str, enum.Enum):
             return cls[target]
         except KeyError:
             return None
+
+# ── Soft CEO: Domain Enums ────────────────────────────────
+class SoftCeoDecisionType(str, enum.Enum):
+    """Soft CEO ajanının üretebileceği karar tipleri."""
+    AUTO_APPROVE_CANDIDATE  = "AUTO_APPROVE_CANDIDATE"
+    AUTO_REPLAY_CANDIDATE   = "AUTO_REPLAY_CANDIDATE"
+    REQUIRES_PRIME_REVIEW   = "REQUIRES_PRIME_REVIEW"
+    REQUIRES_QUORUM         = "REQUIRES_QUORUM"
+    REQUIRES_HUMAN_CONTEXT  = "REQUIRES_HUMAN_CONTEXT"
+    ARCHIVE_STALE           = "ARCHIVE_STALE"
+    NO_ACTION               = "NO_ACTION"
+
+    @classmethod
+    def _missing_(cls, value):
+        if isinstance(value, str):
+            for member in cls:
+                if member.value.upper() == value.upper():
+                    return member
+        return None
+
+
+class SoftCeoRiskClass(str, enum.Enum):
+    """Soft CEO risk sınıflandırması."""
+    LOW      = "LOW"
+    MEDIUM   = "MEDIUM"
+    HIGH     = "HIGH"
+    CRITICAL = "CRITICAL"
+
+    @classmethod
+    def _missing_(cls, value):
+        if isinstance(value, str):
+            for member in cls:
+                if member.value.upper() == value.upper():
+                    return member
+        return None
+
+
+class PendingReason(str, enum.Enum):
+    """Bir iş kaleminin neden beklediğini tanımlayan sınıflandırma."""
+    PENDING_APPROVAL   = "PENDING_APPROVAL"
+    SAFETY_LOCK        = "SAFETY_LOCK"
+    OPEN_INCIDENT      = "OPEN_INCIDENT"
+    PAUSED_WORKFLOW    = "PAUSED_WORKFLOW"
+    MISSING_CONTEXT    = "MISSING_CONTEXT"
+    STALE_QUEUE_ITEM   = "STALE_QUEUE_ITEM"
+
+    @classmethod
+    def _missing_(cls, value):
+        if isinstance(value, str):
+            for member in cls:
+                if member.value.upper() == value.upper():
+                    return member
+        return None
+
 
 # ── Projeler ─────────────────────────────────────────────
 class Project(Base):

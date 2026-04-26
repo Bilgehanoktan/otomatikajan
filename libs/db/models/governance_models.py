@@ -149,3 +149,68 @@ class PolicyProposal(Base):
     
     created_at = Column(DateTime(timezone=True), default=utcnow)
     expires_at = Column(DateTime(timezone=True), nullable=True)
+
+
+# ── Soft CEO Governor Tables ──────────────────────────────────
+
+class GovernorCaseRecord(Base):
+    """
+    Governor tarama sonucu üretilen case snapshot'ı.
+    Her taranan workflow için risk, karar ve bağlam bilgisi tutulur.
+    """
+    __tablename__ = "governor_cases"
+
+    id                    = Column(GUID, primary_key=True, default=uuid.uuid4)
+    project_id            = Column(GUID, nullable=False, index=True)
+    project_title         = Column(String(500), default="")
+    project_status        = Column(String(32), default="")
+
+    pending_reason        = Column(String(32), nullable=False, index=True)
+    risk_class            = Column(String(16), nullable=False, index=True)
+    risk_score            = Column(Integer, default=0)  # 0-1000 (score * 1000)
+    recommended_decision  = Column(String(64), nullable=False, index=True)
+    decision_reason_codes = Column(SmartJSON(), default=list)
+
+    # Durum bayrakları
+    has_open_incident      = Column(Integer, default=0)
+    has_safety_lock        = Column(Integer, default=0)
+    has_active_fingerprint = Column(Integer, default=0)
+    requires_prime         = Column(Integer, default=0)
+    requires_quorum        = Column(Integer, default=0)
+    missing_context        = Column(Integer, default=0)
+
+    stale_seconds          = Column(Integer, default=0)
+    snapshot_payload       = Column(SmartJSON(), default=dict)
+
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
+
+
+class GovernorActionRecord(Base):
+    """Governor'ın gerçekten uyguladığı aksiyonların kaydı."""
+    __tablename__ = "governor_actions"
+
+    id            = Column(GUID, primary_key=True, default=uuid.uuid4)
+    case_id       = Column(GUID, nullable=True, index=True)
+    project_id    = Column(GUID, nullable=False, index=True)
+    action_type   = Column(String(64), nullable=False, index=True)
+    status        = Column(String(32), default="executed")  # executed, failed, skipped
+    executed_by   = Column(String(64), default="SOFT_CEO")  # SOFT_CEO, SOVEREIGN_PRIME, HUMAN_OPERATOR
+    result_payload = Column(SmartJSON(), default=dict)
+    created_at    = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+
+
+class GovernorEscalationRecord(Base):
+    """Prime/quorum/human context'e giden eskalasyonlar."""
+    __tablename__ = "governor_escalations"
+
+    id              = Column(GUID, primary_key=True, default=uuid.uuid4)
+    case_id         = Column(GUID, nullable=True, index=True)
+    project_id      = Column(GUID, nullable=False, index=True)
+    escalation_type = Column(String(64), nullable=False)  # REQUIRES_PRIME_REVIEW, REQUIRES_QUORUM, REQUIRES_HUMAN_CONTEXT
+    target_role     = Column(String(64), default="SOVEREIGN_PRIME")
+    reason          = Column(Text, default="")
+    status          = Column(String(32), default="open", index=True)  # open, resolved, dismissed
+    created_at      = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+    resolved_at     = Column(DateTime(timezone=True), nullable=True)
+

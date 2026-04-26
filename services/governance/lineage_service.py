@@ -128,3 +128,60 @@ class LineageService:
         await db.flush()
         logger.info(f"Policy Evolved: {policy_key} to {new_value}")
         return evolution
+
+    # ── Soft CEO: Structured Decision Logging ──────────────────
+    @staticmethod
+    async def log_soft_ceo_decision(
+        recommended_action: str,
+        risk_class: str,
+        pending_reason: str,
+        target_type: str,
+        target_id: str,
+        rationale: str,
+        confidence_score: float = 0.5,
+        staleness_hours: float = 0.0,
+        parent_id: Optional[str] = None,
+        extra_meta: Optional[Dict[str, Any]] = None,
+        db: Optional[AsyncSession] = None
+    ) -> "DecisionLineage":
+        """
+        Soft CEO ajanının triaj kararını soyağacına kaydeder.
+        
+        Kör onay vermez — sadece kararın nedenini, risk seviyesini
+        ve önerilen aksiyonu integrity-hash zinciriyle mühürler.
+        
+        Args:
+            recommended_action: SoftCeoDecisionType değeri
+            risk_class:         SoftCeoRiskClass değeri
+            pending_reason:     PendingReason değeri
+            target_type:        "project", "approval", "incident"
+            target_id:          Hedef kaydın UUID'si
+            rationale:          İnsan-okunabilir gerekçe
+            confidence_score:   0.0-1.0 arası güven puanı
+            staleness_hours:    Bekleme süresi (saat)
+            parent_id:          Tetikleyici karar ID'si (varsa)
+            extra_meta:         Ek bağlam verisi
+            db:                 Mevcut veritabanı oturumu (opsiyonel)
+        """
+        meta = {
+            "risk_class": risk_class,
+            "pending_reason": pending_reason,
+            "recommended_action": recommended_action,
+            "target_type": target_type,
+            "target_id": target_id,
+            "staleness_hours": round(staleness_hours, 2),
+            "agent": "soft_ceo",
+            **(extra_meta or {})
+        }
+
+        return await LineageService.log_decision(
+            decision_type="SOFT_CEO_TRIAGE",
+            component_name="soft_ceo",
+            rationale=rationale,
+            outcome=recommended_action,
+            parent_id=parent_id,
+            trigger_event={"target": f"{target_type}:{target_id}", "reason": pending_reason},
+            confidence_score=confidence_score,
+            meta_data=meta,
+            db=db
+        )
