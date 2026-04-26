@@ -99,7 +99,7 @@ timeout /t 2 /nobreak >nul
 
 :: ---- 2. Backend Baslatma ----
 echo [2/3] Mission Control API (%BACKEND_PORT%) baslatiliyor...
-set "BACKEND_CMD=cd /d "%PROJECT_ROOT%" && "%PY_CMD%" -m uvicorn services.workflow_api.main:app --host 0.0.0.0 --port %BACKEND_PORT% --reload"
+set "BACKEND_CMD=cd /d "%PROJECT_ROOT%" && "%PY_CMD%" -m uvicorn apps.public_api.main:app --host 0.0.0.0 --port %BACKEND_PORT% --reload"
 start "Backend-%BACKEND_PORT%" cmd /k "%BACKEND_CMD%"
 
 echo      Backend baslatildi, ayaga kalkma bekleniyor...
