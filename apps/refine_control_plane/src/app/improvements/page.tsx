@@ -264,3 +264,5 @@ function VerifierBadge({ label, status, icon, primary }: any) {
     </div>
   );
 }
+
+

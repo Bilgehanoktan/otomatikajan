@@ -48,6 +48,8 @@ const icons: Record<string, React.ReactNode> = {
     audit: <FileText size={20} />,
     federation: <Network size={20} />,
     fleet: <Boxes size={20} />,
+    "fleet/agents": <Zap size={20} />,
+    "fleet/operations": <Settings size={20} />,
     mesh: <Globe size={20} />,
     safety: <ShieldAlert size={20} />,
     "repair-lab": <Cpu size={20} />,
@@ -66,6 +68,11 @@ const icons: Record<string, React.ReactNode> = {
     "learning/strategy-memory": <Brain size={20} />,
     "learning/negative-patterns": <ShieldOff size={20} />,
     "learning/adaptation-candidates": <Sparkles size={20} />,
+    "governor/resilience/drills": <Dna size={20} />,
+    "governor/observability": <Eye size={20} />,
+    "governor/alerts": <ShieldAlert size={20} />,
+    "governor/drifts": <Activity size={20} />,
+    "governor/proof": <History size={20} />,
 };
 
 const SidebarContent = () => {
@@ -78,11 +85,26 @@ const SidebarContent = () => {
     const groups = [
         {
             title: "OPERASYONLAR",
-            items: ["dashboard", "workflows", "agents", "incidents", "fleet"]
+            items: ["dashboard", "workflows", "agents", "incidents", "fleet", "fleet/agents", "fleet/operations"]
         },
         {
-            title: "YÃ–NETÄ°ÅžÄ°M & GÃœVENLÄ°K",
-            items: ["approvals", "audit", "axiology", "compliance", "safety", "mesh", "federation", "governance-lineage", "policy-proposals"]
+            title: "YÖNETİŞİM & GÜVENLİK",
+            items: [
+                "approvals", 
+                "audit", 
+                "axiology", 
+                "compliance", 
+                "safety", 
+                "mesh", 
+                "federation", 
+                "governance-lineage", 
+                "policy-proposals",
+                "governance/governor/cases",
+                "governor/observability",
+                "governor/alerts",
+                "governor/drifts",
+                "governor/proof"
+            ]
         },
         {
             title: "OTONOM GELİŞİM",

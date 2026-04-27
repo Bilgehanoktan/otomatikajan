@@ -281,3 +281,5 @@ function SeverityGauge({ label, value, color, total }: any) {
     </div>
   );
 }
+
+

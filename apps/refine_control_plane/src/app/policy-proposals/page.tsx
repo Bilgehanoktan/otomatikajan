@@ -335,3 +335,5 @@ function StatuteItem({ label, val }: any) {
     </div>
   );
 }
+
+

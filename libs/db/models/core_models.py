@@ -179,6 +179,55 @@ class PendingReason(str, enum.Enum):
                     return member
         return None
 
+# ── Faz 12: Fleet Orchestra Enums ─────────────────────────
+class FleetStatus(str, enum.Enum):
+    ACTIVE   = "ACTIVE"
+    DEGRADED = "DEGRADED"
+    FROZEN   = "FROZEN"
+    DRAINING = "DRAINING"
+    FAILED   = "FAILED"
+
+    @classmethod
+    def _missing_(cls, value):
+        if isinstance(value, str):
+            for member in cls:
+                if member.value.upper() == value.upper():
+                    return member
+        return None
+
+class AgentStatus(str, enum.Enum):
+    IDLE        = "IDLE"
+    ASSIGNED    = "ASSIGNED"
+    BUSY        = "BUSY"
+    PAUSED      = "PAUSED"
+    QUARANTINED = "QUARANTINED"
+    OFFLINE     = "OFFLINE"
+
+    @classmethod
+    def _missing_(cls, value):
+        if isinstance(value, str):
+            for member in cls:
+                if member.value.upper() == value.upper():
+                    return member
+        return None
+
+class AgentRole(str, enum.Enum):
+    PLANNER     = "PLANNER"
+    EXECUTOR    = "EXECUTOR"
+    REVIEWER    = "REVIEWER"
+    REPAIRER    = "REPAIRER"
+    GOVERNOR    = "GOVERNOR"
+    AUDITOR     = "AUDITOR"
+    SYNTHESIZER = "SYNTHESIZER"
+
+    @classmethod
+    def _missing_(cls, value):
+        if isinstance(value, str):
+            for member in cls:
+                if member.value.upper() == value.upper():
+                    return member
+        return None
+
 
 # ── Projeler ─────────────────────────────────────────────
 class Project(Base):
@@ -580,6 +629,7 @@ class CEOSuggestedTask(Base):
 
 class ImprovementOpportunity(Base):
     __tablename__ = "improvement_opportunities"
+    __table_args__ = {"extend_existing": True}
 
     id               = Column(GUID, primary_key=True, default=uuid.uuid4)
     source_type      = Column(String(64), nullable=False)   # logs, performance, anomaly
@@ -595,7 +645,7 @@ class ImprovementOpportunity(Base):
     priority_score   = Column(Float, default=0.0, index=True)
     pattern_hash     = Column(String(64), unique=True)
     evidence_detail  = Column(Text)
-    affected_files   = Column(JSONB, default=list) # Phase 12.1: Tracking affected files
+    affected_files   = Column(SmartJSON(), default=list) # Phase 12.1: Tracking affected files
     status           = Column(String(32), default="open", index=True) # open, suggested, resolved
     created_at       = Column(DateTime(timezone=True), default=utcnow)
 
@@ -860,3 +910,95 @@ class FederationTrustHistory(Base):
     
     payload          = Column(SmartJSON(), default=dict) # O anki metrikler
     created_at       = Column(DateTime(timezone=True), default=utcnow, index=True)
+
+# ── Faz 12: Fleet Orchestra Modelleri ─────────────────────
+
+class FleetCluster(Base):
+    """Filonun mantıksal veya coğrafi gruplandırılması."""
+    __tablename__ = "fleet_clusters"
+    __table_args__ = {"extend_existing": True}
+
+    id              = Column(GUID, primary_key=True, default=uuid.uuid4)
+    name            = Column(String(128), nullable=False)
+    status          = Column(SAEnum(FleetStatus, native_enum=False, length=32), default=FleetStatus.ACTIVE, index=True)
+    region          = Column(String(64), default="global")
+    
+    budget_limit    = Column(Float, default=0.0)
+    current_budget_usage = Column(Float, default=0.0)
+    max_parallel_projects = Column(Integer, default=5)
+    
+    created_at      = Column(DateTime(timezone=True), default=utcnow)
+    updated_at      = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+class AgentNode(Base):
+    """Fila içindeki aktif bir ajan düğümü (node)."""
+    __tablename__ = "agent_nodes"
+    __table_args__ = {"extend_existing": True}
+
+    id              = Column(GUID, primary_key=True, default=uuid.uuid4)
+    cluster_id      = Column(GUID, ForeignKey("fleet_clusters.id", ondelete="SET NULL"), nullable=True)
+    name            = Column(String(128), nullable=False)
+    role            = Column(SAEnum(AgentRole, native_enum=False, length=32), nullable=False, index=True)
+    status          = Column(SAEnum(AgentStatus, native_enum=False, length=32), default=AgentStatus.IDLE, index=True)
+    
+    trust_score     = Column(Float, default=1.0)
+    current_load    = Column(Integer, default=0)
+    max_concurrency = Column(Integer, default=1)
+    
+    last_heartbeat  = Column(DateTime(timezone=True), default=utcnow)
+    project_scope   = Column(String(256)) # comma separated or pattern
+    cost_rate       = Column(Float, default=0.0) # USD per task or hour
+    
+    capabilities    = Column(SmartJSON(), default=dict)
+    
+    created_at      = Column(DateTime(timezone=True), default=utcnow)
+    updated_at      = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    cluster = relationship("FleetCluster", backref="agents")
+
+class FleetAssignment(Base):
+    """Bir ajanın bir projeye atanması."""
+    __tablename__ = "fleet_assignments"
+    __table_args__ = {"extend_existing": True}
+
+    id              = Column(GUID, primary_key=True, default=uuid.uuid4)
+    project_id      = Column(GUID, ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    agent_id        = Column(GUID, ForeignKey("agent_nodes.id", ondelete="CASCADE"), index=True)
+    
+    assignment_type = Column(String(64), default="primary") # primary, peer, auditor
+    status          = Column(String(32), default="active") # active, completed, released
+    
+    started_at      = Column(DateTime(timezone=True), default=utcnow)
+    ended_at        = Column(DateTime(timezone=True), nullable=True)
+
+    project = relationship("Project")
+    agent   = relationship("AgentNode")
+
+class ProjectExecutionPlan(Base):
+    """Bir projenin filo düzeyindeki yürütme planı."""
+    __tablename__ = "project_execution_plans"
+    __table_args__ = {"extend_existing": True}
+
+    id              = Column(GUID, primary_key=True, default=uuid.uuid4)
+    project_id      = Column(GUID, ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    
+    orchestration_mode = Column(String(32), default="standard") # standard, high_risk, fast_track
+    required_roles     = Column(SmartJSON(), default=list)      # ["PLANNER", "EXECUTOR", "REVIEWER"]
+    estimated_cost     = Column(Float, default=0.0)
+    priority_override  = Column(Integer, nullable=True)
+    
+    status             = Column(String(32), default="draft")    # draft, allocated, running, completed
+    created_at         = Column(DateTime(timezone=True), default=utcnow)
+
+class ProjectAgentAllocation(Base):
+    """Proje için ayrılan (reserved) ajan kaynakları."""
+    __tablename__ = "project_agent_allocations"
+    __table_args__ = {"extend_existing": True}
+
+    id              = Column(GUID, primary_key=True, default=uuid.uuid4)
+    project_id      = Column(GUID, ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    role            = Column(SAEnum(AgentRole, native_enum=False, length=32), nullable=False)
+    count           = Column(Integer, default=1)
+    
+    allocated_count = Column(Integer, default=0)
+    is_satisfied    = Column(Boolean, default=False)

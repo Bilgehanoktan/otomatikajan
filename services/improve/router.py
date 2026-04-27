@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from services.observability.logging import get_logger
 
 logger = get_logger("repair.lab_api")
-router = APIRouter(prefix="/api/v1/repair-lab", tags=["Repair Lab"])
+router = APIRouter(tags=["Repair Lab"])
 
 @router.get("/benchmarks")
 async def list_benchmarks():
@@ -285,3 +285,24 @@ async def apply_tuning_suggestion(suggestion_id: str):
         logger.info(f"[CALIBRATION] Applying parameter: {suggestion.parameter_name} -> {suggestion.proposed_value}")
         
         return {"status": "success", "message": f"Parameter {suggestion.parameter_name} updated to {suggestion.proposed_value}."}
+
+@router.get("/improvements")
+async def list_improvements(limit: int = 50, offset: int = 0):
+    """Refine Simple-REST compatibility for SystemImprovement."""
+    from libs.db.models.core_models import SystemImprovement
+    async with session_scope() as session:
+        result = await session.execute(
+            select(SystemImprovement).order_by(SystemImprovement.created_at.desc()).offset(offset).limit(limit)
+        )
+        items = result.scalars().all()
+        return items
+
+@router.get("/repair-memory")
+async def list_repair_memory(limit: int = 50, offset: int = 0):
+    """Refine Simple-REST compatibility for DBMemory."""
+    async with session_scope() as session:
+        result = await session.execute(
+            select(DBMemory).order_by(DBMemory.recorded_at.desc()).offset(offset).limit(limit)
+        )
+        items = result.scalars().all()
+        return items

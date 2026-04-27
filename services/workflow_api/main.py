@@ -9,9 +9,11 @@ from services.workflow_api.metrics_router import router as metrics_router
 from services.workflow_api.health_router import router as health_router, websocket_endpoint
 from services.workflow_api.bridge_router import router as bridge_router
 from services.auth.router import router as auth_router
-from services.observability.fleet_status_api import router as fleet_router
+from services.observability.fleet_status_api import router as fleet_status_router
+from services.workflow_api.fleet_router import router as fleet_ops_router
 from services.observability.mesh_status_api import router as mesh_status_router
 from services.governance.mesh_actions_api import router as mesh_actions_router
+from services.workflow_api.governor_router import router as governor_api_router
 from libs.db.session import init_db
 from services.orchestration.application.job_queue import job_queue
 from services.orchestration.application.sovereign_cortex import sovereign_cortex
@@ -39,9 +41,11 @@ app.include_router(repair_lab_router, prefix="/api/v1")
 app.include_router(metrics_router, prefix="/api/v1/metrics")
 app.include_router(health_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1/auth")
-app.include_router(fleet_router, prefix="/api/v1")
+app.include_router(fleet_status_router, prefix="/api/v1")
+app.include_router(fleet_ops_router, prefix="/api/v1")
 app.include_router(mesh_status_router, prefix="/api/v1")
 app.include_router(mesh_actions_router, prefix="/api/v1")
+app.include_router(governor_api_router, prefix="/api/v1/governance")
 
 @app.websocket("/ws/events")
 async def websocket_route(websocket: WebSocket):

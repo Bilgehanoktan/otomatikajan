@@ -37,9 +37,10 @@ const { Title, Text, Paragraph } = Typography;
 
 export default function ApprovalDetailClient() {
     const { notification } = App.useApp();
-    const { query: { data, isLoading, isError, refetch } } = useShow({
+    const showResult = useShow({
         resource: "approvals",
     });
+    const { query: { data, isLoading, isError, refetch } } = showResult as any;
 
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -262,3 +263,4 @@ export default function ApprovalDetailClient() {
         </div>
     );
 }
+

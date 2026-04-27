@@ -81,7 +81,7 @@ export default function ControlPlaneDashboard() {
   }, []);
 
   // API Veri Çekme (Health Dashboard)
-  const { query: { data: dashRaw, isLoading: dashLoading } } = useCustom({
+  const dashQuery = useCustom({
     url: `${apiUrl}/health/dashboard`,
     method: "get",
     queryOptions: {
@@ -89,9 +89,10 @@ export default function ControlPlaneDashboard() {
       refetchInterval: 8000,
     },
   });
+  const { data: dashRaw, isLoading: dashLoading } = dashQuery as any;
 
   // Evolution Data
-  const { query: { data: evoRaw } } = useCustom({
+  const evoQuery = useCustom({
     url: `${apiUrl}/health/evolution`,
     method: "get",
     queryOptions: {
@@ -99,13 +100,15 @@ export default function ControlPlaneDashboard() {
       refetchInterval: 15000,
     },
   });
+  const { data: evoRaw } = evoQuery as any;
 
   // İş Akışları
-  const { query: { data: wfData } } = useList({
+  const { query: wfQuery } = useList({
     resource: "workflows",
     pagination: { pageSize: 6 },
     queryOptions: { enabled: isClient },
   });
+  const { data: wfData } = wfQuery;
 
   const dash = (dashRaw?.data as DashboardData) || {};
   const evolutionEvents = (evoRaw?.data as any[]) || [];

@@ -56,7 +56,7 @@ export default function AxiologyShowPage() {
       headerButtons={({ listButtonProps }) => (
         <Link href="/axiology">
            <button className="flex items-center gap-2 px-4 py-2 rounded-xl glass border border-white/10 text-gray-400 hover:text-[var(--primary)] hover:border-[var(--primary)]/30 transition-all text-xs font-black uppercase tracking-widest">
-            <ArrowLeft size={14} /> Geri DÃ¶n
+            <ArrowLeft size={14} /> Geri Dön
            </button>
         </Link>
       )}
@@ -67,8 +67,8 @@ export default function AxiologyShowPage() {
               <Compass className="text-black" size={24} />
             </div>
             <div>
-              <Title level={4} className="!m-0 !text-white tracking-tighter">DENETÄ°M ANALÄ°ZÄ°</Title>
-              <Text className="text-[10px] text-[#45a29e] font-black uppercase tracking-[0.2em]">BiliÅŸsel Karar Derinlemesine Ä°nceleme</Text>
+              <Title level={4} className="!m-0 !text-white tracking-tighter">DENETİM ANALİZİ</Title>
+              <Text className="text-[10px] text-[#45a29e] font-black uppercase tracking-[0.2em]">Bilişsel Karar Derinlemesine İnceleme</Text>
             </div>
           </div>
         ),
@@ -90,7 +90,7 @@ export default function AxiologyShowPage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="label-tech block mb-2 text-gray-500">BAÄžLAM</span>
+                    <span className="label-tech block mb-2 text-gray-500">BAĞLAM</span>
                     <Tag color="cyan" className="!rounded-full font-mono uppercase text-[10px] !px-4 border-none bg-white/5 text-[var(--primary)]">{record?.context || "N/A"}</Tag>
                   </div>
                 </div>
@@ -99,17 +99,17 @@ export default function AxiologyShowPage() {
 
                 <div>
                   <Title level={5} className="!text-[var(--primary)] uppercase tracking-widest text-[11px] font-black mb-4 flex items-center gap-2">
-                    <FileText size={16} /> ETÄ°K GEREKÃ‡E VE MANTIKSAL ANALÄ°Z
+                    <FileText size={16} /> ETİK GEREKÇE VE MANTIKSAL ANALİZ
                   </Title>
                   <Paragraph className="text-gray-300 text-sm leading-loose bg-white/5 p-6 rounded-2xl border border-white/5">
-                    {record?.justification || "Bu karar iÃ§in ayrÄ±ntÄ±lÄ± bir gerekÃ§e bulunamadÄ±."}
+                    {record?.justification || "Bu karar için ayrıntılı bir gerekçe bulunamadı."}
                   </Paragraph>
                 </div>
 
                 {record?.target_preview && (
                   <div>
                     <Title level={5} className="!text-[var(--primary)] uppercase tracking-widest text-[11px] font-black mb-4 flex items-center gap-2">
-                      <Code size={16} /> HEDEF Ä°Ã‡ERÄ°K / KOD Ã–NÄ°ZLEME
+                      <Code size={16} /> HEDEF İÇERİK / KOD ÖNİZLEME
                     </Title>
                     <div className="bg-black/40 p-6 rounded-2xl border border-white/5 font-mono text-xs text-[#66fcf1]/80 leading-relaxed overflow-x-auto relative group">
                       <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all">
@@ -129,7 +129,7 @@ export default function AxiologyShowPage() {
             <Space direction="vertical" size={24} className="w-full">
               <Card className="glass-card !bg-[#0e1320]/40 border-none !p-6">
                 <Title level={5} className="!text-white uppercase tracking-widest text-[11px] font-black mb-6 flex items-center gap-2">
-                  <Zap size={16} className="text-yellow-400" /> GÃœVENLÄ°K SKORLARI
+                  <Zap size={16} className="text-yellow-400" /> GÜVENLİK SKORLARI
                 </Title>
                 
                 <div className="space-y-8">
@@ -162,10 +162,10 @@ export default function AxiologyShowPage() {
               {record?.corrective_action && (
                 <Card className="glass-card !bg-[#0e1320]/60 border border-[var(--primary)]/20 !p-6 shadow-[0_0_30px_rgba(102,252,241,0.05)]">
                    <Title level={5} className="!text-[var(--primary)] uppercase tracking-widest text-[11px] font-black mb-4 flex items-center gap-2">
-                    <ShieldCheck size={16} /> DÃœZELTÄ°CÄ° EYLEM
+                    <ShieldCheck size={16} /> DÜZELTİCİ EYLEM
                   </Title>
                   <div className="p-4 rounded-xl bg-[var(--primary)]/5 border border-[var(--primary)]/10">
-                     <Text className="text-[11px] text-[#45a29e] block mb-2 italic font-bold">Axiology engine tarafÄ±ndan Ã¶nerilen strateji:</Text>
+                     <Text className="text-[11px] text-[#45a29e] block mb-2 italic font-bold">Axiology engine tarafından önerilen strateji:</Text>
                      <Text className="text-white font-black block leading-relaxed">
                        "{record.corrective_action}"
                      </Text>

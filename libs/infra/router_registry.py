@@ -12,6 +12,7 @@ from services.observability.mesh_status_api import router as mesh_router
 from services.observability.fleet_status_api import router as fleet_router
 from services.governance.mesh_actions_api import router as mesh_actions_router
 from services.improve.router import router as repair_lab_router
+from services.workflow_api.fleet_router import router as fleet_orchestra_router
 
 def register_routers(app: FastAPI):
     """
@@ -46,10 +47,13 @@ def register_routers(app: FastAPI):
     # 6. Observability & Fleet Status
     api_v1.include_router(mesh_router)
     api_v1.include_router(fleet_router) # Fleet router prefix handling
+    api_v1.include_router(fleet_orchestra_router) # Phase 12 Orchestra
     api_v1.include_router(mesh_actions_router)
 
     # 7. Repair Lab & Self-Tuning
     api_v1.include_router(repair_lab_router)
+    # Alias for frontend compatibility
+    api_v1.include_router(repair_lab_router, prefix="/repair-lab")
 
     # 8. Phase 31: Autonomous Learning
     from services.governance.learning_api import router as learning_router

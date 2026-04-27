@@ -1,11 +1,13 @@
 import hashlib
 import json
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from libs.db.session import get_db, get_db_ctx
 from libs.db.models.lineage_models import DecisionLineage, PolicyEvolution
 from services.observability.logging import get_logger
+from services.governance.proof_fabric import ProofFabric
+from libs.db.models.governance_models import ProofEventType, GovernorDomain
 
 logger = get_logger("governance.lineage")
 
@@ -79,6 +81,27 @@ class LineageService:
         db.add(lineage)
         # Flush to get ID but don't commit if external session
         await db.flush()
+
+        # Phase 11: Record Proof Event
+        try:
+            from libs.db.session import SessionLocal
+            with SessionLocal() as sync_db:
+                fabric = ProofFabric(sync_db)
+                fabric.record_governance_event(
+                    event_type=ProofEventType.GOVERNOR_DECISION if decision_type != "META_GOVERNOR_DECISION" else ProofEventType.META_DECISION,
+                    domain=None,
+                    entity_id=str(lineage.id),
+                    payload={
+                        "decision_type": decision_type,
+                        "rationale": rationale,
+                        "outcome": outcome,
+                        "integrity_hash": integrity_hash
+                    },
+                    actor="LineageService"
+                )
+        except Exception as e:
+            logger.error(f"Failed to record Proof Event for decision {lineage.id}: {str(e)}")
+
         logger.info(f"Lineage Logged (Sealed): {decision_type} ({outcome}) for {component_name} (ID: {lineage.id})")
         return lineage
 
@@ -126,6 +149,26 @@ class LineageService:
         )
         db.add(evolution)
         await db.flush()
+
+        # Phase 11: Record Proof Event
+        try:
+            from libs.db.session import SessionLocal
+            with SessionLocal() as sync_db:
+                fabric = ProofFabric(sync_db)
+                fabric.record_governance_event(
+                    event_type=ProofEventType.POLICY_EVOLUTION,
+                    domain=GovernorDomain.POLICY,
+                    entity_id=str(evolution.id),
+                    payload={
+                        "policy_key": policy_key,
+                        "new_value": new_value,
+                        "change_reason": change_reason
+                    },
+                    actor=author_id
+                )
+        except Exception as e:
+            logger.error(f"Failed to record Proof Event for policy change {evolution.id}: {str(e)}")
+
         logger.info(f"Policy Evolved: {policy_key} to {new_value}")
         return evolution
 
@@ -144,25 +187,6 @@ class LineageService:
         extra_meta: Optional[Dict[str, Any]] = None,
         db: Optional[AsyncSession] = None
     ) -> "DecisionLineage":
-        """
-        Soft CEO ajanının triaj kararını soyağacına kaydeder.
-        
-        Kör onay vermez — sadece kararın nedenini, risk seviyesini
-        ve önerilen aksiyonu integrity-hash zinciriyle mühürler.
-        
-        Args:
-            recommended_action: SoftCeoDecisionType değeri
-            risk_class:         SoftCeoRiskClass değeri
-            pending_reason:     PendingReason değeri
-            target_type:        "project", "approval", "incident"
-            target_id:          Hedef kaydın UUID'si
-            rationale:          İnsan-okunabilir gerekçe
-            confidence_score:   0.0-1.0 arası güven puanı
-            staleness_hours:    Bekleme süresi (saat)
-            parent_id:          Tetikleyici karar ID'si (varsa)
-            extra_meta:         Ek bağlam verisi
-            db:                 Mevcut veritabanı oturumu (opsiyonel)
-        """
         meta = {
             "risk_class": risk_class,
             "pending_reason": pending_reason,
@@ -185,3 +209,158 @@ class LineageService:
             meta_data=meta,
             db=db
         )
+
+    @staticmethod
+    async def log_meta_governor_decision(
+        project_id: Any,
+        domain_decisions: Dict[str, Dict[str, Any]],
+        final_decision: Dict[str, Any],
+        conflicts: List[Dict[str, Any]],
+        constraints: List[str],
+        db: Optional[AsyncSession] = None
+    ) -> "DecisionLineage":
+        meta = {
+            "domain_decisions": domain_decisions,
+            "conflicts": conflicts,
+            "constraints": constraints,
+            "winning_domain": final_decision.get("domain"),
+            "risk_score": final_decision.get("risk_score"),
+            "agent": "meta_governor"
+        }
+        
+        return await LineageService.log_decision(
+            decision_type="META_GOVERNOR_DECISION",
+            component_name="meta_governor",
+            rationale=f"Final meta-decision for project {project_id}",
+            outcome=final_decision["recommended_decision"],
+            trigger_event={"project_id": str(project_id)},
+            meta_data=meta,
+            db=db
+        )
+
+    @staticmethod
+    async def log_governor_resilience_event(
+        domain: str,
+        event_type: str,
+        details: str,
+        meta: Optional[Dict[str, Any]] = None,
+        db: Optional[AsyncSession] = None
+    ) -> "DecisionLineage":
+        return await LineageService.log_decision(
+            decision_type="GOVERNOR_RESILIENCE",
+            component_name=f"governor:{domain.lower()}",
+            rationale=details,
+            outcome=event_type,
+            trigger_event={"domain": domain, "event": event_type},
+            meta_data=meta or {},
+            db=db
+        )
+
+    @staticmethod
+    async def log_policy_evolution(
+        evolution_id: str,
+        policy_key: str,
+        event_type: str,
+        details: str,
+        meta: Optional[Dict[str, Any]] = None,
+        db: Optional[AsyncSession] = None
+    ) -> "DecisionLineage":
+        return await LineageService.log_decision(
+            decision_type="POLICY_EVOLUTION",
+            component_name="governor_policy_engine",
+            rationale=details,
+            outcome=event_type,
+            trigger_event={"evolution_id": evolution_id, "policy_key": policy_key},
+            meta_data=meta or {},
+            db=db
+        )
+
+    @staticmethod
+    async def log_governor_alert(
+        alert_id: str,
+        alert_type: str,
+        severity: str,
+        status: str,
+        summary: str,
+        db: Optional[AsyncSession] = None
+    ) -> "DecisionLineage":
+        return await LineageService.log_decision(
+            decision_type="GOVERNOR_ALERT",
+            component_name="governor_observability",
+            rationale=summary,
+            outcome=status,
+            trigger_event={"alert_id": alert_id, "type": alert_type, "severity": severity},
+            db=db
+        )
+
+    @staticmethod
+    async def log_governor_drift(
+        drift_id: str,
+        drift_type: str,
+        score: float,
+        summary: str,
+        db: Optional[AsyncSession] = None
+    ) -> "DecisionLineage":
+        return await LineageService.log_decision(
+            decision_type="GOVERNOR_DRIFT",
+            component_name="governor_drift_detector",
+            rationale=summary,
+            outcome="DETECTED",
+            trigger_event={"drift_id": drift_id, "type": drift_type, "score": score},
+            db=db
+        )
+
+    # ── Faz 12: Fleet Orchestration Logging ──────────────────
+    @staticmethod
+    async def log_fleet_event(
+        event_type: str,
+        target_id: str,
+        details: str,
+        meta: Optional[Dict[str, Any]] = None,
+        actor: str = "FleetScheduler",
+        db: Optional[AsyncSession] = None
+    ) -> "DecisionLineage":
+        """Logs fleet orchestration events (assignment, rebalance, etc)."""
+        
+        # Map fleet string event to ProofEventType
+        proof_map = {
+            "AGENT_ASSIGNED": ProofEventType.AGENT_ASSIGNED,
+            "AGENT_RELEASED": ProofEventType.AGENT_RELEASED,
+            "CLUSTER_FROZEN": ProofEventType.CLUSTER_FROZEN,
+            "FLEET_REBALANCED": ProofEventType.FLEET_REBALANCED,
+            "BUDGET_BLOCK": ProofEventType.BUDGET_BLOCK,
+            "AGENT_QUARANTINED": ProofEventType.AGENT_QUARANTINED
+        }
+        
+        proof_type = proof_map.get(event_type, ProofEventType.RUNTIME_EVENT)
+
+        lineage = await LineageService.log_decision(
+            decision_type="FLEET_EVENT",
+            component_name="fleet_orchestra",
+            rationale=details,
+            outcome=event_type,
+            trigger_event={"target_id": target_id, "event": event_type},
+            meta_data=meta or {},
+            db=db
+        )
+        
+        # Explicit Proof Event recording for fleet
+        try:
+            from libs.db.session import SessionLocal
+            with SessionLocal() as sync_db:
+                fabric = ProofFabric(sync_db)
+                fabric.record_governance_event(
+                    event_type=proof_type,
+                    domain=None,
+                    entity_id=target_id,
+                    payload={
+                        "event": event_type,
+                        "details": details,
+                        "meta": meta or {}
+                    },
+                    actor=actor
+                )
+        except Exception as e:
+            logger.error(f"Failed to record Fleet Proof Event: {str(e)}")
+            
+        return lineage

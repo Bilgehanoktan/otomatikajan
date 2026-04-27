@@ -123,6 +123,32 @@ async_session_factory = _LazySessionLocal()
 AsyncSessionLocal = async_session_factory
 async_session = async_session_factory
 
+# ── Sync Engine & Session (Phase 11 Support) ──────────────────
+_sync_engine = None
+_sync_session_factory = None
+
+def get_sync_engine():
+    global _sync_engine
+    if _sync_engine is None:
+        from sqlalchemy import create_engine
+        sync_url = DATABASE_URL.replace("+asyncpg", "").replace("+aiosqlite", "")
+        # Handle SQLite vs Postgres sync URL conversion
+        if "sqlite" in sync_url:
+             sync_url = sync_url.replace("sqlite:///", "sqlite:///")
+        
+        _sync_engine = create_engine(sync_url, pool_pre_ping=True)
+    return _sync_engine
+
+def get_sync_session():
+    global _sync_session_factory
+    if _sync_session_factory is None:
+        from sqlalchemy.orm import sessionmaker
+        _sync_session_factory = sessionmaker(bind=get_sync_engine())
+    return _sync_session_factory()
+
+SessionLocal = get_sync_session # Sync version for legacy/utility scripts
+sync_session_factory = get_sync_session
+
 
 # Celery Fork Safety: Worker process baslatildiginda engine'i temizle
 # Bu sayede her worker kendi pool'una sahip olur.

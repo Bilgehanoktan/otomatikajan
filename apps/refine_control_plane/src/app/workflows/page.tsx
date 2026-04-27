@@ -27,12 +27,11 @@ export default function WorkflowList() {
   const [isClient, setIsClient] = useState(false);
   useEffect(() => setIsClient(true), []);
 
-  const { query } = useList({
+  const { query: { data, isLoading, isError, refetch, error } } = useList({
     resource: "workflows",
     sorters: [{ field: "started_at", order: "desc" }],
     queryOptions: { enabled: isClient }
   });
-  const { data, isLoading, isError, refetch, error } = query;
   const { show } = useNavigation();
 
   if (!isClient) return <div className="min-h-screen bg-[#060a12]" />;
@@ -213,3 +212,4 @@ function EliteWorkflowItem({ workflow, onClick }: { workflow: any, onClick: () =
     </div>
   );
 }
+

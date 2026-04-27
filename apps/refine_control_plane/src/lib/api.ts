@@ -180,3 +180,17 @@ export const safeHttpClient = {
         return { data, status: 200, statusText: "OK", headers: {}, config };
     },
 };
+
+/**
+ * Validates the shape of Observability responses to prevent runtime UI crashes.
+ */
+export const validateObservabilityResponse = (type: "alerts" | "drifts" | "metrics", data: any) => {
+    if (!data) return false;
+    if (type === "alerts" || type === "drifts") {
+        return Array.isArray(data);
+    }
+    if (type === "metrics") {
+        return typeof data === "object" && !Array.isArray(data);
+    }
+    return true;
+};

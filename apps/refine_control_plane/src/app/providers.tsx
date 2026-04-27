@@ -166,7 +166,17 @@ export function Providers({ children }: { children: React.ReactNode }) {
             {
               name: "fleet",
               list: "/fleet",
-              meta: { label: "Filo Merkezi" },
+              meta: { label: "Filo Merkezi", icon: "🚀" },
+            },
+            {
+              name: "fleet/agents",
+              list: "/fleet/agents",
+              meta: { label: "Ajan Kayıt Defteri", parent: "fleet" },
+            },
+            {
+              name: "fleet/operations",
+              list: "/fleet/operations",
+              meta: { label: "Filo Operasyonları", parent: "fleet" },
             },
             {
               name: "mesh",
@@ -252,13 +262,84 @@ export function Providers({ children }: { children: React.ReactNode }) {
             {
               name: "learning/adaptation-candidates",
               list: "/learning/adaptation-candidates",
-              meta: { label: "Adaptasyon AdaylarÄ±", parent: "learning" },
+              meta: { label: "Adaptasyon Adayları", parent: "learning" },
             },
             {
               name: "axiology",
               list: "/axiology",
               show: "/axiology/:id",
-              meta: { label: "BiliÅŸsel Denetim" },
+              meta: { label: "Bilişsel Denetim" },
+            },
+            {
+              name: "governance/governor/cases",
+              list: "/governor",
+              show: "/governor/:id",
+              meta: { label: "Governor Inbox", icon: "🛡️" },
+            },
+            {
+              name: "governance/governor/escalations",
+              list: "/governor/escalations",
+              meta: { label: "Eskalasyonlar", parent: "governance/governor/cases" },
+            },
+            {
+              name: "governance/governor/scorecard",
+              list: "/governor/scorecard",
+              meta: { label: "Governor Skor Kartı", parent: "governance/governor/cases" },
+            },
+            {
+              name: "governance/governor/outcomes",
+              list: "/governor/outcomes",
+              meta: { label: "Governor Sonuçları", parent: "governance/governor/cases" },
+            },
+            {
+              name: "governance/governor/calibrations",
+              list: "/governor/calibrations",
+              meta: { label: "Eşik Kalibrasyonu", parent: "governance/governor/cases" },
+            },
+            {
+              name: "governance/governor/federated",
+              list: "/governor/federated",
+              meta: { label: "Federasyon Görünümü", parent: "governance/governor/cases" },
+            },
+            {
+              name: "governance/governor/conflicts",
+              list: "/governor/conflicts",
+              meta: { label: "Çakışma Yönetimi", parent: "governance/governor/cases" },
+            },
+            {
+              name: "governor/resilience/status",
+              list: "/governor/resilience",
+              meta: { label: "Direnç Durumu", parent: "governance/governor/cases" },
+            },
+            {
+              name: "governor/resilience/drills",
+              list: "/governor/drills",
+              meta: { label: "Chaos Lab (Drills)", parent: "governance/governor/cases" },
+            },
+            {
+              name: "governor/observability",
+              list: "/governor/observability",
+              meta: { label: "Yönetişim Gözlemlenebilirliği", parent: "governance/governor/cases" },
+            },
+            {
+              name: "governor/drifts",
+              list: "/governor/drifts",
+              show: "/governor/drifts/:id",
+              meta: { label: "Sapma İzleyici", parent: "governance/governor/cases" },
+            },
+            {
+              name: "governor/proof",
+              list: "/governor/proof",
+              show: "/governor/proof/snapshots/:id",
+              meta: { label: "Proof Fabric", parent: "governance/governor/cases" },
+            },
+            {
+              name: "governance/proof/events",
+              list: "/proof/events",
+            },
+            {
+              name: "governance/proof/snapshots",
+              list: "/proof/snapshots",
             },
           ]}
           options={{

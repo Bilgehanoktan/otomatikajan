@@ -58,7 +58,7 @@ const SystemHeaderContent = () => {
                 {/* Metabolic Health Indicator */}
                 <div className="hidden 2xl:flex items-center gap-4 px-6 border-l border-white/5">
                     <div className="flex flex-col items-end">
-                        <span className="text-[9px] text-gray-500 uppercase tracking-[0.2em] font-black mb-1">Metabolik NabÄ±z</span>
+                        <span className="text-[9px] text-gray-500 uppercase tracking-[0.2em] font-black mb-1">Metabolik Nabız</span>
                         <div className="flex items-center gap-2">
                              <div className="h-1.5 w-32 bg-white/5 rounded-full overflow-hidden border border-white/5">
                                 <div

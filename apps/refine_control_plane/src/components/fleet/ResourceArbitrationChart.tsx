@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Zap, ShieldAlert, BarChart3, Fingerprint } from "lucide-react";
+import { BarChart3, Fingerprint } from "lucide-react";
 
 interface TierStats {
   tier: number;

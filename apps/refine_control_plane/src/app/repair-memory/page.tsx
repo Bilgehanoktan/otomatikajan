@@ -21,16 +21,18 @@ export default function RepairMemoryPage() {
   const apiUrl = useApiUrl();
 
   // Fetch Heatmaps
-  const { query: { data: heatmapData, isLoading: heatmapLoading } } = useCustom({
+  const heatmapQuery = useCustom({
     url: `${apiUrl}/memory/heatmaps`,
     method: "get",
   });
+  const { data: heatmapData, isLoading: heatmapLoading } = heatmapQuery;
 
   // Fetch Learning Insights
-  const { query: { data: insightData, isLoading: insightLoading } } = useCustom({
+  const insightQuery = useCustom({
     url: `${apiUrl}/learning/insights`,
     method: "get",
   });
+  const { data: insightData, isLoading: insightLoading } = insightQuery;
 
   const heatmaps = heatmapData?.data || [];
   const strategies = insightData?.data?.strategies || [];
@@ -54,7 +56,7 @@ export default function RepairMemoryPage() {
               <Brain className="text-[var(--primary)]" size={20} />
               <div className="text-right">
                 <div className="text-xs font-black text-white">{strategies.length} Strateji</div>
-                <div className="text-[8px] text-gray-500 uppercase font-black">Aktif HafÄ±za</div>
+                <div className="text-[8px] text-gray-500 uppercase font-black">Aktif Hafıza</div>
               </div>
            </div>
         </div>
@@ -70,7 +72,7 @@ export default function RepairMemoryPage() {
           <div className="space-y-4">
             <div className="flex items-center gap-3 px-4">
                <Activity className="text-[var(--primary)]" size={18} />
-               <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">Alt Sistem BaÅŸarÄ± YoÄŸunluk HaritasÄ±</h3>
+               <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">Alt Sistem Başarı Yoğunluk Haritası</h3>
             </div>
             <Row gutter={[16, 16]}>
               {heatmaps.map((ss: any) => (
@@ -81,7 +83,7 @@ export default function RepairMemoryPage() {
                         <History size={20} className="text-gray-400 group-hover:text-[var(--primary)]" />
                       </div>
                       <div className="text-right">
-                        <Text className="text-[10px] text-gray-500 font-black uppercase block tracking-tighter">BaÅŸarÄ± OranÄ±</Text>
+                        <Text className="text-[10px] text-gray-500 font-black uppercase block tracking-tighter">Başarı Oranı</Text>
                         <Text className="text-lg font-black text-white">%{Math.round(ss.rate * 100)}</Text>
                       </div>
                     </div>
@@ -107,8 +109,8 @@ export default function RepairMemoryPage() {
                        image={Empty.PRESENTED_IMAGE_SIMPLE}
                        description={
                         <div className="text-center">
-                          <Text className="text-[11px] font-black uppercase tracking-widest text-gray-500 block mb-2">BiliÅŸsel KuluÃ§ka Evresi</Text>
-                          <Text className="text-[10px] text-gray-600">Sistem henÃ¼z otonom tamir tecrÃ¼besi biriktiriyor. Veriler toplandÄ±kÃ§a harita canlanacaktÄ±r.</Text>
+                          <Text className="text-[11px] font-black uppercase tracking-widest text-gray-500 block mb-2">Bilişsel Kuluçka Evresi</Text>
+                          <Text className="text-[10px] text-gray-600">Sistem henüz otonom tamir tecrübesi biriktiriyor. Veriler toplandıkça harita canlanacaktır.</Text>
                         </div>
                        }
                      />
@@ -124,7 +126,7 @@ export default function RepairMemoryPage() {
               <Card className="glass-panel !bg-[#0b0c10]/40 border-white/5 !p-8 h-full">
                 <div className="flex items-center gap-3 mb-8">
                   <BrainCircuit className="text-[var(--primary)]" size={24} />
-                  <Title level={4} className="!text-white !m-0 tracking-tighter uppercase text-sm">Strateji GÃ¼ven ve Verimlilik Matrisi</Title>
+                  <Title level={4} className="!text-white !m-0 tracking-tighter uppercase text-sm">Strateji Güven ve Verimlilik Matrisi</Title>
                 </div>
                 <Table
                   dataSource={strategies}
@@ -133,12 +135,12 @@ export default function RepairMemoryPage() {
                   rowKey="name"
                 >
                   <Table.Column
-                    title={<span className="label-tech">STRATEJÄ°</span>}
+                    title={<span className="label-tech">STRATEJİ</span>}
                     dataIndex="name"
                     render={(val) => <Text className="font-black text-[var(--primary)] uppercase text-[10px] tracking-widest">{val}</Text>}
                   />
                   <Table.Column
-                    title={<span className="label-tech">GÃœVEN PUANI</span>}
+                    title={<span className="label-tech">GÜVEN PUANI</span>}
                     dataIndex="trust_score"
                     render={(val) => (
                       <div className="flex items-center gap-3">
@@ -148,7 +150,7 @@ export default function RepairMemoryPage() {
                     )}
                   />
                   <Table.Column
-                    title={<span className="label-tech">BAÅžARI / ROLLBACK</span>}
+                    title={<span className="label-tech">BAŞARI / ROLLBACK</span>}
                     render={(_, r: any) => (
                       <Space size={12}>
                         <Tag color="success" className="!rounded-full border-none font-bold text-[9px] px-3">+{r.success}</Tag>
@@ -174,7 +176,7 @@ export default function RepairMemoryPage() {
               <Card className="glass-panel !bg-[#0b0c10]/40 border-white/5 !p-8 h-full">
                 <div className="flex items-center gap-3 mb-8">
                   <ZapOff className="text-red-500" size={24} />
-                  <Title level={4} className="!text-white !m-0 tracking-tighter uppercase text-sm">CezalandÄ±rÄ±lan Negatif KalÄ±plar</Title>
+                  <Title level={4} className="!text-white !m-0 tracking-tighter uppercase text-sm">Cezalandırılan Negatif Kalıplar</Title>
                 </div>
                 <div className="space-y-4">
                   {negatives.map((n: any, idx: number) => (
@@ -183,7 +185,7 @@ export default function RepairMemoryPage() {
                           <Tag color="error" className="!rounded-full border-none font-black text-[8px] uppercase">{n.strategy}</Tag>
                           <div className="text-right">
                              <Text className="text-[10px] text-red-400 font-bold block leading-none">-{Math.round(n.penalty * 100)} Puan</Text>
-                             <Text className="text-[8px] text-gray-600 uppercase font-black">Ceza AÄŸÄ±rlÄ±ÄŸÄ±</Text>
+                             <Text className="text-[8px] text-gray-600 uppercase font-black">Ceza Ağırlığı</Text>
                           </div>
                        </div>
                        <Text className="text-gray-300 text-[11px] block italic mb-2">"{n.reason}"</Text>
@@ -192,13 +194,13 @@ export default function RepairMemoryPage() {
                              <TrendingUp size={10} /> {n.occurrences} Tekrar
                           </div>
                           <div className="flex items-center gap-1 text-[9px] text-gray-500 font-bold">
-                             <FileWarning size={10} /> Etki: {n.blast_radius || 'SÄ±nÄ±rlÄ±'}
+                             <FileWarning size={10} /> Etki: {n.blast_radius || 'Sınırlı'}
                           </div>
                        </div>
                     </div>
                   ))}
                   {negatives.length === 0 && (
-                    <Empty description={<span className="text-[10px] font-black uppercase text-gray-600 tracking-widest">KÄ±sÄ±tlanan kalÄ±p yok</span>} />
+                    <Empty description={<span className="text-[10px] font-black uppercase text-gray-600 tracking-widest">Kısıtlanan kalıp yok</span>} />
                   )}
                 </div>
               </Card>
@@ -225,3 +227,5 @@ export default function RepairMemoryPage() {
     </div>
   );
 }
+
+
