@@ -170,9 +170,19 @@ def _register_default_actions(engine: WorkflowEngine):
 
         return {"_context_update": {"final_report": report, "final_status": str(task.status)}}
 
+    async def _dummy_action(context: dict, **kw) -> dict:
+        """Fallback dummy action for seed data."""
+        return {"_context_update": {"last_action": "dummy_executed"}}
+
     engine.register_action("plan_subtasks", _plan_subtasks)
     engine.register_action("execute_subtasks", _execute_subtasks)
     engine.register_action("synthesize_report", _synthesize_report)
+    
+    # ── Seed/Demo Data Actions ──────────────────────────────────
+    engine.register_action("prepare_digest", _dummy_action)
+    engine.register_action("validate_payloads", _dummy_action)
+    engine.register_action("review_patch_bundle", _dummy_action)
+    engine.register_action("await_operator_signoff", _dummy_action)
 
 
 def build_project_workflow(

@@ -24,10 +24,15 @@ class ShadowRunner:
         "__pycache__",
         "node_modules",
         ".pytest_cache",
-        "libs/vendor",  # CRITICAL: Do not copy massive vendor libs
-        "runtime/shadow_workspace", # Do not copy existing shadows
+        "vendor",
+        "shadow_workspace", # CRITICAL: Fix recursive copying
         "artifacts",
-        "brain"
+        "brain",
+        ".legacy_archive",
+        ".backup",
+        "docs",
+        "performance",
+        "e2e"
     }
 
     def __init__(self, project_root: str | None = None, timeout_seconds: int = 180):
@@ -71,7 +76,7 @@ class ShadowRunner:
 
     def validate_candidate(self, relative_path: str, candidate_code: str) -> Dict[str, Any]:
         run_id = uuid.uuid4().hex[:8]
-        shadow_root = self.project_root / "runtime" / "shadow_workspace" / f"run_{run_id}"
+        shadow_root = self.project_root / "runtime" / "shadow_fix_v2" / f"run_{run_id}"
 
         logger.info(f"Shadow ortam hazırlanıyor: {shadow_root}")
         shutil.copytree(

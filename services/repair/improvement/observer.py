@@ -1,7 +1,7 @@
 """
 Self-Improvement Observer (Consolidated from improvement_v1)
 [CONSOLIDATION] Eski improvement_v1/observer.py'nin aktif versiyonu.
-Sistemdeki iyileÅŸtirme fÄ±rsatlarÄ±nÄ± tarar.
+Sistemdeki iyileştirme fırsatlarını tarar.
 """
 import uuid
 from typing import List, Dict, Any
@@ -12,26 +12,26 @@ logger = get_logger("improvement.observer")
 
 
 class ImprovementObserver:
-    """Sistemdeki iyileÅŸtirme fÄ±rsatlarÄ±nÄ± tespit eden gÃ¶zlemci."""
+    """Sistemdeki iyileştirme fırsatlarını tespit eden gözlemci."""
 
     async def scan(self) -> List[ImprovementOpportunity]:
         """
-        Sistemi tarar ve iyileÅŸtirme fÄ±rsatlarÄ±nÄ± bulur.
+        Sistemi tarar ve iyileştirme fırsatlarını bulur.
         """
-        logger.info("ImprovementObserver: Sistem taranÄ±yor...")
+        logger.info("ImprovementObserver: Sistem taranıyor...")
         opportunities = []
 
         try:
             opportunities.extend(await self._scan_agent_failures())
             opportunities.extend(await self._scan_endpoint_errors())
         except Exception as e:
-            logger.error(f"Observer scan hatasÄ±: {e}")
+            logger.error(f"Observer scan hatası: {e}")
 
         return opportunities
 
     async def scan_for_issues(self) -> List[Dict[str, Any]]:
         """
-        Eski API uyumluluÄŸu â€” core/improvement/gate.py tarafÄ±ndan kullanÄ±lÄ±r.
+        Eski API uyumluluğu — core/improvement/gate.py tarafından kullanılır.
         """
         opportunities = await self.scan()
         return [
@@ -48,7 +48,7 @@ class ImprovementObserver:
 
     async def _scan_agent_failures(self) -> List[ImprovementOpportunity]:
         """
-        Agent baÅŸarÄ± oranlarÄ±nÄ± ve hata desenlerini tarar.
+        Agent başarı oranlarını ve hata desenlerini tarar.
         """
         from libs.db.session import AsyncSessionLocal
         from libs.db.models.core_models import WorkflowEvent, ImprovementOpportunity
@@ -56,11 +56,11 @@ class ImprovementObserver:
         from datetime import datetime, timedelta, timezone
 
         opportunities = []
-        logger.info("Agent hatalarÄ± taranÄ±yor...")
+        logger.info("Agent hataları taranıyor...")
 
         try:
             async with AsyncSessionLocal() as session:
-                # Son 24 saatteki hatalarÄ± grupla
+                # Son 24 saatteki hataları grupla
                 yesterday = datetime.now(timezone.utc) - timedelta(days=1)
 
                 # Hata mesajlarına göre gruplama yaparak "pattern" yakala
@@ -95,7 +95,7 @@ class ImprovementObserver:
                     .where(WorkflowEvent.event_type == "step_failed")
                     .where(WorkflowEvent.created_at >= yesterday)
                     .group_by("error_msg", "target_file")
-                    .having(func.count() >= 2)
+                    .having(func.count() >= 1) # Faz 12.1 Stabilizasyon: Eşik 1'e düşürüldü
                 )
 
                 res = await session.execute(stmt)
@@ -107,6 +107,11 @@ class ImprovementObserver:
 
                     # JSON'dan tırnaklarla gelebilir (SQLite/PG), temizle
                     clean_file = target_file.strip('"') if target_file else None
+                    
+                    # Eğer aksiyon kayıt hatasıysa ve dosya yoksa, runner.py'yi hedefle
+                    if not clean_file and "not registered" in error_msg.lower():
+                        clean_file = "libs/workflow/runner.py"
+                        
                     affected_files = [clean_file] if clean_file and clean_file != "null" else []
 
                     opp = ImprovementOpportunity(
@@ -130,10 +135,9 @@ class ImprovementObserver:
         return opportunities
 
     async def _scan_endpoint_errors(self) -> List[ImprovementOpportunity]:
-        """API endpoint hata oranlarÄ±nÄ± tarar."""
+        """API endpoint hata oranlarını tarar."""
         return []
 
 
 # Singleton
 observer = ImprovementObserver()
-

@@ -216,7 +216,7 @@ function EliteIncidentItem({ incident, onResolve }: { incident: any, onResolve: 
              <div>
                 <div className="flex flex-wrap items-center gap-4 mb-2">
                    <h3 className="text-lg font-black text-white uppercase tracking-tight group-hover/item:text-[var(--primary)] transition-colors">
-                     {incident.incident_type.replace('_', ' ')}
+                     {(incident.incident_type || "UNKNOWN_INCIDENT").replace('_', ' ')}
                    </h3>
                    <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all
                      ${isResolved ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20 shadow-[0_0_10px_rgba(102,252,241,0.1)]'}

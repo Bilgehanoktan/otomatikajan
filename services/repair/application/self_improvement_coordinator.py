@@ -13,8 +13,8 @@ logger = get_logger("self_improvement")
 
 class SelfImprovementCoordinator:
     """
-    Sistemin kendi kendini iyileÅŸtirme dÃ¶ngÃ¼sÃ¼nÃ¼ yÃ¶neten ana orkestratÃ¶r (Faz 12).
-    DÃ¶ngÃ¼: GÃ¶zle (Observe) -> Ã–nceliklendir -> Onay Al -> Uygula (Apply) -> DoÄŸrula
+    Sistemin kendi kendini iyileştirme döngüsünü yöneten ana orkestratör (Faz 12).
+    Döngü: Gözle (Observe) -> Önceliklendir -> Onay Al -> Uygula (Apply) -> Doğrula
     """
     
     def __init__(self, self_updater: SelfUpdater, observer: ImprovementObserver):
@@ -28,7 +28,7 @@ class SelfImprovementCoordinator:
             return
         self._is_running = True
         self._loop_task = asyncio.create_task(self._improvement_loop())
-        logger.info("Self-Improvement Coordinator baÅŸlatÄ±ldÄ±.")
+        logger.info("Self-Improvement Coordinator baslatildi.")
 
     async def stop(self):
         self._is_running = False
@@ -42,39 +42,39 @@ class SelfImprovementCoordinator:
         logger.info("Self-Improvement Coordinator durduruldu.")
 
     async def _improvement_loop(self):
-        """Periyodik tarama ve otomatik iyileÅŸtirme loop'u."""
+        """Periyodik tarama ve otomatik iyileştirme loop'u."""
         while self._is_running:
             try:
-                # 1. GÃ¶zlem (Scan)
+                # 1. Gözlem (Scan)
                 opportunities = await self.observer.scan()
                 if opportunities:
                     await self._process_opportunities(opportunities)
             except Exception as e:
-                logger.error(f"Improvement loop hatasÄ±: {e}")
+                logger.error(f"Improvement loop hatası: {e}")
             
-            await asyncio.sleep(3600) # Her saat baÅŸÄ± tara
+            await asyncio.sleep(900) # Her 15 dakikada bir tara (Stabilizasyon Modu)
 
     async def _process_opportunities(self, opportunities: List[ImprovementOpportunity]):
-        """Bulunan fÄ±rsatlarÄ± sÄ±rayla iÅŸle."""
-        # En yÃ¼ksek Ã¶nceliklileri seÃ§
+        """Bulunan fırsatları sırayla işle."""
+        # En yüksek önceliklileri seç
         sorted_ops = sorted(opportunities, key=lambda x: {"critical": 0, "high": 1, "medium": 2, "low": 3}.get(x.severity, 4))
         
         for op in sorted_ops:
             if not self._is_running: break
             
-            # Risk deÄŸerlendirmesi
+            # Risk değerlendirmesi
             requires_approval = self._check_risk(op)
             
             if requires_approval:
                 await self._request_approval(op)
                 continue
             
-            # Otomatik iyileÅŸtirme (DÃ¼ÅŸÃ¼k/Orta risk ise doÄŸrudan)
+            # Otomatik iyileştirme (Düşük/Orta risk ise doğrudan)
             await self.apply_improvement(op)
 
     def _check_risk(self, op: ImprovementOpportunity) -> bool:
-        """Ä°yileÅŸtirmenin manuel onay gerektirip gerektirmediÄŸini kontrol et."""
-        # 1. Kritik/YÃ¼ksek severity her zaman onay ister
+        """İyileştirmenin manuel onay gerektirip gerektirmediğini kontrol et."""
+        # 1. Kritik/Yüksek severity her zaman onay ister
         if op.severity in ("critical", "high"):
             return True
         
@@ -86,14 +86,14 @@ class SelfImprovementCoordinator:
         return False
 
     async def _request_approval(self, op: ImprovementOpportunity):
-        """Onay kapÄ±sÄ±na talep gÃ¶nder."""
+        """Onay kapısına talep gönder."""
         await event_bus.emit(
             "improvement.pending_approval",
             opportunity_id=op.id,
             description=op.description,
             severity=op.severity,
             affected_files=op.affected_files,
-            message=f"Kendi kendine iyileÅŸtirme onayÄ± bekleniyor: {op.description}"
+            message=f"Kendi kendine iyileştirme onayı bekleniyor: {op.description}"
         )
 
 
@@ -112,20 +112,21 @@ class SelfImprovementCoordinator:
         results = []
         for file_path in affected_files:
             try:
-                # 1. Shadow Workspace'de dÃ¼zeltme Ã¼ret ve test et
+                # 1. Shadow Workspace'de düzeltme üret ve test et
                 instruction = f"FIX RECURRING ERROR: {op.description}. Evidence: {op.evidence_detail}"
                 
-                # LLM'den dÃ¼zeltme iste
+                # LLM'den düzeltme iste
                 suggested_code = await self.updater.propose_fix(file_path, instruction)
                 
-                # Shadow Runner ile izole ortamda doÄŸrula
+                # Shadow Runner ile izole ortamda doğrula
                 shadow = ShadowRunner(self.updater.project_root)
                 validation = await asyncio.to_thread(shadow.validate_candidate, file_path, suggested_code)
                 
                 is_valid = validation.get("syntax_ok", False) and (validation.get("pytest_ok") is not False)
                 test_report = f"Syntax: {validation.get('syntax_ok')}, Pytest: {validation.get('pytest_ok')}"
                 
-                # 2. VeritabanÄ±na 'Pending' olarak kaydet
+                # 2. Veritabanına 'Pending' olarak kaydet
+                from libs.db.session import AsyncSessionLocal
                 async with AsyncSessionLocal() as db:
                     improvement = SystemImprovement(
                         id=uuid.uuid4(),
@@ -185,4 +186,3 @@ class SelfImprovementCoordinator:
                     imp.status = "failed"
                 
             await db.commit()
-
