@@ -12,7 +12,8 @@ const { Title, Text } = Typography;
 export default function DriftMonitor() {
   const router = useRouter();
   const { useDrifts } = useGovernorObservability();
-  const { data, isLoading } = useDrifts();
+  const { query } = useDrifts() as any;
+  const { data, isLoading } = query;
 
   const drifts = (data?.data as unknown as DriftRecord[]) || [];
 

@@ -59,12 +59,13 @@ class DrillEngine:
         
         # 1. Sentetik bir incident oluştur
         incident = IncidentRecord(
-            incident_id=f"drill_{uuid.uuid4().hex[:8]}",
-            source=IncidentSource.MANUAL,
-            severity=IncidentSeverity.MEDIUM,
-            service="DrillSystem",
-            module="GovernanceWatchdog",
-            symptom=f"DRILL SCENARIO: {scenario_name}",
+            incident_id=f"DRILL_{uuid.uuid4().hex[:8]}",
+            source=IncidentSource.GOVERNANCE,
+            severity=IncidentSeverity.HIGH,
+            service="SovereignAGI_Core",
+            module="GOVERNANCE_DRILL",
+            symptom=f"Autonomous Resilience Drill Triggered: {scenario_name}",
+            stack_trace="",
             context={"mode": "drill", "scenario": scenario_name}
         )
         

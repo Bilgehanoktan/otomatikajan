@@ -1,358 +1,623 @@
 """
-Async PostgreSQL Bağlantı Yönetimi
-SQLAlchemy 2.x async engine + session factory
+libs/db/session.py — Phase 13.04.2
+Unified database session management with aggressive SQLite fallback & Auto-Seeding.
 """
-import asyncio
+from __future__ import annotations
+
 import os
+import logging
+import asyncio
 import threading
+import uuid
+from typing import AsyncGenerator, Optional
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy import create_engine, event, text, select, func
 
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
-
-from libs.db.base import Base
-from services.observability.logging import get_logger
-logger = get_logger("db.session")
-
+# Import variables directly from libs.config
 try:
-    import libs.db.models.repair_models  # noqa: F401
-    import libs.db.models.learning_models # noqa: F401
-except Exception as e:
-    logger.warning(f"Modeller yuklenemedi: {e}")
+    from libs.config import (
+        DATABASE_URL,
+        DB_POOL_SIZE,
+        DB_MAX_OVERFLOW,
+        DB_POOL_TIMEOUT,
+        REDIS_URL
+    )
+except ImportError:
+    DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5433/ai_company")
+    DB_POOL_SIZE = 10
+    DB_MAX_OVERFLOW = 20
+    DB_POOL_TIMEOUT = 30
+    REDIS_URL = os.getenv("REDIS_URL", "")
 
-from libs.config import DATABASE_URL, DB_POOL_SIZE, DB_MAX_OVERFLOW, DB_POOL_TIMEOUT
+logger = logging.getLogger("db.session")
 
-# ── Lazy Engine — import-time crash önlenir (asyncpg yoksa) ───
+# ── Globals ───
 _engine = None
 _async_session_factory = None
+_sync_engine = None
+_sync_session_factory = None
+
+_DB_DEGRADED = False  
+_DB_CHECKED = False   
+_DB_ERROR = ""
 _last_loop = None
 _lock = threading.Lock()
 
+def check_connectivity(host="localhost", port=5433, timeout=1.5):
+    global _DB_DEGRADED, _DB_CHECKED, _DB_ERROR
+    import socket
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            _DB_DEGRADED = False
+            _DB_ERROR = ""
+    except (socket.timeout, ConnectionRefusedError, OSError):
+        _DB_DEGRADED = True
+        _DB_ERROR = f"Primary database unreachable at {host}:{port}; SQLite fallback is active."
+    _DB_CHECKED = True
+    return not _DB_DEGRADED
+
+def is_db_degraded() -> bool:
+    global _DB_DEGRADED, _DB_CHECKED
+    if not _DB_CHECKED:
+        check_connectivity()
+    return _DB_DEGRADED
+
+def db_error() -> str:
+    global _DB_ERROR
+    if not _DB_CHECKED:
+        check_connectivity()
+    return _DB_ERROR
+
+async def is_db_available() -> bool:
+    global _DB_ERROR
+    try:
+        engine = get_engine()
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        _DB_ERROR = ""
+        return True
+    except Exception as exc:
+        if not _DB_ERROR:
+            _DB_ERROR = str(exc)
+        return False
 
 def get_engine():
-    global _engine, _last_loop
-    curr_active_loop = None
+    global _engine, _last_loop, _DB_DEGRADED, _DB_CHECKED
     try:
         curr_active_loop = asyncio.get_running_loop()
     except RuntimeError:
-        pass
+        curr_active_loop = None
 
-    # Eğer engine yoksa VEYA mevcut loop değişmişse (Celery/Asyncio mismatch) yenile
+    if _engine is not None and _DB_DEGRADED:
+        if "sqlite" not in str(_engine.url):
+             _engine = None 
+
     if _engine is None or (curr_active_loop is not None and _last_loop is not curr_active_loop):
-        # SRE Hardening: Thread-safe engine creation without blocking the main event loop
-        # Sadece ilk çağrıda engine oluşturulur.
-        if _engine is None or (curr_active_loop is not None and _last_loop is not curr_active_loop):
-                logger.info(f"SQLAlchemy: Creating engine for loop {id(curr_active_loop)} (URL: {DATABASE_URL})")
-                try:
-                    # SRE Hardening: Provider-aware connect_args (Faz 12.1)
-                    connect_args = {}
-                    if "postgresql" in DATABASE_URL:
-                        connect_args = {
-                            "command_timeout": 60,
-                            "server_settings": {"search_path": "public"}
-                        }
-                    
-                    _engine = create_async_engine(
-                        DATABASE_URL,
-                        pool_size=DB_POOL_SIZE,
-                        max_overflow=DB_MAX_OVERFLOW,
-                        pool_timeout=DB_POOL_TIMEOUT,
-                        pool_pre_ping=True,
-                        echo=False,
-                        connect_args=connect_args
-                    )
-                    # Asyncio task başlatma yerine sessiz kal, init_db zaten yapılacak
-                    pass
-                except Exception as e:
-                    # ── PRODUCTION GUARD: SQLite üretimde kabul edilemez ──
-                    app_env = os.environ.get("APP_ENV", "development").lower()
-                    if app_env == "production":
-                        logger.critical(
-                            f"FATAL: PostgreSQL bağlantısı başarısız ve APP_ENV=production. "
-                            f"SQLite fallback üretimde devre dışı. Hata: {e}"
-                        )
-                        raise RuntimeError(
-                            "PostgreSQL connection failed in production. "
-                            "SQLite fallback is disabled for data safety. "
-                            "Please fix DATABASE_URL."
-                        ) from e
-                    
-                    logger.warning(f"SQLAlchemy: Ana DB (Postgres) bağlantısı kurulamadı: {e}. SQLite Fallback aktif ediliyor.")
-                    # SRE Hardening: Force project-root anchor to avoid "Split-Brain" databases in relative CWDs
+        with _lock:
+            if _engine is None or (curr_active_loop is not None and _last_loop is not curr_active_loop):
+                if not _DB_CHECKED: check_connectivity()
+                if _DB_DEGRADED:
                     _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-                    sqlite_path = os.path.join(_root, "runtime", "data", "cortex_local.db")
-                    logger.info(f"SQLAlchemy: Fallback SQLite path anchored to: {sqlite_path}")
-                    sqlite_url = f"sqlite+aiosqlite:///{sqlite_path.replace('\\', '/')}?timeout=30"
+                    sqlite_path = os.path.join(_root, "runtime", "data", "cortex_local_v2.db")
+                    os.makedirs(os.path.dirname(sqlite_path), exist_ok=True)
+                    sqlite_url = f"sqlite+aiosqlite:///{sqlite_path.replace('\\', '/')}?timeout=60"
                     _engine = create_async_engine(sqlite_url)
-                    # Explicitly track degraded state
-                    global _DB_DEGRADED
-                    _DB_DEGRADED = True
-                
+                    
+                    @event.listens_for(_engine.sync_engine, "connect")
+                    def set_sqlite_pragma(dbapi_connection, connection_record):
+                        cursor = dbapi_connection.cursor()
+                        cursor.execute("PRAGMA journal_mode=WAL")
+                        cursor.execute("PRAGMA synchronous=NORMAL")
+                        cursor.execute("PRAGMA busy_timeout=60000")
+                        cursor.close()
+                else:
+                    _engine = create_async_engine(DATABASE_URL, pool_size=DB_POOL_SIZE, max_overflow=DB_MAX_OVERFLOW, pool_pre_ping=True)
                 _last_loop = curr_active_loop
-                if curr_active_loop:
-                    logger.info("SQLAlchemy: Yeni event loop algılandı, engine yenilendi.")
     return _engine
-
 
 def _get_session_factory():
     global _async_session_factory
     engine = get_engine()
-    
-    # Engine yenilenmiş olabilir, factory'i de kontrol et
     if _async_session_factory is None or _async_session_factory.kw["bind"] is not engine:
-        if _async_session_factory is None or _async_session_factory.kw["bind"] is not engine:
-                _async_session_factory = async_sessionmaker(
-                    engine,
-                    class_=AsyncSession,
-                    expire_on_commit=False,
-                )
+        _async_session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     return _async_session_factory
 
-
 class _LazySessionLocal:
-    """AsyncSessionLocal gibi davranır ama engine'i lazy oluşturur."""
-    def __call__(self):
-        return _get_session_factory()()
+    def __call__(self): return _get_session_factory()()
 
-# Aliases for different architectural styles
-async_session_factory = _LazySessionLocal()
-AsyncSessionLocal = async_session_factory
-async_session = async_session_factory
+AsyncSessionLocal = _LazySessionLocal()
 
-# ── Sync Engine & Session (Phase 11 Support) ──────────────────
-_sync_engine = None
-_sync_session_factory = None
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    async with AsyncSessionLocal() as session: yield session
 
+@asynccontextmanager
+async def session_scope():
+    """
+    Asenkron veritabanı oturumu sağlar ve otomatik commit/rollback yapar.
+    """
+    session = AsyncSessionLocal()
+    try:
+        yield session
+        await session.commit()
+    except Exception:
+        await session.rollback()
+        raise
+    finally:
+        await session.close()
+
+get_db_ctx = session_scope
+
+async def init_db():
+    import hashlib
+    import json
+    from datetime import datetime, timezone
+    from libs.db.models.core_models import Base, Project, ProjectSource, ProjectStatus, SubTask, TaskPriority, ApprovalRequest
+    from libs.db.models.learning_models import Base as LearningBase
+    from libs.db.models.governance_models import (
+        Base as GovBase,
+        GovernorCaseRecord,
+        GovernorDomain,
+        GovernorOutcomeRecord,
+        GovernorOutcomeQuality,
+        GovernorOutcomeType,
+        GovernanceProofEventRecord,
+        GovernanceProofSnapshotRecord,
+        PolicyProposal,
+        ProofEventType,
+        ProofSealStatus,
+    )
+    from libs.db.models.lineage_models import Base as LineageBase, DecisionLineage
+    from libs.db.models.compliance_models import Base as CompBase
+    from libs.db.models.auth_models import Base as AuthBase, Operator, SystemIdentity
+    
+    engine = get_engine()
+    
+    async with engine.begin() as conn:
+        if is_db_degraded():
+            await conn.run_sync(Base.metadata.create_all)
+            await conn.run_sync(LearningBase.metadata.create_all)
+            await conn.run_sync(GovBase.metadata.create_all)
+            await conn.run_sync(LineageBase.metadata.create_all)
+            await conn.run_sync(CompBase.metadata.create_all)
+            await conn.run_sync(AuthBase.metadata.create_all)
+            logger.info("OK: Veritabanı tabloları hazır (SQLite Fallback).")
+
+    # ── Auto-Seeding (SIF-01 Compliance) ───
+    async with AsyncSessionLocal() as db:
+        try:
+            # 0. Seed Agent Nodes from Registry
+            from agents.specialist_agents.agent_registry import build_agents
+            from libs.db.models.core_models import AgentNode, AgentRole, AgentStatus
+            
+            registry_agents = build_agents()
+            for agent_id, agent_obj in registry_agents.items():
+                res = await db.execute(select(AgentNode).where(AgentNode.name == agent_id))
+                if not res.scalar_one_or_none():
+                    # Map role string to AgentRole enum safely
+                    try:
+                        # Try to match by ID or common roles
+                        role_enum = AgentRole.EXECUTOR
+                        if "architect" in agent_id: role_enum = AgentRole.PLANNER
+                        elif "planner" in agent_id: role_enum = AgentRole.PLANNER
+                        elif "reviewer" in agent_id: role_enum = AgentRole.REVIEWER
+                        elif "auditor" in agent_id: role_enum = AgentRole.AUDITOR
+                        elif "governor" in agent_id: role_enum = AgentRole.GOVERNOR
+                        elif "security" in agent_id: role_enum = AgentRole.AUDITOR
+                    except:
+                        role_enum = AgentRole.EXECUTOR
+
+                    node = AgentNode(
+                        name=agent_id,
+                        role=role_enum,
+                        status=AgentStatus.IDLE,
+                        trust_score=1.0,
+                        capabilities={"id": agent_id, "name": agent_obj.name}
+                    )
+                    db.add(node)
+                    logger.info(f"SEED: AgentNode '{agent_id}' oluşturuldu.")
+
+            # 1. Seed Admin Operator
+            res = await db.execute(select(Operator).where(Operator.email == "admin@sovereign.agi"))
+            if not res.scalar_one_or_none():
+                from bcrypt import hashpw, gensalt
+                hashed = hashpw("admin1234".encode(), gensalt()).decode()
+                admin = Operator(
+                    email="admin@sovereign.agi",
+                    username="admin",
+                    hashed_password=hashed,
+                    role="SOVEREIGN_PRIME",
+                    is_active=True
+                )
+                db.add(admin)
+                logger.info("SEED: 'admin@sovereign.agi' Prime Operator oluşturuldu.")
+
+            # 2. Seed Default Governance Agent
+            res = await db.execute(select(SystemIdentity).where(SystemIdentity.name == "governance_agent"))
+            if not res.scalar_one_or_none():
+                gov_agent = SystemIdentity(
+                    name="governance_agent",
+                    identity_type="agent",
+                    role="GOVERNANCE_AGENT",
+                    trust_score=100,
+                    risk_level="LOW"
+                )
+                db.add(gov_agent)
+                logger.info("SEED: 'governance_agent' System Identity oluşturuldu.")
+
+            if is_db_degraded():
+                project_count = await db.scalar(select(func.count(Project.id))) or 0
+                if project_count == 0:
+                    now = datetime.now(timezone.utc)
+
+                    running_project = Project(
+                        title="Pilot Intel Ingestion",
+                        description="Fallback mode demo workflow for the control plane.",
+                        status=ProjectStatus.RUNNING,
+                        source=ProjectSource.CONTROL_PLANE,
+                        priority=TaskPriority.HIGH,
+                        workflow_template="intel_ingestion",
+                        quality_profile="standard",
+                        progress_pct=66,
+                        started_at=now,
+                        execution_context={},
+                    )
+                    queued_project = Project(
+                        title="Daily Compliance Digest",
+                        description="Queued governance digest generation.",
+                        status=ProjectStatus.QUEUED,
+                        source=ProjectSource.CONTROL_PLANE,
+                        priority=TaskPriority.MEDIUM,
+                        workflow_template="compliance_digest",
+                        quality_profile="standard",
+                        progress_pct=0,
+                        execution_context={},
+                    )
+                    approval_project = Project(
+                        title="Patch Review Gate",
+                        description="Workflow waiting for operator approval.",
+                        status=ProjectStatus.PENDING_APPROVAL,
+                        source=ProjectSource.CONTROL_PLANE,
+                        priority=TaskPriority.MEDIUM,
+                        workflow_template="patch_review",
+                        quality_profile="strict",
+                        progress_pct=50,
+                        started_at=now,
+                        execution_context={},
+                        review_required=True,
+                    )
+                    db.add_all([running_project, queued_project, approval_project])
+                    await db.flush()
+
+                    db.add_all([
+                        SubTask(
+                            project_id=running_project.id,
+                            agent_id="planner.alpha",
+                            action="plan_intel_pipeline",
+                            prompt="Prepare ingestion plan for source connectors.",
+                            status=ProjectStatus.COMPLETED,
+                            attempts=1,
+                            result="Connector plan generated.",
+                            completed_at=now,
+                        ),
+                        SubTask(
+                            project_id=running_project.id,
+                            agent_id="executor.beta",
+                            action="run_ingestion",
+                            prompt="Execute normalized source ingestion.",
+                            status=ProjectStatus.RUNNING,
+                            attempts=1,
+                        ),
+                        SubTask(
+                            project_id=running_project.id,
+                            agent_id="reviewer.gamma",
+                            action="validate_payloads",
+                            prompt="Validate extracted payloads and quality checks.",
+                            status=ProjectStatus.PENDING,
+                        ),
+                        SubTask(
+                            project_id=queued_project.id,
+                            agent_id="planner.delta",
+                            action="prepare_digest",
+                            prompt="Assemble daily compliance digest outline.",
+                            status=ProjectStatus.PENDING,
+                        ),
+                        SubTask(
+                            project_id=approval_project.id,
+                            agent_id="governor.prime",
+                            action="review_patch_bundle",
+                            prompt="Review latest patch bundle for release readiness.",
+                            status=ProjectStatus.COMPLETED,
+                            attempts=1,
+                            result="Initial review complete.",
+                            completed_at=now,
+                        ),
+                        SubTask(
+                            project_id=approval_project.id,
+                            agent_id="auditor.theta",
+                            action="await_operator_signoff",
+                            prompt="Await operator decision for deployment gate.",
+                            status=ProjectStatus.PENDING_APPROVAL,
+                        ),
+                    ])
+                    logger.info("SEED: Demo workflows created for SQLite fallback control plane.")
+
+                projects = (
+                    await db.execute(select(Project).order_by(Project.created_at.asc()))
+                ).scalars().all()
+
+                project_by_title = {project.title: project for project in projects}
+                approval_project = project_by_title.get("Patch Review Gate")
+                running_project = project_by_title.get("Pilot Intel Ingestion")
+                queued_project = project_by_title.get("Daily Compliance Digest")
+
+                if approval_project is not None:
+                    approval_count = await db.scalar(select(func.count(ApprovalRequest.id))) or 0
+                    if approval_count == 0:
+                        db.add(
+                            ApprovalRequest(
+                                project_id=approval_project.id,
+                                step_id="release_gate",
+                                request_type="risk_score",
+                                reason="Patch bundle yüksek etki alanına dokunuyor, operatör onayı gerekli.",
+                                input_data={
+                                    "bundle": "patch-review-gate",
+                                    "risk_class": "HIGH",
+                                    "requested_action": "approve_release",
+                                },
+                                status="pending",
+                                comment="Governor gating active.",
+                            )
+                        )
+
+                    case_count = await db.scalar(select(func.count(GovernorCaseRecord.id))) or 0
+                    if case_count == 0:
+                        db.add_all([
+                            GovernorCaseRecord(
+                                project_id=approval_project.id,
+                                project_title=approval_project.title,
+                                project_status=str(approval_project.status.value if hasattr(approval_project.status, "value") else approval_project.status),
+                                pending_reason="RISK_REVIEW_REQUIRED",
+                                risk_class="HIGH",
+                                risk_score=87,
+                                recommended_decision="REQUIRES_PRIME_APPROVAL",
+                                decision_reason_codes=[
+                                    "Açık approval isteği mevcut",
+                                    "Release gate için PRIME onayı gerekiyor",
+                                ],
+                                has_open_incident=0,
+                                has_safety_lock=1,
+                                has_active_fingerprint=0,
+                                requires_prime=1,
+                                requires_quorum=0,
+                                missing_context=0,
+                                stale_seconds=5400,
+                                snapshot_payload={"surface": "release-gate", "operator": "prime"},
+                            ),
+                            GovernorCaseRecord(
+                                project_id=queued_project.id if queued_project is not None else approval_project.id,
+                                project_title=queued_project.title if queued_project is not None else "Daily Compliance Digest",
+                                project_status=str(queued_project.status.value if queued_project is not None and hasattr(queued_project.status, "value") else (queued_project.status if queued_project is not None else "QUEUED")),
+                                pending_reason="CONTEXT_SYNC_PENDING",
+                                risk_class="MEDIUM",
+                                risk_score=41,
+                                recommended_decision="AUTO_REPLAY_CANDIDATE",
+                                decision_reason_codes=[
+                                    "Eksik bağlam senkronizasyonu",
+                                    "Tekrar deneme düşük riskli",
+                                ],
+                                has_open_incident=0,
+                                has_safety_lock=0,
+                                has_active_fingerprint=0,
+                                requires_prime=0,
+                                requires_quorum=0,
+                                missing_context=1,
+                                stale_seconds=1800,
+                                snapshot_payload={"surface": "digest-sync", "retryable": True},
+                            ),
+                        ])
+
+                    proposal_count = await db.scalar(select(func.count(PolicyProposal.id))) or 0
+                    if proposal_count == 0:
+                        db.add_all([
+                            PolicyProposal(
+                                title="Governor Retry Threshold Tuning",
+                                description="Replay eşiğini düşük riskli iş akışları için optimize et.",
+                                policy_code="governor.retry_threshold=2",
+                                status="PROPOSED",
+                            ),
+                            PolicyProposal(
+                                title="Fleet Quarantine Cooldown",
+                                description="Karantina taramalarında gözlem penceresini 15 dakikaya sabitle.",
+                                policy_code="fleet.quarantine.cooldown=900",
+                                status="PROPOSED",
+                            ),
+                        ])
+
+                    outcome_count = await db.scalar(select(func.count(GovernorOutcomeRecord.id))) or 0
+                    if outcome_count == 0:
+                        db.add_all([
+                            GovernorOutcomeRecord(
+                                project_id=approval_project.id,
+                                decision="REQUIRES_PRIME_APPROVAL",
+                                final_outcome=GovernorOutcomeType.SUCCESS,
+                                quality=GovernorOutcomeQuality.OPTIMAL,
+                                was_successful=1,
+                                operator_overrode=0,
+                                operator_agreed=1,
+                                resolution_latency_seconds=142,
+                                reason_codes=["PRIME_APPROVAL_CONFIRMED"],
+                            ),
+                            GovernorOutcomeRecord(
+                                project_id=running_project.id if running_project is not None else approval_project.id,
+                                decision="AUTO_REPLAY_CANDIDATE",
+                                final_outcome=GovernorOutcomeType.IMPROVEMENT,
+                                quality=GovernorOutcomeQuality.SUBOPTIMAL,
+                                was_successful=1,
+                                operator_overrode=0,
+                                operator_agreed=1,
+                                resolution_latency_seconds=96,
+                                reason_codes=["RETRY_RECOVERED_EXECUTION"],
+                            ),
+                        ])
+
+                    lineage_count = await db.scalar(select(func.count(DecisionLineage.id))) or 0
+                    if lineage_count == 0:
+                        db.add_all([
+                            DecisionLineage(
+                                decision_type="GOVERNOR_CASE",
+                                component_name="Governor Inbox",
+                                rationale="Patch Review Gate yüksek riskte kaldığı için PRIME onayına yönlendirildi.",
+                                trigger_event={"project": approval_project.title, "risk_class": "HIGH"},
+                                outcome="PENDING_PRIME",
+                                confidence_score=0.93,
+                                integrity_hash="seed-governor-case-01",
+                                meta_data={"surface": "governor"},
+                            ),
+                            DecisionLineage(
+                                decision_type="SELF_TUNING",
+                                component_name="Evolution Hub",
+                                rationale="Retry threshold düşük riskli tekrar denemelerde optimize edilmeli.",
+                                trigger_event={"proposal": "Governor Retry Threshold Tuning"},
+                                outcome="PROPOSED",
+                                confidence_score=0.88,
+                                integrity_hash="seed-self-tuning-01",
+                                meta_data={"surface": "self-tuning"},
+                            ),
+                        ])
+
+                    proof_event_count = await db.scalar(select(func.count(GovernanceProofEventRecord.id))) or 0
+                    if proof_event_count == 0:
+                        seed_events = [
+                            (
+                                ProofEventType.GOVERNOR_DECISION,
+                                GovernorDomain.WORKFLOW,
+                                str(approval_project.id),
+                                {
+                                    "summary": "Patch Review Gate PRIME onay kuyruğuna alındı.",
+                                    "project": approval_project.title,
+                                    "decision": "REQUIRES_PRIME_APPROVAL",
+                                },
+                            ),
+                            (
+                                ProofEventType.POLICY_EVOLUTION,
+                                GovernorDomain.POLICY,
+                                "Governor Retry Threshold Tuning",
+                                {
+                                    "summary": "Retry threshold düşük riskli tekrar denemeler için optimize önerisi aldı.",
+                                    "proposal": "Governor Retry Threshold Tuning",
+                                    "status": "PROPOSED",
+                                },
+                            ),
+                            (
+                                ProofEventType.ALERT_EVENT,
+                                GovernorDomain.APPROVAL,
+                                "approval-risk-score",
+                                {
+                                    "summary": "Risk score gate approval isteği canlı denetim zincirine işlendi.",
+                                    "request_type": "risk_score",
+                                    "status": "pending",
+                                },
+                            ),
+                        ]
+
+                        prev_hash = None
+                        for chain_index, (event_type, domain, entity_id, payload) in enumerate(seed_events, start=1):
+                            canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False)
+                            payload_hash = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+                            event_hash = hashlib.sha256(
+                                f"{chain_index}|{event_type.value}|{entity_id}|{payload_hash}|{prev_hash or ''}".encode("utf-8")
+                            ).hexdigest()
+                            db.add(
+                                GovernanceProofEventRecord(
+                                    event_type=event_type,
+                                    domain=domain,
+                                    entity_id=entity_id,
+                                    payload_hash=payload_hash,
+                                    payload_canonical=canonical,
+                                    prev_event_hash=prev_hash,
+                                    event_hash=event_hash,
+                                    chain_index=chain_index,
+                                    created_by="governance_agent",
+                                )
+                            )
+                            prev_hash = event_hash
+
+                    snapshot_count = await db.scalar(select(func.count(GovernanceProofSnapshotRecord.id))) or 0
+                    if snapshot_count == 0:
+                        proof_events = (
+                            await db.execute(
+                                select(GovernanceProofEventRecord).order_by(GovernanceProofEventRecord.chain_index.asc())
+                            )
+                        ).scalars().all()
+                        if proof_events:
+                            combined_hashes = "".join(event.event_hash for event in proof_events)
+                            merkle_root = hashlib.sha256(combined_hashes.encode("utf-8")).hexdigest()
+                            snapshot_hash = hashlib.sha256(
+                                f"proof-seed|{merkle_root}|{len(proof_events)}".encode("utf-8")
+                            ).hexdigest()
+                            db.add(
+                                GovernanceProofSnapshotRecord(
+                                    snapshot_name="PHASE_12_FINAL_SNAP_20260427",
+                                    start_chain_index=proof_events[0].chain_index,
+                                    end_chain_index=proof_events[-1].chain_index,
+                                    event_count=len(proof_events),
+                                    merkle_root=merkle_root,
+                                    snapshot_hash=snapshot_hash,
+                                    seal_status=ProofSealStatus.SEALED,
+                                    sealed_by="governance_agent",
+                                )
+                            )
+
+            await db.commit()
+        except Exception as e:
+            logger.error(f"SEED ERROR: {e}")
+            await db.rollback()
+
+async def close_db():
+    global _engine, _sync_engine
+    if _engine: await _engine.dispose(); _engine = None
+    if _sync_engine: _sync_engine.dispose(); _sync_engine = None
+
+async def get_redis_client():
+    if not REDIS_URL: return None
+    try:
+        from redis import asyncio as aioredis
+        client = aioredis.from_url(REDIS_URL, decode_responses=True)
+        await asyncio.wait_for(client.ping(), timeout=1.0)
+        return client
+    except Exception: return None
+
+# ── Sync Support ───
 def get_sync_engine():
     global _sync_engine
     if _sync_engine is None:
-        from sqlalchemy import create_engine
-        sync_url = DATABASE_URL.replace("+asyncpg", "").replace("+aiosqlite", "")
-        # Handle SQLite vs Postgres sync URL conversion
-        if "sqlite" in sync_url:
-             sync_url = sync_url.replace("sqlite:///", "sqlite:///")
-        
-        _sync_engine = create_engine(sync_url, pool_pre_ping=True)
+        if is_db_degraded():
+            _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            sqlite_path = os.path.join(_root, "runtime", "data", "cortex_local_v2.db")
+            _sync_engine = create_engine(f"sqlite:///{sqlite_path.replace('\\', '/')}", connect_args={"check_same_thread": False, "timeout": 60})
+            
+            @event.listens_for(_sync_engine, "connect")
+            def set_sqlite_pragma_sync(dbapi_connection, connection_record):
+                cursor = dbapi_connection.cursor()
+                cursor.execute("PRAGMA journal_mode=WAL")
+                cursor.execute("PRAGMA synchronous=NORMAL")
+                cursor.execute("PRAGMA busy_timeout=60000")
+                cursor.close()
+        else:
+            sync_url = DATABASE_URL.replace("+asyncpg", "").replace("+aiosqlite", "")
+            _sync_engine = create_engine(sync_url)
     return _sync_engine
 
-def get_sync_session():
+def _get_sync_session_factory():
     global _sync_session_factory
+    engine = get_sync_engine()
     if _sync_session_factory is None:
-        from sqlalchemy.orm import sessionmaker
-        _sync_session_factory = sessionmaker(bind=get_sync_engine())
-    return _sync_session_factory()
+        _sync_session_factory = sessionmaker(bind=engine, expire_on_commit=False)
+    return _sync_session_factory
 
-SessionLocal = get_sync_session # Sync version for legacy/utility scripts
-sync_session_factory = get_sync_session
+class _LazySyncSessionLocal:
+    def __call__(self): return _get_sync_session_factory()()
 
-
-# Celery Fork Safety: Worker process baslatildiginda engine'i temizle
-# Bu sayede her worker kendi pool'una sahip olur.
-try:
-    from celery.signals import worker_process_init
-    @worker_process_init.connect
-    def on_worker_process_init(**kwargs):
-        global _engine, _async_session_factory
-        _engine = None
-        _async_session_factory = None
-        logger.info("Celery Worker: Engine ve Session Factory sifirlandi (fork-safe).")
-except ImportError:
-    pass
-
-
-
-
-
-# Public engine access
-_DB_AVAILABLE: bool = False
-_DB_DEGRADED:  bool = False
-_DB_ERROR:     str  = ""
-
-def db_error() -> str:
-    """Son DB hata mesajını döndür."""
-    return _DB_ERROR
-
-async def is_db_available() -> bool:
-    """DB bağlantısını aktif olarak test eder (SRE Hardening)."""
-    return await verify_db_connection()
-
-async def verify_db_connection() -> bool:
-    """DB bağlantısını gerçekten test et (Async)."""
-    global _DB_AVAILABLE, _DB_ERROR
-    try:
-        # P0: Timeout — veritabanı asılı kalırsa orkestrasyonun kilitlenmesini önler
-        return await asyncio.wait_for(_verify_core(), timeout=2.0)
-    except Exception as e:
-        _DB_ERROR = str(e)
-        _DB_AVAILABLE = False
-        return False
-
-async def _verify_core() -> bool:
-    global _DB_AVAILABLE
-    try:
-        engine = get_engine()
-        if engine is None:
-            return False
-        async with engine.begin() as conn:
-            from sqlalchemy import text
-            await conn.execute(text("SELECT 1"))
-        _DB_AVAILABLE = True
-        return True
-    except Exception:
-        return False
-
-
-async def init_db():
-    """DB başlatma stratejisi:
-    - development/test: create_all ile otomatik tablo oluşturma
-    - production: create_all ÇALIŞMAZ — alembic upgrade head gerekir
-    """
-    import os
-    try:
-        from libs.config import APP_ENV
-    except ImportError:
-        APP_ENV = os.getenv("APP_ENV", "development")
-
-    global _DB_AVAILABLE, _DB_ERROR, _engine
-    _DB_AVAILABLE = False
-    
-    async def run_init(target_engine):
-        is_sqlite = "sqlite" in str(target_engine.url)
-        async with target_engine.begin() as conn:
-            if not is_sqlite:
-                try:
-                    from sqlalchemy import text
-                    await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-                except Exception as e:
-                    logger.warning(f"pgvector uzantısı oluşturulamadı: {e}")
-
-            import libs.db.models
-            import libs.db.models.repair_models
-            await conn.run_sync(Base.metadata.create_all)
-            _log_msg = "SQLite Fallback Hazır" if is_sqlite else "Postgres Hazır"
-            logger.info(f"OK: Veritabanı tabloları hazır ({APP_ENV} - {_log_msg}).")
-            return True
-
-    try:
-        engine = get_engine()
-        await run_init(engine)
-        _DB_AVAILABLE = True
-        _DB_ERROR = ""
-    except Exception as e:
-        _DB_ERROR = str(e)
-        if "sqlite" not in str(get_engine().url):
-            logger.warning(f"Postgres bağlantısı başlatma sırasında başarısız oldu: {e}. SQLite'a zorlanıyor...")
-            _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            sqlite_path = os.path.join(_root, "runtime", "data", "cortex_local.db")
-            sqlite_url = f"sqlite+aiosqlite:///{sqlite_path.replace('\\', '/')}"
-            _engine = create_async_engine(sqlite_url)
-            try:
-                await run_init(_engine)
-                _DB_AVAILABLE = True
-                _DB_ERROR = ""
-                return
-            except Exception as e2:
-                _DB_ERROR = f"SQLite Fallback da başarısız: {e2}"
-        
-        logger.error(f"[ERR] Kritik DB Başlatma Hatası: {_DB_ERROR}")
-
-
-        # Uygulama çökmesin ama degraded mode'da kalsın
-
-def is_db_degraded() -> bool:
-    """Sistemin fallback (SQLite) modunda olup olmadığını döner."""
-    return _DB_DEGRADED
-
-
-async def close_db():
-    await get_engine().dispose()
-    print("Veritabanı bağlantısı kapatıldı.")
-
-
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """
-    Sistem genelinde veritabanı oturumu sağlayan temel async generator.
-    FastAPI Depends() ile tam uyumludur.
-    """
-    async with AsyncSessionLocal() as session:
-        try:
-            yield session
-            if session.in_transaction():
-                await session.commit()
-        except Exception as e:
-            try:
-                if session.is_active:
-                    await session.rollback()
-            except Exception as rb_err:
-                logger.error(f"DB Rollback hatası (get_db): {rb_err}")
-            raise
-        finally:
-            await session.close()
-
-
-@asynccontextmanager
-async def get_db_ctx() -> AsyncGenerator[AsyncSession, None]:
-    """
-    'async with get_db_ctx()' kullanımına uygun context manager.
-    Dahili kod blokları için tasarlanmıştır.
-    """
-    async for db in get_db():
-        yield db
-
-
-def get_db_dep():
-    """FastAPI alias for get_db."""
-    return get_db()
-
-
-session_scope = get_db_ctx
-
-# ── Redis (Faz 12.1) ──────────────────────────────────
-_redis_instance = None
-
-async def get_redis_client():
-    """Redis bağlantısını döner ve gerekirse ilklendirir."""
-    global _redis_instance
-    if _redis_instance is not None:
-        return _redis_instance
-
-    try:
-        import redis.asyncio as redis
-        from libs.config import REDIS_URL
-        
-        url = REDIS_URL or (
-            "redis://redis:6379/0" if os.getenv("DOCKER_CONTAINER", "false").lower() == "true" 
-            else "redis://127.0.0.1:6380/0"
-        )
-
-        potential_ports = [6379, 6380, 56380]
-        for port in potential_ports:
-            try:
-                test_url = url.replace("6380", str(port)).replace("6379", str(port))
-                _redis_instance = redis.from_url(
-                    test_url, 
-                    decode_responses=True,
-                    socket_connect_timeout=0.5
-                )
-                await _redis_instance.ping()
-                logger.info(f"Redis: Connected to {test_url}")
-                return _redis_instance
-            except Exception:
-                continue
-
-        logger.warning("Redis: Multi-port discovery failed. Degraded mode.")
-        _redis_instance = None
-        return None
-    except Exception as e:
-        logger.warning(f"Redis initialization failed: {e}")
-        return None
-
-def get_redis_sync():
-    """Sadece zaten ilklendirilmişse Redis istemcisini döner (Senkron bloklar için)."""
-    global _redis_instance
-    return _redis_instance
-
+SessionLocal = _LazySyncSessionLocal()

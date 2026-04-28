@@ -54,7 +54,7 @@ class CausalErrorGraph:
     def _make_pattern_id(self, error_type: str, agent_id: str, root_cause: str) -> str:
         """Aynı hata örüntüsü için deterministik ID üretir."""
         raw = f"{error_type}::{agent_id}::{root_cause[:50]}"
-        return hashlib.md5(raw.encode()).hexdigest()[:16]
+        return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
 
     def record_error(
         self,

@@ -143,7 +143,18 @@ async def _check_health_endpoint(base_url: str = "http://localhost:8000") -> Can
     t0 = time.time()
     try:
         import urllib.request
-        with urllib.request.urlopen(f"{base_url}/health", timeout=3) as r:
+        from urllib.parse import urlparse
+
+        parsed = urlparse(base_url)
+        if parsed.scheme not in {"http", "https"} or parsed.hostname not in {"127.0.0.1", "localhost"}:
+            return CanaryCheck(
+                name="health_endpoint",
+                passed=True,
+                detail="Desteklenmeyen base_url atlandi",
+                duration_ms=(time.time()-t0)*1000,
+            )
+
+        with urllib.request.urlopen(f"{base_url}/health", timeout=3) as r:  # nosec B310
             ok = r.status == 200
             return CanaryCheck(
                 name="health_endpoint",

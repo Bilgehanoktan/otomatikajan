@@ -14,9 +14,10 @@ export default function AlertCenter() {
   const [statusFilter, setStatusFilter] = useState("OPEN");
   const { useAlerts, ackAlert } = useGovernorObservability();
 
-  const { data, isLoading, refetch } = useAlerts({
+  const { query } = useAlerts({
     status: statusFilter
-  });
+  }) as any;
+  const { data, isLoading, refetch } = query;
 
   const alerts = (data?.data as unknown as AlertRecord[]) || [];
 

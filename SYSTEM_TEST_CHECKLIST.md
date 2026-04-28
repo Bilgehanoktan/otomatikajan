@@ -41,7 +41,7 @@ Bu liste, Faz 12 (Fleet Orchestra) sonrası sistemin operasyonel bütünlüğün
 - [x] Fleet olayları (Assignment/Block) lineage/proof sistemine düşüyor (Seeded & API Verified)
 
 ## 7. Kalite Kapıları (QA)
-- [x] `npm run lint --workspace apps/refine_control_plane` (0 Error, 423 Warnings)
+- [x] `npm run lint --workspace apps/refine_control_plane` (0 Error, 426 Warnings)
 - [ ] `npm run build --workspace apps/refine_control_plane` (Beklemede - Manuel CI/CD adımı)
 - [x] `tests/governance/*` pytest paketi başarılı
 - [x] `tests/fleet/*` (Yeni Faz 12) pytest paketi başarılı

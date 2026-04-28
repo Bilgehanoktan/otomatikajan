@@ -26,6 +26,7 @@ class ShadowRunner:
         ".pytest_cache",
         "vendor",
         "shadow_workspace", # CRITICAL: Fix recursive copying
+        "runtime",          # Phase 12.1: Exclude runtime directory
         "artifacts",
         "brain",
         ".legacy_archive",

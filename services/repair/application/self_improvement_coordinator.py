@@ -1,4 +1,5 @@
-import asyncio
+import asyncio 
+
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -52,7 +53,7 @@ class SelfImprovementCoordinator:
             except Exception as e:
                 logger.error(f"Improvement loop hatası: {e}")
             
-            await asyncio.sleep(900) # Her 15 dakikada bir tara (Stabilizasyon Modu)
+            await asyncio.sleep(120) # Her 2 dakikada bir tara (Otonom Mod)
 
     async def _process_opportunities(self, opportunities: List[ImprovementOpportunity]):
         """Bulunan fırsatları sırayla işle."""

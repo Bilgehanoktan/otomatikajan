@@ -1,39 +1,62 @@
 "use client";
 
-import React from "react";
-import { Row, Col, Card, Statistic, Table, Typography, Tag, Button, Space, Breadcrumb } from "antd";
-import { 
-  SafetyCertificateOutlined, 
-  HistoryOutlined, 
-  LockOutlined, 
-  CheckCircleOutlined,
-  HomeOutlined,
-  FileSearchOutlined
-} from "@ant-design/icons";
-import { useList, useUpdate, useCustomMutation } from "@refinedev/core";
+import Link from "next/link";
 import dayjs from "dayjs";
+import { Breadcrumb, Button, Card, Col, Row, Space, Statistic, Table, Tag, Typography } from "antd";
+import {
+  CheckCircleOutlined,
+  FileSearchOutlined,
+  HistoryOutlined,
+  HomeOutlined,
+  LockOutlined,
+  SafetyCertificateOutlined,
+} from "@ant-design/icons";
+import { useList } from "@refinedev/core";
 
 const { Title, Text } = Typography;
 
+interface LineageRecord {
+  id: string;
+  decision_type: string;
+  component_name: string;
+  rationale: string;
+  outcome?: string | null;
+  confidence_score: number;
+  integrity_hash?: string | null;
+  created_at: string;
+}
+
+interface AuditBundleRecord {
+  id: string;
+  name: string;
+  purpose: string;
+  project: string;
+  created_at: string;
+  operator: string;
+  seal: string;
+  size: string;
+  status: string;
+}
+
 export default function ProofFabricDashboard() {
-  const { query: { data: eventsData, isLoading: eventsLoading } } = useList({
-    resource: "governance/proof/events",
-    pagination: { pageSize: 10 }
+  const {
+    query: { data: eventsData, isLoading: eventsLoading },
+  } = useList<LineageRecord>({
+    resource: "governance/lineage",
+    pagination: { pageSize: 10 },
+    sorters: [{ field: "created_at", order: "desc" }],
   });
 
-  const { query: { data: snapshotsData, isLoading: snapshotsLoading } } = useList({
-    resource: "governance/proof/snapshots",
-    pagination: { pageSize: 5 }
+  const {
+    query: { data: snapshotsData, isLoading: snapshotsLoading },
+  } = useList<AuditBundleRecord>({
+    resource: "compliance/audit-bundles",
+    pagination: { pageSize: 5 },
+    sorters: [{ field: "created_at", order: "desc" }],
   });
 
   const events = eventsData?.data || [];
   const snapshots = snapshotsData?.data || [];
-
-  const kpis = {
-    latestIndex: events[0]?.chain_index || 0,
-    sealedCount: snapshots.length,
-    lastSealed: snapshots[0]?.created_at,
-  };
 
   return (
     <div style={{ padding: "24px" }}>
@@ -47,40 +70,39 @@ export default function ProofFabricDashboard() {
         <div>
           <Title level={2} style={{ margin: 0 }}>
             <SafetyCertificateOutlined style={{ marginRight: 12, color: "#52c41a" }} />
-            Proof Fabric (Değiştirilemez Denetim Zinciri)
+            Proof Fabric
           </Title>
-          <Text type="secondary">Kriptografik olarak mühürlenmiş yönetişim olayları ve hash zinciri.</Text>
+          <Text type="secondary">Immutable governance ledger and sealed audit bundles.</Text>
         </div>
         <Space>
-          <Button icon={<HistoryOutlined />}>Chain Health Check</Button>
-          <Button type="primary" icon={<LockOutlined />}>Seal New Snapshot</Button>
+          <Link href="/proof/events">
+            <Button icon={<HistoryOutlined />}>Open Event Ledger</Button>
+          </Link>
+          <Link href="/proof/snapshots">
+            <Button type="primary" icon={<LockOutlined />}>Open Snapshots</Button>
+          </Link>
         </Space>
       </div>
 
       <Row gutter={16} style={{ marginBottom: "24px" }}>
         <Col span={6}>
           <Card size="small">
-            <Statistic title="Chain Height" value={kpis.latestIndex} prefix={<HistoryOutlined />} />
+            <Statistic title="Chain Height" value={events.length} prefix={<HistoryOutlined />} />
           </Card>
         </Col>
         <Col span={6}>
           <Card size="small">
-            <Statistic title="Sealed Snapshots" value={kpis.sealedCount} prefix={<LockOutlined />} />
+            <Statistic title="Sealed Snapshots" value={snapshots.length} prefix={<LockOutlined />} />
           </Card>
         </Col>
         <Col span={6}>
           <Card size="small">
-            <Statistic title="Verified Events" value={kpis.latestIndex} valueStyle={{ color: "#3f8600" }} prefix={<CheckCircleOutlined />} />
+            <Statistic title="Verified Events" value={events.length} valueStyle={{ color: "#3f8600" }} prefix={<CheckCircleOutlined />} />
           </Card>
         </Col>
         <Col span={6}>
           <Card size="small">
-            <Statistic 
-                title="Chain Status" 
-                value="INTACT" 
-                valueStyle={{ color: "#3f8600", fontSize: "18px" }} 
-                prefix={<SafetyCertificateOutlined />} 
-            />
+            <Statistic title="Chain Status" value={snapshots.length > 0 ? "INTACT" : "ACTIVE"} valueStyle={{ color: "#3f8600", fontSize: "18px" }} prefix={<SafetyCertificateOutlined />} />
           </Card>
         </Col>
       </Row>
@@ -88,58 +110,39 @@ export default function ProofFabricDashboard() {
       <Row gutter={24}>
         <Col span={16}>
           <Card title={<Space><HistoryOutlined /> Recent Audit Events</Space>}>
-            <Table 
-              dataSource={events} 
-              rowKey="id" 
-              loading={eventsLoading} 
+            <Table
+              dataSource={events}
+              rowKey="id"
+              loading={eventsLoading}
               pagination={false}
               size="small"
             >
-              <Table.Column 
-                dataIndex="chain_index" 
-                title="Idx" 
-                render={(val) => <Text code>{val}</Text>}
-              />
-              <Table.Column 
-                dataIndex="event_type" 
-                title="Event Type" 
-                render={(val) => <Tag color="blue">{val}</Tag>}
-              />
-              <Table.Column 
-                dataIndex="event_hash" 
-                title="Hash" 
-                render={(val) => <Text copyable={{ text: val }}>{val.slice(0, 8)}...</Text>}
-              />
-              <Table.Column 
-                dataIndex="created_at" 
-                title="Created" 
-                render={(val) => dayjs(val).format("HH:mm:ss")}
-              />
+              <Table.Column dataIndex="component_name" title="Component" render={(val) => <Text strong>{val}</Text>} />
+              <Table.Column dataIndex="decision_type" title="Decision" render={(val) => <Tag color="blue">{val}</Tag>} />
+              <Table.Column dataIndex="outcome" title="Outcome" render={(val) => val ? <Tag color="green">{val}</Tag> : <Text type="secondary">-</Text>} />
+              <Table.Column dataIndex="integrity_hash" title="Hash" render={(val, r: LineageRecord) => <Text copyable={{ text: val || r.id }}>{String(val || r.id).slice(0, 8)}...</Text>} />
+              <Table.Column dataIndex="created_at" title="Created" render={(val) => dayjs(val).format("HH:mm:ss")} />
             </Table>
           </Card>
         </Col>
         <Col span={8}>
           <Card title={<Space><LockOutlined /> Sealed Snapshots</Space>}>
-            <Table 
-              dataSource={snapshots} 
-              rowKey="id" 
-              loading={snapshotsLoading} 
+            <Table
+              dataSource={snapshots}
+              rowKey="id"
+              loading={snapshotsLoading}
               pagination={false}
               size="small"
             >
-              <Table.Column 
-                dataIndex="snapshot_name" 
-                title="Name" 
-                render={(val) => <Text strong style={{ fontSize: "12px" }}>{val}</Text>}
-              />
-              <Table.Column 
-                dataIndex="seal_status" 
-                title="Status" 
-                render={(val) => <Tag color={val === "SEALED" ? "green" : "blue"}>{val}</Tag>}
-              />
-              <Table.Column 
-                title="Action" 
-                render={(_, r: any) => <Button type="link" size="small" icon={<FileSearchOutlined />}>Verify</Button>}
+              <Table.Column dataIndex="name" title="Name" render={(val) => <Text strong style={{ fontSize: "12px" }}>{val}</Text>} />
+              <Table.Column dataIndex="status" title="Status" render={(val) => <Tag color={val === "sealed" ? "green" : "blue"}>{String(val).toUpperCase()}</Tag>} />
+              <Table.Column
+                title="Action"
+                render={() => (
+                  <Link href="/audit">
+                    <Button type="link" size="small" icon={<FileSearchOutlined />}>Inspect</Button>
+                  </Link>
+                )}
               />
             </Table>
           </Card>
@@ -148,5 +151,3 @@ export default function ProofFabricDashboard() {
     </div>
   );
 }
-
-

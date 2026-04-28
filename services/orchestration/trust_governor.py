@@ -112,11 +112,39 @@ class TrustGovernor:
                 _log.info(f"[TRUST] Decay applied to {cluster_id}: {old_score:.2f} -> {trust.trust_score:.2f}")
 
     @classmethod
-    async def get_trust_map(cls) -> Dict[str, float]:
-        """Tüm bilinen cluster'lar için güncel güven haritasını döner."""
+    async def record_agent_outcome(cls, agent_id: str, success: bool, impact: float = 1.0):
+        """Ajan bazlı güven puanını ve performans metriklerini günceller."""
+        from libs.db.models.core_models import AgentNode
         async with session_scope() as db:
-            res = await db.execute(select(FederationTrust))
-            return {t.cluster_id: t.trust_score for t in res.scalars()}
+            # 1. Ajanı bul (Registry name ile eşleştirme)
+            res = await db.execute(select(AgentNode).where(AgentNode.name == agent_id))
+            agent = res.scalar_one_or_none()
+            
+            if not agent:
+                _log.warning(f"[TRUST] AgentNode {agent_id} bulunamadı, puan güncellenemedi.")
+                return
+
+            old_score = agent.trust_score
+            delta = cls.SUCCESS_BOOST * impact if success else -cls.FAILURE_PENALTY * impact
+
+            # 2. Metrikleri Güncelle
+            if success:
+                agent.success_count += 1
+            else:
+                agent.failure_count += 1
+
+            # 3. Apply and Clamp
+            agent.trust_score = max(cls.MIN_TRUST, min(cls.MAX_TRUST, agent.trust_score + delta))
+            agent.last_heartbeat = utcnow()
+            
+            # 4. Autonomous Quarantine (Phase 12/13 Hardening)
+            from libs.db.models.core_models import AgentStatus
+            if agent.trust_score < 0.60 and agent.status != AgentStatus.QUARANTINED:
+                agent.status = AgentStatus.QUARANTINED
+                agent.capabilities["quarantine_reason"] = f"Trust score ({agent.trust_score:.2f}) dropped below safety threshold (0.60)"
+                _log.warning(f"[TRUST-QUARANTINE] Agent {agent_id} ISOLATED due to low trust score.")
+
+            _log.info(f"[TRUST-AGENT] {agent_id}: {old_score:.2f} -> {agent.trust_score:.2f} (Success: {success})")
 
 # Singleton-like access
 trust_governor = TrustGovernor()

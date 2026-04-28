@@ -13,9 +13,18 @@ class CognitiveBlackboard:
     'State Awareness' ve 'Context Persistence' (Hafıza Bütünlüğü) için kritiktir.
     """
 
+    # Process-wide in-memory fallback for Degraded Mode (no Redis)
+    _memory_fallback: Dict[str, Dict[str, Any]] = {}
+
     def __init__(self, goal_id: str):
         self.goal_id = goal_id
         self._key = f"agi:blackboard:{goal_id}"
+        if goal_id not in CognitiveBlackboard._memory_fallback:
+            CognitiveBlackboard._memory_fallback[goal_id] = {
+                "discoveries": [],
+                "warnings": [],
+                "active_hypothesis": None
+            }
 
     async def _get_redis(self):
         """Asenkron olarak Redis istemcisini döner."""
@@ -30,7 +39,13 @@ class CognitiveBlackboard:
             "confidence": confidence,
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
-        await self._push_to_list("discoveries", record)
+        redis = await self._get_redis()
+        if redis:
+            await self._push_to_list("discoveries", record)
+        else:
+            # Fallback to in-memory
+            CognitiveBlackboard._memory_fallback[self.goal_id]["discoveries"].append(record)
+            
         logger.info(f"[BLACKBOARD] Keşif Eklendi ({source_agent}): {discovery[:50]}...")
 
     async def post_warning(self, source_agent: str, warning: str, severity: str = "medium"):
@@ -42,7 +57,12 @@ class CognitiveBlackboard:
             "severity": severity,
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
-        await self._push_to_list("warnings", record)
+        redis = await self._get_redis()
+        if redis:
+            await self._push_to_list("warnings", record)
+        else:
+            CognitiveBlackboard._memory_fallback[self.goal_id]["warnings"].append(record)
+
         logger.warning(f"[BLACKBOARD] Uyarı Eklendi ({source_agent}): {warning}")
 
     async def set_hypothesis(self, source_agent: str, hypothesis: str):
@@ -52,13 +72,24 @@ class CognitiveBlackboard:
             "content": hypothesis,
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
-        await self._set_hash("active_hypothesis", record)
+        redis = await self._get_redis()
+        if redis:
+            await self._set_hash("active_hypothesis", record)
+        else:
+            CognitiveBlackboard._memory_fallback[self.goal_id]["active_hypothesis"] = record
 
     async def get_working_context(self) -> Dict[str, Any]:
         """Ajanların kullanımı için tüm 'Aktif Hafıza' yı özet olarak döner."""
-        discoveries = await self._get_list("discoveries")
-        warnings = await self._get_list("warnings")
-        hypothesis = await self._get_hash("active_hypothesis")
+        redis = await self._get_redis()
+        if redis:
+            discoveries = await self._get_list("discoveries")
+            warnings = await self._get_list("warnings")
+            hypothesis = await self._get_hash("active_hypothesis")
+        else:
+            mem = CognitiveBlackboard._memory_fallback.get(self.goal_id, {})
+            discoveries = mem.get("discoveries", [])
+            warnings = mem.get("warnings", [])
+            hypothesis = mem.get("active_hypothesis")
         
         return {
             "goal_id": self.goal_id,
@@ -72,6 +103,9 @@ class CognitiveBlackboard:
         redis = await self._get_redis()
         if redis:
             await redis.delete(self._key)
+        
+        if self.goal_id in CognitiveBlackboard._memory_fallback:
+            del CognitiveBlackboard._memory_fallback[self.goal_id]
 
     # ── Internal Helpers ─────────────────────────────────────
     async def _push_to_list(self, subkey: str, data: dict):

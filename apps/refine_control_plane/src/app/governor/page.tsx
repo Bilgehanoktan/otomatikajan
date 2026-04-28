@@ -10,7 +10,7 @@ const { Title, Text } = Typography;
 
 export default function GovernorInbox() {
   const { tableProps, tableQueryResult } = useTable({
-    resource: "governor/cases",
+    resource: "governance/governor/cases",
     syncWithLocation: true,
     pagination: {
       pageSize: 50,

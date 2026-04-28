@@ -57,7 +57,9 @@ def register_routers(app: FastAPI):
 
     # 8. Phase 31: Autonomous Learning
     from services.governance.learning_api import router as learning_router
+    from services.workflow_api.governor_router import router as governor_router
     api_v1.include_router(learning_router)
+    api_v1.include_router(governor_router, prefix="/governance")
 
     # Register the unified API router
     app.include_router(api_v1)

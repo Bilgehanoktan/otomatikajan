@@ -49,7 +49,8 @@ export default function WorkflowDetailClient() {
     // Auto-Refresh Logic for Running Workflows
     useEffect(() => {
         let interval: any;
-        if (autoRefresh && workflow && (workflow.status === "RUNNING" || workflow.status === "WAITING_APPROVAL")) {
+        const normalizedStatus = String(workflow?.status || "").toLowerCase();
+        if (autoRefresh && workflow && (normalizedStatus === "running" || normalizedStatus === "waiting_approval" || normalizedStatus === "pending_approval")) {
             interval = setInterval(() => {
                 refetch();
             }, 5000); // 5s refresh interval
@@ -66,19 +67,34 @@ export default function WorkflowDetailClient() {
         }
 
         try {
-            const response = await safeFetchJson(`/api/v1/workflows/${workflow.id}/approve`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    operator_id: "admin_human",
-                    notes: notes
-                })
-            });
+            const pendingApproval = (workflow.related_approvals || []).find((item: any) =>
+                String(item.status || "").toLowerCase() === "pending"
+            );
 
-            if (response.status === "success" || response.message || response.msg) {
+            const response = pendingApproval
+                ? await safeFetchJson(`/api/v1/approvals/${pendingApproval.id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        status: "APPROVED",
+                        comment: notes || `Workflow ${workflow.id} approved from workflow detail surface.`,
+                    })
+                })
+                : await safeFetchJson(`/api/v1/workflows/${workflow.id}/approve`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        operator_id: "admin_human",
+                        notes: notes
+                    })
+                });
+
+            if (response.status === "success" || response.status === "APPROVED" || response.message || response.msg || response.decided_at) {
                 notification.success({
                     message: "Workflow Approved",
-                    description: "The workflow has been authorized and re-queued for execution.",
+                    description: pendingApproval
+                        ? "The approval gate has been signed off and sealed into lineage."
+                        : "The workflow has been authorized and re-queued for execution.",
                     placement: "topRight"
                 });
                 refetch();

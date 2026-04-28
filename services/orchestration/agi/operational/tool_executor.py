@@ -1,8 +1,8 @@
-import asyncio
 import os
+import shlex
 import subprocess
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List
 from services.observability.logging import get_logger
 from services.integrations.web_search import get_web_search
 from services.integrations.github_tool import get_github_tool
@@ -39,7 +39,12 @@ class ToolExecutor:
         @mcp_registry.register(name="run_shell_command", requires_approval=True)
         async def run_shell_command(command: str):
             """Execute a shell command with a 30s timeout."""
-            process = subprocess.run(command, shell=True, capture_output=True, text=True, timeout=30)
+            if any(operator in command for operator in ("&&", "||", "|", ";")):
+                raise ValueError("Shell operators are not supported. Pass an explicit command and arguments.")
+            args = shlex.split(command, posix=os.name != "nt")
+            if not args:
+                raise ValueError("Command cannot be empty.")
+            process = subprocess.run(args, capture_output=True, text=True, timeout=30)
             return {
                 "stdout": process.stdout,
                 "stderr": process.stderr,

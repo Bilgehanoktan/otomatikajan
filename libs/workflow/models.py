@@ -10,7 +10,8 @@ class StepStatus(str, Enum):
     FAILED = "failed"
     ERROR = "failed"
     SKIPPED = "skipped"
-    WAITING = "waiting" # Waiting for dependencies or approval
+    WAITING = "waiting" # Waiting for dependencies
+    PENDING_APPROVAL = "pending_approval" # Waiting for manual review
     REPLAY_PENDING = "replay_pending"
 
 class WorkflowStatus(str, Enum):

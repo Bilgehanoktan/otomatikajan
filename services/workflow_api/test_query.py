@@ -1,9 +1,11 @@
 import requests
 
+REQUEST_TIMEOUT = 5
+
 def check(url):
     print(f"Checking {url}...")
     try:
-        r = requests.get(url)
+        r = requests.get(url, timeout=REQUEST_TIMEOUT)
         print(f"  Status: {r.status_code}")
     except Exception as e:
         print(f"  Error: {e}")

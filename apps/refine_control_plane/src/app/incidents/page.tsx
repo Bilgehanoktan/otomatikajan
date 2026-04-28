@@ -1,285 +1,419 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useList, useUpdate } from "@refinedev/core";
-import { 
-  AlertTriangle, 
-  CheckCircle2, 
-  Info, 
-  Flame, 
-  Clock, 
-  Filter, 
-  Plus, 
-  Activity, 
-  ShieldAlert, 
-  Radio, 
+import React from "react";
+import { App } from "antd";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Flame,
+  Clock,
+  Filter,
+  Activity,
+  ShieldAlert,
+  Radio,
   ChevronRight,
   Zap,
   Target,
   Terminal,
-  Search
+  Search,
 } from "lucide-react";
 import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 import { Skeleton } from "@/components/dashboard/Skeleton";
-import { Incident } from "@/types/mission-control";
+import { safeFetchJson } from "@/lib/api";
+
+interface Incident {
+  id: string;
+  incident_type: string;
+  status: string;
+  severity: "low" | "medium" | "high" | "critical";
+  message: string;
+  project_id?: string;
+  created_at: string;
+  payload?: Record<string, unknown>;
+}
 
 export default function IncidentsPage() {
-  const [isClient, setIsClient] = useState(false);
-  useEffect(() => setIsClient(true), []);
+  const { notification } = App.useApp();
+  const [isClient, setIsClient] = React.useState(false);
+  const [incidents, setIncidents] = React.useState<Incident[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [isError, setIsError] = React.useState(false);
+  const [staleMeta, setStaleMeta] = React.useState<unknown>(null);
 
-  const { query: { data, isLoading, isError, refetch } } = useList({
-    resource: "incidents",
-    sorters: [{ field: "created_at", order: "desc" }],
-    queryOptions: { enabled: isClient }
-  });
+  React.useEffect(() => setIsClient(true), []);
 
-  const { mutate: updateIncident } = useUpdate();
+  const apiBase = React.useMemo(() => {
+    if (typeof window === "undefined") {
+      return "http://127.0.0.1:8000/api/v1";
+    }
+    return `${window.location.protocol}//${window.location.hostname}:8000/api/v1`;
+  }, []);
 
-  const handleResolve = (id: string) => {
-    updateIncident({
-       resource: "incidents",
-       id,
-       values: { status: "resolved" },
-    }, {
-       onSuccess: () => refetch(),
-    });
-  };
+  const getAuthHeaders = React.useCallback(async () => {
+    const tokenKey = "sqv_access_token";
+    const cached = typeof window !== "undefined" ? window.localStorage.getItem(tokenKey) : null;
 
-  const incidentsRaw = data?.data;
-  const incidents = Array.isArray(incidentsRaw) ? (incidentsRaw as unknown as Incident[]) : [];
-  const staleMeta = (data as any)?.__sqv_meta || (incidents as any).__sqv_meta;
+    if (cached) {
+      return { Authorization: `Bearer ${cached}` };
+    }
+
+    if (process.env.NODE_ENV === "development") {
+      const auto = await fetch(`${apiBase}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email: "admin@sovereign.agi", password: "admin1234" }),
+      });
+
+      if (auto.ok) {
+        const payload = await auto.json();
+        const token = payload?.access_token as string | undefined;
+        if (token && typeof window !== "undefined") {
+          window.localStorage.setItem(tokenKey, token);
+          return { Authorization: `Bearer ${token}` };
+        }
+      }
+    }
+
+    return {};
+  }, [apiBase]);
+
+  const loadIncidents = React.useCallback(async () => {
+    setIsLoading(true);
+    setIsError(false);
+
+    try {
+      const authHeaders = await getAuthHeaders();
+      const response = await safeFetchJson<Incident[] | { data?: Incident[]; __sqv_meta?: unknown }>(
+        `${apiBase}/incidents?_end=10&_order=desc&_sort=created_at&_start=0`,
+        {
+          headers: authHeaders,
+        },
+      );
+
+      const items = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.data)
+          ? response.data
+          : [];
+
+      setIncidents(items);
+      if (!Array.isArray(response) && response?.__sqv_meta) {
+        setStaleMeta(response.__sqv_meta);
+      } else {
+        setStaleMeta(null);
+      }
+    } catch {
+      setIsError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [apiBase, getAuthHeaders]);
+
+  React.useEffect(() => {
+    if (!isClient) return;
+    void loadIncidents();
+  }, [isClient, loadIncidents]);
+
+  const handleResolve = React.useCallback(
+    async (id: string) => {
+      try {
+        const authHeaders = await getAuthHeaders();
+        await safeFetchJson(`${apiBase}/incidents/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", ...authHeaders },
+          body: JSON.stringify({ status: "resolved" }),
+        });
+
+        notification.success({
+          message: "Olay güncellendi",
+          description: "Incident resolved olarak işaretlendi.",
+          placement: "topRight",
+        });
+
+        await loadIncidents();
+      } catch (err) {
+        notification.error({
+          message: "Aksiyon uygulanamadı",
+          description: err instanceof Error ? err.message : "Bilinmeyen hata",
+          placement: "topRight",
+        });
+      }
+    },
+    [apiBase, getAuthHeaders, loadIncidents, notification],
+  );
 
   if (!isClient) return <div className="min-h-screen bg-[#060a12]" />;
 
   return (
-    <div className="min-h-screen p-8 bg-[#060a12] text-gray-300 animate-in fade-in duration-1000 overflow-x-hidden">
-      
-      <ResourceHeader 
-        title="Incident Control" 
-        subtitle="Real-time Chaos Monitoring & Autonomous Mitigation" 
+    <div className="min-h-screen overflow-x-hidden bg-[#060a12] p-8 text-gray-300 animate-in fade-in duration-1000">
+      <ResourceHeader
+        title="Incident Control"
+        subtitle="Real-time Chaos Monitoring & Autonomous Mitigation"
         icon={<AlertTriangle size={32} />}
         badge="Critical Ops"
-        staleMeta={staleMeta}
+        staleMeta={staleMeta as never}
         actions={
           <div className="flex items-center gap-8">
-             <div className="flex items-center gap-4 border-r border-white/5 pr-8">
-                <div className="text-right">
-                   <p className="text-[9px] text-gray-500 font-black uppercase tracking-widest leading-none">Global Pulse</p>
-                   <p className="text-sm font-black text-blue-400 mt-2">NOMINAL</p>
-                </div>
-                <div className="p-3 bg-blue-500/10 rounded-full border border-blue-500/20">
-                   <Radio size={16} className="text-blue-400 animate-pulse" />
-                </div>
-             </div>
-             
-             <button className="flex items-center gap-2 px-8 py-3 bg-red-500/10 text-red-500 border border-red-500/20 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-red-500/20 transition-all active:scale-95 shadow-xl">
-                <Zap size={14} />
-                <span>Chaos Protocol</span>
-             </button>
+            <div className="flex items-center gap-4 border-r border-white/5 pr-8">
+              <div className="text-right">
+                <p className="text-[9px] font-black uppercase leading-none tracking-widest text-gray-500">
+                  Global Pulse
+                </p>
+                <p className="mt-2 text-sm font-black text-blue-400">NOMINAL</p>
+              </div>
+              <div className="rounded-full border border-blue-500/20 bg-blue-500/10 p-3">
+                <Radio size={16} className="animate-pulse text-blue-400" />
+              </div>
+            </div>
+
+            <button className="flex items-center gap-2 rounded-2xl border border-red-500/20 bg-red-500/10 px-8 py-3 text-[10px] font-black uppercase tracking-widest text-red-500 shadow-xl transition-all hover:bg-red-500/20 active:scale-95">
+              <Zap size={14} />
+              <span>Chaos Protocol</span>
+            </button>
           </div>
         }
       />
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-10">
-        
-        {/* INCIDENT FEED - Main Column */}
+      <div className="grid grid-cols-1 gap-10 xl:grid-cols-12">
         <div className="xl:col-span-8">
-           <section className="glass-panel p-10 rounded-[2.5rem] border-white/[0.03] bg-gradient-to-br from-white/[0.012] to-transparent relative overflow-hidden group shadow-2xl">
-              <div className="absolute top-0 right-0 p-10 opacity-[0.02] group-hover:opacity-[0.05] transition-opacity pointer-events-none">
-                 <Terminal size={300} />
-              </div>
+          <section className="glass-panel group relative overflow-hidden rounded-[2.5rem] border-white/[0.03] bg-gradient-to-br from-white/[0.012] to-transparent p-10 shadow-2xl">
+            <div className="pointer-events-none absolute right-0 top-0 p-10 opacity-[0.02] transition-opacity group-hover:opacity-[0.05]">
+              <Terminal size={300} />
+            </div>
 
-              <div className="flex items-center justify-between mb-12 relative z-10 px-2">
-                 <div className="flex items-center gap-4">
-                    <div className="w-2 h-2 rounded-full bg-red-500 animate-ping shadow-[0_0_12px_rgba(239,68,68,0.6)]" />
-                    <h2 className="text-xs font-black text-white uppercase tracking-[0.4em]">Integrated Chaos Stream</h2>
-                 </div>
-                 <div className="flex items-center gap-6">
-                    <div className="relative">
-                       <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
-                       <input 
-                         type="text" 
-                         placeholder="OLAY ARA..."
-                         className="bg-black/40 border border-white/5 rounded-xl py-2 pl-10 pr-4 text-[10px] font-black text-white focus:outline-none focus:border-[var(--primary)]/20 transition-all w-48"
-                       />
-                    </div>
-                    <button className="p-2.5 bg-white/5 border border-white/5 rounded-xl text-gray-500 hover:text-white transition-all">
-                       <Filter size={18} />
-                    </button>
-                 </div>
+            <div className="relative z-10 mb-12 flex items-center justify-between px-2">
+              <div className="flex items-center gap-4">
+                <div className="h-2 w-2 animate-ping rounded-full bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.6)]" />
+                <h2 className="text-xs font-black uppercase tracking-[0.4em] text-white">Integrated Chaos Stream</h2>
               </div>
+              <div className="flex items-center gap-6">
+                <div className="relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
+                  <input
+                    type="text"
+                    placeholder="OLAY ARA..."
+                    className="w-48 rounded-xl border border-white/5 bg-black/40 py-2 pl-10 pr-4 text-[10px] font-black text-white transition-all focus:border-[var(--primary)]/20 focus:outline-none"
+                  />
+                </div>
+                <button className="rounded-xl border border-white/5 bg-white/5 p-2.5 text-gray-500 transition-all hover:text-white">
+                  <Filter size={18} />
+                </button>
+              </div>
+            </div>
 
-              <div className="space-y-6 relative z-10 max-h-[800px] overflow-y-auto pr-3 custom-scrollbar">
-                 {isLoading ? (
-                    <div className="space-y-6">
-                       {[1,2,3].map(i => <Skeleton key={i} className="h-40 rounded-3xl" />)}
-                    </div>
-                 ) : isError ? (
-                    <div className="py-20 text-center flex flex-col items-center gap-6">
-                       <div className="p-6 bg-red-500/10 rounded-full border border-red-500/20 text-red-500">
-                          <AlertTriangle size={32} />
-                       </div>
-                       <p className="font-mono text-[10px] uppercase text-gray-500 tracking-[0.2em]">Telemetry Connection Severed</p>
-                       <button onClick={() => refetch()} className="text-[10px] font-black text-[var(--primary)] uppercase tracking-widest hover:underline">Re-establish Sync</button>
-                    </div>
-                 ) : incidents.length === 0 ? (
-                    <div className="py-32 text-center text-gray-600 font-black uppercase tracking-[0.3em] italic opacity-40">
-                       Aktif olay tespit edilmedi. Sistem otonom dengede.
-                    </div>
-                 ) : (
-                    incidents.map((inc: any) => (
-                       <EliteIncidentItem 
-                         key={inc.id} 
-                         incident={inc} 
-                         onResolve={() => handleResolve(inc.id)} 
-                       />
-                    ))
-                 )}
-              </div>
-           </section>
+            <div className="custom-scrollbar relative z-10 max-h-[800px] space-y-6 overflow-y-auto pr-3">
+              {isLoading ? (
+                <div className="space-y-6">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-40 rounded-3xl" />
+                  ))}
+                </div>
+              ) : isError ? (
+                <div className="flex flex-col items-center gap-6 py-20 text-center">
+                  <div className="rounded-full border border-red-500/20 bg-red-500/10 p-6 text-red-500">
+                    <AlertTriangle size={32} />
+                  </div>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-gray-500">
+                    Telemetry Connection Severed
+                  </p>
+                  <button
+                    onClick={() => void loadIncidents()}
+                    className="text-[10px] font-black uppercase tracking-widest text-[var(--primary)] hover:underline"
+                  >
+                    Re-establish Sync
+                  </button>
+                </div>
+              ) : incidents.length === 0 ? (
+                <div className="py-32 text-center font-black uppercase tracking-[0.3em] italic text-gray-600 opacity-40">
+                  Aktif olay tespit edilmedi. Sistem otonom dengede.
+                </div>
+              ) : (
+                incidents.map((inc) => (
+                  <EliteIncidentItem key={inc.id} incident={inc} onResolve={() => void handleResolve(inc.id)} />
+                ))
+              )}
+            </div>
+          </section>
         </div>
 
-        {/* SIDEBAR - Operational Context */}
-        <div className="xl:col-span-4 space-y-8">
-           {/* Severity Radar */}
-           <section className="glass-panel p-10 rounded-[2.5rem] border-white/[0.05] bg-[#060a12]/50 relative overflow-hidden group shadow-xl">
-              <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity">
-                 <ShieldAlert size={140} className="text-red-500" />
+        <div className="space-y-8 xl:col-span-4">
+          <section className="glass-panel group relative overflow-hidden rounded-[2.5rem] border-white/[0.05] bg-[#060a12]/50 p-10 shadow-xl">
+            <div className="pointer-events-none absolute right-0 top-0 p-8 opacity-[0.03] transition-opacity group-hover:opacity-[0.08]">
+              <ShieldAlert size={140} className="text-red-500" />
+            </div>
+
+            <div className="relative z-10 mb-10 flex items-center gap-4 text-red-500">
+              <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-3 shadow-xl">
+                <ShieldAlert size={24} />
               </div>
-              
-              <div className="flex items-center gap-4 mb-10 relative z-10 text-red-500">
-                 <div className="p-3 bg-red-500/10 rounded-2xl border border-red-500/20 shadow-xl">
-                    <ShieldAlert size={24} />
-                 </div>
-                 <div>
-                    <h3 className="text-xl font-black text-white tracking-tighter uppercase">Severity Monitor</h3>
-                    <p className="text-[9px] text-red-400 font-black tracking-[0.2em] uppercase mt-1">Hazard Phase 3</p>
-                 </div>
+              <div>
+                <h3 className="text-xl font-black uppercase tracking-tighter text-white">Severity Monitor</h3>
+                <p className="mt-1 text-[9px] font-black uppercase tracking-[0.2em] text-red-400">Hazard Phase 3</p>
+              </div>
+            </div>
+
+            <div className="relative z-10 space-y-6">
+              <SeverityGauge label="Critical / P0" value={incidents.filter((i) => i.severity === "critical").length} color="bg-red-500" total={incidents.length} />
+              <SeverityGauge label="High / P1" value={incidents.filter((i) => i.severity === "high").length} color="bg-orange-500" total={incidents.length} />
+              <SeverityGauge label="Medium / P2" value={incidents.filter((i) => i.severity === "medium").length} color="bg-blue-500" total={incidents.length} />
+            </div>
+          </section>
+
+          <section className="glass-panel group relative overflow-hidden rounded-[3rem] border-[var(--primary)]/10 bg-gradient-to-br from-[var(--primary)]/[0.05] to-transparent p-10 shadow-2xl">
+            <div className="absolute -bottom-10 -right-10 opacity-[0.03] transition-opacity duration-1000 group-hover:opacity-[0.08]">
+              <Activity size={200} className="text-[var(--primary)]" />
+            </div>
+            <h3 className="relative z-10 mb-8 flex items-center gap-3 text-xs font-black uppercase tracking-[0.3em] italic text-white">
+              <Activity size={20} className="text-[var(--primary)]" />
+              Mitigation HUD
+            </h3>
+
+            <div className="relative z-10 space-y-6">
+              <div className="rounded-2xl border border-white/5 bg-black/40 p-6 transition-all group-hover:border-[var(--primary)]/20">
+                <p className="mb-4 text-[10px] font-bold uppercase tracking-widest leading-relaxed text-gray-500">
+                  Otonom tamir motoru son 1 saatte düşük öncelikli olaylarda self-healing başarısı sağladı.
+                </p>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black text-green-400">92% SUCCESS</span>
+                  <button className="text-[9px] font-black uppercase text-gray-700 transition-colors hover:text-white">
+                    Details
+                  </button>
+                </div>
               </div>
 
-              <div className="space-y-6 relative z-10">
-                 <SeverityGauge label="Critical / P0" value={incidents.filter((i:any) => i.severity === 'critical').length} color="bg-red-500" total={incidents.length} />
-                 <SeverityGauge label="High / P1" value={incidents.filter((i:any) => i.severity === 'high').length} color="bg-orange-500" total={incidents.length} />
-                 <SeverityGauge label="Medium / P2" value={incidents.filter((i:any) => i.severity === 'medium').length} color="bg-blue-500" total={incidents.length} />
-              </div>
-           </section>
-
-           {/* Mitigation HUD */}
-           <section className="glass-panel p-10 rounded-[3rem] border-[var(--primary)]/10 bg-gradient-to-br from-[var(--primary)]/[0.05] to-transparent relative overflow-hidden group shadow-2xl">
-              <div className="absolute -bottom-10 -right-10 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-1000">
-                 <Activity size={200} className="text-[var(--primary)]" />
-              </div>
-              <h3 className="text-xs font-black text-white mb-8 flex items-center gap-3 uppercase tracking-[0.3em] relative z-10 italic">
-                 <Activity size={20} className="text-[var(--primary)]" />
-                 Mitigation HUD
-              </h3>
-              
-              <div className="space-y-6 relative z-10">
-                 <div className="p-6 rounded-2xl bg-black/40 border border-white/5 group-hover:border-[var(--primary)]/20 transition-all">
-                    <p className="text-[10px] text-gray-500 font-bold leading-relaxed uppercase tracking-widest mb-4">
-                       Otonom tamir motoru son 1 saatte 12 adet düşük öncelikli olayda self-healing başarısı sağladı.
-                    </p>
-                    <div className="flex items-center justify-between">
-                       <span className="text-[11px] font-black text-green-400">92% SUCCESS</span>
-                       <button className="text-[9px] font-black text-gray-700 uppercase hover:text-white transition-colors">Details</button>
-                    </div>
-                 </div>
-                 
-                 <button className="w-full flex items-center justify-center gap-3 py-5 bg-[var(--primary)] text-[#060a12] font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl hover:shadow-[0_8px_32px_rgba(102,252,241,0.3)] transition-all active:scale-95 group/btn">
-                    Tümünü Temizle
-                    <ChevronRight size={14} className="group-hover/btn:translate-x-2 transition-transform" />
-                 </button>
-              </div>
-           </section>
+              <button className="group/btn w-full rounded-2xl bg-[var(--primary)] py-5 text-[10px] font-black uppercase tracking-[0.2em] text-[#060a12] transition-all hover:shadow-[0_8px_32px_rgba(102,252,241,0.3)] active:scale-95">
+                <span className="inline-flex items-center justify-center gap-3">
+                  Tümünü Temizle
+                  <ChevronRight size={14} className="transition-transform group-hover/btn:translate-x-2" />
+                </span>
+              </button>
+            </div>
+          </section>
         </div>
       </div>
     </div>
   );
 }
 
-function EliteIncidentItem({ incident, onResolve }: { incident: any, onResolve: () => void }) {
-  const isCritical = incident.severity === 'critical';
-  const isResolved = incident.status === 'resolved';
+function EliteIncidentItem({
+  incident,
+  onResolve,
+}: {
+  incident: Incident;
+  onResolve: () => void;
+}) {
+  const isCritical = incident.severity === "critical";
+  const isResolved = incident.status === "resolved";
 
   return (
-    <div className={`p-8 rounded-[2rem] border transition-all duration-500 group/item relative overflow-hidden
-      ${isCritical ? 'bg-red-500/[0.02] border-red-500/20 hover:border-red-500/40' : 'bg-white/[0.015] border-white/5 hover:border-white/10 hover:bg-white/[0.025]'}
-    `}>
-       <div className="flex justify-between items-start gap-8 relative z-10">
-          <div className="flex items-start gap-6">
-             <div className={`p-5 rounded-2xl border transition-all duration-500 shadow-xl
-               ${isCritical ? 'bg-red-500/10 border-red-500/20 text-red-500 group-hover/item:scale-110' : 'bg-black/40 border-white/5 text-gray-600 group-hover/item:text-blue-400'}
-             `}>
-                {isCritical ? <Flame size={24} className="animate-pulse" /> : <ShieldAlert size={24} />}
-             </div>
-             
-             <div>
-                <div className="flex flex-wrap items-center gap-4 mb-2">
-                   <h3 className="text-lg font-black text-white uppercase tracking-tight group-hover/item:text-[var(--primary)] transition-colors">
-                     {(incident.incident_type || "UNKNOWN_INCIDENT").replace('_', ' ')}
-                   </h3>
-                   <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all
-                     ${isResolved ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20 shadow-[0_0_10px_rgba(102,252,241,0.1)]'}
-                   `}>
-                     {incident.status}
-                   </span>
-                </div>
-                <p className={`text-xs font-bold leading-relaxed tracking-tight max-w-xl mb-6
-                  ${isCritical ? 'text-red-200 opacity-80' : 'text-gray-500'}
-                `}>{incident.message}</p>
-                
-                <div className="flex items-center gap-6 pt-6 border-t border-white/[0.03]">
-                   <div className="flex items-center gap-2">
-                      <Clock size={12} className="text-gray-700" />
-                      <span className="text-[9px] font-mono font-black text-gray-700 uppercase tracking-widest">{new Date(incident.created_at).toLocaleTimeString()}</span>
-                   </div>
-                   {incident.project_id && (
-                     <div className="flex items-center gap-2">
-                        <Target size={12} className="text-gray-700" />
-                        <span className="text-[9px] font-black text-gray-700 uppercase tracking-widest">NODE_ID: {String(incident.project_id).substring(0,8)}</span>
-                     </div>
-                   )}
-                </div>
-             </div>
+    <div
+      className={`group/item relative overflow-hidden rounded-[2rem] border p-8 transition-all duration-500 ${
+        isCritical
+          ? "border-red-500/20 bg-red-500/[0.02] hover:border-red-500/40"
+          : "border-white/5 bg-white/[0.015] hover:border-white/10 hover:bg-white/[0.025]"
+      }`}
+    >
+      <div className="relative z-10 flex items-start justify-between gap-8">
+        <div className="flex items-start gap-6">
+          <div
+            className={`rounded-2xl border p-5 shadow-xl transition-all duration-500 ${
+              isCritical
+                ? "border-red-500/20 bg-red-500/10 text-red-500 group-hover/item:scale-110"
+                : "border-white/5 bg-black/40 text-gray-600 group-hover/item:text-blue-400"
+            }`}
+          >
+            {isCritical ? <Flame size={24} className="animate-pulse" /> : <ShieldAlert size={24} />}
           </div>
 
-          <div className="flex flex-col items-end gap-3 min-w-[120px]">
-             {!isResolved ? (
-               <button 
-                 onClick={onResolve}
-                 className="px-6 py-2.5 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase text-white hover:bg-[var(--primary)] hover:text-[#060a12] hover:border-[var(--primary)] transition-all active:scale-95"
-               >
-                 Aksiyon Al
-               </button>
-             ) : (
-               <div className="flex items-center gap-2 text-green-500 px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-xl">
-                  <CheckCircle2 size={16} />
-                  <span className="text-[9px] font-black uppercase tracking-widest">Çözüldü</span>
-               </div>
-             )}
+          <div>
+            <div className="mb-2 flex flex-wrap items-center gap-4">
+              <h3 className="text-lg font-black uppercase tracking-tight text-white transition-colors group-hover/item:text-[var(--primary)]">
+                {(incident.incident_type || "UNKNOWN_INCIDENT").replace("_", " ")}
+              </h3>
+              <span
+                className={`rounded-lg border px-2.5 py-1 text-[9px] font-black uppercase tracking-widest transition-all ${
+                  isResolved
+                    ? "border-green-500/20 bg-green-500/10 text-green-500"
+                    : "border-[var(--primary)]/20 bg-[var(--primary)]/10 text-[var(--primary)] shadow-[0_0_10px_rgba(102,252,241,0.1)]"
+                }`}
+              >
+                {incident.status}
+              </span>
+            </div>
+            <p
+              className={`mb-6 max-w-xl text-xs font-bold leading-relaxed tracking-tight ${
+                isCritical ? "text-red-200 opacity-80" : "text-gray-500"
+              }`}
+            >
+              {incident.message}
+            </p>
+
+            <div className="flex items-center gap-6 border-t border-white/[0.03] pt-6">
+              <div className="flex items-center gap-2">
+                <Clock size={12} className="text-gray-700" />
+                <span className="text-[9px] font-mono font-black uppercase tracking-widest text-gray-700">
+                  {new Date(incident.created_at).toLocaleTimeString()}
+                </span>
+              </div>
+              {incident.project_id && (
+                <div className="flex items-center gap-2">
+                  <Target size={12} className="text-gray-700" />
+                  <span className="text-[9px] font-black uppercase tracking-widest text-gray-700">
+                    NODE_ID: {String(incident.project_id).substring(0, 8)}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
-       </div>
-       
-       {isCritical && (
-         <div className="absolute inset-0 bg-red-500/5 pointer-events-none group-hover:bg-red-500/10 transition-all duration-1000" />
-       )}
+        </div>
+
+        <div className="flex min-w-[120px] flex-col items-end gap-3">
+          {!isResolved ? (
+            <button
+              onClick={onResolve}
+              className="rounded-xl border border-white/10 bg-white/5 px-6 py-2.5 text-[10px] font-black uppercase text-white transition-all hover:border-[var(--primary)] hover:bg-[var(--primary)] hover:text-[#060a12] active:scale-95"
+            >
+              Aksiyon Al
+            </button>
+          ) : (
+            <div className="flex items-center gap-2 rounded-xl border border-green-500/20 bg-green-500/10 px-4 py-2 text-green-500">
+              <CheckCircle2 size={16} />
+              <span className="text-[9px] font-black uppercase tracking-widest">Çözüldü</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {isCritical && <div className="pointer-events-none absolute inset-0 bg-red-500/5 transition-all duration-1000 group-hover:bg-red-500/10" />}
     </div>
   );
 }
 
-function SeverityGauge({ label, value, color, total }: any) {
+function SeverityGauge({
+  label,
+  value,
+  color,
+  total,
+}: {
+  label: string;
+  value: number;
+  color: string;
+  total: number;
+}) {
   const pct = total > 0 ? (value / total) * 100 : 0;
+
   return (
     <div className="group cursor-help">
-       <div className="flex justify-between items-end mb-3 px-1">
-          <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest group-hover:text-white transition-colors">{label}</span>
-          <span className={`text-[11px] font-black font-mono tracking-tighter ${color.replace('bg-', 'text-')}`}>{value}</span>
-       </div>
-       <div className="w-full bg-black/40 h-1.5 rounded-full overflow-hidden border border-white/[0.03] group-hover:border-white/10 transition-all relative">
-          <div className={`h-full opacity-60 transition-all duration-1000 ${color} shadow-[0_0_15px_currentColor]`} style={{ width: `${pct}%` }}></div>
-       </div>
+      <div className="mb-3 flex items-end justify-between px-1">
+        <span className="text-[10px] font-black uppercase tracking-widest text-gray-600 transition-colors group-hover:text-white">
+          {label}
+        </span>
+        <span className={`font-mono text-[11px] font-black tracking-tighter ${color.replace("bg-", "text-")}`}>{value}</span>
+      </div>
+      <div className="relative h-1.5 w-full overflow-hidden rounded-full border border-white/[0.03] bg-black/40 transition-all group-hover:border-white/10">
+        <div className={`h-full opacity-60 shadow-[0_0_15px_currentColor] transition-all duration-1000 ${color}`} style={{ width: `${pct}%` }} />
+      </div>
     </div>
   );
 }
-
-

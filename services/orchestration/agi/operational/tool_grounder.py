@@ -33,7 +33,7 @@ class ToolGrounder:
         grounded_input = tool_input
 
         # 1. Veritabanı Port Kontrolü (Örn: 5432 -> 5433)
-        if "db" in tool_name.lower() or "sql" in tool_name.lower():
+        if any(kw in tool_name.lower() for kw in ["db", "sql", "postgres", "redis", "mongo", "query"]):
             for d in discoveries:
                 if "port" in d["content"].lower():
                     match = re.search(r'(\d{4,5})', d["content"])

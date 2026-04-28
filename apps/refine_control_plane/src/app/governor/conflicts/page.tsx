@@ -12,7 +12,7 @@ import {
 const { Title, Text } = Typography;
 
 export default function ConflictsPage() {
-  const { data, isLoading, refetch } = useList<any, HttpError>({
+  const { query } = useList<any, HttpError>({
     resource: "governor/meta/conflicts",
     filters: [
       {
@@ -21,7 +21,8 @@ export default function ConflictsPage() {
         value: "open",
       },
     ],
-  });
+  }) as any;
+  const { data, isLoading, refetch } = query;
 
   const { mutate: resolveConflict } = useUpdate();
 

@@ -1,3 +1,5 @@
+import os
+
 import uvicorn
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
@@ -76,4 +78,9 @@ async def health_check():
     return {"status": "healthy", "service": "workflow_api"}
 
 if __name__ == "__main__":
-    uvicorn.run("services.workflow_api.main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(
+        "services.workflow_api.main:app",
+        host=os.getenv("WORKFLOW_API_HOST", "127.0.0.1"),
+        port=int(os.getenv("WORKFLOW_API_PORT", "8000")),
+        reload=True,
+    )

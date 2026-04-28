@@ -942,6 +942,8 @@ class AgentNode(Base):
     status          = Column(SAEnum(AgentStatus, native_enum=False, length=32), default=AgentStatus.IDLE, index=True)
     
     trust_score     = Column(Float, default=1.0)
+    success_count   = Column(Integer, default=0)
+    failure_count   = Column(Integer, default=0)
     current_load    = Column(Integer, default=0)
     max_concurrency = Column(Integer, default=1)
     

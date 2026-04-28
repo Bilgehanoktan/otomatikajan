@@ -1,7 +1,7 @@
 import ast
 import logging
 import time
-from typing import Dict, Any, List
+from typing import Any, Callable, Dict
 
 _log = logging.getLogger("agi_benchmarking")
 
@@ -13,9 +13,9 @@ class BenchmarkingEngine:
 
     def __init__(self):
         self._logic_puzzles = [
-            {"q": "5 + 5 * 5", "a": 30},
-            {"q": "len([1,2,3]) == 3", "a": True},
-            {"q": "all([True, True])", "a": True}
+            {"q": "5 + 5 * 5", "a": 30, "solver": lambda: 5 + 5 * 5},
+            {"q": "len([1,2,3]) == 3", "a": True, "solver": lambda: len([1, 2, 3]) == 3},
+            {"q": "all([True, True])", "a": True, "solver": lambda: all([True, True])},
         ]
 
     async def run_deterministic_tests(self) -> Dict[str, Any]:
@@ -43,7 +43,8 @@ class BenchmarkingEngine:
         passed = 0
         for p in self._logic_puzzles:
             try:
-                if eval(p["q"]) == p["a"]:
+                solver: Callable[[], Any] = p["solver"]
+                if solver() == p["a"]:
                     passed += 1
             except Exception:
                 continue

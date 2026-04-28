@@ -48,22 +48,38 @@ jobs:
 
       - name: Bandit — statik analiz
         run: |
-          bandit -r . \
-            -x tests,alembic \
+          set +e
+          bandit -r apps libs services core infra scripts \
+            -x tests,alembic,libs/vendor,.legacy_archive \
             -ll \
             --format json \
-            -o bandit-report.json || true
-          cat bandit-report.json
+            -o bandit-report.json
+          status=$?
+          set -e
+          if [ -f bandit-report.json ]; then
+            cat bandit-report.json
+          fi
+          exit $status
 
       - name: pip-audit — bağımlılık CVE taraması
-        run: pip-audit -r requirements.txt || true
+        run: |
+          set +e
+          pip-audit -r requirements.txt --format json --output pip-audit-report.json
+          status=$?
+          set -e
+          if [ -f pip-audit-report.json ]; then
+            cat pip-audit-report.json
+          fi
+          exit $status
 
-      - name: Bandit raporu yükle
+      - name: Security raporlarını yükle
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: bandit-report
-          path: bandit-report.json
+          name: security-reports
+          path: |
+            bandit-report.json
+            pip-audit-report.json
 
   # ─────────────────────────────────────────────────────────
   test:
@@ -120,6 +136,16 @@ jobs:
         run: |
           python -c "import apps.public_api.main; print('apps.public_api.main import ok')"
           python -c "import services.workflow_api.main; print('services.workflow_api.main import ok')"
+
+      - name: Backend production import smoke test
+        env:
+          APP_ENV: production
+          ENVIRONMENT: production
+          ANTHROPIC_API_KEY: ci-anthropic-key
+          WEBHOOK_SECRET: ci-webhook-secret-strong
+        run: |
+          python -c "import apps.public_api.main; print('apps.public_api.main production import ok')"
+          python -c "import services.workflow_api.main; print('services.workflow_api.main production import ok')"
 
       - name: Testleri çalıştır
         run: |

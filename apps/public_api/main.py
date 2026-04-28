@@ -37,6 +37,9 @@ except ImportError:
 
 # ── Güvenlik çekirdek kontrolleri ─────────────────────────
 from libs.config import APP_ENV as _ENV, ADMIN_SECRET, JWT_SECRET, validate_production_config
+from services.observability.logging import get_logger
+
+logger = get_logger("main")
 
 if _ENV == "production":
     try:
@@ -57,10 +60,7 @@ from services.repair.application.heal_engine import heal_engine
 from services.orchestration.domain.events import event_bus
 from services.orchestration.application.job_queue import job_queue
 from libs.infra.ws_manager import ws_manager
-from services.observability.logging import get_logger
 from services.observability.metrics import metrics
-
-logger = get_logger("main")
 
 # ── Startup modülleri ─────────────────────────────────────
 from libs.infra.lifespan import lifespan, register_event_listeners
@@ -133,8 +133,7 @@ else:
 
 
 # ── WebSocket ─────────────────────────────────────────────
-@app.websocket("/ws/logs")
-async def websocket_logs(ws: WebSocket):
+async def _authenticated_websocket_stream(ws: WebSocket):
     # Faz 12.1 Security: WebSocket Authentication
     token = ws.query_params.get("token")
     if not token:
@@ -182,11 +181,21 @@ async def websocket_logs(ws: WebSocket):
         ws_manager.disconnect(ws)
 
 
+@app.websocket("/ws/logs")
+async def websocket_logs(ws: WebSocket):
+    await _authenticated_websocket_stream(ws)
+
+
+@app.websocket("/ws/events")
+async def websocket_events(ws: WebSocket):
+    await _authenticated_websocket_stream(ws)
+
+
 # ── Sistem Endpoint'leri ──────────────────────────────────
 @app.get("/health", tags=["Sistem"])
 @app.get("/api/v1/health", tags=["Sistem"], include_in_schema=False)
 async def health_check():
-    from libs.db.session import is_db_available, db_error
+    from libs.db.session import is_db_available
     from services.orchestration.agency.loader import agency_loader
     from services.observability.memory_governor import memory_governor
 
@@ -211,7 +220,7 @@ async def health_check():
         "ws_clients": ws_manager.client_count,
         "db": {
             "available": db_ok,
-            "error": db_error() if not db_ok else "",
+            "error": "Database connection failed" if not db_ok else "",
             "is_fallback": (await import_db_degraded())
         },
         "redis": await _get_redis_status(),

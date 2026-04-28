@@ -14,9 +14,10 @@ import {
 const { Title, Text } = Typography;
 
 export default function FederatedGovernorPage() {
-  const { data, isLoading } = useList<any, HttpError>({
+  const { query } = useList<any, HttpError>({
     resource: "governor/meta/decisions",
-  });
+  }) as any;
+  const { data, isLoading } = query;
 
   const decisions = data?.data || [];
 

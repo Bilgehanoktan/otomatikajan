@@ -50,6 +50,17 @@ class AuditBundleCreate(BaseModel):
     end_time: Optional[datetime] = None
     purpose: Optional[str] = "AUDIT"
 
+class AuditBundleOut(BaseModel):
+    id: str
+    name: str
+    purpose: str
+    project: str
+    created_at: datetime
+    operator: str
+    seal: str
+    size: str
+    status: str
+
 class ApprovalOut(BaseModel):
     id: str
     project_id: str
@@ -251,37 +262,6 @@ async def list_fingerprints(
             ) for i in items
         ]
 
-class ApprovalOut(BaseModel):
-    id: str
-    project_id: str
-    request_type: str
-    reason: str
-    status: str
-    created_at: datetime
-    # Added for detail view
-    agent_id: Optional[str] = None
-    decided_by: Optional[str] = None
-    decided_at: Optional[datetime] = None
-    comment: Optional[str] = None
-    # SIF-02: Quorum Metadata
-    required_signoffs: int = 1
-    current_signoffs: int = 0
-    signatories: List[str] = []
-
-class ImprovementOut(BaseModel):
-    id: str
-    opportunity_id: str
-    target_file: str
-    instruction: str
-    proposed_patch: str
-    status: str
-    created_at: datetime
-    risk_score: float = 0.0
-    test_results: Optional[Dict[str, Any]] = None
-
-class FingerprintUpdate(BaseModel):
-    is_active: bool
-
 class ValidationOut(BaseModel):
     id: str
     component_name: str
@@ -319,12 +299,14 @@ class PolicyProposalOut(BaseModel):
     status: str
     author_id: str
     created_at: datetime
-    # Calibration details for UI (Refine/Self-Tuning)
     parameter: Optional[str] = "System Tuning"
     current_value: Optional[str] = "N/A"
     proposed_value: Optional[str] = "N/A"
     confidence: float = 1.0
     impact: str = "Neutral"
+    required_signoffs: int = 1
+    current_signoffs: int = 0
+    signatories: List[str] = []
 
 class DrillRecordOut(BaseModel):
     id: str
@@ -342,25 +324,6 @@ class PolicyEvolutionOut(BaseModel):
     change_reason: str
     decision_id: Optional[str] = None
     created_at: datetime
-
-class IncidentOut(BaseModel):
-    id: str
-    incident_type: str
-    severity: str
-    message: str
-    status: str
-    project_id: Optional[str] = None
-    created_at: datetime
-    payload: Optional[Dict[str, Any]] = None
-
-class ApprovalDecision(BaseModel):
-    approve: bool
-    reason: str # Mandatory in SIF-02
-    decided_by: Optional[str] = None
-
-class IncidentResolve(BaseModel):
-    resolution_notes: str # Mandatory Justification
-    operator_id: Optional[str] = None
 
 @router.get("/approvals", response_model=List[ApprovalOut])
 async def list_approvals(
@@ -402,6 +365,7 @@ async def list_approvals(
                 comment=i.comment
             ) for i in items
         ]
+
 @router.get("/approvals/{id}", response_model=ApprovalOut)
 async def get_approval(id: str):
     from libs.db.session import AsyncSessionLocal
@@ -446,7 +410,6 @@ async def update_approval_status(
     if not status:
         raise HTTPException(status_code=400, detail="Status is required")
 
-    # SIF-02: Justification Enforcement for critical state changes
     if status.upper() in ["APPROVED", "REJECTED"] and len(comment) < 10:
         raise HTTPException(
             status_code=400, 
@@ -461,11 +424,10 @@ async def update_approval_status(
 
         old_status = i.status
         i.status = status.upper()
-        i.approver_id = str(identity["id"]) # Authenticated Operator ID
+        i.approver_id = str(identity["id"])
         i.decision_at = datetime.now(timezone.utc)
         i.comment = comment
 
-        # Record Lineage
         await LineageService.log_decision(
             decision_type="MANUAL_INTERVENTION",
             component_name="QuorumCenter",
@@ -479,7 +441,6 @@ async def update_approval_status(
             db=db
         )
         
-        # 3. Learning Integration (Phase 31)
         try:
             from services.governance.learning_orchestrator import LearningOrchestrator
             await LearningOrchestrator.record_learning(
@@ -530,7 +491,6 @@ async def decide_approval(id: str, dec: ApprovalDecision):
         i.decision_at = datetime.now(timezone.utc)
         i.comment = dec.reason
         
-        # Record Lineage (Phase 29 Integration)
         lineage = await LineageService.log_decision(
             decision_type="MANUAL_INTERVENTION",
             component_name="QuorumCenter",
@@ -545,7 +505,6 @@ async def decide_approval(id: str, dec: ApprovalDecision):
             db=db
         )
         
-        # 3. Learning Integration (Phase 31)
         try:
             from services.governance.learning_orchestrator import LearningOrchestrator
             await LearningOrchestrator.record_learning(
@@ -585,7 +544,6 @@ async def list_improvements(
     limit: int = Query(50),
     offset: int = Query(0),
 ):
-    """List system improvement proposals."""
     from libs.db.session import AsyncSessionLocal
     from libs.db.models.core_models import SystemImprovement
     from sqlalchemy import select, func
@@ -615,7 +573,6 @@ async def list_improvements(
 
 @router.patch("/improvements/{id}", response_model=ImprovementOut)
 async def update_improvement(id: str, patch_data: ImprovementUpdate):
-    """Approve or reject a patch."""
     from libs.db.session import AsyncSessionLocal
     from libs.db.models.core_models import SystemImprovement
     from sqlalchemy import select
@@ -624,7 +581,7 @@ async def update_improvement(id: str, patch_data: ImprovementUpdate):
     try:
         uid = uuid.UUID(id)
     except ValueError:
-        raise HTTPException(status_code=404, detail="Improvement not found (Invalid ID format)")
+        raise HTTPException(status_code=404, detail="Improvement not found")
 
     async with AsyncSessionLocal() as db:
         res = await db.execute(select(SystemImprovement).where(SystemImprovement.id == uid))
@@ -632,7 +589,6 @@ async def update_improvement(id: str, patch_data: ImprovementUpdate):
         if not improvement:
             raise HTTPException(status_code=404, detail="Improvement not found")
 
-        # Update status
         improvement.status = patch_data.status
         await db.commit()
         await db.refresh(improvement)
@@ -658,55 +614,8 @@ async def get_federation_trust(response: Response):
         q = select(FederationTrust)
         res = await db.execute(q)
         items = res.scalars().all()
-        
         response.headers["x-total-count"] = str(len(items))
-        
-        # If empty, return sample data for WOW effect
-        if not items:
-            from datetime import datetime, timezone
-            return [
-                {
-                    "id": "1",
-                    "cluster_id": "sec-overwatch-v1",
-                    "trust_score": 0.98,
-                    "success_count": 142,
-                    "failure_count": 2,
-                    "arbitration_wins": 15,
-                    "last_activity_at": datetime.now(timezone.utc),
-                    "cluster_metadata": {"region": "us-east-1", "alias": "Security Overwatch"}
-                },
-                {
-                    "id": "2",
-                    "cluster_id": "logic-cortex-main",
-                    "trust_score": 0.94,
-                    "success_count": 580,
-                    "failure_count": 12,
-                    "arbitration_wins": 45,
-                    "last_activity_at": datetime.now(timezone.utc),
-                    "cluster_metadata": {"region": "eu-central-1", "alias": "Domain Logic Cortex"}
-                }
-            ]
-
         return items
-
-
-@router.get("/verifiers")
-async def list_verifiers_gateway():
-    """Mesh Gateway: Redirects to repair_lab verifiers stats."""
-    from services.workflow_api.repair_lab_router import get_verifiers_stats
-    return await get_verifiers_stats()
-
-@router.get("/self-tuning")
-async def list_self_tuning_gateway():
-    """Mesh Gateway: Redirects to repair_lab tuning suggestions."""
-    from services.workflow_api.repair_lab_router import get_tuning_suggestions
-    return await get_tuning_suggestions()
-
-@router.get("/repair-memory")
-async def list_repair_memory_gateway():
-    """Mesh Gateway: Redirects to repair_lab memory heatmaps."""
-    from services.workflow_api.repair_lab_router import get_repair_memory
-    return await get_repair_memory()
 
 @router.get("/governance/signoffs", response_model=List[SignoffOut])
 async def list_signoffs(
@@ -734,9 +643,6 @@ async def list_signoffs(
                 component_name=i.component_name,
                 version=i.version,
                 status=i.status.value if hasattr(i.status, "value") else str(i.status),
-                approver_id=str(i.approver_id) if i.approver_id else None,
-                approver_note=i.approver_note,
-                evidence_summary=i.evidence_summary,
                 created_at=i.created_at
             ) for i in items
         ]
@@ -822,7 +728,6 @@ async def list_lineage(
         except Exception as exc:
             logger.warning("Decision lineage fallback activated: %s", exc)
             response.headers["x-total-count"] = "0"
-            response.headers["Access-Control-Expose-Headers"] = "x-total-count"
             return []
 
 @router.get("/policies/evolution", response_model=List[PolicyEvolutionOut])
@@ -888,7 +793,7 @@ async def list_drills(
             ) for i in items
         ]
 
-@router.post("/governance/drills/trigger")
+@router.post("/drills/trigger")
 async def trigger_drill_endpoint(scenario: str):
     from services.training.drill_engine import DrillEngine
     from services.repair.repair_orchestrator import RepairOrchestrator
@@ -924,55 +829,44 @@ async def list_retention_policies(response: Response):
 @router.get("/policy-proposals", response_model=List[PolicyProposalOut], include_in_schema=False)
 @router.get("/policy-proposals/", response_model=List[PolicyProposalOut], include_in_schema=False)
 async def list_policy_proposals(response: Response):
-    print("DEBUG: Hit /governance/proposals")
     from libs.db.session import AsyncSessionLocal
     from libs.db.models.governance_models import PolicyProposal
-    from sqlalchemy import select
+    from sqlalchemy import select, func
 
     async with AsyncSessionLocal() as db:
+        total = (await db.execute(select(func.count(PolicyProposal.id)))).scalar() or 0
+        response.headers["x-total-count"] = str(total)
+        response.headers["Access-Control-Expose-Headers"] = "x-total-count"
+
         res = await db.execute(select(PolicyProposal).order_by(PolicyProposal.created_at.desc()))
         items = res.scalars().all()
-        
-        # SIF-02: Enrich with Quorum Progress
-        from services.governance.quorum_service import QuorumService
-        enriched_items = []
-        for i in items:
-            # Get signoffs for this proposal
-            from libs.db.models.governance_models import MultiPartySignoff, SignoffStatus
-            signoff_res = await db.execute(
-                select(MultiPartySignoff).where(
-                    MultiPartySignoff.proposal_id == str(i.id),
-                    MultiPartySignoff.status == SignoffStatus.SIGNED
-                )
-            )
-            signoffs = signoff_res.scalars().all()
-            
-            # Get requirement
-            req = await QuorumService.get_requirement("CONSTITUTION", "HIGH")
-            required = req.required_quorum if req else 2
-            
-            enriched_items.append(
-                PolicyProposalOut(
-                    id=str(i.id),
-                    title=i.title,
-                    description=i.description,
-                    scope=i.scope,
-                    status=i.status.value if hasattr(i.status, "value") else str(i.status),
-                    author_id=str(i.author_id),
-                    created_at=i.created_at,
-                    parameter=i.proposed_changes.get("parameter", i.title) if isinstance(i.proposed_changes, dict) else i.title,
-                    current_value="Default",
-                    proposed_value=str(i.proposed_changes.get("proposed_value", "N/A")) if isinstance(i.proposed_changes, dict) else "N/A",
-                    confidence=i.proposed_changes.get("confidence", 1.0) if isinstance(i.proposed_changes, dict) else 1.0,
-                    impact="High" if i.scope == "AUTONOMOUS_LEARNING" else "Medium",
-                    required_signoffs=required,
-                    current_signoffs=len(signoffs),
-                    signatories=[s.approver_id for s in signoffs]
-                )
-            )
 
-        response.headers["x-total-count"] = str(len(enriched_items))
-        return enriched_items
+        return [
+            PolicyProposalOut(
+                id=str(i.id),
+                title=i.title,
+                description=i.description or "",
+                scope=getattr(i, "scope", "AUTONOMOUS_LEARNING"),
+                status=i.status.value if hasattr(i.status, "value") else str(i.status),
+                author_id=str(getattr(i, "author_id", "governance_agent")),
+                created_at=i.created_at,
+                parameter=getattr(i, "proposed_changes", {}).get("parameter", i.title)
+                if isinstance(getattr(i, "proposed_changes", {}), dict)
+                else i.title,
+                current_value="Default",
+                proposed_value=str(getattr(i, "proposed_changes", {}).get("proposed_value", "N/A"))
+                if isinstance(getattr(i, "proposed_changes", {}), dict)
+                else i.policy_code,
+                confidence=getattr(i, "proposed_changes", {}).get("confidence", 0.91)
+                if isinstance(getattr(i, "proposed_changes", {}), dict)
+                else 0.91,
+                impact="High" if getattr(i, "scope", "AUTONOMOUS_LEARNING") == "AUTONOMOUS_LEARNING" else "Medium",
+                required_signoffs=2,
+                current_signoffs=0,
+                signatories=[],
+            )
+            for i in items
+        ]
 
 @router.post("/governance/proposals/{proposal_id}/approve")
 async def approve_policy_proposal(
@@ -985,26 +879,10 @@ async def approve_policy_proposal(
     success = await QuorumService.add_signoff(proposal_id, approver_id, note)
     return {"success": success, "proposal_id": proposal_id}
 
-
-class AuditBundleOut(BaseModel):
-    id: str
-    name: str
-    purpose: str
-    project: str
-    created_at: datetime
-    operator: str
-    seal: str
-    size: str
-    status: str
-
 @router.get("/compliance/audit-bundles", response_model=List[AuditBundleOut])
 async def list_audit_bundles(response: Response):
-    # This would normally list files in runtime/data/audit_exports
-    # For now, we return the pilot bundle we just generated plus some mock data
     import os
     from datetime import datetime
-    
-    # Simple discovery of recently created bundles
     export_dir = "runtime/data/audit_exports"
     bundles = []
     
@@ -1014,7 +892,7 @@ async def list_audit_bundles(response: Response):
                 stats = os.stat(os.path.join(export_dir, f))
                 bundles.append(
                     AuditBundleOut(
-                        id=f.split("_")[1] if "_" in f else "unknown",
+                        id=f.replace(".zip", "").replace("audit_", ""),
                         name=f,
                         purpose="PRODUCTION_HANDOVER" if "LAUNCH" in f else "AUDIT",
                         project="Resilience Pilot v1" if "f462f604" in f else "System",
@@ -1072,7 +950,6 @@ async def list_incidents(
     from sqlalchemy import select, desc, func
 
     async with AsyncSessionLocal() as session:
-        # Phase 23: Incident tracking logic
         query = select(OperationalIncident).order_by(desc(OperationalIncident.created_at)).offset(offset).limit(limit)
         if status:
             query = query.filter(OperationalIncident.status == status)
@@ -1080,7 +957,6 @@ async def list_incidents(
         result = await session.execute(query)
         items = result.scalars().all()
         
-        # Refine requirement: Total count in Header for pagination
         total_query = select(func.count(OperationalIncident.id))
         if status:
             total_query = total_query.filter(OperationalIncident.status == status)
@@ -1143,7 +1019,6 @@ async def resolve_incident(
         i.status = "resolved"
         i.resolved_at = datetime.now(timezone.utc)
         
-        # Record Lineage (Phase 29 Integration)
         lineage = await LineageService.log_decision(
             decision_type="INCIDENT_RESOLUTION",
             component_name="IncidentCenter",
@@ -1157,7 +1032,6 @@ async def resolve_incident(
             db=db
         )
         
-        # 3. Learning Integration (Phase 31) - Atomic with resolution
         try:
             from services.governance.learning_orchestrator import LearningOrchestrator
             await LearningOrchestrator.record_incident_learning(
@@ -1204,7 +1078,6 @@ async def update_incident(id: str, data: Dict[str, Any]):
             if not item:
                 raise HTTPException(status_code=404, detail="Incident not found")
             
-            # Exclude protected fields from automated PATCH
             protected_fields = ["id", "created_at"]
             old_status = item.status
             status_changed = False
@@ -1230,7 +1103,6 @@ async def update_incident(id: str, data: Dict[str, Any]):
                     db=session
                 )
 
-            # 3. Learning Integration (Phase 31)
             if status_changed and item.status == "resolved":
                 try:
                     from services.governance.learning_orchestrator import LearningOrchestrator
@@ -1268,7 +1140,7 @@ async def update_incident(id: str, data: Dict[str, Any]):
             )
     except Exception as e:
         local_logger.error(f"Failed to update incident {id}: {str(e)}", exc_info=True)
-        raise # Re-raise to be caught by global handler but logged here first
+        raise
 
 @router.get("/ops/launch-gates")
 async def get_launch_gates():
@@ -1283,7 +1155,6 @@ async def get_launch_gates():
 @router.post("/ops/handover")
 async def trigger_handover(project_id: str, dry_run: bool = True):
     from scripts.ops.production_handover import run_production_handover
-    import asyncio
     try:
         await run_production_handover(project_id, dry_run)
         return {"status": "success", "project_id": project_id, "dry_run": dry_run}

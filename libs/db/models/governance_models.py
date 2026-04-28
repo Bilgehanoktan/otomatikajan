@@ -47,11 +47,14 @@ class ValidationResult(Base):
     __table_args__ = {"extend_existing": True}
     id             = Column(GUID, primary_key=True, default=uuid.uuid4)
     component_name = Column(String(100), nullable=False, index=True)
+    test_suite     = Column(String(100), nullable=True)
     validation_type = Column(SAEnum(ValidationType, native_enum=False), nullable=False)
     status         = Column(SAEnum(ValidationStatus, native_enum=False), nullable=False)
     metrics        = Column(SmartJSON(), nullable=True)
+    raw_logs       = Column(Text, nullable=True)
     error_log      = Column(Text, nullable=True)
     duration_ms    = Column(Integer, nullable=True)
+    signoff_id     = Column(GUID, ForeignKey("production_signoffs.id"), nullable=True)
     created_at     = Column(DateTime(timezone=True), default=utcnow, nullable=False)
 
 class HandoverEvent(Base):

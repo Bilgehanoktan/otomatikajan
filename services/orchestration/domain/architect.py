@@ -141,14 +141,27 @@ class Architect:
             except: pass
         return None
 
-# Singleton
-architect = Architect()
+# Lazy Singleton — prevent import-time crash from ModelOrchestrator init
+_architect_instance: Optional[Architect] = None
+
+def get_architect(model_orch: Optional[ModelOrchestrator] = None) -> Architect:
+    global _architect_instance
+    if _architect_instance is None:
+        _architect_instance = Architect(model_orch=model_orch)
+    return _architect_instance
+
+# Backward compatibility alias (lazy)
+class _LazyArchitect:
+    def __getattr__(self, name):
+        return getattr(get_architect(), name)
+
+architect = _LazyArchitect()
 
 async def start_architect_scan_loop():
     while True:
         try:
-            await architect.scan_architecture()
+            await get_architect().scan_architecture()
             await asyncio.sleep(3600 * 24)
         except Exception as e:
-            _log.error(f"[ARCHITECT] Loop hatası: {e}")
+            _log.error(f"[ARCHITECT] Loop hatasi: {e}")
             await asyncio.sleep(600)

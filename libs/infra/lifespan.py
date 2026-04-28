@@ -1,4 +1,5 @@
-"""
+""" 
+
 libs/infra/lifespan.py — Phase 13.04
 Unified startup/shutdown sequence for Sovereign AGI services.
 """
@@ -84,12 +85,19 @@ async def lifespan(app: FastAPI):
                 try:
                     # Run the external script logic (or imported function)
                     from prmr_readiness_audit import run_audit
-                    await run_audit()
+                    all_ready = await run_audit()
+                    
+                    import os
+                    if all_ready and os.getenv("PRMR_AUTO_ACTIVATE", "true").lower() == "true":
+                        from services.governance.standby_manager import StandbyManager
+                        StandbyManager.check_trigger(StandbyManager.TRIGGER_PHRASE)
+                        logger.info("[AUTO-MODE] Infrastructure ready. Auto-reactivation triggered.")
+                        break
                 except Exception as audit_err:
                     logger.warning(f"[STANDBY-AUDIT] Audit failed: {audit_err}")
                 
-                # Sleep for 15 minutes (900 seconds)
-                await asyncio.sleep(900)
+                # Sleep for 15 seconds for more responsive auto-activation
+                await asyncio.sleep(15)
             
             logger.info("[STANDBY] TRIGGER DETECTED. Exiting Standby Audit Loop. Primary Initiation authorized.")
 

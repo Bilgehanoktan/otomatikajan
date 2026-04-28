@@ -1,13 +1,13 @@
-﻿"""
-Repair Orchestrator â€” Faz 4 Self-Repair Ana Pipeline
+"""
+Repair Orchestrator — Faz 4 Self-Repair Ana Pipeline
 
 Durum makinesi:
 NEW -> INCIDENT_COLLECTED -> TRIAGED -> CONTEXT_BUILT
     -> ROOT_CAUSE_ANALYZED -> PATCH_PLANNED -> PATCH_GENERATED
     -> REVIEWED -> VERIFIED -> PR_CREATED -> AWAITING_APPROVAL
 
-Her adÄ±m baÅŸarÄ±sÄ±z olursa uygun FAILED_* veya REQUIRES_MANUAL_REVIEW durumuna geÃ§er.
-HiÃ§bir adÄ±m production'a otomatik yazamaz.
+Her adım başarısız olursa uygun FAILED_* veya REQUIRES_MANUAL_REVIEW durumuna geçer.
+Hiçbir adım production'a otomatik yazamaz.
 """
 
 import asyncio
@@ -45,7 +45,7 @@ _CAPABILITIES = {}
 def _register_capability(name: str, status: bool, error: str = ""):
     _CAPABILITIES[name] = {"status": status, "error": error}
 
-# Faz 11 yeni bileÅŸenler (lazy import â€” her zaman eriÅŸilebilir olmak zorunda deÄŸil)
+# Faz 11 yeni bileşenler (lazy import — her zaman erişilebilir olmak zorunda değil)
 def _get_fingerprint_engine():
     try:
         from services.repair.analysis.incident_fingerprint import build_fingerprint, get_similarity_engine
@@ -114,12 +114,12 @@ _log = get_logger("repair.orchestrator")
 
 class RepairOrchestrator:
     """
-    Self-Repair pipeline'Ä±nÄ±n ana yÃ¶neticisi.
+    Self-Repair pipeline'ının ana yöneticisi.
 
     Kural:
-    - Her adÄ±m sadece kendi sorumluluÄŸunu yapar
-    - BaÅŸarÄ±sÄ±z adÄ±mlar pipeline'Ä± durdurur
-    - TÃ¼m kararlar kayÄ±t altÄ±na alÄ±nÄ±r
+    - Her adım sadece kendi sorumluluğunu yapar
+    - Başarısız adımlar pipeline'ı durdurur
+    - Tüm kararlar kayıt altına alınır
     """
 
     def __init__(
@@ -162,7 +162,7 @@ class RepairOrchestrator:
         self.PipelineContext = PipelineContext
 
     def get_capability_status(self) -> dict:
-        """Sistem kabiliyetlerinin (Lazy Imports) gerÃ§ek durumunu dÃ¶ner."""
+        """Sistem kabiliyetlerinin (Lazy Imports) gerçek durumunu döner."""
         return _CAPABILITIES
 
     # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -171,7 +171,7 @@ class RepairOrchestrator:
 
     async def start_repair(self, incident: IncidentRecord) -> RepairJob:
         """
-        Bir incident iÃ§in repair job baÅŸlat.
+        Bir incident için repair job başlat.
         """
         job = RepairJob.create(incident.incident_id)
         self._jobs_cache[job.job_id] = job
@@ -191,9 +191,9 @@ class RepairOrchestrator:
         except Exception as db_err:
             _log.debug(f"Job initial persistence error (ignored for resilience): {db_err}")
 
-        _log.info(f"Repair job baÅŸlatÄ±ldÄ± (DB): {job.job_id} â€” {incident.symptom[:80]}")
+        _log.info(f"Repair job başlatıldı (DB): {job.job_id} — {incident.symptom[:80]}")
 
-        # Pipeline'Ä± arka planda Ã§alÄ±ÅŸtÄ±r
+        # Pipeline'ı arka planda çalıştır
         asyncio.create_task(self._run_pipeline(job, incident))
         return job
 
@@ -215,7 +215,7 @@ class RepairOrchestrator:
         return None
 
     async def list_jobs(self, limit: int = 50) -> list[RepairJob]:
-        """TÃ¼m job'larÄ± listele (Cache + DB Sync)."""
+        """Tüm job'ları listele (Cache + DB Sync)."""
         if not self._hydrated:
             await self.hydrate_from_db()
 
@@ -233,11 +233,11 @@ class RepairOrchestrator:
         return all_jobs[:limit]
 
     async def hydrate_from_db(self) -> int:
-        """Sistem baÅŸlangÄ±cÄ±nda DB'deki son iÅŸleri belleÄŸe al."""
+        """Sistem başlangıcında DB'deki son işleri belleğe al."""
         if self._hydrated:
             return 0
             
-        _log.info("RepairOrchestrator: Geri yÃ¼kleme (hydration) baÅŸlatÄ±lÄ±yor...")
+        _log.info("RepairOrchestrator: Geri yükleme (hydration) başlatılıyor...")
         try:
             from libs.db.session import AsyncSessionLocal, is_db_available
             if not await is_db_available():
@@ -251,14 +251,14 @@ class RepairOrchestrator:
                         self._jobs_cache[rec.job_id] = self._map_record_to_job(rec)
                 
             self._hydrated = True
-            _log.info(f"RepairOrchestrator: {len(records)} iÅŸ geri yÃ¼klendi.")
+            _log.info(f"RepairOrchestrator: {len(records)} iş geri yüklendi.")
             return len(records)
         except Exception as e:
-            _log.error(f"RepairOrchestrator: Hydration hatasÄ±: {e}")
+            _log.error(f"RepairOrchestrator: Hydration hatası: {e}")
             return 0
 
     def _map_record_to_job(self, record: RepairJobRecord) -> RepairJob:
-        """DB kaydÄ±nÄ± RepairJob schema nesnesine dÃ¶nÃ¼ÅŸtÃ¼r."""
+        """DB kaydını RepairJob schema nesnesine dönüştür."""
         meta = record.meta or {}
         return RepairJob(
             job_id=record.job_id,
@@ -292,10 +292,10 @@ class RepairOrchestrator:
         )
 
     async def _transition_and_persist(self, job: RepairJob, status: RepairJobStatus, note: str = ""):
-        """Durum geÃ§iÅŸi yap ve DB'ye iÅŸle."""
+        """Durum geçişi yap ve DB'ye işle."""
         if job.transition(status, note=note):
             await self._persist_job(job)
-            # CanlÄ± YayÄ±n (WebSocket â€” Event Driven Faz 12.1)
+            # Canlı Yayın (WebSocket — Event Driven Faz 12.1)
             try:
                 await event_bus.emit(EVENT_JOB_PROGRESS, {
                     "job_id": job.job_id,
@@ -322,12 +322,12 @@ class RepairOrchestrator:
         }
 
     # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-    # Pipeline AdÄ±mlarÄ±
+    # Phase 12.1 — Gelişmiş Pipeline Adımları
     # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
     async def _run_pipeline(self, job: RepairJob, incident: IncidentRecord) -> None:
         """
-        RC1 Ana Pipeline â€” Dispatcher-based Modular Execution
+        RC1 Ana Pipeline — Dispatcher-based Modular Execution
         """
         t_start = time.time()
         ctx = self.PipelineContext(job, incident)
@@ -342,10 +342,10 @@ class RepairOrchestrator:
             # Phase 3: Kod Ãœretimi (Patch Generation)
             if not await self._phase_generation(ctx): return
 
-            # Phase 4: DoÄŸrulama (Sandbox + Debate + Review)
+            # Phase 4: Doğrulama (Sandbox + Debate + Review)
             if not await self._phase_verification(ctx): return
 
-            # Phase 5: YayÄ±na HazÄ±rlÄ±k (Persistence + Metric)
+            # Phase 5: Yayına Hazırlık (Persistence + Metric)
             await self._phase_release(ctx)
 
             duration = time.time() - t_start
@@ -382,18 +382,18 @@ class RepairOrchestrator:
 
     async def _phase_planning(self, ctx) -> bool:
         """Lesson Memory ve Patch Planlama."""
-        # VektÃ¶r bellekten geÃ§miÅŸ tecrÃ¼be sorgula
+        # Vektör bellekten geçmiş tecrübe sorgula
         ctx.job.vector_context_used = await self._step_get_context_from_vector(ctx.incident)
         
         # Strateji belirle (Faz 4/7)
         ctx.strategy = "aggressive" if ctx.ticket.confidence < 0.4 else "standard"
         
-        # PlanÄ± oluÅŸtur
+        # Planı oluştur
         ctx.plan = await self._step_patch_plan(ctx.job, ctx.ticket)
         return ctx.plan is not None
 
     async def _phase_generation(self, ctx) -> bool:
-        """Kod Ã¼retimi."""
+        """Kod üretimi."""
         ctx.patch = await self._step_generate_patch(ctx.job, ctx.plan, ctx.incident)
         return ctx.patch is not None
 
@@ -403,7 +403,7 @@ class RepairOrchestrator:
         if not await self._step_sandbox_verify(ctx.job, ctx.patch, ctx.plan):
             return False
             
-        # Debate / Ãœst AkÄ±l (Opsiyonel)
+        # Debate / Üst Akıl (Opsiyonel)
         if ctx.plan.risk == "high" or ctx.patch.confidence < 60:
             await self._step_debate_verify(ctx.job, ctx.patch, ctx.plan)
             
@@ -418,7 +418,7 @@ class RepairOrchestrator:
         return ctx.validation_passed
 
     async def _phase_release(self, ctx) -> None:
-        """Bellek kaydÄ± ve metrik."""
+        """Bellek kaydı ve metrik."""
         await self._save_vector_lesson(ctx.job, ctx.incident, "success" if ctx.validation_passed else "failed")
         self._record_metric(ctx.job, ctx.incident, ctx.ticket, ctx.plan, "success" if ctx.validation_passed else "failed", 0)
 
@@ -433,12 +433,12 @@ class RepairOrchestrator:
                 await RepairJobRepo.upsert(db, job)
                 await db.commit()
         except Exception as e:
-            _log.debug(f"Job DB yazma hatasÄ± (ignore): {e}")
+            _log.debug(f"Job DB yazma hatası (ignore): {e}")
 
     # â”€â”€ AdÄ±m implementasyonlarÄ± â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     async def _step_triage(self, job: RepairJob, incident: IncidentRecord) -> Optional[DiagnosisTicket]:
-        """AdÄ±m 1: Triage."""
+        """Adım 1: Triage."""
         try:
             ticket = self.triage.triage(incident)
             job.ticket_id = ticket.ticket_id
@@ -448,13 +448,13 @@ class RepairOrchestrator:
         except Exception as e:
             job.error_detail = str(e)
             job.transition(RepairJobStatus.FAILED_TRIAGE, note=str(e)[:100])
-            _log.error(f"Triage baÅŸarÄ±sÄ±z [{job.job_id}]: {e}")
+            _log.error(f"Triage başarısız [{job.job_id}]: {e}")
             return None
 
     async def _step_root_cause(
         self, job: RepairJob, incident: IncidentRecord, ticket: DiagnosisTicket
     ) -> Optional[DiagnosisTicket]:
-        """AdÄ±m 3: Root Cause Analizi."""
+        """Adım 3: Root Cause Analizi."""
         try:
             from services.repair.analysis.root_cause_engine import get_root_cause_engine
             engine = get_root_cause_engine(self.model_orch)
@@ -465,36 +465,36 @@ class RepairOrchestrator:
                 project_root=self.project_root,
             )
             job.transition(RepairJobStatus.ROOT_CAUSE_ANALYZED, note=(
-                ticket.selected_hypothesis.title if ticket.selected_hypothesis else "hipotez seÃ§ilemedi"
+                ticket.selected_hypothesis.title if ticket.selected_hypothesis else "hipotez seçilemedi"
             ))
             _log.info(f"Root cause [{job.job_id}]: {ticket.selected_hypothesis.title if ticket.selected_hypothesis else '?'}")
             return ticket
         except Exception as e:
             job.error_detail = str(e)
             job.transition(RepairJobStatus.FAILED_ANALYSIS, note=str(e)[:100])
-            _log.error(f"Root cause analizi baÅŸarÄ±sÄ±z [{job.job_id}]: {e}")
+            _log.error(f"Root cause analizi başarısız [{job.job_id}]: {e}")
             return None
 
     async def _step_patch_plan(self, job: RepairJob, ticket: DiagnosisTicket) -> Optional[PatchPlan]:
-        """AdÄ±m 4: Patch Planlama."""
+        """Adım 4: Patch Planlama."""
         try:
             from services.repair.planning.patch_planner import patch_planner
             plan = patch_planner.plan(ticket, project_root=self.project_root)
             if plan is None:
-                job.transition(RepairJobStatus.REQUIRES_MANUAL_REVIEW, note="GÃ¼venli patch hedefi bulunamadÄ±")
+                job.transition(RepairJobStatus.REQUIRES_MANUAL_REVIEW, note="Güvenli patch hedefi bulunamadı")
                 return None
             job.plan_id = plan.plan_id
             job.transition(RepairJobStatus.PATCH_PLANNED, note=f"risk={plan.risk.value}, files={plan.target_files}")
-            _log.info(f"Patch plan [{job.job_id}]: {plan.plan_id} â€” risk={plan.risk.value}")
+            _log.info(f"Patch plan [{job.job_id}]: {plan.plan_id} — risk={plan.risk.value}")
             return plan
         except Exception as e:
             job.error_detail = str(e)
             job.transition(RepairJobStatus.FAILED_PATCH_GENERATION, note=str(e)[:100])
-            _log.error(f"Patch planlama baÅŸarÄ±sÄ±z [{job.job_id}]: {e}")
+            _log.error(f"Patch planlama başarısız [{job.job_id}]: {e}")
             return None
 
     async def _step_generate_patch(self, job: RepairJob, plan: PatchPlan, incident: IncidentRecord):
-        """AdÄ±m 5: Patch Ãœretimi."""
+        """Adım 5: Patch Üretimi."""
         try:
             from services.repair.generation.patch_generator import get_patch_generator
             generator = get_patch_generator(self.model_orch)
@@ -505,10 +505,10 @@ class RepairOrchestrator:
                 project_root=self.project_root,
             )
             if patch is None or not patch.is_valid():
-                job.transition(RepairJobStatus.FAILED_PATCH_GENERATION, note="Diff Ã¼retilemedi veya geÃ§ersiz")
+                job.transition(RepairJobStatus.FAILED_PATCH_GENERATION, note="Diff üretilemedi veya geçersiz")
                 return None
             
-            # CanlÄ± yayÄ±n (Faz 8 Infra - Live Preview â€” Event Driven Faz 12.1)
+            # Canlı yayın (Faz 8 Infra - Live Preview — Event Driven Faz 12.1)
             try:
                 await event_bus.emit(EVENT_LIVE_PATCH, {
                     "job_id": job.job_id,
@@ -521,16 +521,16 @@ class RepairOrchestrator:
 
             job.diff = patch.diff
             job.transition(RepairJobStatus.PATCH_GENERATED, note=f"confidence={patch.confidence}%")
-            _log.info(f"Patch Ã¼retildi [{job.job_id}]: {len(patch.diff)} karakter")
+            _log.info(f"Patch üretildi [{job.job_id}]: {len(patch.diff)} karakter")
             return patch
         except Exception as e:
             job.error_detail = str(e)
             job.transition(RepairJobStatus.FAILED_PATCH_GENERATION, note=str(e)[:100])
-            _log.error(f"Patch Ã¼retimi baÅŸarÄ±sÄ±z [{job.job_id}]: {e}")
+            _log.error(f"Patch üretimi başarısız [{job.job_id}]: {e}")
             return None
 
     async def _step_review_patch(self, job: RepairJob, patch, plan: PatchPlan, ticket: DiagnosisTicket) -> bool:
-        """AdÄ±m 6: Patch Review."""
+        """Adım 6: Patch Review."""
         try:
             from services.repair.review.patch_reviewer import patch_reviewer, ReviewDecisionType
             review = patch_reviewer.review(patch, plan, ticket)
@@ -545,12 +545,12 @@ class RepairOrchestrator:
                 return False
             return True   # APPROVE veya REVISE -> devam et
         except Exception as e:
-            _log.warning(f"Patch review hatasÄ± [{job.job_id}]: {e} â€” devam ediliyor")
+            _log.warning(f"Patch review hatası [{job.job_id}]: {e} — devam ediliyor")
             job.transition(RepairJobStatus.REVIEWED, note="review hata verdi, devam edildi")
             return True
 
     async def _step_verify(self, job: RepairJob, patch, plan: PatchPlan) -> Optional[ValidationStatus]:
-        """AdÄ±m 7: Verification."""
+        """Adım 7: Verification."""
         try:
             from services.repair.verification.verification_engine import get_verification_engine
             engine     = get_verification_engine(self.project_root)
@@ -560,17 +560,17 @@ class RepairOrchestrator:
             await self._transition_and_persist(job, RepairJobStatus.VERIFIED, note=f"status={validation.final_status.value}")
             _log.info(f"Verification [{job.job_id}]: {validation.final_status.value}")
             if validation.final_status.value == "failed":
-                await self._transition_and_persist(job, RepairJobStatus.FAILED_VALIDATION, note="Validation kapÄ±larÄ± geÃ§ilemedi")
+                await self._transition_and_persist(job, RepairJobStatus.FAILED_VALIDATION, note="Validation kapıları geçilemedi")
                 return None
             return validation
         except Exception as e:
             job.error_detail = str(e)
             await self._transition_and_persist(job, RepairJobStatus.FAILED_VALIDATION, note=str(e)[:100])
-            _log.error(f"Verification RC1 baÅŸarÄ±sÄ±z [{job.job_id}]: {e}")
+            _log.error(f"Verification RC1 başarısız [{job.job_id}]: {e}")
             return None
 
     async def _step_create_pr(self, job: RepairJob, patch, plan: PatchPlan, validation, incident: IncidentRecord):
-        """AdÄ±m 10: PR Ã–nerisi."""
+        """Adım 10: PR Önerisi."""
         try:
             from services.repair.release.pr_creator import get_pr_creator
             creator  = get_pr_creator(self.project_root)
@@ -583,18 +583,18 @@ class RepairOrchestrator:
                 symptom=incident.symptom,
             )
             job.branch_name = proposal.branch_name
-            job.pr_url      = proposal.pr_id   # GerÃ§ek PR URL yoksa pr_id sakla
+            job.pr_url      = proposal.pr_id   # Gerçek PR URL yoksa pr_id sakla
             await self._transition_and_persist(job, RepairJobStatus.PR_CREATED, note=f"pr={proposal.pr_id}")
-            await self._transition_and_persist(job, RepairJobStatus.AWAITING_APPROVAL, note="Ä°nsan onayÄ± bekleniyor")
-            _log.info(f"PR Ã¶nerisi hazÄ±r [{job.job_id}]: {proposal.pr_id}")
+            await self._transition_and_persist(job, RepairJobStatus.AWAITING_APPROVAL, note="İnsan onayı bekleniyor")
+            _log.info(f"PR önerisi hazır [{job.job_id}]: {proposal.pr_id}")
             # DB'ye kalÄ±cÄ± kayÄ±t
             await self._persist_job_and_proposal(job, proposal)
         except Exception as e:
-            _log.error(f"PR oluÅŸturma hatasÄ± [{job.job_id}]: {e}")
-            await self._transition_and_persist(job, RepairJobStatus.REQUIRES_MANUAL_REVIEW, note=f"PR oluÅŸturulamadÄ±: {e}")
+            _log.error(f"PR oluşturma hatası [{job.job_id}]: {e}")
+            await self._transition_and_persist(job, RepairJobStatus.REQUIRES_MANUAL_REVIEW, note=f"PR oluşturulamadı: {e}")
 
     async def _step_browser_qa(self, job: "RepairJob", incident: "IncidentRecord") -> bool:
-        """AdÄ±m 8: GStack Otonom Browser QA."""
+        """Adım 8: GStack Otonom Browser QA."""
         try:
             from hub_cortex.skills.registry import skill_registry
             from hub_cortex.skills.base import SkillRequest
@@ -602,12 +602,12 @@ class RepairOrchestrator:
             url = incident.context.get("url")
             selector = incident.context.get("selector")
             
-            _log.info(f"Otonom Browser QA baÅŸlatÄ±lÄ±yor [{job.job_id}] -> {url}")
+            _log.info(f"Otonom Browser QA başlatılıyor [{job.job_id}] -> {url}")
             
             req = SkillRequest(
                 task_type="qa",
                 title=f"Repair Verification: {job.job_id}",
-                description=f"Hata onarÄ±ldÄ±, lÃ¼tfen UI Ã¼zerinden doÄŸrula: {url}",
+                description=f"Hata onarıldı, lütfen UI üzerinden doğrula: {url}",
                 project_id=job.job_id,
                 context={"url": url, "selector": selector}
             )
@@ -615,20 +615,20 @@ class RepairOrchestrator:
             res = await skill_registry.execute("browser_validator", req)
             
             if res.success:
-                job.transition(job.status, note=f"Browser QA BaÅŸarÄ±lÄ±: {res.summary}")
+                job.transition(job.status, note=f"Browser QA Başarılı: {res.summary}")
                 if "screenshot_path" in res.data:
                     job.logs.append(f"Screenshot: {res.data['screenshot_path']}")
             else:
-                _log.warning(f"Browser QA baÅŸarÄ±sÄ±z [{job.job_id}]: {res.summary}")
-                job.logs.append(f"Browser QA UyarÄ±: {res.summary}")
+                _log.warning(f"Browser QA başarısız [{job.job_id}]: {res.summary}")
+                job.logs.append(f"Browser QA Uyarısı: {res.summary}")
             
             return res.success
         except Exception as e:
-            _log.error(f"Browser QA hatasÄ± [{job.job_id}]: {e}")
+            _log.error(f"Browser QA hatası [{job.job_id}]: {e}")
             return False
 
     async def _persist_job_and_proposal(self, job, proposal) -> None:
-        """Job ve PR Ã¶nerisini DB'ye yaz (arka planda)."""
+        """Job ve PR önerisini DB'ye yaz (arka planda)."""
         try:
             from libs.db.session import AsyncSessionLocal, is_db_available
             if not await is_db_available():
@@ -639,10 +639,10 @@ class RepairOrchestrator:
                 await RepairProposalRepo.save(db, proposal)
                 await db.commit()
         except Exception as e:
-            _log.debug(f"Job/proposal DB yazma hatasÄ± (ignore): {e}")
+            _log.debug(f"Job/proposal DB yazma hatası (ignore): {e}")
 
     def _record_outcome(self, job: RepairJob, incident: IncidentRecord, plan: PatchPlan, patch, outcome: PatchOutcome, confidence: int):
-        """Patch sonucunu hafÄ±zaya ve DB'ye yaz."""
+        """Patch sonucunu hafızaya ve DB'ye yaz."""
         diff_lines = len([l for l in patch.diff.split("\n") if l.startswith("+") or l.startswith("-")])
         self.ptch_memory.record(
             job_id=job.job_id,
@@ -658,7 +658,7 @@ class RepairOrchestrator:
         asyncio.create_task(self._persist_patch_log(job, incident, plan, patch, outcome, confidence, diff_lines))
 
     async def _persist_patch_log(self, job, incident, plan, patch, outcome, confidence, diff_lines):
-        """Patch log kaydÄ±nÄ± DB'ye yaz (arka planda)."""
+        """Patch log kaydını DB'ye yaz (arka planda)."""
         try:
             from libs.db.session import AsyncSessionLocal, is_db_available
             if not await is_db_available():
@@ -684,14 +684,14 @@ class RepairOrchestrator:
                 await RepairJobRepo.upsert(db, job)
                 await db.commit()
         except Exception as e:
-            _log.debug(f"Patch log DB yazma hatasÄ± (ignore): {e}")
+            _log.debug(f"Patch log DB yazma hatası (ignore): {e}")
 
     # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-    # Faz 11/12 â€” GeliÅŸmiÅŸ Pipeline AdÄ±mlarÄ±
+    # Faz 11/12 — Gelişmiş Pipeline Adımları
     # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
     def _step_fingerprint(self, job: RepairJob, incident: IncidentRecord) -> None:
-        """AdÄ±m 0: Incident fingerprint Ã¼ret, duplicate tespit et, job'a yaz."""
+        """Adım 0: Incident fingerprint üret, duplicate tespit et, job'a yaz."""
         try:
             from services.repair.analysis.incident_fingerprint import get_fingerprinter
             f = get_fingerprinter()
@@ -702,10 +702,10 @@ class RepairOrchestrator:
                 _log.info(f"Duplicate incident detected: {incident.incident_id} -> {dup_id}")
             f.add(job.fingerprint, job.job_id)
         except Exception as e:
-            _log.debug(f"Fingerprint hatasÄ±: {e}")
+            _log.debug(f"Fingerprint hatası: {e}")
 
     def _step_rank_hypotheses(self, job: RepairJob, ticket: DiagnosisTicket, incident: IncidentRecord) -> tuple:
-        """AdÄ±m 3b: Ranker ile hipotez puanlama."""
+        """Adım 3b: Ranker ile hipotez puanlama."""
         try:
             ranker = _get_ranker()
             if not ranker or not ticket or not hasattr(ticket, "hypotheses"):
@@ -724,11 +724,11 @@ class RepairOrchestrator:
             job.ranker_adjusted_confidence = adj_conf
             return ranked_ticket, {"raw": raw_conf, "adjusted": adj_conf}
         except Exception as e:
-            _log.debug(f"Ranker RC1 hatasÄ±: {e}")
+            _log.debug(f"Ranker RC1 hatası: {e}")
             return ticket, {}
 
     async def _step_debate_if_needed(self, job: RepairJob, ticket: DiagnosisTicket, incident: IncidentRecord) -> None:
-        """RC1 AdÄ±m 3c: Debate Engine â€” skorlar yakÄ±nsa tetikle."""
+        """RC1 Adım 3c: Debate Engine — skorlar yakınsa tetikle."""
         try:
             if not ticket or not hasattr(ticket, "hypotheses"): return
             hypotheses = list(getattr(ticket, "hypotheses", []) or [])
@@ -751,40 +751,40 @@ class RepairOrchestrator:
             h2_title = getattr(hypotheses[1], "title", str(hypotheses[1]))[:80]
             symptom  = getattr(incident, "symptom", "bilinmeyen hata")[:150]
 
-            topic = f"Root cause seÃ§imi: '{h1_title}' vs '{h2_title}'. Hata: {symptom}"
+            topic = f"Root cause seçimi: '{h1_title}' vs '{h2_title}'. Hata: {symptom}"
             _log.info(f"Debate tetikleniyor [{job.job_id}]: {h1_conf}% vs {h2_conf}%")
             result = await engine.run_debate(topic=topic, agent_a="backend_dev", agent_b="security", moderator="architect", max_rounds=2)
             job.debate_triggered           = True
             job.debate_result_summary      = result.consensus[:300]
             job.debate_winning_hypothesis  = h1_title if h1_conf >= h2_conf else h2_title
         except Exception as e:
-            _log.debug(f"Debate RC1 hatasÄ±: {e}")
+            _log.debug(f"Debate RC1 hatası: {e}")
 
     async def _step_generate_tests(self, job: RepairJob, incident: IncidentRecord, plan: PatchPlan, ticket: DiagnosisTicket) -> None:
-        """AdÄ±m 4b: Test generator."""
+        """Adım 4b: Test generator."""
         try:
             gen = _get_test_gen()
             if not gen: return
             test_result = gen.generate(incident, plan, ticket=ticket, job_id=job.job_id)
             if test_result:
                 job.generated_tests = [test_result.to_dict()]
-                _log.info(f"Test Ã¼retildi [{job.job_id}]: {test_result.test_type}")
+                _log.info(f"Test üretildi [{job.job_id}]: {test_result.test_type}")
         except Exception as e:
-            _log.debug(f"Test generator hatasÄ±: {e}")
+            _log.debug(f"Test generator hatası: {e}")
 
     async def _step_architecture_guard(self, job: RepairJob, patch) -> bool:
-        """AdÄ±m 6b: Architecture guard."""
+        """Adım 6b: Architecture guard."""
         try:
             guard = _get_arch_guard()
             if not guard: return True
             diff = getattr(patch, "diff", "") or ""
             if not diff: return True
-            # Ek GÃ¼venlik: YasaklÄ± komut/string kontrolÃ¼ (Faz 12.1 RC1 Enforcement)
+            # Ek Güvenlik: Yasaklı komut/string kontrolü (Faz 12.1 RC1 Enforcement)
             forbidden_calls = ["os.system", "shutil.rmtree", "DROP TABLE", "rm -rf"]
             for call in forbidden_calls:
                 if call in diff:
-                     _log.warning(f"ZARARLI KOD TESPÄ°T EDÄ°LDÄ°: {call}")
-                     await self._transition_and_persist(job, RepairJobStatus.REQUIRES_MANUAL_REVIEW, note=f"Kritik gÃ¼venlik engeli: {call}")
+                     _log.warning(f"ZARARLI KOD TESPİT EDİLDİ: {call}")
+                     await self._transition_and_persist(job, RepairJobStatus.REQUIRES_MANUAL_REVIEW, note=f"Kritik güvenlik engeli: {call}")
                      return False
 
             result = guard.check_diff(diff)
@@ -796,7 +796,7 @@ class RepairOrchestrator:
                     return False
             return True
         except Exception as e:
-            _log.debug(f"Architecture guard hatasÄ±: {e}")
+            _log.debug(f"Architecture guard hatası: {e}")
             return True
 
     async def _step_score_risk(self, job: RepairJob, plan: PatchPlan, validation: ValidationStatus):

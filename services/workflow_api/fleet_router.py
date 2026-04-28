@@ -51,7 +51,7 @@ class FleetEventOut(BaseModel):
     id: str
     event_type: ProofEventType
     entity_id: Optional[str] = None
-    details: Optional[str] = None
+    payload_summary: Optional[str] = None
     created_at: datetime
 
     class Config:
@@ -76,7 +76,19 @@ async def list_agents(
     
     result = await db.execute(query)
     agents = result.scalars().all()
-    return agents
+    
+    return [
+        FleetAgentOut(
+            id=str(a.id),
+            name=a.name,
+            role=a.role,
+            status=a.status,
+            trust_score=a.trust_score,
+            current_load=a.current_load,
+            last_heartbeat=a.last_heartbeat,
+            cluster_id=str(a.cluster_id) if a.cluster_id else None
+        ) for a in agents
+    ]
 
 @router.get("/clusters", response_model=List[FleetClusterOut])
 async def list_clusters(db: AsyncSession = Depends(get_db)):
@@ -86,16 +98,13 @@ async def list_clusters(db: AsyncSession = Depends(get_db)):
     
     out = []
     for c in clusters:
-        # Load associated agents if needed, or just use the agent_count field if it exists
-        # Assuming we need to calculate it or it's a relationship
-        # For now, following the original logic:
         usage = c.current_budget_usage / c.budget_limit * 100 if c.budget_limit > 0 else 0
         out.append(FleetClusterOut(
             id=str(c.id),
             name=c.name,
             status=c.status.value if hasattr(c.status, "value") else str(c.status),
             current_load=usage,
-            agent_count=0, # Simplified: relationship loading in async needs care
+            agent_count=0,
             budget_usage_pct=usage
         ))
     return out
@@ -131,7 +140,7 @@ async def list_fleet_events(limit: int = 10, db: AsyncSession = Depends(get_db))
         summary = None
         try:
             p = json.loads(r.payload_canonical)
-            summary = p.get("details") or p.get("msg")
+            summary = p.get("details") or p.get("msg") or p.get("reason")
         except:
             summary = r.payload_canonical[:100] if r.payload_canonical else None
 
@@ -139,7 +148,7 @@ async def list_fleet_events(limit: int = 10, db: AsyncSession = Depends(get_db))
             id=str(r.id),
             event_type=r.event_type,
             entity_id=r.entity_id,
-            details=summary,
+            payload_summary=summary,
             created_at=r.created_at
         ))
     return events

@@ -90,7 +90,7 @@ if exist "%PROJECT_ROOT%infra\port_surgeon.py" (
 timeout /t 2 /nobreak >nul
 
 echo [2/3] Mission Control API (%BACKEND_PORT%) baslatiliyor...
-start "Backend-%BACKEND_PORT%" /d "%PROJECT_ROOT%" cmd /k "%PY_CMD% -m uvicorn apps.public_api.main:app --host 0.0.0.0 --port %BACKEND_PORT% --reload"
+start "Backend-%BACKEND_PORT%" /d "%PROJECT_ROOT%" cmd /k "%PY_CMD% -m uvicorn apps.public_api.main:app --host 0.0.0.0 --port %BACKEND_PORT%"
 
 echo      Backend baslatildi, ayaga kalkma bekleniyor...
 timeout /t 4 /nobreak >nul

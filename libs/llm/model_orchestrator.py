@@ -48,7 +48,7 @@ class ProviderStats:
     latency_streak:     int      = 0    # Ardışık yavaşlama sayısı (Faz 12.3)
 
     OPEN_THRESHOLD:    int   = field(default=3,    init=False, repr=False)
-    HALF_OPEN_AFTER:   float = field(default=30.0, init=False, repr=False)
+    HALF_OPEN_AFTER:   float = field(default=15.0, init=False, repr=False) # Reduced from 30s
     WINDOW_SIZE:       int   = field(default=10,   init=False, repr=False)
     LATENCY_THRESHOLD: float = field(default=15.0, init=False, repr=False) # Karantina sınırı
 
@@ -105,7 +105,7 @@ class ProviderStats:
             self.history.pop(0)
             self.latencies.pop(0)
 
-    def record_failure(self):
+    def record_failure(self, is_rate_limit: bool = False):
         self.failure      += 1
         self.last_failure  = time.time()
         self.history.append(False)
@@ -113,16 +113,20 @@ class ProviderStats:
             self.history.pop(0)
 
         # Increase backoff penalty
-        self.penalty_multiplier = min(self.penalty_multiplier * 2, 32)
+        penalty_step = 2 if is_rate_limit else 2
+        self.penalty_multiplier = min(self.penalty_multiplier * penalty_step, 64)
 
-        if self.history.count(False) >= self.OPEN_THRESHOLD:
+        if self.history.count(False) >= self.OPEN_THRESHOLD or is_rate_limit:
             self.circuit = CircuitState.OPEN
-            logger.error(f"Devre Kesici AÇILDI (OPEN): {self.name} geçici olarak devredışı. Ceza: {self.penalty_multiplier}x")
+            level = "WARNING" if is_rate_limit else "ERROR"
+            logger.log(logging.getLevelName(level), f"Devre Kesici AÇILDI ({'429' if is_rate_limit else 'OPEN'}): {self.name}. Ceza: {self.penalty_multiplier}x")
 
-            # Faz 12.1: Otonom Karantina (Eğer çok sık hata alıyorsa 1 saat kapat)
-            if self.penalty_multiplier >= 16:
+            # Otonom Karantina (Eğer çok sık hata alıyorsa 1 saat kapat)
+            # 429'lar için daha müsamahakarız
+            quarantine_limit = 32 if is_rate_limit else 16
+            if self.penalty_multiplier >= quarantine_limit:
                 self.quarantine_until = time.time() + 3600
-                logger.critical(f"OTONOM KARANTİNA (BAN): {self.name} kronik hata nedeniyle 1 saat yasaklandı.")
+                logger.critical(f"OTONOM KARANTİNA (BAN): {self.name} kronik {'hata' if not is_rate_limit else 'rate limit'} nedeniyle 1 saat yasaklandı.")
 
     def is_available(self) -> bool:
         if self.quarantine_until > time.time():
@@ -355,20 +359,46 @@ class ModelOrchestrator:
 
             except Exception as e:
                 last_error = e
-                # Rate Limit (429) tespiti
-                is_rate_limit = "429" in str(e) or "rate_limit" in str(e).lower()
+                err_str = str(e).lower()
+                
+                # ── 402 Payment Required Handling (Faz 12.1 Hardening) ──
+                if "402" in err_str or "payment" in err_str:
+                    logger.critical(f"FATAL PROVIDER ERROR: {provider.name} requires payment (402). Quarantining for 24h.")
+                    provider.quarantine_until = time.time() + 86400
+                    provider.circuit = CircuitState.OPEN
+                    skipped_details.append(f"{provider.name} (402 Payment Required)")
+                    continue
+
+                # ── 429 Rate Limit (429) Handling ──
+                is_rate_limit = "429" in err_str or "rate_limit" in err_str
 
                 if is_rate_limit:
-                    logger.error(f"RATE LIMIT (429) hit on {provider.name}. Applying extra penalty.")
-                    provider.penalty_multiplier = max(provider.penalty_multiplier * 4, 16)
-                    provider.circuit = CircuitState.OPEN # Hemen kapat
-
-                logger.warning(f"Sağlayıcı Hatası ({provider.name}): {str(e)}. Fallback modele geçiliyor.")
-                err_summary = str(e)[:50]
-                skipped_details.append(f"{provider.name} (Hata: {err_summary}...)")
+                    logger.error(f"RATE LIMIT (429) hit on {provider.name}. Applying progressive penalty.")
+                    provider.record_failure(is_rate_limit=True)
+                    skipped_details.append(f"{provider.name} (429 Rate Limit)")
+                else:
+                    logger.warning(f"Sağlayıcı Hatası ({provider.name}): {str(e)}. Fallback modele geçiliyor.")
+                    err_summary = str(e)[:50]
+                    skipped_details.append(f"{provider.name} (Hata: {err_summary}...)")
+                
                 continue
 
-        # Eğer tüm modeller başarısız olduysa veya atlandıysa açıklayıcı bir hata fırlat
+        # ── EMERGENCY FALLBACK (Phase 12.1 Hardening) ──
+        # Eğer tüm zincir tükendiyse ve durum kritiktse, 
+        # en güvenilir sağlayıcıyı (openai veya gemini) devre açık olsa bile SON BİR KEZ dene.
+        emergency_candidates = ["openai", "gemini"]
+        for p_name in emergency_candidates:
+            p = self.providers.get(p_name)
+            if p and p.api_key and not p.is_placeholder_key():
+                # Eğer son hatadan beri 10 saniye geçtiyse force-retry yap
+                if time.time() - p.last_failure > 10.0:
+                    logger.warning(f"EMERGENCY FALLBACK: {p_name} zorlanıyor (Tüm modeller kapalı!)")
+                    try:
+                        messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": prompt}]
+                        return await self._call(p, messages, max_tokens=2048, project_id=project_id)
+                    except: pass
+
+        # Eğer hala sonuç yoksa hata fırlat
         error_msg = f"Task {task_id} için tüm modeller başarısız oldu (Rol: {agent_role})."
         if skipped_details:
             error_msg += f" [Detaylar: {', '.join(skipped_details)}]"
@@ -658,7 +688,7 @@ class ModelOrchestrator:
                     messages = [{"role": "user", "content": content_parts}]
                     resp = await client.post(
                         provider.base_url,
-                        headers={"Authorization": f"Bearer {p.api_key}" if (p := provider) else ""},
+                        headers={"Authorization": f"Bearer {provider.api_key}"},
                         json={"model": provider.model if "gpt-4o" in provider.model else "gpt-4o-mini", "messages": messages, "max_tokens": 1024}
                     )
                     resp.raise_for_status()

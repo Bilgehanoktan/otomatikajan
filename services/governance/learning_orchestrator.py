@@ -19,6 +19,17 @@ logger = get_logger("governance.learning")
 
 class LearningOrchestrator:
     @staticmethod
+    async def record_incident_learning(
+        incident_data: Dict[str, Any],
+        outcome_data: Dict[str, Any],
+        db: Optional[AsyncSession] = None
+    ) -> LearningRecord:
+        """
+        Alias for record_learning, specifically for incident resolution workflows.
+        """
+        return await LearningOrchestrator.record_learning(incident_data, outcome_data, db=db)
+
+    @staticmethod
     async def record_learning(
         incident_data: Dict[str, Any],
         outcome_data: Dict[str, Any],

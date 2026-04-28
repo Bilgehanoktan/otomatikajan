@@ -3,8 +3,8 @@ Sovereign AGI | Infrastructure Port Surgeon
 Temizlik araci: Belirtilen portlarda asili kalan surecleri tespit edip kapatir.
 """
 import os
+import shutil
 import subprocess
-import sys
 import time
 
 
@@ -19,15 +19,14 @@ def kill_process_by_port(port: int) -> bool:
     """Portu kullanan tum surecleri bulur ve zorla kapatir."""
     try:
         result = subprocess.check_output(
-            f"netstat -ano | findstr :{port}",
-            shell=True,
+            ["netstat", "-ano"],
             stderr=subprocess.DEVNULL
         ).decode("utf-8", errors="replace")
 
         pids = set()
         for line in result.strip().split("\n"):
             parts = line.split()
-            if len(parts) > 4:
+            if len(parts) > 4 and parts[1].endswith(f":{port}"):
                 pid = parts[-1].strip()
                 # PID 0 ve kendi PID'imizi atlayalim
                 if pid != "0" and pid != MY_PID and pid.isdigit():
@@ -40,8 +39,7 @@ def kill_process_by_port(port: int) -> bool:
         for pid in pids:
             print(f"    Port {port}: Asili surec kapatiliyor (PID: {pid})...")
             subprocess.run(
-                f"taskkill /F /PID {pid}",
-                shell=True,
+                ["taskkill", "/F", "/PID", pid],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
@@ -61,12 +59,7 @@ def cleanup_cache():
     )
     if os.path.exists(cache_path):
         try:
-            subprocess.run(
-                f'rd /s /q "{cache_path}"',
-                shell=True,
-                stderr=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
-            )
+            shutil.rmtree(cache_path)
             print("    .next/cache temizlendi.")
         except Exception:
             print("    .next/cache temizlenemedi (atlaniyor).")

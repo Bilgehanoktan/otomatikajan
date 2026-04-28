@@ -11,7 +11,7 @@ const { TextArea } = Input;
 
 export default function GovernorCaseDetail() {
   const { query } = useShow({
-    resource: "governor/cases",
+    resource: "governance/governor/cases",
   });
   const { data, isLoading } = query;
   const record = data?.data;
@@ -38,7 +38,7 @@ export default function GovernorCaseDetail() {
       {
         onSuccess: () => {
           message.success(`Aksiyon uygulandı: ${action}`);
-          list("governor/cases");
+          list("governance/governor/cases");
         },
         onError: (err) => {
           message.error(`Hata: ${err.message}`);
@@ -59,7 +59,7 @@ export default function GovernorCaseDetail() {
       {
         onSuccess: (res) => {
           message.success(`Case geri yüklendi.`);
-          list("governor/cases");
+          list("governance/governor/cases");
         },
         onError: (err) => {
           message.error(`Hata: ${err.message}`);
@@ -80,7 +80,7 @@ export default function GovernorCaseDetail() {
       {
         onSuccess: () => {
           message.success(`Governor otomatik kararı uygulandı.`);
-          list("governor/cases");
+          list("governance/governor/cases");
         },
         onError: (err) => {
           message.error(`Hata: ${err.message}`);
@@ -93,7 +93,7 @@ export default function GovernorCaseDetail() {
   return (
     <div style={{ padding: 24 }}>
       <Space style={{ marginBottom: 24 }}>
-        <Button icon={<ArrowLeftOutlined />} onClick={() => list("governor/cases")}>Geri</Button>
+        <Button icon={<ArrowLeftOutlined />} onClick={() => list("governance/governor/cases")}>Geri</Button>
         <Title level={3} style={{ margin: 0 }}>Case Incelemesi: {record.project_title}</Title>
       </Space>
 

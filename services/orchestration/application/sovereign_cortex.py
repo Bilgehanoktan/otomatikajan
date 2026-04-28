@@ -223,18 +223,21 @@ class SovereignCortex:
     async def _metacognitive_drift_loop(self):
         while self._is_running:
             try:
-                _log.info("[SOVEREIGN-AUTOCHECK] Bilişsel sağlık denetimi başlatılıyor...")
+                _log.info("[SOVEREIGN-AUTOCHECK] Bilissel saglik denetimi baslatiliyor...")
                 from services.orchestration.agi.quality.eval_harness import eval_harness
                 report = await eval_harness.run_full_evaluation()
                 score = report.get("overall_cognitive_score", 0.0)
                 if score < 0.8:
-                    _log.warning(f"[SOVEREIGN-AUTOCHECK] DÜŞÜK BİLİŞSEL PUAN: {score:.2f}. Otonom recalibration tetikleniyor.")
-                    await self.architect.recalibrate_reasoning(report)
+                    _log.warning(f"[SOVEREIGN-AUTOCHECK] DUSUK BILISSEL PUAN: {score:.2f}. Otonom recalibration tetikleniyor.")
+                    try:
+                        await self.architect.recalibrate_reasoning(report)
+                    except Exception as arch_err:
+                        _log.error(f"[SOVEREIGN-AUTOCHECK] Architect recalibration hatasi: {arch_err}")
                 else:
-                    _log.info(f"[SOVEREIGN-AUTOCHECK] Bilişsel sağlık stabil: {score:.2f}")
+                    _log.info(f"[SOVEREIGN-AUTOCHECK] Bilissel saglik stabil: {score:.2f}")
                 await asyncio.sleep(3600)
             except Exception as e:
-                _log.error(f"[SOVEREIGN-AUTOCHECK] Öz-bakım döngüsü hatası: {e}")
+                _log.error(f"[SOVEREIGN-AUTOCHECK] Oz-bakim dongusu hatasi: {e}")
                 await asyncio.sleep(300)
 
     async def _ensure_specialist_availability(self, subtask: Any):

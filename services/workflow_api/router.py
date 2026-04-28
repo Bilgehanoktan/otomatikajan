@@ -109,26 +109,55 @@ class ImprovementOut(BaseModel):
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-async def _get_project_with_subtasks(project_id: str):
-    """Load project + subtasks from DB."""
-    from libs.db.session import AsyncSessionLocal
-    from libs.db.models.core_models import Project, SubTask
-    from sqlalchemy import select
-
+# ── Helpers ───────────────────────────────────────────────────────────────────
+async def _resolve_project_id(db, project_id: str):
+    """
+    Resolves a full UUID or short-ID prefix to a validated Project.id (uuid.UUID).
+    """
+    from libs.db.models.core_models import Project
+    from sqlalchemy import select, cast, String
+    
+    uid = None
     try:
         uid = uuid.UUID(project_id)
     except ValueError:
-        # Standardize to 404 to satisfy REST expectations and avoid 422 validation crashes on the frontend
-        raise HTTPException(status_code=404, detail=f"Project '{project_id}' not found (Invalid ID format)")
+        pass
 
-    async with AsyncSessionLocal() as db:
+    if uid:
         res = await db.execute(select(Project).where(Project.id == uid))
         project = res.scalar_one_or_none()
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
+        return project.id
+    else:
+        clean_id = project_id.replace("-", "").lower()
+        if len(clean_id) < 8:
+            raise HTTPException(status_code=400, detail="ID prefix too short. Min 8 hex chars required.")
+        
+        res = await db.execute(
+            select(Project).where(cast(Project.id, String).like(f"{clean_id}%"))
+        )
+        matches = res.scalars().all()
+        if not matches:
+            raise HTTPException(status_code=404, detail=f"Project '{project_id}' not found")
+        if len(matches) > 1:
+            raise HTTPException(status_code=300, detail=f"Ambiguous ID '{project_id}'. {len(matches)} matches.")
+        return matches[0].id
 
+async def _get_project_with_subtasks(project_id: str):
+    """Load project + subtasks from DB with Flexible ID Resolution."""
+    from libs.db.session import AsyncSessionLocal
+    from libs.db.models.core_models import Project, SubTask
+    from sqlalchemy import select
+
+    async with AsyncSessionLocal() as db:
+        resolved_uid = await _resolve_project_id(db, project_id)
+        
+        res = await db.execute(select(Project).where(Project.id == resolved_uid))
+        project = res.scalar_one_or_none()
+        
         res_st = await db.execute(
-            select(SubTask).where(SubTask.project_id == uid).order_by(SubTask.created_at)
+            select(SubTask).where(SubTask.project_id == resolved_uid).order_by(SubTask.created_at)
         )
         subtasks = res_st.scalars().all()
         return project, subtasks
@@ -383,15 +412,20 @@ async def get_workflow(project_id: str):
     return out
 
 
-@router.get("/workflows/{project_id}/steps/{step_id}/diagnose")
+@router.get("/{project_id}/steps/{step_id}/diagnose")
 async def diagnose_workflow_step(project_id: str, step_id: str):
     """
     [Phase 4: Metacognition] Returns AI-suggested fix for a failed step.
     """
+    from libs.db.session import AsyncSessionLocal
     from libs.workflow.persistence import WorkflowPersistence
     from libs.workflow.engine import WorkflowEngine
+
+    async with AsyncSessionLocal() as db:
+        resolved_uid = await _resolve_project_id(db, project_id)
+        
     persistence = WorkflowPersistence()
-    instance = await persistence.load_instance(project_id)
+    instance = await persistence.load_instance(str(resolved_uid))
     if not instance:
         raise HTTPException(status_code=404, detail="Workflow instance not found")
         
@@ -399,7 +433,7 @@ async def diagnose_workflow_step(project_id: str, step_id: str):
     suggestion = await engine.suggest_fix(instance, step_id)
     return suggestion
 
-@router.post("/workflows/{project_id}/replay", response_model=Dict[str, Any])
+@router.post("/{project_id}/replay", response_model=Dict[str, Any])
 async def retry_workflow(
     project_id: str,
     identity: Dict[str, Any] = Depends(require_permission("workflow.retry"))
@@ -459,12 +493,8 @@ async def cancel_workflow(project_id: str):
     from libs.db.repositories.repository import ProjectRepository
     from sqlalchemy import select
 
-    try:
-        uid = uuid.UUID(project_id)
-    except ValueError:
-        raise HTTPException(status_code=404, detail="Project not found (Invalid ID format)")
-
     async with AsyncSessionLocal() as db:
+        uid = await _resolve_project_id(db, project_id)
         res = await db.execute(select(Project).where(Project.id == uid))
         project = res.scalar_one_or_none()
         if not project:
@@ -494,14 +524,8 @@ async def approve_workflow(
     from libs.workflow.persistence import WorkflowPersistence
     from sqlalchemy import select
 
-    try:
-        uid = uuid.UUID(project_id)
-    except ValueError:
-        raise HTTPException(status_code=404, detail="Project not found (Invalid ID format)")
-
-    persistence = WorkflowPersistence()
-
     async with AsyncSessionLocal() as db:
+        uid = await _resolve_project_id(db, project_id)
         res = await db.execute(select(Project).where(Project.id == uid))
         project = res.scalar_one_or_none()
         if not project:
@@ -565,14 +589,18 @@ async def replay_workflow(
     identity: Dict[str, Any] = Depends(require_permission("workflow.replay"))
 ):
     """Trigger a durable replay of a workflow with hardening & audit trail."""
+    from libs.db.session import AsyncSessionLocal
     from libs.workflow.persistence import WorkflowPersistence
     from libs.workflow.engine import WorkflowEngine
     from libs.db.models.core_models import ProjectStatus
     
     persistence = WorkflowPersistence()
     
+    async with AsyncSessionLocal() as db:
+        resolved_uid = await _resolve_project_id(db, project_id)
+        
     # 1. Load instance and check concurrency
-    instance = await persistence.load_instance(project_id)
+    instance = await persistence.load_instance(str(resolved_uid))
     if not instance:
         raise HTTPException(status_code=404, detail="Workflow instance not found")
         

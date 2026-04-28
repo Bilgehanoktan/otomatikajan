@@ -28,7 +28,7 @@ class SelfImprovementCoordinator:
             return
         self._is_running = True
         self._loop_task = asyncio.create_task(self._improvement_loop())
-        logger.info("Self-Improvement Coordinator başlatıldı.")
+        logger.info("Self-Improvement Coordinator baslatildi.")
 
     async def stop(self):
         self._is_running = False

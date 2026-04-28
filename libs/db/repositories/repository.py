@@ -36,7 +36,7 @@ class ProjectRepository:
         description: str,
         owner_id=None,
         job_id: str = "",
-        source: str = "api",
+        source: str = "API",
         priority: str = "MEDIUM",
         tags: list | None = None,
         deadline=None,
@@ -52,7 +52,7 @@ class ProjectRepository:
         status: str = ProjectStatus.PENDING.value,
     ) -> Project:
         # Defense-in-depth: Normalize priority string to valid TaskPriority
-        from libs.db.models.core_models import TaskPriority
+        from libs.db.models.core_models import TaskPriority, ProjectSource
         
         p_val = str(priority or "MEDIUM").upper().strip()
         mapping = {
@@ -66,6 +66,17 @@ class ProjectRepository:
         if normalized_priority not in [m.name for m in TaskPriority]:
             normalized_priority = "MEDIUM"
 
+        # Normalize source to the enum's canonical uppercase values. This prevents
+        # stale lowercase rows like "api" from tripping SQLAlchemy enum parsing.
+        s_val = str(source or ProjectSource.API.value).upper().strip()
+        source_mapping = {
+            "CONTROLPLANE": ProjectSource.CONTROL_PLANE.value,
+            "CONTROL_PLANE": ProjectSource.CONTROL_PLANE.value,
+        }
+        normalized_source = source_mapping.get(s_val, s_val)
+        if normalized_source not in [m.value for m in ProjectSource]:
+            normalized_source = ProjectSource.API.value
+
         project = Project(
             id=uuid.uuid4(),
             title=title,
@@ -73,7 +84,7 @@ class ProjectRepository:
             owner_id=owner_id,
             job_id=job_id,
             status=status,
-            source=source,
+            source=normalized_source,
             priority=normalized_priority,
             tags=tags or [],
             deadline=deadline,

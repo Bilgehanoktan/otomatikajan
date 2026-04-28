@@ -33,7 +33,8 @@ export default function DriftDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const { useDrifts } = useGovernorObservability();
-  const { data, isLoading } = useDrifts();
+  const { query } = useDrifts() as any;
+  const { data, isLoading } = query;
 
   // Find the specific drift from the list
   const drift = (data?.data as unknown as DriftRecord[])?.find((d) => d.id === id);

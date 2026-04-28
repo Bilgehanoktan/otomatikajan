@@ -7,8 +7,14 @@ import dataProvider from "@refinedev/simple-rest";
 import { safeHttpClient } from "@/lib/api";
 
 const isServer = typeof window === "undefined";
-// Direct backend connection for proper cookie-based auth (proxy strips cookies)
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+// Direct backend connection for proper cookie-based auth (proxy strips cookies).
+// In dev we derive the backend host from the current browser hostname so
+// localhost and 127.0.0.1 both work without cross-host surprises.
+const API_URL = process.env.NEXT_PUBLIC_API_URL || (
+  isServer
+    ? "http://127.0.0.1:8000/api/v1"
+    : `${window.location.protocol}//${window.location.hostname}:8000/api/v1`
+);
 
 const mockDataProvider = {
   getList: () => Promise.resolve({ data: [], total: 0 }),

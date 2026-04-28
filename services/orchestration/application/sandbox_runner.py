@@ -386,7 +386,7 @@ class SandboxRunner:
                     "--cap-drop=ALL",
                     "--security-opt", "no-new-privileges",
                     "--read-only",
-                    "--tmpfs", "/tmp:rw,size=16m,noexec,nosuid,nodev",
+                    "--tmpfs", "/tmp:rw,size=16m,noexec,nosuid,nodev",  # nosec B108
                     "--user", "1000:1000",
                     "-e", "PYTHONDONTWRITEBYTECODE=1",
                     "-v", f"{os.path.abspath(tmpdir)}:/app:ro",

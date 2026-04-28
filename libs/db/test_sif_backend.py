@@ -2,6 +2,7 @@ import requests
 import json
 
 BASE_URL = "http://localhost:8000/api/v1"
+REQUEST_TIMEOUT = 5
 
 def test_sif_protection():
     print("--- SIF-01 Advanced Backend Stress Test ---")
@@ -9,7 +10,7 @@ def test_sif_protection():
     # 1. Login as Prime
     print("\n[*] Scenario 1: Prime Operator Login")
     login_data = {"email": "admin@sovereign.agi", "password": "admin1234"}
-    res = requests.post(f"{BASE_URL}/auth/login", json=login_data)
+    res = requests.post(f"{BASE_URL}/auth/login", json=login_data, timeout=REQUEST_TIMEOUT)
     
     if res.status_code == 200:
         print("[SUCCESS] Prime login OK.")
@@ -22,7 +23,8 @@ def test_sif_protection():
         res_write = requests.post(
             f"{BASE_URL}/incidents/fake-id/resolve", 
             json={"resolution_notes": "test", "operator_id": "admin"},
-            headers=auth_headers
+            headers=auth_headers,
+            timeout=REQUEST_TIMEOUT,
         )
         print(f"[STATUS] {res_write.status_code} (Expect 404/200, NOT 403)")
     else:
@@ -34,7 +36,8 @@ def test_sif_protection():
     res_bad = requests.post(
         f"{BASE_URL}/incidents/fake-id/resolve", 
         json={"resolution_notes": "test", "operator_id": "admin"},
-        headers=headers_bad_api
+        headers=headers_bad_api,
+        timeout=REQUEST_TIMEOUT,
     )
     print(f"[STATUS] {res_bad.status_code} (Expect 401)")
 
@@ -42,7 +45,8 @@ def test_sif_protection():
     print("\n[*] Scenario 4: No Auth Access")
     res_none = requests.post(
         f"{BASE_URL}/incidents/fake-id/resolve", 
-        json={"resolution_notes": "test", "operator_id": "admin"}
+        json={"resolution_notes": "test", "operator_id": "admin"},
+        timeout=REQUEST_TIMEOUT,
     )
     print(f"[STATUS] {res_none.status_code} (Expect 401)")
 

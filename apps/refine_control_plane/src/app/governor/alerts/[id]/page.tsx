@@ -33,7 +33,8 @@ export default function AlertDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const { useAlert, ackAlert, resolveAlert, suppressAlert } = useGovernorObservability();
-  const { data, isLoading, refetch } = useAlert(id as string);
+  const { query } = useAlert(id as string) as any;
+  const { data, isLoading, refetch } = query;
 
   const alert = data?.data as any;
 

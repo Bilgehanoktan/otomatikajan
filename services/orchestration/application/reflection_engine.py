@@ -37,6 +37,19 @@ class ReflectionEngine:
                 ))
             
             reflected_episode = await cognitive_mirror.reflect(episode)
+            
+            # Faz 12/13: Ajan "Trust Score" Otonom Güncelleyici (Reputation System)
+            from services.orchestration.trust_governor import trust_governor
+            for st in task.subtasks:
+                if st.agent_id:
+                    # Update trust score based on subtask success
+                    is_success = (st.status == TaskStatus.COMPLETED)
+                    asyncio.create_task(trust_governor.record_agent_outcome(
+                        agent_id=st.agent_id,
+                        success=is_success,
+                        impact=1.0 # Future: vary impact based on task complexity
+                    ))
+
             is_eligible = await memory_gate.evaluate_eligibility(reflected_episode)
             if not is_eligible: return
 

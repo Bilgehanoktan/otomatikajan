@@ -19,6 +19,7 @@ class IncidentSource(str, Enum):
     API_ERROR      = "api_error"
     WORKER_ERROR   = "worker_error"
     MANUAL         = "manual"
+    GOVERNANCE     = "governance"
 
 
 class IncidentSeverity(str, Enum):

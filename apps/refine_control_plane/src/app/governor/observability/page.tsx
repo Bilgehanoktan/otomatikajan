@@ -22,11 +22,16 @@ export default function ObservabilityDashboard() {
   const router = useRouter();
   const { useAlerts, useDrifts, useMetrics, ackAlert, runScan } = useGovernorObservability();
   
-  const { data: alertsData, isLoading: alertsLoading, refetch: refetchAlerts } = useAlerts({
+  const { query: alertsQuery } = useAlerts({
     status: "OPEN"
-  });
-  const { data: driftsData, isLoading: driftsLoading, refetch: refetchDrifts } = useDrifts(5);
-  const { data: metricsData, isLoading: metricsLoading, refetch: refetchMetrics } = useMetrics();
+  }) as any;
+  const { data: alertsData, isLoading: alertsLoading, refetch: refetchAlerts } = alertsQuery;
+
+  const { query: driftsQuery } = useDrifts(5) as any;
+  const { data: driftsData, isLoading: driftsLoading, refetch: refetchDrifts } = driftsQuery;
+
+  const { query: metricsQuery } = useMetrics() as any;
+  const { data: metricsData, isLoading: metricsLoading, refetch: refetchMetrics } = metricsQuery;
 
   const alerts = (alertsData?.data as unknown as AlertRecord[]) || [];
   const drifts = (driftsData?.data as unknown as DriftRecord[]) || [];

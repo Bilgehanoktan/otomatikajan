@@ -139,7 +139,7 @@ JWT_SECRET     = os.getenv("JWT_SECRET", "")
 ADMIN_SECRET   = os.getenv("ADMIN_SECRET", "")
 MONTHLY_BUDGET = float(os.getenv("MONTHLY_BUDGET_USD", "50.0"))
 
-ALLOWED_ORIGINS = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:8000").split(",") if o.strip()]
+ALLOWED_ORIGINS = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3100,http://127.0.0.1:3100,http://192.168.1.61:3100,http://localhost:8000").split(",") if o.strip()]
 ALLOWED_METHODS = os.getenv("ALLOWED_METHODS", "GET,POST,PUT,PATCH,DELETE,OPTIONS").split(",")
 ALLOWED_HEADERS = os.getenv("ALLOWED_HEADERS", "Authorization,Content-Type,X-Trace-ID,X-Requested-With").split(",")
 

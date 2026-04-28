@@ -24,15 +24,15 @@ export default function RepairMemoryPage() {
   const heatmapQuery = useCustom({
     url: `${apiUrl}/memory/heatmaps`,
     method: "get",
-  });
-  const { data: heatmapData, isLoading: heatmapLoading } = heatmapQuery;
+  }) as any;
+  const { data: heatmapData, isLoading: heatmapLoading } = heatmapQuery.query || heatmapQuery;
 
   // Fetch Learning Insights
   const insightQuery = useCustom({
     url: `${apiUrl}/learning/insights`,
     method: "get",
-  });
-  const { data: insightData, isLoading: insightLoading } = insightQuery;
+  }) as any;
+  const { data: insightData, isLoading: insightLoading } = insightQuery.query || insightQuery;
 
   const heatmaps = heatmapData?.data || [];
   const strategies = insightData?.data?.strategies || [];
