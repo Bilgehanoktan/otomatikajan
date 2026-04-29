@@ -89,6 +89,27 @@ if exist "%PROJECT_ROOT%infra\port_surgeon.py" (
 
 timeout /t 2 /nobreak >nul
 
+echo [2/3] Port %BACKEND_PORT% serbest mi kontrol ediliyor...
+set "PORT_RETRY_COUNT=0"
+:check_port
+netstat -ano | findstr ":%BACKEND_PORT%.*LISTENING" >nul 2>&1
+if not errorlevel 1 (
+    set /a PORT_RETRY_COUNT+=1
+    if %PORT_RETRY_COUNT% GEQ 5 (
+        echo      [!] Port %BACKEND_PORT% hala mesgul! Zorla temizleme baslatiliyor...
+        for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":%BACKEND_PORT%.*LISTENING"') do (
+            echo          PID %%a sonlandiriliyor...
+            taskkill /f /pid %%a >nul 2>&1
+        )
+        timeout /t 2 /nobreak >nul
+    ) else (
+        echo      Port %BACKEND_PORT% hala mesgul (%PORT_RETRY_COUNT%/5), bekleniyor...
+        timeout /t 2 /nobreak >nul
+        goto check_port
+    )
+)
+echo      Port %BACKEND_PORT% serbest. Backend baslatiliyor...
+
 echo [2/3] Mission Control API (%BACKEND_PORT%) baslatiliyor...
 start "Backend-%BACKEND_PORT%" /d "%PROJECT_ROOT%" cmd /k "%PY_CMD% -m uvicorn apps.public_api.main:app --host 0.0.0.0 --port %BACKEND_PORT%"
 
