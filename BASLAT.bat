@@ -103,7 +103,7 @@ if not errorlevel 1 (
         )
         timeout /t 2 /nobreak >nul
     ) else (
-        echo      Port %BACKEND_PORT% hala mesgul (%PORT_RETRY_COUNT%/5), bekleniyor...
+        echo      Port %BACKEND_PORT% hala mesgul - Deneme %PORT_RETRY_COUNT%/5 - Bekleniyor...
         timeout /t 2 /nobreak >nul
         goto check_port
     )

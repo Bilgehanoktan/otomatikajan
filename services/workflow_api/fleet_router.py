@@ -99,12 +99,15 @@ async def list_clusters(db: AsyncSession = Depends(get_db)):
     out = []
     for c in clusters:
         usage = c.current_budget_usage / c.budget_limit * 100 if c.budget_limit > 0 else 0
+        agent_count = await db.scalar(
+            select(func.count(AgentNode.id)).where(AgentNode.cluster_id == c.id)
+        ) or 0
         out.append(FleetClusterOut(
             id=str(c.id),
             name=c.name,
             status=c.status.value if hasattr(c.status, "value") else str(c.status),
             current_load=usage,
-            agent_count=0,
+            agent_count=agent_count,
             budget_usage_pct=usage
         ))
     return out

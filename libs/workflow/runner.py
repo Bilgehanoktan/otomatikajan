@@ -149,11 +149,26 @@ def _register_default_actions(engine: WorkflowEngine):
             st.result = res.get("result", "")
             status_str = res.get("status", "completed")
             st.status = TaskStatus.COMPLETED if "completed" in status_str.lower() else TaskStatus.ERROR
+            st.quality_score = res.get("quality_score")
+            st.reviewed = bool(res.get("reviewed", False))
+            st.review_notes = res.get("review_notes", []) or []
+            st.internal_monologue = res.get("internal_monologue", "")
             task.subtasks.append(st)
 
         has_failures = context.get("has_failures", False)
         task.status = TaskStatus.ERROR if has_failures else TaskStatus.COMPLETED
-        report = cortex.synthesizer.synthesize(task)
+        try:
+            report = cortex.synthesizer.synthesize(task)
+        except Exception as exc:
+            logger.warning(f"[WorkflowRunner] Report synthesis fallback activated: {exc}")
+            completed_count = sum(1 for st in task.subtasks if "completed" in str(st.status).lower())
+            report = (
+                f"### Workflow Completion Report\n\n"
+                f"Project: **{task.title}**\n"
+                f"Status: {task.status}\n"
+                f"Completed Agents: {completed_count}/{len(task.subtasks)}\n\n"
+                f"Synthesis fallback was used because the rich report renderer raised: `{exc}`."
+            )
         
         # Faz 13.04: Ensure report visibility even for empty/mock tasks
         if not report or len(report.strip()) < 10:

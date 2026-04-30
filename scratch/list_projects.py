@@ -1,14 +1,19 @@
-import asyncio
-from libs.db.session import get_db, get_db_ctx
-from libs.db.models.core_models import Project
-from sqlalchemy import select
 
-async def list_projects():
-    async with get_db_ctx() as db:
-        res = await db.execute(select(Project).limit(10))
-        projects = res.scalars().all()
-        for p in projects:
+import asyncio
+import sys
+import os
+sys.path.append(os.getcwd())
+
+from libs.db.session import AsyncSessionLocal
+from sqlalchemy import text
+
+async def list_all_projects():
+    async with AsyncSessionLocal() as db:
+        print("--- All Projects ---")
+        query = text("SELECT id, title, status FROM projects")
+        results = await db.execute(query)
+        for p in results.fetchall():
             print(f"ID: {p.id} | Title: {p.title} | Status: {p.status}")
 
 if __name__ == "__main__":
-    asyncio.run(list_projects())
+    asyncio.run(list_all_projects())

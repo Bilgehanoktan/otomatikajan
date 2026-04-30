@@ -49,6 +49,15 @@ interface FleetCluster {
   budget_usage_pct: number;
 }
 
+const eventTypeLabels: Record<string, string> = {
+  AGENT_ASSIGNED: "Ajan Atandı",
+  AGENT_RELEASED: "Ajan Serbest Bırakıldı",
+  AGENT_QUARANTINED: "Ajan Karantinaya Alındı",
+  BUDGET_BLOCK: "Bütçe Blokajı",
+  CLUSTER_FROZEN: "Küme Donduruldu",
+  FLEET_REBALANCED: "Filo Yeniden Dengelendi",
+};
+
 export default function FleetDashboard() {
   const apiUrl = useApiUrl();
 
@@ -77,14 +86,14 @@ export default function FleetDashboard() {
 
   const formatTime = (isoString: string) => {
     const date = new Date(isoString);
-    return Number.isNaN(date.getTime()) ? "---" : date.toLocaleTimeString();
+    return Number.isNaN(date.getTime()) ? "---" : date.toLocaleTimeString("tr-TR");
   };
 
   return (
     <div style={{ padding: 24 }}>
-      <Title level={2}>Filo Merkezi: Çoklu Ajan Orkestrası</Title>
+      <Title level={2}>Filo Merkezi: Çoklu Ajan Orkestrasyonu</Title>
       <Text type="secondary">
-        Otonom ajan dağıtımı ve proje orkestrasyon kontrol düzlemi.
+        Otonom ajan dağıtımı ve proje orkestrasyonu için canlı kontrol düzlemi.
       </Text>
 
       <Spin spinning={metricsQuery.isLoading}>
@@ -256,7 +265,7 @@ export default function FleetDashboard() {
                           }}
                         >
                           <Tag icon={icon} color={tagColor} style={{ fontWeight: "bold" }}>
-                            {event.event_type}
+                            {eventTypeLabels[event.event_type] || event.event_type}
                           </Tag>
                           <Text type="secondary" style={{ fontSize: 11 }}>
                             {formatTime(event.created_at)}

@@ -170,13 +170,18 @@ JSON formatında yanıt ver:
         """
         _log.info(f"[META-AUDIT] Eylem simülasyonu başlatıldı: {agent_id}")
         
+        # Ensure context is a dict
+        safe_ctx = context if isinstance(context, dict) else {"working_context": str(context)}
+        working_ctx = str(safe_ctx.get('working_context', ''))[:1000]
+        thought_thread = safe_ctx.get('thought_thread', 'Bilinmiyor')
+
         sim_prompt = f"""
 EYLEM SİMÜLASYONU VE ÖNGÖRÜ (Egemen AGI)
 ----------------------------------------------
 AJAN: {agent_id}
 TALİMAT: {prompt}
-BAĞLAM ÖZETİ: {str(context.get('working_context', ''))[:1000]}
-MEVCUT MONOLOG: {context.get('thought_thread', 'Bilinmiyor')}
+BAĞLAM ÖZETİ: {working_ctx}
+MEVCUT MONOLOG: {thought_thread}
 
 GÖREV: Bu eylemin 'Dünya' üzerindeki etkisini simüle et ve olası 'Dünya Deltasını' (World Delta) tahmin et.
 Especially foresee:

@@ -188,9 +188,14 @@ class ContextBuilder:
 
         mem_lines = []
         for i, m in enumerate(memories, 1):
-            cat  = m.get("category", "general")
-            body = m.get("body", "")[:400]
-            score = m.get("score", 0)
+            if isinstance(m, dict):
+                cat  = m.get("category", "general")
+                body = m.get("body", "")[:400]
+                score = m.get("score", 0)
+            else:
+                cat = getattr(m, 'category', 'general')
+                body = getattr(m, 'body', str(m))[:400]
+                score = getattr(m, 'score', 0)
             mem_lines.append(f"{i}. [{cat}] (alaka: {score:.2f})\n   {body}")
 
         context = CONTEXT_TEMPLATE.format(

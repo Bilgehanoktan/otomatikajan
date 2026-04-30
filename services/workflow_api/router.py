@@ -115,7 +115,7 @@ async def _resolve_project_id(db, project_id: str):
     Resolves a full UUID or short-ID prefix to a validated Project.id (uuid.UUID).
     """
     from libs.db.models.core_models import Project
-    from sqlalchemy import select, cast, String
+    from sqlalchemy import select, cast, String, func
     
     uid = None
     try:
@@ -135,7 +135,9 @@ async def _resolve_project_id(db, project_id: str):
             raise HTTPException(status_code=400, detail="ID prefix too short. Min 8 hex chars required.")
         
         res = await db.execute(
-            select(Project).where(cast(Project.id, String).like(f"{clean_id}%"))
+            select(Project).where(
+                func.lower(func.replace(cast(Project.id, String), "-", "")).like(f"{clean_id}%")
+            )
         )
         matches = res.scalars().all()
         if not matches:
@@ -363,12 +365,19 @@ async def list_projects(
 async def get_workflow(project_id: str):
     """Get full workflow detail with step trace and event history."""
     from libs.workflow.persistence import WorkflowPersistence
+    from libs.db.session import AsyncSessionLocal
+    from libs.db.models.core_models import ApprovalRequest, OperationalIncident
+    from sqlalchemy import select
+
+    async with AsyncSessionLocal() as db:
+        resolved_uid = await _resolve_project_id(db, project_id)
+
     project, subtasks = await _get_project_with_subtasks(project_id)
 
     out = _map_workflow(project, subtasks)
     
     # Map history to UI format (step, msg, timestamp)
-    raw_history = await WorkflowPersistence.load_history(project_id)
+    raw_history = await WorkflowPersistence.load_history(str(resolved_uid))
     out.history = [
         {
             "step": h["event_type"].replace("_", " ").title(),
@@ -379,13 +388,9 @@ async def get_workflow(project_id: str):
     ]
     
     # Load related governance data (Approvals & Incidents)
-    from libs.db.session import AsyncSessionLocal
-    from libs.db.models.core_models import ApprovalRequest, OperationalIncident
-    from sqlalchemy import select
-
     async with AsyncSessionLocal() as db:
         # Fetch Approvals
-        app_res = await db.execute(select(ApprovalRequest).where(ApprovalRequest.project_id == project_id))
+        app_res = await db.execute(select(ApprovalRequest).where(ApprovalRequest.project_id == resolved_uid))
         out.related_approvals = [
             {
                 "id": str(a.id),
@@ -397,7 +402,7 @@ async def get_workflow(project_id: str):
         ]
 
         # Fetch Incidents
-        inc_res = await db.execute(select(OperationalIncident).where(OperationalIncident.project_id == project_id))
+        inc_res = await db.execute(select(OperationalIncident).where(OperationalIncident.project_id == resolved_uid))
         out.related_incidents = [
             {
                 "id": str(i.id),

@@ -1,12 +1,15 @@
 import React from "react";
-import WorkflowDetailClient from "./WorkflowDetailClient";
+import WorkflowDetailClient from "../_components/WorkflowDetailClient";
+
+type WorkflowDetailPageProps = {
+  params: Promise<{ id: string }>;
+};
 
 export function generateStaticParams() {
-  // For static export, we generate a dummy path so the page is built.
-  // Real routing will be handled client-side by Refine.
   return [{ id: "index" }];
 }
 
-export default function WorkflowDetailPage() {
-  return <WorkflowDetailClient />;
+export default async function WorkflowDetailPage({ params }: WorkflowDetailPageProps) {
+  const { id } = await params;
+  return <WorkflowDetailClient id={id} />;
 }

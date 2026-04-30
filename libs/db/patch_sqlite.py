@@ -12,26 +12,33 @@ def patch():
     cursor = conn.cursor()
 
     try:
+        # Projects Table Patches
+        print("Checking projects table for missing columns...")
+        for col in [("last_error", "TEXT"), ("updated_at", "DATETIME")]:
+            try:
+                cursor.execute(f"ALTER TABLE projects ADD COLUMN {col[0]} {col[1]}")
+                print(f"Added {col[0]} to projects")
+            except sqlite3.OperationalError: pass
+
+        # Subtasks Table Patches
+        print("Checking subtasks table for missing columns...")
+        for col in [("internal_monologue", "TEXT"), ("llm_provider", "TEXT")]:
+            try:
+                cursor.execute(f"ALTER TABLE subtasks ADD COLUMN {col[0]} {col[1]}")
+                print(f"Added {col[0]} to subtasks")
+            except sqlite3.OperationalError: pass
+
+        # Agent Nodes Table Patches
         print("Checking agent_nodes table for missing columns...")
-        # Add success_count to agent_nodes
         try:
             cursor.execute("ALTER TABLE agent_nodes ADD COLUMN success_count INTEGER DEFAULT 0")
             print("Added success_count to agent_nodes")
-        except sqlite3.OperationalError as e:
-            if "duplicate column name" in str(e).lower():
-                print("Column success_count already exists.")
-            else:
-                print(f"Error adding success_count: {e}")
-
-        # Add failure_count to agent_nodes
+        except sqlite3.OperationalError: pass
+        
         try:
             cursor.execute("ALTER TABLE agent_nodes ADD COLUMN failure_count INTEGER DEFAULT 0")
             print("Added failure_count to agent_nodes")
-        except sqlite3.OperationalError as e:
-            if "duplicate column name" in str(e).lower():
-                print("Column failure_count already exists.")
-            else:
-                print(f"Error adding failure_count: {e}")
+        except sqlite3.OperationalError: pass
 
         conn.commit()
         print("Patching completed successfully.")

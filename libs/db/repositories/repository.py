@@ -379,6 +379,45 @@ class SubTaskRepository:
         )
 
     @staticmethod
+    async def mark_completed(
+        db: AsyncSession,
+        subtask_id,
+        result: str,
+        provider: str = "",
+        input_tokens: int = 0,
+        output_tokens: int = 0,
+        cost_usd: float = 0.0,
+        latency_s: float = 0.0,
+        recovered: bool = False,
+        quality_score: float | None = None,
+        quality_detail: dict | None = None,
+        reviewed: bool = False,
+        review_notes: list | None = None,
+        causal_anchor: str = "",
+        inhibition_signals: list | None = None,
+        internal_monologue: str = "",
+    ) -> None:
+        """Backward-compatible alias used by the orchestration executor."""
+        await SubTaskRepository.mark_done(
+            db=db,
+            subtask_id=subtask_id,
+            result=result,
+            provider=provider,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            cost_usd=cost_usd,
+            latency_s=latency_s,
+            recovered=recovered,
+            quality_score=quality_score,
+            quality_detail=quality_detail,
+            reviewed=reviewed,
+            review_notes=review_notes,
+            causal_anchor=causal_anchor,
+            inhibition_signals=inhibition_signals,
+            internal_monologue=internal_monologue,
+        )
+
+    @staticmethod
     async def mark_failed(
         db: AsyncSession,
         subtask_id,

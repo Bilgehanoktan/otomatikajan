@@ -165,9 +165,9 @@ class TaskStateService:
 
 class ReportSynthesizer:
     def synthesize(self, task: SovereignGoal) -> str:
-        done    = [s for s in task.subtasks if s.status == GovernanceStatus.COMPLETED]
-        failed  = [s for s in task.subtasks if s.status in [GovernanceStatus.ERROR, GovernanceStatus.SKIPPED]]
-        scores  = [s.quality_score for s in done if s.quality_score is not None]
+        done    = [s for s in task.subtasks if str(s.status).split('.')[-1] == "COMPLETED"]
+        failed  = [s for s in task.subtasks if str(s.status).split('.')[-1] in ["ERROR", "SKIPPED"]]
+        scores  = [getattr(s, "quality_score", None) for s in done if getattr(s, "quality_score", None) is not None]
         avg_q   = sum(scores) / len(scores) if scores else None
         
         agi_meta = task.execution_context.get("agi_metadata", {})
@@ -192,10 +192,10 @@ class ReportSynthesizer:
         ])
 
         for st in task.subtasks:
-            if st.status == GovernanceStatus.SKIPPED:
+            if str(st.status).split('.')[-1] == "SKIPPED":
                 lines.append(f"### ⏭️ {st.agent_id.upper()} (Atlandı - Bağımlılık Hatası)\n")
                 continue
-            icon = "✅" if st.status == GovernanceStatus.COMPLETED else "❌"
+            icon = "✅" if str(st.status).split('.')[-1] == "COMPLETED" else "❌"
             q = f" | Q:{st.quality_score:.0%}" if st.quality_score is not None else ""
             rev = " 🔄" if st.reviewed else ""
             lines.append(f"### {icon} {st.agent_id.upper()}{q}{rev}")

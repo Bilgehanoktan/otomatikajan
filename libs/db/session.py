@@ -189,7 +189,7 @@ async def init_db():
         try:
             # 0. Seed Agent Nodes from Registry
             from agents.specialist_agents.agent_registry import build_agents
-            from libs.db.models.core_models import AgentNode, AgentRole, AgentStatus
+            from libs.db.models.core_models import AgentNode, AgentRole, AgentStatus, FleetCluster, FleetStatus
             
             registry_agents = build_agents()
             for agent_id, agent_obj in registry_agents.items():
@@ -351,6 +351,45 @@ async def init_db():
                 approval_project = project_by_title.get("Patch Review Gate")
                 running_project = project_by_title.get("Pilot Intel Ingestion")
                 queued_project = project_by_title.get("Daily Compliance Digest")
+
+                cluster_count = await db.scalar(select(func.count(FleetCluster.id))) or 0
+                if cluster_count == 0:
+                    primary_cluster = FleetCluster(
+                        name="Main Intel Cluster",
+                        status=FleetStatus.ACTIVE,
+                        region="eu-central",
+                        budget_limit=1200.0,
+                        current_budget_usage=720.5,
+                        max_parallel_projects=6,
+                    )
+                    edge_cluster = FleetCluster(
+                        name="Edge Processing Node",
+                        status=FleetStatus.ACTIVE,
+                        region="tr-west",
+                        budget_limit=800.0,
+                        current_budget_usage=250.0,
+                        max_parallel_projects=4,
+                    )
+                    db.add_all([primary_cluster, edge_cluster])
+                    await db.flush()
+
+                    seed_agents = (
+                        await db.execute(select(AgentNode).order_by(AgentNode.created_at.asc()))
+                    ).scalars().all()
+
+                    for index, agent in enumerate(seed_agents):
+                        target_cluster = primary_cluster if index < 7 else edge_cluster
+                        agent.cluster_id = target_cluster.id
+                        agent.current_load = 1 if index in (1, 2, 7, 8) else 0
+                        agent.cost_rate = 12.5 + index
+                        if index == 10:
+                            agent.status = AgentStatus.QUARANTINED
+                        elif index in (1, 2, 7, 8):
+                            agent.status = AgentStatus.BUSY
+                        else:
+                            agent.status = AgentStatus.IDLE
+
+                    logger.info("SEED: Fleet clusters and agent placement created for SQLite fallback.")
 
                 if approval_project is not None:
                     approval_count = await db.scalar(select(func.count(ApprovalRequest.id))) or 0
@@ -526,6 +565,84 @@ async def init_db():
                         for chain_index, (event_type, domain, entity_id, payload) in enumerate(seed_events, start=1):
                             canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False)
                             payload_hash = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+                            event_hash = hashlib.sha256(
+                                f"{chain_index}|{event_type.value}|{entity_id}|{payload_hash}|{prev_hash or ''}".encode("utf-8")
+                            ).hexdigest()
+                            db.add(
+                                GovernanceProofEventRecord(
+                                    event_type=event_type,
+                                    domain=domain,
+                                    entity_id=entity_id,
+                                    payload_hash=payload_hash,
+                                    payload_canonical=canonical,
+                                    prev_event_hash=prev_hash,
+                                    event_hash=event_hash,
+                                    chain_index=chain_index,
+                                    created_by="governance_agent",
+                                )
+                            )
+                            prev_hash = event_hash
+
+                    fleet_event_types = [
+                        ProofEventType.AGENT_ASSIGNED,
+                        ProofEventType.BUDGET_BLOCK,
+                        ProofEventType.AGENT_QUARANTINED,
+                        ProofEventType.CLUSTER_FROZEN,
+                    ]
+                    fleet_event_count = await db.scalar(
+                        select(func.count(GovernanceProofEventRecord.id)).where(
+                            GovernanceProofEventRecord.event_type.in_(fleet_event_types)
+                        )
+                    ) or 0
+                    if fleet_event_count == 0:
+                        max_chain = await db.scalar(select(func.max(GovernanceProofEventRecord.chain_index))) or 0
+                        last_hash = await db.scalar(
+                            select(GovernanceProofEventRecord.event_hash)
+                            .order_by(GovernanceProofEventRecord.chain_index.desc())
+                            .limit(1)
+                        )
+                        fleet_seed_events = [
+                            (
+                                ProofEventType.AGENT_ASSIGNED,
+                                GovernorDomain.WORKFLOW,
+                                str(running_project.id) if running_project else "fleet-seed-1",
+                                {
+                                    "details": "planner.alpha Main Intel Cluster üzerine atandı.",
+                                    "project": running_project.title if running_project else "Pilot Intel Ingestion",
+                                },
+                            ),
+                            (
+                                ProofEventType.BUDGET_BLOCK,
+                                GovernorDomain.WORKFLOW,
+                                str(queued_project.id) if queued_project else "fleet-seed-2",
+                                {
+                                    "details": "Edge Processing Node bütçe eşiğine yaklaştığı için yeni iş alımı yavaşlatıldı.",
+                                    "project": queued_project.title if queued_project else "Daily Compliance Digest",
+                                },
+                            ),
+                            (
+                                ProofEventType.AGENT_QUARANTINED,
+                                GovernorDomain.INCIDENT,
+                                "security.sentinel",
+                                {
+                                    "details": "security.sentinel düşük güven skoru nedeniyle karantinaya alındı.",
+                                },
+                            ),
+                            (
+                                ProofEventType.CLUSTER_FROZEN,
+                                GovernorDomain.META,
+                                "edge-processing-node",
+                                {
+                                    "details": "Edge Processing Node gözlem amaçlı donduruldu ve failover denetimine alındı.",
+                                },
+                            ),
+                        ]
+
+                        prev_hash = last_hash
+                        for offset, (event_type, domain, entity_id, payload) in enumerate(fleet_seed_events, start=1):
+                            canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False)
+                            payload_hash = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+                            chain_index = max_chain + offset
                             event_hash = hashlib.sha256(
                                 f"{chain_index}|{event_type.value}|{entity_id}|{payload_hash}|{prev_hash or ''}".encode("utf-8")
                             ).hexdigest()

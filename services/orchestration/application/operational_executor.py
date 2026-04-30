@@ -8,6 +8,7 @@ from services.orchestration.domain.models import ProjectTask, TaskStatus, SubTas
 from services.orchestration.application.velocity_engine import velocity_engine
 from services.orchestration.application.metabolic_governor import metabolic_governor
 from services.repair.application.heal_engine import heal_engine # Autonomous Healing
+from libs.db.models.core_models import SubTask as DbSubTask
 
 _log = get_logger("agi_operational_executor")
 
@@ -53,23 +54,31 @@ class OperationalExecutor:
             async with AsyncSessionLocal() as db_mem:
                 past_lessons = await synaptic_cortex.search_with_causal_anchoring(db=db_mem, query=f"{subtask.title} {subtask.prompt}", top_k=5, use_synergy=True)
                 if past_lessons:
-                    subtask.prompt += "\n\n### 🧠 BİLİŞSEL MİRAS:\n" + "\n".join([f"- {m.get('body')}" for m in past_lessons])
+                    lesson_strings = []
+                    for m in past_lessons:
+                        if isinstance(m, dict):
+                            body = m.get('body', "")
+                        else:
+                            body = getattr(m, 'body', str(m))
+                        lesson_strings.append(f"- {body}")
+                    subtask.prompt += "\n\n### 🧠 BİLİŞSEL MİRAS:\n" + "\n".join(lesson_strings)
             
             subtask.status = TaskStatus.RUNNING
             t_start = time.time()
             enriched_context = await context_builder.build_context(agent_id=subtask.agent_id, task_text=subtask.prompt, project_id=task.id)
+            context_dict = {"working_context": enriched_context}
             
             # Faz 8: Persistent START status
             from libs.db.repositories.repository import SubTaskRepository
             async with AsyncSessionLocal() as db_sync:
                 await db_sync.execute(
-                    update(SubTask)
-                    .where(SubTask.id == subtask.id)
+                    update(DbSubTask)
+                    .where(DbSubTask.id == subtask.id)
                     .values(status=TaskStatus.RUNNING, updated_at=datetime.now(timezone.utc))
                 )
                 await db_sync.commit()
 
-            result = await velocity_engine.simulate_and_execute(agent_id=subtask.agent_id, prompt=subtask.prompt, context=enriched_context, task_id=task.id)
+            result = await velocity_engine.simulate_and_execute(agent_id=subtask.agent_id, prompt=subtask.prompt, context=context_dict, task_id=task.id)
             
             if result.success:
                 subtask.status = TaskStatus.COMPLETED

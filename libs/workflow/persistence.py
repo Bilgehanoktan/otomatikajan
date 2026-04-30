@@ -172,10 +172,15 @@ class WorkflowPersistence:
     @staticmethod
     async def load_history(project_id: str) -> List[dict]:
         """Load all events for a project, ordered by creation time."""
+        try:
+            project_uuid = UUID(project_id)
+        except (TypeError, ValueError):
+            return []
+
         async with AsyncSessionLocal() as session:
             res = await session.execute(
                 select(WorkflowEvent)
-                .where(WorkflowEvent.project_id == UUID(project_id))
+                .where(WorkflowEvent.project_id == project_uuid)
                 .order_by(WorkflowEvent.created_at)
             )
             events = res.scalars().all()

@@ -349,6 +349,10 @@ class SubTask:
     internal_monologue: str = ""
     is_complex:   bool = False
     attempts:     int = 0
+    quality_score:Optional[float] = None
+    quality_detail: Optional[dict] = field(default_factory=dict)
+    reviewed:     bool       = False
+    review_notes: list       = field(default_factory=list)
     dependencies: list = field(default_factory=list)
 
 

@@ -113,7 +113,7 @@ class ProviderStats:
             self.history.pop(0)
 
         # Increase backoff penalty
-        penalty_step = 2 if is_rate_limit else 2
+        penalty_step = 1.2 # Reduced from 2.0 to be more permissive during peak load
         self.penalty_multiplier = min(self.penalty_multiplier * penalty_step, 64)
 
         if self.history.count(False) >= self.OPEN_THRESHOLD or is_rate_limit:

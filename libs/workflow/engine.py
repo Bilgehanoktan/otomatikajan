@@ -163,7 +163,8 @@ class WorkflowEngine:
 
                 instance.completed_at = datetime.utcnow()
                 await self.persistence.save_instance(instance)
-                await self.persistence.save_event(instance.id, "workflow_completed")
+                terminal_event = "workflow_completed" if instance.status == WorkflowStatus.COMPLETED else "workflow_failed"
+                await self.persistence.save_event(instance.id, terminal_event)
 
                 if _WS_AVAILABLE:
                     await ws_manager.broadcast({

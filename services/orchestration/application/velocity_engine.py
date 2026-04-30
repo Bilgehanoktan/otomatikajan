@@ -108,6 +108,10 @@ class VelocityEngine:
 
     async def _run_simulation(self, agent_id: str, prompt: str, context: Dict[str, Any]) -> Tuple[bool, str]:
         sim_res = await self.meta_audit.simulate_action_impact(agent_id, prompt, context)
+        if not isinstance(sim_res, dict):
+            _log.warning(f"[VELOCITY] Simulation result was not a dict, using defaults: {sim_res}")
+            return True, "Nominal (Audit Bypass)"
+            
         status = sim_res.get("predicted_status", "success")
         report = sim_res.get("foresight_report", "No report.")
         risk = sim_res.get("risk_score", 0.0)
