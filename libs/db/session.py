@@ -9,6 +9,7 @@ import logging
 import asyncio
 import threading
 import uuid
+from urllib.parse import urlparse
 from typing import AsyncGenerator, Optional
 from contextlib import asynccontextmanager
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
@@ -18,17 +19,23 @@ from sqlalchemy import create_engine, event, text, select, func
 # Import variables directly from libs.config
 try:
     from libs.config import (
+        APP_ENV,
         DATABASE_URL,
         DB_POOL_SIZE,
         DB_MAX_OVERFLOW,
         DB_POOL_TIMEOUT,
+        LOCAL_DEV_DB_STRATEGY,
+        QUEUE_BACKEND,
         REDIS_URL
     )
 except ImportError:
+    APP_ENV = os.getenv("APP_ENV", "development")
     DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5433/ai_company")
     DB_POOL_SIZE = 10
     DB_MAX_OVERFLOW = 20
     DB_POOL_TIMEOUT = 30
+    LOCAL_DEV_DB_STRATEGY = os.getenv("LOCAL_DEV_DB_STRATEGY", "sqlite-fallback")
+    QUEUE_BACKEND = os.getenv("QUEUE_BACKEND", "auto")
     REDIS_URL = os.getenv("REDIS_URL", "")
 
 logger = logging.getLogger("db.session")
@@ -44,17 +51,52 @@ _DB_CHECKED = False
 _DB_ERROR = ""
 _last_loop = None
 _lock = threading.Lock()
+_REDIS_CLIENT = None
+_REDIS_DISABLED = False
+_REDIS_LOGGED = False
 
-def check_connectivity(host="localhost", port=5433, timeout=1.5):
+
+def _normalize_database_url(url: str) -> str:
+    return (url or "").replace("+asyncpg", "").replace("+aiosqlite", "")
+
+
+def _primary_db_target() -> tuple[str, int] | None:
+    normalized = _normalize_database_url(DATABASE_URL)
+    if not normalized or normalized.startswith("sqlite"):
+        return None
+
+    parsed = urlparse(normalized)
+    host = parsed.hostname or "localhost"
+    if parsed.port is not None:
+        port = parsed.port
+    elif parsed.scheme.startswith("postgres"):
+        port = 5432
+    else:
+        port = 0
+
+    return (host, port)
+
+def check_connectivity(timeout=1.5):
     global _DB_DEGRADED, _DB_CHECKED, _DB_ERROR
     import socket
+    target = _primary_db_target()
+    if target is None:
+        _DB_DEGRADED = False
+        _DB_ERROR = ""
+        _DB_CHECKED = True
+        return True
+
+    host, port = target
     try:
         with socket.create_connection((host, port), timeout=timeout):
             _DB_DEGRADED = False
             _DB_ERROR = ""
     except (socket.timeout, ConnectionRefusedError, OSError):
         _DB_DEGRADED = True
-        _DB_ERROR = f"Primary database unreachable at {host}:{port}; SQLite fallback is active."
+        if APP_ENV == "development" and LOCAL_DEV_DB_STRATEGY == "sqlite-fallback":
+            _DB_ERROR = f"Local primary database unreachable at {host}:{port}; SQLite fallback is active."
+        else:
+            _DB_ERROR = f"Primary database unreachable at {host}:{port}; SQLite fallback is active."
     _DB_CHECKED = True
     return not _DB_DEGRADED
 
@@ -693,18 +735,40 @@ async def init_db():
             await db.rollback()
 
 async def close_db():
-    global _engine, _sync_engine
+    global _engine, _sync_engine, _REDIS_CLIENT, _REDIS_DISABLED, _REDIS_LOGGED
     if _engine: await _engine.dispose(); _engine = None
     if _sync_engine: _sync_engine.dispose(); _sync_engine = None
+    if _REDIS_CLIENT is not None:
+        try:
+            await _REDIS_CLIENT.close()
+        except Exception:
+            pass
+    _REDIS_CLIENT = None
+    _REDIS_DISABLED = False
+    _REDIS_LOGGED = False
 
 async def get_redis_client():
-    if not REDIS_URL: return None
+    global _REDIS_CLIENT, _REDIS_DISABLED, _REDIS_LOGGED
+    if _REDIS_DISABLED:
+        return None
+    if _REDIS_CLIENT is not None:
+        return _REDIS_CLIENT
+    if not REDIS_URL:
+        return None
     try:
         from redis import asyncio as aioredis
         client = aioredis.from_url(REDIS_URL, decode_responses=True)
         await asyncio.wait_for(client.ping(), timeout=1.0)
-        return client
-    except Exception: return None
+        _REDIS_CLIENT = client
+        return _REDIS_CLIENT
+    except Exception as exc:
+        if APP_ENV == "development" and (QUEUE_BACKEND or "auto").lower() != "celery":
+            _REDIS_DISABLED = True
+            if not _REDIS_LOGGED:
+                logger.info("Redis unavailable in local development; continuing in degraded mode (%s).", exc)
+                _REDIS_LOGGED = True
+            return None
+        return None
 
 # ── Sync Support ───
 def get_sync_engine():

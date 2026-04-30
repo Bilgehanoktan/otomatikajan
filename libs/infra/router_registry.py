@@ -33,11 +33,7 @@ def register_routers(app: FastAPI):
     api_v1.include_router(metrics_router)
 
     # 4. Governance & Self-Healing
-    # Keep direct mounts for legacy/simple-rest resources like /api/v1/approvals,
-    # and also provide the explicit /api/v1/governance/* namespace expected by
-    # several newer control-plane screens.
     from services.workflow_api.governance_router import router as governance_router
-    api_v1.include_router(governance_router)
     api_v1.include_router(governance_router, prefix="/governance")
 
     # 5. Health & bridge aliases used by the modern control plane
@@ -59,7 +55,7 @@ def register_routers(app: FastAPI):
     from services.governance.learning_api import router as learning_router
     from services.workflow_api.governor_router import router as governor_router
     api_v1.include_router(learning_router)
-    api_v1.include_router(governor_router, prefix="/governance")
+    api_v1.include_router(governor_router, prefix="/governance/inbox")
 
     # Register the unified API router
     app.include_router(api_v1)

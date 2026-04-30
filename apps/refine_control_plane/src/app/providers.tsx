@@ -5,16 +5,12 @@ import { Refine } from "@refinedev/core";
 import routerProvider from "@refinedev/nextjs-router";
 import dataProvider from "@refinedev/simple-rest";
 import { safeHttpClient } from "@/lib/api";
+import { clearStoredAccessToken, ensureSession, fetchCurrentOperator } from "@/lib/auth";
+import { getApiBaseUrl } from "@/lib/runtime";
+import { useRefineI18nProvider } from "../i18n/refine-adapter";
 
 const isServer = typeof window === "undefined";
-// Direct backend connection for proper cookie-based auth (proxy strips cookies).
-// In dev we derive the backend host from the current browser hostname so
-// localhost and 127.0.0.1 both work without cross-host surprises.
-const API_URL = process.env.NEXT_PUBLIC_API_URL || (
-  isServer
-    ? "http://127.0.0.1:8000/api/v1"
-    : `${window.location.protocol}//${window.location.hostname}:8000/api/v1`
-);
+const API_URL = getApiBaseUrl();
 
 const mockDataProvider = {
   getList: () => Promise.resolve({ data: [], total: 0 }),
@@ -31,10 +27,11 @@ import type { AuthProvider } from "@refinedev/core";
 import { accessControlProvider } from "@/providers/accessControlProvider";
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  // Global Resilience Armor: Wrapping dataProvider with safeHttpClient
   const activeDataProvider = isServer 
     ? mockDataProvider 
     : dataProvider(API_URL, safeHttpClient as any);
+
+  const i18nProvider = useRefineI18nProvider();
 
   const authProvider: AuthProvider = isServer ? {} as any : {
     login: async ({ email, password }) => {
@@ -44,58 +41,57 @@ export function Providers({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ email, password }),
         credentials: "include"
       });
-      if (response.ok) return { success: true, redirectTo: "/" };
+      if (response.ok) {
+        try {
+          const payload = await response.json();
+          if (payload?.access_token && typeof window !== "undefined") {
+            window.localStorage.setItem("sqv_access_token", payload.access_token);
+          }
+        } catch {
+          // Cookie session yeterliyse token parse zorunlu değil.
+        }
+        return { success: true, redirectTo: "/" };
+      }
       return { success: false, error: new Error("Hatalı kimlik bilgileri") };
     },
     logout: async () => {
+      clearStoredAccessToken();
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem("auth");
+      }
       await fetch(`${API_URL}/auth/logout`, { method: "POST", credentials: "include" });
       return { success: true, redirectTo: "/login" };
     },
     check: async () => {
-      try {
-        const response = await fetch(`${API_URL}/auth/me`, { credentials: "include" });
-        if (response.ok) {
-          const data = await response.json();
-          localStorage.setItem("auth", JSON.stringify({ role: data.role }));
-          return { authenticated: true };
-        }
-        
-        // Dev Mode Auto Login: Eğer token yoksa otonom oturum aç
-        if (process.env.NODE_ENV === "development") {
-          console.warn("Dev Mode Auto-Login triggered for admin@sovereign.agi");
-          const auto = await fetch(`${API_URL}/auth/login`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email: "admin@sovereign.agi", password: "admin1234" }),
-            credentials: "include"
-          });
-          if (auto.ok) return { authenticated: true };
-        }
-      } catch (e) { 
-        console.error("Auth check/auto-login failed due to network error", e); 
+      const session = await ensureSession();
+      if (session.kind === "authenticated") {
+        return { authenticated: true };
       }
-      
-      return { authenticated: false, redirectTo: "/login" };
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem("auth");
+      }
+      return {
+        authenticated: false,
+        redirectTo: "/login",
+        ...(session.kind === "network-error" ? { error: session.error } : {}),
+      };
     },
     getPermissions: async () => {
-      try {
-        const response = await fetch(`${API_URL}/auth/me`, { credentials: "include" });
-        if (response.ok) {
-          const data = await response.json();
-          localStorage.setItem("auth", JSON.stringify({ role: data.role }));
-          return data.roles;
-        }
-      } catch (e) { console.error("Permission check failed", e); }
+      const session = await fetchCurrentOperator();
+      if (session.kind === "authenticated") {
+        return session.identity.roles ?? (session.identity.role ? [session.identity.role] : null);
+      }
       return null;
     },
     getIdentity: async () => {
-      try {
-        const response = await fetch(`${API_URL}/auth/me`, { credentials: "include" });
-        if (response.ok) {
-          const data = await response.json();
-          return { id: data.id, name: data.email, avatar: "https://api.dicebear.com/7.x/identicon/svg?seed=admin" };
-        }
-      } catch (e) { console.error("Identity check failed", e); }
+      const session = await fetchCurrentOperator();
+      if (session.kind === "authenticated") {
+        return {
+          id: session.identity.id,
+          name: session.identity.email,
+          avatar: "https://api.dicebear.com/7.x/identicon/svg?seed=admin",
+        };
+      }
       return null;
     },
     onError: async (error) => {
@@ -120,232 +116,226 @@ export function Providers({ children }: { children: React.ReactNode }) {
           dataProvider={activeDataProvider}
           authProvider={authProvider}
           accessControlProvider={accessControlProvider}
+          i18nProvider={i18nProvider}
           resources={[
+            {
+              name: "dashboard",
+              list: "/",
+              meta: { label: "resources.dashboard" },
+            },
             {
               name: "workflows",
               list: "/workflows",
+              create: "/workflows/create",
               show: "/workflows/:id",
-              meta: { label: "İş Akışları" },
+              meta: { label: "resources.workflows" },
             },
             {
               name: "approvals",
               list: "/approvals",
               show: "/approvals/:id",
-              meta: { label: "Onaylar" },
+              meta: { label: "resources.approvals" },
             },
             {
               name: "incidents",
               list: "/incidents",
               show: "/incidents/:id",
-              meta: { label: "Olaylar" },
+              meta: { label: "resources.incidents" },
             },
             {
               name: "projects",
-              list: "/fleet/projects",
-              meta: { label: "Projeler" },
-            },
-            {
-              name: "analytics/costs",
-              list: "/fleet/economics/summary",
-              meta: { label: "Maliyet Analizi" },
+              list: "/workflows",
+              meta: { label: "resources.projects" },
             },
             {
               name: "costs",
               list: "/costs",
-              meta: { label: "Maliyetler" },
+              meta: { label: "resources.costs" },
             },
             {
               name: "audit",
               list: "/audit",
-              meta: { label: "Denetimler" },
+              meta: { label: "resources.audit" },
             },
             {
               name: "improvements",
               list: "/improvements",
-              meta: { label: "İyileştirmeler" },
+              meta: { label: "resources.improvements" },
             },
             {
               name: "federation",
               list: "/federation",
-              meta: { label: "Federasyonlar" },
+              meta: { label: "resources.federation" },
             },
             {
               name: "fleet",
               list: "/fleet",
-              meta: { label: "Filo Merkezi", icon: "🚀" },
+              meta: { label: "resources.fleet", icon: "🚀" },
             },
             {
               name: "fleet/agents",
               list: "/fleet/agents",
-              meta: { label: "Ajan Kayıt Defteri", parent: "fleet" },
+              meta: { label: "resources.agents", parent: "fleet" },
             },
             {
               name: "fleet/operations",
               list: "/fleet/operations",
-              meta: { label: "Filo Operasyonları", parent: "fleet" },
+              meta: { label: "resources.operations", parent: "fleet" },
             },
             {
               name: "mesh",
               list: "/mesh",
-              meta: { label: "Kontrol Ağı" },
+              meta: { label: "resources.mesh" },
             },
             {
               name: "safety",
               list: "/safety",
-              meta: { label: "Güvenlik" },
+              meta: { label: "resources.safety" },
             },
             {
               name: "repair-lab",
               list: "/repair-lab",
-              meta: { label: "Otonom Laboratuvar" },
+              meta: { label: "resources.repairLab" },
             },
             {
               name: "repair-memory",
               list: "/repair-memory",
-              meta: { label: "Belleği Onar" },
+              meta: { label: "resources.repairMemory" },
             },
             {
               name: "verifiers",
               list: "/verifiers",
-              meta: { label: "Doğrulayıcı Ağı" },
+              meta: { label: "resources.verifiers" },
             },
             {
               name: "governance-lineage",
               list: "/governance-lineage",
-              meta: { label: "Karar Soyağacı" },
+              meta: { label: "resources.lineage" },
             },
             {
               name: "compliance",
               list: "/compliance",
-              meta: { label: "Uyum ve Denetim" },
+              meta: { label: "resources.compliance" },
             },
             {
               name: "policy-proposals",
               list: "/policy-proposals",
-              meta: { label: "Anayasa Teklifleri" },
+              meta: { label: "resources.policyProposals" },
             },
             {
               name: "training",
               list: "/training",
-              meta: { label: "Tatbikat Merkezi" },
+              meta: { label: "resources.training" },
             },
             {
               name: "self-tuning",
               list: "/self-tuning",
-              meta: { label: "Ayar Konsolu" },
+              meta: { label: "resources.selfTuning" },
             },
             {
               name: "compliance/audit-bundles",
               list: "/compliance/audit-bundles",
-              meta: { label: "Denetim Paketleri" },
+              meta: { label: "resources.auditBundles" },
             },
             {
               name: "handover-status",
               list: "/ops/handover-status",
-              meta: { label: "Rollout Merkezi" },
+              meta: { label: "resources.handoverStatus" },
             },
             {
               name: "launch-gates",
               list: "/ops/launch-gates",
-              meta: { label: "Lansman Kapıları" },
+              meta: { label: "resources.launchGates" },
             },
             {
               name: "learning/fingerprints",
               list: "/learning/fingerprints",
               show: "/learning/fingerprints/:id",
-              meta: { label: "Hata Parmak İzleri", parent: "learning" },
+              meta: { label: "resources.fingerprints", parent: "learning" },
             },
             {
               name: "learning/strategy-memory",
               list: "/learning/strategy-memory",
-              meta: { label: "Strateji Belleği", parent: "learning" },
+              meta: { label: "resources.strategyMemory", parent: "learning" },
             },
             {
               name: "learning/negative-patterns",
               list: "/learning/negative-patterns",
-              meta: { label: "Negatif Kalıplar", parent: "learning" },
+              meta: { label: "resources.negativePatterns", parent: "learning" },
             },
             {
               name: "learning/adaptation-candidates",
               list: "/learning/adaptation-candidates",
-              meta: { label: "Adaptasyon Adayları", parent: "learning" },
+              meta: { label: "resources.adaptationCandidates", parent: "learning" },
             },
             {
               name: "axiology",
               list: "/axiology",
               show: "/axiology/:id",
-              meta: { label: "Bilişsel Denetim" },
+              meta: { label: "resources.axiology" },
             },
             {
               name: "governance/governor/cases",
               list: "/governor",
               show: "/governor/:id",
-              meta: { label: "Governor Inbox", icon: "🛡️" },
+              meta: { label: "resources.governorInbox", icon: "🛡️" },
             },
             {
               name: "governance/governor/escalations",
               list: "/governor/escalations",
-              meta: { label: "Eskalasyonlar", parent: "governance/governor/cases" },
+              meta: { label: "resources.escalations", parent: "governance/governor/cases" },
             },
             {
               name: "governance/governor/scorecard",
               list: "/governor/scorecard",
-              meta: { label: "Governor Skor Kartı", parent: "governance/governor/cases" },
+              meta: { label: "resources.scorecard", parent: "governance/governor/cases" },
             },
             {
               name: "governance/governor/outcomes",
               list: "/governor/outcomes",
-              meta: { label: "Governor Sonuçları", parent: "governance/governor/cases" },
+              meta: { label: "resources.outcomes", parent: "governance/governor/cases" },
             },
             {
               name: "governance/governor/calibrations",
               list: "/governor/calibrations",
-              meta: { label: "Eşik Kalibrasyonu", parent: "governance/governor/cases" },
+              meta: { label: "resources.calibrations", parent: "governance/governor/cases" },
             },
             {
               name: "governance/governor/federated",
               list: "/governor/federated",
-              meta: { label: "Federasyon Görünümü", parent: "governance/governor/cases" },
+              meta: { label: "resources.federated", parent: "governance/governor/cases" },
             },
             {
               name: "governance/governor/conflicts",
               list: "/governor/conflicts",
-              meta: { label: "Çakışma Yönetimi", parent: "governance/governor/cases" },
+              meta: { label: "resources.conflicts", parent: "governance/governor/cases" },
             },
             {
               name: "governor/resilience/status",
               list: "/governor/resilience",
-              meta: { label: "Direnç Durumu", parent: "governance/governor/cases" },
+              meta: { label: "resources.resilience", parent: "governance/governor/cases" },
             },
             {
               name: "governor/resilience/drills",
               list: "/governor/drills",
-              meta: { label: "Chaos Lab (Drills)", parent: "governance/governor/cases" },
+              meta: { label: "resources.drills", parent: "governance/governor/cases" },
             },
             {
               name: "governor/observability",
               list: "/governor/observability",
-              meta: { label: "Yönetişim Gözlemlenebilirliği", parent: "governance/governor/cases" },
+              meta: { label: "resources.observability", parent: "governance/governor/cases" },
             },
             {
               name: "governor/drifts",
               list: "/governor/drifts",
               show: "/governor/drifts/:id",
-              meta: { label: "Sapma İzleyici", parent: "governance/governor/cases" },
+              meta: { label: "resources.drifts", parent: "governance/governor/cases" },
             },
             {
               name: "governor/proof",
               list: "/governor/proof",
               show: "/governor/proof/snapshots/:id",
-              meta: { label: "Proof Fabric", parent: "governance/governor/cases" },
-            },
-            {
-              name: "governance/proof/events",
-              list: "/proof/events",
-            },
-            {
-              name: "governance/proof/snapshots",
-              list: "/proof/snapshots",
+              meta: { label: "resources.proofFabric", parent: "governance/governor/cases" },
             },
           ]}
           options={{

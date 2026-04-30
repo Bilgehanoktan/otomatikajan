@@ -64,23 +64,28 @@ async def list_improvements(limit: int = 20):
     """Sistem tarafindan tespit edilen iyileshtirme firsatlarini ve otonom tamir kayitlarini listeler."""
     from libs.db.models.lineage_models import DecisionLineage
     async with AsyncSessionLocal() as db:
-        # 'SYSTEM_EVOLUTION' veya 'SELF_HEAL' tipindeki kararlari getir
-        q = select(DecisionLineage).order_by(desc(DecisionLineage.created_at)).limit(limit)
-        res = await db.execute(q)
-        items = res.scalars().all()
-        
-        return [
-            {
-                "id": str(i.id),
-                "title": f"Evolution: {i.component_name}",
-                "component": i.component_name,
-                "description": i.rationale,
-                "status": "completed" if i.meta_data.get("success", False) else "failed",
-                "risk_level": i.meta_data.get("risk_level", "low"),
-                "created_at": i.created_at
-            }
-            for i in items
-        ]
+        try:
+            # 'SYSTEM_EVOLUTION' veya 'SELF_HEAL' tipindeki kararlari getir
+            q = select(DecisionLineage).order_by(desc(DecisionLineage.created_at)).limit(limit)
+            res = await db.execute(q)
+            items = res.scalars().all()
+            
+            return [
+                {
+                    "id": str(i.id),
+                    "title": f"Evolution: {i.component_name}",
+                    "component": i.component_name,
+                    "description": i.rationale,
+                    "status": "completed" if (i.meta_data or {}).get("success", False) else "failed",
+                    "risk_level": (i.meta_data or {}).get("risk_level", "low"),
+                    "created_at": i.created_at
+                }
+                for i in items
+            ]
+        except Exception as exc:
+            from libs.infra.logger import logger
+            logger.warning("Improvements list fallback: %s", exc)
+            return []
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
@@ -346,21 +351,26 @@ async def get_evolution_feed(limit: int = 15):
     """Sistemin otonom gelişim günlüğünü (DecisionLineage) döner."""
     from libs.db.models.lineage_models import DecisionLineage
     async with AsyncSessionLocal() as db:
-        q = select(DecisionLineage).where(DecisionLineage.decision_type == "SYSTEM_EVOLUTION").order_by(desc(DecisionLineage.created_at)).limit(limit)
-        res = await db.execute(q)
-        items = res.scalars().all()
-        
-        return [
-            {
-                "id": str(i.id),
-                "component": i.component_name,
-                "rationale": i.rationale,
-                "success": i.meta_data.get("success", False) if isinstance(i.meta_data, dict) else False,
-                "output": i.meta_data.get("output", "N/A") if isinstance(i.meta_data, dict) else "N/A",
-                "created_at": i.created_at
-            }
-            for i in items
-        ]
+        try:
+            q = select(DecisionLineage).where(DecisionLineage.decision_type == "SYSTEM_EVOLUTION").order_by(desc(DecisionLineage.created_at)).limit(limit)
+            res = await db.execute(q)
+            items = res.scalars().all()
+            
+            return [
+                {
+                    "id": str(i.id),
+                    "component": i.component_name,
+                    "rationale": getattr(i, "rationale", "N/A"),
+                    "success": (i.meta_data or {}).get("success", False) if isinstance(i.meta_data, (dict, type(None))) else False,
+                    "output": (i.meta_data or {}).get("output", "N/A") if isinstance(i.meta_data, (dict, type(None))) else "N/A",
+                    "created_at": i.created_at
+                }
+                for i in items
+            ]
+        except Exception as exc:
+            from libs.infra.logger import logger
+            logger.warning("Evolution feed fallback: %s", exc)
+            return []
 
 @router.get("/evolution/status")
 async def get_evolution_status():

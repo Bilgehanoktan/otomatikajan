@@ -18,6 +18,7 @@ class WorkflowPersistence:
             values = {
                 "status": db_status,
                 "execution_context": instance.context,
+                "error_detail": instance.error or "",
                 "started_at": instance.started_at,
                 "completed_at": instance.completed_at,
                 "updated_at": datetime.utcnow()
@@ -42,7 +43,12 @@ class WorkflowPersistence:
                 if db_step_status == "FAILED":
                     db_step_status = "ERROR"
                 existing.status = db_step_status
-                existing.result = str(step.output_data) if step.output_data else ""
+                # Hardening: If step failed, persist the error message into result column for visibility
+                if db_step_status == "ERROR" and step.error:
+                    existing.result = f"ERROR: {step.error}"
+                else:
+                    existing.result = str(step.output_data) if step.output_data else ""
+                
                 existing.attempts = step.retries
                 existing.completed_at = step.completed_at
                 existing.action = step.action

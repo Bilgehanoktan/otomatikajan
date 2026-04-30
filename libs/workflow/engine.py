@@ -127,6 +127,10 @@ class WorkflowEngine:
                             instance.status = WorkflowStatus.COMPLETED
                         elif has_failure:
                             instance.status = WorkflowStatus.FAILED
+                            # Capture summary error from the first failed step found
+                            failed_step = next((s for s in instance.steps if s.status == StepStatus.FAILED), None)
+                            if failed_step:
+                                instance.error = f"Step '{failed_step.name}' failed: {failed_step.error}"
                         else:
                             pending = [(s.id, s.status) for s in instance.steps if s.status not in (StepStatus.COMPLETED, StepStatus.SKIPPED, StepStatus.FAILED)]
                             logger.error(
@@ -158,6 +162,13 @@ class WorkflowEngine:
                     await self.persistence.save_instance(instance)
 
                     if instance.status == WorkflowStatus.FAILED:
+                        # Capture summary error if not already set
+                        if not instance.error:
+                            failed_step = next((s for s in instance.steps if s.status == StepStatus.FAILED), None)
+                            if failed_step:
+                                instance.error = f"Step '{failed_step.name}' failed: {failed_step.error}"
+                        
+                        await self.persistence.save_instance(instance)
                         await self.persistence.save_event(instance.id, "workflow_failed")
                         break
 
@@ -186,6 +197,7 @@ class WorkflowEngine:
             except Exception as e:
                 logger.critical(f"Workflow {instance.id} crashed: {e}", exc_info=True)
                 instance.status = WorkflowStatus.FAILED
+                instance.error = str(e)
                 try:
                     await self.persistence.save_instance(instance)
                 except Exception:
@@ -355,6 +367,7 @@ class WorkflowEngine:
                 else:
                     step.status = StepStatus.FAILED
                     instance.status = WorkflowStatus.FAILED
+                    instance.error = f"Step '{step.name}' failed after {step.max_retries} retries: {str(e)}"
                     set_span_attrs(**{"step.status": "failed", "step.error": str(e)})
                     await self.persistence.save_event(instance.id, "step_failed", step_id=step.id, payload={"error": str(e)})
                     logger.error(f"[Step {step.name}] Max retries exceeded. Workflow FAILED.")

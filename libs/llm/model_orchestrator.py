@@ -47,8 +47,8 @@ class ProviderStats:
     quarantine_until:   float    = 0.0  # Otonom Karantina (Faz 12.1)
     latency_streak:     int      = 0    # Ardışık yavaşlama sayısı (Faz 12.3)
 
-    OPEN_THRESHOLD:    int   = field(default=3,    init=False, repr=False)
-    HALF_OPEN_AFTER:   float = field(default=15.0, init=False, repr=False) # Reduced from 30s
+    OPEN_THRESHOLD:    int   = field(default=5,    init=False, repr=False)
+    HALF_OPEN_AFTER:   float = field(default=5.0,  init=False, repr=False)
     WINDOW_SIZE:       int   = field(default=10,   init=False, repr=False)
     LATENCY_THRESHOLD: float = field(default=15.0, init=False, repr=False) # Karantina sınırı
 
@@ -113,7 +113,7 @@ class ProviderStats:
             self.history.pop(0)
 
         # Increase backoff penalty
-        penalty_step = 1.2 # Reduced from 2.0 to be more permissive during peak load
+        penalty_step = 1.1 # Further reduced from 1.2 to be ultra-permissive
         self.penalty_multiplier = min(self.penalty_multiplier * penalty_step, 64)
 
         if self.history.count(False) >= self.OPEN_THRESHOLD or is_rate_limit:

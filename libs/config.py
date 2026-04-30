@@ -105,6 +105,14 @@ is_dev  = APP_ENV == "development"
 is_test = APP_ENV == "test"
 is_prod = APP_ENV == "production"
 
+APP_UI_MODE = os.getenv("APP_UI_MODE", "static" if is_prod else "api-only").lower().strip()
+if APP_UI_MODE not in {"static", "api-only"}:
+    APP_UI_MODE = "static" if is_prod else "api-only"
+
+LOCAL_DEV_DB_STRATEGY = os.getenv("LOCAL_DEV_DB_STRATEGY", "sqlite-fallback" if is_dev else "primary").lower().strip()
+if LOCAL_DEV_DB_STRATEGY not in {"primary", "sqlite-fallback"}:
+    LOCAL_DEV_DB_STRATEGY = "sqlite-fallback" if is_dev else "primary"
+
 # ── Temel ayarlar ─────────────────────────────────────────
 DEBUG     = os.getenv("DEBUG", "true" if is_dev else "false").lower() == "true"
 LOG_LEVEL = os.getenv("LOG_LEVEL", "DEBUG" if is_dev else "INFO")
@@ -127,7 +135,10 @@ else:
     # Force SQLite for stable operational state (Phase 31 Stabilization)
     _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     sqlite_path = os.path.join(_root, "runtime", "data", "cortex_local.db")
-    DATABASE_URL = _raw_db_url or f"sqlite+aiosqlite:///{sqlite_path.replace('\\', '/')}"
+    if is_dev and LOCAL_DEV_DB_STRATEGY == "sqlite-fallback" and not _raw_db_url:
+        DATABASE_URL = f"sqlite+aiosqlite:///{sqlite_path.replace('\\', '/')}"
+    else:
+        DATABASE_URL = _raw_db_url or f"sqlite+aiosqlite:///{sqlite_path.replace('\\', '/')}"
 
 
 
