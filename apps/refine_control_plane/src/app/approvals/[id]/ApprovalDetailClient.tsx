@@ -49,7 +49,7 @@ export default function ApprovalDetailClient() {
         setIsSubmitting(true);
         try {
             if (!approval) return;
-            const response = await safeFetchJson(`/api/v1/approvals/${approval.id}/decide`, {
+            const response = await safeFetchJson(`/api/v1/governance/approvals/${approval.id}/decide`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

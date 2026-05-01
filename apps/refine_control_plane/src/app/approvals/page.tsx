@@ -66,7 +66,7 @@ export default function ApprovalsPage() {
       }
       const authHeaders = await getAuthHeaders();
       const response = await safeFetchJson<ApprovalRequest[] | { data?: ApprovalRequest[]; __sqv_meta?: unknown }>(
-        `${apiBase}/approvals?_end=10&_start=0&status=pending`,
+        `${apiBase}/governance/approvals?_end=10&_start=0&status=pending`,
         { headers: authHeaders },
       );
 
@@ -106,7 +106,7 @@ export default function ApprovalsPage() {
         }
         const authHeaders = await getAuthHeaders();
 
-        await safeFetchJson(`${apiBase}/approvals/${id}`, {
+        await safeFetchJson(`${apiBase}/governance/approvals/${id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json", ...authHeaders },
           body: JSON.stringify({

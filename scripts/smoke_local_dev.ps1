@@ -1,4 +1,6 @@
 param(
+    [ValidateSet("local-dev", "full-stack-local")]
+    [string]$Mode = "local-dev",
     [string]$BackendOrigin = "http://127.0.0.1:8000",
     [string]$FrontendLocal = "http://localhost:3100",
     [string]$FrontendLoopback = "http://127.0.0.1:3100",
@@ -6,6 +8,7 @@ param(
     [string]$DispatchOrigin = "",
     [string]$Email = "admin@sovereign.agi",
     [string]$Password = "admin1234",
+    [string]$ExpectedQueueBackend = "",
     [switch]$SkipWorkflowDispatch
 )
 
@@ -16,6 +19,12 @@ if ([string]::IsNullOrWhiteSpace($DispatchOrigin)) {
     $DispatchOrigin = $BackendOrigin
 }
 
+if ([string]::IsNullOrWhiteSpace($ExpectedQueueBackend)) {
+    $ExpectedQueueBackend = if ($Mode -eq "full-stack-local") { "celery" } else { "inprocess" }
+}
+
+Write-Output ("[smoke] runtime profile: {0}" -f $Mode)
+Write-Output ("[smoke] expected queue backend: {0}" -f $ExpectedQueueBackend)
 Write-Output "[smoke] canonical local topology: 3100 UI -> /api/v1 proxy, 8000 API/WS backend"
 Write-Output ("[smoke] backend origin: {0}" -f $BackendOrigin)
 Write-Output ("[smoke] dispatch origin: {0}" -f $DispatchOrigin)
@@ -92,6 +101,18 @@ $checks += Invoke-SmokeJson -Name "frontend.loopback" -Url $frontendLoopbackTarg
 
 $checks | ForEach-Object {
     Write-Output ("[{0}] status={1} ok={2}" -f $_.Name, $_.Status, $_.Ok)
+}
+
+$healthCheck = $checks | Where-Object { $_.Name -eq "backend.health" } | Select-Object -First 1
+if ($healthCheck -and $healthCheck.Ok -and $healthCheck.Data.queue) {
+    $actualQueueBackend = [string]$healthCheck.Data.queue.backend
+    Write-Output ("[backend.queue] expected={0} actual={1}" -f $ExpectedQueueBackend, $actualQueueBackend)
+    if ($actualQueueBackend -ne $ExpectedQueueBackend) {
+        Write-Output ""
+        Write-Output "FAILED CHECKS:"
+        Write-Output ("- backend.queue: expected {0} but got {1}" -f $ExpectedQueueBackend, $actualQueueBackend)
+        exit 1
+    }
 }
 
 $failed = $checks | Where-Object { -not $_.Ok -or $_.Status -lt 200 -or $_.Status -ge 400 }

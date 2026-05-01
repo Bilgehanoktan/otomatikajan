@@ -76,8 +76,13 @@ def _primary_db_target() -> tuple[str, int] | None:
 
     return (host, port)
 
-def check_connectivity(timeout=1.5):
+def check_connectivity(timeout=0.5):
     global _DB_DEGRADED, _DB_CHECKED, _DB_ERROR
+    
+    # SIF-01 Enhancement: Quick exit if already checked to prevent blocking loops
+    if _DB_CHECKED and _DB_DEGRADED:
+        return False
+        
     import socket
     target = _primary_db_target()
     if target is None:
@@ -88,15 +93,14 @@ def check_connectivity(timeout=1.5):
 
     host, port = target
     try:
+        # Phase 32: Use a much tighter timeout for local connectivity check
         with socket.create_connection((host, port), timeout=timeout):
             _DB_DEGRADED = False
             _DB_ERROR = ""
-    except (socket.timeout, ConnectionRefusedError, OSError):
+    except (socket.timeout, ConnectionRefusedError, OSError) as exc:
         _DB_DEGRADED = True
-        if APP_ENV == "development" and LOCAL_DEV_DB_STRATEGY == "sqlite-fallback":
-            _DB_ERROR = f"Local primary database unreachable at {host}:{port}; SQLite fallback is active."
-        else:
-            _DB_ERROR = f"Primary database unreachable at {host}:{port}; SQLite fallback is active."
+        _DB_ERROR = f"Primary DB ({host}:{port}) unreachable: {exc}. SQLite fallback active."
+    
     _DB_CHECKED = True
     return not _DB_DEGRADED
 
@@ -132,20 +136,30 @@ def get_engine():
     except RuntimeError:
         curr_active_loop = None
 
+    # Force re-check if we are in fallback but engine was previously pointing elsewhere
     if _engine is not None and _DB_DEGRADED:
         if "sqlite" not in str(_engine.url):
              _engine = None 
 
     if _engine is None or (curr_active_loop is not None and _last_loop is not curr_active_loop):
         with _lock:
+            # Double-check pattern
             if _engine is None or (curr_active_loop is not None and _last_loop is not curr_active_loop):
-                if not _DB_CHECKED: check_connectivity()
+                if not _DB_CHECKED: 
+                    check_connectivity()
+                
                 if _DB_DEGRADED:
                     _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
                     sqlite_path = os.path.join(_root, "runtime", "data", "cortex_local_v2.db")
                     os.makedirs(os.path.dirname(sqlite_path), exist_ok=True)
-                    sqlite_url = f"sqlite+aiosqlite:///{sqlite_path.replace('\\', '/')}?timeout=60"
-                    _engine = create_async_engine(sqlite_url)
+                    # Use a stable file path and ensure it's absolute
+                    abs_path = os.path.abspath(sqlite_path).replace('\\', '/')
+                    sqlite_url = f"sqlite+aiosqlite:///{abs_path}?timeout=60"
+                    
+                    _engine = create_async_engine(
+                        sqlite_url,
+                        connect_args={"timeout": 60}
+                    )
                     
                     @event.listens_for(_engine.sync_engine, "connect")
                     def set_sqlite_pragma(dbapi_connection, connection_record):
@@ -153,9 +167,19 @@ def get_engine():
                         cursor.execute("PRAGMA journal_mode=WAL")
                         cursor.execute("PRAGMA synchronous=NORMAL")
                         cursor.execute("PRAGMA busy_timeout=60000")
+                        cursor.execute("PRAGMA foreign_keys=ON")
                         cursor.close()
+                    
+                    if not _DB_ERROR:
+                        _DB_ERROR = "SQLite Fallback Active"
                 else:
-                    _engine = create_async_engine(DATABASE_URL, pool_size=DB_POOL_SIZE, max_overflow=DB_MAX_OVERFLOW, pool_pre_ping=True)
+                    _engine = create_async_engine(
+                        DATABASE_URL, 
+                        pool_size=DB_POOL_SIZE, 
+                        max_overflow=DB_MAX_OVERFLOW, 
+                        pool_pre_ping=True,
+                        pool_timeout=5 # Reduce pool wait time to fail fast
+                    )
                 _last_loop = curr_active_loop
     return _engine
 

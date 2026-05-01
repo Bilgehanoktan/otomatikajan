@@ -29,14 +29,16 @@ export default function CreateWorkflowPage() {
   const t = useTranslations("workflow");
   const tCommon = useTranslations("common");
   const { list } = useNavigation();
-  const { mutate, isPending: isLoading } = useCustomMutation();
+  const { mutate, mutation } = useCustomMutation();
   const [form] = Form.useForm();
   const apiBase = getApiBaseUrl();
+  const isLoading = mutation.isPending;
 
   const onFinish = async (values: any) => {
     console.log("[CreateWorkflow] Form submission started:", values);
     try {
-      // safeFetchJson automatically injects Authorization header from localStorage
+      console.log("[CreateWorkflow] Ensuring session and fetching headers...");
+      const authHeaders = await getAuthHeaders();
       console.log("[CreateWorkflow] Triggering mutation...");
       
       mutate(
@@ -50,6 +52,7 @@ export default function CreateWorkflowPage() {
             priority: values.priority || "MEDIUM",
             quality_profile: values.quality || "standard",
           },
+          headers: authHeaders,
         },
         {
           onSuccess: (data) => {

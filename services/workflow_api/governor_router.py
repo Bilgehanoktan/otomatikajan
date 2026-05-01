@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from libs.db.session import get_db, AsyncSessionLocal
 from services.auth.jwt_auth import require_permission
 
-router = APIRouter(prefix="/governor", tags=["Governor Inbox"])
+router = APIRouter(tags=["Governor Inbox"])
 
 
 # ── Response Schemas ──────────────────────────────────────────
@@ -325,10 +325,10 @@ async def governor_status(
 @router.get("/cases", response_model=List[GovernorCaseOut])
 async def list_governor_cases(
     response: Response,
-    risk_class: Optional[str] = Query(None),
-    recommended_decision: Optional[str] = Query(None),
-    pending_reason: Optional[str] = Query(None),
-    project_status: Optional[str] = Query(None),
+    risk_class: Optional[str] = None,
+    recommended_decision: Optional[str] = None,
+    pending_reason: Optional[str] = None,
+    project_status: Optional[str] = None,
     _start: int = Query(0, alias="_start"),
     _end: int = Query(50, alias="_end"),
     identity: Dict[str, Any] = Depends(require_permission("governor.view")),
@@ -799,7 +799,7 @@ async def meta_scan_project(
 
 @router.get("/meta/decisions", response_model=List[MetaGovernorDecisionOut])
 async def list_meta_decisions(
-    project_id: Optional[str] = Query(None),
+    project_id: Optional[str] = None,
     limit: int = Query(20),
     identity: Dict[str, Any] = Depends(require_permission("governor.view")),
 ):
@@ -826,7 +826,7 @@ async def list_meta_decisions(
 
 @router.get("/meta/conflicts", response_model=List[GovernorConflictOut])
 async def list_governor_conflicts(
-    project_id: Optional[str] = Query(None),
+    project_id: Optional[str] = None,
     status: str = Query("open"),
     identity: Dict[str, Any] = Depends(require_permission("governor.view")),
 ):

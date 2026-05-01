@@ -70,13 +70,18 @@ export async function safeFetchJson<T = any>(url: string, options: SafeFetchOpti
                 // SIF-01 Enhancement: Inject Bearer Token if available in localStorage
                 if (typeof window !== "undefined") {
                     const token = localStorage.getItem("sqv_access_token");
-                    if (token) {
-                        const headers = new Headers(fetchInit.headers || {});
-                        if (!headers.has("Authorization")) {
-                            headers.set("Authorization", `Bearer ${token}`);
-                        }
-                        fetchInit.headers = headers;
+                    const headers = new Headers(fetchInit.headers || {});
+                    
+                    if (token && !headers.has("Authorization")) {
+                        headers.set("Authorization", `Bearer ${token}`);
                     }
+
+                    // CRITICAL: Ensure Content-Type is application/json for POST/PUT/PATCH requests with bodies
+                    if (fetchInit.body && !headers.has("Content-Type")) {
+                        headers.set("Content-Type", "application/json");
+                    }
+
+                    fetchInit.headers = headers;
                 }
 
                 res = await fetch(url, fetchInit);

@@ -33,34 +33,28 @@ function trimApiSuffix(value: string): string {
 }
 
 export function getApiBaseUrl(): string {
-  const override = getApiOverride();
-  if (override) {
-    return trimTrailingSlash(override);
+  // CRITICAL: Always use the relative proxy path in the browser to avoid CORS.
+  if (typeof window !== "undefined") {
+    return "/api/v1";
   }
 
-  if (typeof window === "undefined") {
-    return `${DEFAULT_BACKEND_ORIGIN}/api/v1`;
-  }
-
-  return "/api/v1";
+  // Server-side default
+  return "http://127.0.0.1:8000/api/v1";
 }
 
 export function getBackendOrigin(): string {
+  if (typeof window !== "undefined") {
+    // Phase 32: Use the same origin as the UI in the browser. 
+    // The Next.js proxy will handle routing to the real backend.
+    return window.location.origin;
+  }
+
   const explicitOrigin = getExplicitBackendOrigin();
   if (explicitOrigin) {
     return explicitOrigin;
   }
 
-  const override = getApiOverride();
-  if (override) {
-    return trimApiSuffix(override);
-  }
-
-  if (typeof window === "undefined") {
-    return DEFAULT_BACKEND_ORIGIN;
-  }
-
-  return `${window.location.protocol}//${window.location.hostname}:8000`;
+  return "http://127.0.0.1:8000";
 }
 
 export function buildWebSocketCandidates(path = "/ws/events"): string[] {

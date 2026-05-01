@@ -48,8 +48,6 @@ def register_routers(app: FastAPI):
 
     # 7. Repair Lab & Self-Tuning
     api_v1.include_router(repair_lab_router)
-    # Alias for frontend compatibility
-    api_v1.include_router(repair_lab_router, prefix="/repair-lab")
 
     # 8. Phase 31: Autonomous Learning
     from services.governance.learning_api import router as learning_router

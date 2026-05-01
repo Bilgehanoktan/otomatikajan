@@ -1,103 +1,120 @@
-# 🚀 PC'de Çalıştırma — Hızlı Başlangıç
+# PC'de Calistirma
 
-## Docker ile (Önerilen — En Kolay)
+Bu belge Faz 1 runtime modelini esas alir. Sistem artik uc resmi profille dusunulur:
 
-### 1. Kurulum
+- `local-dev`: minimal local topology, `inprocess` queue, Redis/DeerFlow kapali
+- `full-stack-local`: Docker ile Redis + Celery + DeerFlow acik yerel stack
+- `production`: static UI + primary DB + Redis/Celery scheduler
+
+## Onerilen baslangic yolu
+
+### 1. `.env` hazirla
 ```bash
-# Repo'yu klonla / ZIP'i aç
 cp .env.example .env
 ```
 
-### 2. .env dosyasını düzenle (minimum gerekli)
+### 2. Minimum gerekli degerleri gir
 ```env
 APP_ENV=development
+RUNTIME_PROFILE=local-dev
+QUEUE_BACKEND=inprocess
 JWT_SECRET=<python -c "import secrets; print(secrets.token_hex(64))">
 ADMIN_SECRET=gizli-admin-sifresi
-OPENAI_API_KEY=sk-...   # veya ANTHROPIC_API_KEY veya GEMINI_API_KEY
+OPENAI_API_KEY=sk-...
 ```
 
-### 3. Başlat
+## Modlar
+
+### Minimal local topology
+
+Bu mod normal gelistirme icin varsayilan hedeftir.
+
+- UI: `3100`
+- API/WS: `8000`
+- Queue: `inprocess`
+- Redis: kapali
+- DeerFlow: kapali
+- Scheduler: kapali
+
+Baslatma:
 ```bash
-docker compose up --build
+BASLAT.bat
 ```
 
-### 4. Admin hesabı oluştur
+veya Docker aciksa acik secimle:
 ```bash
-# Yeni terminal'de:
-docker compose exec app python -c "
-import asyncio, sys; sys.path.insert(0,'.')
-async def main():
-    from db.session import AsyncSessionLocal, init_db
-    from auth.jwt_auth import AuthService
-    from db.models import User
-    from sqlalchemy import update
-    await init_db()
-    async with AsyncSessionLocal() as db:
-        u = await AuthService().register(db, 'admin@local.dev', 'admin1234')
-        await db.execute(update(User).where(User.id==u.id).values(is_admin=True))
-        await db.commit()
-        print('✅ Admin: admin@local.dev / admin1234')
-asyncio.run(main())
-"
+BASLAT.bat minimal
 ```
 
-### 5. Panel'e eriş
-- **Dashboard:** http://localhost:8000
-- **API Docs:** http://localhost:8000/docs
-- Giriş: admin@local.dev / admin1234
+Smoke:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_local_dev.ps1 -Mode local-dev
+```
 
----
+### Full-stack local topology
 
-## Docker Olmadan (Local Python)
+Bu mod entegrasyon calismalari icindir.
+
+- UI: `3100`
+- API/WS: `8000`
+- Queue: `celery`
+- Redis: acik
+- Postgres: acik
+- DeerFlow bridge/worker: acik
+- Scheduler: varsayilan olarak kapali
+
+Baslatma:
+```bash
+BASLAT.bat fullstack
+```
+
+Smoke:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_local_dev.ps1 -Mode full-stack-local
+```
+
+## Docker olmadan local Python
 
 ### Gereksinimler
 - Python 3.12+
-- PostgreSQL 15+ (pgvector opsiyonel)
-- Redis (opsiyonel — sadece Celery kullanılıyorsa)
+- PostgreSQL 15+ sadece `full-stack-local` benzeri bir akis hedefleniyorsa
+- Redis sadece `celery` kullaniliyorsa
 
-### Kurulum
+### Minimal local calisma
 ```bash
 pip install -e ".[dev]"
 cp .env.example .env
-# .env'i düzenle (DATABASE_URL, JWT_SECRET, ADMIN_SECRET, en az 1 LLM key)
 ```
 
-### Veritabanı
-```bash
-# PostgreSQL başlat ve veritabanı oluştur:
-createdb ai_company
-
-# Admin hesabı oluştur:
-make create-admin
+`.env` icinde:
+```env
+APP_ENV=development
+RUNTIME_PROFILE=local-dev
+QUEUE_BACKEND=inprocess
+REDIS_ENABLED=false
+DEERFLOW_ENABLED=false
 ```
 
-### Çalıştır
+Calistir:
 ```bash
 make run
-# veya
-uvicorn main:app --reload --port 8000
 ```
 
-### Panel: http://localhost:8000
+## Ozet komutlar
 
----
-
-## Özet Komutlar
-
-| Komut | Açıklama |
+| Komut | Aciklama |
 |-------|----------|
-| `make setup` | .env oluştur |
-| `make secret` | Güvenli JWT_SECRET üret |
-| `make create-admin` | Admin kullanıcı oluştur |
-| `make run` | Local development server |
-| `make test` | Tüm testleri çalıştır |
-| `docker compose up --build` | Docker ile tam sistem |
-| `alembic upgrade head` | Production migration |
+| `BASLAT.bat` | Varsayilan minimal local topology |
+| `BASLAT.bat minimal` | Docker ile minimal local topology |
+| `BASLAT.bat fullstack` | Docker ile full-stack local topology |
+| `DURDUR.bat` | Docker ve local surecleri durdur |
+| `make run` | Local Python gelistirme sunucusu |
+| `make test` | Tum testleri calistir |
 
----
+## Telegram Bot
 
-## Telegram Bot (Opsiyonel)
+Telegram bot halen opsiyoneldir. Faz 2'de tam entegrasyon hedeflenir. Simdilik:
 
-1. @BotFather'dan token al
-2. `.env`'e ekle: `TELEGRAM_BOT_TOKEN=...`
-3. Dashboard > Telegram > Setup'tan webhook kur
+1. `TELEGRAM_ENABLED=true` yapmadan once bot token ve izinli ID'leri girin
+2. `TELEGRAM_BOT_TOKEN=...`
+3. `TELEGRAM_ALLOWED_IDS=...`

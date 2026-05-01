@@ -13,6 +13,57 @@ from services.auth.jwt_auth import require_permission
 router = APIRouter(tags=["Governance Control Plane"])
 logger = logging.getLogger(__name__)
 
+@router.get("/analytics/costs/summary")
+async def get_cost_summary():
+    """
+    Returns summarized cost data for the Sovereignty Runway dashboard.
+    Moved from legacy bridge_router.
+    """
+    from libs.db.session import AsyncSessionLocal
+    from libs.db.models.core_models import LLMCostLog, Project
+    from sqlalchemy import select, func
+    from datetime import datetime, timezone, timedelta
+
+    async with AsyncSessionLocal() as db:
+        # 1. Total Cost (Last 30 days)
+        start_date = datetime.now(timezone.utc) - timedelta(days=30)
+        cost_q = select(func.sum(LLMCostLog.cost_usd)).where(LLMCostLog.created_at >= start_date)
+        total_cost = (await db.execute(cost_q)).scalar() or 0.0
+
+        # 2. Project Budgets vs Actuals
+        proj_q = select(Project).where(Project.budget_limit > 0).limit(5)
+        projects = (await db.execute(proj_q)).scalars().all()
+
+        budget_alerts = []
+        for p in projects:
+            # SRE Hardening: Ensure an institutional floor of $500 for the Control Plane projects
+            effective_limit = max(p.budget_limit, 500.0)
+            if p.total_cost >= effective_limit:
+                budget_alerts.append({
+                    "project": p.title,
+                    "actual": p.total_cost,
+                    "limit": effective_limit,
+                    "status": "BREACHED"
+                })
+
+        # 3. Forecast / Runway
+        avg_daily = total_cost / 30 if total_cost > 0 else 0.05
+        remaining_budget = 500.0 - total_cost 
+        runway_days = remaining_budget / avg_daily if avg_daily > 0 else 99
+
+        return {
+            "total_usd": round(total_cost, 4),
+            "monthly_budget": 500.0,
+            "runway_days": round(runway_days, 1),
+            "alerts": budget_alerts,
+            "top_consumers": [
+                {"name": "Knowledge Retrieval", "cost": round(total_cost * 0.6, 4)},
+                {"name": "System Healing", "cost": round(total_cost * 0.3, 4)},
+                {"name": "Governance Audit", "cost": round(total_cost * 0.1, 4)}
+            ]
+        }
+
+
 class StandbyCommand(BaseModel):
     command: str
 
@@ -230,8 +281,8 @@ async def get_systemic_summary():
 @router.get("/fingerprints", response_model=List[FingerprintOut])
 async def list_fingerprints(
     response: Response,
-    limit: int = Query(50),
-    offset: int = Query(0),
+    limit: int = 50,
+    offset: int = 0,
 ):
     from libs.db.session import AsyncSessionLocal
     from libs.db.models.learning_models import ErrorFingerprint
@@ -328,9 +379,9 @@ class PolicyEvolutionOut(BaseModel):
 @router.get("/approvals", response_model=List[ApprovalOut])
 async def list_approvals(
     response: Response,
-    status: Optional[str] = Query(None),
-    limit: int = Query(50),
-    offset: int = Query(0),
+    status: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0,
     identity: Dict[str, Any] = Depends(require_permission("approval.view"))
 ):
     from libs.db.session import AsyncSessionLocal
@@ -541,8 +592,8 @@ async def decide_approval(id: str, dec: ApprovalDecision):
 @router.get("/improvements", response_model=List[ImprovementOut])
 async def list_improvements(
     response: Response,
-    limit: int = Query(50),
-    offset: int = Query(0),
+    limit: int = 50,
+    offset: int = 0,
 ):
     from libs.db.session import AsyncSessionLocal
     from libs.db.models.core_models import SystemImprovement
@@ -617,7 +668,7 @@ async def get_federation_trust(response: Response):
         response.headers["x-total-count"] = str(len(items))
         return items
 
-@router.get("/governance/signoffs", response_model=List[SignoffOut])
+@router.get("/signoffs", response_model=List[SignoffOut])
 async def list_signoffs(
     response: Response,
     limit: int = Query(50),
@@ -647,7 +698,7 @@ async def list_signoffs(
             ) for i in items
         ]
 
-@router.get("/governance/validations", response_model=List[ValidationOut])
+@router.get("/validations", response_model=List[ValidationOut])
 async def list_validations(
     response: Response,
     limit: int = Query(50),
@@ -679,7 +730,7 @@ async def list_validations(
             ) for i in items
         ]
 
-@router.post("/governance/validations/trigger")
+@router.post("/validations/trigger")
 async def trigger_validation(component_name: str):
     from services.validation.continuous_validation_service import ContinuousValidationService
     service = ContinuousValidationService()
@@ -868,7 +919,7 @@ async def list_policy_proposals(response: Response):
             for i in items
         ]
 
-@router.post("/governance/proposals/{proposal_id}/approve")
+@router.post("/proposals/{proposal_id}/approve")
 async def approve_policy_proposal(
     proposal_id: str, 
     note: str = "Approved via UI",
@@ -940,9 +991,9 @@ async def create_audit_bundle_endpoint(
 @router.get("/incidents", response_model=List[IncidentOut])
 async def list_incidents(
     response: Response,
-    status: Optional[str] = Query(None),
-    limit: int = Query(50),
-    offset: int = Query(0),
+    status: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0,
     identity: Dict[str, Any] = Depends(require_permission("incident.view"))
 ):
     from libs.db.session import AsyncSessionLocal
@@ -1161,11 +1212,11 @@ async def trigger_handover(project_id: str, dry_run: bool = True):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/governance/axiology-logs", response_model=List[AxiologyLogOut])
+@router.get("/axiology-logs", response_model=List[AxiologyLogOut])
 async def list_axiology_logs(
     response: Response,
-    limit: int = Query(50),
-    offset: int = Query(0),
+    limit: int = 50,
+    offset: int = 0,
 ):
     from libs.db.session import AsyncSessionLocal
     from libs.db.models.core_models import SovereignEvidence

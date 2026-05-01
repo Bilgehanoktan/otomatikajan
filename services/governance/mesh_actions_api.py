@@ -12,7 +12,7 @@ from services.orchestration.mesh_state_store import mesh_state_store
 from services.observability.logging import get_logger
 
 logger = get_logger("mesh_actions_api")
-router = APIRouter(prefix="/mesh/actions", tags=["Mesh Emergency Actions"])
+router = APIRouter(tags=["Mesh Emergency Actions"])
 
 class ActionRequest(BaseModel):
     operator_id: str

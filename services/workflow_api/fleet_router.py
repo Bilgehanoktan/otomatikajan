@@ -57,7 +57,7 @@ class FleetEventOut(BaseModel):
     class Config:
         from_attributes = True
 
-router = APIRouter(prefix="/fleet", tags=["Orchestration"])
+router = APIRouter(tags=["Orchestration"])
 
 @router.get("/agents", response_model=List[FleetAgentOut])
 async def list_agents(

@@ -40,13 +40,13 @@ export default function SelfTuningPage() {
 
   const fetchData = async () => {
     try {
-      const sugData = await safeFetchJson(`/api/v1/governance/proposals?status=pending`);
+      const sugData = await safeFetchJson(`/api/v1/repair-lab/suggestions`);
       setSuggestions(sugData || []);
 
-      const feedData = await safeFetchJson(`/api/v1/governance/lineage?limit=20`);
+      const feedData = await safeFetchJson(`/api/v1/repair-lab/evolution/feed`);
       setEvolutionFeed(feedData || []);
 
-      const statusData = await safeFetchJson(`/api/v1/governance/status`);
+      const statusData = await safeFetchJson(`/api/v1/repair-lab/evolution/status`);
       setEvolutionStatus(statusData);
 
       // Check for stale metadata in any of the responses to trigger the global degraded label
@@ -72,7 +72,7 @@ export default function SelfTuningPage() {
 
   const handleAction = async (id: string, status: 'approved' | 'rejected') => {
     try {
-      const response = await safeFetchJson(`/api/v1/repair-lab/tuning/suggestions/${id}/apply`, {
+      const response = await safeFetchJson(`/api/v1/repair-lab/apply/${id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })

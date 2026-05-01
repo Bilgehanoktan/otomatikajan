@@ -10,24 +10,21 @@ echo.
 
 set "PROJECT_ROOT=%~dp0"
 
-:: Python komutunu belirle
 set "PY_CMD=python"
 where python >nul 2>&1
 if %ERRORLEVEL% neq 0 (
     set "PY_CMD=C:\Python314\python.exe"
 )
 
-:: ---- Docker Durdurma ----
 where docker >nul 2>&1
 if %ERRORLEVEL% equ 0 (
     docker info >nul 2>&1
     if %ERRORLEVEL% equ 0 (
-        echo [DOCKER] Konteynerler durduruluyor...
-        docker compose -f "%PROJECT_ROOT%docker-compose.yml" down
+        echo [DOCKER] Minimal ve full-stack compose servisleri durduruluyor...
+        docker compose -f "%PROJECT_ROOT%docker-compose.yml" --profile full-stack down --remove-orphans
     )
 )
 
-:: ---- Lokal Temizlik ----
 echo [TEMIZLIK] Aktif servisler ve hayalet portlar temizleniyor...
 if exist "%PROJECT_ROOT%infra\port_surgeon.py" (
     "%PY_CMD%" "%PROJECT_ROOT%infra\port_surgeon.py"

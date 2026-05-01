@@ -16,7 +16,7 @@ import uuid
 from libs.db.session import get_db
 from services.auth.jwt_auth import require_permission
 
-router = APIRouter(prefix="/workflows", tags=["Workflow Control Plane"])
+router = APIRouter(tags=["Workflow Control Plane"])
 
 
 # ── Response Schemas ──────────────────────────────────────────────────────────
@@ -209,7 +209,7 @@ def _map_workflow(project, subtasks) -> WorkflowOut:
 
 @router.get("/steps", response_model=List[StepOut])
 async def list_steps(
-    project_id: Optional[str] = Query(None),
+    project_id: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
     identity: Dict[str, Any] = Depends(require_permission("workflow.view"))
 ):
@@ -303,9 +303,9 @@ async def create_project(
 @router.get("", response_model=List[ProjectListItem])
 async def list_projects(
     response: Response,
-    status_filter: Optional[str] = Query(None, alias="status"),
-    limit: int = Query(50, ge=1, le=200),
-    offset: int = Query(0, ge=0),
+    status_filter: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0,
 ):
     """List all projects/workflows with step summary."""
     from libs.db.session import AsyncSessionLocal

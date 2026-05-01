@@ -11,7 +11,18 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from libs.db.session import init_db, close_db
-from libs.config import APP_ENV, APP_UI_MODE, LOCAL_DEV_DB_STRATEGY, QUEUE_BACKEND
+from libs.config import (
+    APP_ENV,
+    APP_UI_MODE,
+    LOCAL_DEV_DB_STRATEGY,
+    QUEUE_BACKEND,
+    RUNTIME_PROFILE,
+    REDIS_ENABLED,
+    CELERY_ENABLED,
+    DEERFLOW_ENABLED,
+    TELEGRAM_ENABLED,
+    SCHEDULER_ENABLED,
+)
 from services.observability.logging import get_logger
 
 logger = get_logger("infra.lifespan")
@@ -83,17 +94,27 @@ async def lifespan(app: FastAPI):
             logger.info("[STARTUP] In-process JobQueue workers initiated in background (Resilient Mode).")
         else:
             logger.info(
-                "[STARTUP] Queue backend resolved to %s. In local development this should only happen when Celery is explicitly forced.",
+                "[STARTUP] Queue backend resolved to %s under runtime profile %s. In local development this should only happen when Celery is explicitly forced.",
                 getattr(job_queue, "backend_name", "unknown"),
+                RUNTIME_PROFILE,
             )
 
         if APP_ENV == "development":
             logger.info(
-                "[SELF-CHECK] Local dev topology active: ui=http://127.0.0.1:3100, api_ws=http://127.0.0.1:8000, ui_mode=%s, db_strategy=%s, queue_backend=%s (requested=%s)",
+                "[SELF-CHECK] Runtime profile=%s ui=http://127.0.0.1:3100 api_ws=http://127.0.0.1:8000 ui_mode=%s db_strategy=%s queue_backend=%s (requested=%s)",
+                RUNTIME_PROFILE,
                 APP_UI_MODE,
                 LOCAL_DEV_DB_STRATEGY,
                 getattr(job_queue, "backend_name", "unknown"),
                 QUEUE_BACKEND,
+            )
+            logger.info(
+                "[SELF-CHECK] Integrations enabled: redis=%s celery=%s deerflow=%s scheduler=%s telegram=%s",
+                REDIS_ENABLED,
+                CELERY_ENABLED,
+                DEERFLOW_ENABLED,
+                SCHEDULER_ENABLED,
+                TELEGRAM_ENABLED,
             )
             if LOCAL_DEV_DB_STRATEGY == "sqlite-fallback":
                 logger.info(

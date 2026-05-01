@@ -200,22 +200,29 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "DEBUG" if is_dev else "INFO")
 
 # ── Veritabanı URL Tespiti ────────────────────────────────
 _raw_db_url = os.getenv("DATABASE_URL", "")
+_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sqlite_path = os.path.join(_root, "runtime", "data", "cortex_local_v2.db")
 
 # Docker ortamında mıyız? (Konteyner içi tespiti)
 _is_in_docker = os.path.exists("/.dockerenv") or os.getenv("DOCKER_CONTAINER", "false").lower() == "true"
 
 if _is_in_docker:
+    wants_local_sqlite = (
+        APP_ENV != "production"
+        and RUNTIME_PROFILE == "local-dev"
+        and LOCAL_DEV_DB_STRATEGY == "sqlite-fallback"
+    )
+    if wants_local_sqlite:
+        DATABASE_URL = f"sqlite+aiosqlite:///{sqlite_path.replace('\\', '/')}"
     # Docker içinde '127.0.0.1' veya 'localhost' kullanımı genellikle hatadır (host portuna gitmeye çalışır)
     # Eğer URL'de localhost/127.0.0.1 varsa bunu 'db' olarak değiştir.
-    if not _raw_db_url or "127.0.0.1" in _raw_db_url or "localhost" in _raw_db_url:
+    elif not _raw_db_url or "127.0.0.1" in _raw_db_url or "localhost" in _raw_db_url:
         # Default veya hatalı localhost URL'sini Docker hiyerarşisine çek
         DATABASE_URL = "postgresql+asyncpg://postgres:postgres@db:5432/ai_company"
     else:
         DATABASE_URL = _raw_db_url
 else:
     # Force SQLite for stable operational state (Phase 31 Stabilization)
-    _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    sqlite_path = os.path.join(_root, "runtime", "data", "cortex_local_v2.db")
     if is_dev and LOCAL_DEV_DB_STRATEGY == "sqlite-fallback" and not _raw_db_url:
         DATABASE_URL = f"sqlite+aiosqlite:///{sqlite_path.replace('\\', '/')}"
     else:
@@ -230,6 +237,7 @@ REDIS_URL      = os.getenv("REDIS_URL", "") if REDIS_ENABLED else ""
 JWT_SECRET     = os.getenv("JWT_SECRET", "")
 ADMIN_SECRET   = os.getenv("ADMIN_SECRET", "")
 MONTHLY_BUDGET = float(os.getenv("MONTHLY_BUDGET_USD", "50.0"))
+os.environ["REDIS_URL"] = REDIS_URL
 
 ALLOWED_ORIGINS = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3100,http://127.0.0.1:3100,http://192.168.1.61:3100,http://localhost:8000").split(",") if o.strip()]
 ALLOWED_METHODS = os.getenv("ALLOWED_METHODS", "GET,POST,PUT,PATCH,DELETE,OPTIONS").split(",")
@@ -279,6 +287,7 @@ DEERFLOW_BRIDGE_URL = (
     if DEERFLOW_ENABLED
     else ""
 )
+os.environ["DEERFLOW_BRIDGE_URL"] = DEERFLOW_BRIDGE_URL
 
 # ── Health & Monitoring ─────────────────────────────────────
 HEALTHCHECK_ENABLED      = os.getenv("HEALTHCHECK_ENABLED", "true").lower() == "true"

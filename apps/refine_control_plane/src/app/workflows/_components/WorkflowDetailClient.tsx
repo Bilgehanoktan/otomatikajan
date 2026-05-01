@@ -204,7 +204,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
             const approvalComment = notes || `Workflow ${workflow.id} approved from workflow detail surface.`;
 
             if (pendingApproval) {
-                await safeFetchJson(`${apiBase}/approvals/${pendingApproval.id}`, {
+                await safeFetchJson(`${apiBase}/governance/approvals/${pendingApproval.id}`, {
                     method: "PATCH",
                     headers: { "Content-Type": "application/json", ...authHeaders },
                     body: JSON.stringify({

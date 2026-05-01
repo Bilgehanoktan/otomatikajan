@@ -108,6 +108,20 @@ Beklenen davranış:
 - Postgres yoksa local dev'de `LOCAL_DEV_DB_STRATEGY=sqlite-fallback` ile sistem ayakta kalır
 - Redis yoksa ve kuyruk `inprocess` moddaysa bu local degraded mode olarak kabul edilir
 
+Resmi runtime profilleri:
+
+- `local-dev` -> minimal local topology, `inprocess` queue, Redis/DeerFlow kapalı
+- `full-stack-local` -> Docker ile Redis + Celery + DeerFlow açık yerel stack
+- `production` -> static UI + primary DB + Redis/Celery scheduler
+
+Başlatma kısayolları:
+
+```bat
+BASLAT.bat
+BASLAT.bat minimal
+BASLAT.bat fullstack
+```
+
 Eğer Windows üzerinde `127.0.0.1:8000` farklı/stale bir listener tarafından gölgeleniyorsa, frontend proxy hedefini açıkça yerel ağ arayüzüne taşıyabilirsiniz:
 
 ```env
@@ -163,12 +177,19 @@ make dev
 ## Docker ile Başlatma
 
 ```bash
-make docker-up      # PostgreSQL + Redis + App + Celery Worker
+docker compose up --build                        # minimal local topology
+docker compose --profile full-stack up --build   # full-stack local topology
 make docker-logs    # logları izle
 make docker-down    # durdur
 ```
 
-Servisler: **API** → http://localhost:8000 | **Docs** → http://localhost:8000/docs
+Minimal topology: **API** -> http://localhost:8000 | **UI** -> http://localhost:3100
+
+Full-stack local topology ek olarak şunları açar:
+
+- Redis -> `127.0.0.1:6380`
+- Postgres -> `127.0.0.1:5433`
+- DeerFlow bridge -> `http://localhost:8010`
 
 ---
 

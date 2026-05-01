@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from services.observability.logging import get_logger
 
 logger = get_logger("repair.lab_api")
-router = APIRouter(tags=["Repair Lab"])
+router = APIRouter(prefix="/repair-lab", tags=["Repair Lab"])
 
 @router.get("/benchmarks")
 async def list_benchmarks():

@@ -11,8 +11,9 @@ from libs.db.session import AsyncSessionLocal
 from libs.db.models.core_models import SovereignEvidence
 from sqlalchemy import select, desc
 
-router = APIRouter(prefix="/fleet", tags=["fleet-ops"])
+router = APIRouter(tags=["fleet-ops"])
 
+@router.get("")
 @router.get("/status")
 async def get_fleet_status():
     """

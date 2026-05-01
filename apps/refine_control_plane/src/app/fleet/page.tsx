@@ -62,15 +62,15 @@ export default function FleetDashboard() {
   const apiUrl = useApiUrl();
 
   const metricsQuery = useCustom<FleetMetrics>({
-    url: `${apiUrl}/fleet/metrics`,
+    url: `${apiUrl}/fleet/ops/metrics`,
     method: "get",
   }) as any;
   const clustersQuery = useCustom<FleetCluster[]>({
-    url: `${apiUrl}/fleet/clusters`,
+    url: `${apiUrl}/fleet/ops/clusters`,
     method: "get",
   }) as any;
   const eventsQuery = useCustom<FleetEvent[]>({
-    url: `${apiUrl}/fleet/events`,
+    url: `${apiUrl}/fleet/ops/events`,
     method: "get",
   }) as any;
 

@@ -31,7 +31,7 @@ import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 import { Skeleton } from "@/components/dashboard/Skeleton";
 import { safeFetchJson } from "@/lib/api";
 
-const API_BASE = "/api/v1";
+const API_BASE = "/api/v1/mesh";
 
 export default function MeshHub() {
   const [isClient, setIsClient] = useState(false);
@@ -44,19 +44,17 @@ export default function MeshHub() {
 
   const fetchMeshState = async () => {
     try {
-      const topoData = await safeFetchJson(`${API_BASE}/fleet/mesh/topology`);
+      const topoData = await safeFetchJson(`${API_BASE}/status`);
       setMeshData(topoData);
 
-      const evidenceData = await safeFetchJson(`${API_BASE}/fleet/evidence?limit=15`);
+      const evidenceData = await safeFetchJson(`${API_BASE}/timeline?limit=15`);
       
       const formattedTimeline = evidenceData.map((e: any) => ({
-          event_id: e.id,
-          region_id: e.payload.region || "global",
-          action: e.type.replace(/_/g, ' ').toUpperCase(),
-          timestamp: e.created_at,
-          details: { 
-            reason: e.payload.reason || e.payload.target || "Operational Event Trace" 
-          }
+          event_id: e.event_id,
+          region_id: e.region_id,
+          action: e.action,
+          timestamp: e.timestamp,
+          details: e.details
       }));
       setTimeline(formattedTimeline);
       setLoading(false);

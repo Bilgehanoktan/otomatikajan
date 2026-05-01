@@ -11,7 +11,7 @@ from libs.db.models.core_models import Project, ProjectStatus, SystemImprovement
 from libs.db.models.learning_models import ErrorFingerprint
 from libs.db.models.lineage_models import DecisionLineage
 
-router = APIRouter(prefix="/health", tags=["System Health & Metrics"])
+router = APIRouter(tags=["System Health & Metrics"])
 logger = logging.getLogger(__name__)
 
 # WebSocket Connection Manager

@@ -1,6 +1,78 @@
 services:
-  # ── PostgreSQL (pgvector) ────────────────────────────────
+  # Base file:
+  # - `docker compose up` starts the minimal local developer topology.
+  # - `docker compose --profile full-stack up` adds Redis, Postgres,
+  #   workers, DeerFlow, scheduler, and Telegram integrations.
+
+  app:
+    build:
+      context: .
+      target: production-slim
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      RUNTIME_PROFILE: ${RUNTIME_PROFILE:-local-dev}
+      REDIS_ENABLED: ${REDIS_ENABLED:-false}
+      CELERY_ENABLED: ${CELERY_ENABLED:-false}
+      DEERFLOW_ENABLED: ${DEERFLOW_ENABLED:-false}
+      TELEGRAM_ENABLED: ${TELEGRAM_ENABLED:-false}
+      SCHEDULER_ENABLED: ${SCHEDULER_ENABLED:-false}
+      QUEUE_BACKEND: ${QUEUE_BACKEND:-inprocess}
+      APP_UI_MODE: ${APP_UI_MODE:-api-only}
+      LOCAL_DEV_DB_STRATEGY: ${LOCAL_DEV_DB_STRATEGY:-sqlite-fallback}
+      DATABASE_URL: postgresql+asyncpg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/ai_company
+      REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
+      DEERFLOW_BRIDGE_URL: http://deerflow-bridge:8010
+      WORKERS: "2"
+      GUNICORN_TIMEOUT: "120"
+      PYTHONPATH: /app
+      DOCKER_CONTAINER: "true"
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 2048M
+          cpus: "0.5"
+    volumes:
+      - .:/app
+      - runtime_data:/app/runtime/data
+
+  # Control plane frontend (keeps legacy Dockerfile.cms name for now)
+  cms:
+    build:
+      context: .
+      dockerfile: Dockerfile.cms
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      RUNTIME_PROFILE: ${RUNTIME_PROFILE:-local-dev}
+      REDIS_ENABLED: ${REDIS_ENABLED:-false}
+      CELERY_ENABLED: ${CELERY_ENABLED:-false}
+      DEERFLOW_ENABLED: ${DEERFLOW_ENABLED:-false}
+      TELEGRAM_ENABLED: ${TELEGRAM_ENABLED:-false}
+      SCHEDULER_ENABLED: ${SCHEDULER_ENABLED:-false}
+      QUEUE_BACKEND: ${QUEUE_BACKEND:-inprocess}
+      APP_UI_MODE: ${APP_UI_MODE:-api-only}
+      LOCAL_DEV_DB_STRATEGY: ${LOCAL_DEV_DB_STRATEGY:-sqlite-fallback}
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/ai_company
+      REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
+      DOCKER_CONTAINER: "true"
+      PAYLOAD_PUBLIC_SERVER_URL: http://localhost:3100
+      NEXT_PUBLIC_API_URL: http://app:8000
+    ports:
+      - "3100:3100"
+
   db:
+    profiles: ["full-stack"]
     image: pgvector/pgvector:pg16
     restart: unless-stopped
     environment:
@@ -9,15 +81,16 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD .env dosyasinda tanimlanmali}
     volumes:
       - pgdata:/var/lib/postgresql/data
-    ports: [ "127.0.0.1:5433:5432" ]
+    ports:
+      - "127.0.0.1:5433:5432"
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}" ]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  # ── Redis ─────────────────────────────────────────────────
   redis:
+    profiles: ["full-stack"]
     image: redis:7-alpine
     restart: unless-stopped
     command: >
@@ -28,75 +101,37 @@ services:
           redis-server --requirepass \"$REDIS_PASSWORD\" --maxmemory 256mb --maxmemory-policy allkeys-lru;
         fi
       "
-    ports: [ "127.0.0.1:6380:6379" ]
+    ports:
+      - "127.0.0.1:6380:6379"
     healthcheck:
-      test: [ "CMD-SHELL", "if [ -z \"$REDIS_PASSWORD\" ]; then redis-cli ping; else redis-cli -a \"$REDIS_PASSWORD\" ping; fi" ]
+      test: ["CMD-SHELL", "if [ -z \"$REDIS_PASSWORD\" ]; then redis-cli ping; else redis-cli -a \"$REDIS_PASSWORD\" ping; fi"]
       interval: 5s
       timeout: 3s
       retries: 5
 
-  # ── FastAPI Uygulaması ────────────────────────────────────
-  app:
-    build:
-      context: .
-      target: production-slim
-    restart: unless-stopped
-    env_file:
-      - .env
-      # - .env.local
-    environment:
-      DATABASE_URL: postgresql+asyncpg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/ai_company
-      REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
-      DEERFLOW_BRIDGE_URL: http://deerflow-bridge:8010
-      WORKERS: "2"
-      GUNICORN_TIMEOUT: "120"
-      PYTHONPATH: /app
-      DOCKER_CONTAINER: "true"
-    ports:
-      - "8000:8000"
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      deerflow-bridge:
-        condition: service_started
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 20s
-    deploy:
-      resources:
-        limits:
-          memory: 2048M
-          cpus: '0.5'
-    volumes:
-      - .:/app
-      - runtime_data:/app/runtime/data
-
-  # ── Celery Worker ─────────────────────────────────────────
   worker:
+    profiles: ["full-stack"]
     build:
       context: .
       target: production-worker
     restart: unless-stopped
     env_file:
       - .env
-      # - .env.local
     environment:
+      RUNTIME_PROFILE: full-stack-local
+      REDIS_ENABLED: "true"
+      CELERY_ENABLED: "true"
+      DEERFLOW_ENABLED: "true"
+      TELEGRAM_ENABLED: "false"
+      SCHEDULER_ENABLED: "false"
+      QUEUE_BACKEND: celery
+      APP_UI_MODE: api-only
+      LOCAL_DEV_DB_STRATEGY: primary
       DATABASE_URL: postgresql+asyncpg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/ai_company
       REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
       DEERFLOW_BRIDGE_URL: http://deerflow-bridge:8010
       PYTHONPATH: /app
       DOCKER_CONTAINER: "true"
-    # Komut Dockerfile'a taşındı, burada override edilebilir
-#    healthcheck:
-#      test: [ "CMD-SHELL", "celery -A apps.worker.tasks.celery_app inspect ping || exit 1" ]
-#      interval: 30s
-#      timeout: 10s
-#      retries: 3
     depends_on:
       db:
         condition: service_healthy
@@ -108,18 +143,26 @@ services:
       resources:
         limits:
           memory: 2048M
-          cpus: '0.5'
+          cpus: "0.5"
 
-  # ── DeerFlow Worker (İzole Kuyruk) ─────────────────────────
   deerflow-worker:
+    profiles: ["full-stack"]
     build:
       context: .
       target: production-worker
     restart: unless-stopped
     env_file:
       - .env
-      # - .env.local
     environment:
+      RUNTIME_PROFILE: full-stack-local
+      REDIS_ENABLED: "true"
+      CELERY_ENABLED: "true"
+      DEERFLOW_ENABLED: "true"
+      TELEGRAM_ENABLED: "false"
+      SCHEDULER_ENABLED: "false"
+      QUEUE_BACKEND: celery
+      APP_UI_MODE: api-only
+      LOCAL_DEV_DB_STRATEGY: primary
       DATABASE_URL: postgresql+asyncpg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/ai_company
       REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
       DEERFLOW_BRIDGE_URL: http://deerflow-bridge:8010
@@ -132,7 +175,7 @@ services:
         --loglevel=info
         --hostname=deerflow-worker@%h
     healthcheck:
-      test: [ "CMD-SHELL", "celery -A workers.workflow_worker.tasks.celery_app inspect ping || exit 1" ]
+      test: ["CMD-SHELL", "celery -A workers.workflow_worker.tasks.celery_app inspect ping || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -147,18 +190,26 @@ services:
       resources:
         limits:
           memory: 1536M
-          cpus: '1.0'
+          cpus: "1.0"
 
-  # ── Celery Beat (Zamanlayıcı) ───────────────────────────
   beat:
+    profiles: ["full-stack"]
     build:
       context: .
       target: production-slim
     restart: unless-stopped
     env_file:
       - .env
-      # - .env.local
     environment:
+      RUNTIME_PROFILE: full-stack-local
+      REDIS_ENABLED: "true"
+      CELERY_ENABLED: "true"
+      DEERFLOW_ENABLED: "true"
+      TELEGRAM_ENABLED: "false"
+      SCHEDULER_ENABLED: "true"
+      QUEUE_BACKEND: celery
+      APP_UI_MODE: api-only
+      LOCAL_DEV_DB_STRATEGY: primary
       DATABASE_URL: postgresql+asyncpg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/ai_company
       REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
       PYTHONPATH: /app
@@ -174,8 +225,8 @@ services:
       redis:
         condition: service_healthy
 
-  # ── DeerFlow Bridge ───────────────────────────────────────
   deerflow-bridge:
+    profiles: ["full-stack"]
     build:
       context: ./libs/vendor/deer-flow
       dockerfile: ./backend/Dockerfile
@@ -183,7 +234,6 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-      # - .env.local
     environment:
       GATEWAY_PORT: 8010
       DEER_FLOW_CONFIG_PATH: /opt/deerflow/config.yaml
@@ -218,10 +268,10 @@ services:
       resources:
         limits:
           memory: 1536M
-          cpus: '1.0'
+          cpus: "1.0"
 
-  # ── Telegram Bot (Watchdog Dahil) ─────────────────────────
   telegram-bot:
+    profiles: ["full-stack"]
     build:
       context: .
       target: production-slim
@@ -229,6 +279,15 @@ services:
     env_file:
       - .env
     environment:
+      RUNTIME_PROFILE: full-stack-local
+      REDIS_ENABLED: "true"
+      CELERY_ENABLED: "true"
+      DEERFLOW_ENABLED: "true"
+      TELEGRAM_ENABLED: "true"
+      SCHEDULER_ENABLED: "false"
+      QUEUE_BACKEND: celery
+      APP_UI_MODE: api-only
+      LOCAL_DEV_DB_STRATEGY: primary
       DATABASE_URL: postgresql+asyncpg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/ai_company
       REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
       PYTHONPATH: /app
@@ -245,42 +304,6 @@ services:
       - .:/app
       - runtime_data:/app/runtime/data
 
-  # ── Payload CMS (Admin Interface) ─────────────────────────
-  cms:
-    build:
-      context: .
-      dockerfile: Dockerfile.cms
-    restart: unless-stopped
-    env_file:
-      - .env
-    environment:
-      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/ai_company
-      REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
-      DOCKER_CONTAINER: "true"
-      PAYLOAD_PUBLIC_SERVER_URL: http://localhost:3100
-      NEXT_PUBLIC_API_URL: http://app:8000
-    ports:
-      - "3100:3100"
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-
-
-
 volumes:
   pgdata:
   runtime_data:
-
-    # ── NOT ──────────────────────────────────────────────────────
-    # Local development için port açmak istersen:
-    #
-    #   docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
-    #
-    # docker-compose.dev.yml içeriği:
-    #   services:
-    #     db:
-    #       ports: ["127.0.0.1:5432:5432"]
-    #     redis:
-    #       ports: ["127.0.0.1:6379:6379"]
