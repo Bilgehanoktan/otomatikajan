@@ -50,7 +50,7 @@ export default function ProofFabricDashboard() {
   const {
     query: { data: snapshotsData, isLoading: snapshotsLoading },
   } = useList<AuditBundleRecord>({
-    resource: "compliance/audit-bundles",
+    resource: "governance/compliance/audit-bundles",
     pagination: { pageSize: 5 },
     sorters: [{ field: "created_at", order: "desc" }],
   });

@@ -31,7 +31,7 @@ export default function CompliancePage() {
   });
 
   const { query: { data: bundleData, isLoading: isBundleLoading } } = useList({
-    resource: "compliance/audit-bundles",
+    resource: "governance/compliance/audit-bundles",
   });
 
   const { mutate } = useCustomMutation();
@@ -41,7 +41,7 @@ export default function CompliancePage() {
     const formData = new FormData(e.currentTarget);
     
     mutate({
-      url: `/api/v1/compliance/audit-bundles`,
+      url: `/api/v1/governance/compliance/audit-bundles`,
       method: "post",
       values: {
         name: formData.get("name"),

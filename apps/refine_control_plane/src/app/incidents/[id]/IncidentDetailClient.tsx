@@ -58,7 +58,7 @@ export default function IncidentDetailClient({ id }: IncidentDetailClientProps) 
 
         try {
             const authHeaders = await getAuthHeaders();
-            const response = await safeFetchJson<Incident>(`${apiBase}/incidents/${id}`, {
+            const response = await safeFetchJson<Incident>(`${apiBase}/governance/incidents/${id}`, {
                 headers: authHeaders,
             });
             setIncident(response);
@@ -83,14 +83,13 @@ export default function IncidentDetailClient({ id }: IncidentDetailClientProps) 
 
         try {
             const authHeaders = await getAuthHeaders();
-            const response = await safeFetchJson<Incident>(`${apiBase}/incidents/${incident.id}`, {
-                method: "PATCH",
+            const response = await safeFetchJson<Incident>(`${apiBase}/governance/incidents/${incident.id}/resolve`, {
+                method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     ...authHeaders,
                 },
                 body: JSON.stringify({
-                    status: "resolved",
                     resolution_notes: notes,
                 }),
             });

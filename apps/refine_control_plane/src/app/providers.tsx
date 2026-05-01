@@ -94,7 +94,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
       }
       return null;
     },
-    onError: async (error) => {
+    onError: async (error: any) => {
+      // SIF-01 Hardening: Handle session expiration (401/403)
+      if (error?.status === 401 || error?.status === 403 || error?.statusCode === 401 || error?.statusCode === 403) {
+        clearStoredAccessToken();
+        return { 
+          logout: true,
+          error: new Error("Oturum süreniz doldu. Lütfen tekrar giriş yapın.") 
+        };
+      }
       return { error };
     }
   };
@@ -137,7 +145,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
               meta: { label: "resources.approvals" },
             },
             {
-              name: "incidents",
+              name: "governance/incidents",
               list: "/incidents",
               show: "/incidents/:id",
               meta: { label: "resources.incidents" },
@@ -233,7 +241,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
               meta: { label: "resources.selfTuning" },
             },
             {
-              name: "compliance/audit-bundles",
+              name: "governance/compliance/audit-bundles",
               list: "/compliance/audit-bundles",
               meta: { label: "resources.auditBundles" },
             },
@@ -340,7 +348,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
               meta: { label: "resources.drifts", parent: "governance/governor/cases" },
             },
             {
-              name: "governor/proof",
+              name: "governance/inbox/governor/proof",
               list: "/governor/proof",
               show: "/governor/proof/snapshots/:id",
               meta: { label: "resources.proofFabric", parent: "governance/governor/cases" },

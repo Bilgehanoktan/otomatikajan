@@ -132,7 +132,7 @@ export function LiveEventStream({ apiUrl, height }: { apiUrl: string, height?: s
     const timer = setInterval(async () => {
       try {
         const res = await fetch(
-          `${apiUrl}/events/stream?since_seq=${lastSeqRef.current}&limit=50`,
+          `${apiUrl}/health/events/stream?since_seq=${lastSeqRef.current}&limit=50`,
           { signal: AbortSignal.timeout(5000) }
         );
         if (!res.ok) return;

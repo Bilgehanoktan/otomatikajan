@@ -53,7 +53,7 @@ export default function IncidentsPage() {
     try {
       const authHeaders = await getAuthHeaders();
       const response = await safeFetchJson<Incident[] | { data?: Incident[]; __sqv_meta?: unknown }>(
-        `${apiBase}/incidents?_end=10&_order=desc&_sort=created_at&_start=0`,
+        `${apiBase}/governance/incidents?_end=10&_order=desc&_sort=created_at&_start=0`,
         {
           headers: authHeaders,
         },
@@ -87,10 +87,10 @@ export default function IncidentsPage() {
     async (id: string) => {
       try {
         const authHeaders = await getAuthHeaders();
-        await safeFetchJson(`${apiBase}/incidents/${id}`, {
-          method: "PATCH",
+        await safeFetchJson(`${apiBase}/governance/incidents/${id}/resolve`, {
+          method: "POST",
           headers: { "Content-Type": "application/json", ...authHeaders },
-          body: JSON.stringify({ status: "resolved" }),
+          body: JSON.stringify({ resolution_notes: "Resolved from control plane incidents page" }),
         });
 
         notification.success({
