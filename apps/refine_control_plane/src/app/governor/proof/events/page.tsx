@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import dayjs from "dayjs";
+import { useTranslations, useFormatter } from "next-intl";
 import { Breadcrumb, Button, Card, Space, Table, Tag, Typography } from "antd";
 import { FileSearchOutlined, HistoryOutlined, HomeOutlined, SafetyCertificateOutlined } from "@ant-design/icons";
 import { useList } from "@refinedev/core";
@@ -20,6 +20,8 @@ interface LineageRecord {
 }
 
 export default function ProofEventsPage() {
+  const t = useTranslations("audit");
+  const format = useFormatter();
   const {
     query: { data, isLoading },
   } = useList<LineageRecord>({
@@ -34,24 +36,24 @@ export default function ProofEventsPage() {
     <div style={{ padding: "24px" }}>
       <Breadcrumb style={{ marginBottom: "16px" }}>
         <Breadcrumb.Item href="/"><HomeOutlined /></Breadcrumb.Item>
-        <Breadcrumb.Item href="/governor/proof">Proof Fabric</Breadcrumb.Item>
-        <Breadcrumb.Item>Event Ledger</Breadcrumb.Item>
+        <Breadcrumb.Item href="/governor/proof">{t("breadcrumb.proofFabric")}</Breadcrumb.Item>
+        <Breadcrumb.Item>{t("breadcrumb.eventLedger")}</Breadcrumb.Item>
       </Breadcrumb>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
         <div>
           <Title level={2} style={{ margin: 0 }}>
             <HistoryOutlined style={{ marginRight: 12, color: "#1677ff" }} />
-            Proof Event Ledger
+            {t("title")}
           </Title>
-          <Text type="secondary">Immutable governance decisions ordered by ledger time.</Text>
+          <Text type="secondary">{t("subtitle")}</Text>
         </div>
         <Space>
           <Link href="/governor/proof">
-            <Button icon={<SafetyCertificateOutlined />}>Back to Proof Fabric</Button>
+            <Button icon={<SafetyCertificateOutlined />}>{t("buttons.backToProof")}</Button>
           </Link>
           <Link href="/proof/snapshots">
-            <Button type="primary" icon={<FileSearchOutlined />}>Open Snapshots</Button>
+            <Button type="primary" icon={<FileSearchOutlined />}>{t("buttons.openSnapshots")}</Button>
           </Link>
         </Space>
       </div>
@@ -66,40 +68,47 @@ export default function ProofEventsPage() {
           scroll={{ x: 960 }}
         >
           <Table.Column<LineageRecord>
-            title="Component"
+            title={t("table.component")}
             dataIndex="component_name"
             width={180}
             render={(value: string) => <Text strong>{value}</Text>}
           />
           <Table.Column<LineageRecord>
-            title="Decision"
+            title={t("table.decision")}
             dataIndex="decision_type"
             width={180}
             render={(value: string) => <Tag color="blue">{value}</Tag>}
           />
           <Table.Column<LineageRecord>
-            title="Outcome"
+            title={t("table.outcome")}
             dataIndex="outcome"
             width={160}
             render={(value?: string | null) => value ? <Tag color="green">{value}</Tag> : <Text type="secondary">-</Text>}
           />
           <Table.Column<LineageRecord>
-            title="Confidence"
+            title={t("table.confidence")}
             dataIndex="confidence_score"
             width={120}
-            render={(value: number) => `${Math.round((value || 0) * 100)}%`}
+            render={(value: number) => format.number((value || 0), { style: "percent" })}
           />
           <Table.Column<LineageRecord>
-            title="Integrity Hash"
+            title={t("table.integrityHash")}
             dataIndex="integrity_hash"
             ellipsis
             render={(value: string | null | undefined, record) => <Text copyable={{ text: value || record.id }}>{(value || record.id).slice(0, 12)}...</Text>}
           />
           <Table.Column<LineageRecord>
-            title="Created"
+            title={t("table.created")}
             dataIndex="created_at"
             width={180}
-            render={(value: string) => dayjs(value).format("YYYY-MM-DD HH:mm:ss")}
+            render={(value: string) => format.dateTime(new Date(value), {
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit"
+            })}
           />
         </Table>
       </Card>

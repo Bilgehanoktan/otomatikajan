@@ -87,15 +87,15 @@ export default function CostsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 mb-10">
          <EliteCostCard 
             label="Total Consumption" 
-            val={`$${stats.total_cost_usd.toFixed(2)}`} 
+            val={`$${(stats.total_cost_usd ?? 0).toFixed(2)}`} 
             subtitle="MTD Aggregate" 
             icon={<DollarSign size={18} />} 
             progress={stats.usage_pct}
-            limit={`Limit: $${stats.budget_limit_usd}`}
+            limit={`Limit: $${stats.budget_limit_usd ?? 1000}`}
          />
          <EliteCostCard 
             label="Fleet Burn Rate" 
-            val={`$${totalBurnRate.toFixed(2)}`} 
+            val={`$${(totalBurnRate ?? 0).toFixed(2)}`} 
             subtitle="Aggregate / Hour" 
             icon={<TrendingUp size={18} />} 
             accent="text-red-400"
@@ -160,7 +160,7 @@ export default function CostsPage() {
                               </div>
                            </div>
                            <div className="text-right">
-                              <p className={`text-xs font-black font-mono tracking-tighter ${proj.hourly_burn_rate > 5 ? 'text-red-400' : 'text-green-400'}`}>${proj.hourly_burn_rate?.toFixed(2)}/HR</p>
+                              <p className={`text-xs font-black font-mono tracking-tighter ${(proj.hourly_burn_rate ?? 0) > 5 ? 'text-red-400' : 'text-green-400'}`}>${(proj.hourly_burn_rate ?? 0).toFixed(2)}/HR</p>
                               <p className="text-[9px] text-gray-800 font-black uppercase mt-1 tracking-widest">Aggregate Burn</p>
                            </div>
                         </div>
@@ -169,7 +169,7 @@ export default function CostsPage() {
                            <div className="flex-grow">
                               <div className="flex justify-between items-baseline mb-2">
                                  <span className="text-[9px] text-gray-700 font-black uppercase tracking-widest">Budget Remaining</span>
-                                 <span className="text-[10px] font-mono font-black text-white italic">${proj.current_budget_usd?.toFixed(0)} LEFT</span>
+                                 <span className="text-[10px] font-mono font-black text-white italic">${(proj.current_budget_usd ?? 0).toFixed(0)} LEFT</span>
                               </div>
                               <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
                                  <div 
@@ -215,7 +215,7 @@ export default function CostsPage() {
                            <h3 className="text-white font-black text-xs uppercase tracking-tight group-hover/driver:text-[var(--primary)] transition-colors">{proj.title}</h3>
                         </div>
                         <div className="flex items-center gap-5">
-                           <span className="text-white font-black font-mono text-sm tracking-tighter">${proj.cost_usd.toFixed(2)}</span>
+                           <span className="text-white font-black font-mono text-sm tracking-tighter">${(proj.cost_usd ?? 0).toFixed(2)}</span>
                            <div className="w-1.5 h-1.5 rounded-full bg-gray-900 group-hover/driver:bg-[var(--primary)] shadow-[0_0_8px_currentColor] transition-colors" />
                         </div>
                      </div>

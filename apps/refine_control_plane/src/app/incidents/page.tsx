@@ -20,6 +20,8 @@ import {
 import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 import { Skeleton } from "@/components/dashboard/Skeleton";
 import { safeFetchJson } from "@/lib/api";
+import { getAuthHeaders } from "@/lib/auth";
+import { getApiBaseUrl } from "@/lib/runtime";
 
 interface Incident {
   id: string;
@@ -42,41 +44,7 @@ export default function IncidentsPage() {
 
   React.useEffect(() => setIsClient(true), []);
 
-  const apiBase = React.useMemo(() => {
-    if (typeof window === "undefined") {
-      return "http://127.0.0.1:8000/api/v1";
-    }
-    return `${window.location.protocol}//${window.location.hostname}:8000/api/v1`;
-  }, []);
-
-  const getAuthHeaders = React.useCallback(async () => {
-    const tokenKey = "sqv_access_token";
-    const cached = typeof window !== "undefined" ? window.localStorage.getItem(tokenKey) : null;
-
-    if (cached) {
-      return { Authorization: `Bearer ${cached}` };
-    }
-
-    if (process.env.NODE_ENV === "development") {
-      const auto = await fetch(`${apiBase}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ email: "admin@sovereign.agi", password: "admin1234" }),
-      });
-
-      if (auto.ok) {
-        const payload = await auto.json();
-        const token = payload?.access_token as string | undefined;
-        if (token && typeof window !== "undefined") {
-          window.localStorage.setItem(tokenKey, token);
-          return { Authorization: `Bearer ${token}` };
-        }
-      }
-    }
-
-    return {};
-  }, [apiBase]);
+  const apiBase = React.useMemo(() => getApiBaseUrl(), []);
 
   const loadIncidents = React.useCallback(async () => {
     setIsLoading(true);
@@ -108,7 +76,7 @@ export default function IncidentsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [apiBase, getAuthHeaders]);
+  }, [apiBase]);
 
   React.useEffect(() => {
     if (!isClient) return;
@@ -140,7 +108,7 @@ export default function IncidentsPage() {
         });
       }
     },
-    [apiBase, getAuthHeaders, loadIncidents, notification],
+    [apiBase, loadIncidents, notification],
   );
 
   if (!isClient) return <div className="min-h-screen bg-[#060a12]" />;

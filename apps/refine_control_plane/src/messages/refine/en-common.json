@@ -1,0 +1,25 @@
+{
+  "buttons": {
+    "create": "Create",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "cancel": "Cancel",
+    "refresh": "Refresh",
+    "show": "Show",
+    "filter": "Filter",
+    "clear": "Clear"
+  },
+  "notifications": {
+    "createSuccess": "Successfully created",
+    "createError": "There was an error creating the record",
+    "editSuccess": "Successfully updated",
+    "editError": "There was an error updating the record",
+    "deleteSuccess": "Successfully deleted",
+    "deleteError": "There was an error deleting the record"
+  },
+  "table": {
+    "emptyText": "No data available",
+    "actions": "Actions"
+  }
+}

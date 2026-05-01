@@ -714,19 +714,31 @@ def _celery_state_to_job(state: str) -> JobStatus:
 
 
 # ── Singleton ─────────────────────────────────────────────
-from libs.config import REDIS_URL, WORKER_CONCURRENCY, QUEUE_BACKEND  # type: ignore
+from libs.config import APP_ENV, REDIS_URL, WORKER_CONCURRENCY, QUEUE_BACKEND, RUNTIME_PROFILE, CELERY_ENABLED  # type: ignore
 
 def create_job_queue():
     backend = (QUEUE_BACKEND or "auto").lower()
 
     if backend == "celery":
+        if not CELERY_ENABLED:
+            get_logger("job_queue").warning(
+                "QUEUE_BACKEND=celery requested but CELERY_ENABLED is false in runtime profile %s. Falling back to in-process queue.",
+                RUNTIME_PROFILE,
+            )
+            return JobQueue(concurrency=WORKER_CONCURRENCY)
         return CeleryJobQueue()
 
     if backend == "inprocess":
         return JobQueue(concurrency=WORKER_CONCURRENCY)
 
+    # Local development should prefer the canonical in-process runner unless the
+    # operator explicitly forces Celery. This keeps workflow execution alive even
+    # when a stale REDIS_URL exists in the environment.
+    if APP_ENV == "development" and RUNTIME_PROFILE == "local-dev":
+        return JobQueue(concurrency=WORKER_CONCURRENCY)
+
     # auto mode
-    has_redis_config = bool(os.getenv("REDIS_URL") or REDIS_URL)
+    has_redis_config = CELERY_ENABLED and bool(os.getenv("REDIS_URL") or REDIS_URL)
     
     if has_redis_config:
         try:

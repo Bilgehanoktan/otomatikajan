@@ -19,6 +19,7 @@ import {
     Typography,
 } from "antd";
 import { useNavigation } from "@refinedev/core";
+import { useTranslations, useFormatter } from "next-intl";
 import ArrowLeftOutlined from "@ant-design/icons/lib/icons/ArrowLeftOutlined";
 import BranchesOutlined from "@ant-design/icons/lib/icons/BranchesOutlined";
 import CheckCircleOutlined from "@ant-design/icons/lib/icons/CheckCircleOutlined";
@@ -29,6 +30,8 @@ import SafetyOutlined from "@ant-design/icons/lib/icons/SafetyOutlined";
 import SyncOutlined from "@ant-design/icons/lib/icons/SyncOutlined";
 import ThunderboltOutlined from "@ant-design/icons/lib/icons/ThunderboltOutlined";
 import { safeFetchJson } from "@/lib/api";
+import { getAuthHeaders } from "@/lib/auth";
+import { getApiBaseUrl } from "@/lib/runtime";
 
 const { Title, Text } = Typography;
 
@@ -112,87 +115,11 @@ const cleanText = (value?: string | null, fallback = "-"): string => {
     return repairMojibake(value).trim() || fallback;
 };
 
-const formatStatusText = (status?: string | null): string => {
-    const normalized = String(status || "").toLowerCase();
-    switch (normalized) {
-        case "running":
-            return "ÇALIŞIYOR";
-        case "completed":
-        case "success":
-            return "TAMAMLANDI";
-        case "failed":
-        case "error":
-            return "HATA";
-        case "waiting_approval":
-        case "pending_approval":
-            return "ONAY BEKLİYOR";
-        case "queued":
-            return "KUYRUKTA";
-        default:
-            return cleanText(status, "BİLİNMİYOR").toUpperCase();
-    }
-};
-
-const formatSourceText = (source?: string | null): string => {
-    const normalized = String(source || "").toLowerCase();
-    switch (normalized) {
-        case "api":
-            return "API";
-        case "manual":
-            return "MANUEL";
-        case "scheduler":
-            return "ZAMANLAYICI";
-        case "governor":
-            return "YÖNETİŞİM";
-        default:
-            return cleanText(source, "MANUEL").toUpperCase();
-    }
-};
-
-const formatTypeText = (workflowType?: string | null): string => {
-    const normalized = String(workflowType || "").toLowerCase();
-    switch (normalized) {
-        case "default":
-            return "GENEL";
-        case "repair":
-            return "ONARIM";
-        case "deployment":
-            return "DAĞITIM";
-        case "analysis":
-            return "ANALİZ";
-        default:
-            return cleanText(workflowType, "GENEL").toUpperCase();
-    }
-};
-
-const humanizeStepLabel = (stepName?: string | null): string => {
-    const cleaned = cleanText(stepName, "Adsız Adım");
-    const map: Record<string, string> = {
-        planner_alpha: "Planlama",
-        planner_alpha_01: "Planlama",
-        executor_beta: "Uygulama",
-        reviewer_gamma: "Gözden Geçirme",
-        governor_prime: "Yönetişim Ön Kontrolü",
-        auditor_theta: "Denetim Onayı",
-        plan_subtasks: "Alt Görev Planlama",
-        validate_context: "Bağlam Doğrulama",
-        finalize_report: "Final Raporu",
-    };
-    const normalized = cleaned.toLowerCase().replace(/[\s-]+/g, "_");
-    return map[normalized] || cleaned;
-};
-
-const formatTimestamp = (value?: string | null): string => {
-    if (!value) {
-        return "-";
-    }
-
+const formatTimestamp = (value: string | null | undefined, format: any): string => {
+    if (!value) return "-";
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-        return cleanText(value);
-    }
-
-    return date.toLocaleString("tr-TR", {
+    if (Number.isNaN(date.getTime())) return value;
+    return format.dateTime(date, {
         day: "2-digit",
         month: "2-digit",
         year: "numeric",
@@ -202,6 +129,9 @@ const formatTimestamp = (value?: string | null): string => {
 };
 
 export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) {
+    const t = useTranslations("workflowDetail");
+    const tStatus = useTranslations("status");
+    const format = useFormatter();
     const { notification } = App.useApp();
     const { list } = useNavigation();
     const [workflow, setWorkflow] = React.useState<WorkflowDetail | null>(null);
@@ -213,41 +143,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
 
     React.useEffect(() => setIsClient(true), []);
 
-    const apiBase = React.useMemo(() => {
-        if (typeof window === "undefined") {
-            return "http://127.0.0.1:8000/api/v1";
-        }
-        return `${window.location.protocol}//${window.location.hostname}:8000/api/v1`;
-    }, []);
-
-    const getAuthHeaders = React.useCallback(async () => {
-        const tokenKey = "sqv_access_token";
-        const cached = typeof window !== "undefined" ? window.localStorage.getItem(tokenKey) : null;
-
-        if (cached) {
-            return { Authorization: `Bearer ${cached}` };
-        }
-
-        if (process.env.NODE_ENV === "development") {
-            const auto = await fetch(`${apiBase}/auth/login`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-                body: JSON.stringify({ email: "admin@sovereign.agi", password: "admin1234" }),
-            });
-
-            if (auto.ok) {
-                const payload = await auto.json();
-                const token = payload?.access_token as string | undefined;
-                if (token && typeof window !== "undefined") {
-                    window.localStorage.setItem(tokenKey, token);
-                    return { Authorization: `Bearer ${token}` };
-                }
-            }
-        }
-
-        return {};
-    }, [apiBase]);
+    const apiBase = React.useMemo(() => getApiBaseUrl(), []);
 
     const loadWorkflow = React.useCallback(async () => {
         if (!id || id === "index") {
@@ -272,7 +168,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
         } finally {
             setIsLoading(false);
         }
-    }, [apiBase, getAuthHeaders, id]);
+    }, [apiBase, id]);
 
     React.useEffect(() => {
         if (!isClient) return;
@@ -295,7 +191,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
     const handleApprove = React.useCallback(async () => {
         const notes = (document.getElementById("approval-notes") as HTMLTextAreaElement | null)?.value || "";
         if (!workflow?.id) {
-            notification.error({ message: "Hata", description: "İş akışı bulunamadı." });
+            notification.error({ message: t("notifications.networkError"), description: t("notifications.workflowNotFound") });
             return;
         }
 
@@ -305,24 +201,27 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
             const pendingApproval = (workflow.related_approvals || []).find(
                 (item) => String(item.status || "").toLowerCase() === "pending",
             );
+            const approvalComment = notes || `Workflow ${workflow.id} approved from workflow detail surface.`;
 
-            const response = pendingApproval
-                ? await safeFetchJson(`${apiBase}/approvals/${pendingApproval.id}`, {
-                      method: "PATCH",
-                      headers: { "Content-Type": "application/json", ...authHeaders },
-                      body: JSON.stringify({
-                          status: "APPROVED",
-                          comment: notes || `Workflow ${workflow.id} approved from workflow detail surface.`,
-                      }),
-                  })
-                : await safeFetchJson(`${apiBase}/workflows/${workflow.id}/approve`, {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json", ...authHeaders },
-                      body: JSON.stringify({
-                          operator_id: "admin_human",
-                          notes,
-                      }),
-                  });
+            if (pendingApproval) {
+                await safeFetchJson(`${apiBase}/approvals/${pendingApproval.id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json", ...authHeaders },
+                    body: JSON.stringify({
+                        status: "APPROVED",
+                        comment: approvalComment,
+                    }),
+                });
+            }
+
+            const response = await safeFetchJson(`${apiBase}/workflows/${workflow.id}/approve`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", ...authHeaders },
+                body: JSON.stringify({
+                    operator_id: "admin_human",
+                    notes: approvalComment,
+                }),
+            });
 
             if (
                 (response as { status?: string }).status === "success" ||
@@ -331,41 +230,41 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                 (response as { decided_at?: string }).decided_at
             ) {
                 notification.success({
-                    message: "İş akışı onaylandı",
+                    message: t("notifications.approved"),
                     description: pendingApproval
-                        ? "Onay kapısı imzalandı ve kayıt zincirine işlendi."
-                        : "İş akışı yetkilendirildi ve tekrar kuyruğa alındı.",
+                        ? t("notifications.approvedDescGate")
+                        : t("notifications.approvedDescAuth"),
                     placement: "topRight",
                 });
                 await loadWorkflow();
             } else {
                 notification.error({
-                    message: "Onay başarısız",
-                    description: "Sistem onay isteğini kabul etmedi.",
+                    message: t("notifications.failed"),
+                    description: t("notifications.failedDesc"),
                 });
             }
         } catch (err) {
             notification.error({
-                message: "Ağ hatası",
-                description: err instanceof Error ? err.message : "Mission Control API ile bağlantı kurulamadı.",
+                message: t("notifications.networkError"),
+                description: err instanceof Error ? err.message : t("notifications.networkErrorDesc"),
             });
         } finally {
             setIsSubmitting(false);
         }
-    }, [apiBase, getAuthHeaders, loadWorkflow, notification, workflow]);
+    }, [apiBase, loadWorkflow, notification, workflow, t]);
 
     if (!isClient) return <div className="min-h-screen bg-[#060a12]" />;
     if (isLoading) return <Card loading />;
     if (isError || !workflow) {
         return (
             <Alert
-                message="Hata"
-                description="İş akışı bulunamadı ya da yüklenemedi."
+                message={t("notifications.networkError")}
+                description={t("notifications.workflowNotFound")}
                 type="error"
                 showIcon
                 action={
                     <Button size="small" type="primary" onClick={() => list("workflows")}>
-                        Akış listesine dön
+                        {t("returnToList")}
                     </Button>
                 }
             />
@@ -374,36 +273,37 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
 
     const getStatusTag = (status: string) => {
         const normalized = String(status || "").toLowerCase();
+        const label = tStatus(normalized as any);
         switch (normalized) {
             case "running":
                 return (
                     <Tag icon={<SyncOutlined spin />} color="processing">
-                        ÇALIŞIYOR
+                        {label.toUpperCase()}
                     </Tag>
                 );
             case "completed":
             case "success":
                 return (
                     <Tag icon={<CheckCircleOutlined />} color="success">
-                        TAMAMLANDI
+                        {label.toUpperCase()}
                     </Tag>
                 );
             case "failed":
             case "error":
                 return (
                     <Tag icon={<ExclamationCircleOutlined />} color="error">
-                        HATA
+                        {label.toUpperCase()}
                     </Tag>
                 );
             case "waiting_approval":
             case "pending_approval":
                 return (
                     <Tag icon={<ClockCircleOutlined />} color="warning">
-                        ONAY BEKLİYOR
+                        {label.toUpperCase()}
                     </Tag>
                 );
             default:
-                return <Tag color="default">{formatStatusText(status)}</Tag>;
+                return <Tag color="default">{label.toUpperCase()}</Tag>;
         }
     };
 
@@ -414,6 +314,22 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
     const activeIndex = currentStepIndex === -1 ? steps.length : currentStepIndex;
     const finalReport = cleanText(workflow.final_report, "");
     const history = workflow.history || [];
+
+    const formatSourceText = (source?: string | null): string => {
+        const normalized = String(source || "").toLowerCase();
+        return t(`mappings.source.${normalized}` as any, { defaultValue: (source || "MANUAL").toUpperCase() });
+    };
+
+    const formatTypeText = (workflowType?: string | null): string => {
+        const normalized = String(workflowType || "").toLowerCase();
+        return t(`mappings.type.${normalized}` as any, { defaultValue: (workflowType || "GENERAL").toUpperCase() });
+    };
+
+    const humanizeStepLabel = (stepName?: string | null): string => {
+        const cleaned = cleanText(stepName, "untitled");
+        const normalized = cleaned.toLowerCase().replace(/[\s-]+/g, "_");
+        return t(`mappings.steps.${normalized}` as any, { defaultValue: cleaned });
+    };
 
     return (
         <div
@@ -432,7 +348,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                     onClick={() => list("workflows")}
                     style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.1)", color: "#aaa" }}
                 >
-                    İş akışlarına dön
+                    {t("returnToList")}
                 </Button>
                 <Space>
                     {String(workflow.status || "").toLowerCase() === "running" ? (
@@ -443,7 +359,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                                 background: "rgba(102, 252, 241, 0.05)",
                             }}
                         >
-                            <SyncOutlined spin /> CANLI GÜNCELLENİYOR
+                            <SyncOutlined spin /> {t("liveUpdating")}
                         </Tag>
                     ) : null}
                     <Button
@@ -452,7 +368,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                         onClick={() => setAutoRefresh(!autoRefresh)}
                         style={{ fontSize: "10px", height: "24px" }}
                     >
-                        Otomatik eşitleme: {autoRefresh ? "Açık" : "Kapalı"}
+                        {t("autoSync")}: {autoRefresh ? t("on") : t("off")}
                     </Button>
                 </Space>
             </div>
@@ -473,10 +389,10 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                                 type="secondary"
                                 style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px" }}
                             >
-                                Operasyonel İş Akışı
+                                {t("operationalWorkflow")}
                             </Text>
                             <Title level={3} style={{ color: "#fff", margin: 0, fontWeight: 900 }}>
-                                {cleanText(workflow.name, "Adsız Sekans")}
+                                {cleanText(workflow.name, t("untitledSequence"))}
                             </Title>
                             <Space style={{ marginTop: "4px" }}>
                                 {getStatusTag(workflow.status)}
@@ -488,14 +404,14 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                     </Col>
                     <Col span={4}>
                         <Statistic
-                            title={<span style={{ color: "#45a29e", fontSize: "10px" }}>KAYNAK</span>}
+                            title={<span style={{ color: "#45a29e", fontSize: "10px" }}>{t("source")}</span>}
                             value={formatSourceText(workflow.source)}
                             valueStyle={{ color: "#fff", fontSize: "18px", fontWeight: "bold" }}
                         />
                     </Col>
                     <Col span={4}>
                         <Statistic
-                            title={<span style={{ color: "#45a29e", fontSize: "10px" }}>TÜR</span>}
+                            title={<span style={{ color: "#45a29e", fontSize: "10px" }}>{t("type")}</span>}
                             value={formatTypeText(workflow.workflow_type)}
                             valueStyle={{ color: "#66fcf1", fontSize: "18px", fontWeight: "bold" }}
                         />
@@ -511,7 +427,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                                     border: "1px solid rgba(102, 252, 241, 0.3)",
                                 }}
                             >
-                                Karar zincirini aç
+                                {t("openDecisionChain")}
                             </Button>
                         </Space>
                     </Col>
@@ -539,12 +455,12 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                                     letterSpacing: "1px",
                                 }}
                             >
-                                <ThunderboltOutlined style={{ color: "#66fcf1" }} /> Yürütme Planı
+                                <ThunderboltOutlined style={{ color: "#66fcf1" }} /> {t("executionPlan")}
                             </span>
                         }
                     >
                         {steps.length === 0 ? (
-                            <Empty description={<span style={{ color: "#666" }}>Henüz tanımlı adım yok.</span>} />
+                            <Empty description={<span style={{ color: "#666" }}>{t("noSteps")}</span>} />
                         ) : (
                             <Steps
                                 direction="vertical"
@@ -572,7 +488,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                                                     }
                                                     style={{ fontSize: "9px", borderRadius: "4px" }}
                                                 >
-                                                    {formatStatusText(step.status)}
+                                                    {tStatus(normalizedStatus as any).toUpperCase()}
                                                 </Tag>
                                             </div>
                                         ),
@@ -588,11 +504,11 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                                             >
                                                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
                                                     <Text type="secondary" style={{ fontSize: "11px", color: "#666" }}>
-                                                        Aksiyon: <span style={{ color: "#aaa" }}>{cleanText(step.action)}</span>
+                                                        Action: <span style={{ color: "#aaa" }}>{cleanText(step.action)}</span>
                                                     </Text>
                                                     {step.completed_at ? (
                                                         <Text type="secondary" style={{ fontSize: "10px" }}>
-                                                            {formatTimestamp(step.completed_at)}
+                                                            {formatTimestamp(step.completed_at, format)}
                                                         </Text>
                                                     ) : null}
                                                 </div>
@@ -615,7 +531,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                                                                 marginBottom: "4px",
                                                             }}
                                                         >
-                                                            ÇIKTI ÖZETİ
+                                                            {t("outputSummary")}
                                                         </Text>
                                                         {cleanText(step.output_summary)}
                                                     </div>
@@ -623,7 +539,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                                                 {step.error ? (
                                                     <Alert
                                                         type="error"
-                                                        message={<span style={{ fontSize: "11px", fontWeight: "bold" }}>HATA SAPTANDI</span>}
+                                                        message={<span style={{ fontSize: "11px", fontWeight: "bold" }}>{t("errorDetected")}</span>}
                                                         description={
                                                             <span style={{ fontSize: "11px", fontFamily: "monospace" }}>
                                                                 {cleanText(step.error)}
@@ -660,7 +576,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                             }}
                         >
                             <Title level={5} style={{ color: "#45a29e", fontSize: "12px", textTransform: "uppercase" }}>
-                                Final Rapor
+                                {t("finalReport")}
                             </Title>
                             <Text style={{ color: "#d5d8df", whiteSpace: "pre-wrap", lineHeight: 1.7 }}>
                                 {finalReport}
@@ -679,7 +595,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                             }}
                         >
                             <Title level={5} style={{ color: "#45a29e", fontSize: "12px", textTransform: "uppercase" }}>
-                                Akış Geçmişi
+                                {t("workflowHistory")}
                             </Title>
                             <List
                                 size="small"
@@ -691,7 +607,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                                                 <Space split={<Divider type="vertical" style={{ borderColor: "rgba(255,255,255,0.1)" }} />}>
                                                     <Text style={{ color: "#fff" }}>{humanizeStepLabel(item.step)}</Text>
                                                     <Text type="secondary" style={{ fontSize: "11px" }}>
-                                                        {formatTimestamp(item.timestamp)}
+                                                        {formatTimestamp(item.timestamp, format)}
                                                     </Text>
                                                 </Space>
                                             }
@@ -713,7 +629,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                         }}
                     >
                         <Title level={5} style={{ color: "#45a29e", fontSize: "12px", textTransform: "uppercase" }}>
-                            Çekirdek Bağlam Yükü
+                            {t("coreContextPayload")}
                         </Title>
                         <pre
                             style={{
@@ -739,15 +655,15 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                             style={{ background: "rgba(102, 252, 241, 0.05)", border: "1px dashed #66fcf1", borderRadius: "16px" }}
                         >
                             <Title level={5} style={{ color: "#66fcf1" }}>
-                                Aksiyon Gerekli
+                                {t("actionRequired")}
                             </Title>
                             <Text style={{ color: "#c5c6c7", fontSize: "13px" }}>
-                                Bu görev kurumsal onay beklediği için duraklatıldı. Gerekçeyi yazıp imza vererek devam ettirebilirsiniz.
+                                {t("approvalRequiredDesc")}
                             </Text>
                             <Space direction="vertical" style={{ width: "100%", marginTop: "16px" }}>
                                 <Input.TextArea
                                     id="approval-notes"
-                                    placeholder="Denetim defteri için karar gerekçesini girin..."
+                                    placeholder={t("justificationPlaceholder")}
                                     rows={3}
                                     style={{ background: "rgba(0,0,0,0.2)", color: "#fff", border: "1px solid rgba(102,252,241,0.2)" }}
                                 />
@@ -759,7 +675,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                                     onClick={() => void handleApprove()}
                                     loading={isSubmitting}
                                 >
-                                    Onayla ve devam ettir
+                                    {t("approveAndContinue")}
                                 </Button>
                             </Space>
                         </Card>
@@ -775,14 +691,14 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                         }}
                     >
                         <Title level={5} style={{ color: "#66fcf1", fontSize: "14px", display: "flex", alignItems: "center", gap: "8px" }}>
-                            <SafetyOutlined /> Yönetişim Bütünlüğü
+                            <SafetyOutlined /> {t("governanceIntegrity")}
                         </Title>
                         <Divider style={{ borderColor: "rgba(255,255,255,0.05)", margin: "12px 0" }} />
 
                         <Space direction="vertical" style={{ width: "100%" }} size="large">
                             <div>
                                 <Text strong style={{ color: "#45a29e", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px" }}>
-                                    Quorum İstekleri
+                                    {t("quorumRequests")}
                                 </Text>
                                 {workflow.related_approvals && workflow.related_approvals.length > 0 ? (
                                     <List
@@ -797,7 +713,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                                                         type="link"
                                                         onClick={() => window.open(`/approvals/${item.id}`, "_blank")}
                                                     >
-                                                        Aç
+                                                        {t("open")}
                                                     </Button>,
                                                 ]}
                                                 style={{ borderBottom: "1px solid rgba(255,255,255,0.05)", padding: "8px 0" }}
@@ -809,7 +725,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                                                             color={String(item.status).toUpperCase() === "APPROVED" ? "success" : "warning"}
                                                             style={{ fontSize: "9px" }}
                                                         >
-                                                            {formatStatusText(item.status)}
+                                                            {tStatus(String(item.status).toLowerCase() as any).toUpperCase()}
                                                         </Tag>
                                                     }
                                                 />
@@ -818,14 +734,14 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                                     />
                                 ) : (
                                     <Text style={{ color: "#555", fontSize: "11px", marginTop: "12px", fontStyle: "italic" }}>
-                                        Engelleyici onay kaydı yok.
+                                        No pending approvals.
                                     </Text>
                                 )}
                             </div>
 
                             <div>
                                 <Text strong style={{ color: "#ff4d4f", fontSize: "10px", textTransform: "uppercase", letterSpacing: "1px" }}>
-                                    Anomali Günlüğü
+                                    {t("relatedIncidents")}
                                 </Text>
                                 {workflow.related_incidents && workflow.related_incidents.length > 0 ? (
                                     <List
@@ -841,7 +757,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                                                         danger
                                                         onClick={() => window.open(`/incidents/${item.id}`, "_blank")}
                                                     >
-                                                        İncele
+                                                        {t("open")}
                                                     </Button>,
                                                 ]}
                                                 style={{ borderBottom: "1px solid rgba(255,255,255,0.05)", padding: "8px 0" }}
@@ -851,7 +767,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                                                     description={
                                                         <Space direction="vertical" size={4}>
                                                             <Tag color="error" style={{ fontSize: "9px", width: "fit-content" }}>
-                                                                {cleanText(item.severity).toUpperCase()} SEVİYE
+                                                                {cleanText(item.severity).toUpperCase()} {t("severity").toUpperCase()}
                                                             </Tag>
                                                             <Text style={{ color: "#8a8f98", fontSize: "11px" }}>
                                                                 {cleanText(item.message)}
@@ -864,7 +780,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                                     />
                                 ) : (
                                     <Text style={{ color: "#555", fontSize: "11px", marginTop: "12px", fontStyle: "italic" }}>
-                                        Ortam tarafında aktif anomali görünmüyor.
+                                        {t("noIncidents")}
                                     </Text>
                                 )}
                             </div>

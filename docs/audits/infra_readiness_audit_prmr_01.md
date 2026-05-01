@@ -1,19 +1,19 @@
 # Infrastructure Readiness Audit (PRMR-01)
 
-**Tarih:** 2026-04-30T17:21:53.604554Z
+**Tarih:** 2026-05-01T17:38:49.527406Z
 **Faz:** 1 (Readiness Audit)
-**Durum:** ❌ FAIL
-**Standby Condition:** 🔒 ACTIVE (Waiting for Trigger)
+**Durum:** [FAIL]
+**Standby Condition:** [LOCKED] ACTIVE (Waiting for Trigger)
 
 ## 1.1 Bağlantı Kontrolleri
 
 | Servis | Hedef | Durum | Hata Mesajı / Not |
 |--------|-------|-------|-------------------|
-| **PostgreSQL** | `127.0.0.1:5433/ai_company` | ❌ FAIL | [Errno 111] Connection refused |
-| **Redis** | `127.0.0.1:6380/0` | ❌ FAIL | [Errno 111] Connection refused |
-| **Celery Broker** | `Redis` bağımlı | ❌ FAIL | Redis bağımlı |
-| **pgvector** | PostgreSQL eklentisi | ⚠️ BLOCKED | DB erişimi olmadığı için kontrol edilemedi |
-| **Docker Daemon** | `dockerDesktopLinuxEngine` | ❌ FAIL | `Sistem belirtilen dosyayı bulamıyor` (Daemon kapalı olabilir) |
+| **PostgreSQL** | `127.0.0.1:5433/ai_company` | [FAIL] | [Errno 111] Connection refused |
+| **Redis** | `127.0.0.1:6380/0` | [FAIL] | [Errno 111] Connection refused |
+| **Celery Broker** | `Redis` bağımlı | [FAIL] | Redis bağımlı |
+| **pgvector** | PostgreSQL eklentisi | [BLOCKED] | DB erişimi olmadığı için kontrol edilemedi |
+| **Docker Daemon** | `dockerDesktopLinuxEngine` | [FAIL] | `Sistem belirtilen dosyayı bulamıyor` (Daemon kapalı olabilir) |
 
 ## 1.2 Şema Hazırlığı
 

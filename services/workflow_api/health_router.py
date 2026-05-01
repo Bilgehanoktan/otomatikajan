@@ -54,7 +54,14 @@ async def get_health_dashboard():
         failed = wf_counts.get("error", 0) + wf_counts.get("failed", 0)
         
         # 2. Anomaly & Improvement Counts
-        f_count = (await db.execute(select(func.count(ErrorFingerprint.id)).where(ErrorFingerprint.is_active == True))).scalar() or 0
+        f_count = (
+            await db.execute(
+                select(func.count(ErrorFingerprint.id)).where(
+                    ErrorFingerprint.is_active == True,
+                    ErrorFingerprint.severity.in_(["warning", "medium", "high", "critical"])
+                )
+            )
+        ).scalar() or 0
         i_count = (await db.execute(select(func.count(SystemImprovement.id)).where(SystemImprovement.status == "pending"))).scalar() or 0
         
         # 3. Health Score Calculation

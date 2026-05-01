@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Response, Query
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from libs.db.session import AsyncSessionLocal
 from libs.db.models.core_models import LLMCostLog, Project, OperationalIncident
 from sqlalchemy import select, func, desc
@@ -55,18 +55,29 @@ async def get_cost_summary():
         }
 
 @router.get("/projects")
-async def list_projects_alias(response: Response, limit: int = 50, offset: int = 0):
+async def list_projects_alias(response: Response, status: Optional[str] = Query(None), limit: int = 50, offset: int = 0):
     """Alias for /workflows to satisfy Refine default resource naming."""
     from services.workflow_api.router import list_projects
-    return await list_projects(response, limit=limit, offset=offset)
+    return await list_projects(response, status_filter=status, limit=limit, offset=offset)
 
 @router.get("/incidents")
-async def list_incidents_alias(response: Response, limit: int = 50, offset: int = 0):
+async def list_incidents_alias(
+    response: Response,
+    status: Optional[str] = Query(None),
+    limit: int = 50,
+    offset: int = 0,
+):
     """Alias for /governance/incidents to satisfy Refine default resource naming."""
     from services.workflow_api.governance_router import list_incidents
     # We mock the identity dependency since we are bridging
-    mock_identity = {"id": "system", "name": "Bridge"}
-    return await list_incidents(response, limit=limit, offset=offset, identity=mock_identity)
+    mock_identity = {"id": "system", "name": "Bridge", "type": "system", "role": "SOVEREIGN_PRIME"}
+    return await list_incidents(
+        response,
+        status=status,
+        limit=limit,
+        offset=offset,
+        identity=mock_identity,
+    )
 
 @router.get("/axiology")
 async def list_axiology_audits(response: Response, limit: int = 50, offset: int = 0):
@@ -132,6 +143,64 @@ async def list_policies_stub(): return []
 
 @router.get("/training")
 async def list_training_stub(): return []
+
+@router.get("/approvals")
+async def list_approvals_alias(response: Response, status: Optional[str] = Query(None), limit: int = 50, offset: int = 0):
+    """Alias for /governance/approvals to satisfy Refine default resource naming."""
+    from services.workflow_api.governance_router import list_approvals
+    # Bypass auth for bridge alias
+    mock_identity = {"id": "00000000-0000-0000-0000-000000000000", "name": "Bridge", "type": "system", "role": "SOVEREIGN_PRIME"}
+    return await list_approvals(response, status=status, limit=limit, offset=offset, identity=mock_identity)
+
+@router.get("/compliance/audit-bundles")
+async def list_audit_bundles_alias(response: Response):
+    """Alias for /governance/compliance/audit-bundles used by the control plane."""
+    from services.workflow_api.governance_router import list_audit_bundles
+
+    return await list_audit_bundles(response)
+
+@router.post("/compliance/audit-bundles")
+async def create_audit_bundle_alias(data: Dict[str, Any]):
+    """Alias for /governance/compliance/audit-bundles used by the control plane."""
+    from services.workflow_api.governance_router import (
+        AuditBundleCreate,
+        create_audit_bundle_endpoint,
+    )
+
+    mock_identity = {"id": "00000000-0000-0000-0000-000000000000", "name": "Bridge", "type": "system", "role": "SOVEREIGN_PRIME"}
+    payload = AuditBundleCreate(**data)
+    return await create_audit_bundle_endpoint(payload, identity=mock_identity)
+
+@router.get("/governor/proof/events")
+async def list_proof_events_alias(limit: int = 50):
+    """Alias for /governance/governor/proof/events."""
+    from services.workflow_api.governor_router import list_proof_events
+
+    mock_identity = {"id": "00000000-0000-0000-0000-000000000000", "name": "Bridge", "type": "system", "role": "SOVEREIGN_PRIME"}
+    return await list_proof_events(limit=limit, identity=mock_identity)
+
+@router.get("/governor/proof/snapshots")
+async def list_proof_snapshots_alias():
+    """Alias for /governance/governor/proof/snapshots."""
+    from services.workflow_api.governor_router import list_proof_snapshots
+
+    mock_identity = {"id": "00000000-0000-0000-0000-000000000000", "name": "Bridge", "type": "system", "role": "SOVEREIGN_PRIME"}
+    return await list_proof_snapshots(identity=mock_identity)
+
+@router.get("/events/stream")
+async def list_events_stream_alias(since_seq: int = 0, limit: int = 50):
+    """Alias for /health/events/stream used by existing dashboard polling."""
+    from services.workflow_api.health_router import get_events_stream
+
+    return await get_events_stream(since_seq=since_seq, limit=limit)
+
+@router.patch("/approvals/{id}")
+async def update_approval_alias(id: str, data: Dict[str, Any]):
+    """Alias for /governance/approvals/{id} PATCH to satisfy Refine default resource naming."""
+    from services.workflow_api.governance_router import update_approval_status
+    # Bypass auth for bridge alias
+    mock_identity = {"id": "00000000-0000-0000-0000-000000000000", "name": "Bridge", "type": "system", "role": "SOVEREIGN_PRIME"}
+    return await update_approval_status(id, data, identity=mock_identity)
 
 @router.get("/self-tuning")
 async def list_tuning_stub(): return []

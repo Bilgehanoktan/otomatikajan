@@ -1,14 +1,17 @@
 "use client";
 
 import React from "react";
+import { useApiUrl, useCustom } from "@refinedev/core";
+import { usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
 import { SystemHeader } from "./SystemHeader";
 import { CommandPalette } from "./dashboard/CommandPalette";
 
-import { useApiUrl, useCustom } from "@refinedev/core";
-import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
+    const t = useTranslations("dashboard");
+    const tErrors = useTranslations("errors");
     const pathname = usePathname();
     const isLoginPage = pathname?.startsWith("/login");
     
@@ -69,9 +72,11 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
                         <div className="sticky top-0 z-[100] w-full bg-red-600/90 text-white py-1 px-4 flex items-center justify-between backdrop-blur-md animate-in slide-in-from-top duration-500 shadow-lg">
                             <span className="text-[10px] font-black uppercase tracking-[0.3em] flex items-center gap-2">
                                 <span className="w-2 h-2 bg-white rounded-full animate-ping" />
-                                Operational Crisis: Focus Required
+                                {t("criticalRisk", { defaultMessage: "Kritik Operasyonel Risk" })}: Focus Required
                             </span>
-                            <span className="text-[10px] font-mono opacity-60">ERR_CRITICAL_HEALTH_BELOW_THRESHOLD</span>
+                            <span className="text-[10px] font-mono opacity-60" title="ERR_CRITICAL_HEALTH_BELOW_THRESHOLD">
+                                {tErrors("ERR_CRITICAL_HEALTH_BELOW_THRESHOLD", { defaultMessage: "Sistem sağlığı kritik seviyede." })}
+                            </span>
                         </div>
                     )}
 

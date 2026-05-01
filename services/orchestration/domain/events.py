@@ -20,7 +20,20 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Callable, Awaitable, Any, Optional, Union
 
-EVENT_BUS_MODE = os.getenv("EVENT_BUS_MODE", "redis").lower()
+try:
+    from libs.config import APP_ENV, QUEUE_BACKEND, REDIS_URL
+except ImportError:
+    APP_ENV = os.getenv("APP_ENV", "development")
+    QUEUE_BACKEND = os.getenv("QUEUE_BACKEND", "auto")
+    REDIS_URL = os.getenv("REDIS_URL", "")
+
+_default_event_bus_mode = "redis"
+if not REDIS_URL:
+    _default_event_bus_mode = "local"
+elif APP_ENV == "development" and (QUEUE_BACKEND or "auto").lower() != "celery":
+    _default_event_bus_mode = "local"
+
+EVENT_BUS_MODE = os.getenv("EVENT_BUS_MODE", _default_event_bus_mode).lower()
 
 @dataclass
 class DomainEvent:

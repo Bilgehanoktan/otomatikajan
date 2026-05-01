@@ -10,7 +10,30 @@ Kullanım:
 
 import os
 
-QUEUE_BACKEND = os.getenv("QUEUE_BACKEND", "auto").lower()
+
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.getenv(name)
+    if raw is None or not raw.strip():
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _default_runtime_profile(app_env: str) -> str:
+    return "production" if app_env == "production" else "local-dev"
+
+
+def _normalize_runtime_profile(raw: str | None, app_env: str) -> str:
+    if not raw or not raw.strip():
+        return _default_runtime_profile(app_env)
+
+    value = raw.strip().lower()
+    if value in {"local", "local-dev", "dev", "minimal"}:
+        return "local-dev"
+    if value in {"full", "full-stack", "full-stack-local", "local-full"}:
+        return "full-stack-local"
+    if value in {"prod", "production"}:
+        return "production"
+    return _default_runtime_profile(app_env)
 
 def validate_production_config():
     """
@@ -105,13 +128,71 @@ is_dev  = APP_ENV == "development"
 is_test = APP_ENV == "test"
 is_prod = APP_ENV == "production"
 
-APP_UI_MODE = os.getenv("APP_UI_MODE", "static" if is_prod else "api-only").lower().strip()
-if APP_UI_MODE not in {"static", "api-only"}:
-    APP_UI_MODE = "static" if is_prod else "api-only"
+RUNTIME_PROFILE = _normalize_runtime_profile(os.getenv("RUNTIME_PROFILE"), APP_ENV)
+PROFILE_DEFAULTS = {
+    "local-dev": {
+        "QUEUE_BACKEND": "inprocess",
+        "APP_UI_MODE": "api-only",
+        "LOCAL_DEV_DB_STRATEGY": "sqlite-fallback",
+        "REDIS_ENABLED": False,
+        "CELERY_ENABLED": False,
+        "DEERFLOW_ENABLED": False,
+        "TELEGRAM_ENABLED": False,
+        "SCHEDULER_ENABLED": False,
+    },
+    "full-stack-local": {
+        "QUEUE_BACKEND": "celery",
+        "APP_UI_MODE": "api-only",
+        "LOCAL_DEV_DB_STRATEGY": "primary",
+        "REDIS_ENABLED": True,
+        "CELERY_ENABLED": True,
+        "DEERFLOW_ENABLED": True,
+        "TELEGRAM_ENABLED": False,
+        "SCHEDULER_ENABLED": False,
+    },
+    "production": {
+        "QUEUE_BACKEND": "celery",
+        "APP_UI_MODE": "static",
+        "LOCAL_DEV_DB_STRATEGY": "primary",
+        "REDIS_ENABLED": True,
+        "CELERY_ENABLED": True,
+        "DEERFLOW_ENABLED": True,
+        "TELEGRAM_ENABLED": False,
+        "SCHEDULER_ENABLED": True,
+    },
+}
+PROFILE_DEFAULT = PROFILE_DEFAULTS[RUNTIME_PROFILE]
 
-LOCAL_DEV_DB_STRATEGY = os.getenv("LOCAL_DEV_DB_STRATEGY", "sqlite-fallback" if is_dev else "primary").lower().strip()
+QUEUE_BACKEND = os.getenv("QUEUE_BACKEND", PROFILE_DEFAULT["QUEUE_BACKEND"]).lower().strip()
+if QUEUE_BACKEND not in {"auto", "celery", "inprocess"}:
+    QUEUE_BACKEND = PROFILE_DEFAULT["QUEUE_BACKEND"]
+
+APP_UI_MODE = os.getenv("APP_UI_MODE", PROFILE_DEFAULT["APP_UI_MODE"]).lower().strip()
+if APP_UI_MODE not in {"static", "api-only"}:
+    APP_UI_MODE = PROFILE_DEFAULT["APP_UI_MODE"]
+
+LOCAL_DEV_DB_STRATEGY = os.getenv(
+    "LOCAL_DEV_DB_STRATEGY",
+    PROFILE_DEFAULT["LOCAL_DEV_DB_STRATEGY"],
+).lower().strip()
 if LOCAL_DEV_DB_STRATEGY not in {"primary", "sqlite-fallback"}:
-    LOCAL_DEV_DB_STRATEGY = "sqlite-fallback" if is_dev else "primary"
+    LOCAL_DEV_DB_STRATEGY = PROFILE_DEFAULT["LOCAL_DEV_DB_STRATEGY"]
+
+REDIS_ENABLED = _env_bool("REDIS_ENABLED", PROFILE_DEFAULT["REDIS_ENABLED"])
+CELERY_ENABLED = _env_bool("CELERY_ENABLED", PROFILE_DEFAULT["CELERY_ENABLED"])
+DEERFLOW_ENABLED = _env_bool("DEERFLOW_ENABLED", PROFILE_DEFAULT["DEERFLOW_ENABLED"])
+TELEGRAM_ENABLED = _env_bool("TELEGRAM_ENABLED", PROFILE_DEFAULT["TELEGRAM_ENABLED"])
+SCHEDULER_ENABLED = _env_bool("SCHEDULER_ENABLED", PROFILE_DEFAULT["SCHEDULER_ENABLED"])
+
+os.environ["RUNTIME_PROFILE"] = RUNTIME_PROFILE
+os.environ["QUEUE_BACKEND"] = QUEUE_BACKEND
+os.environ["APP_UI_MODE"] = APP_UI_MODE
+os.environ["LOCAL_DEV_DB_STRATEGY"] = LOCAL_DEV_DB_STRATEGY
+os.environ["REDIS_ENABLED"] = str(REDIS_ENABLED).lower()
+os.environ["CELERY_ENABLED"] = str(CELERY_ENABLED).lower()
+os.environ["DEERFLOW_ENABLED"] = str(DEERFLOW_ENABLED).lower()
+os.environ["TELEGRAM_ENABLED"] = str(TELEGRAM_ENABLED).lower()
+os.environ["SCHEDULER_ENABLED"] = str(SCHEDULER_ENABLED).lower()
 
 # ── Temel ayarlar ─────────────────────────────────────────
 DEBUG     = os.getenv("DEBUG", "true" if is_dev else "false").lower() == "true"
@@ -134,7 +215,7 @@ if _is_in_docker:
 else:
     # Force SQLite for stable operational state (Phase 31 Stabilization)
     _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    sqlite_path = os.path.join(_root, "runtime", "data", "cortex_local.db")
+    sqlite_path = os.path.join(_root, "runtime", "data", "cortex_local_v2.db")
     if is_dev and LOCAL_DEV_DB_STRATEGY == "sqlite-fallback" and not _raw_db_url:
         DATABASE_URL = f"sqlite+aiosqlite:///{sqlite_path.replace('\\', '/')}"
     else:
@@ -145,7 +226,7 @@ else:
 DB_POOL_SIZE   = int(os.getenv("DB_POOL_SIZE", "10"))
 DB_MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", "20"))
 DB_POOL_TIMEOUT = int(os.getenv("DB_POOL_TIMEOUT", "30"))
-REDIS_URL      = os.getenv("REDIS_URL", "")
+REDIS_URL      = os.getenv("REDIS_URL", "") if REDIS_ENABLED else ""
 JWT_SECRET     = os.getenv("JWT_SECRET", "")
 ADMIN_SECRET   = os.getenv("ADMIN_SECRET", "")
 MONTHLY_BUDGET = float(os.getenv("MONTHLY_BUDGET_USD", "50.0"))
@@ -154,10 +235,10 @@ ALLOWED_ORIGINS = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "http://local
 ALLOWED_METHODS = os.getenv("ALLOWED_METHODS", "GET,POST,PUT,PATCH,DELETE,OPTIONS").split(",")
 ALLOWED_HEADERS = os.getenv("ALLOWED_HEADERS", "Authorization,Content-Type,X-Trace-ID,X-Requested-With").split(",")
 
-TELEGRAM_BOT_TOKEN     = os.getenv("TELEGRAM_BOT_TOKEN", "")
-TELEGRAM_ALLOWED_IDS   = os.getenv("TELEGRAM_ALLOWED_IDS", "")
-TELEGRAM_ADMIN_IDS      = os.getenv("TELEGRAM_ADMIN_IDS", "")
-TELEGRAM_WEBHOOK_SECRET = os.getenv("TELEGRAM_WEBHOOK_SECRET", "")
+TELEGRAM_BOT_TOKEN      = os.getenv("TELEGRAM_BOT_TOKEN", "") if TELEGRAM_ENABLED else ""
+TELEGRAM_ALLOWED_IDS    = os.getenv("TELEGRAM_ALLOWED_IDS", "") if TELEGRAM_ENABLED else ""
+TELEGRAM_ADMIN_IDS      = os.getenv("TELEGRAM_ADMIN_IDS", "") if TELEGRAM_ENABLED else ""
+TELEGRAM_WEBHOOK_SECRET = os.getenv("TELEGRAM_WEBHOOK_SECRET", "") if TELEGRAM_ENABLED else ""
 
 # ── New Providers & Services ──────────────────────────────
 MOONSHOT_API_KEY    = os.getenv("MOONSHOT_API_KEY", "")
@@ -184,7 +265,6 @@ ENABLE_QUARANTINE        = os.getenv("ENABLE_QUARANTINE", "true").lower() == "tr
 
 # ── Queue / Worker ──────────────────────────────────────────
 WORKER_CONCURRENCY       = int(os.getenv("WORKER_CONCURRENCY", "2"))
-QUEUE_BACKEND            = os.getenv("QUEUE_BACKEND", "auto").lower()  # auto|celery|inprocess
 QUEUE_DEFAULT            = os.getenv("QUEUE_DEFAULT", "default")
 QUEUE_CRITICAL           = os.getenv("QUEUE_CRITICAL", "critical")
 QUEUE_BACKGROUND         = os.getenv("QUEUE_BACKGROUND", "background")
@@ -194,6 +274,11 @@ QUEUE_DEERFLOW           = os.getenv("QUEUE_DEERFLOW", "deerflow")
 WEAK_TEMPLATES = ["REPLACE_WITH", "your-secret", "123456"]
 DEERFLOW_ROLES = ["deerflow_planner", "deerflow_researcher", "deerflow_reviewer", "deerflow_recovery"]
 DEERFLOW_WORKER_CONCURRENCY = int(os.getenv("DEERFLOW_WORKER_CONCURRENCY", "2"))
+DEERFLOW_BRIDGE_URL = (
+    os.getenv("DEERFLOW_BRIDGE_URL", "http://deerflow-bridge:8010")
+    if DEERFLOW_ENABLED
+    else ""
+)
 
 # ── Health & Monitoring ─────────────────────────────────────
 HEALTHCHECK_ENABLED      = os.getenv("HEALTHCHECK_ENABLED", "true").lower() == "true"

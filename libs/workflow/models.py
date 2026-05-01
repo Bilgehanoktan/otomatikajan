@@ -58,6 +58,7 @@ class WorkflowInstance(BaseModel):
     status: WorkflowStatus = WorkflowStatus.PENDING
     steps: List[WorkflowStep] = Field(default_factory=list)
     context: Dict[str, Any] = Field(default_factory=dict)
+    error: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None

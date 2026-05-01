@@ -798,6 +798,22 @@ def _get_sync_session_factory():
         _sync_session_factory = sessionmaker(bind=engine, expire_on_commit=False)
     return _sync_session_factory
 
+def get_sync_session() -> Session:
+    return _get_sync_session_factory()()
+
+from contextlib import contextmanager
+@contextmanager
+def get_db_ctx():
+    session = get_sync_session()
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
 class _LazySyncSessionLocal:
     def __call__(self): return _get_sync_session_factory()()
 

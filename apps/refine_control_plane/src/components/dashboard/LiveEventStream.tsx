@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Zap } from "lucide-react";
 import { Skeleton } from "./Skeleton";
+import { buildWebSocketCandidates } from "@/lib/runtime";
 
 interface SystemEvent {
   seq: number;
@@ -58,33 +59,25 @@ export function LiveEventStream({ apiUrl, height }: { apiUrl: string, height?: s
   useEffect(() => {
     let mounted = true;
     let reconnectTimer: ReturnType<typeof setTimeout>;
+    const wsCandidates = buildWebSocketCandidates("/ws/events");
 
-    function connect() {
+    function connect(candidateIndex = 0) {
       if (!mounted) return;
       if (reconnectCountRef.current >= MAX_WS_RETRIES) {
         setWsStatus("polling");
         return;
       }
 
-      try {
-        let wsUrl: string;
-        
-        if (apiUrl.startsWith("http")) {
-          // Absolute URL case
-          wsUrl = apiUrl.replace(/^http/, "ws").replace(/\/api\/v1\/?$/, "") + "/ws/events";
-        } else {
-          // Relative URL case (e.g. /api/v1)
-          const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-          const host = window.location.host;
-          
-          // SRE Hardening: In local development, Next.js proxy (3100) doesn't always handle WS.
-          // Fallback to backend port (8000) directly if on localhost.
-          const wsHost = host.includes("localhost:3100") ? host.replace("3100", "8000") : host;
-          
-          const cleanPath = apiUrl.replace(/\/api\/v1\/?$/, "");
-          wsUrl = `${protocol}//${wsHost}${cleanPath}/ws/events`;
-        }
+      if (candidateIndex >= wsCandidates.length) {
+        reconnectCountRef.current++;
+        setWsStatus("polling");
+        const delay = Math.min(3000 * Math.pow(2, reconnectCountRef.current - 1), 30000);
+        reconnectTimer = setTimeout(() => connect(0), delay);
+        return;
+      }
 
+      try {
+        const wsUrl = wsCandidates[candidateIndex];
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 
@@ -109,19 +102,19 @@ export function LiveEventStream({ apiUrl, height }: { apiUrl: string, height?: s
         ws.onclose = () => {
           clearTimeout(openTimeout);
           if (!mounted) return;
+          if (candidateIndex + 1 < wsCandidates.length) {
+            connect(candidateIndex + 1);
+            return;
+          }
           reconnectCountRef.current++;
           setWsStatus("polling");
           const delay = Math.min(3000 * Math.pow(2, reconnectCountRef.current - 1), 30000);
-          reconnectTimer = setTimeout(connect, delay);
+          reconnectTimer = setTimeout(() => connect(0), delay);
         };
 
         ws.onerror = () => ws.close();
       } catch {
-        reconnectCountRef.current++;
-        setWsStatus(reconnectCountRef.current >= MAX_WS_RETRIES ? "offline" : "polling");
-        if (reconnectCountRef.current < MAX_WS_RETRIES) {
-          reconnectTimer = setTimeout(connect, 5000);
-        }
+        connect(candidateIndex + 1);
       }
     }
 
@@ -131,7 +124,7 @@ export function LiveEventStream({ apiUrl, height }: { apiUrl: string, height?: s
       clearTimeout(reconnectTimer);
       wsRef.current?.close();
     };
-  }, [apiUrl, pushEvent]);
+  }, [pushEvent]);
 
   useEffect(() => {
     if (wsStatus === "connected") return;

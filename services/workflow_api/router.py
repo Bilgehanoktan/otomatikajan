@@ -248,7 +248,11 @@ async def list_steps(
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-async def create_project(req: ProjectCreate):
+async def create_project(
+    req: ProjectCreate,
+    db: AsyncSession = Depends(get_db),
+    identity: Dict[str, Any] = Depends(require_permission("workflow.create"))
+):
     """
     Manually create a new project/workflow and trigger its execution.
     """
@@ -311,20 +315,20 @@ async def list_projects(
     async with AsyncSessionLocal() as db:
         # Get total count for Refine pagination
         count_q = select(func.count(Project.id))
-        if status_filter:
+        if status_filter and isinstance(status_filter, str):
             try:
                 count_q = count_q.where(Project.status == ProjectStatus(status_filter.upper()))
-            except ValueError:
+            except (ValueError, AttributeError):
                 pass
         total_count = (await db.execute(count_q)).scalar()
         response.headers["x-total-count"] = str(total_count)
         response.headers["Access-Control-Expose-Headers"] = "x-total-count"
 
         q = select(Project).order_by(Project.created_at.desc()).limit(limit).offset(offset)
-        if status_filter:
+        if status_filter and isinstance(status_filter, str):
             try:
                 q = q.where(Project.status == ProjectStatus(status_filter.upper()))
-            except ValueError:
+            except (ValueError, AttributeError):
                 pass  # Unknown status — ignore filter
         projects = (await db.execute(q)).scalars().all()
 
@@ -528,6 +532,8 @@ async def approve_workflow(
     from libs.db.repositories.repository import ProjectRepository
     from libs.workflow.persistence import WorkflowPersistence
     from sqlalchemy import select
+
+    persistence = WorkflowPersistence()
 
     async with AsyncSessionLocal() as db:
         uid = await _resolve_project_id(db, project_id)

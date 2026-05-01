@@ -146,6 +146,9 @@ class SelfImprovementCoordinator:
                     await db.commit()
 
                 results.append(f"{file_path}: PROPOSED (Shadow Verified: {is_valid})")
+            except FileNotFoundError as e:
+                logger.warning(f"Improvement proposal skipped for missing target {file_path}: {e}")
+                results.append(f"{file_path}: SKIPPED_MISSING_TARGET")
             except Exception as e:
                 logger.error(f"Improvement proposal failed for {file_path}: {e}")
                 results.append(f"{file_path}: FAILED ({e})")

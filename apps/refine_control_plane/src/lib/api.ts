@@ -9,6 +9,18 @@ interface SafeFetchOptions extends RequestInit {
     useOfflineFallback?: boolean;
 }
 
+export class ApiResponseError extends Error {
+    status: number;
+    detail: string;
+
+    constructor(status: number, detail: string) {
+        super(`API ERROR [${status}]: ${detail}`);
+        this.name = "ApiResponseError";
+        this.status = status;
+        this.detail = detail;
+    }
+}
+
 /**
  * Basic Data Sealing (Demonstration level obfuscation)
  * Note: Since localStorage is not truly encrypted unless we use SubtleCrypto with a derived key,
@@ -16,7 +28,7 @@ interface SafeFetchOptions extends RequestInit {
  */
 const SQV_SECRET = "BASE-10.2-PROTECTED";
 const seal = (data: string): string => {
-    return btoa(data.split('').map((c, i) => 
+    return btoa(data.split('').map((c, i) =>
         String.fromCharCode(c.charCodeAt(0) ^ SQV_SECRET.charCodeAt(i % SQV_SECRET.length))
     ).join(''));
 };
@@ -24,7 +36,7 @@ const seal = (data: string): string => {
 const unseal = (cipher: string): string => {
     try {
         const decoded = atob(cipher);
-        return decoded.split('').map((c, i) => 
+        return decoded.split('').map((c, i) =>
             String.fromCharCode(c.charCodeAt(0) ^ SQV_SECRET.charCodeAt(i % SQV_SECRET.length))
         ).join('');
     } catch { return ""; }
@@ -34,7 +46,7 @@ export async function safeFetchJson<T = any>(url: string, options: SafeFetchOpti
     const { retries = 2, useOfflineFallback = true, ...init } = options;
     const cache_key = `sqv_cache_${btoa(url).replace(/=/g, "").slice(0, 32)}`;
     let lastError: Error | null = null;
-    
+
     // 1. Otonom Tekrar Deneme (Auto-Retry & Jitter)
     for (let attempt = 0; attempt <= retries; attempt++) {
         try {
@@ -42,28 +54,54 @@ export async function safeFetchJson<T = any>(url: string, options: SafeFetchOpti
                 console.warn(`[Mesh API] Tekrar deneniyor... (${attempt}/${retries}) -> URL: ${url}`);
                 await new Promise(res => setTimeout(res, Math.min(1500 * Math.pow(2, attempt - 1), 8000)));
             }
-            
+
             // Phase 32: Force include cookies for Auth
-            const fetchInit = { ...init, credentials: "include" as RequestCredentials };
-            const res = await fetch(url, fetchInit);
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+            const fetchInit: RequestInit = { 
+                ...init, 
+                credentials: "include" as RequestCredentials,
+                signal: controller.signal
+            };
+            
+            let res: Response;
+            try {
+                // SIF-01 Enhancement: Inject Bearer Token if available in localStorage
+                if (typeof window !== "undefined") {
+                    const token = localStorage.getItem("sqv_access_token");
+                    if (token) {
+                        const headers = new Headers(fetchInit.headers || {});
+                        if (!headers.has("Authorization")) {
+                            headers.set("Authorization", `Bearer ${token}`);
+                        }
+                        fetchInit.headers = headers;
+                    }
+                }
+
+                res = await fetch(url, fetchInit);
+            } finally {
+                clearTimeout(timeoutId);
+            }
+
             const contentType = res.headers.get("content-type") || "";
             const raw = await res.text();
-            
+
             if (!res.ok) {
                 let detail = raw;
                 try {
                     const jsonErr = JSON.parse(raw);
                     detail = jsonErr.detail || jsonErr.msg || raw;
                 } catch { detail = raw.slice(0, 500); }
-                throw new Error(`API ERROR [${res.status}]: ${detail}`);
+                throw new ApiResponseError(res.status, detail);
             }
-            
+
             if (!contentType.includes("application/json")) {
                 throw new Error(`Geçersiz Yanıt Formatı: "${contentType}". Raw: ${raw.slice(0, 100)}...`);
             }
-            
+
             const data = JSON.parse(raw) as T;
-            
+
             // 2. Başarılı veriyi Cache'e mühürle (Sealed Offline Cache)
             if (useOfflineFallback && typeof window !== 'undefined') {
                 try {
@@ -72,19 +110,28 @@ export async function safeFetchJson<T = any>(url: string, options: SafeFetchOpti
                         data: data
                     });
                     localStorage.setItem(cache_key, seal(payload));
-                } catch (e) { /* Çerez Sınırı hatasını göz ardı et */ }
+                } catch {
+                    // Çerez veya storage sınırı hatalarını sessizce yut.
+                }
             }
-            
+
             return data;
-            
+
         } catch (err: any) {
             lastError = err;
+            if (err instanceof ApiResponseError && (err.status === 401 || err.status === 403)) {
+                break;
+            }
         }
     }
-    
+
+    if (lastError instanceof ApiResponseError && (lastError.status === 401 || lastError.status === 403)) {
+        throw lastError;
+    }
+
     // Tüm ağ denemeleri çöktü.
     console.error(`[Mesh API] İletişim tamamen çöktü: ${url}. Hata: ${lastError?.message}`);
-    
+
     // 3. Degraded Mode: Çevrimdışı Geri Dönüş (Sealed Offline Cache)
     if (useOfflineFallback && typeof window !== 'undefined') {
         try {
@@ -92,14 +139,14 @@ export async function safeFetchJson<T = any>(url: string, options: SafeFetchOpti
             if (cipher) {
                 const raw_payload = unseal(cipher);
                 if (!raw_payload) throw new Error("Mühürlü veri bozulmuş.");
-                
+
                 const parsed = JSON.parse(raw_payload);
                 const ageSeconds = Math.floor((Date.now() - parsed.timestamp) / 1000);
-                
-                console.info(`[Degraded Mode] ⚠️ Aktif API reddedildi. Son başarılı Gölge-Veri (T-${ageSeconds}s) sunuluyor.`);
-                
+
+                console.info(`[Degraded Mode] Aktif API reddedildi. Son başarılı Gölge-Veri (T-${ageSeconds}s) sunuluyor.`);
+
                 // Stale veri görünürlüğü için metadata enjeksiyonu
-                if (parsed.data && typeof parsed.data === 'object') {
+                if (parsed.data && typeof parsed.data === "object") {
                     (parsed.data as any)["__sqv_meta"] = {
                         is_stale: true,
                         age_seconds: ageSeconds,
@@ -107,15 +154,15 @@ export async function safeFetchJson<T = any>(url: string, options: SafeFetchOpti
                         endpoint: url
                     };
                 }
-                
+
                 return parsed.data as T;
             }
         } catch (cacheErr) {
             console.error("[Degraded Mode] Yerel cache okunamadı veya mühür bozuk.", cacheErr);
         }
     }
-    
-    // Eğer geçmiş veri de yoksa (İlk açılışta çöktüyse) çaresizce fırlat
+
+    // Eğer geçmiş veri de yoksa (ilk açılışta çöktüyse) çaresizce fırlat
     throw lastError || new Error("Bilinmeyen Ağ Hatası");
 }
 
@@ -125,7 +172,7 @@ export async function safeFetchJson<T = any>(url: string, options: SafeFetchOpti
 export async function safeFetchAdapter(url: string, options: RequestInit = {}): Promise<Response> {
     try {
         const data = await safeFetchJson(url, options as SafeFetchOptions);
-        
+
         // Return a polyfilled Response object that Refine expectations
         return new Response(JSON.stringify(data), {
             status: 200,
@@ -137,6 +184,16 @@ export async function safeFetchAdapter(url: string, options: RequestInit = {}): 
             }
         });
     } catch (err: any) {
+        if (err instanceof ApiResponseError) {
+            return new Response(JSON.stringify({
+                error: "api_error",
+                detail: err.detail
+            }), {
+                status: err.status,
+                statusText: err.status === 401 ? "Unauthorized" : err.status === 403 ? "Forbidden" : "API Error",
+                headers: { "Content-Type": "application/json" }
+            });
+        }
         // If everything fails, return a 500 JSON response instead of a raw crash
         return new Response(JSON.stringify({
             error: "internal_server_error",

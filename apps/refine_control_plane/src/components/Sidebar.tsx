@@ -3,6 +3,7 @@
 import React from "react";
 import { useMenu, useLogout, useGetIdentity } from "@refinedev/core";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { 
     LayoutDashboard, 
     Workflow, 
@@ -80,15 +81,16 @@ const SidebarContent = () => {
     const { mutate: logout } = useLogout();
     const { data: identity } = useGetIdentity<{ name: string }>();
     const [isCollapsed, setIsCollapsed] = React.useState(false);
+    const t = useTranslations("sidebar");
 
     // Define Grouping
     const groups = [
         {
-            title: "OPERASYONLAR",
+            title: t("groups.operations"),
             items: ["dashboard", "workflows", "agents", "incidents", "fleet", "fleet/agents", "fleet/operations"]
         },
         {
-            title: "YÖNETİŞİM & GÜVENLİK",
+            title: t("groups.governance"),
             items: [
                 "approvals", 
                 "audit", 
@@ -107,7 +109,7 @@ const SidebarContent = () => {
             ]
         },
         {
-            title: "OTONOM GELİŞİM",
+            title: t("groups.autonomous"),
             items: [
                 "improvements", 
                 "repair-lab", 
@@ -121,7 +123,7 @@ const SidebarContent = () => {
             ]
         },
         {
-            title: "RAPORLAMA",
+            title: t("groups.reporting"),
             items: ["costs", "audit-bundles", "handover-status", "launch-gates"]
         }
     ];
@@ -178,7 +180,6 @@ const SidebarContent = () => {
                     )}
                 </div>
 
-                {/* Collapse Toggle Button */}
                 <button 
                     onClick={() => setIsCollapsed(!isCollapsed)}
                     className={`absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black border border-white/10 flex items-center justify-center text-gray-500 hover:text-[var(--primary)] transition-all shadow-lg z-20 opacity-0 group-hover/header:opacity-100 ${isCollapsed ? "rotate-180" : ""}`}
@@ -214,14 +215,13 @@ const SidebarContent = () => {
                     );
                 })}
                 
-                {/* Un-grouped items (Backup) */}
                 {(() => {
                     const groupedNames = groups.flatMap(g => g.items);
                     const otherItems = menuItems.filter(item => !groupedNames.includes(item.name));
                     if (otherItems.length === 0) return null;
                     return (
                         <div className="space-y-2">
-                            <h3 className="px-4 text-[9px] font-black text-gray-600 uppercase tracking-[0.2em]">DİĞER</h3>
+                            <h3 className="px-4 text-[9px] font-black text-gray-600 uppercase tracking-[0.2em]">{t("groups.other")}</h3>
                             <div className="space-y-1">{otherItems.map(renderMenuItem)}</div>
                         </div>
                     );
@@ -236,7 +236,7 @@ const SidebarContent = () => {
                         </div>
                         <div className="overflow-hidden">
                             <p className="text-xs font-black text-white truncate">{identity?.name || "MİMAR"}</p>
-                            <p className="text-[9px] text-[#45a29e] uppercase font-bold truncate tracking-widest">Sistem Operatörü</p>
+                            <p className="text-[9px] text-[#45a29e] uppercase font-bold truncate tracking-widest">{t("operatorTitle")}</p>
                         </div>
                     </div>
                 ) : (
@@ -252,7 +252,7 @@ const SidebarContent = () => {
                     className={`w-full flex items-center gap-3 px-4 py-2.5 text-[10px] font-black text-red-400/70 hover:text-red-400 hover:bg-red-400/5 rounded-xl transition-all uppercase tracking-widest ${isCollapsed ? "justify-center px-0" : ""}`}
                 >
                     <LogOut size={16} />
-                    {!isCollapsed && <span>Oturumu Kapat</span>}
+                    {!isCollapsed && <span>{t("logout")}</span>}
                 </button>
             </div>
         </aside>

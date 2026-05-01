@@ -30,14 +30,17 @@ def patch():
 
         # Agent Nodes Table Patches
         print("Checking agent_nodes table for missing columns...")
+        for col in [("success_count", "INTEGER DEFAULT 0"), ("failure_count", "INTEGER DEFAULT 0")]:
+            try:
+                cursor.execute(f"ALTER TABLE agent_nodes ADD COLUMN {col[0]} {col[1]}")
+                print(f"Added {col[0]} to agent_nodes")
+            except sqlite3.OperationalError: pass
+            
+        # Decision Lineage Table Patches
+        print("Checking decision_lineage table for missing columns...")
         try:
-            cursor.execute("ALTER TABLE agent_nodes ADD COLUMN success_count INTEGER DEFAULT 0")
-            print("Added success_count to agent_nodes")
-        except sqlite3.OperationalError: pass
-        
-        try:
-            cursor.execute("ALTER TABLE agent_nodes ADD COLUMN failure_count INTEGER DEFAULT 0")
-            print("Added failure_count to agent_nodes")
+            cursor.execute("ALTER TABLE decision_lineage ADD COLUMN outcome TEXT")
+            print("Added outcome to decision_lineage")
         except sqlite3.OperationalError: pass
 
         conn.commit()

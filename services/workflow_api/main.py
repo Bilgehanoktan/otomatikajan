@@ -55,13 +55,6 @@ async def websocket_route(websocket: WebSocket):
 
 @app.on_event("startup")
 async def startup_event():
-    print("Sovereign AGI Workflow API starting up...")
-    
-    # DEBUG: Print all routes
-    print("Registered Routes:")
-    for route in app.routes:
-        print(f"Path: {route.path} | Name: {route.name}")
-    
     await init_db()
     print("Database Initialized.")
     

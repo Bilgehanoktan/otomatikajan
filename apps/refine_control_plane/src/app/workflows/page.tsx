@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useNavigation } from "@refinedev/core";
+import { useTranslations, useFormatter } from "next-intl";
 import {
   Activity,
   ChevronRight,
@@ -9,6 +10,7 @@ import {
   Fingerprint,
   Layout,
   Network,
+  Plus,
   RotateCcw,
   Search,
   ShieldCheck,
@@ -16,6 +18,7 @@ import {
 import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 import { Skeleton } from "@/components/dashboard/Skeleton";
 import { safeFetchJson } from "@/lib/api";
+import { getApiBaseUrl } from "@/lib/runtime";
 
 interface WorkflowListItem {
   id: string;
@@ -36,7 +39,9 @@ interface WorkflowSummary {
 }
 
 export default function WorkflowList() {
-  const { show } = useNavigation();
+  const t = useTranslations("workflows");
+  const tStatus = useTranslations("status");
+  const { show, create } = useNavigation();
   const [workflows, setWorkflows] = React.useState<WorkflowListItem[]>([]);
   const [summary, setSummary] = React.useState<WorkflowSummary>({
     total: 0,
@@ -46,12 +51,7 @@ export default function WorkflowList() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  const apiBase = React.useMemo(() => {
-    if (typeof window === "undefined") {
-      return "http://127.0.0.1:8000/api/v1";
-    }
-    return `${window.location.protocol}//${window.location.hostname}:8000/api/v1`;
-  }, []);
+  const apiBase = React.useMemo(() => getApiBaseUrl(), []);
 
   const load = React.useCallback(async () => {
     setIsLoading(true);
@@ -99,8 +99,8 @@ export default function WorkflowList() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#060a12] p-8 text-gray-300 animate-in fade-in duration-1000">
       <ResourceHeader
-        title="Active Workflows"
-        subtitle="Real-time Autonomous Orchestration & Decision Traces"
+        title={t("listTitle")}
+        subtitle={t("listSubtitle")}
         icon={<Activity size={32} />}
         badge="Engine Core v13"
         staleMeta={staleMeta as never}
@@ -108,18 +108,25 @@ export default function WorkflowList() {
           <div className="flex items-center gap-8">
             <div className="flex flex-col items-end border-r border-white/5 pr-8">
               <span className="text-[9px] font-black uppercase leading-none tracking-widest text-gray-500">
-                Active Cycles
+                {t("activeCycles")}
               </span>
               <span className="mt-2 font-mono text-sm font-black italic tracking-tighter text-[var(--primary)]">
-                {activeJobs} RUNNING
+                {activeJobs} {tStatus("running").toUpperCase()}
               </span>
             </div>
             <div className="flex flex-col items-end border-r border-[#66fcf1]/20 pr-8">
               <span className="text-[9px] font-black uppercase leading-none tracking-widest text-gray-500">
-                Pending Approval
+                {t("pendingApproval")}
               </span>
               <span className="mt-2 text-sm font-black text-white">{summary.pending_approval}</span>
             </div>
+            <button
+              onClick={() => create("workflows")}
+              className="flex items-center gap-2 rounded-2xl border-none bg-gradient-to-r from-[var(--primary)] to-blue-500 p-4 font-black italic tracking-widest text-[#060a12] transition-all hover:scale-105 active:scale-95"
+            >
+              <Plus size={18} />
+              <span className="hidden text-[10px] uppercase xl:inline">{t("create")}</span>
+            </button>
             <button
               onClick={() => void load()}
               className="rounded-2xl border border-white/5 bg-white/5 p-4 text-gray-500 transition-all hover:bg-white/10 hover:text-white active:scale-90"
@@ -141,7 +148,7 @@ export default function WorkflowList() {
               <div className="flex items-center gap-4">
                 <div className="h-2 w-2 animate-ping rounded-full bg-[var(--primary)] shadow-[0_0_12px_rgba(102,252,241,0.6)]" />
                 <h2 className="text-xs font-black uppercase tracking-[0.4em] text-white">
-                  Integrated Orchestration Stream
+                  {t("streamTitle")}
                 </h2>
               </div>
               <div className="flex items-center gap-6">
@@ -149,7 +156,7 @@ export default function WorkflowList() {
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
                   <input
                     type="text"
-                    placeholder="İŞ AKIŞI ARA..."
+                    placeholder={t("searchPlaceholder")}
                     className="w-48 rounded-xl border border-white/5 bg-black/40 py-2 pl-10 pr-4 text-[10px] font-black text-white transition-all focus:border-[var(--primary)]/20 focus:outline-none"
                   />
                 </div>
@@ -173,10 +180,10 @@ export default function WorkflowList() {
               ) : workflows.length === 0 ? (
                 <div className="py-20 text-center">
                   <div className="text-sm font-black uppercase tracking-[0.3em] text-white">
-                    Henüz görev bulunamadı
+                    {t("noWorkflows")}
                   </div>
                   <div className="mt-3 text-xs text-gray-500">
-                    SQLite fallback için demo görevler bir sonraki başlangıçta otomatik tohumlanır.
+                    {t("demoWarning")}
                   </div>
                 </div>
               ) : (
@@ -199,10 +206,14 @@ function WorkflowCard({
   workflow: WorkflowListItem;
   onClick: () => void;
 }) {
-  const status = workflow.status?.toLowerCase();
-  const isRunning = status === "running";
-  const isCompleted = status === "completed";
-  const isFailed = status === "failed" || status === "error";
+  const t = useTranslations("workflows");
+  const tStatus = useTranslations("status");
+  const format = useFormatter();
+  
+  const statusKey = workflow.status?.toLowerCase() || "pending_approval";
+  const isRunning = statusKey === "running";
+  const isCompleted = statusKey === "completed";
+  const isFailed = statusKey === "failed" || statusKey === "error";
   const progress = workflow.progress_pct ?? 0;
 
   return (
@@ -247,7 +258,7 @@ function WorkflowCard({
                         : "bg-white/5 text-gray-300"
                 }`}
               >
-                {workflow.status}
+                {tStatus(statusKey as any)}
               </span>
               <span className="rounded-lg border border-white/5 bg-white/[0.02] px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-gray-500">
                 {workflow.workflow_type}
@@ -273,10 +284,10 @@ function WorkflowCard({
         <div className="flex min-w-[200px] flex-col gap-3">
           <div className="flex items-end justify-between px-1">
             <span className="text-[9px] font-black uppercase tracking-widest text-gray-700">
-              Step {workflow.completed_steps} / {workflow.total_steps || 1}
+              {t("step")} {workflow.completed_steps} / {workflow.total_steps || 1}
             </span>
             <span className="font-mono text-[10px] font-black tracking-widest text-white">
-              {progress}%
+              {format.number(progress / 100, { style: 'percent' })}
             </span>
           </div>
           <div className="h-1.5 w-48 overflow-hidden rounded-full border border-white/[0.03] bg-black/40">
@@ -291,7 +302,7 @@ function WorkflowCard({
 
         <div className="flex min-w-[100px] items-center justify-end gap-4">
           <div className="flex items-center gap-2 text-[var(--primary)] opacity-0 transition-all group-hover/item:translate-x-1 group-hover/item:opacity-100">
-            <span className="text-[10px] font-black uppercase tracking-widest">Inspect</span>
+            <span className="text-[10px] font-black uppercase tracking-widest">{t("inspect")}</span>
             <ChevronRight size={16} />
           </div>
         </div>

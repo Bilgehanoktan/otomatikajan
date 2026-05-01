@@ -94,6 +94,47 @@ curl http://localhost:8000/health
 # API docs: http://localhost:8000/docs
 ```
 
+### Local Dev Topology
+
+Local geliştirmede kanonik çalışma modeli şöyledir:
+
+- `3100` -> Next.js control plane UI
+- `8000` -> API + WebSocket backend
+
+Beklenen davranış:
+
+- frontend yalnızca relative `/api/v1/...` ve `/ws/...` yollarını kullanır
+- `8000` local dev'de varsayılan olarak `APP_UI_MODE=api-only` modunda çalışır
+- Postgres yoksa local dev'de `LOCAL_DEV_DB_STRATEGY=sqlite-fallback` ile sistem ayakta kalır
+- Redis yoksa ve kuyruk `inprocess` moddaysa bu local degraded mode olarak kabul edilir
+
+Eğer Windows üzerinde `127.0.0.1:8000` farklı/stale bir listener tarafından gölgeleniyorsa, frontend proxy hedefini açıkça yerel ağ arayüzüne taşıyabilirsiniz:
+
+```env
+BACKEND_ORIGIN=http://192.168.1.61:8000
+NEXT_PUBLIC_BACKEND_ORIGIN=http://192.168.1.61:8000
+```
+
+Bu ayar, `3100` UI'nin HTTP proxy ve WebSocket fallback için aynı backend origin'i kullanmasını sağlar.
+
+Hızlı smoke:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_local_dev.ps1
+```
+
+Not: smoke, local dev'de root (`/`) yerine daha stabil bir uygulama yüzeyi olan `"/audit/"` üstünden frontend erişimini doğrular. Gerekirse şu şekilde override edebilirsiniz:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_local_dev.ps1 -FrontendStablePath /workflows/
+```
+
+Sadece entegrasyon/erişim smoke'i için, workflow dispatch adımını atlayarak:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_local_dev.ps1 -SkipWorkflowDispatch
+```
+
 ---
 
 ## Kurulum (Manuel)

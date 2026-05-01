@@ -161,6 +161,13 @@ class GovernorEscalationRecord(Base):
     created_at      = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
     resolved_at     = Column(DateTime(timezone=True))
 
+class GovernorDecisionQuality(str, enum.Enum):
+    CORRECT = "CORRECT"
+    FALSE_POSITIVE = "FALSE_POSITIVE"
+    FALSE_NEGATIVE = "FALSE_NEGATIVE"
+    PARTIAL = "PARTIAL"
+    STALE = "STALE"
+
 class GovernorOutcomeType(str, enum.Enum):
     SUCCESS = "SUCCESS"
     FAILURE = "FAILURE"

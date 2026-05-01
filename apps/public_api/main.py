@@ -18,7 +18,7 @@ if ROOT_DIR not in sys.path:
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 # ── .env otomatik yükle ───────────────────────────────────
@@ -36,7 +36,7 @@ except ImportError:
     pass
 
 # ── Güvenlik çekirdek kontrolleri ─────────────────────────
-from libs.config import APP_ENV as _ENV, ADMIN_SECRET, JWT_SECRET, validate_production_config
+from libs.config import APP_ENV as _ENV, APP_UI_MODE, ADMIN_SECRET, JWT_SECRET, validate_production_config
 from services.observability.logging import get_logger
 
 logger = get_logger("main")
@@ -105,8 +105,14 @@ _dash_modern = os.path.join(ROOT_DIR, "apps", "refine_control_plane", "out")
 
 # Prioritize Modern Control Plane
 _active_dash = _dash_modern if os.path.exists(os.path.join(_dash_modern, "index.html")) else _dash_legacy
+_dashboard_static_enabled = APP_UI_MODE == "static"
 
-if os.path.isdir(_active_dash):
+_up = "uploads"
+if not os.path.exists(_up):
+    os.makedirs(_up)
+app.mount("/uploads", StaticFiles(directory=_up), name="uploads")
+
+if _dashboard_static_enabled and os.path.isdir(_active_dash):
     # 1. Mount the whole directory under /static for general access
     app.mount("/static", StaticFiles(directory=_active_dash), name="static")
 
@@ -116,15 +122,14 @@ if os.path.isdir(_active_dash):
         app.mount("/_next", StaticFiles(directory=_next_dir), name="next_assets")
         logger.info(f"[DASHBOARD] Next.js assets mounted from {_next_dir}")
 
-    logger.info(f"[DASHBOARD] Active Dashboard ({'Modern' if _active_dash == _dash_modern else 'Legacy'}) served from {_active_dash}")
-
-    # Ensure uploads directory exists
-    _up = "uploads"
-    if not os.path.exists(_up):
-        os.makedirs(_up)
-    app.mount("/uploads", StaticFiles(directory=_up), name="uploads")
-else:
+    logger.info(
+        f"[DASHBOARD] UI mode=static. Active Dashboard "
+        f"({'Modern' if _active_dash == _dash_modern else 'Legacy'}) served from {_active_dash}"
+    )
+elif _dashboard_static_enabled:
     logger.warning("[DASHBOARD] No dashboard directory found. Root / will 404.")
+else:
+    logger.info("[DASHBOARD] UI mode=api-only. Static dashboard serving disabled; use port 3100 for the control plane.")
 
 # ── Workflow Control Plane API (Centralized in router_registry) ───────────
 # Removed manual inclusion to prevent duplicate routes and conflicts.
@@ -227,6 +232,7 @@ async def health_check():
         "queue": {
             "backend": getattr(job_queue, "backend_name", "unknown"),
             "supports_registration": getattr(job_queue, "supports_registration", False),
+            "stats": job_queue.stats() if hasattr(job_queue, "stats") else {},
         },
         "repair": _get_repair_health_summary(),
         "governance": {
@@ -336,7 +342,7 @@ async def global_exception_handler(request, exc):
 
 # ── Final Catch-all for SPA ───────────────────────────────
 # MUST be the last route to avoid intercepting /health or /api
-if os.path.isdir(_active_dash):
+if _dashboard_static_enabled and os.path.isdir(_active_dash):
     @app.get("/{file_path:path}", include_in_schema=False)
     async def catch_all_static(file_path: str):
         # Skip if it looks like an API call
@@ -353,3 +359,161 @@ if os.path.isdir(_active_dash):
             return FileResponse(index_path)
 
         return None
+else:
+    def _build_api_only_status_page() -> str:
+        dashboard_dev_url = os.getenv("DASHBOARD_DEV_URL", "http://127.0.0.1:3100")
+        api_base_url = os.getenv("API_BASE_URL", "http://127.0.0.1:8000/api/v1")
+        health_url = os.getenv("API_HEALTH_URL", "http://127.0.0.1:8000/health")
+        dashboard_health_url = os.getenv("API_DASHBOARD_HEALTH_URL", "http://127.0.0.1:8000/api/v1/health/dashboard")
+        ws_url = os.getenv("API_WS_URL", "ws://127.0.0.1:8000/ws/events")
+
+        return f"""<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sovereign Public API</title>
+  <style>
+    :root {{
+      color-scheme: dark;
+      --bg: #060a12;
+      --panel: rgba(17, 24, 39, 0.9);
+      --panel-border: rgba(102, 252, 241, 0.16);
+      --text: #f3f4f6;
+      --muted: #94a3b8;
+      --accent: #66fcf1;
+      --accent-2: #45a29e;
+      --chip: rgba(102, 252, 241, 0.08);
+    }}
+    * {{ box-sizing: border-box; }}
+    body {{
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, Segoe UI, Arial, sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(69,162,158,0.18), transparent 28%),
+        linear-gradient(180deg, #08101c 0%, var(--bg) 100%);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }}
+    .shell {{
+      width: min(920px, 100%);
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 24px;
+      padding: 28px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+      backdrop-filter: blur(14px);
+    }}
+    .eyebrow {{
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: var(--chip);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }}
+    h1 {{
+      margin: 18px 0 8px;
+      font-size: clamp(32px, 5vw, 52px);
+      line-height: 1.05;
+    }}
+    p {{
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.6;
+      max-width: 70ch;
+    }}
+    .grid {{
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin-top: 28px;
+    }}
+    .card {{
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 16px;
+      padding: 16px;
+      background: rgba(255,255,255,0.02);
+    }}
+    .label {{
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }}
+    .value {{
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      word-break: break-word;
+    }}
+    .value.ok {{ color: var(--accent); }}
+    .links {{
+      margin-top: 24px;
+      display: grid;
+      gap: 10px;
+    }}
+    a {{
+      color: var(--accent);
+      text-decoration: none;
+    }}
+    a:hover {{ color: #8ffdf5; }}
+    code {{
+      font-family: Consolas, monospace;
+      color: #d1d5db;
+      font-size: 13px;
+    }}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="eyebrow">Sovereign Public API</div>
+    <h1>8000 ayakta, UI burada değil.</h1>
+    <p>
+      Bu port şu anda <strong>API ve WebSocket</strong> servisi olarak çalışıyor.
+      Geliştirme arayüzü ayrı olarak <a href="{dashboard_dev_url}">{dashboard_dev_url}</a> üstünden sunuluyor.
+    </p>
+
+    <section class="grid">
+      <div class="card">
+        <div class="label">Servis</div>
+        <div class="value">workflow_api</div>
+      </div>
+      <div class="card">
+        <div class="label">Durum</div>
+        <div class="value ok">healthy</div>
+      </div>
+      <div class="card">
+        <div class="label">UI Modu</div>
+        <div class="value">{APP_UI_MODE}</div>
+      </div>
+      <div class="card">
+        <div class="label">Kontrol Paneli</div>
+        <div class="value"><a href="{dashboard_dev_url}">3100 UI</a></div>
+      </div>
+    </section>
+
+    <section class="links">
+      <div><code>Health:</code> <a href="{health_url}">{health_url}</a></div>
+      <div><code>Dashboard Health:</code> <a href="{dashboard_health_url}">{dashboard_health_url}</a></div>
+      <div><code>API Base:</code> <a href="{api_base_url}">{api_base_url}</a></div>
+      <div><code>WebSocket:</code> <code>{ws_url}</code></div>
+    </section>
+  </main>
+</body>
+</html>"""
+
+    @app.get("/", include_in_schema=False)
+    async def api_only_root():
+        return HTMLResponse(_build_api_only_status_page())

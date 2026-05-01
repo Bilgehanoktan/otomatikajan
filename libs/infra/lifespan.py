@@ -11,6 +11,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from libs.db.session import init_db, close_db
+from libs.config import APP_ENV, APP_UI_MODE, LOCAL_DEV_DB_STRATEGY, QUEUE_BACKEND
 from services.observability.logging import get_logger
 
 logger = get_logger("infra.lifespan")
@@ -48,6 +49,11 @@ async def lifespan(app: FastAPI):
         from services.orchestration.application.job_queue import job_queue
         if job_queue.backend_name == "inprocess":
             from libs.workflow.runner import run_project_workflow
+            logger.info(
+                "[STARTUP] Local queue mode active: backend=%s, registration=%s",
+                getattr(job_queue, "backend_name", "unknown"),
+                getattr(job_queue, "supports_registration", False),
+            )
             
             async def _project_handler(**payload):
                 p_id = payload.get("db_project_id") or payload.get("project_id")
@@ -75,7 +81,25 @@ async def lifespan(app: FastAPI):
             # SRE Hardening: Background startup to prevent blocking the web server
             asyncio.create_task(job_queue.start(num_workers=4))
             logger.info("[STARTUP] In-process JobQueue workers initiated in background (Resilient Mode).")
-        
+        else:
+            logger.info(
+                "[STARTUP] Queue backend resolved to %s. In local development this should only happen when Celery is explicitly forced.",
+                getattr(job_queue, "backend_name", "unknown"),
+            )
+
+        if APP_ENV == "development":
+            logger.info(
+                "[SELF-CHECK] Local dev topology active: ui=http://127.0.0.1:3100, api_ws=http://127.0.0.1:8000, ui_mode=%s, db_strategy=%s, queue_backend=%s (requested=%s)",
+                APP_UI_MODE,
+                LOCAL_DEV_DB_STRATEGY,
+                getattr(job_queue, "backend_name", "unknown"),
+                QUEUE_BACKEND,
+            )
+            if LOCAL_DEV_DB_STRATEGY == "sqlite-fallback":
+                logger.info(
+                    "[SELF-CHECK] Local degraded mode is expected when Postgres is unavailable. SQLite fallback and in-process queue should keep the control plane operational."
+                )
+
         # 4. Standby Mode: PRMR Readiness Audit (Low Frequency)
         async def _prmr_audit_loop():
             from services.governance.standby_manager import StandbyManager

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useList, useCustom, useApiUrl } from "@refinedev/core";
+import { useTranslations, useFormatter } from "next-intl";
 import {
   Activity,
   ShieldCheck,
@@ -70,6 +71,9 @@ interface DashboardData {
 }
 
 export default function ControlPlaneDashboard() {
+  const t = useTranslations("dashboard");
+  const tStatus = useTranslations("status");
+  const format = useFormatter();
   const [isClient, setIsClient] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "workflows" | "events" | "health" | "economy">("overview");
   const apiUrl = useApiUrl();
@@ -135,23 +139,22 @@ export default function ControlPlaneDashboard() {
            <div className="flex items-center gap-6 relative z-10">
               <div className="px-5 py-2 rounded-2xl bg-black/40 border border-white/5 flex items-center gap-3">
                  <div className="w-2 h-2 rounded-full bg-[var(--primary)] shadow-[0_0_10px_var(--primary)] animate-pulse" />
-                 <span className="text-[10px] font-black text-white uppercase tracking-[0.3em] font-mono italic">Egemen Motoru v14.02</span>
+                 <span className="text-[10px] font-black text-white uppercase tracking-[0.3em] font-mono italic">{t("engineVersion")}</span>
               </div>
               <div className="flex items-center gap-3 py-2 px-5 rounded-2xl bg-white/[0.02] border border-white/5">
                  <Globe size={14} className="text-gray-600" />
                  <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest italic">
-                    Şebeke Durumu: {dash.status === 'online' ? 'SENKRONİZE' : 'BAĞLANTI_KESİLDİ'}
+                    {t("networkStatus")}: {dash.status === 'online' ? t("synchronized") : t("disconnected")}
                  </span>
               </div>
            </div>
 
            <div className="space-y-4">
               <h1 className="text-7xl xl:text-8xl font-black text-white tracking-tighter leading-[0.85] italic">
-                MİSYON <span className="bg-gradient-to-r from-[var(--primary)] to-blue-500 bg-clip-text text-transparent decoration-[var(--primary)] underline-offset-8">KONTROL</span>
+                {t("missionControl").split(' ')[0]} <span className="bg-gradient-to-r from-[var(--primary)] to-blue-500 bg-clip-text text-transparent decoration-[var(--primary)] underline-offset-8">{t("missionControl").split(' ')[1]}</span>
               </h1>
               <p className="text-gray-500 max-w-2xl text-base font-medium leading-relaxed uppercase tracking-tighter opacity-80 decoration-1 underline underline-offset-4 decoration-white/5">
-                Egemen YAZ AGI İskeleti için Merkezi Otonom Yönetişim Üssü. 
-                Her şey gözlemlenebilir. Her şey yönetişim altında.
+                {t("heroSubtitle")}
               </p>
            </div>
 
@@ -165,16 +168,16 @@ export default function ControlPlaneDashboard() {
                     ))}
                  </div>
                  <div className="flex flex-col">
-                    <span className="text-[10px] font-black text-white uppercase tracking-widest">Aktif Quorum</span>
-                    <span className="text-[9px] font-bold text-gray-600 uppercase tracking-widest mt-1 italic">4 ONAYLI DÜĞÜM</span>
+                    <span className="text-[10px] font-black text-white uppercase tracking-widest">{t("activeQuorum")}</span>
+                    <span className="text-[9px] font-bold text-gray-600 uppercase tracking-widest mt-1 italic">{t("nodesVerified", { count: 4 })}</span>
                  </div>
               </div>
               
               <div className="flex items-center gap-4 py-3 px-6 bg-[var(--primary)]/10 border border-[var(--primary)]/20 rounded-3xl">
                  <Fingerprint size={20} className="text-[var(--primary)]" />
                  <div className="flex flex-col">
-                    <span className="text-[10px] font-black text-[var(--primary)] uppercase tracking-widest italic">Sistem Bütünlüğü</span>
-                    <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mt-1">MÜHÜRLÜ / DOĞRULANDI</span>
+                    <span className="text-[10px] font-black text-[var(--primary)] uppercase tracking-widest italic">{t("systemIntegrity")}</span>
+                    <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mt-1">{t("sealedVerified")}</span>
                  </div>
               </div>
            </div>
@@ -190,8 +193,8 @@ export default function ControlPlaneDashboard() {
                 <div className="relative z-10 flex flex-col h-full justify-between">
                     <div className="flex items-center justify-between">
                         <div className="flex flex-col gap-1">
-                           <span className="text-[11px] font-black text-white uppercase tracking-[0.3em] font-mono italic">Nöral Çekirdek Durumu</span>
-                           <span className="text-[8px] font-black text-gray-600 uppercase tracking-[0.5em]">{dash.health_label || "STABİL"} EŞİK ÜSTÜ</span>
+                           <span className="text-[11px] font-black text-white uppercase tracking-[0.3em] font-mono italic">{t("neuralVitality")}</span>
+                           <span className="text-[8px] font-black text-gray-600 uppercase tracking-[0.5em]">{dash.health_label ? dash.health_label.toUpperCase() : t("stable")} {t("aboveThreshold")}</span>
                         </div>
                         <div className={`p-4 bg-black/40 rounded-2xl border border-white/5 shadow-inner ${healthColor}`}>
                            <HeartPulse size={24} className="animate-pulse" />
@@ -209,12 +212,12 @@ export default function ControlPlaneDashboard() {
 
                     <div className="mt-10 pt-10 border-t border-white/[0.03] flex items-center justify-between">
                         <div className="flex flex-col gap-1">
-                            <span className="text-[9px] font-black text-gray-700 uppercase tracking-widest">Ağ Gecikmesi</span>
+                            <span className="text-[9px] font-black text-gray-700 uppercase tracking-widest">{t("networkLatency")}</span>
                             <span className="text-lg font-black text-white font-mono tracking-tighter italic">{latency} MS</span>
                         </div>
                         <div className="flex flex-col items-end gap-1 text-right">
-                            <span className="text-[9px] font-black text-gray-700 uppercase tracking-widest">Global Çalışma Süresi</span>
-                            <span className="text-lg font-black text-[var(--primary)] font-mono tracking-tighter italic">99.98% NOMİNAL</span>
+                            <span className="text-[9px] font-black text-gray-700 uppercase tracking-widest">{t("uptime")}</span>
+                            <span className="text-lg font-black text-[var(--primary)] font-mono tracking-tighter italic">99.98% {t("nominal")}</span>
                         </div>
                     </div>
                 </div>
@@ -225,27 +228,27 @@ export default function ControlPlaneDashboard() {
       {/* ── BÖLÜM 2: ANA KPI BANDI ───────────────────────── */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-8">
         <EliteMetricItem
-          label="Aktif Izgara Birimleri"
+          label={t("metrics.activeAgents")}
           value={dash.active_agents ?? "—"}
-          subLabel="Otonom Ajanlar Çevrimiçi"
+          subLabel={t("metrics.agentsOnline")}
           color="text-[var(--primary)]"
           icon={<Cpu size={20} />}
           loading={dashLoading}
           accent="bg-[var(--primary)]/10"
         />
         <EliteMetricItem
-          label="İş Akışı Güvenilirliği"
-          value={`%${wfStats.success_rate_pct ?? 0}`}
-          subLabel={`${wfStats.completed ?? 0} Tamamlandı`}
+          label={t("metrics.workflowReliability")}
+          value={format.number((wfStats.success_rate_pct ?? 0) / 100, { style: "percent" })}
+          subLabel={`${wfStats.completed ?? 0} ${t("metrics.completed")}`}
           color="text-green-500"
           icon={<ShieldCheck size={20} />}
           loading={dashLoading}
           accent="bg-green-500/10"
         />
         <EliteMetricItem
-          label="Ekonomik Yük"
-          value={`$${dash.cost?.total_usd?.toFixed(0) ?? 0}`}
-          subLabel={`%${budgetPct} Limit Kullanıldı`}
+          label={t("metrics.economicLoad")}
+          value={format.number((dash.cost?.total_usd ?? 0), { style: "currency", currency: "USD", maximumFractionDigits: 0 })}
+          subLabel={t("metrics.budgetUsed", { pct: budgetPct })}
           color={budgetPct > 80 ? "text-amber-500" : "text-gray-300"}
           icon={<DollarSign size={20} />}
           loading={dashLoading}
@@ -253,9 +256,9 @@ export default function ControlPlaneDashboard() {
           bar={budgetPct}
         />
         <EliteMetricItem
-          label="Bilimsel Güven"
-          value={`%${dash.canary?.success_rate ?? 0}`}
-          subLabel={`${dash.canary?.promoted ?? 0} Yamalı Evrim`}
+          label={t("metrics.scientificTrust")}
+          value={format.number((dash.canary?.success_rate ?? 0) / 100, { style: "percent" })}
+          subLabel={t("metrics.patchedEvolution", { count: dash.canary?.promoted ?? 0 })}
           color="text-violet-500"
           icon={<FlaskConical size={20} />}
           loading={dashLoading}
@@ -279,11 +282,11 @@ export default function ControlPlaneDashboard() {
           {/* Tab Navigation Elite */}
           <div className="flex items-center gap-0 border-b border-white/[0.03] bg-black/40 px-10 pt-4 custom-scrollbar overflow-x-auto">
               {[
-                { id: "overview",  label: "ÇEKİRDEK DURUMU", icon: <LayoutDashboard size={16} /> },
-                { id: "workflows", label: "ORKESTRASYON", icon: <Binary size={16} />, badge: wfStats.running || 0 },
-                { id: "events",    label: "TELEMETRİ", icon: <Zap size={16} /> },
-                { id: "health",    label: "DİRENÇ", icon: <ShieldCheck size={16} /> },
-                { id: "economy",   label: "FİNANS", icon: <DollarSign size={16} /> },
+                { id: "overview",  label: t("tabs.overview"), icon: <LayoutDashboard size={16} /> },
+                { id: "workflows", label: t("tabs.workflows"), icon: <Binary size={16} />, badge: wfStats.running || 0 },
+                { id: "events",    label: t("tabs.events"), icon: <Zap size={16} /> },
+                { id: "health",    label: t("tabs.health"), icon: <ShieldCheck size={16} /> },
+                { id: "economy",   label: t("tabs.economy"), icon: <DollarSign size={16} /> },
               ].map((tab) => (
                   <button
                     key={tab.id}
@@ -315,12 +318,12 @@ export default function ControlPlaneDashboard() {
                       
                       {/* Left: Quick Access Hub */}
                       <div className="space-y-8">
-                          <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-gray-600 px-2 italic border-l-2 border-[var(--primary)]">Geçit Erişimi</h3>
+                          <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-gray-600 px-2 italic border-l-2 border-[var(--primary)]">{t("quickAccess.title")}</h3>
                           <div className="grid grid-cols-1 gap-4">
                               {[
-                                  { label: "Refine Komuta Merkezi", sub: "localhost:3100", href: "http://localhost:3100", icon: <ArrowRight size={14}/> },
-                                  { label: "Egemen API Dokümanları", sub: "FastAPI Prodüksiyon v1", href: `${apiUrl}/docs`, icon: <Terminal size={14}/> },
-                                  { label: "Telemetri Kayıtları", sub: "S-SEVİYE JSON Akışı", href: `${apiUrl}/health`, icon: <Activity size={14}/> },
+                                  { label: t("quickAccess.refine"), sub: "localhost:3100", href: "http://localhost:3100", icon: <ArrowRight size={14}/> },
+                                  { label: t("quickAccess.docs"), sub: t("quickAccess.apiSub"), href: `${apiUrl}/docs`, icon: <Terminal size={14}/> },
+                                  { label: t("quickAccess.telemetry"), sub: t("quickAccess.jsonSub"), href: `${apiUrl}/health`, icon: <Activity size={14}/> },
                               ].map(link => (
                                   <a key={link.label} href={link.href} target="_blank" className="flex items-center justify-between p-6 rounded-[2rem] border border-white/5 bg-white/[0.01] hover:bg-[var(--primary)]/[0.03] hover:border-[var(--primary)]/30 transition-all group shadow-lg">
                                       <div className="flex items-center gap-5">
@@ -340,12 +343,12 @@ export default function ControlPlaneDashboard() {
 
                       {/* Middle: Governance Quorum & Decisions */}
                       <div className="space-y-8">
-                          <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-gray-600 px-2 italic border-l-2 border-amber-500">Otonom Yönetişim</h3>
+                          <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-gray-600 px-2 italic border-l-2 border-amber-500">{t("governance.title")}</h3>
                           <div className="space-y-4">
                               {[
-                                  { label: "Anayasal Güvenlik Kilitleri", val: dash.governance?.constitutional_locks ? "DEVREDE" : "ÇEVRİMDIŞI", ok: dash.governance?.constitutional_locks },
-                                  { label: "Bütçesel Devre Kesici", val: budgetPct > 90 ? "LİMİT-ÜSTÜ" : "KİLİTLİ", ok: budgetPct <= 90 },
-                                  { label: "Stratejik Karar Şeceresi", val: "MÜHÜRLÜ_V3", ok: true },
+                                  { label: t("governance.locks"), val: dash.governance?.constitutional_locks ? t("governance.active") : t("governance.offline"), ok: dash.governance?.constitutional_locks },
+                                  { label: t("governance.circuitBreaker"), val: budgetPct > 90 ? t("governance.overlimit") : t("governance.locked"), ok: budgetPct <= 90 },
+                                  { label: t("governance.lineage"), val: t("governance.sealedV3"), ok: true },
                               ].map(item => (
                                   <div key={item.label} className="p-6 rounded-[2rem] border border-white/5 bg-white/[0.012] flex items-center justify-between group hover:bg-white/[0.025] transition-all">
                                       <span className="text-[11px] font-black text-gray-500 uppercase tracking-tight italic underline decoration-white/5 underline-offset-4">{item.label}</span>
@@ -359,23 +362,23 @@ export default function ControlPlaneDashboard() {
                                   <div className="p-8 rounded-[2.5rem] bg-amber-500/[0.03] border border-amber-500/20 flex flex-col gap-4 animate-pulse shadow-2xl">
                                       <div className="flex items-center gap-3">
                                          <AlertOctagon size={18} className="text-amber-500" />
-                                         <span className="text-[10px] font-black text-amber-500 uppercase tracking-[0.3em] font-mono italic">Doğrulama Bekleniyor</span>
+                                         <span className="text-[10px] font-black text-amber-500 uppercase tracking-[0.3em] font-mono italic">{t("governance.pendingAuth")}</span>
                                       </div>
                                       <p className="text-[11px] text-gray-500 leading-relaxed font-bold italic">
-                                          Sistem geneli {dash.governance.pending_approvals} adet kritik operasyon onay bekliyor.
+                                          {t("governance.pendingCount", { count: dash.governance.pending_approvals })}
                                       </p>
                                       <button className="w-full py-3 bg-amber-500/10 border border-amber-500/30 text-amber-500 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-amber-500/20 transition-all">
-                                         Onayları İncele
+                                         {t("governance.reviewApprovals")}
                                       </button>
                                   </div>
                               ) : (
                                   <div className="p-8 rounded-[2.5rem] bg-green-500/[0.03] border border-green-500/20 flex flex-col gap-4 shadow-xl">
                                       <div className="flex items-center gap-3 text-green-500">
                                          <ShieldCheck size={18} />
-                                         <span className="text-[10px] font-black uppercase tracking-[0.3em] font-mono italic">Politika Senkronize</span>
+                                         <span className="text-[10px] font-black uppercase tracking-[0.3em] font-mono italic">{t("governance.policySync")}</span>
                                       </div>
                                       <p className="text-[11px] text-gray-500 leading-relaxed font-bold italic">
-                                          Tüm yüksek riskli operasyonlar geçerli quorum konsensüsüne ulaştı. Şebeke stabil.
+                                          {t("governance.syncDesc")}
                                       </p>
                                   </div>
                               )}
@@ -384,16 +387,16 @@ export default function ControlPlaneDashboard() {
 
                       {/* Right: Infrastructure & Identity */}
                       <div className="space-y-8">
-                          <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-gray-600 px-2 italic border-l-2 border-violet-500">Kimlik & Altyapı</h3>
+                          <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-gray-600 px-2 italic border-l-2 border-violet-500">{t("infrastructure.title")}</h3>
                           <div className="glass-panel p-10 rounded-[2.5rem] border-white/5 bg-white/[0.015] flex flex-col gap-10 shadow-2xl relative overflow-hidden">
                               <div className="absolute -bottom-10 -right-10 opacity-[0.02] text-violet-500 group-hover:opacity-[0.05] transition-opacity">
                                 <Cpu size={180} />
                               </div>
                               {[
-                                  { label: "Çekirdek Kernel", val: "Egemen Yaz Framework v14.02", icon: <Layers size={14}/> },
-                                  { label: "Ortam Modu", val: "CANLI MİSYON OPS", icon: <Globe size={14}/> },
-                                  { label: "VCS Branch Takibi", val: "Federation/p2p-sync", icon: <GitBranch size={14}/> },
-                                  { label: "Audit Ledger Index", val: "sha256:7f3aa9e11b...a1c", icon: <Database size={14}/> },
+                                  { label: t("infrastructure.kernel"), val: "Egemen Yaz Framework v14.02", icon: <Layers size={14}/> },
+                                  { label: t("infrastructure.envMode"), val: t("infrastructure.liveOps"), icon: <Globe size={14}/> },
+                                  { label: t("infrastructure.vcsBranch"), val: "Federation/p2p-sync", icon: <GitBranch size={14}/> },
+                                  { label: t("infrastructure.auditIndex"), val: "sha256:7f3aa9e11b...a1c", icon: <Database size={14}/> },
                               ].map(info => (
                                   <div key={info.label} className="flex flex-col gap-2 relative z-10">
                                       <div className="flex items-center gap-3 text-gray-700">
@@ -427,30 +430,30 @@ export default function ControlPlaneDashboard() {
                               <Binary size={20} />
                            </div>
                            <div>
-                              <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter">Orkestrasyon Akışı</h3>
-                              <p className="text-[10px] text-gray-600 font-black uppercase tracking-widest mt-1 opacity-60">Gerçek Zamanlı Otonom İş Akışı Durumu</p>
+                              <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter">{t("orchestration.title")}</h3>
+                              <p className="text-[10px] text-gray-600 font-black uppercase tracking-widest mt-1 opacity-60">{t("orchestration.subtitle")}</p>
                            </div>
                         </div>
                         <div className="flex items-center gap-10">
                             <div className="flex flex-col items-center">
-                               <span className="text-[9px] font-black text-gray-700 uppercase tracking-widest block mb-1">Tamamlanan</span>
+                               <span className="text-[9px] font-black text-gray-700 uppercase tracking-widest block mb-1">{t("metrics.completed")}</span>
                                <span className="text-lg font-black text-green-500 italic font-mono">{wfStats.completed}</span>
                             </div>
                             <div className="flex flex-col items-center">
-                               <span className="text-[9px] font-black text-gray-700 uppercase tracking-widest block mb-1">Yürütülüyor</span>
+                               <span className="text-[9px] font-black text-gray-700 uppercase tracking-widest block mb-1">{t("orchestration.running")}</span>
                                <span className="text-lg font-black text-[var(--primary)] italic font-mono">{wfStats.running}</span>
                             </div>
                         </div>
                     </div>
                     {workflows.map((wf: any) => (
-                        <EliteWorkflowRow key={wf.id} wf={wf} />
+                        <EliteWorkflowRow key={wf.id} wf={wf} tStatus={tStatus} tOrch={t} />
                     ))}
                     {workflows.length === 0 && (
                         <div className="py-40 text-center opacity-20">
-                            <div className="p-10 bg-white/5 rounded-full border border-white/5 inline-flex mb-8">
-                               <Binary size={48} className="animate-pulse" />
-                            </div>
-                            <p className="font-black text-gray-400 uppercase text-[12px] tracking-[0.6em]">Veri Akışı Bekleniyor...</p>
+                           <div className="p-10 bg-white/5 rounded-full border border-white/5 inline-flex mb-8">
+                              <Binary size={48} className="animate-pulse" />
+                           </div>
+                           <p className="font-black text-gray-400 uppercase text-[12px] tracking-[0.6em]">{t("orchestration.waitingData")}</p>
                         </div>
                     )}
                 </div>
@@ -460,12 +463,12 @@ export default function ControlPlaneDashboard() {
                   <div className="h-full flex flex-col gap-10 animate-in zoom-in-95 duration-700">
                       <div className="flex items-center justify-between px-2">
                         <div className="flex flex-col gap-1">
-                          <h3 className="text-xl font-black text-white uppercase italic tracking-tighter">Küresel Telemetri Merkezi</h3>
-                          <p className="text-[10px] font-black text-gray-600 uppercase tracking-widest mt-1">Bölgeler Arası Olay Akışı v8.2</p>
+                          <h3 className="text-xl font-black text-white uppercase italic tracking-tighter">{t("telemetry.title")}</h3>
+                          <p className="text-[10px] font-black text-gray-600 uppercase tracking-widest mt-1">{t("telemetry.subtitle")}</p>
                         </div>
                         <div className="flex items-center gap-4 bg-black/40 px-6 py-3 rounded-2xl border border-white/5">
                            <div className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] animate-ping" />
-                           <span className="text-[10px] font-mono text-[var(--primary)] font-black italic tracking-widest uppercase">CANLI_TOHUM: {liveSeed}</span>
+                           <span className="text-[10px] font-mono text-[var(--primary)] font-black italic tracking-widest uppercase">{t("telemetry.liveSeed")}: {liveSeed}</span>
                         </div>
                       </div>
                       <div className="flex-1 rounded-[3rem] border border-white/[0.05] bg-black/40 overflow-hidden relative shadow-2xl">
@@ -477,14 +480,14 @@ export default function ControlPlaneDashboard() {
               {activeTab === "health" && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 animate-in fade-in zoom-in-95 duration-1000">
                     {[
-                        { label: "API Gateway Cluster", val: "99.99%", status: "UP", metric: `${latency}ms RT`, icon: <Globe size={18}/> },
-                        { label: "PostgreSQL P2P Pool", val: "98.5%", status: "UP", metric: "24 ACTIVE", icon: <Database size={18}/> },
-                        { label: "Redis Mesh Cache", val: "100%", status: "UP", metric: "3.2GB MEM", icon: <Zap size={18}/> },
-                        { label: "Vector Index Nodes", val: "ACTIVE", status: "UP", metric: "OPTIMIZED", icon: <Binary size={18}/> },
-                        { label: "Cortex Evolution", val: "READY", status: "IDLE", metric: "v14.02", icon: <HeartPulse size={18}/> },
-                        { label: "Audit Ledger Store", val: "14.2TB", status: "OK", metric: "92% FREE", icon: <ShieldCheck size={18}/> },
-                        { label: "Celery Workers Grid", val: "8/8", status: "UP", metric: "0 PENDING", icon: <Cpu size={18}/> },
-                        { label: "Security Mesh Net", val: "SYNCED", status: "UP", metric: "GLOBAL", icon: <Fingerprint size={18}/> },
+                        { label: t("resilience.nodes.api"), val: "99.99%", status: t("resilience.status"), metric: `${latency}ms RT`, icon: <Globe size={18}/> },
+                        { label: t("resilience.nodes.db"), val: "98.5%", status: t("resilience.status"), metric: "24 ACTIVE", icon: <Database size={18}/> },
+                        { label: t("resilience.nodes.cache"), val: "100%", status: t("resilience.status"), metric: "3.2GB MEM", icon: <Zap size={18}/> },
+                        { label: t("resilience.nodes.vector"), val: t("resilience.synced"), status: t("resilience.status"), metric: "OPTIMIZED", icon: <Binary size={18}/> },
+                        { label: t("resilience.nodes.cortex"), val: t("resilience.ready"), status: t("resilience.idle"), metric: "v14.02", icon: <HeartPulse size={18}/> },
+                        { label: t("resilience.nodes.audit"), val: "14.2TB", status: t("resilience.ok"), metric: "92% FREE", icon: <ShieldCheck size={18}/> },
+                        { label: t("resilience.nodes.celery"), val: "8/8", status: t("resilience.status"), metric: "0 PENDING", icon: <Cpu size={18}/> },
+                        { label: t("resilience.nodes.security"), val: t("resilience.synced"), status: t("resilience.status"), metric: "GLOBAL", icon: <Fingerprint size={18}/> },
                     ].map(node => (
                         <div key={node.label} className="group p-10 rounded-[2.5rem] border border-white/5 bg-white/[0.012] hover:bg-white/[0.03] hover:border-[var(--primary)]/30 transition-all flex flex-col justify-between h-48 shadow-xl relative overflow-hidden">
                             <div className="absolute -top-5 -right-5 opacity-[0.01] group-hover:opacity-[0.05] transition-opacity duration-1000 text-[var(--primary)]">
@@ -518,7 +521,7 @@ export default function ControlPlaneDashboard() {
                                <div className="absolute top-0 right-0 p-12 opacity-[0.02] text-amber-500 group-hover:opacity-[0.05] transition-opacity">
                                   <DollarSign size={200} />
                                 </div>
-                               <h3 className="text-[11px] font-black text-gray-600 uppercase tracking-[0.4em] mb-12 italic border-l-2 border-amber-500 px-4">Model Economic Allocation</h3>
+                               <h3 className="text-[11px] font-black text-gray-600 uppercase tracking-[0.4em] mb-12 italic border-l-2 border-amber-500 px-4">{t("economy.title")}</h3>
                                <div className="space-y-10 relative z-10">
                                    {[
                                        { model: "Claude 3.5 Sonnet", cost: 24.12, calls: 4902, color: "bg-violet-500" },
@@ -538,8 +541,8 @@ export default function ControlPlaneDashboard() {
                                                <div className={`h-full ${m.color} opacity-80 shadow-[0_0_15px_currentColor] transition-all duration-1000`} style={{ width: `${(m.cost / 40) * 100}%` }} />
                                            </div>
                                            <div className="flex justify-between text-[9px] font-black text-gray-700 uppercase tracking-widest italic pt-1">
-                                               <span>VOLUME: {m.calls.toLocaleString()} REQ</span>
-                                               <span>EFFICIENCY: ${(m.cost / (m.calls || 1)).toFixed(5)} / OP</span>
+                                               <span>{t("economy.volume")}: {m.calls.toLocaleString()} REQ</span>
+                                               <span>{t("economy.efficiency")}: ${(m.cost / (m.calls || 1)).toFixed(5)} / OP</span>
                                            </div>
                                        </div>
                                    ))}
@@ -547,23 +550,23 @@ export default function ControlPlaneDashboard() {
                           </div>
                           <div className="space-y-10">
                                <div className="glass-panel p-10 rounded-[3rem] border border-[var(--primary)]/20 bg-[var(--primary)]/[0.03] shadow-2xl">
-                                    <h4 className="text-[11px] font-black text-[var(--primary)] uppercase tracking-[0.3em] mb-6 italic">Fiscal Velocity</h4>
+                                    <h4 className="text-[11px] font-black text-[var(--primary)] uppercase tracking-[0.3em] mb-6 italic">{t("economy.velocity")}</h4>
                                     <div className="text-6xl font-black text-white italic tracking-tighter">$4.92<span className="text-2xl ml-2 opacity-40">/24H</span></div>
                                     <p className="text-[12px] text-gray-500 mt-6 leading-relaxed font-bold italic">
                                        <Activity size={14} className="inline mr-2 text-[var(--primary)]" />
-                                       Detected 12% drift decrease vs baseline. Autonomous model rotation active.
+                                       {t("economy.driftDetected")}
                                     </p>
                                </div>
                                <div className="glass-panel p-10 rounded-[3rem] border border-amber-500/20 bg-amber-500/[0.03] shadow-xl">
                                     <div className="flex items-center gap-4 mb-6">
                                        <AlertOctagon size={20} className="text-amber-500" />
-                                       <h4 className="text-[11px] font-black text-amber-500 uppercase tracking-[0.3em] italic">Governance Threshold</h4>
+                                       <h4 className="text-[11px] font-black text-amber-500 uppercase tracking-[0.3em] italic">{t("economy.threshold")}</h4>
                                     </div>
                                     <div className="text-[11px] text-gray-600 leading-relaxed font-bold uppercase tracking-tight">
-                                        Budget utilization passed 90% threshold. "Economic Circuit Breaker" is currently restricting non-critical evolutionary tasks.
+                                        {t("economy.budgetAlert")}
                                     </div>
                                     <button className="mt-8 w-full py-4 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 text-[10px] font-black uppercase tracking-widest rounded-2xl border border-amber-500/30 transition-all">
-                                       Modify Quotas
+                                       {t("economy.modifyQuotas")}
                                     </button>
                                </div>
                           </div>
@@ -621,7 +624,7 @@ function EliteMetricItem({ label, value, subLabel, color, icon, loading, accent,
   );
 }
 
-function EliteWorkflowRow({ wf }: { wf: any }) {
+function EliteWorkflowRow({ wf, tStatus, tOrch }: { wf: any, tStatus: any, tOrch: any }) {
   const isComp = wf.status === 'completed';
   const color = isComp ? 'text-green-500' : 'text-[var(--primary)]';
 
@@ -649,7 +652,7 @@ function EliteWorkflowRow({ wf }: { wf: any }) {
                       style={{ width: `${wf.progress_pct || (isComp ? 100 : 40)}%` }} />
              </div>
              <div className="flex justify-between w-full mt-3 px-1">
-                <span className="text-[9px] font-black text-gray-700 uppercase tracking-widest">Evrimsel İlerleme</span>
+                <span className="text-[9px] font-black text-gray-700 uppercase tracking-widest">{tOrch("orchestration.progress")}</span>
                 <span className="text-[10px] font-mono font-black text-gray-500 italic">%{wf.progress_pct || (isComp ? 100 : 40)}</span>
              </div>
         </div>
@@ -660,7 +663,7 @@ function EliteWorkflowRow({ wf }: { wf: any }) {
                   wf.status === 'running' ? 'text-[var(--primary)] border-[var(--primary)]/20 bg-[var(--primary)]/[0.03]' : 
                   'text-amber-500 border-amber-500/20 bg-amber-500/[0.03]'}
             `}>
-                {wf.status}
+                {tStatus(wf.status)}
             </div>
             <ArrowRight size={20} className="text-gray-800 group-hover:text-[var(--primary)] group-hover:translate-x-2 transition-all" />
         </div>

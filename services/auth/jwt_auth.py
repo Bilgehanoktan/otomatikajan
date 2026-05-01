@@ -59,10 +59,13 @@ def _make_token(payload: dict, expires_delta: timedelta) -> str:
 
 def _decode_token(token: str) -> dict:
     try:
-        return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        decoded = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        return decoded
     except jwt.ExpiredSignatureError:
+        logger.warning(f"AUTH ERROR: Token expired for secret ending in ...{JWT_SECRET[-8:]}")
         raise HTTPException(status_code=401, detail="Token süresi doldu")
-    except jwt.InvalidTokenError:
+    except jwt.InvalidTokenError as e:
+        logger.warning(f"AUTH ERROR: Invalid token: {e}. Secret ends in ...{JWT_SECRET[-8:]}")
         raise HTTPException(status_code=401, detail="Geçersiz token")
 
 # ── Cookie Yardımcıları ───────────────────────────────────
@@ -367,9 +370,18 @@ async def get_current_identity(request: Request, db: AsyncSession = Depends(get_
     # 2. JWT Check (for Operators)
     token = request.cookies.get("access_token") or request.headers.get("Authorization", "").replace("Bearer ", "")
     if not token:
+        logger.debug(f"AUTH INFO: No token found in cookies or headers for {request.url.path}")
         raise HTTPException(status_code=401, detail="Oturum veya API Anahtarı gerekli")
     
-    return await auth_service.get_identity_from_token(db, token)
+    try:
+        identity = await auth_service.get_identity_from_token(db, token)
+        return identity
+    except HTTPException as e:
+        logger.warning(f"AUTH ERROR: {e.detail} for token starting with {token[:10]}...")
+        raise e
+    except Exception as e:
+        logger.error(f"AUTH CRITICAL: Unexpected error in auth check: {e}")
+        raise HTTPException(status_code=401, detail="Kimlik doğrulama sırasında beklenmedik hata")
 
 def require_permission(permission: str, scope_type: str = "global"):
     """

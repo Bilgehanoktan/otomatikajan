@@ -248,6 +248,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
               meta: { label: "resources.launchGates" },
             },
             {
+              name: "learning",
+              meta: { label: "resources.learning" },
+            },
+            {
               name: "learning/fingerprints",
               list: "/learning/fingerprints",
               show: "/learning/fingerprints/:id",
@@ -273,6 +277,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
               list: "/axiology",
               show: "/axiology/:id",
               meta: { label: "resources.axiology" },
+            },
+            {
+              name: "governance",
+              meta: { label: "resources.governance" },
             },
             {
               name: "governance/governor/cases",

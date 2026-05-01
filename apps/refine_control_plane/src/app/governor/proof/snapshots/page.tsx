@@ -3,28 +3,31 @@
 import Link from "next/link";
 import dayjs from "dayjs";
 import { Breadcrumb, Button, Card, Space, Table, Tag, Typography } from "antd";
-import { FileSearchOutlined, HomeOutlined, LockOutlined, SafetyCertificateOutlined } from "@ant-design/icons";
+import {
+  FileSearchOutlined,
+  HomeOutlined,
+  LockOutlined,
+  SafetyCertificateOutlined,
+} from "@ant-design/icons";
 import { useList } from "@refinedev/core";
 
 const { Title, Text } = Typography;
 
-interface AuditBundleRecord {
+interface ProofSnapshotRecord {
   id: string;
-  name: string;
-  purpose: string;
-  project: string;
+  snapshot_name: string;
+  merkle_root: string;
+  snapshot_hash: string;
+  event_count: number;
+  seal_status: string;
   created_at: string;
-  operator: string;
-  seal: string;
-  size: string;
-  status: string;
 }
 
 export default function ProofSnapshotsPage() {
   const {
     query: { data, isLoading },
-  } = useList<AuditBundleRecord>({
-    resource: "compliance/audit-bundles",
+  } = useList<ProofSnapshotRecord>({
+    resource: "governor/proof/snapshots",
     pagination: { pageSize: 50 },
     sorters: [{ field: "created_at", order: "desc" }],
   });
@@ -42,26 +45,37 @@ export default function ProofSnapshotsPage() {
         ]}
       />
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "24px",
+        }}
+      >
         <div>
           <Title level={2} style={{ margin: 0 }}>
             <LockOutlined style={{ marginRight: 12, color: "#52c41a" }} />
             Proof Snapshots
           </Title>
-          <Text type="secondary">Sealed audit bundles and handover packages for the governance chain.</Text>
+          <Text type="secondary">
+            Sealed Merkle snapshots of the immutable governance chain.
+          </Text>
         </div>
         <Space>
           <Link href="/governor/proof">
             <Button icon={<SafetyCertificateOutlined />}>Back to Proof Fabric</Button>
           </Link>
           <Link href="/proof/events">
-            <Button type="primary" icon={<FileSearchOutlined />}>Open Event Ledger</Button>
+            <Button type="primary" icon={<FileSearchOutlined />}>
+              Open Event Ledger
+            </Button>
           </Link>
         </Space>
       </div>
 
       <Card>
-        <Table<AuditBundleRecord>
+        <Table<ProofSnapshotRecord>
           dataSource={snapshots}
           rowKey="id"
           loading={isLoading}
@@ -69,45 +83,57 @@ export default function ProofSnapshotsPage() {
           size="middle"
           scroll={{ x: 960 }}
         >
-          <Table.Column<AuditBundleRecord>
+          <Table.Column<ProofSnapshotRecord>
             title="Snapshot"
-            dataIndex="name"
+            dataIndex="snapshot_name"
             render={(value: string) => <Text strong>{value}</Text>}
           />
-          <Table.Column<AuditBundleRecord>
+          <Table.Column<ProofSnapshotRecord>
             title="Status"
-            dataIndex="status"
+            dataIndex="seal_status"
             width={140}
-            render={(value: string) => <Tag color={value === "sealed" ? "green" : "blue"}>{value.toUpperCase()}</Tag>}
+            render={(value: string) => (
+              <Tag color={value === "sealed" ? "green" : "blue"}>
+                {value.toUpperCase()}
+              </Tag>
+            )}
           />
-          <Table.Column<AuditBundleRecord>
-            title="Purpose"
-            dataIndex="purpose"
-            width={180}
+          <Table.Column<ProofSnapshotRecord>
+            title="Events"
+            dataIndex="event_count"
+            width={120}
           />
-          <Table.Column<AuditBundleRecord>
-            title="Project"
-            dataIndex="project"
-            width={180}
-          />
-          <Table.Column<AuditBundleRecord>
-            title="Seal"
-            dataIndex="seal"
+          <Table.Column<ProofSnapshotRecord>
+            title="Merkle Root"
+            dataIndex="merkle_root"
+            width={220}
             ellipsis
-            render={(value: string) => <Text copyable={{ text: value }}>{value.slice(0, 18)}...</Text>}
+            render={(value: string) => (
+              <Text copyable={{ text: value }}>{value.slice(0, 18)}...</Text>
+            )}
           />
-          <Table.Column<AuditBundleRecord>
+          <Table.Column<ProofSnapshotRecord>
+            title="Snapshot Hash"
+            dataIndex="snapshot_hash"
+            ellipsis
+            render={(value: string) => (
+              <Text copyable={{ text: value }}>{value.slice(0, 18)}...</Text>
+            )}
+          />
+          <Table.Column<ProofSnapshotRecord>
             title="Created"
             dataIndex="created_at"
             width={180}
             render={(value: string) => dayjs(value).format("YYYY-MM-DD HH:mm:ss")}
           />
-          <Table.Column<AuditBundleRecord>
+          <Table.Column<ProofSnapshotRecord>
             title="Action"
             width={120}
             render={() => (
               <Link href="/audit">
-                <Button type="link" size="small" icon={<FileSearchOutlined />}>Inspect</Button>
+                <Button type="link" size="small" icon={<FileSearchOutlined />}>
+                  Inspect
+                </Button>
               </Link>
             )}
           />
