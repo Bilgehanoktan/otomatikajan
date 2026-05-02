@@ -2,6 +2,7 @@
 
 import React from "react";
 import { ExternalLink, ArrowRight, Activity, Globe, Zap, Database, GitBranch } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface QuickLinkProps {
   href: string;
@@ -36,11 +37,12 @@ export function QuickLink({ href, label, sub, external }: QuickLinkProps) {
 }
 
 export function ApiHub({ apiBase }: { apiBase: string }) {
+  const t = useTranslations("dashboard");
   const adminLinks = [
-    { label: "API Dokümanları", sub: "Swagger UI v14", icon: <Zap size={20} />, href: `${apiBase}/docs`, color: "text-[var(--primary)]", bg: "bg-[var(--primary)]/10" },
-    { label: "Mimari Şema", sub: "Redoc Spécs", icon: <GitBranch size={20} />, href: `${apiBase}/redoc`, color: "text-violet-400", bg: "bg-violet-400/10" },
-    { label: "Sistem Durumu", sub: "Health JSON Akışı", icon: <Globe size={20} />, href: `${apiBase}/health`, color: "text-blue-400", bg: "bg-blue-400/10" },
-    { label: "Denetim Kayıtları", sub: "Audit Ledger API", icon: <Database size={20} />, href: `${apiBase}/health/dashboard`, color: "text-amber-400", bg: "bg-amber-400/10" },
+    { label: t("quickAccess.refine"), sub: t("quickAccess.apiSub"), icon: <Zap size={20} />, href: `${apiBase}/docs`, color: "text-[var(--primary)]", bg: "bg-[var(--primary)]/10" },
+    { label: t("quickAccess.docs"), sub: "Redoc Spécs", icon: <GitBranch size={20} />, href: `${apiBase}/redoc`, color: "text-violet-400", bg: "bg-violet-400/10" },
+    { label: t("quickAccess.telemetry"), sub: t("quickAccess.jsonSub"), icon: <Globe size={20} />, href: `${apiBase}/health`, color: "text-blue-400", bg: "bg-blue-400/10" },
+    { label: "Audit Ledger", sub: "Blockchain Integrity", icon: <Database size={20} />, href: `${apiBase}/health/dashboard`, color: "text-amber-400", bg: "bg-amber-400/10" },
   ];
 
   return (

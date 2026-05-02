@@ -11,7 +11,6 @@ import NodeIndexOutlined from "@ant-design/icons/lib/icons/NodeIndexOutlined";
 import ToolOutlined from "@ant-design/icons/lib/icons/ToolOutlined";
 import WarningOutlined from "@ant-design/icons/lib/icons/WarningOutlined";
 import { safeFetchJson } from "@/lib/api";
-import { getAuthHeaders } from "@/lib/auth";
 import { getApiBaseUrl } from "@/lib/runtime";
 
 const { Title, Text, Paragraph } = Typography;
@@ -57,9 +56,8 @@ export default function IncidentDetailClient({ id }: IncidentDetailClientProps) 
         setIsError(false);
 
         try {
-            const authHeaders = await getAuthHeaders();
             const response = await safeFetchJson<Incident>(`${apiBase}/governance/incidents/${id}`, {
-                headers: authHeaders,
+                useOfflineFallback: true,
             });
             setIncident(response);
         } catch {
@@ -82,13 +80,8 @@ export default function IncidentDetailClient({ id }: IncidentDetailClientProps) 
         setIsSubmitting(true);
 
         try {
-            const authHeaders = await getAuthHeaders();
             const response = await safeFetchJson<Incident>(`${apiBase}/governance/incidents/${incident.id}/resolve`, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    ...authHeaders,
-                },
                 body: JSON.stringify({
                     resolution_notes: notes,
                 }),

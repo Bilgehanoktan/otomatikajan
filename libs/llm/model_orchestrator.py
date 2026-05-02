@@ -13,6 +13,7 @@ from services.observability.logging import get_logger
 from libs.observability.tracer import traced, span
 
 logger = get_logger("libs.llm.model_orchestrator")
+_LAST_PROVIDER_STATUS_FINGERPRINT: tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...]] | None = None
 
 # ── 1. Canonical Çıktı Sözleşmesi ────────────────────────
 class LLMResponse(BaseModel):
@@ -243,6 +244,7 @@ class ModelOrchestrator:
         return await self.complete(messages)
 
     def _log_provider_status(self):
+        global _LAST_PROVIDER_STATUS_FINGERPRINT
         found = []
         missing = []
         placeholders = []
@@ -253,6 +255,11 @@ class ModelOrchestrator:
                 placeholders.append(p.name)
             else:
                 found.append(p.name)
+
+        fingerprint = (tuple(sorted(found)), tuple(sorted(placeholders)), tuple(sorted(missing)))
+        if fingerprint == _LAST_PROVIDER_STATUS_FINGERPRINT:
+            return
+        _LAST_PROVIDER_STATUS_FINGERPRINT = fingerprint
 
         if found:
             logger.info(f"[LLM] Hazır sağlayıcılar: {', '.join(found)}")

@@ -30,16 +30,26 @@ def _svc():
 
 
 @router.post("/register", summary="Yeni operatör kaydı")
+@router.post("/register/", include_in_schema=False)
 async def register(body: dict, db: "AsyncSession" = Depends(get_db)):
     svc, _, _, _, _, _ = _svc()
     operator = await svc.register(db, body["email"], body["password"], body.get("username"))
+    await db.commit()
     return {"id": str(operator.id), "email": operator.email, "role": operator.role}
 
 
 @router.post("/login", summary="Giriş — token al")
+@router.post("/login/", include_in_schema=False)
 async def login(response: Response, request: Request, body: dict, db: "AsyncSession" = Depends(get_db)):
     svc, _, _, _, set_cookies, _ = _svc()
-    res = await svc.login(db, body["email"], body["password"])
+    email = body.get("email")
+    password = body.get("password")
+    
+    if not email or not password:
+        raise HTTPException(status_code=400, detail="Email ve parola gerekli")
+        
+    res = await svc.login(db, email, password)
+    await db.commit()
     set_cookies(response, res.access_token, res.refresh_token, request=request)
     return res
 
@@ -53,19 +63,23 @@ async def refresh(request: Request, response: Response, body: dict | None = None
         raise HTTPException(status_code=422, detail="refresh_token gerekli")
         
     res = await svc.refresh(db, rt)
+    await db.commit()
     set_cookies(response, res.access_token, res.refresh_token, request=request)
     return res
 
 
 @router.post("/logout", summary="Oturumu kapat")
+@router.post("/logout/", include_in_schema=False)
 async def logout(response: Response, identity: Dict[str, Any] = Depends(get_current_identity), db: "AsyncSession" = Depends(get_db)):
     svc, _, _, _, _, clear_cookies = _svc()
     await svc.revoke_all(db, identity["id"])
+    await db.commit()
     clear_cookies(response)
     return {"ok": True, "message": "Oturum kapatıldı"}
 
 
 @router.get("/me", summary="Mevcut kimlik bilgilerini getir")
+@router.get("/me/", include_in_schema=False)
 async def get_me(identity: Dict[str, Any] = Depends(get_current_identity)):
     """
     SIF-01: Identity-aware me endpoint.
@@ -163,5 +177,6 @@ async def recover_identity(
     return {"status": "RECOVERED", "id": target_id}
 
 @router.get("/health", summary="Auth router health")
+@router.get("/health/", include_in_schema=False)
 async def auth_router_health():
     return {"ok": True, "status": "SIF-01 ACTIVE"}

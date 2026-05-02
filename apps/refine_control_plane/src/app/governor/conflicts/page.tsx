@@ -13,7 +13,7 @@ const { Title, Text } = Typography;
 
 export default function ConflictsPage() {
   const { query } = useList<any, HttpError>({
-    resource: "governor/meta/conflicts",
+    resource: "governance/inbox/governor/meta/conflicts",
     filters: [
       {
         field: "status",
@@ -28,7 +28,7 @@ export default function ConflictsPage() {
 
   const handleResolve = (id: string) => {
     resolveConflict({
-      resource: "governor/meta/conflicts",
+      resource: "governance/inbox/governor/meta/conflicts",
       id,
       values: {},
       successNotification: {
@@ -119,7 +119,7 @@ export default function ConflictsPage() {
           </Space>
         } 
         style={{ marginTop: "24px" }}
-        bordered={false} 
+        variant="borderless" 
         className="resilience-card"
       >
         <Table

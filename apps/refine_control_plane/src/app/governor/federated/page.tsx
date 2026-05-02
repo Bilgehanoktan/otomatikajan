@@ -15,7 +15,7 @@ const { Title, Text } = Typography;
 
 export default function FederatedGovernorPage() {
   const { query } = useList<any, HttpError>({
-    resource: "governor/meta/decisions",
+    resource: "governance/inbox/governor/meta/decisions",
   }) as any;
   const { data, isLoading } = query;
 
@@ -95,7 +95,7 @@ export default function FederatedGovernorPage() {
 
       <Row gutter={16} style={{ marginTop: "24px", marginBottom: "24px" }}>
         <Col span={6}>
-          <Card bordered={false} className="resilience-card">
+          <Card variant="borderless" className="resilience-card">
             <Statistic
               title="Aktif Domain Sayısı"
               value={5}
@@ -105,7 +105,7 @@ export default function FederatedGovernorPage() {
           </Card>
         </Col>
         <Col span={6}>
-          <Card bordered={false} className="resilience-card">
+          <Card variant="borderless" className="resilience-card">
             <Statistic
               title="Meta Karar Sayısı"
               value={decisions.length}
@@ -116,7 +116,7 @@ export default function FederatedGovernorPage() {
         </Col>
       </Row>
 
-      <Card title="Son Meta Kararlar" bordered={false} className="resilience-card">
+      <Card title="Son Meta Kararlar" variant="borderless" className="resilience-card">
         <Table
           dataSource={decisions}
           columns={columns}

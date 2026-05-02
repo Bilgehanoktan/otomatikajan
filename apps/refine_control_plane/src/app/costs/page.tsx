@@ -29,7 +29,7 @@ export default function CostsPage() {
 
   // Global Analytics
   const { query: { data: analyticsData, isLoading: isAnalyticsLoading } } = useOne({
-    resource: "analytics/costs",
+    resource: "governance/analytics/costs",
     id: "summary",
     queryOptions: { enabled: isClient }
   });

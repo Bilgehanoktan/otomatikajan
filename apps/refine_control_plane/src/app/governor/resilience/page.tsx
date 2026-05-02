@@ -16,7 +16,7 @@ const { Title, Text } = Typography;
 
 export default function GovernorResiliencePage() {
     const { query: { data, isLoading } } = useList({
-        resource: "governor/resilience/status",
+        resource: "governance/inbox/governor/resilience/status",
     });
 
     const getStatusTag = (status: string) => {

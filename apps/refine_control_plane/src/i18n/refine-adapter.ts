@@ -8,15 +8,34 @@ export function useRefineI18nProvider(): I18nProvider {
   const t = useTranslations();
   const locale = useLocale();
 
+  const isLikelyUnsafeI18nKey = (key: string): boolean => {
+    if (!key) return true;
+    // Refine can emit resource-name-based labels that are not message keys.
+    if (key.includes("/")) return true;
+    // Guard against malformed duplicated keys like "a.b.a.b".
+    const parts = key.split(".");
+    if (parts.length >= 4) {
+      const left = parts.slice(0, parts.length / 2).join(".");
+      const right = parts.slice(parts.length / 2).join(".");
+      if (left === right) return true;
+    }
+    return false;
+  };
+
+  const fallbackLabel = (key: string): string => {
+    const tail = key.split("/").pop() || key;
+    return tail.replace(/[-_]/g, " ");
+  };
+
   return {
     translate: (key: string, params?: Record<string, any>, defaultMessage?: string) => {
-      // next-intl throws if key doesn't exist by default, but we can use fallback logic
-      // In next-intl, there is a `t.has(key)` or we can just try to translate
-      // Refine usually passes keys like "buttons.create" or "documentTitle.default"
+      if (isLikelyUnsafeI18nKey(key)) {
+        return defaultMessage || fallbackLabel(key);
+      }
       try {
         return t(key, params);
       } catch (error) {
-        return defaultMessage || key;
+        return defaultMessage || fallbackLabel(key);
       }
     },
     changeLocale: async (lang: string, options?: any) => {

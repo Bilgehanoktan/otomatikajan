@@ -9,7 +9,7 @@ const { Title, Text } = Typography;
 
 export default function GovernorOutcomesPage() {
   const { tableProps } = useTable({
-    resource: "governance/governor/outcomes",
+    resource: "governance/inbox/governor/outcomes",
     syncWithLocation: true,
     pagination: {
       pageSize: 20,
@@ -32,7 +32,7 @@ export default function GovernorOutcomesPage() {
           </Text>
         </div>
 
-        <Card bordered={false} style={{ borderRadius: 12, background: "#1f2833" }}>
+        <Card variant="borderless" style={{ borderRadius: 12, background: "#1f2833" }}>
           <Table {...tableProps} rowKey="id" pagination={{ ...tableProps.pagination, showSizeChanger: true }}>
             <Table.Column dataIndex="decision" title="Karar" render={(value) => <Tag color="blue">{value}</Tag>} />
             <Table.Column

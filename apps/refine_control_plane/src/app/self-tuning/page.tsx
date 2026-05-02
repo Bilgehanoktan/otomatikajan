@@ -74,7 +74,6 @@ export default function SelfTuningPage() {
     try {
       const response = await safeFetchJson(`/api/v1/repair-lab/apply/${id}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })
       });
       if (response.status || response.id) {

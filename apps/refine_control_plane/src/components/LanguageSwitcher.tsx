@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useTransition } from "react";
-import { Button, Tooltip, notification } from "antd";
+import { App, Button, Tooltip } from "antd";
 import { useLocale, useTranslations } from "next-intl";
 import { setUserLocale } from "../i18n/client";
 
@@ -9,6 +9,7 @@ export default function LanguageSwitcher() {
   const [isPending, startTransition] = useTransition();
   const locale = useLocale();
   const t = useTranslations("common");
+  const { notification } = App.useApp();
 
   const changeLocale = (nextLocale: string) => {
     if (locale === nextLocale) return;

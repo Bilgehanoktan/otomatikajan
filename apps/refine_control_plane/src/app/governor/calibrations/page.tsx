@@ -18,7 +18,7 @@ const { Title, Text, Paragraph } = Typography;
 
 export default function GovernorCalibrations() {
   const { tableProps, tableQueryResult } = useTable({
-    resource: "governor/calibrations",
+    resource: "governance/inbox/governor/calibrations",
     syncWithLocation: true,
     pagination: {
       pageSize: 20,
@@ -32,7 +32,7 @@ export default function GovernorCalibrations() {
 
   const handleAction = (id: string, action: string) => {
     mutate({
-      url: `/governance/governor/calibrations/${id}/${action}`,
+      url: `/governance/inbox/governor/calibrations/${id}/${action}`,
       method: "post",
       values: { reason: "Operatör işlemi: " + action },
     }, {
@@ -48,7 +48,7 @@ export default function GovernorCalibrations() {
 
   const triggerProposals = () => {
     mutate({
-      url: "/governance/governor/calibrations/propose",
+      url: "/governance/inbox/governor/calibrations/propose",
       method: "post",
       values: {},
     }, {
@@ -100,14 +100,14 @@ export default function GovernorCalibrations() {
         </Button>
       </div>
 
-      <Card bordered={false} style={{ borderRadius: 8, background: "#1f2833", marginBottom: 24 }}>
+      <Card variant="borderless" style={{ borderRadius: 8, background: "#1f2833", marginBottom: 24 }}>
         <Paragraph style={{ color: "#ffffffa6" }}>
           Governor, geçmiş karar performansını (accuracy, latency, operator agreement) analiz ederek kendi eşik değerlerini (threshold) optimize eder. 
           Önerilen değişiklikler <b>PROPOSED</b> olarak düşer ve operatör onayıyla <b>APPLIED</b> durumuna geçer.
         </Paragraph>
       </Card>
 
-      <Card bordered={false} style={{ borderRadius: 8, background: "#1f2833" }}>
+      <Card variant="borderless" style={{ borderRadius: 8, background: "#1f2833" }}>
         <Table 
           {...tableProps} 
           rowKey="id"

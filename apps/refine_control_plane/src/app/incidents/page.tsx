@@ -20,7 +20,6 @@ import {
 import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 import { Skeleton } from "@/components/dashboard/Skeleton";
 import { safeFetchJson } from "@/lib/api";
-import { getAuthHeaders } from "@/lib/auth";
 import { getApiBaseUrl } from "@/lib/runtime";
 
 interface Incident {
@@ -51,12 +50,9 @@ export default function IncidentsPage() {
     setIsError(false);
 
     try {
-      const authHeaders = await getAuthHeaders();
       const response = await safeFetchJson<Incident[] | { data?: Incident[]; __sqv_meta?: unknown }>(
         `${apiBase}/governance/incidents?_end=10&_order=desc&_sort=created_at&_start=0`,
-        {
-          headers: authHeaders,
-        },
+        { useOfflineFallback: true },
       );
 
       const items = Array.isArray(response)
@@ -86,24 +82,27 @@ export default function IncidentsPage() {
   const handleResolve = React.useCallback(
     async (id: string) => {
       try {
-        const authHeaders = await getAuthHeaders();
+        const identityName = (window as any).__SQV_IDENTITY__?.name || "mimari-operator";
+
         await safeFetchJson(`${apiBase}/governance/incidents/${id}/resolve`, {
           method: "POST",
-          headers: { "Content-Type": "application/json", ...authHeaders },
-          body: JSON.stringify({ resolution_notes: "Resolved from control plane incidents page" }),
+          body: JSON.stringify({ 
+            resolution_notes: "Resolved from control plane incidents page",
+            operator_id: identityName
+          }),
         });
 
         notification.success({
-          message: "Olay güncellendi",
-          description: "Incident resolved olarak işaretlendi.",
+          message: "Action applied",
+          description: "Incident has been marked as resolved.",
           placement: "topRight",
         });
 
         await loadIncidents();
       } catch (err) {
         notification.error({
-          message: "Aksiyon uygulanamadı",
-          description: err instanceof Error ? err.message : "Bilinmeyen hata",
+          message: "Action failed",
+          description: err instanceof Error ? err.message : "An unknown error occurred",
           placement: "topRight",
         });
       }

@@ -67,7 +67,7 @@ export default function ApprovalsPage() {
       const authHeaders = await getAuthHeaders();
       const response = await safeFetchJson<ApprovalRequest[] | { data?: ApprovalRequest[]; __sqv_meta?: unknown }>(
         `${apiBase}/governance/approvals?_end=10&_start=0&status=pending`,
-        { headers: authHeaders },
+        { useOfflineFallback: true },
       );
 
       const items = Array.isArray(response)
@@ -108,7 +108,6 @@ export default function ApprovalsPage() {
 
         await safeFetchJson(`${apiBase}/governance/approvals/${id}`, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json", ...authHeaders },
           body: JSON.stringify({
             status,
             comment: `Actioned via Elite Control Plane at ${new Date().toISOString()}`,

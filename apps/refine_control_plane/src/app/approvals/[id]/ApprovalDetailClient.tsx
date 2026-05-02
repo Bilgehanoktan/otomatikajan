@@ -51,7 +51,6 @@ export default function ApprovalDetailClient() {
             if (!approval) return;
             const response = await safeFetchJson(`/api/v1/governance/approvals/${approval.id}/decide`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     approve: decision === "approved",
                     reason: comment,

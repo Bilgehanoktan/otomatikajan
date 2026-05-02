@@ -1,7 +1,7 @@
 """SIF-01 Identity and Permissions
 
-Revision ID: 0014_sif_01_identity_and_permissions
-Revises: 0013_add_evolution_lineage_tables
+Revision ID: 0014_sif01_identity
+Revises: 0013_evolution_tables
 Create Date: 2026-04-23 08:50:00.000000
 """
 
@@ -12,8 +12,8 @@ from sqlalchemy.dialects import postgresql
 import uuid
 
 # revision identifiers, used by Alembic.
-revision: str = '0014_sif_01_identity_and_permissions'
-down_revision: Union[str, None] = '0013_add_evolution_lineage_tables'
+revision: str = '0014_sif01_identity'
+down_revision: Union[str, None] = '0013_evolution_tables'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

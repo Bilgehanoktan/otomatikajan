@@ -184,6 +184,23 @@ DEERFLOW_ENABLED = _env_bool("DEERFLOW_ENABLED", PROFILE_DEFAULT["DEERFLOW_ENABL
 TELEGRAM_ENABLED = _env_bool("TELEGRAM_ENABLED", PROFILE_DEFAULT["TELEGRAM_ENABLED"])
 SCHEDULER_ENABLED = _env_bool("SCHEDULER_ENABLED", PROFILE_DEFAULT["SCHEDULER_ENABLED"])
 
+# Safety rail: local-dev should stay resilient even if .env carries full-stack knobs.
+LOCAL_DEV_STRICT_MODE = _env_bool("LOCAL_DEV_STRICT_MODE", True)
+LOCAL_DEV_STRICT_MODE_APPLIED = False
+if APP_ENV == "development" and RUNTIME_PROFILE == "local-dev" and LOCAL_DEV_STRICT_MODE:
+    QUEUE_BACKEND = "inprocess"
+    LOCAL_DEV_DB_STRATEGY = "sqlite-fallback"
+    REDIS_ENABLED = False
+    CELERY_ENABLED = False
+    DEERFLOW_ENABLED = False
+    SCHEDULER_ENABLED = False
+    LOCAL_DEV_STRICT_MODE_APPLIED = True
+
+JOB_QUEUE_HYDRATE_ON_STARTUP = _env_bool(
+    "JOB_QUEUE_HYDRATE_ON_STARTUP",
+    False if (APP_ENV == "development" and RUNTIME_PROFILE == "local-dev") else True
+)
+
 os.environ["RUNTIME_PROFILE"] = RUNTIME_PROFILE
 os.environ["QUEUE_BACKEND"] = QUEUE_BACKEND
 os.environ["APP_UI_MODE"] = APP_UI_MODE
@@ -193,6 +210,8 @@ os.environ["CELERY_ENABLED"] = str(CELERY_ENABLED).lower()
 os.environ["DEERFLOW_ENABLED"] = str(DEERFLOW_ENABLED).lower()
 os.environ["TELEGRAM_ENABLED"] = str(TELEGRAM_ENABLED).lower()
 os.environ["SCHEDULER_ENABLED"] = str(SCHEDULER_ENABLED).lower()
+os.environ["LOCAL_DEV_STRICT_MODE"] = str(LOCAL_DEV_STRICT_MODE).lower()
+os.environ["JOB_QUEUE_HYDRATE_ON_STARTUP"] = str(JOB_QUEUE_HYDRATE_ON_STARTUP).lower()
 
 # ── Temel ayarlar ─────────────────────────────────────────
 DEBUG     = os.getenv("DEBUG", "true" if is_dev else "false").lower() == "true"

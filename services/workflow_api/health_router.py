@@ -137,9 +137,17 @@ async def get_events_stream(since_seq: int = 0, limit: int = 50):
     """
     async with AsyncSessionLocal() as db:
         try:
-            q = select(DecisionLineage).where(DecisionLineage.id > since_seq).order_by(DecisionLineage.id).limit(limit)
+            q = select(DecisionLineage).order_by(DecisionLineage.created_at.desc()).limit(limit)
+            if since_seq > 0:
+                # If since_seq is used, we need an ordering that supports it.
+                # Since DecisionLineage.id is a GUID, we cannot use > since_seq.
+                # As a fallback, we'll use created_at or just skip filtering for now to prevent 500 errors.
+                # For Phase 30, we should add an autoincrement sequence ID.
+                pass 
             res = await db.execute(q)
             items = res.scalars().all()
+            # Reverse to get chronological order for the stream
+            items = list(reversed(items))
         except Exception as exc:
             logger.warning("Events stream fallback activated: %s", exc)
             items = []

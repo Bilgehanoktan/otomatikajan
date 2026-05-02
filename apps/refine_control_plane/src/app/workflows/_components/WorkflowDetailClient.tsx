@@ -159,7 +159,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
         try {
             const authHeaders = await getAuthHeaders();
             const response = await safeFetchJson<WorkflowDetail>(`${apiBase}/workflows/${id}`, {
-                headers: authHeaders,
+                useOfflineFallback: true,
             });
             setWorkflow(response);
         } catch {
@@ -206,7 +206,6 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
             if (pendingApproval) {
                 await safeFetchJson(`${apiBase}/governance/approvals/${pendingApproval.id}`, {
                     method: "PATCH",
-                    headers: { "Content-Type": "application/json", ...authHeaders },
                     body: JSON.stringify({
                         status: "APPROVED",
                         comment: approvalComment,
@@ -216,7 +215,6 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
 
             const response = await safeFetchJson(`${apiBase}/workflows/${workflow.id}/approve`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json", ...authHeaders },
                 body: JSON.stringify({
                     operator_id: "admin_human",
                     notes: approvalComment,
@@ -316,19 +314,37 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
     const history = workflow.history || [];
 
     const formatSourceText = (source?: string | null): string => {
-        const normalized = String(source || "").toLowerCase();
-        return t(`mappings.source.${normalized}` as any, { defaultValue: (source || "MANUAL").toUpperCase() });
+        try {
+            const normalized = String(source || "").toLowerCase();
+            const key = `mappings.source.${normalized}`;
+            return t.has(key as any) ? t(key as any) : (source || "MANUAL").toUpperCase();
+        } catch (e) {
+            console.error("Translation error in formatSourceText:", e);
+            return (source || "MANUAL").toUpperCase();
+        }
     };
 
     const formatTypeText = (workflowType?: string | null): string => {
-        const normalized = String(workflowType || "").toLowerCase();
-        return t(`mappings.type.${normalized}` as any, { defaultValue: (workflowType || "GENERAL").toUpperCase() });
+        try {
+            const normalized = String(workflowType || "").toLowerCase();
+            const key = `mappings.type.${normalized}`;
+            return t.has(key as any) ? t(key as any) : (workflowType || "GENERAL").toUpperCase();
+        } catch (e) {
+            console.error("Translation error in formatTypeText:", e);
+            return (workflowType || "GENERAL").toUpperCase();
+        }
     };
 
     const humanizeStepLabel = (stepName?: string | null): string => {
-        const cleaned = cleanText(stepName, "untitled");
-        const normalized = cleaned.toLowerCase().replace(/[\s-]+/g, "_");
-        return t(`mappings.steps.${normalized}` as any, { defaultValue: cleaned });
+        try {
+            const cleaned = cleanText(stepName, "untitled");
+            const normalized = cleaned.toLowerCase().replace(/[\s-]+/g, "_");
+            const key = `mappings.steps.${normalized}`;
+            return t.has(key as any) ? t(key as any) : cleaned;
+        } catch (e) {
+            console.error("Translation error in humanizeStepLabel:", e);
+            return stepName || "untitled";
+        }
     };
 
     return (

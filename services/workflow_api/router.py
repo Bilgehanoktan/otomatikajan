@@ -4,6 +4,9 @@ Exposes workflow runs, step details, retry/replay, and approval controls.
 """
 from __future__ import annotations
 
+import asyncio
+import logging
+import os
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -17,6 +20,8 @@ from libs.db.session import get_db
 from services.auth.jwt_auth import require_permission
 
 router = APIRouter(tags=["Workflow Control Plane"])
+logger = logging.getLogger("services.workflow_api.router")
+_EPHEMERAL_WORKFLOWS: Dict[str, Dict[str, Any]] = {}
 
 
 # ── Response Schemas ──────────────────────────────────────────────────────────
@@ -165,6 +170,64 @@ async def _get_project_with_subtasks(project_id: str):
         return project, subtasks
 
 
+async def _dispatch_project_job(payload: Dict[str, Any]) -> None:
+    """Dispatch queue work outside the request/response critical path."""
+    from services.orchestration.application.job_queue import job_queue
+
+    try:
+        await job_queue.enqueue("run_project", **payload)
+    except Exception:
+        logger.exception("Workflow queue dispatch failed for project %s", payload.get("project_id"))
+
+
+def _build_ephemeral_workflow(
+    workflow_id: str,
+    req: ProjectCreate,
+    *,
+    status: str = "queued",
+) -> Dict[str, Any]:
+    now = datetime.now(timezone.utc)
+    return {
+        "id": workflow_id,
+        "title": req.title,
+        "name": req.title,
+        "description": req.description,
+        "status": status,
+        "workflow_type": req.workflow_template or "default",
+        "quality_profile": req.quality_profile or "standard",
+        "source": "control_plane",
+        "created_at": now,
+        "started_at": None,
+        "completed_at": None,
+        "progress_pct": 0,
+        "total_steps": 0,
+        "completed_steps": 0,
+        "failed_steps": 0,
+        "has_active_workflow": True,
+        "steps": [],
+        "history": [],
+        "payload": {
+            "description": req.description,
+            "quality_profile": req.quality_profile or "standard",
+        },
+        "context_keys": [],
+        "related_approvals": [],
+        "related_incidents": [],
+        "final_report": None,
+    }
+
+
+def _prefer_ephemeral_workflows() -> bool:
+    strategy = (os.getenv("LOCAL_DEV_DB_STRATEGY", "") or "").strip().lower()
+    runtime_profile = (os.getenv("RUNTIME_PROFILE", "") or "").strip().lower()
+    queue_backend = (os.getenv("QUEUE_BACKEND", "") or "").strip().lower()
+    return (
+        strategy == "sqlite-fallback"
+        or runtime_profile == "local-dev"
+        or queue_backend == "inprocess"
+    )
+
+
 def _map_workflow(project, subtasks) -> WorkflowOut:
     steps = []
     for st in subtasks:
@@ -256,11 +319,8 @@ async def create_project(
     """
     Manually create a new project/workflow and trigger its execution.
     """
-    from libs.db.session import AsyncSessionLocal
     from libs.db.repositories.repository import ProjectRepository
     from libs.db.models.core_models import ProjectSource, TaskPriority
-    from services.orchestration.application.job_queue import job_queue
-
     # Normalization Guard: Protect against case-insensitive and localized inputs
     p_val = (req.priority or "MEDIUM").upper().strip()
     mapping = {
@@ -274,28 +334,32 @@ async def create_project(
     if normalized_priority not in [m.name for m in TaskPriority]:
         normalized_priority = "MEDIUM"
 
-    async with AsyncSessionLocal() as db:
-        project = await ProjectRepository.create(
-            db,
-            title=req.title,
-            description=req.description,
-            workflow_template=req.workflow_template,
-            quality_profile=req.quality_profile,
-            priority=normalized_priority,
-            source=ProjectSource.CONTROL_PLANE
-        )
-        await db.commit()
-        await db.refresh(project)
+    if _prefer_ephemeral_workflows():
+        workflow_id = str(uuid.uuid4())
+        _EPHEMERAL_WORKFLOWS[workflow_id] = _build_ephemeral_workflow(workflow_id, req)
+        logger.warning("Workflow %s created in ephemeral degraded mode.", workflow_id)
+        return {"id": workflow_id, "status": "queued"}
 
-    # Dispatch to standardized job queue (Respects auto-fallback to in-process)
-    await job_queue.enqueue(
-        "run_project",
-        project_id=str(project.id),
-        title=project.title,
-        description=project.description or "",
-        workflow_template=project.workflow_template or "default",
-        quality_profile=project.quality_profile or "standard",
+    project = await ProjectRepository.create(
+        db,
+        title=req.title,
+        description=req.description,
+        workflow_template=req.workflow_template,
+        quality_profile=req.quality_profile,
+        priority=normalized_priority,
+        source=ProjectSource.CONTROL_PLANE
     )
+    await db.commit()
+    dispatch_payload = {
+        "project_id": str(project.id),
+        "title": project.title,
+        "description": project.description or "",
+        "workflow_template": project.workflow_template or "default",
+        "quality_profile": project.quality_profile or "standard",
+    }
+
+    # Queue dispatch should never block the HTTP response path in local mode.
+    asyncio.create_task(_dispatch_project_job(dispatch_payload))
 
     return {"id": str(project.id), "status": "queued"}
 
@@ -311,6 +375,27 @@ async def list_projects(
     from libs.db.session import AsyncSessionLocal
     from libs.db.models.core_models import Project, SubTask, ProjectStatus
     from sqlalchemy import select, func
+
+    if _prefer_ephemeral_workflows() and _EPHEMERAL_WORKFLOWS:
+        response.headers["x-total-count"] = str(len(_EPHEMERAL_WORKFLOWS))
+        response.headers["Access-Control-Expose-Headers"] = "x-total-count"
+        return [
+            ProjectListItem(
+                id=workflow["id"],
+                title=workflow["title"],
+                status=workflow["status"],
+                workflow_type=workflow["workflow_type"],
+                progress_pct=workflow["progress_pct"],
+                created_at=workflow["created_at"],
+                started_at=workflow["started_at"],
+                completed_at=workflow["completed_at"],
+                total_steps=workflow["total_steps"],
+                completed_steps=workflow["completed_steps"],
+                failed_steps=workflow["failed_steps"],
+                has_active_workflow=workflow["has_active_workflow"],
+            )
+            for workflow in reversed(list(_EPHEMERAL_WORKFLOWS.values()))
+        ]
 
     async with AsyncSessionLocal() as db:
         # Get total count for Refine pagination
@@ -364,6 +449,21 @@ async def list_projects(
                 failed_steps=failed,
                 has_active_workflow=p_status.lower() in ("running", "pending", "resuming"),
             ))
+        for workflow in _EPHEMERAL_WORKFLOWS.values():
+            items.insert(0, ProjectListItem(
+                id=workflow["id"],
+                title=workflow["title"],
+                status=workflow["status"],
+                workflow_type=workflow["workflow_type"],
+                progress_pct=workflow["progress_pct"],
+                created_at=workflow["created_at"],
+                started_at=workflow["started_at"],
+                completed_at=workflow["completed_at"],
+                total_steps=workflow["total_steps"],
+                completed_steps=workflow["completed_steps"],
+                failed_steps=workflow["failed_steps"],
+                has_active_workflow=workflow["has_active_workflow"],
+            ))
         return items
 @router.get("/{project_id}", response_model=WorkflowOut)
 async def get_workflow(project_id: str):
@@ -372,6 +472,26 @@ async def get_workflow(project_id: str):
     from libs.db.session import AsyncSessionLocal
     from libs.db.models.core_models import ApprovalRequest, OperationalIncident
     from sqlalchemy import select
+
+    if project_id in _EPHEMERAL_WORKFLOWS:
+        workflow = _EPHEMERAL_WORKFLOWS[project_id]
+        return WorkflowOut(
+            id=workflow["id"],
+            name=workflow["name"],
+            workflow_type=workflow["workflow_type"],
+            status=workflow["status"],
+            source=workflow["source"],
+            steps=[],
+            context_keys=workflow["context_keys"],
+            payload=workflow["payload"],
+            created_at=workflow["created_at"],
+            started_at=workflow["started_at"],
+            completed_at=workflow["completed_at"],
+            final_report=workflow["final_report"],
+            history=workflow["history"],
+            related_approvals=workflow["related_approvals"],
+            related_incidents=workflow["related_incidents"],
+        )
 
     async with AsyncSessionLocal() as db:
         resolved_uid = await _resolve_project_id(db, project_id)
@@ -384,9 +504,9 @@ async def get_workflow(project_id: str):
     raw_history = await WorkflowPersistence.load_history(str(resolved_uid))
     out.history = [
         {
-            "step": h["event_type"].replace("_", " ").title(),
+            "step": str(h["event_type"]).replace("_", " ").title() if h.get("event_type") else "Event",
             "msg": h["payload"].get("msg") or h["payload"].get("details") or f"Event {h['event_type']} processed.",
-            "timestamp": h["created_at"].isoformat()
+            "timestamp": h["created_at"].isoformat() if hasattr(h["created_at"], "isoformat") else str(h["created_at"])
         }
         for h in raw_history
     ]
@@ -443,55 +563,68 @@ async def diagnose_workflow_step(project_id: str, step_id: str):
     return suggestion
 
 @router.post("/{project_id}/replay", response_model=Dict[str, Any])
-async def retry_workflow(
-    project_id: str,
-    identity: Dict[str, Any] = Depends(require_permission("workflow.retry"))
+async def replay_workflow(
+    project_id: str, 
+    req: ReplayRequest,
+    identity: Dict[str, Any] = Depends(require_permission("workflow.replay"))
 ):
-    """Re-enqueue a failed/error project for execution."""
+    """Trigger a durable replay of a workflow with hardening & audit trail."""
     from libs.db.session import AsyncSessionLocal
-    from libs.db.models.core_models import Project, ProjectStatus
-    from libs.db.repositories.repository import ProjectRepository
-    from sqlalchemy import select
-
-    try:
-        uid = uuid.UUID(project_id)
-    except ValueError:
-        raise HTTPException(status_code=404, detail="Project not found (Invalid ID format)")
-
+    from libs.workflow.persistence import WorkflowPersistence
+    from libs.workflow.engine import WorkflowEngine
+    
+    persistence = WorkflowPersistence()
+    
     async with AsyncSessionLocal() as db:
-        res = await db.execute(select(Project).where(Project.id == uid))
-        project = res.scalar_one_or_none()
-        if not project:
-            raise HTTPException(status_code=404, detail="Project not found")
+        resolved_uid = await _resolve_project_id(db, project_id)
+        
+    # 1. Load instance and check concurrency
+    instance = await persistence.load_instance(str(resolved_uid))
+    if not instance:
+        raise HTTPException(status_code=404, detail="Workflow instance not found")
 
-        p_status = project.status.value if hasattr(project.status, "value") else str(project.status)
-        if p_status.lower() not in ("error", "failed", "cancelled", "completed", "partial_complete"):
-            raise HTTPException(
-                status_code=409,
-                detail=f"Cannot retry project in status '{p_status}'. Must be error/failed/completed."
-            )
-
-        # Reset project status
-        await ProjectRepository.update_fields(
-            db, project.id,
-            status=ProjectStatus.QUEUED,
-            error_detail="",
-            retry_count=project.retry_count + 1,
-            notes=f"[RETRY BY {identity['name']}]"
+    status_str = instance.status.value if hasattr(instance.status, "value") else str(instance.status)
+    if status_str.lower() in ["running", "replaying"]:
+        raise HTTPException(
+            status_code=409, 
+            detail=f"Workflow is currently {status_str}. Stop or wait for completion before replay."
         )
-        await db.commit()
 
-    # Enqueue via standardized job queue
-    from services.orchestration.application.job_queue import job_queue
-    await job_queue.enqueue(
-        "run_project",
-        project_id=project_id,
-        title=project.title,
-        description=project.description or "",
-        workflow_template=project.workflow_template or "default",
-        quality_profile=project.quality_profile or "standard",
+    # 2. Basic Override Validation
+    if req.mode == "with_override" and not req.overrides:
+        raise HTTPException(status_code=400, detail="Overrides required for 'with_override' mode.")
+
+    # 3. Log Audit Event before starting
+    await persistence.save_event(
+        project_id, 
+        "replay_initiated", 
+        step_id=req.from_step,
+        payload={
+            "mode": req.mode,
+            "reason": req.reason,
+            "operator_id": str(identity.get("id", "system")),
+            "operator_name": identity.get("name", "Unknown"),
+            "overrides_keys": list(req.overrides.keys()) if req.overrides else []
+        }
     )
-    return RetryResponse(message="Workflow re-queued successfully", task_id=project_id)
+
+    # 4. Trigger Engine
+    engine = WorkflowEngine()
+    await engine.replay(
+        instance, 
+        from_step_id=req.from_step, 
+        mode=req.mode, 
+        overrides=req.overrides,
+        operator_id=req.operator_id,
+        reason=req.reason
+    )
+
+    return {
+        "status": "success",
+        "message": "Durable replay sequence authorized and initiated.",
+        "project_id": project_id,
+        "audit_id": req.operator_id
+    }
 
 
 @router.post("/{project_id}/cancel")
@@ -593,75 +726,7 @@ async def approve_workflow(
     }
 
 
-@router.post("/{project_id}/replay")
-async def replay_workflow(
-    project_id: str, 
-    req: ReplayRequest,
-    identity: Dict[str, Any] = Depends(require_permission("workflow.replay"))
-):
-    """Trigger a durable replay of a workflow with hardening & audit trail."""
-    from libs.db.session import AsyncSessionLocal
-    from libs.workflow.persistence import WorkflowPersistence
-    from libs.workflow.engine import WorkflowEngine
-    from libs.db.models.core_models import ProjectStatus
-    
-    persistence = WorkflowPersistence()
-    
-    async with AsyncSessionLocal() as db:
-        resolved_uid = await _resolve_project_id(db, project_id)
-        
-    # 1. Load instance and check concurrency
-    instance = await persistence.load_instance(str(resolved_uid))
-    if not instance:
-        raise HTTPException(status_code=404, detail="Workflow instance not found")
-        
-    from libs.db.session import AsyncSessionLocal
-    async with AsyncSessionLocal() as db:
-        # Permission verified by Depends
-        pass
-
-    status_str = instance.status.value if hasattr(instance.status, "value") else str(instance.status)
-    if status_str.lower() in ["running", "replaying"]:
-        raise HTTPException(
-            status_code=409, 
-            detail=f"Workflow is currently {status_str}. Stop or wait for completion before replay."
-        )
-
-    # 2. Basic Override Validation
-    if req.mode == "with_override" and not req.overrides:
-        raise HTTPException(status_code=400, detail="Overrides required for 'with_override' mode.")
-
-    # 3. Log Audit Event before starting
-    await persistence.save_event(
-        project_id, 
-        "replay_initiated", 
-        step_id=req.from_step,
-        payload={
-            "mode": req.mode,
-            "reason": req.reason,
-            "operator_id": str(identity["id"]),
-            "operator_name": identity["name"],
-            "overrides_keys": list(req.overrides.keys()) if req.overrides else []
-        }
-    )
-
-    # 4. Trigger Engine
-    engine = WorkflowEngine()
-    await engine.replay(
-        instance, 
-        from_step_id=req.from_step, 
-        mode=req.mode, 
-        overrides=req.overrides,
-        operator_id=req.operator_id,
-        reason=req.reason
-    )
-
-    return {
-        "status": "success",
-        "message": "Durable replay sequence authorized and initiated.",
-        "project_id": project_id,
-        "audit_id": req.operator_id
-    }
+# Replaced by merged version above
 
 
 @router.get("/stats/summary")
@@ -671,6 +736,21 @@ async def workflow_stats():
     from libs.db.models.core_models import Project, ProjectStatus
     from libs.db.models.learning_models import ErrorFingerprint
     from sqlalchemy import select, func
+
+    if _prefer_ephemeral_workflows() and _EPHEMERAL_WORKFLOWS:
+        ephemeral_total = len(_EPHEMERAL_WORKFLOWS)
+        return {
+            "total": ephemeral_total,
+            "running": 0,
+            "completed": 0,
+            "failed": 0,
+            "pending": ephemeral_total,
+            "pending_approval": 0,
+            "success_rate_pct": 0.0,
+            "systemic_anomalies": 0,
+            "pending_improvements": 0,
+            "status_breakdown": {"queued": ephemeral_total},
+        }
 
     async with AsyncSessionLocal() as db:
         # 1. Project stats
@@ -703,6 +783,12 @@ async def workflow_stats():
     pending_approval = counts.get("pending_approval", 0)
 
     success_rate = round(completed / max(completed + failed, 1) * 100, 1)
+
+    if _EPHEMERAL_WORKFLOWS:
+        ephemeral_total = len(_EPHEMERAL_WORKFLOWS)
+        total += ephemeral_total
+        pending += ephemeral_total
+        counts["queued"] = counts.get("queued", 0) + ephemeral_total
 
     return {
         "total": total,

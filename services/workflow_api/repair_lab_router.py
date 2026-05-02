@@ -93,150 +93,175 @@ async def list_improvements(limit: int = 20):
 async def list_benchmarks(limit: int = 10):
     """Sistem performans benchmark geçmişini listeler."""
     async with AsyncSessionLocal() as db:
-        q = select(RepairBenchmarkRun).order_by(desc(RepairBenchmarkRun.start_time)).limit(limit)
-        res = await db.execute(q)
-        runs = res.scalars().all()
-        
-        return [
-            {
-                "id": str(r.run_id),
-                "name": f"Benchmark-Run-{r.run_id[:8]}",
-                "success_rate": r.success_rate,
-                "avg_score": r.avg_score,
-                "cases": r.total_cases,
-                "status": r.status,
-                "created_at": r.start_time
-            }
-            for r in runs
-        ]
+        try:
+            q = select(RepairBenchmarkRun).order_by(desc(RepairBenchmarkRun.start_time)).limit(limit)
+            res = await db.execute(q)
+            runs = res.scalars().all()
+            
+            return [
+                {
+                    "id": str(r.run_id),
+                    "name": f"Benchmark-Run-{r.run_id[:8]}",
+                    "success_rate": r.success_rate,
+                    "avg_score": r.avg_score,
+                    "cases": r.total_cases,
+                    "status": r.status,
+                    "created_at": r.start_time
+                }
+                for r in runs
+            ]
+        except Exception as exc:
+            from libs.infra.logger import logger
+            logger.warning("Benchmarks list fallback: %s", exc)
+            return []
 
 @router.get("/tournaments", response_model=List[TournamentOut])
 async def list_tournaments(limit: int = 20):
     """Gerçekleşen tamir turnuvalarını ve aday skorlarını listeler."""
     async with AsyncSessionLocal() as db:
-        q = select(RepairTournament).order_by(desc(RepairTournament.created_at)).limit(limit)
-        res = await db.execute(q)
-        tournaments = res.scalars().all()
-        
-        results = []
-        for t in tournaments:
-            # Load candidates for this tournament
-            cq = select(RepairCandidate).where(RepairCandidate.tournament_id == t.tournament_id)
-            cres = await db.execute(cq)
-            candidates = cres.scalars().all()
+        try:
+            q = select(RepairTournament).order_by(desc(RepairTournament.created_at)).limit(limit)
+            res = await db.execute(q)
+            tournaments = res.scalars().all()
             
-            results.append(TournamentOut(
-                id=t.tournament_id,
-                incident_id=t.incident_id,
-                winner_id=t.winner_candidate_id,
-                winner_score=t.winner_score,
-                total_candidates=t.total_candidates,
-                created_at=t.created_at,
-                candidates=[
-                    CandidateSummary(
-                        strategy=c.strategy,
-                        score=c.final_score,
-                        status=c.status,
-                        type=c.candidate_type or "code",
-                        score_breakdown=c.score_breakdown if hasattr(c, "score_breakdown") else None
-                    )
-                    for c in candidates
-                ]
-            ))
-        return results
+            results = []
+            for t in tournaments:
+                # Load candidates for this tournament
+                cq = select(RepairCandidate).where(RepairCandidate.tournament_id == t.tournament_id)
+                cres = await db.execute(cq)
+                candidates = cres.scalars().all()
+                
+                results.append(TournamentOut(
+                    id=t.tournament_id,
+                    incident_id=t.incident_id,
+                    winner_id=t.winner_candidate_id,
+                    winner_score=t.winner_score,
+                    total_candidates=t.total_candidates,
+                    created_at=t.created_at,
+                    candidates=[
+                        CandidateSummary(
+                            strategy=c.strategy,
+                            score=c.final_score,
+                            status=c.status,
+                            type=c.candidate_type or "code",
+                            score_breakdown=c.score_breakdown if hasattr(c, "score_breakdown") else None
+                        )
+                        for c in candidates
+                    ]
+                ))
+            return results
+        except Exception as exc:
+            from libs.infra.logger import logger
+            logger.warning("Tournaments list fallback: %s", exc)
+            return []
 
 @router.get("/learning/insights")
 async def get_learning_insights():
     """Öğrenme motorundaki strateji hafızasını ve cezalandırılan paternleri döner."""
     async with AsyncSessionLocal() as db:
-        # Fetch Trusted Strategies
-        s_res = await db.execute(select(StrategyMemory).order_by(desc(StrategyMemory.trust_score)))
-        memories = s_res.scalars().all()
-        
-        # Fetch Negative Patterns
-        n_res = await db.execute(select(NegativePatternMemory).order_by(desc(NegativePatternMemory.penalty_weight)))
-        negatives = n_res.scalars().all()
-        
-        return {
-            "strategies": [
-                {
-                    "name": m.strategy_name,
-                    "trust_score": m.trust_score,
-                    "state": m.state,
-                    "success": m.success_count,
-                    "rollbacks": m.rollback_count,
-                    "avg_score": m.avg_verification_score
-                } for m in memories
-            ],
-            "penalized_patterns": [
-                {
-                    "strategy": n.strategy_name,
-                    "reason": n.failure_reason or n.rollback_reason,
-                    "penalty": n.penalty_weight,
-                    "occurrences": n.occurrence_count,
-                    "blast_radius": n.blast_radius
-                } for n in negatives
-            ]
-        }
+        try:
+            # Fetch Trusted Strategies
+            s_res = await db.execute(select(StrategyMemory).order_by(desc(StrategyMemory.trust_score)))
+            memories = s_res.scalars().all()
+            
+            # Fetch Negative Patterns
+            n_res = await db.execute(select(NegativePatternMemory).order_by(desc(NegativePatternMemory.penalty_weight)))
+            negatives = n_res.scalars().all()
+            
+            return {
+                "strategies": [
+                    {
+                        "name": m.strategy_name,
+                        "trust_score": m.trust_score,
+                        "state": m.state,
+                        "success": m.success_count,
+                        "rollbacks": m.rollback_count,
+                        "avg_score": m.avg_verification_score
+                    } for m in memories
+                ],
+                "penalized_patterns": [
+                    {
+                        "strategy": n.strategy_name,
+                        "reason": n.failure_reason or n.rollback_reason,
+                        "penalty": n.penalty_weight,
+                        "occurrences": n.occurrence_count,
+                        "blast_radius": n.blast_radius
+                    } for n in negatives
+                ]
+            }
+        except Exception as exc:
+            from libs.infra.logger import logger
+            logger.warning("Learning insights fallback: %s", exc)
+            return {"strategies": [], "penalized_patterns": []}
 
 @router.get("/verifiers/matrix")
 async def get_verifier_matrix(tournament_id: Optional[str] = None):
     """Verifier Mesh performans matrisini döner."""
     async with AsyncSessionLocal() as db:
-        # If no tournament_id, take the latest one
-        if not tournament_id:
-            tid_q = select(RepairTournament.tournament_id).order_by(desc(RepairTournament.created_at)).limit(1)
-            tournament_id = (await db.execute(tid_q)).scalar()
+        try:
+            # If no tournament_id, take the latest one
             if not tournament_id:
-                return {"verifiers": [], "candidates": []}
+                tid_q = select(RepairTournament.tournament_id).order_by(desc(RepairTournament.created_at)).limit(1)
+                tournament_id = (await db.execute(tid_q)).scalar()
+                if not tournament_id:
+                    return {"verifiers": [], "candidates": []}
 
-        # Get all candidates for the tournament
-        cq = select(RepairCandidate).where(RepairCandidate.tournament_id == tournament_id)
-        candidates = (await db.execute(cq)).scalars().all()
-        
-        # Get all verifiers used in this tournament
-        c_ids = [c.candidate_id for c in candidates]
-        vq = select(VerifierResult).where(VerifierResult.candidate_id.in_(c_ids))
-        v_results = (await db.execute(vq)).scalars().all()
-        
-        verifiers = sorted(list(set(vr.verifier_name for vr in v_results)))
-        
-        matrix = []
-        for c in candidates:
-            row = {"name": c.strategy.capitalize(), "results": []}
-            for v in verifiers:
-                # Find score for this candidate + verifier
-                match = next((vr.score for vr in v_results if vr.candidate_id == c.candidate_id and vr.verifier_name == v), 0.0)
-                row["results"].append(match)
-            matrix.append(row)
+            # Get all candidates for the tournament
+            cq = select(RepairCandidate).where(RepairCandidate.tournament_id == tournament_id)
+            candidates = (await db.execute(cq)).scalars().all()
             
-        return {
-            "tournament_id": tournament_id,
-            "verifiers": verifiers,
-            "candidates": matrix
-        }
+            # Get all verifiers used in this tournament
+            c_ids = [c.candidate_id for c in candidates]
+            vq = select(VerifierResult).where(VerifierResult.candidate_id.in_(c_ids))
+            v_results = (await db.execute(vq)).scalars().all()
+            
+            verifiers = sorted(list(set(vr.verifier_name for vr in v_results)))
+            
+            matrix = []
+            for c in candidates:
+                row = {"name": c.strategy.capitalize(), "results": []}
+                for v in verifiers:
+                    # Find score for this candidate + verifier
+                    match = next((vr.score for vr in v_results if vr.candidate_id == c.candidate_id and vr.verifier_name == v), 0.0)
+                    row["results"].append(match)
+                matrix.append(row)
+                
+            return {
+                "tournament_id": tournament_id,
+                "verifiers": verifiers,
+                "candidates": matrix
+            }
+        except Exception as exc:
+            from libs.infra.logger import logger
+            logger.warning("Verifier matrix fallback: %s", exc)
+            return {"verifiers": [], "candidates": []}
 
 @router.get("/tuning/suggestions", response_model=List[TuningSuggestionOut])
 async def get_tuning_suggestions():
     """Önerilen sistem ayar kalibrasyonlarını listeler."""
     async with AsyncSessionLocal() as db:
-        q = select(SelfTuningSuggestion).order_by(desc(SelfTuningSuggestion.created_at))
-        res = await db.execute(q)
-        suggestions = res.scalars().all()
-        
-        return [
-            TuningSuggestionOut(
-                id=s.suggestion_id,
-                parameter=s.parameter_name,
-                current_value=s.current_value,
-                proposed_value=s.proposed_value,
-                reason=s.reason,
-                impact=s.expected_impact or "N/A",
-                status=s.status,
-                created_at=s.created_at
-            )
-            for s in suggestions
-        ]
+        try:
+            q = select(SelfTuningSuggestion).order_by(desc(SelfTuningSuggestion.created_at))
+            res = await db.execute(q)
+            suggestions = res.scalars().all()
+            
+            return [
+                TuningSuggestionOut(
+                    id=s.suggestion_id,
+                    parameter=s.parameter_name,
+                    current_value=s.current_value,
+                    proposed_value=s.proposed_value,
+                    reason=s.reason,
+                    impact=s.expected_impact or "N/A",
+                    status=s.status,
+                    created_at=s.created_at
+                )
+                for s in suggestions
+            ]
+        except Exception as exc:
+            from libs.infra.logger import logger
+            logger.warning("Tuning suggestions fallback: %s", exc)
+            return []
 
 @router.post("/tuning/suggestions/{suggestion_id}/apply")
 async def apply_tuning_suggestion(suggestion_id: str, data: SuggestionUpdate):
@@ -256,86 +281,101 @@ async def apply_tuning_suggestion(suggestion_id: str, data: SuggestionUpdate):
 async def get_verifiers_stats():
     """Verifier Mesh katmanlarının güvenilirlik ve performans verilerini döner."""
     async with AsyncSessionLocal() as db:
-        q = select(VerifierResult).order_by(desc(VerifierResult.timestamp)).limit(500)
-        results = (await db.execute(q)).scalars().all()
-        
-        # Aggregate stats by verifier
-        stats = {}
-        for r in results:
-            name = r.verifier_name
-            if name not in stats:
-                stats[name] = {"passed": 0, "total": 0, "latency": 0.0, "errors_blocked": 0}
+        try:
+            q = select(VerifierResult).order_by(desc(VerifierResult.timestamp)).limit(500)
+            results = (await db.execute(q)).scalars().all()
             
-            stats[name]["total"] += 1
-            if r.passed:
-                stats[name]["passed"] += 1
-            else:
-                stats[name]["errors_blocked"] += 1
+            # Aggregate stats by verifier
+            stats = {}
+            for r in results:
+                name = r.verifier_name
+                if name not in stats:
+                    stats[name] = {"passed": 0, "total": 0, "latency": 0.0, "errors_blocked": 0}
                 
-            # Simulate latency if details.latency is missing
-            latency = r.details.get("latency", 0.15) if isinstance(r.details, dict) else 0.15
-            stats[name]["latency"] += latency
-            
-        return [
-            {
-                "name": k,
-                "reliability": round(v["passed"] / v["total"], 2) if v["total"] > 0 else 0.0,
-                "precision": round(v["passed"] / v["total"], 2) if v["total"] > 0 else 0.0, # Simplified
-                "latency": f"{round((v['latency'] / v['total']) * 1000, 0)}ms" if v["total"] > 0 else "0ms",
-                "detected_errors": v["errors_blocked"]
-            }
-            for k, v in stats.items()
-        ]
+                stats[name]["total"] += 1
+                if r.passed:
+                    stats[name]["passed"] += 1
+                else:
+                    stats[name]["errors_blocked"] += 1
+                    
+                # Simulate latency if details.latency is missing
+                latency = r.details.get("latency", 0.15) if isinstance(r.details, dict) else 0.15
+                stats[name]["latency"] += latency
+                
+            return [
+                {
+                    "name": k,
+                    "reliability": round(v["passed"] / v["total"], 2) if v["total"] > 0 else 0.0,
+                    "precision": round(v["passed"] / v["total"], 2) if v["total"] > 0 else 0.0, # Simplified
+                    "latency": f"{round((v['latency'] / v['total']) * 1000, 0)}ms" if v["total"] > 0 else "0ms",
+                    "detected_errors": v["errors_blocked"]
+                }
+                for k, v in stats.items()
+            ]
+        except Exception as exc:
+            from libs.infra.logger import logger
+            logger.warning("Verifiers stats fallback: %s", exc)
+            return []
 
 @router.get("/memory/heatmaps")
 async def get_repair_memory():
     """Tamir hafızasındaki başarı/başarısızlık yoğunluk haritasını döner."""
     async with AsyncSessionLocal() as db:
-        q = select(RepairMemory).order_by(desc(RepairMemory.recorded_at)).limit(100)
-        memories = (await db.execute(q)).scalars().all()
-        
-        # Aggregate by subsystem
-        stats = {}
-        for m in memories:
-            ss = m.subsystem or "unknown"
-            if ss not in stats:
-                stats[ss] = {"success": 0, "failure": 0, "total": 0}
-            stats[ss]["total"] += 1
-            if m.outcome == "success":
-                stats[ss]["success"] += 1
-            else:
-                stats[ss]["failure"] += 1
-        
-        return [
-            {"subsystem": k, "success": v["success"], "failure": v["failure"], "rate": round(v["success"]/v["total"], 2)}
-            for k, v in stats.items()
-        ]
+        try:
+            q = select(RepairMemory).order_by(desc(RepairMemory.recorded_at)).limit(100)
+            memories = (await db.execute(q)).scalars().all()
+            
+            # Aggregate by subsystem
+            stats = {}
+            for m in memories:
+                ss = m.subsystem or "unknown"
+                if ss not in stats:
+                    stats[ss] = {"success": 0, "failure": 0, "total": 0}
+                stats[ss]["total"] += 1
+                if m.outcome == "success":
+                    stats[ss]["success"] += 1
+                else:
+                    stats[ss]["failure"] += 1
+            
+            return [
+                {"subsystem": k, "success": v["success"], "failure": v["failure"], "rate": round(v["success"]/v["total"], 2)}
+                for k, v in stats.items()
+            ]
+        except Exception as exc:
+            from libs.infra.logger import logger
+            logger.warning("Repair memory heatmap fallback: %s", exc)
+            return []
 
 @router.get("/memory/details")
 async def get_repair_memory_details(subsystem: str = Query(...), limit: int = 50):
     """Belirli bir alt sistem için detaylı tamir geçmişini döner."""
     async with AsyncSessionLocal() as db:
-        q = (
-            select(RepairMemory)
-            .where(RepairMemory.subsystem == subsystem)
-            .order_by(desc(RepairMemory.recorded_at))
-            .limit(limit)
-        )
-        res = await db.execute(q)
-        memories = res.scalars().all()
-        
-        return [
-            {
-                "id": str(m.memory_id),
-                "incident_id": m.incident_id,
-                "outcome": m.outcome,
-                "failure_reason": m.failure_reason or "N/A",
-                "score": m.score,
-                "recorded_at": m.recorded_at,
-                "rejections": m.verifier_rejections or []
-            }
-            for m in memories
-        ]
+        try:
+            q = (
+                select(RepairMemory)
+                .where(RepairMemory.subsystem == subsystem)
+                .order_by(desc(RepairMemory.recorded_at))
+                .limit(limit)
+            )
+            res = await db.execute(q)
+            memories = res.scalars().all()
+            
+            return [
+                {
+                    "id": str(m.memory_id),
+                    "incident_id": m.incident_id,
+                    "outcome": m.outcome,
+                    "failure_reason": m.failure_reason or "N/A",
+                    "score": m.score,
+                    "recorded_at": m.recorded_at,
+                    "rejections": m.verifier_rejections or []
+                }
+                for m in memories
+            ]
+        except Exception as exc:
+            from libs.infra.logger import logger
+            logger.warning("Repair memory details fallback: %s", exc)
+            return []
 
 @router.post("/run")
 async def trigger_lab_run(cortex=Depends(get_sovereign_cortex)):

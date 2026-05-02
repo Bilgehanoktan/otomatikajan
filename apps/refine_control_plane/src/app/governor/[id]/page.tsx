@@ -11,7 +11,7 @@ const { TextArea } = Input;
 
 export default function GovernorCaseDetail() {
   const { query } = useShow({
-    resource: "governance/governor/cases",
+    resource: "governance/inbox/governor/cases",
   });
   const { data, isLoading } = query;
   const record = data?.data;
@@ -31,14 +31,14 @@ export default function GovernorCaseDetail() {
     setActionLoading(true);
     mutate(
       {
-        url: `/governance/governor/cases/${record.id}/override`,
+        url: `/governance/inbox/governor/cases/${record.id}/override`,
         method: "post",
         values: { action, reason: justification },
       },
       {
         onSuccess: () => {
           message.success(`Aksiyon uygulandı: ${action}`);
-          list("governance/governor/cases");
+          list("governance/inbox/governor/cases");
         },
         onError: (err) => {
           message.error(`Hata: ${err.message}`);
@@ -52,14 +52,14 @@ export default function GovernorCaseDetail() {
     setActionLoading(true);
     mutate(
       {
-        url: `/governance/governor/cases/${record.id}/restore`,
+        url: `/governance/inbox/governor/cases/${record.id}/restore`,
         method: "post",
         values: {},
       },
       {
         onSuccess: (res) => {
           message.success(`Case geri yüklendi.`);
-          list("governance/governor/cases");
+          list("governance/inbox/governor/cases");
         },
         onError: (err) => {
           message.error(`Hata: ${err.message}`);
@@ -73,14 +73,14 @@ export default function GovernorCaseDetail() {
     setActionLoading(true);
     mutate(
       {
-        url: `/governance/governor/cases/${record.id}/execute`,
+        url: `/governance/inbox/governor/cases/${record.id}/execute`,
         method: "post",
         values: {},
       },
       {
         onSuccess: () => {
           message.success(`Governor otomatik kararı uygulandı.`);
-          list("governance/governor/cases");
+          list("governance/inbox/governor/cases");
         },
         onError: (err) => {
           message.error(`Hata: ${err.message}`);
@@ -93,7 +93,7 @@ export default function GovernorCaseDetail() {
   return (
     <div style={{ padding: 24 }}>
       <Space style={{ marginBottom: 24 }}>
-        <Button icon={<ArrowLeftOutlined />} onClick={() => list("governance/governor/cases")}>Geri</Button>
+      <Button icon={<ArrowLeftOutlined />} onClick={() => list("governance/inbox/governor/cases")}>Geri</Button>
         <Title level={3} style={{ margin: 0 }}>Case Incelemesi: {record.project_title}</Title>
       </Space>
 
@@ -109,8 +109,8 @@ export default function GovernorCaseDetail() {
 
       <Row gutter={[24, 24]}>
         <Col span={16}>
-          <Card title="Bağlam ve Teşhis" bordered={false} style={{ background: "#1f2833", borderRadius: 8 }}>
-            <Descriptions column={2} bordered size="small" labelStyle={{ background: "#0b0c10", color: "#66fcf1" }}>
+          <Card title="Bağlam ve Teşhis" variant="borderless" style={{ background: "#1f2833", borderRadius: 8 }}>
+            <Descriptions column={2} bordered size="small" styles={{ label: { background: "#0b0c10", color: "#66fcf1" } }}>
               <Descriptions.Item label="Risk Sınıfı"><Tag color={record.risk_class === "CRITICAL" ? "red" : "blue"}>{record.risk_class}</Tag></Descriptions.Item>
               <Descriptions.Item label="Risk Skoru">{record.risk_score}</Descriptions.Item>
               <Descriptions.Item label="Bekleme Nedeni">{record.pending_reason}</Descriptions.Item>
@@ -137,7 +137,7 @@ export default function GovernorCaseDetail() {
               <Text type="secondary">
                 Bu governor kararı, override işlemi ve workflow'un nihai sonucu aynı lineage zincirinde birleştirilir.
               </Text>
-              <Button type="link" onClick={() => list("governance-lineage")} style={{ padding: 0 }}>
+              <Button type="link" onClick={() => list("governance/lineage")} style={{ padding: 0 }}>
                 Bu Kararın Soyağacını Görüntüle ➜
               </Button>
             </Space>
@@ -145,7 +145,7 @@ export default function GovernorCaseDetail() {
         </Col>
 
         <Col span={8}>
-          <Card title="Operatör Aksiyonları" bordered={false} style={{ background: "#1f2833", borderRadius: 8 }}>
+          <Card title="Operatör Aksiyonları" variant="borderless" style={{ background: "#1f2833", borderRadius: 8 }}>
             <Space direction="vertical" style={{ width: "100%" }} size="large">
               
               {!["HIGH", "CRITICAL"].includes(record.risk_class) && (

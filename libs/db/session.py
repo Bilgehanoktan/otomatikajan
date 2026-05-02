@@ -173,13 +173,16 @@ def get_engine():
                     if not _DB_ERROR:
                         _DB_ERROR = "SQLite Fallback Active"
                 else:
-                    _engine = create_async_engine(
-                        DATABASE_URL, 
-                        pool_size=DB_POOL_SIZE, 
-                        max_overflow=DB_MAX_OVERFLOW, 
-                        pool_pre_ping=True,
-                        pool_timeout=5 # Reduce pool wait time to fail fast
-                    )
+                    # SRE Hardening: Ensure pool params are only passed for Postgres
+                    engine_kwargs = {
+                        "pool_pre_ping": True,
+                        "pool_timeout": 5
+                    }
+                    if not str(DATABASE_URL).startswith("sqlite"):
+                        engine_kwargs["pool_size"] = DB_POOL_SIZE
+                        engine_kwargs["max_overflow"] = DB_MAX_OVERFLOW
+                        
+                    _engine = create_async_engine(DATABASE_URL, **engine_kwargs)
                 _last_loop = curr_active_loop
     return _engine
 
@@ -826,8 +829,10 @@ def get_sync_session() -> Session:
     return _get_sync_session_factory()()
 
 from contextlib import contextmanager
+
 @contextmanager
-def get_db_ctx():
+def get_sync_db_ctx():
+    """Senkron DB context manager (legacy sync callers için)."""
     session = get_sync_session()
     try:
         yield session

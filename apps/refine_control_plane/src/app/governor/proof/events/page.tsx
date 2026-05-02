@@ -34,11 +34,14 @@ export default function ProofEventsPage() {
 
   return (
     <div style={{ padding: "24px" }}>
-      <Breadcrumb style={{ marginBottom: "16px" }}>
-        <Breadcrumb.Item href="/"><HomeOutlined /></Breadcrumb.Item>
-        <Breadcrumb.Item href="/governor/proof">{t("breadcrumb.proofFabric")}</Breadcrumb.Item>
-        <Breadcrumb.Item>{t("breadcrumb.eventLedger")}</Breadcrumb.Item>
-      </Breadcrumb>
+      <Breadcrumb 
+        style={{ marginBottom: "16px" }}
+        items={[
+          { title: <Link href="/"><HomeOutlined /></Link> },
+          { title: <Link href="/governor/proof">{t("breadcrumb.proofFabric")}</Link> },
+          { title: t("breadcrumb.eventLedger") }
+        ]}
+      />
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
         <div>

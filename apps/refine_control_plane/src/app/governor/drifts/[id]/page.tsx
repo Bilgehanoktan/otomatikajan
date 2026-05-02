@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { 
   Card, 
   Row, 
@@ -44,12 +45,15 @@ export default function DriftDetailPage() {
 
   return (
     <div style={{ padding: "24px" }}>
-      <Breadcrumb style={{ marginBottom: "16px" }}>
-        <Breadcrumb.Item href="/"><HomeOutlined /></Breadcrumb.Item>
-        <Breadcrumb.Item href="/governor/observability">Governance</Breadcrumb.Item>
-        <Breadcrumb.Item href="/governor/drifts">Drift Monitor</Breadcrumb.Item>
-        <Breadcrumb.Item>Drift Analysis</Breadcrumb.Item>
-      </Breadcrumb>
+      <Breadcrumb 
+        style={{ marginBottom: "16px" }}
+        items={[
+          { title: <Link href="/"><HomeOutlined /></Link> },
+          { title: <Link href="/governor/observability">Governance</Link> },
+          { title: <Link href="/governor/drifts">Drift Monitor</Link> },
+          { title: "Drift Analysis" }
+        ]}
+      />
 
       <div style={{ marginBottom: "24px" }}>
         <Button icon={<ArrowLeftOutlined />} onClick={() => router.back()}>Back</Button>
@@ -57,7 +61,7 @@ export default function DriftDetailPage() {
 
       <Row gutter={24}>
         <Col span={16}>
-          <Card bordered={false} style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
+          <Card variant="borderless" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <Space direction="vertical" size={0}>
                 <Title level={3} style={{ margin: 0 }}>{drift.drift_type}</Title>
@@ -90,13 +94,13 @@ export default function DriftDetailPage() {
             <Title level={5}><HistoryOutlined /> Analysis Windows</Title>
             <Row gutter={16} style={{ marginBottom: "32px" }}>
               <Col span={12}>
-                <Card size="small" title="Baseline Window">
+                <Card variant="borderless" size="small" title="Baseline Window">
                   <Text strong style={{ fontSize: "18px" }}>{drift.baseline_window_days} Days</Text>
                   <Text type="secondary" style={{ display: "block" }}>Historical behavior profile</Text>
                 </Card>
               </Col>
               <Col span={12}>
-                <Card size="small" title="Comparison Window">
+                <Card variant="borderless" size="small" title="Comparison Window">
                   <Text strong style={{ fontSize: "18px" }}>{drift.current_window_days} Days</Text>
                   <Text type="secondary" style={{ display: "block" }}>Anomalous period analyzed</Text>
                 </Card>
@@ -104,7 +108,7 @@ export default function DriftDetailPage() {
             </Row>
 
             <Title level={5}><DeploymentUnitOutlined /> Evidence & Correlation</Title>
-            <Card size="small" bodyStyle={{ padding: 0 }}>
+            <Card variant="borderless" size="small" bodyStyle={{ padding: 0 }}>
               <pre style={{ fontSize: "11px", padding: "16px", background: "#fafafa", margin: 0, maxHeight: "300px", overflow: "auto" }}>
                 {JSON.stringify(drift.evidence_payload || {}, null, 2)}
               </pre>
@@ -114,7 +118,7 @@ export default function DriftDetailPage() {
 
         <Col span={8}>
           <Space direction="vertical" style={{ width: "100%" }} size={24}>
-            <Card title="Quick Insights" size="small">
+            <Card variant="borderless" title="Quick Insights" size="small">
               <Paragraph style={{ fontSize: "13px" }}>
                 This drift indicates a significant shift in how the system handles <b>{drift.drift_type}</b>. 
                 Recommended action: Review recent <b>Policy Evolutions</b> or <b>Deployment changes</b>.
@@ -126,7 +130,7 @@ export default function DriftDetailPage() {
               </Space>
             </Card>
 
-            <Card size="small" title="Metadata">
+            <Card variant="borderless" size="small" title="Metadata">
               <Space direction="vertical" style={{ width: "100%" }}>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <Text type="secondary">Detected</Text>

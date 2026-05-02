@@ -49,38 +49,27 @@ async function readJsonSafely<T>(response: Response): Promise<T | null> {
   }
 }
 
-async function authFetch(path: string, init: RequestInit = {}): Promise<Response> {
-  return fetch(`${getApiBaseUrl()}${path}`, {
-    credentials: "include",
-    ...init,
-  });
+import { safeFetchJson } from "@/lib/api";
+
+async function authFetch<T = any>(path: string, init: RequestInit = {}): Promise<T> {
+  const url = `${getApiBaseUrl()}${path}`;
+  return safeFetchJson<T>(url, init);
 }
 
 export async function fetchCurrentOperator(): Promise<SessionState> {
   try {
-    const response = await authFetch("/auth/me");
-    if (response.ok) {
-      const payload = await readJsonSafely<AuthIdentity>(response);
-      if (payload) {
-        if (typeof window !== "undefined" && payload.role) {
-          window.localStorage.setItem("auth", JSON.stringify({ role: payload.role }));
-        }
-        return { kind: "authenticated", identity: payload };
+    const payload = await authFetch<AuthIdentity>("/auth/me/");
+    if (payload) {
+      if (typeof window !== "undefined" && payload.role) {
+        window.localStorage.setItem("auth", JSON.stringify({ role: payload.role }));
       }
-      return { kind: "error", status: response.status, detail: "Kimlik yanıtı okunamadı." };
+      return { kind: "authenticated", identity: payload };
     }
-
-    if (response.status === 401) {
-      return { kind: "unauthorized", status: response.status };
+    return { kind: "error", status: 500, detail: "Kimlik yanıtı okunamadı." };
+  } catch (error: any) {
+    if (error?.status === 401) {
+      return { kind: "unauthorized", status: 401 };
     }
-
-    const body = await response.text();
-    return {
-      kind: "error",
-      status: response.status,
-      detail: body.slice(0, 300) || "Kimlik doğrulama başarısız oldu.",
-    };
-  } catch (error) {
     return {
       kind: "network-error",
       error: error instanceof Error ? error : new Error("Kimlik ağına ulaşılamadı."),
@@ -98,27 +87,29 @@ export async function ensureSession(): Promise<SessionState> {
     return current;
   }
 
+  console.warn("[Auth] Oturum bulunamadı, otomatik giriş deneniyor...");
+
   try {
-    const loginResponse = await authFetch("/auth/login", {
+    const payload = await authFetch<{ access_token?: string | null }>("/auth/login/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(DEV_OPERATOR),
     });
 
-    if (!loginResponse.ok) {
-      return { kind: "unauthorized", status: loginResponse.status };
+    if (payload?.access_token) {
+        storeAccessToken(payload.access_token);
+        console.info("[Auth] Otomatik giriş başarılı.");
+        return fetchCurrentOperator();
     }
-
-    const payload = await readJsonSafely<{ access_token?: string | null }>(loginResponse);
-    storeAccessToken(payload?.access_token);
   } catch (error) {
+    console.error("[Auth] Otomatik giriş başarısız:", error);
     return {
       kind: "network-error",
       error: error instanceof Error ? error : new Error("Otomatik giriş başarısız oldu."),
     };
   }
 
-  return fetchCurrentOperator();
+  return current;
 }
 
 export async function getAuthHeaders(): Promise<Record<string, string>> {

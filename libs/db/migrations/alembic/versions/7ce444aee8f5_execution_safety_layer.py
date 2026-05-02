@@ -1,7 +1,7 @@
 """execution_safety_layer
 
 Revision ID: 7ce444aee8f5
-Revises: 0015_add_outcome_to_decision_lineage
+Revises: 0015b_gov_base
 Create Date: 2026-04-27 00:24:32.552001
 """
 from typing import Sequence, Union
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 revision: str = '7ce444aee8f5'
-down_revision: Union[str, None] = '0015_add_outcome_to_decision_lineage'
+down_revision: Union[str, None] = '0015b_gov_base'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

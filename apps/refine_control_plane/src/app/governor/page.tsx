@@ -10,7 +10,7 @@ const { Title, Text } = Typography;
 
 export default function GovernorInbox() {
   const { tableProps, tableQueryResult } = useTable({
-    resource: "governance/governor/cases",
+    resource: "governance/inbox/governor/cases",
     syncWithLocation: true,
     pagination: {
       pageSize: 50,
@@ -27,13 +27,11 @@ export default function GovernorInbox() {
   const handleBulkAction = (action: string) => {
     if (selectedRowKeys.length === 0) return;
     
-    // In a real app we might have a bulk endpoint, but here we can do it iteratively or use a bulk override if implemented.
-    // Assuming backend will accept overrides individually for now.
     const promises = selectedRowKeys.map((id) => 
       new Promise((resolve, reject) => {
         mutate(
           {
-            url: `/governance/governor/cases/${String(id)}/override`,
+            url: `/governance/inbox/governor/cases/${String(id)}/override`,
             method: "post",
             values: { action, reason: "Toplu işlem: " + action },
           },
@@ -70,7 +68,6 @@ export default function GovernorInbox() {
   };
 
   const isExecuted = (action: string) => {
-    // If it's an override or an auto action, it's executed
     return action.includes("OVERRIDE_") || ["AUTO_APPROVE_CANDIDATE", "AUTO_REPLAY_CANDIDATE", "ARCHIVE_STALE"].includes(action);
   };
 
@@ -165,7 +162,7 @@ export default function GovernorInbox() {
         </Col>
       </Row>
 
-      <Card bordered={false} style={{ borderRadius: 8, background: "#1f2833" }}>
+      <Card variant="borderless" style={{ borderRadius: 8, background: "#1f2833" }}>
         <Table 
           {...tableProps} 
           rowKey="id" 
@@ -205,14 +202,13 @@ export default function GovernorInbox() {
                 <Space>
                   <Tag color={getActionColor(value)}>{value}</Tag>
                   {isExecuted(value) ? (
-                    <Tag color="success" bordered={false}>Uygulandı</Tag>
+                    <Tag color="success">Uygulandı</Tag>
                   ) : (
-                    <Tag color="processing" bordered={false}>Öneri</Tag>
+                    <Tag color="processing">Öneri</Tag>
                   )}
                 </Space>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: 4 }}>
                   {record.decision_reason_codes?.slice(0, 2).map((code: string, i: number) => {
-                    // Extract a short key from the rationale if possible, or just truncate
                     let shortCode = code;
                     if (code.includes("Açık incident")) shortCode = "OPEN_INCIDENT";
                     else if (code.includes("saattir bekliyor")) shortCode = "STALE>24H";
@@ -253,7 +249,7 @@ export default function GovernorInbox() {
               <Button 
                 type="primary" 
                 icon={<SearchOutlined />}
-                onClick={() => show("governance/governor/cases", record.id)}
+                  onClick={() => show("governance/inbox/governor/cases", record.id)}
               >
                 İncele
               </Button>

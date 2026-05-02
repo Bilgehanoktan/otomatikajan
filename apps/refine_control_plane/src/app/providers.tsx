@@ -35,12 +35,19 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   const authProvider: AuthProvider = isServer ? {} as any : {
     login: async ({ email, password }) => {
-      const response = await fetch(`${API_URL}/auth/login`, {
+      const response = await fetch(`${API_URL}/auth/login/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
         credentials: "include"
       });
+      if (response.status === 401) {
+        clearStoredAccessToken();
+        if (typeof window !== "undefined") {
+            window.localStorage.removeItem("auth");
+        }
+      }
+
       if (response.ok) {
         try {
           const payload = await response.json();
@@ -54,12 +61,23 @@ export function Providers({ children }: { children: React.ReactNode }) {
       }
       return { success: false, error: new Error("Hatalı kimlik bilgileri") };
     },
+    register: async ({ email, password, username }) => {
+      const response = await fetch(`${API_URL}/auth/register/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, username }),
+      });
+      if (response.ok) {
+        return { success: true, redirectTo: "/login" };
+      }
+      return { success: false, error: new Error("Kayıt başarısız") };
+    },
     logout: async () => {
       clearStoredAccessToken();
       if (typeof window !== "undefined") {
         window.localStorage.removeItem("auth");
       }
-      await fetch(`${API_URL}/auth/logout`, { method: "POST", credentials: "include" });
+      await fetch(`${API_URL}/auth/logout/`, { method: "POST", credentials: "include" });
       return { success: true, redirectTo: "/login" };
     },
     check: async () => {
@@ -141,23 +159,18 @@ export function Providers({ children }: { children: React.ReactNode }) {
             {
               name: "governance/approvals",
               list: "/governance/approvals",
-              show: "/governance/approvals/:id",
+              show: "/approvals/:id",
               meta: { label: "resources.approvals" },
             },
             {
               name: "governance/incidents",
               list: "/governance/incidents",
-              show: "/governance/incidents/:id",
+              show: "/incidents/:id",
               meta: { label: "resources.incidents" },
             },
             {
-              name: "workflows",
-              list: "/workflows",
-              meta: { label: "resources.projects" },
-            },
-            {
-              name: "analytics/costs/summary",
-              list: "/governance/analytics/costs/summary",
+              name: "governance/analytics/costs",
+              list: "/costs",
               meta: { label: "resources.costs" },
             },
             {
@@ -207,37 +220,37 @@ export function Providers({ children }: { children: React.ReactNode }) {
             },
             {
               name: "repair-lab/repair-memory",
-              list: "/repair-lab/repair-memory",
+              list: "/repair-memory",
               meta: { label: "resources.repairMemory" },
             },
             {
               name: "verifiers",
-              list: "/repair-lab/verifiers",
+              list: "/verifiers",
               meta: { label: "resources.verifiers" },
             },
             {
-              name: "governance-lineage",
-              list: "/governance/lineage",
+              name: "governance/lineage",
+              list: "/governance-lineage",
               meta: { label: "resources.lineage" },
             },
             {
               name: "governance/compliance/policies",
-              list: "/governance/compliance/policies",
+              list: "/compliance",
               meta: { label: "resources.compliance" },
             },
             {
               name: "governance/proposals",
-              list: "/governance/proposals",
+              list: "/policy-proposals",
               meta: { label: "resources.policyProposals" },
             },
             {
-              name: "training",
+              name: "governance/drills",
               list: "/training",
               meta: { label: "resources.training" },
             },
             {
               name: "repair-lab/suggestions",
-              list: "/repair-lab/suggestions",
+              list: "/self-tuning",
               meta: { label: "resources.selfTuning" },
             },
             {
@@ -276,9 +289,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
               meta: { label: "resources.adaptationCandidates", parent: "learning" },
             },
             {
-              name: "axiology",
-              list: "/governance/axiology-logs",
-              show: "/governance/axiology-logs/:id",
+              name: "governance/axiology",
+              list: "/axiology",
+              show: "/axiology/:id",
               meta: { label: "resources.axiology" },
             },
             {
@@ -286,67 +299,77 @@ export function Providers({ children }: { children: React.ReactNode }) {
               meta: { label: "resources.governance" },
             },
             {
-              name: "governance/governor/cases",
+              name: "governance/inbox/governor/cases",
               list: "/governor",
               show: "/governor/:id",
               meta: { label: "resources.governorInbox", icon: "🛡️" },
             },
             {
-              name: "governance/governor/escalations",
-              list: "/governor/escalations",
-              meta: { label: "resources.escalations", parent: "governance/governor/cases" },
+              name: "governance/inbox/governor/proof",
+              list: "/audit",
+              meta: { label: "resources.audit" },
             },
             {
-              name: "governance/governor/scorecard",
-              list: "/governor/scorecard",
-              meta: { label: "resources.scorecard", parent: "governance/governor/cases" },
-            },
-            {
-              name: "governance/governor/outcomes",
-              list: "/governor/outcomes",
-              meta: { label: "resources.outcomes", parent: "governance/governor/cases" },
-            },
-            {
-              name: "governance/governor/calibrations",
-              list: "/governor/calibrations",
-              meta: { label: "resources.calibrations", parent: "governance/governor/cases" },
-            },
-            {
-              name: "governance/governor/federated",
-              list: "/governor/federated",
-              meta: { label: "resources.federated", parent: "governance/governor/cases" },
-            },
-            {
-              name: "governance/governor/conflicts",
-              list: "/governor/conflicts",
-              meta: { label: "resources.conflicts", parent: "governance/governor/cases" },
-            },
-            {
-              name: "governor/resilience/status",
-              list: "/governor/resilience",
-              meta: { label: "resources.resilience", parent: "governance/governor/cases" },
-            },
-            {
-              name: "governor/resilience/drills",
+              name: "governance/inbox/governor/resilience/drills",
               list: "/governor/drills",
-              meta: { label: "resources.drills", parent: "governance/governor/cases" },
+              meta: { label: "resources.training" },
             },
             {
-              name: "governor/observability",
+              name: "governance/inbox/governor/escalations",
+              list: "/governor/escalations",
+              meta: { label: "resources.escalations", parent: "governance/inbox/governor/cases" },
+            },
+            {
+              name: "governance/inbox/governor/scorecard",
+              list: "/governor/scorecard",
+              meta: { label: "resources.scorecard", parent: "governance/inbox/governor/cases" },
+            },
+            {
+              name: "governance/inbox/governor/outcomes",
+              list: "/governor/outcomes",
+              meta: { label: "resources.outcomes", parent: "governance/inbox/governor/cases" },
+            },
+            {
+              name: "governance/inbox/governor/calibrations",
+              list: "/governor/calibrations",
+              meta: { label: "resources.calibrations", parent: "governance/inbox/governor/cases" },
+            },
+            {
+              name: "governance/inbox/governor/meta/decisions",
+              list: "/governor/federated",
+              meta: { label: "resources.federated", parent: "governance/inbox/governor/cases" },
+            },
+            {
+              name: "governance/inbox/governor/meta/conflicts",
+              list: "/governor/conflicts",
+              meta: { label: "resources.conflicts", parent: "governance/inbox/governor/cases" },
+            },
+            {
+              name: "governance/inbox/governor/resilience/status",
+              list: "/governor/resilience",
+              meta: { label: "resources.resilience", parent: "governance/inbox/governor/cases" },
+            },
+            {
+              name: "governance/inbox/governor/resilience/drills",
+              list: "/governor/drills",
+              meta: { label: "resources.drills", parent: "governance/inbox/governor/cases" },
+            },
+            {
+              name: "governance/inbox/governor/status",
               list: "/governor/observability",
-              meta: { label: "resources.observability", parent: "governance/governor/cases" },
+              meta: { label: "resources.observability", parent: "governance/inbox/governor/cases" },
             },
             {
-              name: "governor/drifts",
+              name: "governance/inbox/governor/meta/conflicts",
               list: "/governor/drifts",
               show: "/governor/drifts/:id",
-              meta: { label: "resources.drifts", parent: "governance/governor/cases" },
+              meta: { label: "resources.drifts", parent: "governance/inbox/governor/cases" },
             },
             {
               name: "governance/inbox/governor/proof",
               list: "/governor/proof",
               show: "/governor/proof/snapshots/:id",
-              meta: { label: "resources.proofFabric", parent: "governance/governor/cases" },
+              meta: { label: "resources.proofFabric", parent: "governance/inbox/governor/cases" },
             },
           ]}
           options={{

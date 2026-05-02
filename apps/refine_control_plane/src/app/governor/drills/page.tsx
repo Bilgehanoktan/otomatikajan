@@ -14,7 +14,7 @@ const { Title, Text } = Typography;
 
 export default function GovernorDrillsPage() {
     const { query: { data, isLoading, refetch } } = useList({
-        resource: "governor/resilience/drills",
+        resource: "governance/inbox/governor/resilience/drills",
     });
 
     const { mutate } = useCustomMutation();
@@ -24,7 +24,7 @@ export default function GovernorDrillsPage() {
 
     const handleStartDrill = async (values: any) => {
         mutate({
-            url: "/governor/resilience/drills",
+            url: "/governance/inbox/governor/resilience/drills",
             method: "post",
             values,
         }, {
@@ -101,7 +101,7 @@ export default function GovernorDrillsPage() {
                 </Button>
             </div>
 
-            <Card title={<span><HistoryOutlined /> Drill History</span>}>
+            <Card variant="borderless" title={<span><HistoryOutlined /> Drill History</span>}>
                 <Table 
                     dataSource={data?.data} 
                     columns={columns} 
@@ -147,5 +147,3 @@ export default function GovernorDrillsPage() {
         </Space>
     );
 }
-
-

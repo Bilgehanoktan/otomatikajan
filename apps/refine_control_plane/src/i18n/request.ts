@@ -16,8 +16,8 @@ export default getRequestConfig(async ({ requestLocale }) => {
   const refineMessages = await import(`../messages/refine/${locale}-common.json`);
 
   const messages = {
-    ...appMessages.default,
-    refine: refineMessages.default
+    ...(appMessages.default || appMessages),
+    refine: (refineMessages.default || refineMessages)
   };
 
   return {

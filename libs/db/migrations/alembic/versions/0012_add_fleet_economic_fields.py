@@ -1,7 +1,7 @@
 """add fleet economic fields
 
 Revision ID: 0012_add_fleet_economic_fields
-Revises: 0011_add_isolation_and_autonomy_fields
+Revises: 0011_isolation_autonomy
 Create Date: 2026-04-16 03:50:00.000000
 
 """
@@ -12,7 +12,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = '0012_add_fleet_economic_fields'
-down_revision: Union[str, None] = '0011_add_isolation_and_autonomy_fields'
+down_revision: Union[str, None] = '0011_isolation_autonomy'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

@@ -41,13 +41,14 @@ export function DashboardCommandPanel({ apiBase }: { apiBase: string }) {
   const { notification } = App.useApp();
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
-  const handleAction = async (action: string, endpoint: string, method: string = "POST") => {
+  const handleAction = async (action: string, endpoint: string, method: string = "POST", body: any = null) => {
     setLoadingAction(action);
     try {
       // Phase 32: Use safeFetchJson for resilience and auth-cookie inclusion
       const data = await safeFetchJson(`/api/v1${endpoint}`, {
         method,
         headers: { "Content-Type": "application/json" },
+        body: body ? JSON.stringify(body) : undefined,
       });
       
       notification.success({
@@ -88,11 +89,11 @@ export function DashboardCommandPanel({ apiBase }: { apiBase: string }) {
 
         <CommandButton
           label="Üretim Devir Teslim (Handover)"
-          sub="Production Handover · /ops/handover"
+          sub="Production Handover · /governance/ops/handover"
           icon={<Rocket size={18} />}
           color="text-[#66fcf1]"
           loading={loadingAction === "handover"}
-          onClick={() => handleAction("handover", "/ops/handover?project_id=SOV-PILOT-01&dry_run=true")}
+          onClick={() => handleAction("handover", "/governance/ops/handover?project_id=SOV-PILOT-01&dry_run=true")}
         />
 
         <CommandButton
@@ -101,7 +102,7 @@ export function DashboardCommandPanel({ apiBase }: { apiBase: string }) {
           icon={<FileSearch size={18} />}
           color="text-gray-400"
           loading={loadingAction === "audit"}
-          onClick={() => handleAction("audit", "/compliance/audit-bundles")}
+          onClick={() => handleAction("audit", "/compliance/audit-bundles", "POST", { name: `Audit_${new Date().toISOString().split('T')[0]}` })}
         />
 
         <CommandButton

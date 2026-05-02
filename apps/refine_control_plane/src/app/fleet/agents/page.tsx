@@ -19,7 +19,7 @@ interface Agent {
 export default function AgentRegistryPage() {
   const apiUrl = useApiUrl();
   const agentsQuery = useCustom<Agent[]>({
-    url: `${apiUrl}/fleet/agents`,
+    url: `${apiUrl}/fleet/ops/agents`,
     method: "get",
   });
 

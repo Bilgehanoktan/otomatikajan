@@ -52,7 +52,6 @@ export default function CreateWorkflowPage() {
             priority: values.priority || "MEDIUM",
             quality_profile: values.quality || "standard",
           },
-          headers: authHeaders,
         },
         {
           onSuccess: (data) => {

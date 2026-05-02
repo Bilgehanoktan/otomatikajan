@@ -67,7 +67,7 @@ export default function FleetOperationsPage() {
                 block
                 type="primary"
                 icon={<SyncOutlined spin={isPending} />}
-                onClick={() => handleAction("Yeniden dengeleme", "/rebalance")}
+                onClick={() => handleAction("Yeniden dengeleme", "/ops/rebalance")}
                 disabled={isPending}
               >
                 Filo yükünü yeniden dengeler (Rebalance)

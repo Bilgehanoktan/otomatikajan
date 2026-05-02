@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Row, Col, Card, Statistic, Typography, Button, Space, Divider, Alert } from "antd";
+import { Row, Col, Card, Statistic, Typography, Button, Space, Divider } from "antd";
 import { 
   ReloadOutlined, 
   BellOutlined, 
@@ -69,7 +69,7 @@ export default function ObservabilityDashboard() {
       {/* KPI Strip */}
       <Row gutter={16} style={{ marginBottom: "24px" }}>
         <Col span={6}>
-          <Card size="small" style={{ borderTop: "4px solid #ff4d4f" }}>
+          <Card variant="borderless" style={{ borderTop: "4px solid #ff4d4f" }}>
             <Statistic 
               title="Open Alerts" 
               value={kpis.openAlerts} 
@@ -79,7 +79,7 @@ export default function ObservabilityDashboard() {
           </Card>
         </Col>
         <Col span={6}>
-          <Card size="small" style={{ borderTop: "4px solid #faad14" }}>
+          <Card variant="borderless" style={{ borderTop: "4px solid #faad14" }}>
             <Statistic 
               title="Active Drifts" 
               value={kpis.activeDrifts} 
@@ -89,7 +89,7 @@ export default function ObservabilityDashboard() {
           </Card>
         </Col>
         <Col span={6}>
-          <Card size="small" style={{ borderTop: "4px solid #1890ff" }}>
+          <Card variant="borderless" style={{ borderTop: "4px solid #1890ff" }}>
             <Statistic 
               title="Avg Accuracy" 
               value={kpis.accuracy * 100} 
@@ -100,7 +100,7 @@ export default function ObservabilityDashboard() {
           </Card>
         </Col>
         <Col span={6}>
-          <Card size="small" style={{ borderTop: "4px solid #52c41a" }}>
+          <Card variant="borderless" style={{ borderTop: "4px solid #52c41a" }}>
             <Statistic 
               title="System Health" 
               value="DEGRADED" 
@@ -119,6 +119,7 @@ export default function ObservabilityDashboard() {
         <Col span={24} style={{ marginBottom: "24px" }}>
           <Card 
             title={<Space><BellOutlined /> Recent Open Alerts</Space>} 
+            variant="borderless"
             extra={<Button type="link" onClick={() => router.push("/governor/alerts")}>View All</Button>}
           >
             <AlertTable 
@@ -133,6 +134,7 @@ export default function ObservabilityDashboard() {
         <Col span={24}>
           <Card 
             title={<Space><RadarChartOutlined /> Active Behavioral Drifts</Space>}
+            variant="borderless"
             extra={<Button type="link" onClick={() => router.push("/governor/drifts")}>View All</Button>}
           >
             <DriftTable 

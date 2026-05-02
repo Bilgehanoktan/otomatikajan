@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useLogin } from "@refinedev/core";
+import { useLogin, useRegister } from "@refinedev/core";
 import {
   Form,
   Input,
@@ -12,29 +12,46 @@ import {
   Space,
   Layout,
   Alert,
-  ConfigProvider,
-  theme
+  Tooltip
 } from "antd";
 import {
   LockOutlined,
   UserOutlined,
   RocketOutlined,
   SafetyOutlined,
-  SafetyCertificateOutlined
+  SafetyCertificateOutlined,
+  IdcardOutlined
 } from "@ant-design/icons";
-import { Tooltip } from "antd";
 
 const { Title, Text } = Typography;
 
 export default function LoginPage() {
-  const { mutate: login, isPending } = useLogin();
+  const [mode, setMode] = useState<"login" | "register">("login");
+  const { mutate: login, isPending: isLoginPending } = useLogin();
+  const { mutate: register, isPending: isRegisterPending } = useRegister();
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-  const onFinish = (values: any) => {
+  const onFinishLogin = (values: any) => {
     setError(null);
+    setSuccess(null);
     login(values, {
       onError: (err: any) => {
         setError(err?.message || "Kimlik doğrulama başarısız oldu.");
+      }
+    });
+  };
+
+  const onFinishRegister = (values: any) => {
+    setError(null);
+    setSuccess(null);
+    register(values, {
+      onSuccess: () => {
+        setSuccess("Kayıt başarılı! Lütfen giriş yapın.");
+        setMode("login");
+      },
+      onError: (err: any) => {
+        setError(err?.message || "Kayıt işlemi başarısız oldu.");
       }
     });
   };
@@ -99,76 +116,172 @@ export default function LoginPage() {
             style={{ marginBottom: 24, borderRadius: 8 }}
           />
         )}
+        
+        {success && (
+          <Alert
+            message={success}
+            type="success"
+            showIcon
+            style={{ marginBottom: 24, borderRadius: 8 }}
+          />
+        )}
 
-        <Form
-          name="login"
-          initialValues={{ remember: true }}
-          onFinish={onFinish}
-          layout="vertical"
-          requiredMark={false}
-        >
-          <Form.Item
-            name="email"
-            rules={[{ required: true, message: "Lütfen e-posta adresinizi girin!" }]}
+        {mode === "login" ? (
+          <Form
+            name="login"
+            initialValues={{ remember: true }}
+            onFinish={onFinishLogin}
+            layout="vertical"
+            requiredMark={false}
           >
-            <Input
-              prefix={<UserOutlined style={{ color: "rgba(102, 252, 241, 0.5)" }} />}
-              placeholder="E-posta"
-              size="large"
-              style={{
-                background: "rgba(11, 12, 16, 0.6)",
-                border: "1px solid rgba(102, 252, 241, 0.1)",
-                color: "#fff"
-              }}
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="password"
-            rules={[{ required: true, message: "Lütfen şifrenizi girin!" }]}
-          >
-            <Input.Password
-              prefix={<LockOutlined style={{ color: "rgba(102, 252, 241, 0.5)" }} />}
-              placeholder="Şifre"
-              size="large"
-              style={{
-                background: "rgba(11, 12, 16, 0.6)",
-                border: "1px solid rgba(102, 252, 241, 0.1)",
-                color: "#fff"
-              }}
-            />
-          </Form.Item>
-
-          <Form.Item>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Form.Item name="remember" valuePropName="checked" noStyle>
-                <Checkbox style={{ color: "#c5c6c7" }}>Beni hatırla</Checkbox>
-              </Form.Item>
-              <a href="#" style={{ color: "#66fcf1", fontSize: 12 }}>Şifremi unuttum</a>
-            </div>
-          </Form.Item>
-
-          <Form.Item style={{ marginBottom: 0 }}>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={isPending}
-              block
-              size="large"
-              style={{
-                height: 48,
-                background: "#66fcf1",
-                color: "#0b0c10",
-                fontWeight: "bold",
-                border: "none",
-                borderRadius: 8,
-                boxShadow: "0 4px 14px 0 rgba(102, 252, 241, 0.3)"
-              }}
+            <Form.Item
+              name="email"
+              rules={[{ required: true, message: "Lütfen e-posta adresinizi girin!" }]}
             >
-              OTURUM AÇ
-            </Button>
-          </Form.Item>
-        </Form>
+              <Input
+                prefix={<UserOutlined style={{ color: "rgba(102, 252, 241, 0.5)" }} />}
+                placeholder="E-posta"
+                size="large"
+                style={{
+                  background: "rgba(11, 12, 16, 0.6)",
+                  border: "1px solid rgba(102, 252, 241, 0.1)",
+                  color: "#fff"
+                }}
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="password"
+              rules={[{ required: true, message: "Lütfen şifrenizi girin!" }]}
+            >
+              <Input.Password
+                prefix={<LockOutlined style={{ color: "rgba(102, 252, 241, 0.5)" }} />}
+                placeholder="Şifre"
+                size="large"
+                style={{
+                  background: "rgba(11, 12, 16, 0.6)",
+                  border: "1px solid rgba(102, 252, 241, 0.1)",
+                  color: "#fff"
+                }}
+              />
+            </Form.Item>
+
+            <Form.Item>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Form.Item name="remember" valuePropName="checked" noStyle>
+                  <Checkbox style={{ color: "#c5c6c7" }}>Beni hatırla</Checkbox>
+                </Form.Item>
+                <a href="#" style={{ color: "#66fcf1", fontSize: 12 }}>Şifremi unuttum</a>
+              </div>
+            </Form.Item>
+
+            <Form.Item style={{ marginBottom: 12 }}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={isLoginPending}
+                block
+                size="large"
+                style={{
+                  height: 48,
+                  background: "#66fcf1",
+                  color: "#0b0c10",
+                  fontWeight: "bold",
+                  border: "none",
+                  borderRadius: 8,
+                  boxShadow: "0 4px 14px 0 rgba(102, 252, 241, 0.3)"
+                }}
+              >
+                OTURUM AÇ
+              </Button>
+            </Form.Item>
+            
+            <div style={{ textAlign: "center" }}>
+              <Text style={{ color: "#c5c6c7" }}>Hesabınız yok mu? </Text>
+              <a href="#" onClick={(e) => { e.preventDefault(); setMode("register"); setError(null); setSuccess(null); }} style={{ color: "#66fcf1", fontWeight: "bold" }}>Kayıt Ol</a>
+            </div>
+          </Form>
+        ) : (
+          <Form
+            name="register"
+            onFinish={onFinishRegister}
+            layout="vertical"
+            requiredMark={false}
+          >
+            <Form.Item
+              name="username"
+              rules={[{ required: true, message: "Lütfen adınızı girin!" }]}
+            >
+              <Input
+                prefix={<IdcardOutlined style={{ color: "rgba(102, 252, 241, 0.5)" }} />}
+                placeholder="Kullanıcı Adı / İsim"
+                size="large"
+                style={{
+                  background: "rgba(11, 12, 16, 0.6)",
+                  border: "1px solid rgba(102, 252, 241, 0.1)",
+                  color: "#fff"
+                }}
+              />
+            </Form.Item>
+            
+            <Form.Item
+              name="email"
+              rules={[{ required: true, message: "Lütfen e-posta adresinizi girin!" }, { type: "email", message: "Geçerli bir e-posta girin!" }]}
+            >
+              <Input
+                prefix={<UserOutlined style={{ color: "rgba(102, 252, 241, 0.5)" }} />}
+                placeholder="E-posta"
+                size="large"
+                style={{
+                  background: "rgba(11, 12, 16, 0.6)",
+                  border: "1px solid rgba(102, 252, 241, 0.1)",
+                  color: "#fff"
+                }}
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="password"
+              rules={[{ required: true, message: "Lütfen şifrenizi girin!" }, { min: 6, message: "Şifre en az 6 karakter olmalı!" }]}
+            >
+              <Input.Password
+                prefix={<LockOutlined style={{ color: "rgba(102, 252, 241, 0.5)" }} />}
+                placeholder="Şifre"
+                size="large"
+                style={{
+                  background: "rgba(11, 12, 16, 0.6)",
+                  border: "1px solid rgba(102, 252, 241, 0.1)",
+                  color: "#fff"
+                }}
+              />
+            </Form.Item>
+
+            <Form.Item style={{ marginBottom: 12 }}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={isRegisterPending}
+                block
+                size="large"
+                style={{
+                  height: 48,
+                  background: "transparent",
+                  color: "#66fcf1",
+                  fontWeight: "bold",
+                  border: "1px solid #66fcf1",
+                  borderRadius: 8,
+                }}
+              >
+                KAYIT OL
+              </Button>
+            </Form.Item>
+            
+            <div style={{ textAlign: "center" }}>
+              <Text style={{ color: "#c5c6c7" }}>Zaten hesabınız var mı? </Text>
+              <a href="#" onClick={(e) => { e.preventDefault(); setMode("login"); setError(null); setSuccess(null); }} style={{ color: "#66fcf1", fontWeight: "bold" }}>Giriş Yap</a>
+            </div>
+          </Form>
+        )}
 
         <div style={{ marginTop: 32, textAlign: "center", borderTop: "1px solid rgba(102, 252, 241, 0.05)", paddingTop: 24 }}>
           <Space size="large">
@@ -189,3 +302,4 @@ export default function LoginPage() {
     </Layout>
   );
 }
+

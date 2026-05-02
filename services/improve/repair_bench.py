@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from services.improve.benchmark_loader import RepairBenchLoader, BenchmarkCase
 from services.observability.logging import get_logger
 from libs.db.session import session_scope
+from libs.llm.model_orchestrator import ModelOrchestrator
 from libs.db.models.repair_models import RepairBenchmarkRun, RepairTournament, RepairCandidate, VerifierResult
 
 logger = get_logger("repair.bench")

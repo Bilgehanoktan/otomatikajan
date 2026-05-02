@@ -1,7 +1,7 @@
 """add outcome column to decision lineage
 
-Revision ID: 0015_add_outcome_to_decision_lineage
-Revises: 0014_sif_01_identity_and_permissions
+Revision ID: 0015_outcome_lineage
+Revises: 0014_sif01_identity
 Create Date: 2026-04-26 12:45:00.000000
 """
 
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = "0015_add_outcome_to_decision_lineage"
-down_revision: Union[str, None] = "0014_sif_01_identity_and_permissions"
+revision: str = "0015_outcome_lineage"
+down_revision: Union[str, None] = "0014_sif01_identity"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

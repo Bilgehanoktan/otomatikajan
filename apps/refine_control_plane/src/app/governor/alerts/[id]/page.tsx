@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { 
   Card, 
   Row, 
@@ -50,12 +51,15 @@ export default function AlertDetailPage() {
 
   return (
     <div style={{ padding: "24px" }}>
-      <Breadcrumb style={{ marginBottom: "16px" }}>
-        <Breadcrumb.Item href="/"><HomeOutlined /></Breadcrumb.Item>
-        <Breadcrumb.Item href="/governor/observability">Governance</Breadcrumb.Item>
-        <Breadcrumb.Item href="/governor/alerts">Alert Center</Breadcrumb.Item>
-        <Breadcrumb.Item>{alert.title}</Breadcrumb.Item>
-      </Breadcrumb>
+      <Breadcrumb 
+        style={{ marginBottom: "16px" }}
+        items={[
+          { title: <Link href="/"><HomeOutlined /></Link> },
+          { title: <Link href="/governor/observability">Governance</Link> },
+          { title: <Link href="/governor/alerts">Alert Center</Link> },
+          { title: alert.title }
+        ]}
+      />
 
       <div style={{ marginBottom: "24px" }}>
         <Space size="middle" style={{ width: "100%", justifyContent: "space-between" }}>
@@ -70,7 +74,7 @@ export default function AlertDetailPage() {
       <Row gutter={24}>
         <Col span={16}>
           <Card 
-            bordered={false}
+            variant="borderless"
             style={{ borderTop: `6px solid ${getSeverityColor(alert.severity)}`, boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>

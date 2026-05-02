@@ -8,7 +8,7 @@ const { Title, Text } = Typography;
 
 export default function GovernorEscalations() {
   const { tableQueryResult } = useTable({
-    resource: "governance/governor/escalations",
+    resource: "governance/inbox/governor/escalations",
     syncWithLocation: true,
   }) as any;
 
@@ -28,7 +28,7 @@ export default function GovernorEscalations() {
 
     mutate(
       {
-        url: `/governance/governor/escalations/${id}/${action}`,
+        url: `/governance/inbox/governor/escalations/${id}/${action}`,
         method: "post",
         values: payload,
       },
@@ -53,7 +53,7 @@ export default function GovernorEscalations() {
         </Title>
       </div>
 
-      <Card bordered={false} style={{ borderRadius: 8, background: "#1f2833" }}>
+      <Card variant="borderless" style={{ borderRadius: 8, background: "#1f2833" }}>
         <Table dataSource={escalations} rowKey="id" loading={isLoading}>
           <Table.Column 
             dataIndex="project_id" 

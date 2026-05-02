@@ -338,6 +338,13 @@ class SubTask(Base):
     completed_at  = Column(DateTime(timezone=True), nullable=True)
 
     project = relationship("Project", back_populates="subtasks")
+    
+    @property
+    def result_summary(self) -> str:
+        """Truncated version of result for UI list views."""
+        if not self.result:
+            return ""
+        return self.result[:200] + ("..." if len(self.result) > 200 else "")
 
 
 # ── LLM Maliyet Logu ─────────────────────────────────────

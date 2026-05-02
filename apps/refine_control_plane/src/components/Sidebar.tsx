@@ -45,7 +45,7 @@ const icons: Record<string, React.ReactNode> = {
     observability: <Eye size={20} />,
     "governance/approvals": <CheckSquare size={20} />,
     "governance/incidents": <AlertTriangle size={20} />,
-    "analytics/costs/summary": <BarChart3 size={20} />,
+    "governance/analytics/costs": <BarChart3 size={20} />,
     "governance/compliance/audit-bundles": <FileText size={20} />,
     federation: <Network size={20} />,
     fleet: <Boxes size={20} />,
@@ -56,24 +56,26 @@ const icons: Record<string, React.ReactNode> = {
     "repair-lab/dashboard": <Cpu size={20} />,
     "repair-lab/repair-memory": <History size={20} />,
     verifiers: <Activity size={20} />,
-    axiology: <Scale size={20} />,
+    "governance/axiology": <Scale size={20} />,
     "repair-lab/suggestions": <Settings size={20} />,
-    "governance-lineage": <Settings2 size={20} />,
-    training: <Dna size={20} />,
+    "governance/lineage": <Settings2 size={20} />,
+    "governance/drills": <Dna size={20} />,
     "governance/compliance/policies": <Scale size={20} />,
     "governance/proposals": <Signature size={20} />,
-    "governance/compliance/audit-bundles": <FileArchive size={20} />,
     "governance/ops/handover-status": <Rocket size={20} />,
     "governance/ops/launch-gates": <Target size={20} />,
     "learning/fingerprints": <Fingerprint size={20} />,
     "learning/strategy-memory": <Brain size={20} />,
     "learning/negative-patterns": <ShieldOff size={20} />,
     "learning/adaptation-candidates": <Sparkles size={20} />,
-    "governor/resilience/drills": <Dna size={20} />,
-    "governor/observability": <Eye size={20} />,
+    "governance/inbox/governor/resilience/drills": <Dna size={20} />,
+    "governance/inbox/governor/status": <Eye size={20} />,
     "governor/alerts": <ShieldAlert size={20} />,
     "governor/drifts": <Activity size={20} />,
     "governor/proof": <History size={20} />,
+    "governance/inbox/governor/cases": <ShieldCheck size={20} />,
+    "governance/inbox/governor/meta/conflicts": <Activity size={20} />,
+    "governance/inbox/governor/proof": <History size={20} />,
 };
 
 const SidebarContent = () => {
@@ -87,25 +89,21 @@ const SidebarContent = () => {
     const groups = [
         {
             title: t("groups.operations"),
-            items: ["dashboard", "workflows", "agents", "governance/incidents", "fleet", "fleet/agents", "fleet/operations"]
+            items: ["dashboard", "workflows", "agents", "governance/incidents", "fleet", "fleet/operations"]
         },
         {
             title: t("groups.governance"),
             items: [
                 "governance/approvals", 
-                "governance/compliance/audit-bundles", 
-                "axiology", 
+                "governance/axiology", 
                 "governance/compliance/policies", 
                 "safety", 
                 "mesh", 
                 "federation", 
-                "governance-lineage", 
+                "governance/lineage", 
                 "governance/proposals",
-                "governance/governor/cases",
-                "governor/observability",
-                "governor/alerts",
-                "governor/drifts",
-                "governor/proof"
+                "governance/inbox/governor/cases",
+                "governance/inbox/governor/proof"
             ]
         },
         {
@@ -119,12 +117,17 @@ const SidebarContent = () => {
                 "learning/strategy-memory",
                 "learning/adaptation-candidates",
                 "verifiers", 
-                "training"
+                "governance/drills"
             ]
         },
         {
             title: t("groups.reporting"),
-            items: ["analytics/costs/summary", "governance/compliance/audit-bundles", "governance/ops/handover-status", "governance/ops/launch-gates"]
+            items: [
+                "governance/analytics/costs", 
+                "governance/compliance/audit-bundles", 
+                "governance/ops/handover-status", 
+                "governance/ops/launch-gates"
+            ]
         }
     ];
 

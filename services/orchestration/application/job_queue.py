@@ -17,6 +17,7 @@ from services.observability.logging import get_logger  # type: ignore
 from services.orchestration.agi.cognitive.metacognitive_auditor import metacognitive_auditor
 
 _log = get_logger("libs.queue_abstractions.job_queue")
+_ENV_HYDRATE = "JOB_QUEUE_HYDRATE_ON_STARTUP"
 
 class JobStatus(str, Enum):
     PENDING  = "pending"
@@ -183,8 +184,12 @@ class JobQueue(BaseQueueCapabilities):
     # ── Worker Döngüsü ────────────────────────────────────
     async def start(self, num_workers: int = 2):
         self._running = True
-        # Faz 12.1 Persistence: Açık işleri DB'den çek
-        await self.hydrate_from_db()
+        # Faz 3: Startup log fırtınasını önlemek için hydration'ı env ile kontrol et.
+        should_hydrate = os.getenv(_ENV_HYDRATE, "false").strip().lower() in ("1", "true", "yes", "on")
+        if should_hydrate:
+            await self.hydrate_from_db()
+        else:
+            _log.info("Startup hydration skipped (%s=false).", _ENV_HYDRATE)
         
         for i in range(num_workers):
             task = asyncio.create_task(self._worker(f"worker-{i}"))
@@ -721,7 +726,7 @@ def create_job_queue():
 
     if backend == "celery":
         if not CELERY_ENABLED:
-            get_logger("job_queue").warning(
+            _log.warning(
                 "QUEUE_BACKEND=celery requested but CELERY_ENABLED is false in runtime profile %s. Falling back to in-process queue.",
                 RUNTIME_PROFILE,
             )
@@ -746,8 +751,8 @@ def create_job_queue():
             # Şimdilik Celery'ye güven ama import error veya bariz config hatası varsa fallback yap.
             return CeleryJobQueue()
         except Exception as e:
-            from services.observability.logging import get_logger
-            get_logger("job_queue").warning(f"Redis config var ama Celery baslatilamadi: {e}. In-process'e donuluyor.")
+
+            _log.warning(f"Redis config var ama Celery baslatilamadi: {e}. In-process'e donuluyor.")
             return JobQueue(concurrency=WORKER_CONCURRENCY)
 
     return JobQueue(concurrency=WORKER_CONCURRENCY)

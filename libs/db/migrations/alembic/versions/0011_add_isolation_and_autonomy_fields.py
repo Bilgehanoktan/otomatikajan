@@ -1,7 +1,7 @@
 """add isolation and autonomy fields
 
-Revision ID: 0011_add_isolation_and_autonomy_fields
-Revises: 0010_add_operational_governance_tables
+Revision ID: 0011_isolation_autonomy
+Revises: 0010_operational_gov
 Create Date: 2026-04-16 03:35:00.000000
 """
 from typing import Sequence, Union
@@ -9,8 +9,8 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
-revision: str = '0011_add_isolation_and_autonomy_fields'
-down_revision: Union[str, None] = '0010_add_operational_governance_tables'
+revision: str = '0011_isolation_autonomy'
+down_revision: Union[str, None] = '0010_operational_gov'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

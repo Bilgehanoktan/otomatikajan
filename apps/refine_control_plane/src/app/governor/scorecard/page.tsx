@@ -15,19 +15,19 @@ const { Title, Text } = Typography;
 
 export default function GovernorScorecard() {
   const scorecardQuery = useCustom({
-    url: "governance/governor/scorecard",
+    url: "governance/inbox/governor/scorecard",
     method: "get",
   });
   const { data, isLoading } = scorecardQuery as any;
 
   const outcomesQuery = useCustom({
-    url: "governance/governor/outcomes",
+    url: "governance/inbox/governor/outcomes",
     method: "get",
     config: {
-        query: {
-            _start: 0,
-            _end: 10
-        }
+      query: {
+        _start: 0,
+        _end: 10
+      }
     }
   });
   const { data: outcomesData, isLoading: outcomesLoading } = outcomesQuery as any;
@@ -53,7 +53,7 @@ export default function GovernorScorecard() {
 
       <Row gutter={[16, 16]}>
         <Col span={6}>
-          <Card bordered={false}>
+          <Card variant="borderless">
             <Statistic
               title="Toplam Karar"
               value={stats.total_decisions}
@@ -62,7 +62,7 @@ export default function GovernorScorecard() {
           </Card>
         </Col>
         <Col span={6}>
-          <Card bordered={false}>
+          <Card variant="borderless">
             <Statistic
               title="Karar Doğruluğu"
               value={stats.accuracy}
@@ -79,7 +79,7 @@ export default function GovernorScorecard() {
           </Card>
         </Col>
         <Col span={6}>
-          <Card bordered={false}>
+          <Card variant="borderless">
             <Statistic
               title="Replay Başarı Oranı"
               value={stats.replay_success_rate}
@@ -90,7 +90,7 @@ export default function GovernorScorecard() {
           </Card>
         </Col>
         <Col span={6}>
-          <Card bordered={false}>
+          <Card variant="borderless">
             <Statistic
               title="Ortalama Çözüm Süresi"
               value={stats.avg_latency_seconds}
@@ -102,7 +102,7 @@ export default function GovernorScorecard() {
         </Col>
       </Row>
 
-      <Card title="Son Karar Çıktıları (Outcomes)" style={{ marginTop: 24 }}>
+      <Card title="Son Karar Çıktıları (Outcomes)" variant="borderless" style={{ marginTop: 24 }}>
         <Table 
             dataSource={outcomes} 
             rowKey="id" 
@@ -142,7 +142,7 @@ export default function GovernorScorecard() {
         </Table>
       </Card>
 
-      <Card title="Resilience SLO Monitoring (p95 Performance)" style={{ marginTop: 24 }}>
+      <Card title="Resilience SLO Monitoring (p95 Performance)" variant="borderless" style={{ marginTop: 24 }}>
         <Row gutter={24}>
           <Col span={12}>
             <Text type="secondary">System responsiveness targets for autonomous governance loops.</Text>
@@ -184,7 +184,7 @@ export default function GovernorScorecard() {
 
       <Row gutter={24} style={{ marginTop: 24 }}>
         <Col span={12}>
-          <Card title="Observability: Alert Burden (24h)">
+          <Card title="Observability: Alert Burden (24h)" variant="borderless">
             <Row gutter={16}>
               <Col span={8}>
                 <Statistic title="Opened" value={14} prefix={<WarningOutlined />} />
@@ -203,7 +203,7 @@ export default function GovernorScorecard() {
           </Card>
         </Col>
         <Col span={12}>
-          <Card title="Behavioral Drift: Last 7 Days">
+          <Card title="Behavioral Drift: Last 7 Days" variant="borderless">
             <List
               size="small"
               dataSource={[
@@ -227,6 +227,3 @@ export default function GovernorScorecard() {
     </div>
   );
 }
-
-
-

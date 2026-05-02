@@ -6,6 +6,7 @@ import { RadarChartOutlined, HomeOutlined, HistoryOutlined } from "@ant-design/i
 import { useGovernorObservability } from "@/hooks/useGovernorObservability";
 import { DriftTable, DriftRecord } from "@/components/governor/DriftTable";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 const { Title, Text } = Typography;
 
@@ -19,11 +20,14 @@ export default function DriftMonitor() {
 
   return (
     <div style={{ padding: "24px" }}>
-      <Breadcrumb style={{ marginBottom: "16px" }}>
-        <Breadcrumb.Item href="/"><HomeOutlined /></Breadcrumb.Item>
-        <Breadcrumb.Item href="/governor/observability">Governance</Breadcrumb.Item>
-        <Breadcrumb.Item>Drift Monitor</Breadcrumb.Item>
-      </Breadcrumb>
+      <Breadcrumb 
+        style={{ marginBottom: "16px" }}
+        items={[
+          { title: <Link href="/"><HomeOutlined /></Link> },
+          { title: <Link href="/governor/observability">Governance</Link> },
+          { title: "Drift Monitor" }
+        ]}
+      />
 
       <div style={{ marginBottom: "24px" }}>
         <Title level={2} style={{ margin: 0 }}><RadarChartOutlined /> Behavioral Drift Monitor</Title>

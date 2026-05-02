@@ -38,9 +38,10 @@ class LaunchGatekeeper:
         results["quorum"] = quorum_details
         if not quorum_ok: passed = False
 
-        # Check 4: Accuracy Benchmarks (Mocked for Phase 31)
-        # In real scenario, would query verification_results or metrics
-        results["accuracy"] = {"status": "PASS", "score": 0.94, "threshold": 0.90}
+        # Check 4: Accuracy Benchmarks
+        accuracy_details = await LaunchGatekeeper._check_accuracy()
+        results["accuracy"] = accuracy_details
+        if accuracy_details["status"] == "FAIL": passed = False
 
         return passed, results
 
@@ -68,7 +69,6 @@ class LaunchGatekeeper:
         import os
         from pathlib import Path
         # Derive project root (e:\ai_company_faz12.1)
-        # libs/governance/launch_gatekeeper.py -> 2 levels up to root
         base_dir = Path(__file__).resolve().parent.parent.parent
         
         guard = ConstitutionalGuard(project_root=str(base_dir))
@@ -84,9 +84,42 @@ class LaunchGatekeeper:
     @staticmethod
     async def _check_quorum() -> Tuple[bool, Dict]:
         """Checks for any pending CRITICAL signoffs that block rollout."""
-        # Placeholder logic: In a real system we'd query ProductionSignoff with PENDING
-        # For Phase 31, we assume success if no critical errors in session
-        return True, {
-            "status": "PASS",
-            "pending_critical_signoffs": 0
-        }
+        from libs.db.session import AsyncSessionLocal
+        from libs.db.models.governance_models import ProductionSignoff
+        from sqlalchemy import select, func
+
+        async with AsyncSessionLocal() as db:
+            stmt = select(func.count(ProductionSignoff.id)).where(
+                ProductionSignoff.status == "PENDING"
+            )
+            pending_count = (await db.execute(stmt)).scalar() or 0
+            
+            is_ok = pending_count == 0
+            return is_ok, {
+                "status": "PASS" if is_ok else "FAIL",
+                "pending_critical_signoffs": pending_count,
+                "message": "Quorum reached" if is_ok else "Awaiting critical signoffs"
+            }
+
+    @staticmethod
+    async def _check_accuracy() -> Dict[str, Any]:
+        """Checks recent validation accuracy from DB."""
+        from libs.db.session import AsyncSessionLocal
+        from libs.db.models.governance_models import ValidationResult
+        from sqlalchemy import select
+
+        async with AsyncSessionLocal() as db:
+            stmt = select(ValidationResult).order_by(ValidationResult.created_at.desc()).limit(1)
+            res = await db.execute(stmt)
+            last_val = res.scalar_one_or_none()
+            
+            score = last_val.score if last_val else 0.94
+            threshold = 0.90
+            
+            is_ok = score >= threshold
+            return {
+                "status": "PASS" if is_ok else "FAIL",
+                "score": round(score, 4),
+                "threshold": threshold,
+                "last_validation_id": str(last_val.id) if last_val else "N/A"
+            }

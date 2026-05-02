@@ -58,6 +58,7 @@ export default function FingerprintDetail() {
         <Col span={16}>
           <Card 
             className="bg-[#1a1c22] border-[#30363d] mb-6"
+            variant="borderless"
             title={
               <div className="flex items-center gap-2">
                 <BugOutlined className="text-[#66fcf1]" />

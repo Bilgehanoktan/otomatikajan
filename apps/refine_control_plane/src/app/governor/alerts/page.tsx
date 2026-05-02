@@ -6,6 +6,7 @@ import { BellOutlined, FilterOutlined, HomeOutlined } from "@ant-design/icons";
 import { useGovernorObservability } from "@/hooks/useGovernorObservability";
 import { AlertTable, AlertRecord } from "@/components/governor/AlertTable";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 const { Title, Text } = Typography;
 
@@ -23,11 +24,14 @@ export default function AlertCenter() {
 
   return (
     <div style={{ padding: "24px" }}>
-      <Breadcrumb style={{ marginBottom: "16px" }}>
-        <Breadcrumb.Item href="/"><HomeOutlined /></Breadcrumb.Item>
-        <Breadcrumb.Item href="/governor/observability">Governance</Breadcrumb.Item>
-        <Breadcrumb.Item>Alert Center</Breadcrumb.Item>
-      </Breadcrumb>
+      <Breadcrumb 
+        style={{ marginBottom: "16px" }}
+        items={[
+          { title: <Link href="/"><HomeOutlined /></Link> },
+          { title: <Link href="/governor/observability">Governance</Link> },
+          { title: "Alert Center" }
+        ]}
+      />
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "24px" }}>
         <div>
@@ -53,7 +57,7 @@ export default function AlertCenter() {
         </Space>
       </div>
 
-      <Card size="small">
+      <Card variant="borderless" size="small">
         <div style={{ marginBottom: "12px" }}>
           <Space>
             <Tag color="error">{alerts.length} Records Found</Tag>

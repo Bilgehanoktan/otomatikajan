@@ -22,6 +22,9 @@ from libs.config import (
     DEERFLOW_ENABLED,
     TELEGRAM_ENABLED,
     SCHEDULER_ENABLED,
+    LOCAL_DEV_STRICT_MODE,
+    LOCAL_DEV_STRICT_MODE_APPLIED,
+    JOB_QUEUE_HYDRATE_ON_STARTUP,
 )
 from services.observability.logging import get_logger
 
@@ -100,6 +103,10 @@ async def lifespan(app: FastAPI):
             )
 
         if APP_ENV == "development":
+            if LOCAL_DEV_STRICT_MODE_APPLIED:
+                logger.info(
+                    "[SELF-CHECK] Local-dev strict mode active. Overriding queue/db/integration knobs to resilient defaults. Set LOCAL_DEV_STRICT_MODE=false to disable."
+                )
             logger.info(
                 "[SELF-CHECK] Runtime profile=%s ui=http://127.0.0.1:3100 api_ws=http://127.0.0.1:8000 ui_mode=%s db_strategy=%s queue_backend=%s (requested=%s)",
                 RUNTIME_PROFILE,
@@ -115,6 +122,10 @@ async def lifespan(app: FastAPI):
                 DEERFLOW_ENABLED,
                 SCHEDULER_ENABLED,
                 TELEGRAM_ENABLED,
+            )
+            logger.info(
+                "[SELF-CHECK] job_queue_hydrate_on_startup=%s",
+                JOB_QUEUE_HYDRATE_ON_STARTUP,
             )
             if LOCAL_DEV_DB_STRATEGY == "sqlite-fallback":
                 logger.info(

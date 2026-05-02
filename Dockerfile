@@ -44,6 +44,7 @@ COPY --from=builder /install /usr/local
 RUN playwright install chromium && chown -R appuser:appgroup $PLAYWRIGHT_BROWSERS_PATH
 
 COPY . .
+RUN mkdir -p runtime/data && chown -R appuser:appgroup /app runtime/data
 
 # Temizlik
 RUN rm -rf /root/.cache

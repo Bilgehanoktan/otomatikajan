@@ -1,6 +1,6 @@
 """add evolution lineage tables
 
-Revision ID: 0013_add_evolution_lineage_tables
+Revision ID: 0013_evolution_tables
 Revises: 0012_add_fleet_economic_fields
 Create Date: 2026-04-17 04:00:00.000000
 
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = '0013_add_evolution_lineage_tables'
+revision: str = '0013_evolution_tables'
 down_revision: Union[str, None] = '0012_add_fleet_economic_fields'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
