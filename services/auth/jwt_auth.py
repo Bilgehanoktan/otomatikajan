@@ -326,6 +326,8 @@ class AuthService:
                 "email": getattr(obj, "email", None),
                 "name": getattr(obj, "name", getattr(obj, "username", "Unknown"))
             }
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error(f"[AUTH] Critical error in get_identity_from_token: {str(e)}", exc_info=True)
             raise

@@ -416,6 +416,23 @@ class PolicyEvolutionOut(BaseModel):
     decision_id: Optional[str] = None
     created_at: datetime
 
+class SystemUpdateOut(BaseModel):
+    id: str
+    target_file: str
+    description: str
+    rationale: str
+    status: str
+    diff_summary: Optional[str] = None
+    changed_symbols: List[str] = []
+    test_result: Dict[str, Any] = {}
+    git_commit: Optional[str] = None
+    created_at: str
+
+class EvolutionStateOut(BaseModel):
+    current_version: str
+    last_updated: str
+    updates: List[SystemUpdateOut]
+
 @router.get("/approvals", response_model=List[ApprovalOut])
 async def list_approvals(
     response: Response,
@@ -852,6 +869,34 @@ async def list_policy_evolution(
                 created_at=i.created_at
             ) for i in items
         ]
+
+@router.get("/evolution/state", response_model=EvolutionStateOut)
+async def get_evolution_state():
+    """Returns the autonomous evolution history from system_state.json."""
+    import json
+    import os
+    state_path = "runtime/data/system_state.json"
+    if not os.path.exists(state_path):
+        return {
+            "current_version": "v1.0", 
+            "last_updated": datetime.now(timezone.utc).isoformat(), 
+            "updates": []
+        }
+    
+    try:
+        with open(state_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            # Reverse updates for UI (newest first)
+            if "updates" in data:
+                data["updates"] = list(reversed(data["updates"]))
+            return data
+    except Exception as e:
+        logger.error(f"Failed to read system_state.json: {e}")
+        return {
+            "current_version": "error", 
+            "last_updated": datetime.now(timezone.utc).isoformat(), 
+            "updates": []
+        }
 
 @router.get("/drills", response_model=List[DrillRecordOut])
 async def list_drills(

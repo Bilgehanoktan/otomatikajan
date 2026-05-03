@@ -76,6 +76,7 @@ const icons: Record<string, React.ReactNode> = {
     "governance/inbox/governor/cases": <ShieldCheck size={20} />,
     "governance/inbox/governor/meta/conflicts": <Activity size={20} />,
     "governance/inbox/governor/proof": <History size={20} />,
+    evolution: <Dna size={20} />,
 };
 
 const SidebarContent = () => {
@@ -117,7 +118,8 @@ const SidebarContent = () => {
                 "learning/strategy-memory",
                 "learning/adaptation-candidates",
                 "verifiers", 
-                "governance/drills"
+                "governance/drills",
+                "evolution"
             ]
         },
         {

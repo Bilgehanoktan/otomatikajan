@@ -266,7 +266,15 @@ class ModelOrchestrator:
         if placeholders:
             logger.warning(f"[LLM] Placeholder anahtar tespit edildi (atlanacak): {', '.join(placeholders)}")
         if missing:
-            logger.debug(f"[LLM] Anahtarı eksik sağlayıcılar: {', '.join(missing)}")
+            active_keys = {p for r in ROUTING_POLICY.values() for p in r}
+            crit = [m for m in missing if m in active_keys]
+            if crit:
+                logger.debug(f"[LLM] Aktif rotalarda anahtar\u0131 eksik: {', '.join(crit)}")
+            
+            opts = [m for m in missing if m not in active_keys]
+            if opts:
+                logger.debug(f"[LLM] Opsiyonel sa\u011flay\u0131c\u0131lar (yap\u0131land\u0131r\u0131lmam\u0131\u015f): {', '.join(opts)}")
+
 
     async def get_fallback_chain(self, agent_role: str) -> List[str]:
         """Ajan rolüne göre sıralanmış (sağlık odaklı) sağlayıcı zincirini döner. (Tests/CEO compat)"""

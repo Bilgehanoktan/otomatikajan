@@ -83,8 +83,8 @@ class SelfUpdater:
         except ValueError as e:
             raise ValueError("Hedef dosya proje kökü dışında olamaz.") from e
 
-        if resolved.suffix not in (".py", ".html"):
-            raise ValueError("Self-updater şimdilik sadece .py ve .html dosyalarını değiştirebilir.")
+        if resolved.suffix not in (".py", ".html", ".tsx", ".ts", ".css"):
+            raise ValueError("Self-updater şimdilik sadece .py, .tsx, .ts, .css ve .html dosyalarını değiştirebilir.")
 
         if not relative.parts:
             raise ValueError("Geçersiz hedef dosya yolu.")
@@ -146,10 +146,17 @@ class SelfUpdater:
                 raise ValueError(
                     f"Yeni Python kodu sentaks doğrulamasını geçemedi: satır {e.lineno} -> {e.msg}"
                 ) from e
+        elif suffix in (".tsx", ".ts"):
+            # Basic non-empty and minimal structure check for TS/TSX
+            if not code or ("import" not in code and "export" not in code and "function" not in code and "const" not in code):
+                raise ValueError("Yeni TSX/TS kodu eksik veya geçersiz bir yapıya sahip.")
         elif suffix == ".html":
             # Basic non-empty and minimal structure check for HTML
             if not code or "<html" not in code.lower():
                  raise ValueError("Yeni HTML kodu eksik veya geçersiz bir yapıya sahip.")
+        elif suffix == ".css":
+            if not code:
+                raise ValueError("Yeni CSS kodu boş olamaz.")
         else:
             raise ValueError(f"Desteklenmeyen dosya türü: {suffix}")
 

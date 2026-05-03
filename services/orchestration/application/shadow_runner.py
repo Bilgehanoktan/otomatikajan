@@ -33,7 +33,12 @@ class ShadowRunner:
         ".backup",
         "docs",
         "performance",
-        "e2e"
+        "e2e",
+        "tmp",              # WinError 5 Fix
+        "temp",
+        ".pytest_cache",
+        ".idea",
+        ".vscode"
     }
 
     def __init__(self, project_root: str | None = None, timeout_seconds: int = 180):
@@ -74,6 +79,14 @@ class ShadowRunner:
         if file_path.suffix == ".py":
             ast.parse(code, filename=str(file_path))
             compile(code, str(file_path), "exec")
+        elif file_path.suffix in (".tsx", ".ts"):
+            # Node.js ortamı olmadığı durumlarda LLM regex validasyonuna güvenilir (SelfUpdater tarafında)
+            # Eğer ortamda tsc kuruluysa ve node_modules varsa burada tsc çalıştırılabilir.
+            if not code.strip():
+                raise ValueError("TSX dosyası boş olamaz.")
+        elif file_path.suffix == ".css":
+            if not code.strip():
+                raise ValueError("CSS dosyası boş olamaz.")
 
     def validate_candidate(self, relative_path: str, candidate_code: str) -> Dict[str, Any]:
         run_id = uuid.uuid4().hex[:8]

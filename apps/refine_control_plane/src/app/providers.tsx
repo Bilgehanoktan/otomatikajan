@@ -371,6 +371,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
               show: "/governor/proof/snapshots/:id",
               meta: { label: "resources.proofFabric", parent: "governance/inbox/governor/cases" },
             },
+            {
+              name: "evolution",
+              list: "/evolution",
+              meta: { label: "resources.evolution" },
+            },
           ]}
           options={{
             syncWithLocation: true,
