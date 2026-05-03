@@ -12,8 +12,6 @@ from starlette.responses import Response
 
 from libs.config import APP_ENV, QUEUE_BACKEND, REDIS_URL
 from libs.db.session import AsyncSessionLocal
-from libs.db.repositories.repository import OperationalIncidentRepository
-from workers.workflow_worker.tasks.project_tasks import auto_fix_incident_task
 
 logger = logging.getLogger("sovereign.incident_middleware")
 
@@ -33,13 +31,20 @@ class SovereignIncidentMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
 
             if response.status_code >= 500:
-                await self._capture_incident(request, f"HTTP {response.status_code}")
+                try:
+                    await self._capture_incident(request, f"HTTP {response.status_code}")
+                except Exception as cap_e:
+                    logger.error(f"Failed to capture 5xx incident: {cap_e}")
 
             return response
 
         except Exception as e:
-            # Capture total failure
-            await self._capture_incident(request, str(e), traceback.format_exc())
+            # Capture total failure - carefully to avoid recursion
+            try:
+                await self._capture_incident(request, str(e), traceback.format_exc())
+            except Exception as cap_e:
+                logger.error(f"Failed to capture exception incident: {cap_e}")
+            
             # Re-raise to let standard exception handlers handle it
             raise e from None
 
@@ -54,6 +59,8 @@ class SovereignIncidentMiddleware(BaseHTTPMiddleware):
                 project_id = None
 
             async with AsyncSessionLocal() as db:
+                from libs.db.repositories.repository import OperationalIncidentRepository
+                
                 payload = {
                     "path": request.url.path,
                     "method": request.method,
@@ -80,10 +87,14 @@ class SovereignIncidentMiddleware(BaseHTTPMiddleware):
                     )
                     return
 
-                auto_fix_incident_task.apply_async(
-                    args=[str(incident.id)],
-                    queue="critical",
-                )
+                try:
+                    from workers.workflow_worker.tasks.project_tasks import auto_fix_incident_task
+                    auto_fix_incident_task.apply_async(
+                        args=[str(incident.id)],
+                        queue="critical",
+                    )
+                except Exception as task_e:
+                    logger.error(f"Failed to dispatch auto-fix task for incident {incident.id}: {task_e}")
 
         except Exception as inner_e:
             logger.error(f"Failed to capture incident in middleware: {inner_e}")

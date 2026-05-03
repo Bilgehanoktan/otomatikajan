@@ -57,7 +57,7 @@ export async function safeFetchJson<T = any>(url: string, options: SafeFetchOpti
 
             // Phase 32: Force include cookies for Auth
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout (increased for SIF-02 reliability)
 
             const fetchInit: RequestInit = { 
                 ...init, 

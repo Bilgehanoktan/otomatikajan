@@ -119,6 +119,7 @@ class DBLogHandler(logging.Handler):
                     # 1. DB Log (Relational)
                     async with AsyncSessionLocal() as db:
                         from libs.db.repositories.repository import EventLogRepository
+                        # Add a flag to connection to identify this as a logging session if needed
                         await EventLogRepository.write(
                             db,
                             event_type=f"log.{record.levelname.lower()}",
@@ -128,17 +129,12 @@ class DBLogHandler(logging.Handler):
                             message=record.getMessage()[:2000],
                             payload={"logger": record.name, "trace_id": get_trace_id()},
                         )
-                        await db.commit()
-                    
-                    # 2. Vector Log (Faz 12.2: Log Aggregation to RAG)
-                    try:
-                        from libs.memory.watchdog import watchdog
-                        agent_id = getattr(record, "agent_id", "system")
-                        severity = "warning" if record.levelno == logging.WARNING else "critical"
-                        phase = getattr(record, "phase", "log")
-                        await watchdog.log_event(agent_id, severity, phase, record.getMessage())
-                    except Exception:
-                        pass
+                        # Use a shorter commit timeout or handle locks gracefully
+                        try:
+                            await db.commit()
+                        except Exception:
+                            await db.rollback()
+                            return # Fail silently on lock
                 except Exception:
                     pass
 
@@ -217,9 +213,10 @@ def configure_logging(level: int = logging.INFO):
     root.setLevel(logging.WARNING)
 
     # Kendi kritik modüllerimiz için logger'ları ilklendir
-    modules = ("main", "core", "api", "auth", "db", "heal", "llm", "tasks", "webhooks", "deerflow_bridge")
+    # DEV'de sadece en kritik olanlar DB'ye yazsın
+    modules = ("main", "auth", "db", "heal", "deerflow_bridge")
     for name in modules:
-        get_logger(name)
+        get_logger(name, force_db=(APP_ENV == "production"))
 
     # ── KRITIK: Tüm log hiyerarşisini tara ve duplikasyonu engelle ──
     for name in logging.root.manager.loggerDict:

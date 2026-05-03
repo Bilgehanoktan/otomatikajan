@@ -110,6 +110,47 @@ export default function IncidentsPage() {
     [apiBase, loadIncidents, notification],
   );
 
+  const handleResolveAll = React.useCallback(async () => {
+    if (incidents.length === 0) return;
+    
+    notification.info({
+      message: "Processing Hub",
+      description: `Resolving ${incidents.length} incidents. Please wait...`,
+      placement: "topRight",
+    });
+
+    try {
+      // Resolve sequentially to prevent network saturation
+      for (const inc of incidents) {
+        if (inc.status === "resolved") continue;
+        const identityName = (window as any).__SQV_IDENTITY__?.name || "mimari-operator";
+        
+        await safeFetchJson(`${apiBase}/governance/incidents/${inc.id}/resolve`, {
+          method: "POST",
+          body: JSON.stringify({ 
+            resolution_notes: "Bulk resolution from control plane",
+            operator_id: identityName
+          }),
+        });
+      }
+
+      notification.success({
+        message: "Fleet Stabilized",
+        description: "All incidents have been cleared.",
+        placement: "topRight",
+      });
+
+      await loadIncidents();
+    } catch (err) {
+      notification.error({
+        message: "Bulk Action Partial Failure",
+        description: err instanceof Error ? err.message : "Network error during bulk cleanup",
+        placement: "topRight",
+      });
+      await loadIncidents();
+    }
+  }, [apiBase, incidents, loadIncidents, notification]);
+
   if (!isClient) return <div className="min-h-screen bg-[#060a12]" />;
 
   return (
@@ -249,7 +290,11 @@ export default function IncidentsPage() {
                 </div>
               </div>
 
-              <button className="group/btn w-full rounded-2xl bg-[var(--primary)] py-5 text-[10px] font-black uppercase tracking-[0.2em] text-[#060a12] transition-all hover:shadow-[0_8px_32px_rgba(102,252,241,0.3)] active:scale-95">
+              <button 
+                onClick={() => void handleResolveAll()}
+                disabled={incidents.length === 0}
+                className="group/btn w-full rounded-2xl bg-[var(--primary)] py-5 text-[10px] font-black uppercase tracking-[0.2em] text-[#060a12] transition-all hover:shadow-[0_8px_32px_rgba(102,252,241,0.3)] active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
                 <span className="inline-flex items-center justify-center gap-3">
                   Tümünü Temizle
                   <ChevronRight size={14} className="transition-transform group-hover/btn:translate-x-2" />

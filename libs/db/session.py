@@ -176,7 +176,7 @@ def get_engine():
                     # SRE Hardening: Ensure pool params are only passed for Postgres
                     engine_kwargs = {
                         "pool_pre_ping": True,
-                        "pool_timeout": 5
+                        "pool_timeout": 30
                     }
                     if not str(DATABASE_URL).startswith("sqlite"):
                         engine_kwargs["pool_size"] = DB_POOL_SIZE

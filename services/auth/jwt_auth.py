@@ -53,13 +53,19 @@ class TokenResponse(BaseModel):
 
 # ── Helper: Token Üretimi / Doğrulama ─────────────────────────────
 def _make_token(payload: dict, expires_delta: timedelta) -> str:
-    data = {**payload, "exp": datetime.now(timezone.utc) + expires_delta,
-            "iat": datetime.now(timezone.utc)}
+    now = datetime.now(timezone.utc)
+    data = {
+        **payload, 
+        "exp": int((now + expires_delta).timestamp()),
+        "iat": int(now.timestamp()),
+        "jti": str(uuid.uuid4()) # SIF-01 Enhancement: Unique token ID
+    }
     return jwt.encode(data, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 def _decode_token(token: str) -> dict:
     try:
-        decoded = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        # SIF-01: Added leeway to prevent false-positives due to clock skew
+        decoded = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM], leeway=30)
         return decoded
     except jwt.ExpiredSignatureError:
         logger.warning(f"AUTH ERROR: Token expired for secret ending in ...{JWT_SECRET[-8:]}")
@@ -115,29 +121,34 @@ class AccessControlService:
                 if sys_id.trust_score < 40 and permission.startswith("workflow."):
                     return False, f"SIF-04: Insufficient Trust Score ({sys_id.trust_score}) for sensitive operations."
 
-        # 2. SIF-02: Check for ANY Explicit DENY first (Deny overrides everything)
-        deny_query = select(PermissionGrant).where(
-            and_(
-                PermissionGrant.operator_id == identity_id if identity_type == "operator" else PermissionGrant.system_id == identity_id,
-                PermissionGrant.permission == permission,
-                PermissionGrant.effect == "deny"
-            )
-        )
-        
-        # Scope kontrolü (Deny için genişten dara doğru bak)
-        if scope_type != "global":
-            deny_query = deny_query.where(
-                or_(
-                    PermissionGrant.scope_type == "global",
-                    and_(PermissionGrant.scope_type == scope_type, PermissionGrant.scope_value == scope_value)
+        try:
+            # 2. SIF-02: Check for ANY Explicit DENY first (Deny overrides everything)
+            deny_query = select(PermissionGrant).where(
+                and_(
+                    PermissionGrant.operator_id == identity_id if identity_type == "operator" else PermissionGrant.system_id == identity_id,
+                    PermissionGrant.permission == permission,
+                    PermissionGrant.effect == "deny"
                 )
             )
-        else:
-            deny_query = deny_query.where(PermissionGrant.scope_type == "global")
+            
+            # Scope kontrolü (Deny için genişten dara doğru bak)
+            if scope_type != "global":
+                deny_query = deny_query.where(
+                    or_(
+                        PermissionGrant.scope_type == "global",
+                        and_(PermissionGrant.scope_type == scope_type, PermissionGrant.scope_value == scope_value)
+                    )
+                )
+            else:
+                deny_query = deny_query.where(PermissionGrant.scope_type == "global")
 
-        deny_res = await db.execute(deny_query)
-        if deny_res.scalar_one_or_none():
-            return False, f"SIF-03: Access blocked by an Explicit Deny rule for '{permission}'"
+            deny_res = await db.execute(deny_query)
+            if deny_res.scalar_one_or_none():
+                logger.info(f"[SIF-03] Deny rule triggered for {identity_id} on {permission}")
+                return False, f"SIF-03: Access blocked by an Explicit Deny rule for '{permission}'"
+        except Exception as e:
+            logger.error(f"[SIF-03] Error checking deny rules: {str(e)}", exc_info=True)
+            raise
 
         # 3. Check for ALLOW
         query = select(PermissionGrant).where(
@@ -211,6 +222,7 @@ class AuthService:
         # Refresh token'ı kaydet
         rt = RefreshToken(user_id=operator.id, token=refresh, expires_at=datetime.now(timezone.utc) + timedelta(days=REFRESH_DAYS))
         db.add(rt)
+        await db.flush() # Catch IntegrityError early
         
         return TokenResponse(
             access_token=access,
@@ -253,6 +265,7 @@ class AuthService:
         new_refresh = _make_token({"sub": str(operator.id), "type": "refresh"}, timedelta(days=REFRESH_DAYS))
         new_rt = RefreshToken(user_id=operator.id, token=new_refresh, expires_at=datetime.now(timezone.utc) + timedelta(days=REFRESH_DAYS))
         db.add(new_rt)
+        await db.flush()
 
         return TokenResponse(
             access_token=access,
@@ -289,28 +302,33 @@ class AuthService:
         return raw_key
 
     async def get_identity_from_token(self, db: AsyncSession, token: str) -> Dict[str, Any]:
-        payload = _decode_token(token)
-        identity_id = uuid.UUID(payload["sub"])
-        identity_type = payload.get("identity_type", "operator")
-        
-        if identity_type == "operator":
-            res = await db.execute(select(Operator).where(Operator.id == identity_id))
-            obj = res.scalar_one_or_none()
-        else:
-            res = await db.execute(select(SystemIdentity).where(SystemIdentity.id == identity_id))
-            obj = res.scalar_one_or_none()
-
-        if not obj or not obj.is_active:
-            raise HTTPException(status_code=401, detail="Kimlik bulunamadı veya pasif")
+        try:
+            payload = _decode_token(token)
+            identity_id = uuid.UUID(payload["sub"])
+            identity_type = payload.get("identity_type", "operator")
             
-        return {
-            "id": obj.id,
-            "obj": obj,
-            "type": identity_type,
-            "role": getattr(obj, "role", "GUEST"),
-            "email": getattr(obj, "email", None),
-            "name": getattr(obj, "name", getattr(obj, "username", "Unknown"))
-        }
+            if identity_type == "operator":
+                res = await db.execute(select(Operator).where(Operator.id == identity_id))
+                obj = res.scalar_one_or_none()
+            else:
+                res = await db.execute(select(SystemIdentity).where(SystemIdentity.id == identity_id))
+                obj = res.scalar_one_or_none()
+
+            if not obj or not obj.is_active:
+                raise HTTPException(status_code=401, detail="Kimlik bulunamadı veya pasif")
+            
+            logger.debug(f"[AUTH] Identity resolved: {identity_id} (Type: {identity_type})")
+            return {
+                "id": obj.id,
+                "obj": obj,
+                "type": identity_type,
+                "role": getattr(obj, "role", "GUEST"),
+                "email": getattr(obj, "email", None),
+                "name": getattr(obj, "name", getattr(obj, "username", "Unknown"))
+            }
+        except Exception as e:
+            logger.error(f"[AUTH] Critical error in get_identity_from_token: {str(e)}", exc_info=True)
+            raise
 
 auth_service = AuthService()
 access_service = AccessControlService()
@@ -388,25 +406,31 @@ def require_permission(permission: str, scope_type: str = "global"):
     Kullanım: Depends(require_permission("workflow.execute"))
     """
     async def checker(request: Request, identity: dict = Depends(get_current_identity), db: AsyncSession = Depends(get_db)):
-        # Scope value'yu request'ten (path param) çıkarmaya çalış
-        scope_value = request.path_params.get("project_id") or request.path_params.get("id")
-        # 3. Kapsamlı Yetki Kontrolü
-        allowed, reason = await access_service.is_allowed(
-            db, 
-            identity_id=identity["id"],
-            identity_type=identity["type"],
-            permission=permission,
-            scope_type=scope_type,
-            scope_value=scope_value,
-            role=identity["role"]
-        )
-        
-        if not allowed:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"SIF-03 ACCESS DENIED: {reason}"
+        try:
+            # Scope value'yu request'ten (path param) çıkarmaya çalış
+            scope_value = request.path_params.get("project_id") or request.path_params.get("id")
+            # 3. Kapsamlı Yetki Kontrolü
+            allowed, reason = await access_service.is_allowed(
+                db, 
+                identity_id=identity["id"],
+                identity_type=identity["type"],
+                permission=permission,
+                scope_type=scope_type,
+                scope_value=scope_value,
+                role=identity["role"]
             )
-        return identity
+            
+            if not allowed:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"SIF-03 ACCESS DENIED: {reason}"
+                )
+            return identity
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"[SIF-03] UNHANDLED ERROR in permission check: {str(e)}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Permission Check Failure: {str(e)}")
     return checker
 
 # Legacy support for transitions

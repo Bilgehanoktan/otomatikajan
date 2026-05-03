@@ -84,10 +84,11 @@ class LineageService:
 
         # Phase 11: Record Proof Event
         try:
-            from libs.db.session import SessionLocal
-            with SessionLocal() as sync_db:
-                fabric = ProofFabric(sync_db)
-                fabric.record_governance_event(
+            from sqlalchemy.ext.asyncio import AsyncSession as _AsyncSession
+            if isinstance(db, _AsyncSession):
+                # USE ASYNC FABRIC - NO NEW SESSION
+                fabric = ProofFabric(db)
+                await fabric.record_governance_event_async(
                     event_type=ProofEventType.GOVERNOR_DECISION if decision_type != "META_GOVERNOR_DECISION" else ProofEventType.META_DECISION,
                     domain=None,
                     entity_id=str(lineage.id),
@@ -99,6 +100,23 @@ class LineageService:
                     },
                     actor="LineageService"
                 )
+            else:
+                # Fallback to sync only if absolutely necessary and not on SQLite or not async
+                from libs.db.session import SessionLocal
+                with SessionLocal() as sync_db:
+                    fabric = ProofFabric(sync_db)
+                    fabric.record_governance_event(
+                        event_type=ProofEventType.GOVERNOR_DECISION if decision_type != "META_GOVERNOR_DECISION" else ProofEventType.META_DECISION,
+                        domain=None,
+                        entity_id=str(lineage.id),
+                        payload={
+                            "decision_type": decision_type,
+                            "rationale": rationale,
+                            "outcome": outcome,
+                            "integrity_hash": integrity_hash
+                        },
+                        actor="LineageService"
+                    )
         except Exception as e:
             logger.error(f"Failed to record Proof Event for decision {lineage.id}: {str(e)}")
 
@@ -152,10 +170,10 @@ class LineageService:
 
         # Phase 11: Record Proof Event
         try:
-            from libs.db.session import SessionLocal
-            with SessionLocal() as sync_db:
-                fabric = ProofFabric(sync_db)
-                fabric.record_governance_event(
+            from sqlalchemy.ext.asyncio import AsyncSession as _AsyncSession
+            if isinstance(db, _AsyncSession):
+                fabric = ProofFabric(db)
+                await fabric.record_governance_event_async(
                     event_type=ProofEventType.POLICY_EVOLUTION,
                     domain=GovernorDomain.POLICY,
                     entity_id=str(evolution.id),
@@ -166,6 +184,21 @@ class LineageService:
                     },
                     actor=author_id
                 )
+            else:
+                from libs.db.session import SessionLocal
+                with SessionLocal() as sync_db:
+                    fabric = ProofFabric(sync_db)
+                    fabric.record_governance_event(
+                        event_type=ProofEventType.POLICY_EVOLUTION,
+                        domain=GovernorDomain.POLICY,
+                        entity_id=str(evolution.id),
+                        payload={
+                            "policy_key": policy_key,
+                            "new_value": new_value,
+                            "change_reason": change_reason
+                        },
+                        actor=author_id
+                    )
         except Exception as e:
             logger.error(f"Failed to record Proof Event for policy change {evolution.id}: {str(e)}")
 
