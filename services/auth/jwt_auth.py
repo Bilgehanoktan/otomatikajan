@@ -28,7 +28,8 @@ JWT_ALGORITHM = "HS256"
 if not JWT_SECRET:
     JWT_SECRET = secrets.token_hex(64)
 
-ACCESS_MINUTES = int(os.getenv("JWT_ACCESS_MINUTES", "15"))
+_DEFAULT_ACCESS_MIN = "1440" if APP_ENV in ("development", "local-dev") else "15"
+ACCESS_MINUTES = int(os.getenv("JWT_ACCESS_MINUTES", _DEFAULT_ACCESS_MIN))
 REFRESH_DAYS   = int(os.getenv("JWT_REFRESH_DAYS", "7"))
 
 _bearer = HTTPBearer(auto_error=False)
