@@ -145,6 +145,9 @@ services:
         limits:
           memory: 2048M
           cpus: "0.5"
+    volumes:
+      - .:/app
+      - runtime_data:/app/runtime/data
 
   deerflow-worker:
     profiles: ["full-stack"]
@@ -192,6 +195,9 @@ services:
         limits:
           memory: 1536M
           cpus: "1.0"
+    volumes:
+      - .:/app
+      - runtime_data:/app/runtime/data
 
   beat:
     profiles: ["full-stack"]
@@ -225,6 +231,9 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    volumes:
+      - .:/app
+      - runtime_data:/app/runtime/data
 
   deerflow-bridge:
     profiles: ["full-stack"]

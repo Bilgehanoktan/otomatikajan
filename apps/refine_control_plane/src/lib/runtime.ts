@@ -71,5 +71,9 @@ export function buildWebSocketCandidates(path = "/ws/events"): string[] {
     window.location.port === "3100" &&
     ["localhost", "127.0.0.1"].includes(window.location.hostname);
 
-  return Array.from(new Set(isLocalDevUi ? [backendWs, sameOriginWs] : [sameOriginWs, backendWs]));
+  // If we're on port 3100, sameOriginWs is ws://localhost:3100 which won't work for WebSockets.
+  // We MUST try ws://localhost:8000 (the real backend) as the primary candidate.
+  const localhost8000Ws = `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.hostname}:8000${normalizedPath}`;
+
+  return Array.from(new Set(isLocalDevUi ? [localhost8000Ws, sameOriginWs] : [sameOriginWs, backendWs]));
 }

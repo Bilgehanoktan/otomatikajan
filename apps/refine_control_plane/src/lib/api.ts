@@ -130,8 +130,7 @@ export async function safeFetchJson<T = any>(url: string, options: SafeFetchOpti
                     !skipAuthRefresh &&
                     typeof window !== "undefined" &&
                     !url.includes("/auth/login") &&
-                    !url.includes("/auth/refresh") &&
-                    !url.includes("/auth/me")
+                    !url.includes("/auth/refresh")
                 ) {
                     const refreshed = await tryRefreshSession();
                     if (refreshed) {

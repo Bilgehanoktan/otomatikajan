@@ -57,14 +57,6 @@ export default function ApprovalsPage() {
     setIsError(false);
 
     try {
-      const session = await ensureSession();
-      if (session.kind === "network-error") {
-        throw session.error;
-      }
-      if (session.kind !== "authenticated") {
-        throw new Error(t("notifications.sessionError"));
-      }
-      const authHeaders = await getAuthHeaders();
       const response = await safeFetchJson<ApprovalRequest[] | { data?: ApprovalRequest[]; __sqv_meta?: unknown }>(
         `${apiBase}/governance/approvals?_end=10&_start=0&status=pending`,
         { useOfflineFallback: true },
@@ -87,7 +79,7 @@ export default function ApprovalsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [apiBase, ensureSession]);
+  }, [apiBase]);
 
   useEffect(() => {
     if (!isClient) return;
@@ -97,15 +89,6 @@ export default function ApprovalsPage() {
   const handleDecision = useCallback(
     async (id: string, status: ApprovalStatus) => {
       try {
-        const session = await ensureSession();
-        if (session.kind === "network-error") {
-          throw session.error;
-        }
-        if (session.kind !== "authenticated") {
-          throw new Error(t("notifications.sessionError"));
-        }
-        const authHeaders = await getAuthHeaders();
-
         await safeFetchJson(`${apiBase}/governance/approvals/${id}`, {
           method: "PATCH",
           body: JSON.stringify({

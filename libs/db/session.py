@@ -253,7 +253,7 @@ async def init_db():
         db_label = "SQLite Fallback" if is_db_degraded() else "PostgreSQL"
         logger.info(f"OK: Veritabanı tabloları hazır ({db_label}).")
 
-    # ── Auto-Seeding (SIF-01 Compliance) ───
+    # ── Auto-Seeding Phase 1: Critical Identity Seeds (SIF-01 Compliance) ───
     async with AsyncSessionLocal() as db:
         try:
             # 0. Seed Agent Nodes from Registry
@@ -314,6 +314,16 @@ async def init_db():
                 )
                 db.add(gov_agent)
                 logger.info("SEED: 'governance_agent' System Identity oluşturuldu.")
+
+            await db.commit()
+            logger.info("SEED Phase 1: Kritik kimlikler kaydedildi.")
+        except Exception as e:
+            logger.error(f"SEED Phase 1 ERROR: {e}")
+            await db.rollback()
+
+    # ── Auto-Seeding Phase 2: Demo Data (SQLite Fallback Only) ───
+    async with AsyncSessionLocal() as db:
+        try:
 
             if is_db_degraded():
                 project_count = await db.scalar(select(func.count(Project.id))) or 0

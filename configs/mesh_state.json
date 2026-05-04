@@ -1,9 +1,9 @@
 {
   "regions": {
     "eu-central-1": {
-      "latency_from_us-east-1": 85.0,
-      "last_latency_check": 1776286003.650719,
-      "updated_at": "2026-04-25T23:44:16.950941",
+      "latency_from_us-east-1": 84.73919447013398,
+      "last_latency_check": 1777923033.3506746,
+      "updated_at": "2026-05-04T19:30:33.350710",
       "health_status": "NOMINAL",
       "health_score": 1.0,
       "latency_from_source": 85.0,
@@ -14,9 +14,9 @@
     },
     "ap-southeast-1": {
       "health_score": 0.85,
-      "updated_at": "2026-04-25T23:43:15.182126",
-      "latency_from_us-east-1": 193.22805856037422,
-      "last_latency_check": 1776286004.2164931,
+      "updated_at": "2026-05-04T19:30:33.377741",
+      "latency_from_us-east-1": 193.2234420130603,
+      "last_latency_check": 1777923033.377716,
       "health_status": "NOMINAL",
       "name": "Singapore",
       "latency": 115,
@@ -24,11 +24,11 @@
       "load": 0.08
     },
     "us-east-1": {
-      "latency_from_us-east-1": 1500.0,
-      "last_latency_check": 1776286004.2161596,
-      "updated_at": "2026-04-25T23:44:16.949976",
+      "latency_from_us-east-1": 5.0,
+      "last_latency_check": 1777923033.31761,
+      "updated_at": "2026-05-04T19:30:33.317630",
       "health_status": "DEGRADED",
-      "health_score": 0.1,
+      "health_score": 1.0,
       "latency_from_source": 1500.0,
       "manual_trigger": true,
       "name": "North Virginia (Master)",
@@ -38,6 +38,6 @@
       "error": null
     }
   },
-  "last_update": "2026-04-25T23:44:16.950951",
+  "last_update": "2026-05-04T19:30:33.377753",
   "version": "1.0"
 }

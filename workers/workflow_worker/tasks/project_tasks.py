@@ -453,10 +453,10 @@ def run_market_intelligence_task():
     return run_async(_execute())
 
 
-# ── Periyodik Zamanlama (Korundu) ─────────────────────────
+# ── Periyodik Zamanlama (Local/Project Context) ─────────────────────────
 from celery.schedules import crontab
 
-celery_app.conf.beat_schedule = {
+celery_app.conf.beat_schedule.update({
     "heal-check-every-minute": {
         "task":     "workers.workflow_worker.tasks.project_tasks.heal_check_task",
         "schedule": 60.0,
@@ -464,10 +464,10 @@ celery_app.conf.beat_schedule = {
     },
     "cleanup-memories-daily": {
         "task":     "workers.workflow_worker.tasks.project_tasks.cleanup_memories",
-        "schedule": crontab(hour=3, minute=0),  # Her gece 03:00
+        "schedule": crontab(hour=3, minute=0),
         "options":  {"queue": "background"},
     },
-}
+})
 
 @celery_app.task(name="workers.workflow_worker.tasks.project_tasks.send_telegram_notification_task")
 def send_telegram_notification_task(event_type: str, payload: dict):

@@ -34,6 +34,7 @@ celery_app = Celery(
     include=[
         "workers.workflow_worker.tasks.project_tasks",
         "workers.workflow_worker.tasks.deerflow_tasks",
+        "workers.workflow_worker.tasks.mesh_tasks",
     ],
 )
 
@@ -65,6 +66,12 @@ celery_app.conf.update(
 from celery.schedules import crontab
 
 celery_app.conf.beat_schedule = {
+    # Mesh Pulse (Heartbeat) - Her 10 saniyede bir
+    "mesh-pulse-10s": {
+        "task": "workers.workflow_worker.tasks.mesh_tasks.mesh_pulse_task",
+        "schedule": 10.0,
+        "options": {"queue": "critical"},
+    },
     # Her gün gece 03:00'te görsel denetim yap
     "visual-audit-daily": {
         "task": "workers.workflow_worker.tasks.project_tasks.run_visual_audit_task",
@@ -81,6 +88,8 @@ celery_app.conf.beat_schedule = {
         "schedule": crontab(day_of_week=0, hour=4, minute=0),
     },
 }
+
+
 
 
 # ── LOGLAMA ENTEGRASYONU (Faz 12 Fix) ───────────────────

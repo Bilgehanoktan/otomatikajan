@@ -154,8 +154,8 @@ export default function MeshHub() {
                  </div>
               </div>
               <QuorumHealthPanel 
-                totalNodes={meshData?.region_count?.total || 4} 
-                healthyNodes={meshData?.region_count?.healthy || 4} 
+                totalNodes={meshData?.region_count?.total ?? 3} 
+                healthyNodes={meshData?.region_count?.healthy ?? 0} 
                 isMaintained={meshData?.quorum_maintained ?? true} 
               />
            </section>
