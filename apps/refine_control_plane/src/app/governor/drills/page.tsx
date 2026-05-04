@@ -13,7 +13,7 @@ import {
 const { Title, Text } = Typography;
 
 export default function GovernorDrillsPage() {
-    const { query: { data, isLoading, refetch } } = useList({
+    const { query: { data, isLoading, refetch } } = useList<any>({
         resource: "governance/inbox/governor/resilience/drills",
     });
 

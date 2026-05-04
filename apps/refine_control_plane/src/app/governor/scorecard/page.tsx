@@ -14,13 +14,13 @@ import {
 const { Title, Text } = Typography;
 
 export default function GovernorScorecard() {
-  const scorecardQuery = useCustom({
+  const scorecardQuery = useCustom<any>({
     url: "governance/inbox/governor/scorecard",
     method: "get",
   });
-  const { data, isLoading } = scorecardQuery as any;
+  const { data, isLoading } = scorecardQuery.query;
 
-  const outcomesQuery = useCustom({
+  const outcomesQuery = useCustom<any[]>({
     url: "governance/inbox/governor/outcomes",
     method: "get",
     config: {
@@ -30,7 +30,7 @@ export default function GovernorScorecard() {
       }
     }
   });
-  const { data: outcomesData, isLoading: outcomesLoading } = outcomesQuery as any;
+  const { data: outcomesData, isLoading: outcomesLoading } = outcomesQuery.query;
 
   if (isLoading) return <Spin size="large" style={{ display: 'block', margin: '100px auto' }} />;
 

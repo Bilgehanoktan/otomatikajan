@@ -175,7 +175,7 @@ export default function WorkflowList() {
                 </div>
               ) : error ? (
                 <div className="py-20 text-center font-mono text-[10px] uppercase tracking-widest text-red-500">
-                  Workflow telemetry offline: {error}
+                  {t("notifications.networkError")}: {error}
                 </div>
               ) : workflows.length === 0 ? (
                 <div className="py-20 text-center">

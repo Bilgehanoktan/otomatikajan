@@ -676,7 +676,7 @@ async def approve_workflow(
             raise HTTPException(status_code=404, detail="Project not found")
 
         p_status = project.status.value if hasattr(project.status, "value") else str(project.status)
-        if p_status.lower() not in ("pending_approval", "waiting_approval"):
+        if p_status.lower() not in ("pending_approval", "waiting_approval", "pending", "queued"):
             raise HTTPException(status_code=409, detail=f"Project is not pending approval (status: {p_status})")
 
         # Hardening: Save to Workflow Audit Trail

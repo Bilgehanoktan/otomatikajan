@@ -117,12 +117,11 @@ async def get_evolution_history(limit: int = 15):
 
         return [
             {
-                "id": str(i.id),
-                "type": i.decision_type,
-                "component": i.component_name,
-                "rationale": i.rationale,
-                "outcome": getattr(i, "outcome", None) or "N/A",
-                "timestamp": i.created_at
+                "title": f"[{i.component_name}] {i.decision_type}",
+                "desc": i.rationale,
+                "time": i.created_at.isoformat() if i.created_at else datetime.now(timezone.utc).isoformat(),
+                "type": "promotion" if "PROMOTION" in (i.decision_type or "").upper() else "tournament" if "TOUR" in (i.decision_type or "").upper() else "diagnosis",
+                "evidence": getattr(i, "outcome", None) or "N/A"
             }
             for i in items
         ]

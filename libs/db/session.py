@@ -244,14 +244,14 @@ async def init_db():
     engine = get_engine()
     
     async with engine.begin() as conn:
-        if is_db_degraded():
-            await conn.run_sync(Base.metadata.create_all)
-            await conn.run_sync(LearningBase.metadata.create_all)
-            await conn.run_sync(GovBase.metadata.create_all)
-            await conn.run_sync(LineageBase.metadata.create_all)
-            await conn.run_sync(CompBase.metadata.create_all)
-            await conn.run_sync(AuthBase.metadata.create_all)
-            logger.info("OK: Veritabanı tabloları hazır (SQLite Fallback).")
+        await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(LearningBase.metadata.create_all)
+        await conn.run_sync(GovBase.metadata.create_all)
+        await conn.run_sync(LineageBase.metadata.create_all)
+        await conn.run_sync(CompBase.metadata.create_all)
+        await conn.run_sync(AuthBase.metadata.create_all)
+        db_label = "SQLite Fallback" if is_db_degraded() else "PostgreSQL"
+        logger.info(f"OK: Veritabanı tabloları hazır ({db_label}).")
 
     # ── Auto-Seeding (SIF-01 Compliance) ───
     async with AsyncSessionLocal() as db:

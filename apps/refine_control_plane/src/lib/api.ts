@@ -3,10 +3,12 @@
  * Prevents "Unexpected token I" errors by verifying response content-type
  * and providing detailed error diagnostics.
  */
+import { getApiBaseUrl } from "@/lib/runtime";
 
 interface SafeFetchOptions extends RequestInit {
     retries?: number;
     useOfflineFallback?: boolean;
+    skipAuthRefresh?: boolean;
 }
 
 export class ApiResponseError extends Error {
@@ -42,8 +44,38 @@ const unseal = (cipher: string): string => {
     } catch { return ""; }
 };
 
+let refreshInFlight: Promise<boolean> | null = null;
+
+async function tryRefreshSession(): Promise<boolean> {
+    if (refreshInFlight) return refreshInFlight;
+    refreshInFlight = (async () => {
+        try {
+            const refreshUrl = `${getApiBaseUrl()}/auth/refresh`;
+            const res = await fetch(refreshUrl, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: "{}",
+            });
+
+            if (!res.ok) return false;
+            const data = await res.json().catch(() => ({} as any));
+            const token = data?.access_token;
+            if (token && typeof window !== "undefined") {
+                localStorage.setItem("sqv_access_token", token);
+            }
+            return true;
+        } catch {
+            return false;
+        } finally {
+            refreshInFlight = null;
+        }
+    })();
+    return refreshInFlight;
+}
+
 export async function safeFetchJson<T = any>(url: string, options: SafeFetchOptions = {}): Promise<T> {
-    const { retries = 2, useOfflineFallback = true, ...init } = options;
+    const { retries = 2, useOfflineFallback = true, skipAuthRefresh = false, ...init } = options;
     const cache_key = `sqv_cache_${btoa(url).replace(/=/g, "").slice(0, 32)}`;
     let lastError: Error | null = null;
 
@@ -93,6 +125,20 @@ export async function safeFetchJson<T = any>(url: string, options: SafeFetchOpti
             const raw = await res.text();
 
             if (!res.ok) {
+                if (
+                    res.status === 401 &&
+                    !skipAuthRefresh &&
+                    typeof window !== "undefined" &&
+                    !url.includes("/auth/login") &&
+                    !url.includes("/auth/refresh") &&
+                    !url.includes("/auth/me")
+                ) {
+                    const refreshed = await tryRefreshSession();
+                    if (refreshed) {
+                        return safeFetchJson<T>(url, { ...options, skipAuthRefresh: true });
+                    }
+                }
+
                 let detail = raw;
                 try {
                     const jsonErr = JSON.parse(raw);

@@ -1,98 +1,38 @@
 "use client";
 
 import React from "react";
+import { ConfigProvider, theme, App } from "antd";
 import { Refine } from "@refinedev/core";
 import routerProvider from "@refinedev/nextjs-router";
-import dataProvider from "@refinedev/simple-rest";
-import { safeHttpClient } from "@/lib/api";
-import { clearStoredAccessToken, ensureSession, fetchCurrentOperator } from "@/lib/auth";
-import { getApiBaseUrl } from "@/lib/runtime";
-import { useRefineI18nProvider } from "../i18n/refine-adapter";
-
-const isServer = typeof window === "undefined";
-const API_URL = getApiBaseUrl();
-
-const mockDataProvider = {
-  getList: () => Promise.resolve({ data: [], total: 0 }),
-  getOne: () => Promise.resolve({ data: {} }),
-  create: () => Promise.resolve({ data: {} }),
-  update: () => Promise.resolve({ data: {} }),
-  deleteOne: () => Promise.resolve({ data: {} }),
-  custom: () => Promise.resolve({ data: {} }),
-  getApiUrl: () => API_URL,
-} as any;
-
-import { ConfigProvider, theme, App } from "antd";
-import type { AuthProvider } from "@refinedev/core";
-import { accessControlProvider } from "@/providers/accessControlProvider";
+import { activeDataProvider } from "@/lib/api_provider";
+import { fetchCurrentOperator, clearStoredAccessToken } from "@/lib/auth";
+import { useRefineI18nProvider } from "@/i18n/refine-adapter";
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const activeDataProvider = isServer 
-    ? mockDataProvider 
-    : dataProvider(API_URL, safeHttpClient as any);
-
   const i18nProvider = useRefineI18nProvider();
 
-  const authProvider: AuthProvider = isServer ? {} as any : {
-    login: async ({ email, password }) => {
-      const response = await fetch(`${API_URL}/auth/login/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-        credentials: "include"
-      });
-      if (response.status === 401) {
-        clearStoredAccessToken();
-        if (typeof window !== "undefined") {
-            window.localStorage.removeItem("auth");
+  const accessControlProvider = {
+    can: async ({ resource, action }: any) => {
+      const session = await fetchCurrentOperator();
+      if (session.kind === "authenticated") {
+        const roles = session.identity.roles || [session.identity.role];
+        if (roles.includes("admin") || roles.includes("operator")) {
+          return { can: true };
         }
       }
+      return { can: false, reason: "Unauthorized" };
+    },
+  };
 
-      if (response.ok) {
-        try {
-          const payload = await response.json();
-          if (payload?.access_token && typeof window !== "undefined") {
-            window.localStorage.setItem("sqv_access_token", payload.access_token);
-          }
-        } catch {
-          // Cookie session yeterliyse token parse zorunlu değil.
-        }
-        return { success: true, redirectTo: "/" };
-      }
-      return { success: false, error: new Error("Hatalı kimlik bilgileri") };
-    },
-    register: async ({ email, password, username }) => {
-      const response = await fetch(`${API_URL}/auth/register/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, username }),
-      });
-      if (response.ok) {
-        return { success: true, redirectTo: "/login" };
-      }
-      return { success: false, error: new Error("Kayıt başarısız") };
-    },
+  const authProvider = {
+    login: async () => ({ success: true }),
     logout: async () => {
       clearStoredAccessToken();
-      if (typeof window !== "undefined") {
-        window.localStorage.removeItem("auth");
-      }
-      await fetch(`${API_URL}/auth/logout/`, { method: "POST", credentials: "include" });
       return { success: true, redirectTo: "/login" };
     },
     check: async () => {
-      const session = await ensureSession();
-      if (session.kind === "authenticated") {
-        return { authenticated: true };
-      }
-      if (typeof window !== "undefined") {
-        window.localStorage.removeItem("auth");
-      }
-      return {
-        authenticated: false,
-        redirectTo: "/login",
-        ...(session.kind === "network-error" ? { error: session.error } : {}),
-      };
+      const session = await fetchCurrentOperator();
+      return { authenticated: session.kind === "authenticated" };
     },
     getPermissions: async () => {
       const session = await fetchCurrentOperator();
@@ -113,7 +53,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
       return null;
     },
     onError: async (error: any) => {
-      // SIF-01 Hardening: Handle session expiration (401/403)
       if (error?.status === 401 || error?.status === 403 || error?.statusCode === 401 || error?.statusCode === 403) {
         clearStoredAccessToken();
         return { 
@@ -147,234 +86,213 @@ export function Providers({ children }: { children: React.ReactNode }) {
             {
               name: "dashboard",
               list: "/",
-              meta: { label: "resources.dashboard" },
+              meta: { label: "resources_dashboard" },
             },
             {
               name: "workflows",
               list: "/workflows",
               create: "/workflows/create",
               show: "/workflows/:id",
-              meta: { label: "resources.workflows" },
+              meta: { label: "resources_workflows" },
             },
             {
               name: "governance/approvals",
               list: "/governance/approvals",
               show: "/approvals/:id",
-              meta: { label: "resources.approvals" },
+              meta: { label: "resources_approvals" },
             },
             {
               name: "governance/incidents",
               list: "/governance/incidents",
               show: "/incidents/:id",
-              meta: { label: "resources.incidents" },
+              meta: { label: "resources_incidents" },
             },
             {
               name: "governance/analytics/costs",
               list: "/costs",
-              meta: { label: "resources.costs" },
+              meta: { label: "resources_costs" },
             },
             {
               name: "governance/compliance/audit-bundles",
               list: "/governance/compliance/audit-bundles",
-              meta: { label: "resources.audit" },
+              meta: { label: "resources_audit" },
             },
             {
               name: "repair-lab/improvements",
               list: "/repair-lab/improvements",
-              meta: { label: "resources.improvements" },
+              meta: { label: "resources_improvements" },
             },
             {
               name: "federation",
               list: "/federation",
-              meta: { label: "resources.federation" },
+              meta: { label: "resources_federation" },
             },
             {
               name: "fleet",
               list: "/fleet",
-              meta: { label: "resources.fleet", icon: "🚀" },
+              meta: { label: "resources_fleet", icon: "🚀" },
             },
             {
               name: "fleet/agents",
               list: "/fleet/agents",
-              meta: { label: "resources.agents", parent: "fleet" },
+              meta: { label: "resources_agents", parent: "fleet" },
             },
             {
               name: "fleet/operations",
               list: "/fleet/operations",
-              meta: { label: "resources.operations", parent: "fleet" },
+              meta: { label: "resources_operations", parent: "fleet" },
             },
             {
               name: "mesh",
               list: "/mesh",
-              meta: { label: "resources.mesh" },
+              meta: { label: "resources_mesh" },
             },
             {
               name: "safety",
               list: "/safety",
-              meta: { label: "resources.safety" },
+              meta: { label: "resources_safety" },
             },
             {
               name: "repair-lab/dashboard",
               list: "/repair-lab",
-              meta: { label: "resources.repairLab" },
+              meta: { label: "resources_repairLab" },
             },
             {
               name: "repair-lab/repair-memory",
               list: "/repair-memory",
-              meta: { label: "resources.repairMemory" },
+              meta: { label: "resources_repairMemory" },
             },
             {
               name: "verifiers",
               list: "/verifiers",
-              meta: { label: "resources.verifiers" },
+              meta: { label: "resources_verifiers" },
             },
             {
               name: "governance/lineage",
               list: "/governance-lineage",
-              meta: { label: "resources.lineage" },
+              meta: { label: "resources_lineage" },
             },
             {
               name: "governance/compliance/policies",
               list: "/compliance",
-              meta: { label: "resources.compliance" },
+              meta: { label: "resources_compliance" },
             },
             {
               name: "governance/proposals",
               list: "/policy-proposals",
-              meta: { label: "resources.policyProposals" },
+              meta: { label: "resources_policyProposals" },
             },
             {
-              name: "governance/drills",
+              name: "training",
               list: "/training",
-              meta: { label: "resources.training" },
+              meta: { label: "resources_training" },
             },
             {
-              name: "repair-lab/suggestions",
-              list: "/self-tuning",
-              meta: { label: "resources.selfTuning" },
+              name: "governance/inbox/handover",
+              list: "/governance/handover",
+              meta: { label: "resources_handoverStatus" },
             },
             {
-              name: "governance/ops/handover-status",
-              list: "/governance/ops/handover-status",
-              meta: { label: "resources.handoverStatus" },
-            },
-            {
-              name: "governance/ops/launch-gates",
-              list: "/governance/ops/launch-gates",
-              meta: { label: "resources.launchGates" },
+              name: "governance/inbox/launch-gates",
+              list: "/governance/launch-gates",
+              meta: { label: "resources_launchGates" },
             },
             {
               name: "learning",
-              meta: { label: "resources.learning" },
+              list: "/learning",
+              meta: { label: "resources_learning" },
             },
             {
               name: "learning/fingerprints",
               list: "/learning/fingerprints",
-              show: "/learning/fingerprints/:id",
-              meta: { label: "resources.fingerprints", parent: "learning" },
+              meta: { label: "resources_fingerprints", parent: "learning" },
             },
             {
               name: "learning/strategy-memory",
               list: "/learning/strategy-memory",
-              meta: { label: "resources.strategyMemory", parent: "learning" },
+              meta: { label: "resources_strategyMemory", parent: "learning" },
             },
             {
               name: "learning/negative-patterns",
               list: "/learning/negative-patterns",
-              meta: { label: "resources.negativePatterns", parent: "learning" },
+              meta: { label: "resources_negativePatterns", parent: "learning" },
             },
             {
-              name: "learning/adaptation-candidates",
-              list: "/learning/adaptation-candidates",
-              meta: { label: "resources.adaptationCandidates", parent: "learning" },
+              name: "adaptation-candidates",
+              list: "/adaptation-candidates",
+              meta: { label: "resources_adaptationCandidates" },
             },
             {
-              name: "governance/axiology",
+              name: "axiology",
               list: "/axiology",
-              show: "/axiology/:id",
-              meta: { label: "resources.axiology" },
-            },
-            {
-              name: "governance",
-              meta: { label: "resources.governance" },
+              meta: { label: "resources_axiology" },
             },
             {
               name: "governance/inbox/governor/cases",
               list: "/governor",
-              show: "/governor/:id",
-              meta: { label: "resources.governorInbox", icon: "🛡️" },
+              show: "/governor/cases/:id",
+              meta: { label: "resources_governorInbox" },
             },
             {
-              name: "governance/inbox/governor/proof",
-              list: "/audit",
-              meta: { label: "resources.audit" },
+              name: "governance/inbox/escalations",
+              list: "/governance/escalations",
+              meta: { label: "resources_escalations" },
             },
             {
-              name: "governance/inbox/governor/resilience/drills",
-              list: "/governor/drills",
-              meta: { label: "resources.training" },
+               name: "governance/analytics/scorecard",
+               list: "/scorecard",
+               meta: { label: "resources_scorecard" },
             },
             {
-              name: "governance/inbox/governor/escalations",
-              list: "/governor/escalations",
-              meta: { label: "resources.escalations", parent: "governance/inbox/governor/cases" },
+              name: "governance/analytics/outcomes",
+              list: "/outcomes",
+              meta: { label: "resources_outcomes" },
             },
             {
-              name: "governance/inbox/governor/scorecard",
-              list: "/governor/scorecard",
-              meta: { label: "resources.scorecard", parent: "governance/inbox/governor/cases" },
+              name: "governance/analytics/calibrations",
+              list: "/calibrations",
+              meta: { label: "resources_calibrations" },
             },
             {
-              name: "governance/inbox/governor/outcomes",
-              list: "/governor/outcomes",
-              meta: { label: "resources.outcomes", parent: "governance/inbox/governor/cases" },
+              name: "federation/decisions",
+              list: "/federation/decisions",
+              meta: { label: "resources_federated", parent: "federation" },
             },
             {
-              name: "governance/inbox/governor/calibrations",
-              list: "/governor/calibrations",
-              meta: { label: "resources.calibrations", parent: "governance/inbox/governor/cases" },
+              name: "federation/conflicts",
+              list: "/federation/conflicts",
+              meta: { label: "resources_conflicts", parent: "federation" },
             },
             {
-              name: "governance/inbox/governor/meta/decisions",
-              list: "/governor/federated",
-              meta: { label: "resources.federated", parent: "governance/inbox/governor/cases" },
-            },
-            {
-              name: "governance/inbox/governor/meta/conflicts",
-              list: "/governor/conflicts",
-              meta: { label: "resources.conflicts", parent: "governance/inbox/governor/cases" },
-            },
-            {
-              name: "governance/inbox/governor/resilience/status",
+              name: "governance/resilience",
               list: "/governor/resilience",
-              meta: { label: "resources.resilience", parent: "governance/inbox/governor/cases" },
+              meta: { label: "resources_resilience", parent: "governance/inbox/governor/cases" },
             },
             {
-              name: "governance/inbox/governor/resilience/drills",
-              list: "/governor/drills",
-              meta: { label: "resources.drills", parent: "governance/inbox/governor/cases" },
+              name: "governance/drills",
+              list: "/drills",
+              meta: { label: "resources_drills", parent: "governance/inbox/governor/cases" },
             },
             {
-              name: "governance/inbox/governor/status",
-              list: "/governor/observability",
-              meta: { label: "resources.observability", parent: "governance/inbox/governor/cases" },
+              name: "governance/observability",
+              list: "/observability",
+              meta: { label: "resources_observability", parent: "governance/inbox/governor/cases" },
             },
             {
-              name: "governance/inbox/governor/meta/conflicts",
-              list: "/governor/drifts",
-              show: "/governor/drifts/:id",
-              meta: { label: "resources.drifts", parent: "governance/inbox/governor/cases" },
+              name: "governance/analytics/drifts",
+              list: "/drifts",
+              meta: { label: "resources_drifts", parent: "governance/inbox/governor/cases" },
             },
             {
-              name: "governance/inbox/governor/proof",
+              name: "governance/proof",
               list: "/governor/proof",
               show: "/governor/proof/snapshots/:id",
-              meta: { label: "resources.proofFabric", parent: "governance/inbox/governor/cases" },
+              meta: { label: "resources_proofFabric", parent: "governance/inbox/governor/cases" },
             },
             {
               name: "evolution",
               list: "/evolution",
-              meta: { label: "resources.evolution" },
+              meta: { label: "resources_evolution" },
             },
           ]}
           options={{

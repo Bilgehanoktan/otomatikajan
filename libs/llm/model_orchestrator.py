@@ -14,6 +14,30 @@ from libs.observability.tracer import traced, span
 
 logger = get_logger("libs.llm.model_orchestrator")
 _LAST_PROVIDER_STATUS_FINGERPRINT: tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...]] | None = None
+_ERROR_LOG_WINDOW_SECONDS = 60.0
+_ERROR_LOG_STATE: dict[tuple[str, str], tuple[float, int]] = {}
+
+def _log_with_throttle(kind: str, provider: str, message: str) -> None:
+    now = time.time()
+    key = (kind, provider)
+    started_at, suppressed = _ERROR_LOG_STATE.get(key, (now, 0))
+
+    if now - started_at >= _ERROR_LOG_WINDOW_SECONDS:
+        if suppressed > 0:
+            logger.warning(
+                "[THROTTLE] %s/%s suppressed %s repeated events in last %ss.",
+                kind,
+                provider,
+                suppressed,
+                int(_ERROR_LOG_WINDOW_SECONDS),
+            )
+        _ERROR_LOG_STATE[key] = (now, 0)
+        logger.warning(message)
+        return
+
+    if suppressed == 0:
+        logger.warning(message)
+    _ERROR_LOG_STATE[key] = (started_at, suppressed + 1)
 
 # ── 1. Canonical Çıktı Sözleşmesi ────────────────────────
 class LLMResponse(BaseModel):
@@ -127,7 +151,10 @@ class ProviderStats:
             quarantine_limit = 32 if is_rate_limit else 16
             if self.penalty_multiplier >= quarantine_limit:
                 self.quarantine_until = time.time() + 3600
-                logger.critical(f"OTONOM KARANTİNA (BAN): {self.name} kronik {'hata' if not is_rate_limit else 'rate limit'} nedeniyle 1 saat yasaklandı.")
+                if is_rate_limit:
+                    logger.warning(f"OTONOM KARANTİNA: {self.name} kronik rate limit nedeniyle 1 saat askıya alındı.")
+                else:
+                    logger.critical(f"OTONOM KARANTİNA (BAN): {self.name} kronik hata nedeniyle 1 saat yasaklandı.")
 
     def is_available(self) -> bool:
         if self.quarantine_until > time.time():
@@ -378,7 +405,11 @@ class ModelOrchestrator:
                 
                 # ── 402 Payment Required Handling (Faz 12.1 Hardening) ──
                 if "402" in err_str or "payment" in err_str:
-                    logger.critical(f"FATAL PROVIDER ERROR: {provider.name} requires payment (402). Quarantining for 24h.")
+                    _log_with_throttle(
+                        "provider_402",
+                        provider.name,
+                        f"PROVIDER BILLING (402): {provider.name} requires payment. Quarantining for 24h.",
+                    )
                     provider.quarantine_until = time.time() + 86400
                     provider.circuit = CircuitState.OPEN
                     skipped_details.append(f"{provider.name} (402 Payment Required)")
@@ -388,7 +419,11 @@ class ModelOrchestrator:
                 is_rate_limit = "429" in err_str or "rate_limit" in err_str
 
                 if is_rate_limit:
-                    logger.error(f"RATE LIMIT (429) hit on {provider.name}. Applying progressive penalty.")
+                    _log_with_throttle(
+                        "provider_429",
+                        provider.name,
+                        f"RATE LIMIT (429) hit on {provider.name}. Applying progressive penalty.",
+                    )
                     provider.record_failure(is_rate_limit=True)
                     skipped_details.append(f"{provider.name} (429 Rate Limit)")
                 else:

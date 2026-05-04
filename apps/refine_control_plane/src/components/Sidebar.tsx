@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useMenu, useLogout, useGetIdentity } from "@refinedev/core";
+import { useMenu, useLogout, useGetIdentity, useTranslate } from "@refinedev/core";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { 
@@ -83,6 +83,7 @@ const SidebarContent = () => {
     const { menuItems, selectedKey } = useMenu();
     const { mutate: logout } = useLogout();
     const { data: identity } = useGetIdentity<{ name: string }>();
+    const translate = useTranslate();
     const [isCollapsed, setIsCollapsed] = React.useState(false);
     const t = useTranslations("sidebar");
 
@@ -137,7 +138,7 @@ const SidebarContent = () => {
         <Link
             key={item.key}
             href={item.route ?? "/"}
-            title={isCollapsed ? item.label : ""}
+            title={isCollapsed ? translate(item.label, item.label) : ""}
             className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-400 group relative ${
                 selectedKey === item.key
                     ? "bg-[var(--primary)]/8 text-[var(--primary)] border border-[var(--primary)]/15 shadow-[0_0_20px_rgba(102,252,241,0.06)]"
@@ -154,14 +155,14 @@ const SidebarContent = () => {
             </span>
             {!isCollapsed && (
                 <span className={`font-bold text-[11px] uppercase tracking-wider transition-all truncate ${selectedKey === item.key ? "tracking-[0.1em]" : "tracking-tight"}`}>
-                    {item.label}
+                    {translate(item.label, item.label)}
                 </span>
             )}
             
             {/* Tooltip for Collapsed State */}
             {isCollapsed && (
                 <div className="absolute left-16 bg-black border border-white/10 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 translate-x-1 group-hover:translate-x-0 transition-all pointer-events-none z-[100] whitespace-nowrap shadow-xl text-[var(--primary)]">
-                    {item.label}
+                    {translate(item.label, item.label)}
                 </div>
             )}
         </Link>

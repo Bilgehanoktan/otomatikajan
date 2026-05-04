@@ -26,11 +26,11 @@ export default function CompliancePage() {
   
   useEffect(() => setIsClient(true), []);
 
-  const { query: { data: policyData, isLoading: isPolicyLoading } } = useList({
+  const { query: { data: policyData, isLoading: isPolicyLoading } } = useList<any>({
     resource: "compliance/policies",
   });
 
-  const { query: { data: bundleData, isLoading: isBundleLoading } } = useList({
+  const { query: { data: bundleData, isLoading: isBundleLoading } } = useList<any>({
     resource: "governance/compliance/audit-bundles",
   });
 
@@ -282,5 +282,3 @@ export default function CompliancePage() {
     </div>
   );
 }
-
-

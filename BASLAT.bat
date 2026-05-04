@@ -36,6 +36,8 @@ for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":3100.*LISTENING"') do taskk
 echo [*] Lokal mod baslatiliyor...
 start "Backend API" cmd /k "set RUNTIME_PROFILE=local-dev&& %PY_CMD% -m uvicorn apps.public_api.main:app --host 0.0.0.0 --port 8000"
 timeout /t 5 >nul
+start "Celery Worker" cmd /k "set RUNTIME_PROFILE=local-dev&& %PY_CMD% -m celery -A workers.workflow_worker.tasks.celery_app worker --loglevel=info --queues=critical,default,background --concurrency=2"
+timeout /t 2 >nul
 start "Frontend UI" /d "apps\refine_control_plane" cmd /k "npm run dev -- -p 3100"
 timeout /t 3 >nul
 start "" "http://localhost:3100"

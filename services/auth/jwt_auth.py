@@ -68,10 +68,10 @@ def _decode_token(token: str) -> dict:
         decoded = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM], leeway=30)
         return decoded
     except jwt.ExpiredSignatureError:
-        logger.warning(f"AUTH ERROR: Token expired for secret ending in ...{JWT_SECRET[-8:]}")
+        logger.info("AUTH INFO: Access token expired.")
         raise HTTPException(status_code=401, detail="Token süresi doldu")
     except jwt.InvalidTokenError as e:
-        logger.warning(f"AUTH ERROR: Invalid token: {e}. Secret ends in ...{JWT_SECRET[-8:]}")
+        logger.info(f"AUTH INFO: Invalid token ({type(e).__name__}).")
         raise HTTPException(status_code=401, detail="Geçersiz token")
 
 # ── Cookie Yardımcıları ───────────────────────────────────
@@ -397,7 +397,10 @@ async def get_current_identity(request: Request, db: AsyncSession = Depends(get_
         identity = await auth_service.get_identity_from_token(db, token)
         return identity
     except HTTPException as e:
-        logger.warning(f"AUTH ERROR: {e.detail} for token starting with {token[:10]}...")
+        if request.url.path.endswith("/auth/me") or request.url.path.endswith("/auth/me/"):
+            logger.debug("AUTH INFO: /auth/me unauthorized (%s).", e.detail)
+        else:
+            logger.info("AUTH INFO: Unauthorized request on %s (%s).", request.url.path, e.detail)
         raise e
     except Exception as e:
         logger.error(f"AUTH CRITICAL: Unexpected error in auth check: {e}")

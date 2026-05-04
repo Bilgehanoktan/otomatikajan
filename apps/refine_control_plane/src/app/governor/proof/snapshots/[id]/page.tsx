@@ -36,11 +36,11 @@ export default function SnapshotDetailPage() {
   const router = useRouter();
   const { mutate: exportBundle } = useCustomMutation();
   
-  const snapshotQuery = useCustom({
+  const snapshotQuery = useCustom<any>({
     url: `governance/proof/snapshots/${id}`,
     method: "get"
   });
-  const { data, isLoading } = snapshotQuery as any;
+  const { data, isLoading } = snapshotQuery.query;
 
   const snapshot = data?.data as any;
 

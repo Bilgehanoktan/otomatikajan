@@ -45,13 +45,15 @@ export default function EvolutionPage() {
     setIsClient(true);
   }, []);
 
-  const { data, isLoading } = useCustom<EvolutionState>({
+  const { query } = useCustom<EvolutionState>({
     url: `${apiUrl}/evolution/state`,
     method: "get",
     queryOptions: {
       enabled: isClient,
     },
   });
+
+  const { data, isLoading } = query;
 
   const state = data?.data;
   const updates = state?.updates ?? [];

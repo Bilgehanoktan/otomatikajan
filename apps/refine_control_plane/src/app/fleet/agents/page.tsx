@@ -23,7 +23,8 @@ export default function AgentRegistryPage() {
     method: "get",
   });
 
-  const { data, isLoading, refetch } = agentsQuery as any;
+  const { query } = agentsQuery;
+  const { data, isLoading, refetch } = query;
   const agents: Agent[] = data?.data || [];
 
   const getStatusColor = (status: string) => {

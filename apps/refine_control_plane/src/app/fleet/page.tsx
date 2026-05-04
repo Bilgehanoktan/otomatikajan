@@ -64,25 +64,28 @@ export default function FleetDashboard() {
   const metricsQuery = useCustom<FleetMetrics>({
     url: `${apiUrl}/fleet/ops/metrics`,
     method: "get",
-  }) as any;
+  });
+  const { data: metricsData, isLoading: metricsLoading } = metricsQuery.query;
   const clustersQuery = useCustom<FleetCluster[]>({
     url: `${apiUrl}/fleet/ops/clusters`,
     method: "get",
-  }) as any;
+  });
+  const { data: clustersData, isLoading: clustersLoading } = clustersQuery.query;
   const eventsQuery = useCustom<FleetEvent[]>({
     url: `${apiUrl}/fleet/ops/events`,
     method: "get",
-  }) as any;
+  });
+  const { data: eventsData, isLoading: eventsLoading } = eventsQuery.query;
 
-  const metrics: FleetMetrics = metricsQuery.data?.data || {
+  const metrics: FleetMetrics = metricsData?.data || {
     active_agents: 0,
     queued_projects: 0,
     busy_ratio: 0,
     budget_burn: 0,
     quarantined_agents: 0,
   };
-  const clusters: FleetCluster[] = clustersQuery.data?.data || [];
-  const events: FleetEvent[] = eventsQuery.data?.data || [];
+  const clusters: FleetCluster[] = clustersData?.data || [];
+  const events: FleetEvent[] = eventsData?.data || [];
 
   const formatTime = (isoString: string) => {
     const date = new Date(isoString);
@@ -96,7 +99,7 @@ export default function FleetDashboard() {
         Otonom ajan dağıtımı ve proje orkestrasyonu için canlı kontrol düzlemi.
       </Text>
 
-      <Spin spinning={metricsQuery.isLoading}>
+      <Spin spinning={metricsLoading}>
         <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
           <Col span={4}>
             <Card variant="borderless" className="premium-card">
@@ -158,7 +161,7 @@ export default function FleetDashboard() {
           <Card
             title="Küme Durumu"
             extra={<Button icon={<ClusterOutlined />}>Kümeleri Yönet</Button>}
-            loading={clustersQuery.isLoading}
+            loading={clustersLoading}
           >
             <Table
               dataSource={clusters}
@@ -204,7 +207,7 @@ export default function FleetDashboard() {
             extra={<Tag color="blue">CANLI</Tag>}
           >
             <div style={{ maxHeight: 450, overflowY: "auto", paddingRight: 8 }}>
-              <Spin spinning={eventsQuery.isLoading}>
+              <Spin spinning={eventsLoading}>
                 <Space direction="vertical" style={{ width: "100%" }} size="middle">
                   {events.map((event) => {
                     let tagColor = "default";

@@ -5,10 +5,12 @@ import { useTable } from "@refinedev/antd";
 import { Table, Tag, Button, Space, Card, Typography, Tooltip, message, Popconfirm, Row, Col, Statistic } from "antd";
 import { SearchOutlined, SafetyOutlined, ClockCircleOutlined, ExclamationCircleOutlined, CheckCircleOutlined, InboxOutlined, SyncOutlined, SafetyCertificateOutlined } from "@ant-design/icons";
 import { useNavigation, useCustomMutation } from "@refinedev/core";
+import { useTranslations } from "next-intl";
 
 const { Title, Text } = Typography;
 
 export default function GovernorInbox() {
+  const t = useTranslations("dashboard");
   const { tableProps, tableQueryResult } = useTable({
     resource: "governance/inbox/governor/cases",
     syncWithLocation: true,
@@ -91,14 +93,14 @@ export default function GovernorInbox() {
             disabled={selectedRowKeys.length === 0}
             onClick={() => handleBulkAction("approve")}
           >
-            Seçilenleri Onayla
+            {t("governance.approveSelected", { defaultMessage: "Seçilenleri Onayla" })}
           </Button>
           <Button 
             icon={<SyncOutlined />} 
             disabled={selectedRowKeys.length === 0}
             onClick={() => handleBulkAction("replay")}
           >
-            Seçilenleri Yeniden Dene
+            {t("governance.replaySelected", { defaultMessage: "Seçilenleri Yeniden Dene" })}
           </Button>
           <Button 
             danger 
@@ -106,13 +108,13 @@ export default function GovernorInbox() {
             disabled={selectedRowKeys.length === 0}
             onClick={() => handleBulkAction("archive")}
           >
-            Seçilenleri Arşivle
+            {t("governance.archiveSelected", { defaultMessage: "Seçilenleri Arşivle" })}
           </Button>
           <Button 
             icon={<SyncOutlined />} 
             onClick={() => tableQueryResult.refetch()}
           >
-            Yenile
+            {t("governance.refresh", { defaultMessage: "Yenile" })}
           </Button>
         </Space>
       </div>
@@ -121,7 +123,7 @@ export default function GovernorInbox() {
         <Col span={6}>
           <Card size="small" style={{ borderRadius: "8px", borderLeft: "4px solid #ff4d4f" }} hoverable>
             <Statistic 
-              title={<Text type="secondary" style={{ fontSize: "12px" }}>OPEN ALERTS</Text>}
+              title={<Text type="secondary" style={{ fontSize: "12px" }}>{t("governance.openAlerts", { defaultMessage: "OPEN ALERTS" })}</Text>}
               value={3} 
               valueStyle={{ color: '#cf1322', fontWeight: 'bold' }}
               prefix={<ExclamationCircleOutlined />} 
@@ -131,7 +133,7 @@ export default function GovernorInbox() {
         <Col span={6}>
           <Card size="small" style={{ borderRadius: "8px", borderLeft: "4px solid #faad14" }} hoverable>
             <Statistic 
-              title={<Text type="secondary" style={{ fontSize: "12px" }}>ACTIVE DRIFTS</Text>}
+              title={<Text type="secondary" style={{ fontSize: "12px" }}>{t("governance.activeDrifts", { defaultMessage: "ACTIVE DRIFTS" })}</Text>}
               value={1} 
               valueStyle={{ color: '#d48806', fontWeight: 'bold' }}
               prefix={<SyncOutlined spin />} 
@@ -141,8 +143,8 @@ export default function GovernorInbox() {
         <Col span={6}>
           <Card size="small" style={{ borderRadius: "8px", borderLeft: "4px solid #1890ff" }} hoverable>
             <Statistic 
-              title={<Text type="secondary" style={{ fontSize: "12px" }}>LAST BREACH</Text>}
-              value="None" 
+              title={<Text type="secondary" style={{ fontSize: "12px" }}>{t("governance.lastBreach", { defaultMessage: "LAST BREACH" })}</Text>}
+              value={t("governance.none", { defaultMessage: "None" })} 
               valueStyle={{ color: '#3f8600', fontSize: '16px', fontWeight: 'bold' }}
               prefix={<CheckCircleOutlined />} 
             />
@@ -151,7 +153,7 @@ export default function GovernorInbox() {
         <Col span={6}>
           <Card size="small" style={{ borderRadius: "8px", borderLeft: "4px solid #52c41a" }} hoverable>
             <Statistic 
-              title={<Text type="secondary" style={{ fontSize: "12px" }}>ACCURACY (1h)</Text>}
+              title={<Text type="secondary" style={{ fontSize: "12px" }}>{t("governance.accuracy", { defaultMessage: "ACCURACY (1h)" })}</Text>}
               value={96.4} 
               precision={1}
               suffix="%"
@@ -171,7 +173,7 @@ export default function GovernorInbox() {
         >
           <Table.Column 
             dataIndex="project_title" 
-            title="Proje / İşlem" 
+            title={t("governance.projectAction", { defaultMessage: "Proje / İşlem" })} 
             render={(value, record: any) => (
               <Space direction="vertical" size={0}>
                 <Text strong>{value}</Text>
@@ -181,7 +183,7 @@ export default function GovernorInbox() {
           />
           <Table.Column 
             dataIndex="risk_class" 
-            title="Risk / Skor" 
+            title={t("governance.riskScore", { defaultMessage: "Risk / Skor" })} 
             render={(value, record: any) => (
               <Space direction="vertical" size={0}>
                 <Tag color={getRiskColor(value)}>{value}</Tag>
@@ -191,12 +193,12 @@ export default function GovernorInbox() {
           />
           <Table.Column 
             dataIndex="pending_reason" 
-            title="Bekleme Nedeni" 
+            title={t("governance.waitReason", { defaultMessage: "Bekleme Nedeni" })} 
             render={(value) => <Tag color="default">{value}</Tag>}
           />
           <Table.Column 
             dataIndex="recommended_decision" 
-            title="Karar Özeti" 
+            title={t("governance.decisionSummary", { defaultMessage: "Karar Özeti" })} 
             render={(value, record: any) => (
               <Space direction="vertical" size={2}>
                 <Space>
@@ -221,7 +223,7 @@ export default function GovernorInbox() {
             )}
           />
           <Table.Column 
-            title="Bağlam" 
+            title={t("governance.context", { defaultMessage: "Bağlam" })} 
             render={(_, record: any) => (
               <Space>
                 {record.has_open_incident && (
@@ -243,7 +245,7 @@ export default function GovernorInbox() {
             )}
           />
           <Table.Column
-            title="Aksiyonlar"
+            title={t("governance.actions", { defaultMessage: "Aksiyonlar" })}
             dataIndex="actions"
             render={(_, record: any) => (
               <Button 
@@ -251,7 +253,7 @@ export default function GovernorInbox() {
                 icon={<SearchOutlined />}
                   onClick={() => show("governance/inbox/governor/cases", record.id)}
               >
-                İncele
+                {t("governance.review", { defaultMessage: "İncele" })}
               </Button>
             )}
           />

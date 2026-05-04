@@ -1,47 +1,73 @@
 "use client";
 
-import { useTranslations, useLocale } from "next-intl";
+import { useMessages, useLocale } from "next-intl";
 import { setUserLocale } from "./client";
 import type { I18nProvider } from "@refinedev/core";
 
 export function useRefineI18nProvider(): I18nProvider {
-  const t = useTranslations();
+  const messages = useMessages() as Record<string, any>;
   const locale = useLocale();
-
-  const isLikelyUnsafeI18nKey = (key: string): boolean => {
-    if (!key) return true;
-    // Refine can emit resource-name-based labels that are not message keys.
-    if (key.includes("/")) return true;
-    // Guard against malformed duplicated keys like "a.b.a.b".
-    const parts = key.split(".");
-    if (parts.length >= 4) {
-      const left = parts.slice(0, parts.length / 2).join(".");
-      const right = parts.slice(parts.length / 2).join(".");
-      if (left === right) return true;
-    }
-    return false;
-  };
 
   const fallbackLabel = (key: string): string => {
     const tail = key.split("/").pop() || key;
-    return tail.replace(/[-_]/g, " ");
+    return tail.replace(/[-_]/g, " ").replace(/\./g, " ");
+  };
+
+  const getNestedValue = (obj: any, path: string) => {
+    if (!path || !obj) return undefined;
+    
+    // Direct match (highest priority)
+    if (obj[path] && typeof obj[path] === 'string') return obj[path];
+
+    const parts = path.split('.');
+    let current = obj;
+    for (const part of parts) {
+      if (current === null || current === undefined || typeof current !== 'object') {
+          current = undefined;
+          break;
+      }
+      current = current[part];
+    }
+    
+    if (typeof current === 'string') return current;
+    return undefined;
   };
 
   return {
     translate: (key: string, params?: Record<string, any>, defaultMessage?: string) => {
-      if (isLikelyUnsafeI18nKey(key)) {
-        return defaultMessage || fallbackLabel(key);
+      if (!key) return defaultMessage || "";
+      
+      // Try exact
+      let value = getNestedValue(messages, key);
+      
+      // Try lowercase
+      if (!value && key !== key.toLowerCase()) {
+        value = getNestedValue(messages, key.toLowerCase());
       }
-      try {
-        return t(key, params);
-      } catch (error) {
-        return defaultMessage || fallbackLabel(key);
+
+      // Try underscore/dot swaps
+      if (!value && key.includes('_')) {
+          value = getNestedValue(messages, key.replace(/_/g, '.'));
       }
+      if (!value && key.includes('.')) {
+          value = getNestedValue(messages, key.replace(/\./g, '_'));
+      }
+
+      if (value) {
+        let result = value;
+        if (params) {
+          Object.entries(params).forEach(([k, v]) => {
+            result = result.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
+            result = result.replace(new RegExp(`%\\{${k}\\}`, 'g'), String(v));
+          });
+        }
+        return result;
+      }
+
+      return defaultMessage || fallbackLabel(key);
     },
     changeLocale: async (lang: string, options?: any) => {
-      // Update the cookie using the server action
       await setUserLocale(lang);
-      // Optional: if options handles routing or similar, we don't need it because Next.js handles refreshing state
     },
     getLocale: () => locale,
   };

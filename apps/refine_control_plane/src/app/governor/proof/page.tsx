@@ -32,17 +32,17 @@ import Link from "next/link";
 const { Title, Text } = Typography;
 
 export default function ProofFabricDashboard() {
-  const eventsQuery = useCustom({
+  const eventsQuery = useCustom<any[]>({
     url: "governance/inbox/governor/proof/events",
     method: "get",
   });
-  const { data: eventsData, isLoading: eventsLoading } = eventsQuery as any;
+  const { data: eventsData, isLoading: eventsLoading } = eventsQuery.query;
 
-  const snapshotsQuery = useCustom({
+  const snapshotsQuery = useCustom<any[]>({
     url: "governance/inbox/governor/proof/snapshots",
     method: "get",
   });
-  const { data: snapshotsData, isLoading: snapshotsLoading } = snapshotsQuery as any;
+  const { data: snapshotsData, isLoading: snapshotsLoading } = snapshotsQuery.query;
 
   const events = eventsData?.data || [];
   const snapshots = snapshotsData?.data || [];

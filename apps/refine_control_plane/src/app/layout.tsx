@@ -29,9 +29,11 @@ export default async function RootLayout({
           <NextIntlClientProvider messages={messages}>
             <AntdRegistry>
               <Providers>
-                <LayoutWrapper>
-                  {children}
-                </LayoutWrapper>
+                <Suspense fallback={<div className="min-h-screen bg-[#0b0c10]" />}>
+                  <LayoutWrapper>
+                    {children}
+                  </LayoutWrapper>
+                </Suspense>
               </Providers>
             </AntdRegistry>
           </NextIntlClientProvider>

@@ -178,7 +178,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
     React.useEffect(() => {
         let interval: ReturnType<typeof setInterval> | undefined;
         const normalizedStatus = String(workflow?.status || "").toLowerCase();
-        if (autoRefresh && workflow && ["running", "waiting_approval", "pending_approval"].includes(normalizedStatus)) {
+        if (autoRefresh && workflow && ["running", "waiting_approval", "pending_approval", "pending"].includes(normalizedStatus)) {
             interval = setInterval(() => {
                 void loadWorkflow();
             }, 5000);
@@ -295,6 +295,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                 );
             case "waiting_approval":
             case "pending_approval":
+            case "pending":
                 return (
                     <Tag icon={<ClockCircleOutlined />} color="warning">
                         {label.toUpperCase()}
@@ -520,7 +521,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                                             >
                                                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
                                                     <Text type="secondary" style={{ fontSize: "11px", color: "#666" }}>
-                                                        Action: <span style={{ color: "#aaa" }}>{cleanText(step.action)}</span>
+                                                        {t("type")}: <span style={{ color: "#aaa" }}>{cleanText(step.action)}</span>
                                                     </Text>
                                                     {step.completed_at ? (
                                                         <Text type="secondary" style={{ fontSize: "10px" }}>
@@ -665,7 +666,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-                    {["waiting_approval", "pending_approval"].includes(String(workflow.status || "").toLowerCase()) ? (
+                    {["waiting_approval", "pending_approval", "pending", "queued"].includes(String(workflow.status || "").toLowerCase()) ? (
                         <Card
                             variant="borderless"
                             style={{ background: "rgba(102, 252, 241, 0.05)", border: "1px dashed #66fcf1", borderRadius: "16px" }}
@@ -691,7 +692,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                                     onClick={() => void handleApprove()}
                                     loading={isSubmitting}
                                 >
-                                    {t("approveAndContinue")}
+                                    {String(workflow.status || "").toLowerCase() === "queued" ? "Zorla / Yeniden Kuyruğa Al" : t("approveAndContinue")}
                                 </Button>
                             </Space>
                         </Card>
@@ -749,9 +750,11 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                                         )}
                                     />
                                 ) : (
-                                    <Text style={{ color: "#555", fontSize: "11px", marginTop: "12px", fontStyle: "italic" }}>
-                                        No pending approvals.
-                                    </Text>
+                                    <div style={{ marginTop: "8px" }}>
+                                        <Text style={{ color: "#555", fontSize: "11px", fontStyle: "italic" }}>
+                                            {t("noPendingApprovals")}
+                                        </Text>
+                                    </div>
                                 )}
                             </div>
 
@@ -795,9 +798,11 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                                         )}
                                     />
                                 ) : (
-                                    <Text style={{ color: "#555", fontSize: "11px", marginTop: "12px", fontStyle: "italic" }}>
-                                        {t("noIncidents")}
-                                    </Text>
+                                    <div style={{ marginTop: "8px" }}>
+                                        <Text style={{ color: "#555", fontSize: "11px", fontStyle: "italic" }}>
+                                            {t("noIncidents")}
+                                        </Text>
+                                    </div>
                                 )}
                             </div>
                         </Space>

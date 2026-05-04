@@ -891,7 +891,8 @@ async def get_evolution_state():
                 data["updates"] = list(reversed(data["updates"]))
             return data
     except Exception as e:
-        logger.error(f"Failed to read system_state.json: {e}")
+        import traceback
+        logger.error(f"Failed to read system_state.json: {e}\n{traceback.format_exc()}")
         return {
             "current_version": "error", 
             "last_updated": datetime.now(timezone.utc).isoformat(), 

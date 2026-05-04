@@ -15,7 +15,7 @@ import {
 const { Title, Text } = Typography;
 
 export default function GovernorResiliencePage() {
-    const { query: { data, isLoading } } = useList({
+    const { query: { data, isLoading } } = useList<any>({
         resource: "governance/inbox/governor/resilience/status",
     });
 
@@ -136,5 +136,3 @@ export default function GovernorResiliencePage() {
         </Space>
     );
 }
-
-

@@ -21,18 +21,18 @@ export default function RepairMemoryPage() {
   const apiUrl = useApiUrl();
 
   // Fetch Heatmaps
-  const heatmapQuery = useCustom({
+  const heatmapQuery = useCustom<any[]>({
     url: `${apiUrl}/memory/heatmaps`,
     method: "get",
-  }) as any;
-  const { data: heatmapData, isLoading: heatmapLoading } = heatmapQuery.query || heatmapQuery;
+  });
+  const { data: heatmapData, isLoading: heatmapLoading } = heatmapQuery.query;
 
   // Fetch Learning Insights
-  const insightQuery = useCustom({
+  const insightQuery = useCustom<any>({
     url: `${apiUrl}/learning/insights`,
     method: "get",
-  }) as any;
-  const { data: insightData, isLoading: insightLoading } = insightQuery.query || insightQuery;
+  });
+  const { data: insightData, isLoading: insightLoading } = insightQuery.query;
 
   const heatmaps = heatmapData?.data || [];
   const strategies = insightData?.data?.strategies || [];

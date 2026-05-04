@@ -35,7 +35,7 @@ export default function PolicyProposalsPage() {
 
   useEffect(() => setIsClient(true), []);
 
-  const { query: { data: proposalData, isLoading: isProposalsLoading, isError, refetch } } = useList({
+  const { query: { data: proposalData, isLoading: isProposalsLoading, isError, refetch } } = useList<any>({
     resource: "governance/proposals",
     queryOptions: { enabled: isClient }
   });
@@ -227,11 +227,11 @@ export default function PolicyProposalsPage() {
              <section className="glass-panel p-10 rounded-[2.5rem] border-white/[0.05] bg-[#060a12]/50 flex flex-col items-center justify-center text-center opacity-60 h-[400px]">
                 <div className="p-6 bg-white/[0.02] rounded-full border border-white/5 mb-6">
                    <FileText size={32} className="text-gray-700" />
-                </div>
-                <p className="text-[11px] font-black text-gray-600 uppercase tracking-widest max-w-[180px]">
+                 </div>
+                 <p className="text-[11px] font-black text-gray-600 uppercase tracking-widest max-w-[180px]">
                    Analiz etmek istediğiniz teklifi akıştan seçiniz.
-                </p>
-             </section>
+                 </p>
+              </section>
            )}
 
            {/* Constitutional Status */}
@@ -335,5 +335,3 @@ function StatuteItem({ label, val }: any) {
     </div>
   );
 }
-
-
