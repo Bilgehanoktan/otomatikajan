@@ -5,11 +5,12 @@ import sys
 import socket
 from datetime import datetime, timezone
 
-# Configuration
-POSTGRES_HOST = "127.0.0.1"
-POSTGRES_PORT = 5433
-REDIS_HOST = "127.0.0.1"
-REDIS_PORT = 6380
+# Configuration — Docker-aware
+_IS_DOCKER = os.getenv("DOCKER_CONTAINER", "").lower() in ("true", "1", "yes")
+POSTGRES_HOST = "db" if _IS_DOCKER else "127.0.0.1"
+POSTGRES_PORT = 5432 if _IS_DOCKER else 5433
+REDIS_HOST = "redis" if _IS_DOCKER else "127.0.0.1"
+REDIS_PORT = 6379 if _IS_DOCKER else 6380
 LOG_FILE = "docs/audits/infra_readiness_audit_prmr_01.md"
 
 async def check_connectivity(host, port):
