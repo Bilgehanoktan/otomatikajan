@@ -22,14 +22,14 @@ export default function RepairMemoryPage() {
 
   // Fetch Heatmaps
   const heatmapQuery = useCustom<any[]>({
-    url: `${apiUrl}/memory/heatmaps`,
+    url: `${apiUrl}/repair-lab/memory/heatmaps`,
     method: "get",
   });
   const { data: heatmapData, isLoading: heatmapLoading } = heatmapQuery.query;
 
   // Fetch Learning Insights
   const insightQuery = useCustom<any>({
-    url: `${apiUrl}/learning/insights`,
+    url: `${apiUrl}/repair-lab/learning/insights`,
     method: "get",
   });
   const { data: insightData, isLoading: insightLoading } = insightQuery.query;

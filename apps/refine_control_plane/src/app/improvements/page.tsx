@@ -31,7 +31,7 @@ export default function ImprovementsPage() {
     useEffect(() => setIsClient(true), []);
 
     const { query: { data, isLoading, isError, refetch } } = useList({
-        resource: "improvements",
+        resource: "governance/improvements",
         pagination: { pageSize: 20 },
         sorters: [{ field: "created_at", order: "desc" }],
         queryOptions: { enabled: isClient }
@@ -41,7 +41,7 @@ export default function ImprovementsPage() {
 
     const handleApprove = (id: string) => {
         updateStatus({
-            resource: "improvements",
+            resource: "governance/improvements",
             id,
             values: { status: "approved" },
             successNotification: { message: "Patch approved for deployment", type: "success" }
@@ -52,7 +52,7 @@ export default function ImprovementsPage() {
 
     const handleReject = (id: string) => {
         updateStatus({
-            resource: "improvements",
+            resource: "governance/improvements",
             id,
             values: { status: "rejected" },
             successNotification: { message: "Patch rejected", type: "error" }

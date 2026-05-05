@@ -41,6 +41,8 @@ def _log_with_throttle(kind: str, provider: str, message: str) -> None:
 
 # ── 1. Canonical Çıktı Sözleşmesi ────────────────────────
 class LLMResponse(BaseModel):
+    model_config = {"protected_namespaces": ()}
+
     content: str
     input_tokens: int
     output_tokens: int

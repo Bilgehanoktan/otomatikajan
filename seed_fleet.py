@@ -1,65 +1,72 @@
-import asyncio
-import sys
-import uuid
-from datetime import datetime, timezone, timedelta
-from sqlalchemy import select, delete
 
-sys.path.insert(0, '.')
-from libs.db.session import async_session_factory, init_db
+import asyncio
+import uuid
+from datetime import datetime, timedelta, timezone
+from sqlalchemy import delete, select
+from libs.db.session import AsyncSessionLocal
 from libs.db.models.core_models import (
-    Project, ProjectStatus, FleetStatus, AgentStatus, AgentRole,
-    FleetCluster, AgentNode, FleetAssignment, WorkflowEvent
+    Project, ProjectStatus, ProjectSource, TaskPriority,
+    AgentNode, AgentStatus, AgentRole, FleetCluster, FleetStatus, FleetAssignment,
+    WorkflowEvent, SubTask, ApprovalRequest, OperationalIncident, SystemImprovement
 )
-from libs.db.models.auth_models import Operator
+from libs.db.models.auth_models import Operator, SystemIdentity
+from libs.db.models.governance_models import GovernanceProofEventRecord, ProofEventType, GovernorDomain, ValidationResult, ValidationType, ValidationStatus
+from libs.db.models.learning_models import LearningRecord, ErrorFingerprint, StrategyMemory
 
 async def seed_fleet():
-    await init_db()
-    async with async_session_factory() as db:
-        # Clear existing data for a clean state
+    print("Starting Comprehensive System Seeding...")
+    async with AsyncSessionLocal() as db:
+        # 1. Clean existing data (except Operators)
         await db.execute(delete(WorkflowEvent))
         await db.execute(delete(FleetAssignment))
         await db.execute(delete(AgentNode))
         await db.execute(delete(FleetCluster))
+        await db.execute(delete(ApprovalRequest))
+        await db.execute(delete(OperationalIncident))
+        await db.execute(delete(SystemImprovement))
+        await db.execute(delete(ValidationResult))
+        await db.execute(delete(SubTask))
         await db.execute(delete(Project))
-        await db.commit()
-
-        # 1. Seed Operator (if not exists)
-        op_res = await db.execute(select(Operator).where(Operator.email == "admin@sovereign.agi"))
-        op = op_res.scalars().first()
+        await db.execute(delete(LearningRecord))
+        
+        # 2. Ensure Admin Operator
+        res = await db.execute(select(Operator).where(Operator.email == "admin@sovereign.agi"))
+        op = res.scalar_one_or_none()
         if not op:
             op = Operator(
-                id=uuid.uuid4(),
+                id=uuid.UUID("a394ea7a-943d-4f67-97aa-fa53984040d7"), # Fixed ID for stability
                 email="admin@sovereign.agi",
-                username="admin",
-                hashed_password="scrypt:32768:8:1$uH3nU4$e8e9e...", 
-                role="MASTER_ADMIN"
+                hashed_password="$2b$12$sRKqRyvDPfq2qURdhkEPlemrTzVJwRzhfOQx51BBZ51nqSH1W0jo.", # "admin123"
+                role="SOVEREIGN_PRIME",
+                is_active=True
             )
             db.add(op)
-            await db.flush()
+        else:
+            op.role = "SOVEREIGN_PRIME" # Ensure correct role
+            
+        await db.flush()
 
-        # 2. Seed Clusters
+        # 3. Seed Clusters
         c1 = FleetCluster(
             id=uuid.uuid4(),
             name="Main Intel Cluster",
+            region="eu-central-1",
             status=FleetStatus.ACTIVE,
-            region="US-EAST",
-            budget_limit=5000.0,
-            current_budget_usage=120.5,
+            budget_limit=500.0,
             max_parallel_projects=10
         )
         c2 = FleetCluster(
             id=uuid.uuid4(),
             name="Edge Processing Node",
+            region="us-east-1",
             status=FleetStatus.DEGRADED,
-            region="EU-WEST",
-            budget_limit=1000.0,
-            current_budget_usage=850.0,
-            max_parallel_projects=3
+            budget_limit=200.0,
+            max_parallel_projects=5
         )
         db.add_all([c1, c2])
         await db.flush()
 
-        # 3. Seed Agents
+        # 4. Seed Agents
         a1 = AgentNode(
             id=uuid.uuid4(),
             cluster_id=c1.id,
@@ -73,10 +80,10 @@ async def seed_fleet():
         a2 = AgentNode(
             id=uuid.uuid4(),
             cluster_id=c1.id,
-            name="Beta-Executor-01",
+            name="Beta-Executor-05",
             role=AgentRole.EXECUTOR,
             status=AgentStatus.BUSY,
-            trust_score=0.95,
+            trust_score=0.92,
             current_load=1,
             max_concurrency=1
         )
@@ -93,14 +100,16 @@ async def seed_fleet():
         db.add_all([a1, a2, a3])
         await db.flush()
 
-        # 4. Seed Projects
+        # 5. Seed Projects & SubTasks
         p1 = Project(
             id=uuid.uuid4(),
             owner_id=op.id,
             title="Sovereign Core Upgrade",
             status=ProjectStatus.RUNNING,
             progress_pct=45,
-            created_at=datetime.now(timezone.utc) - timedelta(days=1)
+            created_at=datetime.now(timezone.utc) - timedelta(days=1),
+            source=ProjectSource.CONTROL_PLANE,
+            priority=TaskPriority.HIGH
         )
         p2 = Project(
             id=uuid.uuid4(),
@@ -108,55 +117,143 @@ async def seed_fleet():
             title="Data Extraction Pipeline",
             status=ProjectStatus.QUEUED,
             progress_pct=0,
-            created_at=datetime.now(timezone.utc)
+            created_at=datetime.now(timezone.utc),
+            source=ProjectSource.API,
+            priority=TaskPriority.MEDIUM
         )
         db.add_all([p1, p2])
         await db.flush()
 
-        # 5. Seed Assignments
-        as1 = FleetAssignment(
+        # Seed SubTasks for P1 to show in Workflow view
+        st1 = SubTask(
             id=uuid.uuid4(),
             project_id=p1.id,
-            agent_id=a2.id,
-            assignment_type="primary",
-            status="active",
-            started_at=datetime.now(timezone.utc) - timedelta(hours=5)
+            agent_id=str(a1.id),
+            action="Plan Architecture",
+            prompt="Analyze core components for upgrade.",
+            status=ProjectStatus.COMPLETED,
+            result="Architecture plan finalized.",
+            created_at=datetime.now(timezone.utc) - timedelta(hours=5)
         )
-        db.add(as1)
+        st2 = SubTask(
+            id=uuid.uuid4(),
+            project_id=p1.id,
+            agent_id=str(a2.id),
+            action="Implement Security Layer",
+            prompt="Apply SIF-01 identity framework.",
+            status=ProjectStatus.RUNNING,
+            result="Deployment in progress...",
+            created_at=datetime.now(timezone.utc) - timedelta(hours=2)
+        )
+        db.add_all([st1, st2])
 
-        # 6. Seed Workflow Events (Governance Proof Records)
-        from libs.db.models.governance_models import GovernanceProofEventRecord, ProofEventType, GovernorDomain
-        import hashlib
+        # 6. Seed Workflow Events (Timeline)
+        ev1 = WorkflowEvent(
+            id=uuid.uuid4(),
+            project_id=p1.id,
+            event_type="workflow_started",
+            operator_id="system",
+            payload={"message": "System initiated Sovereign Core Upgrade"},
+            created_at=datetime.now(timezone.utc) - timedelta(hours=6)
+        )
+        ev2 = WorkflowEvent(
+            id=uuid.uuid4(),
+            project_id=p1.id,
+            event_type="step_completed",
+            step_id=str(st1.id),
+            operator_id=str(a1.id),
+            payload={"result": "Plan approved by Governor"},
+            created_at=datetime.now(timezone.utc) - timedelta(hours=4)
+        )
+        db.add_all([ev1, ev2])
 
-        def quick_hash(text: str) -> str:
-            return hashlib.sha256(text.encode()).hexdigest()
+        # 7. Seed Approval Requests (Governor Inbox)
+        app1 = ApprovalRequest(
+            id=uuid.uuid4(),
+            project_id=p1.id,
+            request_type="autonomy_elevation",
+            reason="Project requires direct filesystem access for patch application.",
+            status="pending",
+            created_at=datetime.now(timezone.utc) - timedelta(minutes=30)
+        )
+        app2 = ApprovalRequest(
+            id=uuid.uuid4(),
+            project_id=p2.id,
+            request_type="budget_increase",
+            reason="Large dataset detected, requires additional compute resources.",
+            status="pending",
+            created_at=datetime.now(timezone.utc) - timedelta(minutes=15)
+        )
+        db.add_all([app1, app2])
 
-        events_to_seed = [
-            (ProofEventType.AGENT_ASSIGNED, str(a1.id), f'{{"details": "Agent {a1.name} assigned to Main Intel Cluster"}}', 1),
-            (ProofEventType.BUDGET_BLOCK, str(c2.id), '{"details": "Budget limit reached for Edge Processing Node. Automatic scaling blocked."}', 2),
-            (ProofEventType.AGENT_QUARANTINED, str(a3.id), f'{{"details": "Agent {a3.name} quarantined due to low trust score (0.45)"}}', 3),
-            (ProofEventType.CLUSTER_FROZEN, str(c2.id), '{"details": "Edge Processing Node frozen by Governor due to critical budget breach."}', 4),
-        ]
+        # 8. Seed Operational Incidents
+        inc1 = OperationalIncident(
+            id=uuid.uuid4(),
+            incident_type="stuck_workflow",
+            severity="high",
+            message="Beta-Executor-05 is unresponsive in Main Intel Cluster.",
+            status="open",
+            project_id=p1.id,
+            created_at=datetime.now(timezone.utc) - timedelta(hours=1)
+        )
+        db.add(inc1)
 
-        for etype, eid, payload, idx in events_to_seed:
-            phash = quick_hash(payload)
-            ehash = quick_hash(f"{phash}{idx}")
-            
-            evt = GovernanceProofEventRecord(
-                id=uuid.uuid4(),
-                event_type=etype,
-                domain=GovernorDomain.WORKFLOW,
-                entity_id=eid,
-                payload_hash=phash,
-                payload_canonical=payload,
-                event_hash=ehash,
-                chain_index=idx,
-                created_at=datetime.now(timezone.utc) - timedelta(minutes=idx * 10)
-            )
-            db.add(evt)
+        # 9. Seed Simulation Results (Training Hub)
+        val1 = ValidationResult(
+            id=uuid.uuid4(),
+            component_name="SIF-01-Auth",
+            validation_type=ValidationType.CONTINUOUS,
+            status=ValidationStatus.PASS,
+            metrics={"latency_avg": 45.2, "success_rate": 0.998},
+            created_at=datetime.now(timezone.utc) - timedelta(hours=12)
+        )
+        val2 = ValidationResult(
+            id=uuid.uuid4(),
+            component_name="Fleet-Orchestrator",
+            validation_type=ValidationType.DRILL,
+            status=ValidationStatus.WARN,
+            metrics={"rebalance_efficiency": 0.65},
+            error_log="Slow response from Edge Node during simulated failover.",
+            created_at=datetime.now(timezone.utc) - timedelta(hours=24)
+        )
+        db.add_all([val1, val2])
+
+        # 10. Seed Learning Records (Otonom Hafıza)
+        learn1 = LearningRecord(
+            id=uuid.uuid4(),
+            project_id=p1.id,
+            root_cause="Missing foreign key constraint in legacy schema.",
+            proposed_fix_type="code",
+            strategy_used="Automated Migration Generator",
+            final_outcome="SUCCESS",
+            verification_score=0.95,
+            created_at=datetime.now(timezone.utc) - timedelta(days=2)
+        )
+        db.add(learn1)
+
+        # 11. Seed System Improvements (Evolution Dashboard)
+        imp1 = SystemImprovement(
+            id=uuid.uuid4(),
+            target_file="libs/db/session.py",
+            instruction="Implement automated foreign key constraint validation loop.",
+            proposed_patch="--- libs/db/session.py\n+++ libs/db/session.py\n@@ -10,1 +10,1 @@\n-    pass\n+    validate_constraints()",
+            status="applied",
+            risk_score=0.1,
+            created_at=datetime.now(timezone.utc) - timedelta(days=1)
+        )
+        imp2 = SystemImprovement(
+            id=uuid.uuid4(),
+            target_file="services/auth/jwt_auth.py",
+            instruction="Reduce JWT lifetime to 15m for high-security environments.",
+            proposed_patch="--- services/auth/jwt_auth.py\n+++ services/auth/jwt_auth.py\n@@ -32,1 +32,1 @@\n-ACCESS_MINUTES = 1440\n+ACCESS_MINUTES = 15",
+            status="pending",
+            risk_score=0.4,
+            created_at=datetime.now(timezone.utc) - timedelta(hours=5)
+        )
+        db.add_all([imp1, imp2])
 
         await db.commit()
-        print("Successfully seeded clean Fleet data with Events.")
+        print("Successfully seeded all System modules.")
 
 if __name__ == "__main__":
     asyncio.run(seed_fleet())

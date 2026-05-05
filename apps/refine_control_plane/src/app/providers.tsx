@@ -118,8 +118,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
               meta: { label: "resources_audit" },
             },
             {
-              name: "repair-lab/improvements",
-              list: "/repair-lab/improvements",
+              name: "governance/improvements",
+              list: "/improvements",
               meta: { label: "resources_improvements" },
             },
             {
@@ -133,12 +133,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
               meta: { label: "resources_fleet", icon: "🚀" },
             },
             {
-              name: "fleet/agents",
+              name: "fleet/ops/agents",
               list: "/fleet/agents",
               meta: { label: "resources_agents", parent: "fleet" },
             },
             {
-              name: "fleet/operations",
+              name: "fleet/ops",
               list: "/fleet/operations",
               meta: { label: "resources_operations", parent: "fleet" },
             },
@@ -249,7 +249,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
               meta: { label: "resources_outcomes" },
             },
             {
-              name: "governance/analytics/calibrations",
+              name: "governance/improvements",
+              list: "/improvements",
+              meta: { label: "resources_improvements" },
+            },
+            {
+              name: "governance/inbox/governor/calibrations",
               list: "/calibrations",
               meta: { label: "resources_calibrations" },
             },
