@@ -5,7 +5,7 @@ import { ConfigProvider, theme, App } from "antd";
 import { Refine } from "@refinedev/core";
 import routerProvider from "@refinedev/nextjs-router";
 import { activeDataProvider } from "@/lib/api_provider";
-import { fetchCurrentOperator, clearStoredAccessToken } from "@/lib/auth";
+import { fetchCurrentOperator, clearStoredAccessToken, performLogin, performRegister } from "@/lib/auth";
 import { useRefineI18nProvider } from "@/i18n/refine-adapter";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -25,7 +25,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
   };
 
   const authProvider = {
-    login: async () => ({ success: true }),
+    login: async (params: any) => performLogin(params),
+    register: async (params: any) => performRegister(params),
     logout: async () => {
       clearStoredAccessToken();
       return { success: true, redirectTo: "/login" };

@@ -160,6 +160,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
             const authHeaders = await getAuthHeaders();
             const response = await safeFetchJson<WorkflowDetail>(`${apiBase}/workflows/${id}`, {
                 useOfflineFallback: true,
+                headers: authHeaders,
             });
             setWorkflow(response);
         } catch {
@@ -206,6 +207,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
             if (pendingApproval) {
                 await safeFetchJson(`${apiBase}/governance/approvals/${pendingApproval.id}`, {
                     method: "PATCH",
+                    headers: authHeaders,
                     body: JSON.stringify({
                         status: "APPROVED",
                         comment: approvalComment,
@@ -215,6 +217,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
 
             const response = await safeFetchJson(`${apiBase}/workflows/${workflow.id}/approve`, {
                 method: "POST",
+                headers: authHeaders,
                 body: JSON.stringify({
                     operator_id: "admin_human",
                     notes: approvalComment,

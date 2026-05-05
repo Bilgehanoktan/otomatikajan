@@ -112,6 +112,55 @@ export async function ensureSession(): Promise<SessionState> {
   return current;
 }
 
+export async function performLogin(params: any): Promise<{ success: boolean; redirectTo?: string; error?: any }> {
+  try {
+    const payload = await authFetch<{ access_token?: string | null }>("/auth/login/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+    });
+
+    if (payload?.access_token) {
+      storeAccessToken(payload.access_token);
+      return { success: true, redirectTo: "/" };
+    }
+    
+    return { 
+      success: false, 
+      error: { message: "Giriş başarısız. Lütfen bilgilerinizi kontrol edin." } 
+    };
+  } catch (error: any) {
+    return { 
+      success: false, 
+      error: { message: error?.message || "Sunucuya bağlanılamadı." } 
+    };
+  }
+}
+
+export async function performRegister(params: any): Promise<{ success: boolean; error?: any }> {
+  try {
+    const payload = await authFetch<{ success?: boolean; message?: string }>("/auth/register/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+    });
+
+    if (payload?.success !== false) {
+      return { success: true };
+    }
+    
+    return { 
+      success: false, 
+      error: { message: payload?.message || "Kayıt işlemi başarısız oldu." } 
+    };
+  } catch (error: any) {
+    return { 
+      success: false, 
+      error: { message: error?.message || "Sunucuya bağlanılamadı." } 
+    };
+  }
+}
+
 export async function getAuthHeaders(): Promise<Record<string, string>> {
   const cached = getStoredAccessToken();
   if (cached) {

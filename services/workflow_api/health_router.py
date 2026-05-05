@@ -138,11 +138,10 @@ async def get_events_stream(since_seq: int = 0, limit: int = 50):
         try:
             q = select(DecisionLineage).order_by(DecisionLineage.created_at.desc()).limit(limit)
             if since_seq > 0:
-                # If since_seq is used, we need an ordering that supports it.
-                # Since DecisionLineage.id is a GUID, we cannot use > since_seq.
-                # As a fallback, we'll use created_at or just skip filtering for now to prevent 500 errors.
-                # For Phase 30, we should add an autoincrement sequence ID.
-                pass 
+                # Use timestamp-based filtering as a proxy for sequence if seq is 0
+                # In Phase 30+, we'll add an actual autoincrement sequence column.
+                since_dt = datetime.fromtimestamp(since_seq / 1000, tz=timezone.utc)
+                q = q.where(DecisionLineage.created_at > since_dt)
             res = await db.execute(q)
             items = res.scalars().all()
             # Reverse to get chronological order for the stream
@@ -161,11 +160,11 @@ async def get_events_stream(since_seq: int = 0, limit: int = 50):
                 severity = "warning"
 
             events.append({
-                "seq": i.id,
+                "seq": int(i.created_at.timestamp() * 1000) if i.created_at else int(datetime.now(timezone.utc).timestamp() * 1000),
                 "timestamp": i.created_at.isoformat() if i.created_at else datetime.now(timezone.utc).isoformat(),
                 "type": i.decision_type,
                 "severity": severity,
-                "category": "governance" if "GOV" in i.decision_type else "workflow",
+                "category": "governance" if "GOV" in (i.decision_type or "").upper() else "workflow",
                 "message": f"[{i.component_name}] {i.rationale}"
             })
 
@@ -191,7 +190,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     severity = "critical"
                 
                 ev = {
-                    "seq": i.id,
+                    "seq": int(i.created_at.timestamp() * 1000) if i.created_at else int(datetime.now(timezone.utc).timestamp() * 1000),
                     "timestamp": i.created_at.isoformat() if i.created_at else datetime.now(timezone.utc).isoformat(),
                     "type": i.decision_type,
                     "severity": severity,

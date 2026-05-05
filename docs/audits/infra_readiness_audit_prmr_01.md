@@ -1,16 +1,16 @@
 # Infrastructure Readiness Audit (PRMR-01)
 
-**Tarih:** 2026-05-04T18:34:17.264448Z
+**Tarih:** 2026-05-05T21:49:10.964098Z
 **Faz:** 1 (Readiness Audit)
 **Durum:** [PASS]
-**Standby Condition:** [LOCKED] ACTIVE (Waiting for Trigger)
+**Standby Condition:** [UNLOCKED] REACTIVATED (Transition Authorized)
 
 ## 1.1 Bağlantı Kontrolleri
 
 | Servis | Hedef | Durum | Hata Mesajı / Not |
 |--------|-------|-------|-------------------|
-| **PostgreSQL** | `db:5432/ai_company` | [OK] | - |
-| **Redis** | `redis:6379/0` | [OK] | - |
+| **PostgreSQL** | `127.0.0.1:5433/ai_company` | [OK] | - |
+| **Redis** | `127.0.0.1:6380/0` | [OK] | - |
 | **Celery Broker** | `Redis` bağımlı | [OK] | - |
 | **pgvector** | PostgreSQL eklentisi | [AVAILABLE] | - |
 | **Docker Daemon** | `dockerDesktopLinuxEngine` | [FAIL] | `Sistem belirtilen dosyayı bulamıyor` (Daemon kapalı olabilir) |
