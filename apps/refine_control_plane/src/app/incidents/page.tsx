@@ -16,6 +16,7 @@ import {
   Target,
   Terminal,
   Search,
+  Copy,
 } from "lucide-react";
 import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 import { Skeleton } from "@/components/dashboard/Skeleton";
@@ -392,6 +393,44 @@ function EliteIncidentItem({
             >
               {incident.message}
             </p>
+            
+            {!!incident.payload?.suggested_fix && (
+              <div className="mb-6 rounded-2xl border border-blue-500/20 bg-blue-500/5 p-6 animate-in slide-in-from-left-4 duration-700">
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3 text-blue-400">
+                    <div className="rounded-lg bg-blue-500/10 p-1.5">
+                      <Terminal size={14} />
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em]">Önerilen Çözüm</span>
+                  </div>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const cmd = (incident.payload?.suggested_fix as any)?.command;
+                      if (cmd) {
+                        navigator.clipboard.writeText(cmd);
+                        alert("Komut panoya kopyalandı.");
+                      }
+                    }}
+                    className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-gray-500 transition-colors hover:text-blue-400"
+                  >
+                    <Copy size={12} />
+                    Kopyala
+                  </button>
+                </div>
+                <div className="group/code relative">
+                  <code className="block rounded-xl border border-white/5 bg-black/40 p-4 font-mono text-[11px] leading-relaxed text-blue-200/90 shadow-inner break-all">
+                    {String((incident.payload.suggested_fix as any)?.command || "")}
+                  </code>
+                  <div className="absolute inset-0 pointer-events-none rounded-xl bg-gradient-to-r from-blue-500/0 via-blue-500/[0.02] to-blue-500/0 opacity-0 group-hover/code:opacity-100 transition-opacity" />
+                </div>
+                {incident.payload.diagnosis && (
+                    <p className="mt-4 text-[10px] font-bold text-blue-400/60 italic leading-relaxed">
+                        Analiz: {String(incident.payload.diagnosis)}
+                    </p>
+                )}
+              </div>
+            )}
 
             <div className="flex items-center gap-6 border-t border-white/[0.03] pt-6">
               <div className="flex items-center gap-2">

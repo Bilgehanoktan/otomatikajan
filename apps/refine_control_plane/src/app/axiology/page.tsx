@@ -44,7 +44,7 @@ type AxiologyRecord = {
 
 export default function AxiologyListPage() {
   const { tableProps } = useTable<AxiologyRecord>({
-    resource: "axiology",
+    resource: "governance/axiology",
     syncWithLocation: true,
   });
 

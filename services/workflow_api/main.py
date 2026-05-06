@@ -68,6 +68,15 @@ async def startup_event():
     await job_queue.start(num_workers=2)
     print("Job Queue Worker loop started.")
 
+    # Proactive Infrastructure Audit
+    try:
+        from libs.diagnostics.auditor import InfrastructureAuditor
+        import asyncio
+        asyncio.create_task(InfrastructureAuditor.run_and_report())
+        print("Proactive Infrastructure Auditor initiated.")
+    except Exception as e:
+        print(f"Failed to start Auditor: {e}")
+
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "service": "workflow_api"}

@@ -250,7 +250,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
               meta: { label: "resources_adaptationCandidates" },
             },
             {
-              name: "axiology",
+              name: "governance/axiology",
               list: "/axiology",
               meta: { label: "resources_axiology" },
             },

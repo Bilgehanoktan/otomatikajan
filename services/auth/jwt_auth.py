@@ -127,7 +127,15 @@ class AccessControlService:
             "mesh.*",
             "repair_lab.*",
         ],
-        "AUDIT_OBSERVER": ["*.view"],
+        # Local control-plane operator experience:
+        # observers can execute core governance actions in development baseline mode.
+        "AUDIT_OBSERVER": [
+            "*.view",
+            "approval.decide",
+            "incident.resolve",
+            "workflow.approve",
+            "workflow.replay",
+        ],
         "GOVERNANCE_AGENT": [
             "workflow.view",
             "approveall.decide",
