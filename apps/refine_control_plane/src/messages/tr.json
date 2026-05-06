@@ -310,6 +310,7 @@
     "openDecisionChain": "Karar Zincirini Aç",
     "executionPlan": "Yürütme Planı",
     "noSteps": "Bu iş akışı için adım bulunamadı.",
+    "queueWaiting": "İş akışı kuyrukta. Adımlar hazırlanıyor...",
     "outputSummary": "Çıktı Özeti",
     "errorDetected": "Hata Tespit Edildi",
     "finalReport": "Final Raporu",
@@ -329,6 +330,7 @@
     "notifications": {
       "networkError": "Ağ Hatası",
       "networkErrorDesc": "Egemen çekirdek ile iletişim kurulamadı.",
+      "permissionDenied": "Bu iş akışı aksiyonu için yetkiniz bulunmuyor.",
       "workflowNotFound": "İş akışı bağlamı alınamadı.",
       "approved": "Karar Mühürlendi",
       "approvedDescGate": "Anayasal kapı temizlendi.",
@@ -362,6 +364,35 @@
         "step_started": "Adım Başlatıldı",
         "step_completed": "Adım Tamamlandı"
       }
+    }
+  },
+  "improvements": {
+    "title": "Evrim Defteri",
+    "subtitle": "Otonom Oz Iyilesme ve Noral Mimari Katmanlari",
+    "badge": "HEAL-V2 Aktif",
+    "cortexConfidence": "Korteks Guveni",
+    "recalibrate": "Yeniden Kalibre Et",
+    "streamTitle": "Otonom Evrim Akisi",
+    "searchPlaceholder": "Modul, talimat veya duruma gore ara...",
+    "filterTitle": "Durum Filtresi",
+    "telemetryOffline": "Evrim telemetrisi cevrimdisi",
+    "noResults": "Filtrelere uyan iyilestirme kaydi bulunamadi.",
+    "metrics": {
+      "pendingApproval": "Onay Bekleyen",
+      "totalCycles": "Toplam Evrim Dongusu",
+      "integrity": "Sistem Butunlugu"
+    },
+    "filters": {
+      "all": "Tum",
+      "pending": "Beklemede",
+      "approved": "Onayli",
+      "applied": "Uygulandi",
+      "rejected": "Reddedildi",
+      "failed": "Basarisiz"
+    },
+    "notifications": {
+      "approved": "Yama dagitim icin onaylandi",
+      "rejected": "Yama reddedildi"
     }
   },
   "resources": {
@@ -418,5 +449,69 @@
     "error": "Hata",
     "switchToTurkish": "Türkçe'ye Geç",
     "switchToEnglish": "İngilizce'ye Geç"
+  },
+  "incidents": {
+    "title": "Operasyonel Olaylar",
+    "subtitle": "Sistem Sapmaları ve Müdahale Kayıtları",
+    "monitor": "ŞİDDET MONİTÖRÜ",
+    "streamTitle": "Entegre Kaos Akışı",
+    "connectionSevered": "TELEMETRİ BAĞLANTISI KESİLDİ",
+    "connectionSeveredDesc": "Egemen çekirdekten gelen olay akışı şu an ulaşılamaz durumda. API yetkisini veya ağ durumunu kontrol edin.",
+    "reestablishSync": "Senkronizasyonu Yenile",
+    "noIncidents": "Aktif olay tespit edilmedi. Sistem otonom dengede.",
+    "mitigationHud": "Müdahale HUD",
+    "autonomousHealing": "Otonom tamir motoru son 1 saatte düşük öncelikli olaylarda self-healing başarısı sağladı.",
+    "clearAll": "Tümünü Temizle",
+    "takeAction": "Aksiyon Al",
+    "resolved": "Çözüldü",
+    "hazardPhase": "Tehlike Fazı {phase}",
+    "columns": {
+      "id": "ID",
+      "type": "Tür",
+      "severity": "Şiddet",
+      "message": "Mesaj",
+      "status": "Durum",
+      "createdAt": "Oluşturulma",
+      "actions": "Aksiyonlar"
+    }
+  },
+  "evolution": {
+    "title": "Sistem Evrimi",
+    "subtitle": "OTONOM ÖZ-GÜNCELLEME DEFTERİ VE KOD ŞECERESİ",
+    "updateStream": "GÜNCELLEME AKIŞI",
+    "noLogs": "HENÜZ EVRİM KAYDI BULUNMUYOR.",
+    "selectUpdate": "DENETLEMEK İÇİN BİR GÜNCELLEME SEÇİN",
+    "version": "VERSİYON",
+    "lastSync": "SON SENKRONİZASYON",
+    "events": "OLAYLAR"
+  },
+  "safety": {
+    "title": "Güvenlik Kontrolü",
+    "subtitle": "OTONOM KORUMA BARİYERLERİ VE ACİL DURUM MÜDAHALE PROTOKOLLERİ",
+    "status": "DURUM",
+    "normal": "NOMİNAL",
+    "critical": "KRİTİK",
+    "forceFreeze": "GÜVENLİK DONDURMASINI ZORLA",
+    "integratedGuardrails": "ENTEGRE KORUMA BARİYERLERİ",
+    "governedBy": "EMERGENCYPOLICYENGINE V18 TARAFINDAN YÖNETİLİR",
+    "healthIndex": "SAĞLIK ENDEKSİ",
+    "errorRate": "HATA ORANI",
+    "dailyExposure": "GÜNLÜK RİSK MARUZİYETİ",
+    "safetyLedger": "ENTEGRE GÜVENLİK DEFTERİ",
+    "realTimeShield": "GERÇEK ZAMANLI KALKAN AKTİF"
+  },
+  "fingerprints": {
+    "title": "Nöral Parmak İzleri",
+    "total": "Toplam Parmak İzi",
+    "critical": "Kritik Hatalar",
+    "lessons": "Öğrenilen Dersler",
+    "safetyScore": "Güvenlik Skoru",
+    "family": "Hata Ailesi",
+    "signal": "Sinyal Mesajı",
+    "severity": "Önem",
+    "recurrence": "Tekrar",
+    "lastSeen": "Son Görülme",
+    "analyze": "Analiz",
+    "actions": "İşlemler"
   }
 }

@@ -310,6 +310,7 @@
     "openDecisionChain": "Open Decision Chain",
     "executionPlan": "Execution Plan",
     "noSteps": "No steps found for this workflow.",
+    "queueWaiting": "Workflow is queued. Steps are being prepared...",
     "outputSummary": "Output Summary",
     "errorDetected": "Error Detected",
     "finalReport": "Final Report",
@@ -329,6 +330,7 @@
     "notifications": {
       "networkError": "Network Error",
       "networkErrorDesc": "Failed to communicate with the sovereign core.",
+      "permissionDenied": "You do not have permission to perform this workflow action.",
       "workflowNotFound": "Workflow context could not be retrieved.",
       "approved": "Decision Sealed",
       "approvedDescGate": "Constitutional gate has been cleared.",
@@ -362,6 +364,35 @@
         "step_started": "Step Started",
         "step_completed": "Step Completed"
       }
+    }
+  },
+  "improvements": {
+    "title": "Evolution Ledger",
+    "subtitle": "Autonomous Self-Healing and Neural Architectural Overlays",
+    "badge": "HEAL-V2 Active",
+    "cortexConfidence": "Cortex Confidence",
+    "recalibrate": "Recalibrate",
+    "streamTitle": "Autonomous Evolution Stream",
+    "searchPlaceholder": "Search module, instruction or status...",
+    "filterTitle": "Status Filter",
+    "telemetryOffline": "Evolution telemetry offline",
+    "noResults": "No improvement records matched your filters.",
+    "metrics": {
+      "pendingApproval": "Pending Approval",
+      "totalCycles": "Total Evolutionary Cycles",
+      "integrity": "System Integrity"
+    },
+    "filters": {
+      "all": "All",
+      "pending": "Pending",
+      "approved": "Approved",
+      "applied": "Applied",
+      "rejected": "Rejected",
+      "failed": "Failed"
+    },
+    "notifications": {
+      "approved": "Patch approved for deployment",
+      "rejected": "Patch rejected"
     }
   },
   "resources": {
@@ -418,5 +449,69 @@
     "error": "Error",
     "switchToTurkish": "Switch to Turkish",
     "switchToEnglish": "Switch to English"
+  },
+  "incidents": {
+    "title": "Operational Incidents",
+    "subtitle": "System Deviations and Intervention Logs",
+    "monitor": "SEVERITY MONITOR",
+    "streamTitle": "Integrated Chaos Stream",
+    "connectionSevered": "TELEMETRY CONNECTION SEVERED",
+    "connectionSeveredDesc": "The event stream from the sovereign core is currently unreachable. Verify API authorization or network status.",
+    "reestablishSync": "Re-establish Sync",
+    "noIncidents": "No active incidents detected. System is in autonomous balance.",
+    "mitigationHud": "Mitigation HUD",
+    "autonomousHealing": "Autonomous repair engine achieved self-healing success on low priority incidents in the last hour.",
+    "clearAll": "Clear All",
+    "takeAction": "Take Action",
+    "resolved": "Resolved",
+    "hazardPhase": "Hazard Phase {phase}",
+    "columns": {
+      "id": "ID",
+      "type": "Type",
+      "severity": "Severity",
+      "message": "Message",
+      "status": "Status",
+      "createdAt": "Created At",
+      "actions": "Actions"
+    }
+  },
+  "evolution": {
+    "title": "System Evolution",
+    "subtitle": "AUTONOMOUS SELF-UPDATE LEDGER & CODE LINEAGE",
+    "updateStream": "UPDATE STREAM",
+    "noLogs": "NO EVOLUTION LOGS YET.",
+    "selectUpdate": "SELECT AN UPDATE TO AUDIT",
+    "version": "VERSION",
+    "lastSync": "LAST SYNC",
+    "events": "EVENTS"
+  },
+  "safety": {
+    "title": "Safety Control",
+    "subtitle": "AUTONOMOUS GUARDRAILS & EMERGENCY RESPONSE PROTOCOLS",
+    "status": "STATUS",
+    "normal": "NORMAL",
+    "critical": "CRITICAL",
+    "forceFreeze": "FORCE SAFETY FREEZE",
+    "integratedGuardrails": "INTEGRATED GUARDRAILS",
+    "governedBy": "GOVERNED BY EMERGENCYPOLICYENGINE V18",
+    "healthIndex": "HEALTH INDEX",
+    "errorRate": "ERROR RATE",
+    "dailyExposure": "DAILY EXPOSURE",
+    "safetyLedger": "INTEGRATED SAFETY LEDGER",
+    "realTimeShield": "REAL-TIME SHIELD ACTIVE"
+  },
+  "fingerprints": {
+    "title": "Neural Fingerprints",
+    "total": "Total Fingerprints",
+    "critical": "Critical Errors",
+    "lessons": "Lessons Learned",
+    "safetyScore": "Safety Score",
+    "family": "Error Family",
+    "signal": "Signal Message",
+    "severity": "Severity",
+    "recurrence": "Recurrence",
+    "lastSeen": "Last Seen",
+    "analyze": "Analyze",
+    "actions": "Actions"
   }
 }

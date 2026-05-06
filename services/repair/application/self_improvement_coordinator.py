@@ -57,8 +57,21 @@ class SelfImprovementCoordinator:
 
     async def _process_opportunities(self, opportunities: List[ImprovementOpportunity]):
         """Bulunan fırsatları sırayla işle."""
+        # Aynı pattern'i tek tarama turunda bir kez işle.
+        unique_map = {}
+        for op in opportunities:
+            key = getattr(op, "pattern_hash", None) or f"{op.source_type}:{op.source_ref}:{op.title}"
+            if key not in unique_map:
+                unique_map[key] = op
+        normalized_ops = list(unique_map.values())
+
         # En yüksek önceliklileri seç
-        sorted_ops = sorted(opportunities, key=lambda x: {"critical": 0, "high": 1, "medium": 2, "low": 3}.get(x.severity, 4))
+        sorted_ops = sorted(normalized_ops, key=lambda x: {"critical": 0, "high": 1, "medium": 2, "low": 3}.get(x.severity, 4))
+
+        logger.info(
+            f"Self-Improvement: {len(opportunities)} aday bulundu, "
+            f"dedupe sonrası {len(sorted_ops)} benzersiz fırsat işlenecek."
+        )
         
         for op in sorted_ops:
             if not self._is_running: break
