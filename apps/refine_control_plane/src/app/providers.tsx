@@ -13,54 +13,80 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   const accessControlProvider = {
     can: async ({ resource, action }: any) => {
-      const session = await fetchCurrentOperator();
-      if (session.kind === "authenticated") {
-        const roles = session.identity.roles || [session.identity.role];
-        if (roles.includes("admin") || roles.includes("operator")) {
-          return { can: true };
+      try {
+        const session = await fetchCurrentOperator();
+        if (session && session.kind === "authenticated") {
+          const roles = session.identity.roles || (session.identity.role ? [session.identity.role] : []);
+          if (roles.includes("admin") || roles.includes("operator") || roles.includes("SOVEREIGN_PRIME") || roles.includes("AUDIT_OBSERVER")) {
+            return { can: true };
+          }
         }
+      } catch (e) {
+        console.error("[Auth] AccessControl check failed:", e);
       }
       return { can: false, reason: "Unauthorized" };
     },
   };
 
   const authProvider = {
-    login: async (params: any) => performLogin(params),
-    register: async (params: any) => performRegister(params),
+    login: async (params: any) => {
+      const result = await performLogin(params);
+      return result || { success: false, error: new Error("Giriş işlemi yanıt vermedi.") };
+    },
+    register: async (params: any) => {
+      const result = await performRegister(params);
+      return result || { success: false, error: new Error("Kayıt işlemi yanıt vermedi.") };
+    },
     logout: async () => {
       clearStoredAccessToken();
       return { success: true, redirectTo: "/login" };
     },
     check: async () => {
-      const session = await fetchCurrentOperator();
-      return { authenticated: session.kind === "authenticated" };
+      try {
+        const session = await fetchCurrentOperator();
+        return { authenticated: session && session.kind === "authenticated" };
+      } catch {
+        return { authenticated: false };
+      }
     },
     getPermissions: async () => {
-      const session = await fetchCurrentOperator();
-      if (session.kind === "authenticated") {
-        return session.identity.roles ?? (session.identity.role ? [session.identity.role] : null);
-      }
+      try {
+        const session = await fetchCurrentOperator();
+        if (session && session.kind === "authenticated") {
+          return session.identity.roles ?? (session.identity.role ? [session.identity.role] : null);
+        }
+      } catch {}
       return null;
     },
     getIdentity: async () => {
-      const session = await fetchCurrentOperator();
-      if (session.kind === "authenticated") {
-        return {
-          id: session.identity.id,
-          name: session.identity.email,
-          avatar: "https://api.dicebear.com/7.x/identicon/svg?seed=admin",
-        };
-      }
+      try {
+        const session = await fetchCurrentOperator();
+        if (session && session.kind === "authenticated") {
+          return {
+            id: session.identity.id,
+            name: session.identity.email,
+            email: session.identity.email,
+            avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${session.identity.email}`,
+          };
+        }
+      } catch {}
       return null;
     },
     onError: async (error: any) => {
-      if (error?.status === 401 || error?.status === 403 || error?.statusCode === 401 || error?.statusCode === 403) {
+      if (error?.status === 401 || error?.statusCode === 401) {
         clearStoredAccessToken();
-        return { 
+        return {
           logout: true,
-          error: new Error("Oturum süreniz doldu. Lütfen tekrar giriş yapın.") 
+          error: new Error("Oturumunuz sona erdi. Lutfen tekrar giris yapin."),
         };
       }
+
+      if (error?.status === 403 || error?.statusCode === 403) {
+        return {
+          error: new Error("Bu islem icin yetkiniz bulunmuyor."),
+        };
+      }
+
       return { error };
     }
   };
@@ -200,7 +226,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             },
             {
               name: "learning",
-              list: "/learning",
+              list: "/learning/fingerprints",
               meta: { label: "resources_learning" },
             },
             {
@@ -236,7 +262,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             },
             {
               name: "governance/inbox/escalations",
-              list: "/governance/escalations",
+              list: "/governor/escalations",
               meta: { label: "resources_escalations" },
             },
             {

@@ -59,20 +59,22 @@ async function authFetch<T = any>(path: string, init: RequestInit = {}): Promise
 export async function fetchCurrentOperator(): Promise<SessionState> {
   try {
     const payload = await authFetch<AuthIdentity>("/auth/me/");
-    if (payload) {
-      if (typeof window !== "undefined" && payload.role) {
-        window.localStorage.setItem("auth", JSON.stringify({ role: payload.role }));
+    if (payload && (payload.id || payload.email)) {
+      if (typeof window !== "undefined") {
+        if (payload.role) window.localStorage.setItem("auth", JSON.stringify({ role: payload.role }));
+        if (payload.email) window.localStorage.setItem("sqv_operator_email", payload.email);
       }
       return { kind: "authenticated", identity: payload };
     }
-    return { kind: "error", status: 500, detail: "Kimlik yanıtı okunamadı." };
+    return { kind: "error", status: 500, detail: "Sunucudan geçersiz kimlik verisi alındı." };
   } catch (error: any) {
+    console.warn("[Auth] fetchCurrentOperator hatası:", error);
     if (error?.status === 401) {
       return { kind: "unauthorized", status: 401 };
     }
     return {
       kind: "network-error",
-      error: error instanceof Error ? error : new Error("Kimlik ağına ulaşılamadı."),
+      error: error instanceof Error ? error : new Error(error?.message || "Kimlik ağına ulaşılamadı."),
     };
   }
 }
@@ -113,6 +115,7 @@ export async function ensureSession(): Promise<SessionState> {
 }
 
 export async function performLogin(params: any): Promise<{ success: boolean; redirectTo?: string; error?: any }> {
+  console.log("[Auth] Giriş denemesi:", params.email);
   try {
     const payload = await authFetch<{ access_token?: string | null }>("/auth/login/", {
       method: "POST",
@@ -120,43 +123,54 @@ export async function performLogin(params: any): Promise<{ success: boolean; red
       body: JSON.stringify(params),
     });
 
+    console.log("[Auth] Giriş yanıtı:", payload);
+
     if (payload?.access_token) {
       storeAccessToken(payload.access_token);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("sqv_operator_email", params.email);
+      }
       return { success: true, redirectTo: "/" };
     }
     
     return { 
       success: false, 
-      error: { message: "Giriş başarısız. Lütfen bilgilerinizi kontrol edin." } 
+      error: new Error("Giriş başarısız. Lütfen bilgilerinizi kontrol edin.")
     };
   } catch (error: any) {
+    console.error("[Auth] Giriş hatası:", error);
     return { 
       success: false, 
-      error: { message: error?.message || "Sunucuya bağlanılamadı." } 
+      error: error instanceof Error ? error : new Error(error?.message || "Sunucuya bağlanılamadı.")
     };
   }
 }
 
 export async function performRegister(params: any): Promise<{ success: boolean; error?: any }> {
+  console.log("[Auth] Kayıt denemesi:", params.email);
   try {
-    const payload = await authFetch<{ success?: boolean; message?: string }>("/auth/register/", {
+    const payload = await authFetch<any>("/auth/register/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(params),
     });
 
-    if (payload?.success !== false) {
+    console.log("[Auth] Kayıt yanıtı:", payload);
+
+    // Backend returns the user object on success
+    if (payload && (payload.id || payload.email)) {
       return { success: true };
     }
     
     return { 
       success: false, 
-      error: { message: payload?.message || "Kayıt işlemi başarısız oldu." } 
+      error: new Error("Kayıt işlemi başarısız oldu. Sunucu geçerli bir yanıt dönmedi.")
     };
   } catch (error: any) {
+    console.error("[Auth] Kayıt hatası:", error);
     return { 
       success: false, 
-      error: { message: error?.message || "Sunucuya bağlanılamadı." } 
+      error: error instanceof Error ? error : new Error(error?.message || "Sunucuya bağlanılamadı.")
     };
   }
 }

@@ -21,11 +21,13 @@ import {
 } from "lucide-react";
 import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 import { Skeleton } from "@/components/dashboard/Skeleton";
+import { useTranslations } from "next-intl";
 
 export default function SafetyPage() {
   const [isClient, setIsClient] = useState(false);
   const [systemState, setSystemState] = useState("NORMAL");
   const [isProcessing, setIsProcessing] = useState(false);
+  const t = useTranslations("safety");
 
   useEffect(() => setIsClient(true), []);
 
@@ -38,9 +40,9 @@ export default function SafetyPage() {
   };
 
   const metrics = [
-    { name: "Health Index", value: 92, threshold: 70, icon: <Heart size={16} /> },
-    { name: "Error Rate", value: 0.8, threshold: 5.0, icon: <Activity size={16} />, unit: "%" },
-    { name: "Daily Exposure", value: 142, threshold: 500, icon: <DollarSign size={16} />, unit: "$" },
+    { name: t("healthIndex"), value: 92, threshold: 70, icon: <Heart size={16} /> },
+    { name: t("errorRate"), value: 0.8, threshold: 5.0, icon: <Activity size={16} />, unit: "%" },
+    { name: t("dailyExposure"), value: 142, threshold: 500, icon: <DollarSign size={16} />, unit: "$" },
   ];
 
   const activePolicies = [
@@ -55,17 +57,17 @@ export default function SafetyPage() {
     <div className="min-h-screen p-8 bg-[#060a12] text-gray-300 animate-in fade-in duration-1000 overflow-x-hidden">
       
       <ResourceHeader 
-        title="Safety Control" 
-        subtitle="Autonomous Guardrails & Emergency Response Protocols" 
+        title={t("title")} 
+        subtitle={t("subtitle")} 
         icon={<ShieldAlert size={32} />}
-        badge="Regulatory Grade"
+        badge={t("badge", { defaultMessage: "Regülatör Seviyesi" })}
         actions={
           <div className="flex items-center gap-8">
              <div className="flex flex-col items-end border-r border-white/5 pr-8">
-                <span className="text-[9px] text-gray-500 font-black uppercase tracking-widest leading-none">Status</span>
+                <span className="text-[9px] text-gray-500 font-black uppercase tracking-widest leading-none">{t("status")}</span>
                 <div className="flex items-center gap-2 mt-2">
                    <div className={`w-2.5 h-2.5 rounded-full ${systemState === 'NORMAL' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.6)] animate-pulse'}`} />
-                   <span className={`text-sm font-black transition-colors ${systemState === 'NORMAL' ? 'text-green-400' : 'text-red-400 uppercase'}`}>{systemState}</span>
+                   <span className={`text-sm font-black transition-colors ${systemState === 'NORMAL' ? 'text-green-400' : 'text-red-400 uppercase'}`}>{systemState === 'NORMAL' ? t("normal") : systemState}</span>
                 </div>
              </div>
              
@@ -76,7 +78,7 @@ export default function SafetyPage() {
                   className="flex items-center gap-3 px-8 py-3 bg-red-500/10 text-red-500 border border-red-500/20 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-red-500/20 transition-all active:scale-95 group shadow-xl"
                 >
                   <Power size={14} className="group-hover:rotate-180 transition-transform duration-500" />
-                  <span>Force Safety Freeze</span>
+                  <span>{t("forceFreeze")}</span>
                 </button>
              ) : (
                 <button 
@@ -104,12 +106,12 @@ export default function SafetyPage() {
               
               <div className="flex items-center justify-between mb-12 relative z-10">
                  <div>
-                    <h2 className="text-xl font-black text-white uppercase tracking-tighter mb-2 italic">Integrated Guardrails</h2>
-                    <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.3em]">Governed by EmergencyPolicyEngine v18</p>
+                    <h2 className="text-xl font-black text-white uppercase tracking-tighter mb-2 italic">{t("integratedGuardrails")}</h2>
+                    <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.3em]">{t("governedBy")}</p>
                  </div>
                  <div className="flex items-center gap-4 text-[10px] font-mono text-gray-700 bg-black/40 px-6 py-3 rounded-2xl border border-white/5">
                     <Radio size={16} className={systemState === 'NORMAL' ? "text-green-500 animate-pulse" : "text-red-500 animate-ping"} />
-                    REAL-TIME_SHIELD_ACTIVE
+                    {t("realTimeShield")}
                  </div>
               </div>
 
@@ -144,7 +146,7 @@ export default function SafetyPage() {
               </div>
               <div className="flex items-center gap-3 mb-12 relative z-10">
                  <AlertOctagon size={18} className="text-[var(--primary)]" />
-                 <h3 className="text-xs font-black text-white uppercase tracking-[0.4em]">Integrated Safety Ledger</h3>
+                 <h3 className="text-xs font-black text-white uppercase tracking-[0.4em]">{t("safetyLedger")}</h3>
               </div>
               
               <div className="space-y-4 relative z-10 custom-scrollbar pr-2 max-h-[300px] overflow-y-auto">

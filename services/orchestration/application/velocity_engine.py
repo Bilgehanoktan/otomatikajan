@@ -165,7 +165,7 @@ class VelocityEngine:
             if result.success and result.output_data:
                 files = re.findall(r"FILE:\s*([\w\./-]+\.\w+)", str(result.output_data))
                 for f_path in files: await provenance_engine.register_mutation(file_path=f_path, content=str(result.output_data)[:5000], project_id=task_id, agent_id=agent_id)
-            await event_bus.emit(EVENT_SKILL_TRACE, {"job_id": str(p_id), "skill_id": agent_id, "success": result.success, "summary": f"Velocity Pulse: {agent_id} finalized", "duration_s": round(result.duration_s, 3)})
+            await event_bus.emit(EVENT_SKILL_TRACE, job_id=str(p_id), skill_id=agent_id, success=result.success, summary=f"Velocity Pulse: {agent_id} finalized", duration_s=round(result.duration_s, 3))
         except: pass
 
 # --- Singleton ---

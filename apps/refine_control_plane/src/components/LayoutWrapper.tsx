@@ -40,7 +40,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
                 {isLoginPage ? children : (
                     <>
                         {/* SSR Skeleton Shell */}
-                        <aside className="w-64 h-full glass border-r border-white/5 flex flex-col" />
+                        <aside className="w-64 h-full shrink-0 glass border-r border-white/5 flex flex-col" />
                         <div className="flex-1 flex flex-col relative">
                             <header className="h-16 border-b border-white/5 px-8 flex items-center justify-between glass" />
                             <main className="flex-1 relative">

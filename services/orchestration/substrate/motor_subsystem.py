@@ -165,13 +165,13 @@ except Exception as e:
                         },
                         duration_s=record.duration_s
                     )
-                await event_bus.emit(EVENT_SKILL_TRACE, {
-                    "job_id": str(p_id),
-                    "skill_id": step.agent_id,
-                    "success": record.success,
-                    "summary": f"{step.agent_id} action completed",
-                    "duration_s": round(record.duration_s, 3)
-                })
+                await event_bus.emit(EVENT_SKILL_TRACE, 
+                    job_id=str(p_id),
+                    skill_id=step.agent_id,
+                    success=record.success,
+                    summary=f"{step.agent_id} action completed",
+                    duration_s=round(record.duration_s, 3)
+                )
             except Exception as e:
                 _log.warning(f"Motor log persistence failed: {e}")
 

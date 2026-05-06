@@ -395,6 +395,10 @@
       "rejected": "Yama reddedildi"
     }
   },
+  "learning": "Öğrenim Merkezi",
+  "fingerprints": "Nöral Parmak İzleri",
+  "evolution": "Sistem Evrimi",
+  "safety": "Güvenlik Katmanı",
   "resources": {
     "dashboard": "Kontrol Paneli",
     "workflows": "İş Akışları",
@@ -483,7 +487,8 @@
     "selectUpdate": "DENETLEMEK İÇİN BİR GÜNCELLEME SEÇİN",
     "version": "VERSİYON",
     "lastSync": "SON SENKRONİZASYON",
-    "events": "OLAYLAR"
+    "events": "OLAYLAR",
+    "badge": "AGI EVRİMİ"
   },
   "safety": {
     "title": "Güvenlik Kontrolü",
@@ -498,7 +503,8 @@
     "errorRate": "HATA ORANI",
     "dailyExposure": "GÜNLÜK RİSK MARUZİYETİ",
     "safetyLedger": "ENTEGRE GÜVENLİK DEFTERİ",
-    "realTimeShield": "GERÇEK ZAMANLI KALKAN AKTİF"
+    "realTimeShield": "GERÇEK ZAMANLI KALKAN AKTİF",
+    "badge": "REGÜLATÖR SEVİYESİ"
   },
   "fingerprints": {
     "title": "Nöral Parmak İzleri",

@@ -19,8 +19,10 @@ import {
 } from "lucide-react";
 import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 import { Skeleton } from "@/components/dashboard/Skeleton";
-import { safeFetchJson } from "@/lib/api";
+import { ApiResponseError, safeFetchJson } from "@/lib/api";
+import { getAuthHeaders } from "@/lib/auth";
 import { getApiBaseUrl } from "@/lib/runtime";
+import { useTranslations } from "next-intl";
 
 interface Incident {
   id: string;
@@ -34,11 +36,14 @@ interface Incident {
 }
 
 export default function IncidentsPage() {
+  const t = useTranslations("incidents");
   const { notification } = App.useApp();
   const [isClient, setIsClient] = React.useState(false);
   const [incidents, setIncidents] = React.useState<Incident[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isError, setIsError] = React.useState(false);
+  const [errorSummary, setErrorSummary] = React.useState<string>("");
+  const [errorDetail, setErrorDetail] = React.useState<string>("");
   const [staleMeta, setStaleMeta] = React.useState<unknown>(null);
 
   React.useEffect(() => setIsClient(true), []);
@@ -48,11 +53,14 @@ export default function IncidentsPage() {
   const loadIncidents = React.useCallback(async () => {
     setIsLoading(true);
     setIsError(false);
+    setErrorSummary("");
+    setErrorDetail("");
 
     try {
+      const authHeaders = await getAuthHeaders();
       const response = await safeFetchJson<Incident[] | { data?: Incident[]; __sqv_meta?: unknown }>(
         `${apiBase}/governance/incidents?_end=10&_order=desc&_sort=created_at&_start=0`,
-        { useOfflineFallback: true },
+        { useOfflineFallback: true, headers: authHeaders },
       );
 
       const items = Array.isArray(response)
@@ -67,8 +75,25 @@ export default function IncidentsPage() {
       } else {
         setStaleMeta(null);
       }
-    } catch {
+    } catch (err) {
       setIsError(true);
+      if (err instanceof ApiResponseError) {
+        if (err.status === 401) {
+          setErrorSummary("Session Expired");
+          setErrorDetail("Please sign in again to view incidents.");
+        } else if (err.status === 403) {
+          setErrorSummary("Access Denied");
+          setErrorDetail("Missing permission: incident.view");
+        } else if (err.status === 404) {
+          setErrorSummary("Endpoint Not Found");
+          setErrorDetail("Incident endpoint is unavailable on this runtime profile.");
+        } else {
+          setErrorSummary(`API Error [${err.status}]`);
+          setErrorDetail(err.detail || "Unknown server error.");
+        }
+      } else if (err instanceof Error) {
+        setErrorDetail(err.message);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -83,9 +108,11 @@ export default function IncidentsPage() {
     async (id: string) => {
       try {
         const identityName = (window as any).__SQV_IDENTITY__?.name || "mimari-operator";
+        const authHeaders = await getAuthHeaders();
 
         await safeFetchJson(`${apiBase}/governance/incidents/${id}/resolve`, {
           method: "POST",
+          headers: authHeaders,
           body: JSON.stringify({ 
             resolution_notes: "Resolved from control plane incidents page",
             operator_id: identityName
@@ -120,6 +147,7 @@ export default function IncidentsPage() {
     });
 
     try {
+      const authHeaders = await getAuthHeaders();
       // Resolve sequentially to prevent network saturation
       for (const inc of incidents) {
         if (inc.status === "resolved") continue;
@@ -127,6 +155,7 @@ export default function IncidentsPage() {
         
         await safeFetchJson(`${apiBase}/governance/incidents/${inc.id}/resolve`, {
           method: "POST",
+          headers: authHeaders,
           body: JSON.stringify({ 
             resolution_notes: "Bulk resolution from control plane",
             operator_id: identityName
@@ -156,8 +185,8 @@ export default function IncidentsPage() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#060a12] p-8 text-gray-300 animate-in fade-in duration-1000">
       <ResourceHeader
-        title="Incident Control"
-        subtitle="Real-time Chaos Monitoring & Autonomous Mitigation"
+        title={t("title")}
+        subtitle={t("subtitle")}
         icon={<AlertTriangle size={32} />}
         badge="Critical Ops"
         staleMeta={staleMeta as never}
@@ -193,7 +222,7 @@ export default function IncidentsPage() {
             <div className="relative z-10 mb-12 flex items-center justify-between px-2">
               <div className="flex items-center gap-4">
                 <div className="h-2 w-2 animate-ping rounded-full bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.6)]" />
-                <h2 className="text-xs font-black uppercase tracking-[0.4em] text-white">Integrated Chaos Stream</h2>
+                <h2 className="text-xs font-black uppercase tracking-[0.4em] text-white">{t("streamTitle")}</h2>
               </div>
               <div className="flex items-center gap-6">
                 <div className="relative">
@@ -223,22 +252,23 @@ export default function IncidentsPage() {
                     <AlertTriangle size={32} />
                   </div>
                   <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-gray-500">
-                    Telemetry Connection Severed
+                    {errorSummary || t("connectionSevered")}
                   </p>
+                  {errorDetail ? <p className="max-w-xl text-xs font-bold text-gray-600">{errorDetail}</p> : null}
                   <button
                     onClick={() => void loadIncidents()}
                     className="text-[10px] font-black uppercase tracking-widest text-[var(--primary)] hover:underline"
                   >
-                    Re-establish Sync
+                    {t("reestablishSync")}
                   </button>
                 </div>
               ) : incidents.length === 0 ? (
                 <div className="py-32 text-center font-black uppercase tracking-[0.3em] italic text-gray-600 opacity-40">
-                  Aktif olay tespit edilmedi. Sistem otonom dengede.
+                  {t("noIncidents")}
                 </div>
               ) : (
                 incidents.map((inc) => (
-                  <EliteIncidentItem key={inc.id} incident={inc} onResolve={() => void handleResolve(inc.id)} />
+                  <EliteIncidentItem key={inc.id} incident={inc} onResolve={() => void handleResolve(inc.id)} t={t} />
                 ))
               )}
             </div>
@@ -256,8 +286,8 @@ export default function IncidentsPage() {
                 <ShieldAlert size={24} />
               </div>
               <div>
-                <h3 className="text-xl font-black uppercase tracking-tighter text-white">Severity Monitor</h3>
-                <p className="mt-1 text-[9px] font-black uppercase tracking-[0.2em] text-red-400">Hazard Phase 3</p>
+                <h3 className="text-xl font-black uppercase tracking-tighter text-white">{t("monitor")}</h3>
+                <p className="mt-1 text-[9px] font-black uppercase tracking-[0.2em] text-red-400">{t("hazardPhase", { phase: 3 })}</p>
               </div>
             </div>
 
@@ -274,13 +304,13 @@ export default function IncidentsPage() {
             </div>
             <h3 className="relative z-10 mb-8 flex items-center gap-3 text-xs font-black uppercase tracking-[0.3em] italic text-white">
               <Activity size={20} className="text-[var(--primary)]" />
-              Mitigation HUD
+              {t("mitigationHud")}
             </h3>
 
             <div className="relative z-10 space-y-6">
               <div className="rounded-2xl border border-white/5 bg-black/40 p-6 transition-all group-hover:border-[var(--primary)]/20">
                 <p className="mb-4 text-[10px] font-bold uppercase tracking-widest leading-relaxed text-gray-500">
-                  Otonom tamir motoru son 1 saatte düşük öncelikli olaylarda self-healing başarısı sağladı.
+                  {t("autonomousHealing")}
                 </p>
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-black text-green-400">92% SUCCESS</span>
@@ -296,7 +326,7 @@ export default function IncidentsPage() {
                 className="group/btn w-full rounded-2xl bg-[var(--primary)] py-5 text-[10px] font-black uppercase tracking-[0.2em] text-[#060a12] transition-all hover:shadow-[0_8px_32px_rgba(102,252,241,0.3)] active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <span className="inline-flex items-center justify-center gap-3">
-                  Tümünü Temizle
+                  {t("clearAll")}
                   <ChevronRight size={14} className="transition-transform group-hover/btn:translate-x-2" />
                 </span>
               </button>
@@ -311,9 +341,11 @@ export default function IncidentsPage() {
 function EliteIncidentItem({
   incident,
   onResolve,
+  t,
 }: {
   incident: Incident;
   onResolve: () => void;
+  t: any;
 }) {
   const isCritical = incident.severity === "critical";
   const isResolved = incident.status === "resolved";
@@ -386,12 +418,12 @@ function EliteIncidentItem({
               onClick={onResolve}
               className="rounded-xl border border-white/10 bg-white/5 px-6 py-2.5 text-[10px] font-black uppercase text-white transition-all hover:border-[var(--primary)] hover:bg-[var(--primary)] hover:text-[#060a12] active:scale-95"
             >
-              Aksiyon Al
+              {t("takeAction")}
             </button>
           ) : (
             <div className="flex items-center gap-2 rounded-xl border border-green-500/20 bg-green-500/10 px-4 py-2 text-green-500">
               <CheckCircle2 size={16} />
-              <span className="text-[9px] font-black uppercase tracking-widest">Çözüldü</span>
+              <span className="text-[9px] font-black uppercase tracking-widest">{t("resolved")}</span>
             </div>
           )}
         </div>

@@ -64,9 +64,14 @@ const icons: Record<string, React.ReactNode> = {
     "governance/proposals": <Signature size={20} />,
     "governance/ops/handover-status": <Rocket size={20} />,
     "governance/ops/launch-gates": <Target size={20} />,
+    "learning": <Brain size={20} />,
+    "fingerprints": <Fingerprint size={20} />,
     "learning/fingerprints": <Fingerprint size={20} />,
+    "strategy-memory": <Brain size={20} />,
     "learning/strategy-memory": <Brain size={20} />,
+    "negative-patterns": <ShieldOff size={20} />,
     "learning/negative-patterns": <ShieldOff size={20} />,
+    "adaptation-candidates": <Sparkles size={20} />,
     "learning/adaptation-candidates": <Sparkles size={20} />,
     "governance/inbox/governor/resilience/drills": <Dna size={20} />,
     "governance/inbox/governor/status": <Eye size={20} />,
@@ -111,13 +116,19 @@ const SidebarContent = () => {
         {
             title: t("groups.autonomous"),
             items: [
+                "learning",
+                "fingerprints",
+                "learning/fingerprints",
+                "strategy-memory",
+                "learning/strategy-memory",
+                "negative-patterns",
+                "learning/negative-patterns",
+                "adaptation-candidates",
+                "learning/adaptation-candidates",
                 "repair-lab/improvements", 
                 "repair-lab/dashboard", 
                 "repair-lab/repair-memory", 
                 "repair-lab/suggestions", 
-                "learning/fingerprints",
-                "learning/strategy-memory",
-                "learning/adaptation-candidates",
                 "verifiers", 
                 "governance/drills",
                 "evolution"
@@ -137,7 +148,7 @@ const SidebarContent = () => {
     const renderMenuItem = (item: any) => (
         <Link
             key={item.key}
-            href={item.route ?? "/"}
+            href={item.key === "learning" ? "/learning/fingerprints" : (item.route ?? "/")}
             title={isCollapsed ? translate(item.label, item.label) : ""}
             className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-400 group relative ${
                 selectedKey === item.key
@@ -169,7 +180,7 @@ const SidebarContent = () => {
     );
 
     return (
-        <aside className={`${isCollapsed ? "w-20" : "w-64"} h-full glass border-r border-white/5 flex flex-col overflow-hidden transition-all duration-500 ease-in-out`}>
+        <aside className={`${isCollapsed ? "w-20" : "w-64"} h-full shrink-0 glass border-r border-white/5 flex flex-col overflow-hidden transition-all duration-500 ease-in-out`}>
             <div className={`p-6 border-b border-white/5 bg-[#0b0c10]/40 relative group/header transition-all duration-500 ${isCollapsed ? "px-4" : ""}`}>
                 <div className="flex items-center gap-3">
                     <div className="relative group">
@@ -196,7 +207,17 @@ const SidebarContent = () => {
 
             <nav className={`flex-1 px-4 py-6 space-y-9 overflow-y-auto overflow-x-hidden custom-scrollbar transition-all ${isCollapsed ? "px-2" : ""}`}>
                 {groups.map((group) => {
-                    const groupItems = menuItems.filter(item => group.items.includes(item.name));
+                    const groupItems = menuItems.filter(item => {
+                        const normalizedName = item.name.toLowerCase();
+                        const normalizedKey = item.key?.toLowerCase();
+                        return group.items.some(gi => {
+                            const lowGi = gi.toLowerCase();
+                            return normalizedName === lowGi || 
+                                   normalizedKey === lowGi || 
+                                   normalizedName.endsWith(lowGi) ||
+                                   (item.route && item.route.includes(lowGi));
+                        });
+                    });
                     if (groupItems.length === 0) return null;
 
                     return (

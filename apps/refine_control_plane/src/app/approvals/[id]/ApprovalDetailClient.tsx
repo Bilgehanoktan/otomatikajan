@@ -32,13 +32,14 @@ import ClockCircleOutlined from "@ant-design/icons/lib/icons/ClockCircleOutlined
 import HistoryOutlined from "@ant-design/icons/lib/icons/HistoryOutlined";
 import DeploymentUnitOutlined from "@ant-design/icons/lib/icons/DeploymentUnitOutlined";
 import { safeFetchJson } from "@/lib/api";
+import { getAuthHeaders } from "@/lib/auth";
 
 const { Title, Text, Paragraph } = Typography;
 
 export default function ApprovalDetailClient() {
     const { notification } = App.useApp();
     const showResult = useShow({
-        resource: "approvals",
+        resource: "governance/approvals",
     });
     const { query: { data, isLoading, isError, refetch } } = showResult as any;
 
@@ -49,8 +50,10 @@ export default function ApprovalDetailClient() {
         setIsSubmitting(true);
         try {
             if (!approval) return;
+            const authHeaders = await getAuthHeaders();
             const response = await safeFetchJson(`/api/v1/governance/approvals/${approval.id}/decide`, {
                 method: "POST",
+                headers: authHeaders,
                 body: JSON.stringify({
                     approve: decision === "approved",
                     reason: comment,

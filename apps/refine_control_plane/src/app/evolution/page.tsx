@@ -16,6 +16,7 @@ import {
 import { useApiUrl, useCustom } from "@refinedev/core";
 import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 import { Skeleton } from "@/components/dashboard/Skeleton";
+import { useTranslations } from "next-intl";
 
 type SystemUpdate = {
   id: string;
@@ -40,6 +41,7 @@ export default function EvolutionPage() {
   const [isClient, setIsClient] = useState(false);
   const [selectedUpdate, setSelectedUpdate] = useState<SystemUpdate | null>(null);
   const apiUrl = useApiUrl();
+  const t = useTranslations("evolution");
 
   useEffect(() => {
     setIsClient(true);
@@ -69,19 +71,19 @@ export default function EvolutionPage() {
   return (
     <div className="min-h-screen bg-[#060a12] p-8 text-gray-300 animate-in fade-in duration-1000">
       <ResourceHeader
-        title="System Evolution"
-        subtitle="Autonomous Self-Update Ledger & Code Lineage"
+        title={t("title")}
+        subtitle={t("subtitle")}
         icon={<Dna size={32} className="text-[var(--primary)]" />}
-        badge="AGI Evolution"
+        badge={t("badge", { defaultMessage: "AGI Evrimi" })}
         actions={
           <div className="flex items-center gap-6">
             <div className="text-right">
-              <p className="text-[9px] text-gray-500 font-black uppercase tracking-widest leading-none">Version</p>
+              <p className="text-[9px] text-gray-500 font-black uppercase tracking-widest leading-none">{t("version")}</p>
               <p className="mt-2 text-sm font-black text-[var(--primary)]">{state?.current_version ?? "v1.0"}</p>
             </div>
             <div className="h-10 w-px bg-white/5" />
             <div className="text-right">
-              <p className="text-[9px] text-gray-500 font-black uppercase tracking-widest leading-none">Last Sync</p>
+              <p className="text-[9px] text-gray-500 font-black uppercase tracking-widest leading-none">{t("lastSync")}</p>
               <p className="mt-2 text-[10px] font-mono text-gray-400">
                 {state?.last_updated ? new Date(state.last_updated).toLocaleTimeString() : "READY"}
               </p>
@@ -97,10 +99,10 @@ export default function EvolutionPage() {
             <div className="mb-8 flex items-center justify-between px-2">
               <div className="flex items-center gap-3">
                 <History size={18} className="text-gray-500" />
-                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Update Stream</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white">{t("updateStream")}</h3>
               </div>
               <span className="rounded-full bg-[var(--primary)]/10 px-3 py-1 text-[9px] font-black text-[var(--primary)]">
-                {updates.length} EVENTS
+                {updates.length} {t("events")}
               </span>
             </div>
 
@@ -112,7 +114,7 @@ export default function EvolutionPage() {
               ) : updates.length === 0 ? (
                 <div className="flex flex-col items-center gap-4 py-20 text-center opacity-30">
                   <Cpu size={40} />
-                  <p className="text-[10px] font-black uppercase tracking-widest">No evolution logs yet.</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest">{t("noLogs")}</p>
                 </div>
               ) : (
                 updates.map((update) => {
@@ -269,7 +271,7 @@ export default function EvolutionPage() {
             <div className="flex h-full items-center justify-center py-40 opacity-20">
               <div className="flex flex-col items-center gap-6">
                 <Dna size={80} className="animate-pulse" />
-                <p className="font-black uppercase tracking-[0.5em]">Select an update to audit</p>
+                <p className="font-black uppercase tracking-[0.5em]">{t("selectUpdate")}</p>
               </div>
             </div>
           )}

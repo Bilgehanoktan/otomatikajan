@@ -153,6 +153,11 @@ class WorkloadRedirectStrategy(RecoveryStrategy):
     # Hangi ajan hangi ajanın yerine geçebilir
     FALLBACK_MAP: dict[str, list[str]] = {
         "architect":    ["backend_dev", "tech_writer"],
+        "self_governor": ["architect", "security", "backend_dev"],
+        "deerflow_planner": ["architect", "backend_dev", "qa_engineer"],
+        "planner": ["architect", "backend_dev"],
+        "strategist": ["architect", "backend_dev"],
+        "critic": ["qa_engineer", "architect"],
         "backend_dev":  ["architect", "devops"],
         "frontend_dev": ["tech_writer", "backend_dev"],
         "qa_engineer":  ["backend_dev", "security"],
@@ -166,6 +171,13 @@ class WorkloadRedirectStrategy(RecoveryStrategy):
         t0 = self._timer()
         fallbacks = self.FALLBACK_MAP.get(snapshot.agent_id, [])
         health = orch.get_health()
+        if not fallbacks:
+            dynamic_candidates = [
+                aid for aid, score in health.items()
+                if aid != snapshot.agent_id and score >= 0.5
+            ]
+            dynamic_candidates.sort(key=lambda aid: health.get(aid, 0), reverse=True)
+            fallbacks = dynamic_candidates[:3]
 
         # En sağlıklı yedek ajanı bul
         best_fallback = max(
@@ -390,9 +402,13 @@ def get_strategy_chain(error_type: str) -> list[RecoveryStrategy]:
     """
     chains = {
         "RateLimitError":     [ModelRotateStrategy(), CooldownStrategy(), PartialResultStrategy()],
+        "PaymentRequiredError": [WorkloadRedirectStrategy(), CooldownStrategy(), PartialResultStrategy()],
+        "ProviderUnavailableError": [ModelRotateStrategy(), WorkloadRedirectStrategy(), CooldownStrategy(), PartialResultStrategy()],
         "ContextLengthError": [PromptSimplifyStrategy(), ModelRotateStrategy(), PartialResultStrategy()],
         "TimeoutError":       [CooldownStrategy(), ModelRotateStrategy(), WorkloadRedirectStrategy(), PartialResultStrategy()],
-        "AuthError":          [ModelRotateStrategy(), WorkloadRedirectStrategy(), PartialResultStrategy()],
+        "AuthError":          [WorkloadRedirectStrategy(), ModelRotateStrategy(), CooldownStrategy(), PartialResultStrategy()],
+        "TokenExpiredError":  [WorkloadRedirectStrategy(), CooldownStrategy(), PartialResultStrategy()],
+        "NotFoundError":      [CodeRepairStrategy(), WorkloadRedirectStrategy(), PartialResultStrategy()],
         "NetworkError":       [CooldownStrategy(), ModelRotateStrategy(), PartialResultStrategy()],
         "DatabaseError":      [DatabaseRecoveryStrategy(), CooldownStrategy(), PartialResultStrategy()],
         "MemoryPressure":     [MemoryCleanupStrategy(), CooldownStrategy(), PartialResultStrategy()],

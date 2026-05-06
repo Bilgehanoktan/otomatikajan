@@ -2,9 +2,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from libs.config import ALLOWED_HEADERS, ALLOWED_METHODS, ALLOWED_ORIGINS, APP_ENV
+from services.observability.logging import RequestTracingMiddleware
 
 
 def configure_middleware(app: FastAPI) -> None:
+    # Request tracing first so all downstream handlers inherit trace/system headers.
+    app.add_middleware(RequestTracingMiddleware)
+
     allow_origins = ALLOWED_ORIGINS
 
     if APP_ENV == "production":

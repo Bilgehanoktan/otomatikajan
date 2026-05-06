@@ -208,17 +208,20 @@ class CEOEngine:
 
             # 1.1 Visual UX Scan (Faz 12)
             try:
-                from services.repair.improvement.observer import ImprovementObserver
-                # VisualUXObserver şu an için devre dışı veya yeri değişti
-                # from hub_cortex.improvement_engine.visual_observer import VisualUXObserver
-                # visual_obs = VisualUXObserver(db, self.model_orch)
-                # visual_ops = await visual_obs.scan()
-                visual_ops = []
-                if visual_ops:
-                    logger.info(f"👔 CEO Engine: Found {len(visual_ops)} visual/UX opportunities.")
-                    opportunities.extend(visual_ops)
+                from services.orchestration.agi.cognitive.aesthetic_auditor import aesthetic_auditor
+                visual_audit = await aesthetic_auditor.audit_aesthetics()
+                if visual_audit.get("status") == "completed" and visual_audit.get("score", 100) < 85:
+                    opportunities.append({
+                        "source_type": "visual_ux",
+                        "source_ref": f"aesthetic_{datetime.now(timezone.utc).strftime('%Y%m%d%H')}",
+                        "title": "Görsel Estetik ve UX Borcu Tespit Edildi",
+                        "description": f"Sistem estetik skoru %{visual_audit['score']}. Eksikler: {', '.join(visual_audit['debt'])}",
+                        "severity": "medium" if visual_audit["score"] > 70 else "high",
+                        "category": "ux",
+                        "evidence": visual_audit
+                    })
             except Exception as v_err:
-                logger.error(f"CEO Engine visual/improvement scan failed: {v_err}")
+                logger.error(f"CEO Engine visual scan failed: {v_err}")
 
             # 1.2 Repair Health Scan (Faz 12)
 
@@ -897,11 +900,47 @@ class CEOEngine:
             from sqlalchemy import func, select
 
             # 1. Temel Metrikler
-            res_ops = await db.execute(select(func.count(ImprovementOpportunity.id)).where(ImprovementOpportunity.status == "open"))
-            open_ops = res_ops.scalar() or 0
+            res_ops_count = await db.execute(select(func.count(ImprovementOpportunity.id)).where(ImprovementOpportunity.status == "open"))
+            open_ops_count = res_ops_count.scalar() or 0
 
-            res_sug = await db.execute(select(func.count(CEOSuggestedTask.id)).where(CEOSuggestedTask.status == "suggested"))
-            suggested_tasks = res_sug.scalar() or 0
+            res_sug_count = await db.execute(select(func.count(CEOSuggestedTask.id)).where(CEOSuggestedTask.status == "suggested"))
+            suggested_tasks_count = res_sug_count.scalar() or 0
+
+            # 1.1 Detaylı Listeler
+            res_ops = await db.execute(
+                select(ImprovementOpportunity)
+                .where(ImprovementOpportunity.status == "open")
+                .order_by(ImprovementOpportunity.priority_score.desc())
+                .limit(10)
+            )
+            opportunities = [
+                {
+                    "id": str(op.id),
+                    "title": op.title,
+                    "description": op.description,
+                    "severity": op.severity,
+                    "priority": round(float(op.priority_score or 0.0), 2),
+                    "source": op.source_type,
+                    "created_at": op.created_at.isoformat() if op.created_at else None
+                } for op in res_ops.scalars().all()
+            ]
+
+            res_sug = await db.execute(
+                select(CEOSuggestedTask)
+                .where(CEOSuggestedTask.status == "suggested")
+                .order_by(CEOSuggestedTask.created_at.desc())
+                .limit(10)
+            )
+            suggestions = [
+                {
+                    "id": str(sug.id),
+                    "title": sug.title,
+                    "description": sug.description,
+                    "reasoning": sug.reasoning,
+                    "impact": sug.potential_impact,
+                    "created_at": sug.created_at.isoformat() if sug.created_at else None
+                } for sug in res_sug.scalars().all()
+            ]
 
             # 2. Faz 8: Stratejik Görünüm ve Tahminleme
             try:
@@ -920,20 +959,16 @@ class CEOEngine:
                 next_action = "Operasyonel İzleme"
 
             # Eğer açık fırsat varsa aksiyonu güncelle
-            if open_ops > 0:
-                res_top = await db.execute(
-                    select(ImprovementOpportunity)
-                    .where(ImprovementOpportunity.status == "open")
-                    .order_by(ImprovementOpportunity.priority_score.desc())
-                    .limit(1)
-                )
-                top_op = res_top.scalars().first()
+            if open_ops_count > 0:
+                top_op = next((o for o in opportunities), None)
                 if top_op:
-                    next_action = f"Odak: {top_op.title}"
+                    next_action = f"Odak: {top_op['title']}"
 
             return {
-                "open_opportunity_count": open_ops,
-                "suggested_task_count": suggested_tasks,
+                "open_opportunity_count": open_ops_count,
+                "suggested_task_count": suggested_tasks_count,
+                "opportunities": opportunities,
+                "suggestions": suggestions,
                 "next_action": next_action,
                 "manifesto": manifesto,
                 "strategic_outlook": outlook,

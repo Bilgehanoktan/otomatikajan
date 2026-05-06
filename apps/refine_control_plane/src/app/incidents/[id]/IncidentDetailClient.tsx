@@ -10,7 +10,8 @@ import HistoryOutlined from "@ant-design/icons/lib/icons/HistoryOutlined";
 import NodeIndexOutlined from "@ant-design/icons/lib/icons/NodeIndexOutlined";
 import ToolOutlined from "@ant-design/icons/lib/icons/ToolOutlined";
 import WarningOutlined from "@ant-design/icons/lib/icons/WarningOutlined";
-import { safeFetchJson } from "@/lib/api";
+import { ApiResponseError, safeFetchJson } from "@/lib/api";
+import { getAuthHeaders } from "@/lib/auth";
 import { getApiBaseUrl } from "@/lib/runtime";
 
 const { Title, Text, Paragraph } = Typography;
@@ -56,17 +57,25 @@ export default function IncidentDetailClient({ id }: IncidentDetailClientProps) 
         setIsError(false);
 
         try {
+            const authHeaders = await getAuthHeaders();
             const response = await safeFetchJson<Incident>(`${apiBase}/governance/incidents/${id}`, {
                 useOfflineFallback: true,
+                headers: authHeaders,
             });
             setIncident(response);
-        } catch {
+        } catch (err) {
             setIsError(true);
             setIncident(null);
+            if (err instanceof ApiResponseError && (err.status === 401 || err.status === 403)) {
+                notification.warning({
+                    message: "Erisim dogrulanamadi",
+                    description: err.detail,
+                });
+            }
         } finally {
             setIsLoading(false);
         }
-    }, [apiBase, id]);
+    }, [apiBase, id, notification]);
 
     React.useEffect(() => {
         if (!isClient) return;
@@ -80,10 +89,13 @@ export default function IncidentDetailClient({ id }: IncidentDetailClientProps) 
         setIsSubmitting(true);
 
         try {
+            const authHeaders = await getAuthHeaders();
             const response = await safeFetchJson<Incident>(`${apiBase}/governance/incidents/${incident.id}/resolve`, {
                 method: "POST",
+                headers: authHeaders,
                 body: JSON.stringify({
                     resolution_notes: notes,
+                    operator_id: "admin_human",
                 }),
             });
 
@@ -93,9 +105,15 @@ export default function IncidentDetailClient({ id }: IncidentDetailClientProps) 
                 description: "Kayıt resolved durumuna geçirildi.",
             });
         } catch (err) {
+            const description =
+                err instanceof ApiResponseError
+                    ? err.detail
+                    : err instanceof Error
+                      ? err.message
+                      : "API ile iletisim kurulamadı.";
             notification.error({
                 message: "Aksiyon uygulanamadı",
-                description: err instanceof Error ? err.message : "API ile iletişim kurulamadı.",
+                description,
             });
         } finally {
             setIsSubmitting(false);

@@ -8,6 +8,7 @@ import secrets
 import time
 import logging
 import uuid
+import fnmatch
 from datetime import datetime, timedelta, timezone
 from typing import AsyncGenerator, Any, Optional, Union, List, Dict
 
@@ -92,6 +93,101 @@ def clear_auth_cookies(response: Response):
 
 # ── Access Control Service (SIF-01) ──────────────────────
 class AccessControlService:
+    _PERMISSION_ALIASES: Dict[str, List[str]] = {
+        "approval.decide": ["approveall.decide"],
+        "approval.view": ["approveall.view"],
+        "workflow.approve": ["approveall.decide"],
+    }
+
+    _BASELINE_ROLE_PERMISSIONS: Dict[str, List[str]] = {
+        "SOVEREIGN_PRIME": ["*"],
+        "ADMIN": ["*"],
+        "OPERATOR": [
+            "workflow.view",
+            "workflow.create",
+            "workflow.approve",
+            "workflow.replay",
+            "approveall.decide",
+            "approval.view",
+            "approval.decide",
+            "approval.*",
+            "incident.view",
+            "incident.resolve",
+            "incident.*",
+            "governor.view",
+            "governor.scan",
+            "governor.execute",
+            "governor.override",
+            "governance.proof.view",
+            "governance.proof.verify",
+            "governance.proof.export",
+            "governance.lineage.view",
+            "learning.view",
+            "governance.*",
+            "mesh.*",
+            "repair_lab.*",
+        ],
+        "AUDIT_OBSERVER": ["*.view"],
+        "GOVERNANCE_AGENT": [
+            "workflow.view",
+            "approveall.decide",
+            "approval.view",
+            "approval.decide",
+            "approval.*",
+            "incident.view",
+            "incident.resolve",
+            "incident.*",
+            "governor.view",
+            "governor.scan",
+            "governance.proof.view",
+            "governance.proof.verify",
+            "learning.view",
+            "governance.*",
+        ],
+    }
+
+    @classmethod
+    def _normalize_role(cls, role: str | None) -> str:
+        return str(role or "").strip().upper()
+
+    @classmethod
+    def _baseline_enabled(cls) -> bool:
+        raw = os.getenv("SIF_BASELINE_RBAC")
+        if raw is not None and str(raw).strip() != "":
+            return str(raw).strip().lower() in {"1", "true", "yes", "on"}
+        return APP_ENV in ("development", "local-dev")
+
+    @classmethod
+    def _permission_candidates(cls, permission: str) -> List[str]:
+        candidates = {permission}
+        for canonical, aliases in cls._PERMISSION_ALIASES.items():
+            alias_set = set(aliases)
+            if permission == canonical:
+                candidates.update(alias_set)
+            elif permission in alias_set:
+                candidates.add(canonical)
+                candidates.update(alias_set)
+        return sorted(candidates)
+
+    @classmethod
+    def _matches_permission_pattern(cls, permission: str, pattern: str) -> bool:
+        if pattern == "*" or permission == pattern:
+            return True
+        if pattern.endswith(".*"):
+            return permission.startswith(pattern[:-1])
+        return fnmatch.fnmatch(permission, pattern)
+
+    @classmethod
+    def _has_baseline_permission(cls, role: str | None, permission: str) -> bool:
+        normalized = cls._normalize_role(role)
+        patterns = cls._BASELINE_ROLE_PERMISSIONS.get(normalized, [])
+        permission_candidates = cls._permission_candidates(permission)
+        return any(
+            cls._matches_permission_pattern(candidate, pattern)
+            for candidate in permission_candidates
+            for pattern in patterns
+        )
+
     @staticmethod
     async def is_allowed(
         db: AsyncSession, 
@@ -106,9 +202,16 @@ class AccessControlService:
         Dinamik yetki kontrolü.
         Prime operatörler her şeye yetkilidir.
         """
+        logger.error(f"[SIF-01] Access check: role={role}, permission={permission}, identity_type={identity_type}")
+        normalized_role = AccessControlService._normalize_role(role)
+        permission_candidates = AccessControlService._permission_candidates(permission)
         # 1. PRIME yetkisi kontrolü
-        if role == "SOVEREIGN_PRIME":
+        if normalized_role == "SOVEREIGN_PRIME":
             return True, "Override: PRIME privileges granted."
+
+        # SIF-01: Base Observer Access
+        if normalized_role == "AUDIT_OBSERVER" and permission.endswith(".view"):
+            return True, "Authorized: View-only access granted for AUDIT_OBSERVER."
 
         # SIF-04: Autonomous Trust & Quarantine Response
         if identity_type == "system":
@@ -127,7 +230,7 @@ class AccessControlService:
             deny_query = select(PermissionGrant).where(
                 and_(
                     PermissionGrant.operator_id == identity_id if identity_type == "operator" else PermissionGrant.system_id == identity_id,
-                    PermissionGrant.permission == permission,
+                    PermissionGrant.permission.in_(permission_candidates),
                     PermissionGrant.effect == "deny"
                 )
             )
@@ -153,12 +256,12 @@ class AccessControlService:
 
         # 3. Check for ALLOW
         query = select(PermissionGrant).where(
-            and_(
-                PermissionGrant.operator_id == identity_id if identity_type == "operator" else PermissionGrant.system_id == identity_id,
-                PermissionGrant.permission == permission,
-                PermissionGrant.effect == "allow"
+                and_(
+                    PermissionGrant.operator_id == identity_id if identity_type == "operator" else PermissionGrant.system_id == identity_id,
+                    PermissionGrant.permission.in_(permission_candidates),
+                    PermissionGrant.effect == "allow"
+                )
             )
-        )
         
         # Scope kontrolü (En dardan en genişe bak: project -> global)
         if scope_type != "global":
@@ -173,7 +276,10 @@ class AccessControlService:
 
         res = await db.execute(query)
         if res.scalar_one_or_none():
-            return True, "Authorized via Permission Matrix (Allow)"
+            return True, "Authorized via Permission Matrix (Allow/Alias)"
+
+        if AccessControlService._baseline_enabled() and AccessControlService._has_baseline_permission(role, permission):
+            return True, "Authorized via Baseline Role Policy"
 
         return False, f"Missing required permission '{permission}' for scope '{scope_type}:{scope_value}'"
 

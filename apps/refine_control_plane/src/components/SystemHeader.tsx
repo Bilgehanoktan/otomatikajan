@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useApiUrl, useCustom } from "@refinedev/core";
+import { useApiUrl, useCustom, useGetIdentity } from "@refinedev/core";
 import {
     Activity,
     ShieldCheck,
@@ -29,11 +29,20 @@ const SystemHeaderContent = () => {
         }
     });
 
+    const { data: identity } = useGetIdentity<any>();
     const stats = data?.data as any;
     const running = stats?.running || 0;
     const successRate = stats?.success_rate_pct || 100;
     const failed = stats?.failed || 0;
     const isCrisisMode = (stats?.health || 100) < 10;
+
+    const [operatorEmail, setOperatorEmail] = React.useState<string | null>(null);
+
+    React.useEffect(() => {
+        if (typeof window !== "undefined") {
+            setOperatorEmail(window.localStorage.getItem("sqv_operator_email"));
+        }
+    }, []);
 
     return (
         <header className="h-16 border-b border-white/5 px-8 flex items-center justify-between glass-panel sticky top-0 z-50 backdrop-blur-xl">
@@ -143,10 +152,16 @@ const SystemHeaderContent = () => {
                     <div className="flex items-center gap-4 pl-5 border-l border-white/10">
                         <div className="flex flex-col items-end">
                             <span className="text-[11px] text-white font-black tracking-tight">{t("operator")}</span>
-                            <span className="text-[8px] text-[var(--secondary)] font-black uppercase tracking-[0.25em]">Egemen Yaz</span>
+                            <span className="text-[8px] text-[var(--secondary)] font-black uppercase tracking-[0.25em]">
+                                {identity?.name || identity?.email || operatorEmail || "GUEST"}
+                            </span>
                         </div>
-                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[var(--primary)]/20 to-transparent border border-[var(--primary)]/30 flex items-center justify-center group cursor-pointer hover:border-[var(--primary)]/60 transition-all">
-                            <UserCircle size={26} className="text-[var(--primary)] group-hover:scale-110 transition-all" />
+                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[var(--primary)]/20 to-transparent border border-[var(--primary)]/30 flex items-center justify-center group cursor-pointer hover:border-[var(--primary)]/60 transition-all overflow-hidden">
+                            {identity?.avatar ? (
+                                <img src={identity.avatar} alt="Avatar" className="w-full h-full object-cover group-hover:scale-110 transition-all" />
+                            ) : (
+                                <UserCircle size={26} className="text-[var(--primary)] group-hover:scale-110 transition-all" />
+                            )}
                         </div>
                     </div>
                 </div>

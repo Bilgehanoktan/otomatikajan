@@ -41,6 +41,8 @@ class ProductionSignoff(Base):
     approver_id    = Column(GUID, ForeignKey("operators.id"), nullable=True)
     approver_note  = Column(Text, nullable=True)
     evidence_summary = Column(SmartJSON(), nullable=True)
+    created_at     = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+
 
 class ValidationResult(Base):
     __tablename__ = "validation_results"

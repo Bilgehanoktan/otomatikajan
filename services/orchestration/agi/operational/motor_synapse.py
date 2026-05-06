@@ -173,11 +173,11 @@ except Exception as e:
                     data={"input": record.input_data, "output": record.output_data, "errors": record.errors},
                     duration_s=record.duration_s
                 )
-            await event_bus.emit(EVENT_SKILL_TRACE, {
-                "job_id": str(p_id), "skill_id": step.agent_id,
-                "success": record.success, "summary": f"Motor Synapse Pulse: {step.agent_id}",
-                "duration_s": round(record.duration_s, 3)
-            })
+            await event_bus.emit(EVENT_SKILL_TRACE, 
+                job_id=str(p_id), skill_id=step.agent_id,
+                success=record.success, summary=f"Motor Synapse Pulse: {step.agent_id}",
+                duration_s=round(record.duration_s, 3)
+            )
         except Exception as e:
             _log.warning(f"Motor synapse log persistence failed: {e}")
 

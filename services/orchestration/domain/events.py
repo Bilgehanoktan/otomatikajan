@@ -60,7 +60,6 @@ class EventBus:
         self._wildcard.append(handler)
 
     async def _get_redis(self) -> Any:
-        # Faz 12.2: Merkezi Redis istemcisini kullan (SRE Hardening)
         if EVENT_BUS_MODE == "local":
             return None
 
@@ -72,7 +71,6 @@ class EventBus:
             self._redis_conn = await get_redis_client()
             
             if self._redis_conn is not None:
-                # Listener başlat
                 if self._listen_task is None:
                     self._listen_task = asyncio.create_task(self._listen_redis())
             return self._redis_conn
@@ -81,9 +79,7 @@ class EventBus:
             get_logger("events").warning(f"⚠️  EventBus Redis bağlantı hatası: {e}")
             return None
 
-
     async def _listen_redis(self):
-        """Redis'ten gelen olayları dinle ve yerel handler'ları tetikle."""
         try:
             r = await self._get_redis()
             if not r: return
@@ -96,7 +92,6 @@ class EventBus:
                     try:
                         data = json.loads(message["data"])
                         
-                        # Eğer olay bu instance tarafından gönderildiyse, yerel handler'ları tekrar tetikleme
                         if data.get("sender_id") == self.instance_id:
                             continue
 
@@ -105,7 +100,6 @@ class EventBus:
                             payload=data["payload"],
                             timestamp=data.get("timestamp", datetime.now(timezone.utc).isoformat())
                         )
-                        # Yerel handler'ları tetikle (ama tekrar Redis'e basma!)
                         await self._emit_local(event)
                     except Exception as e:
                         print(f"⚠️  EventBus Redis mesaj işleme hatası: {e}")
@@ -114,10 +108,15 @@ class EventBus:
         except Exception as e:
             print(f"⚠️  EventBus Redis dinleme hatası: {e}")
 
-    async def emit(self, event_type: str, **payload):
-        event = DomainEvent(type=event_type, payload=payload)
+    async def emit(self, event_type: str, payload: Optional[dict] = None, **kwargs):
+        # Eğer payload dict olarak verildiyse onu kullan, yoksa kwargs'ı kullan
+        final_payload = payload.copy() if isinstance(payload, dict) else {}
+        if kwargs:
+            final_payload.update(kwargs)
+            
+        event = DomainEvent(type=event_type, payload=final_payload)
         
-        # 1. Redis'e bas (Dağıtık sistem için)
+        # 1. Redis'e bas
         r = await self._get_redis()
         if r:
             try:
@@ -125,12 +124,12 @@ class EventBus:
                     "type": event.type,
                     "payload": event.payload,
                     "timestamp": event.timestamp,
-                    "sender_id": self.instance_id  # Gönderen kimliğini ekle
+                    "sender_id": self.instance_id
                 }))
             except Exception as e:
                 print(f"[WARN] EventBus Redis publish hatasi: {e}")
 
-        # 2. Yerel handler'ları tetikle (Hız için)
+        # 2. Yerel handler'ları tetikle
         await self._emit_local(event)
 
     async def _emit_local(self, event: DomainEvent):
@@ -160,16 +159,11 @@ class EventBus:
                 for e in events[-n:]]
 
     async def shutdown(self):
-        """EventBus kaynaklarını temizle."""
         if self._listen_task is not None:
             self._listen_task.cancel()
             try:
-                # Type hint for Pyre (satisfy awaitable check)
-                awaitable_task: Any = self._listen_task
-                await awaitable_task
-            except asyncio.CancelledError:
-                pass
-            except Exception:
+                await self._listen_task
+            except (asyncio.CancelledError, Exception):
                 pass
 
         if self._redis_conn:

@@ -13,6 +13,7 @@ from services.observability.fleet_status_api import router as fleet_router
 from services.governance.mesh_actions_api import router as mesh_actions_router
 from services.workflow_api.repair_lab_router import router as repair_lab_router
 from services.workflow_api.fleet_router import router as fleet_orchestra_router
+from services.orchestration.ceo.router import router as ceo_router
 
 def register_routers(app: FastAPI):
     """
@@ -57,6 +58,7 @@ def register_routers(app: FastAPI):
     from services.workflow_api.governor_router import router as governor_router
     api_v1.include_router(learning_router)
     api_v1.include_router(governor_router, prefix="/governance/inbox/governor")
+    api_v1.include_router(ceo_router, prefix="/ceo")
 
     # Register the unified API router
     app.include_router(api_v1)

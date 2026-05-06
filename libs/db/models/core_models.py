@@ -247,6 +247,7 @@ class Project(Base):
     # source: "api" | "manual" | "telegram" | "scheduled"
     priority      = Column(SAEnum(TaskPriority, native_enum=False, length=16), default=TaskPriority.MEDIUM, nullable=False, index=True)
     # priority: "critical" | "high" | "medium" | "low"
+    priority_level = Column(Integer, default=50)           # 1-100 (for CEO engine)
     progress_pct  = Column(Integer, default=0)           # 0-100
     tags          = Column(SmartJSON(), default=list)           # ["tag1", "tag2"]
     deadline      = Column(DateTime(timezone=True), nullable=True)
@@ -263,6 +264,7 @@ class Project(Base):
     review_required     = Column(Boolean, default=False, nullable=False)
     checkpoint_data     = Column(SmartJSON(), default=dict)  # AGI Dayanıklılık: Son güvenli durum verisi
     goal_id             = Column(GUID, ForeignKey("sovereign_goals.id", ondelete="SET NULL"), nullable=True)
+    ceo_managed         = Column(Boolean, default=False, index=True)
     
     # ── Faz 23: Multi-Project Fleet & Isolation ──
     isolation_tier      = Column(Integer, default=2, nullable=False, index=True) 
@@ -413,6 +415,7 @@ class SovereignGoal(Base):
     target_date      = Column(DateTime(timezone=True), nullable=True)
     created_at       = Column(DateTime(timezone=True), default=utcnow)
     achieved_at      = Column(DateTime(timezone=True), nullable=True)
+    completed_at     = Column(DateTime(timezone=True), nullable=True) # Alias/Field for CEO Engine
 
     projects    = relationship("Project", back_populates="goal", 
                              primaryjoin="SovereignGoal.id == Project.goal_id",
@@ -654,6 +657,8 @@ class ImprovementOpportunity(Base):
     evidence_detail  = Column(Text)
     affected_files   = Column(SmartJSON(), default=list) # Phase 12.1: Tracking affected files
     status           = Column(String(32), default="open", index=True) # open, suggested, resolved
+    severity_score   = Column(Float, default=0.0)
+    impact           = Column(Float, default=0.0)
     created_at       = Column(DateTime(timezone=True), default=utcnow)
 
     suggestions      = relationship("CEOSuggestedTask", back_populates="opportunity", cascade="all, delete-orphan")
@@ -672,7 +677,10 @@ class CEODecision(Base):
     opportunity_id   = Column(GUID, ForeignKey("improvement_opportunities.id"))
     decision_type    = Column(String(64)) # suggest_task, auto_approve, ignore
     decision_summary = Column(Text)
+    summary          = Column(Text)     # Field for CEO Engine
+    context          = Column(SmartJSON(), default=dict) # Field for CEO Engine
     decision_source  = Column(String(64), default="llm")
+    applied_at       = Column(DateTime(timezone=True), default=utcnow) # Field for CEO Engine
     created_at       = Column(DateTime(timezone=True), default=utcnow)
 
 

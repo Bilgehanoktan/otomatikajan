@@ -23,6 +23,28 @@ export class ApiResponseError extends Error {
     }
 }
 
+const normalizeApiErrorDetail = (status: number, rawDetail: string): string => {
+    const detail = (rawDetail || "").trim();
+    const lowered = detail.toLowerCase();
+
+    if (status === 401) {
+        return "Oturum suresi doldu veya kimlik dogrulama eksik. Lutfen tekrar giris yapin.";
+    }
+
+    if (status === 403) {
+        if (lowered.includes("missing required permission") || lowered.includes("access denied")) {
+            return "Bu islem icin gerekli yetkiniz bulunmuyor.";
+        }
+        return "Bu islem icin erisim izniniz yok.";
+    }
+
+    if (status === 404) {
+        return "Istenen endpoint bu ortamda kullanilamiyor veya bulunamadi.";
+    }
+
+    return detail || `HTTP ${status}`;
+};
+
 /**
  * Basic Data Sealing (Demonstration level obfuscation)
  * Note: Since localStorage is not truly encrypted unless we use SubtleCrypto with a derived key,
@@ -58,14 +80,20 @@ async function tryRefreshSession(): Promise<boolean> {
                 body: "{}",
             });
 
-            if (!res.ok) return false;
-            const data = await res.json().catch(() => ({} as any));
+            if (!res.ok) {
+                console.warn(`[Auth] Yenileme başarısız: ${res.status}`);
+                return false;
+            }
+            
+            const data = await res.json().catch(() => null);
             const token = data?.access_token;
             if (token && typeof window !== "undefined") {
                 localStorage.setItem("sqv_access_token", token);
+                return true;
             }
-            return true;
-        } catch {
+            return false;
+        } catch (err) {
+            console.error("[Auth] Yenileme hatası:", err);
             return false;
         } finally {
             refreshInFlight = null;
@@ -132,18 +160,21 @@ export async function safeFetchJson<T = any>(url: string, options: SafeFetchOpti
                     !url.includes("/auth/login") &&
                     !url.includes("/auth/refresh")
                 ) {
+                    console.info(`[Auth] 401 Tespit Edildi: ${url}. Yenileniyor...`);
                     const refreshed = await tryRefreshSession();
                     if (refreshed) {
                         return safeFetchJson<T>(url, { ...options, skipAuthRefresh: true });
                     }
                 }
 
-                let detail = raw;
+                let detail = "Bilinmeyen sunucu hatası.";
                 try {
                     const jsonErr = JSON.parse(raw);
                     detail = jsonErr.detail || jsonErr.msg || raw;
-                } catch { detail = raw.slice(0, 500); }
-                throw new ApiResponseError(res.status, detail);
+                } catch { 
+                    detail = raw ? raw.slice(0, 200) : `HTTP ${res.status}`; 
+                }
+                throw new ApiResponseError(res.status, normalizeApiErrorDetail(res.status, detail));
             }
 
             if (!contentType.includes("application/json")) {

@@ -188,17 +188,21 @@ class SovereignCortex:
 
     async def start(self):
         from services.orchestration.application.agent_discovery import build_agents
+        from libs.config import SOVEREIGN_BACKGROUND_LOOPS_ENABLED
         async with self._lock:
             if self._is_running: return
             self._agents = build_agents()
             self._health = {aid: 1.0 for aid in self._agents}
             self._is_running = True
-            self.load_self_updater()
-            if self.improvement_coordinator:
-                await self.improvement_coordinator.start()
-            await self.watchdog.start()
-            asyncio.create_task(self.heal_engine.monitor_loop()) # Faz 12.5: Otonom İyileştirme Aktif
-            asyncio.create_task(self._metacognitive_drift_loop())
+            if SOVEREIGN_BACKGROUND_LOOPS_ENABLED:
+                self.load_self_updater()
+                if self.improvement_coordinator:
+                    await self.improvement_coordinator.start()
+                await self.watchdog.start()
+                asyncio.create_task(self.heal_engine.monitor_loop()) # Faz 12.5: Otonom İyileştirme Aktif
+                asyncio.create_task(self._metacognitive_drift_loop())
+            else:
+                _log.info("[SOVEREIGN] Lightweight startup active: autonomous background loops disabled.")
             _log.info(f"[SOVEREIGN] Bilişsel yönetim merkezi aktif. {len(self._agents)} ajan hazır.")
 
     def get_health(self) -> dict[str, float]:

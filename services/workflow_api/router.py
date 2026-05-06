@@ -707,22 +707,35 @@ async def approve_workflow(
         )
         await db.commit()
 
-    # Dispatch to standardized job queue to resume execution
+    # Dispatch to standardized job queue to resume execution.
+    # Guard against queue backend stalls so approval endpoint does not hang.
     from services.orchestration.application.job_queue import job_queue
-    await job_queue.enqueue(
-        "run_project",
-        project_id=project_id,
-        title=project.title,
-        description=project.description or "",
-        workflow_template=project.workflow_template or "default",
-        quality_profile=project.quality_profile or "standard",
-    )
+    dispatch_state = "enqueued"
+    try:
+        await asyncio.wait_for(
+            job_queue.enqueue(
+                "run_project",
+                project_id=project_id,
+                title=project.title,
+                description=project.description or "",
+                workflow_template=project.workflow_template or "default",
+                quality_profile=project.quality_profile or "standard",
+            ),
+            timeout=5,
+        )
+    except asyncio.TimeoutError:
+        dispatch_state = "deferred"
+        logger.warning("[WorkflowApprove] enqueue timeout for project=%s; workflow remains queued.", project_id)
+    except Exception as e:
+        dispatch_state = "deferred"
+        logger.error("[WorkflowApprove] enqueue failed for project=%s: %s", project_id, e)
 
     return {
         "status": "success",
         "msg": "Workflow approved and re-queued",
         "message": "Workflow approved and re-queued", 
-        "project_id": project_id
+        "project_id": project_id,
+        "dispatch_state": dispatch_state,
     }
 
 

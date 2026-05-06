@@ -200,6 +200,22 @@ JOB_QUEUE_HYDRATE_ON_STARTUP = _env_bool(
     "JOB_QUEUE_HYDRATE_ON_STARTUP",
     False if (APP_ENV == "development" and RUNTIME_PROFILE == "local-dev") else True
 )
+SOVEREIGN_LIGHTWEIGHT_STARTUP = _env_bool(
+    "SOVEREIGN_LIGHTWEIGHT_STARTUP",
+    APP_ENV == "development" and RUNTIME_PROFILE == "local-dev",
+)
+PRMR_AUDIT_ENABLED = _env_bool(
+    "PRMR_AUDIT_ENABLED",
+    not SOVEREIGN_LIGHTWEIGHT_STARTUP,
+)
+INPROCESS_JOB_WORKERS_ENABLED = _env_bool(
+    "INPROCESS_JOB_WORKERS_ENABLED",
+    not SOVEREIGN_LIGHTWEIGHT_STARTUP,
+)
+SOVEREIGN_BACKGROUND_LOOPS_ENABLED = _env_bool(
+    "SOVEREIGN_BACKGROUND_LOOPS_ENABLED",
+    not SOVEREIGN_LIGHTWEIGHT_STARTUP,
+)
 
 os.environ["RUNTIME_PROFILE"] = RUNTIME_PROFILE
 os.environ["QUEUE_BACKEND"] = QUEUE_BACKEND
@@ -212,6 +228,10 @@ os.environ["TELEGRAM_ENABLED"] = str(TELEGRAM_ENABLED).lower()
 os.environ["SCHEDULER_ENABLED"] = str(SCHEDULER_ENABLED).lower()
 os.environ["LOCAL_DEV_STRICT_MODE"] = str(LOCAL_DEV_STRICT_MODE).lower()
 os.environ["JOB_QUEUE_HYDRATE_ON_STARTUP"] = str(JOB_QUEUE_HYDRATE_ON_STARTUP).lower()
+os.environ["SOVEREIGN_LIGHTWEIGHT_STARTUP"] = str(SOVEREIGN_LIGHTWEIGHT_STARTUP).lower()
+os.environ["PRMR_AUDIT_ENABLED"] = str(PRMR_AUDIT_ENABLED).lower()
+os.environ["INPROCESS_JOB_WORKERS_ENABLED"] = str(INPROCESS_JOB_WORKERS_ENABLED).lower()
+os.environ["SOVEREIGN_BACKGROUND_LOOPS_ENABLED"] = str(SOVEREIGN_BACKGROUND_LOOPS_ENABLED).lower()
 
 # ── Temel ayarlar ─────────────────────────────────────────
 DEBUG     = os.getenv("DEBUG", "true" if is_dev else "false").lower() == "true"

@@ -28,9 +28,15 @@ class KineticArbiter:
         "self_governor": 10.0,
         "security":       9.0,
         "architect":      8.0,
+        "deerflow_planner": 7.5,
+        "planner":        7.0,
         "strategist":     7.0,
         "backend_dev":    5.0,
+        "frontend_dev":   5.0,
+        "devops":         5.0,
         "qa_engineer":    4.0,
+        "critic":         4.0,
+        "researcher":     4.0,
         "tech_writer":    2.0,
         "general":        3.0
     }
@@ -43,13 +49,15 @@ class KineticArbiter:
         self._provider_semaphores: Dict[str, asyncio.Semaphore] = {}
         self._worker_task: Optional[asyncio.Task] = None
 
-    async def _ensure_queue(self):
+    @property
+    def queue(self) -> asyncio.PriorityQueue:
         if self._queue is None:
             self._queue = asyncio.PriorityQueue()
+        return self._queue
 
     async def start(self):
         if not self._running:
-            await self._ensure_queue()
+            _ = self.queue # Ensure init
             self._running = True
             self._worker_task = asyncio.create_task(self._arbitration_loop())
             _log.info("[ARBITER] Kinetik Kaynak Dağıtıcı aktif.")
@@ -66,7 +74,6 @@ class KineticArbiter:
         Bir görev için yürütme slotu talep eder. 
         Kuyruğa girer ve önceliğe göre onay ( Future) döner.
         """
-        await self._ensure_queue()
         if not self._running:
             await self.start()
 
@@ -83,7 +90,7 @@ class KineticArbiter:
         
         req = ArbiterRequest(priority=priority_val, timestamp=time.time(), agent_id=agent_role, task_id=task_id)
         
-        await self._queue.put(req)
+        await self.queue.put(req)
         _log.info(f"[ARBITER] Slot talebi QUEUE'ya eklendi: {agent_role} (Prio: {priority_val:.2f}, ID: {task_id})")
         
         return await req.future
@@ -94,7 +101,7 @@ class KineticArbiter:
             try:
                 if self._active_slots < self._max_total_slots:
                     # Kuyruktan en öncelikli işi al
-                    req: ArbiterRequest = await self._queue.get()
+                    req: ArbiterRequest = await self.queue.get()
                     _log.debug(f"[ARBITER] Kuyruktan POP edildi: {req.agent_id} (Prio: {req.priority:.2f}, ID: {req.task_id})")
                     
                     # Slotu onayla

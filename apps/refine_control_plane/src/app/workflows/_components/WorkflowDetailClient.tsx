@@ -29,7 +29,7 @@ import RocketOutlined from "@ant-design/icons/lib/icons/RocketOutlined";
 import SafetyOutlined from "@ant-design/icons/lib/icons/SafetyOutlined";
 import SyncOutlined from "@ant-design/icons/lib/icons/SyncOutlined";
 import ThunderboltOutlined from "@ant-design/icons/lib/icons/ThunderboltOutlined";
-import { safeFetchJson } from "@/lib/api";
+import { ApiResponseError, safeFetchJson } from "@/lib/api";
 import { getAuthHeaders } from "@/lib/auth";
 import { getApiBaseUrl } from "@/lib/runtime";
 
@@ -179,7 +179,11 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
     React.useEffect(() => {
         let interval: ReturnType<typeof setInterval> | undefined;
         const normalizedStatus = String(workflow?.status || "").toLowerCase();
-        if (autoRefresh && workflow && ["running", "waiting_approval", "pending_approval", "pending"].includes(normalizedStatus)) {
+        if (
+            autoRefresh &&
+            workflow &&
+            ["running", "waiting_approval", "pending_approval", "pending", "queued", "resuming"].includes(normalizedStatus)
+        ) {
             interval = setInterval(() => {
                 void loadWorkflow();
             }, 5000);
@@ -245,6 +249,13 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                 });
             }
         } catch (err) {
+            if (err instanceof ApiResponseError && err.status === 403) {
+                notification.error({
+                    message: t("notifications.networkError"),
+                    description: t("notifications.permissionDenied"),
+                });
+                return;
+            }
             notification.error({
                 message: t("notifications.networkError"),
                 description: err instanceof Error ? err.message : t("notifications.networkErrorDesc"),
@@ -480,7 +491,15 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                         }
                     >
                         {steps.length === 0 ? (
-                            <Empty description={<span style={{ color: "#666" }}>{t("noSteps")}</span>} />
+                            <Empty
+                                description={
+                                    <span style={{ color: "#666" }}>
+                                        {["queued", "pending", "resuming"].includes(String(workflow.status || "").toLowerCase())
+                                            ? t("queueWaiting")
+                                            : t("noSteps")}
+                                    </span>
+                                }
+                            />
                         ) : (
                             <Steps
                                 direction="vertical"
@@ -669,7 +688,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-                    {["waiting_approval", "pending_approval", "pending", "queued"].includes(String(workflow.status || "").toLowerCase()) ? (
+                    {["waiting_approval", "pending_approval", "pending"].includes(String(workflow.status || "").toLowerCase()) ? (
                         <Card
                             variant="borderless"
                             style={{ background: "rgba(102, 252, 241, 0.05)", border: "1px dashed #66fcf1", borderRadius: "16px" }}
@@ -695,7 +714,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                                     onClick={() => void handleApprove()}
                                     loading={isSubmitting}
                                 >
-                                    {String(workflow.status || "").toLowerCase() === "queued" ? "Zorla / Yeniden Kuyruğa Al" : t("approveAndContinue")}
+                                    {t("approveAndContinue")}
                                 </Button>
                             </Space>
                         </Card>

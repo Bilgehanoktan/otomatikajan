@@ -13,26 +13,35 @@ from services.auth.jwt_auth import require_permission
 router = APIRouter(tags=["Governance Control Plane"])
 logger = logging.getLogger(__name__)
 
+# Top-level imports for IDE support and type-safety
+from libs.db.session import AsyncSessionLocal
+from libs.db.models.core_models import (
+    Project, SovereignGoal, OperationalIncident, ApprovalRequest, 
+    SystemImprovement, ImprovementOpportunity, CEOSuggestedTask, 
+    LLMCostLog, SovereignEvidence, CEODecision, FederationTrust
+)
+from services.governance.lineage_service import LineageService
+from libs.db.models.lineage_models import DecisionLineage, PolicyEvolution
+from libs.db.models.governance_models import ProductionSignoff, ValidationResult, ValidationType
+from libs.db.models.learning_models import ErrorFingerprint
+from sqlalchemy import select, func, desc
+from datetime import datetime, timezone, timedelta
+
 @router.get("/analytics/costs/summary")
 async def get_cost_summary():
     """
     Returns summarized cost data for the Sovereignty Runway dashboard.
     Moved from legacy bridge_router.
     """
-    from libs.db.session import AsyncSessionLocal
-    from libs.db.models.core_models import LLMCostLog, Project
-    from sqlalchemy import select, func
-    from datetime import datetime, timezone, timedelta
-
     async with AsyncSessionLocal() as db:
         try:
             # 1. Total Cost (Last 30 days)
             start_date = datetime.now(timezone.utc) - timedelta(days=30)
-            cost_q = select(func.sum(LLMCostLog.cost_usd)).where(LLMCostLog.created_at >= start_date)
+            cost_q = select(func.sum(LLMCostLog.cost_usd)).filter(LLMCostLog.created_at >= start_date)
             total_cost = (await db.execute(cost_q)).scalar() or 0.0
 
             # 2. Project Budgets vs Actuals
-            proj_q = select(Project).where(Project.budget_limit > 0).limit(5)
+            proj_q = select(Project).filter(Project.budget_limit > 0).limit(5)
             projects = (await db.execute(proj_q)).scalars().all()
 
             budget_alerts = []
@@ -88,6 +97,8 @@ class FingerprintOut(BaseModel):
     last_seen_at: datetime
     normalized_message: Optional[str] = None
     risk_domain: Optional[str] = None
+    is_active: bool = True
+    meta_data: Dict[str, Any] = {}
 
 class SystemicSummaryOut(BaseModel):
     total_anomalies: int
@@ -190,6 +201,16 @@ class SignoffOut(BaseModel):
     status: str
     created_at: datetime
 
+class OpportunityOut(BaseModel):
+    id: str
+    source_type: str
+    title: str
+    description: str
+    status: str
+    severity_score: float
+    impact: float
+    created_at: datetime
+
 @router.post("/standby/reactivate")
 async def reactivate_from_standby(cmd: StandbyCommand):
     """
@@ -214,23 +235,18 @@ async def get_governance_status():
     """
     Returns a unified governance status report with real telemetry from fingerprints and improvements.
     """
-    from libs.db.session import AsyncSessionLocal
-    from libs.db.models.learning_models import ErrorFingerprint
-    from libs.db.models.core_models import SystemImprovement
-    from sqlalchemy import select, func
-
     is_in_standby = StandbyManager.is_in_standby()
     
     async with AsyncSessionLocal() as db:
         try:
             # Count active fingerprints
-            f_count = (await db.execute(select(func.count(ErrorFingerprint.id)).where(ErrorFingerprint.is_active == True))).scalar() or 0
+            f_count = (await db.execute(select(func.count()).select_from(ErrorFingerprint).where(ErrorFingerprint.is_active == True))).scalar() or 0
             # Count pending improvements
             i_count = (await db.execute(select(func.count(SystemImprovement.id)).where(SystemImprovement.status == "pending"))).scalar() or 0
             
             # Count active drills (Real query)
             from libs.db.models.governance_models import ValidationResult, ValidationType
-            drill_count_q = select(func.count(ValidationResult.id)).where(
+            drill_count_q = select(func.count()).select_from(ValidationResult).filter(
                 ValidationResult.validation_type == ValidationType.DRILL,
                 ValidationResult.status == "RUNNING"
             )
@@ -262,19 +278,14 @@ async def get_governance_status():
 @router.get("/systemic-summary", response_model=SystemicSummaryOut)
 async def get_systemic_summary():
     """Unified view of fingerprints and pending improvements for the Mission Control dashboard."""
-    from libs.db.session import AsyncSessionLocal
-    from libs.db.models.learning_models import ErrorFingerprint
-    from libs.db.models.core_models import SystemImprovement
-    from sqlalchemy import select
-
     async with AsyncSessionLocal() as db:
         try:
             # Fetch active fingerprints
-            f_res = await db.execute(select(ErrorFingerprint).where(ErrorFingerprint.is_active == True).order_by(ErrorFingerprint.last_seen_at.desc()).limit(10))
+            f_res = await db.execute(select(ErrorFingerprint).filter(ErrorFingerprint.is_active == True).order_by(ErrorFingerprint.last_seen_at.desc()).limit(10))
             fingerprints = f_res.scalars().all()
             
             # Fetch pending improvements
-            i_res = await db.execute(select(SystemImprovement).where(SystemImprovement.status == "pending").order_by(SystemImprovement.created_at.desc()).limit(10))
+            i_res = await db.execute(select(SystemImprovement).filter(SystemImprovement.status == "pending").order_by(SystemImprovement.created_at.desc()).limit(10))
             improvements = i_res.scalars().all()
 
             summary_items = []
@@ -318,18 +329,17 @@ async def get_systemic_summary():
                 items=[]
             )
 
-@router.get("/fingerprints", response_model=List[FingerprintOut])
+@router.get("/fingerprints")
+@router.get("/fingerprints/")
+@router.get("/learning/fingerprints")
+@router.get("/learning/fingerprints/")
 async def list_fingerprints(
     response: Response,
     limit: int = 50,
     offset: int = 0,
 ):
-    from libs.db.session import AsyncSessionLocal
-    from libs.db.models.learning_models import ErrorFingerprint
-    from sqlalchemy import select, func
-
     async with AsyncSessionLocal() as db:
-        count_q = select(func.count(ErrorFingerprint.id))
+        count_q = select(func.count()).select_from(ErrorFingerprint)
         total_count = (await db.execute(count_q)).scalar()
         response.headers["x-total-count"] = str(total_count)
         response.headers["Access-Control-Expose-Headers"] = "x-total-count"
@@ -349,7 +359,9 @@ async def list_fingerprints(
                 first_seen_at=i.first_seen_at,
                 last_seen_at=i.last_seen_at,
                 normalized_message=i.normalized_message,
-                risk_domain=i.risk_domain
+                risk_domain=i.risk_domain,
+                is_active=i.is_active,
+                meta_data=i.meta_data
             ) for i in items
         ]
 
@@ -411,7 +423,7 @@ class PolicyEvolutionOut(BaseModel):
     id: str
     policy_key: str
     old_value: Optional[Dict[str, Any]] = None
-    new_value: Dict[str, Any] = None
+    new_value: Optional[Dict[str, Any]] = None
     change_reason: str
     decision_id: Optional[str] = None
     created_at: datetime
@@ -441,12 +453,8 @@ async def list_approvals(
     offset: int = 0,
     identity: Dict[str, Any] = Depends(require_permission("approval.view"))
 ):
-    from libs.db.session import AsyncSessionLocal
-    from libs.db.models.core_models import ApprovalRequest
-    from sqlalchemy import select, func
-
     async with AsyncSessionLocal() as db:
-        count_q = select(func.count(ApprovalRequest.id))
+        count_q = select(func.count()).select_from(ApprovalRequest)
         if status:
             count_q = count_q.where(ApprovalRequest.status == status)
         total_count = (await db.execute(count_q)).scalar()
@@ -455,7 +463,7 @@ async def list_approvals(
 
         q = select(ApprovalRequest).order_by(ApprovalRequest.created_at.desc()).limit(limit).offset(offset)
         if status:
-            q = q.where(ApprovalRequest.status == status)
+            q = q.filter(ApprovalRequest.status == status)
         res = await db.execute(q)
         items = res.scalars().all()
 
@@ -476,10 +484,6 @@ async def list_approvals(
 
 @router.get("/approvals/{id}", response_model=ApprovalOut)
 async def get_approval(id: str):
-    from libs.db.session import AsyncSessionLocal
-    from libs.db.models.core_models import ApprovalRequest
-    from sqlalchemy import select
-
     async with AsyncSessionLocal() as db:
         res = await db.execute(select(ApprovalRequest).where(ApprovalRequest.id == id))
         i = res.scalar_one_or_none()
@@ -582,11 +586,6 @@ async def update_approval_status(
 
 @router.post("/approvals/{id}/decide")
 async def decide_approval(id: str, dec: ApprovalDecision):
-    from libs.db.session import AsyncSessionLocal
-    from libs.db.models.core_models import ApprovalRequest
-    from services.governance.lineage_service import LineageService
-    from sqlalchemy import select
-
     async with AsyncSessionLocal() as db:
         res = await db.execute(select(ApprovalRequest).where(ApprovalRequest.id == id))
         i = res.scalar_one_or_none()
@@ -652,10 +651,6 @@ async def list_improvements(
     limit: int = 50,
     offset: int = 0,
 ):
-    from libs.db.session import AsyncSessionLocal
-    from libs.db.models.core_models import SystemImprovement
-    from sqlalchemy import select, func
-
     async with AsyncSessionLocal() as db:
         count_q = select(func.count(SystemImprovement.id))
         total_count = (await db.execute(count_q)).scalar()
@@ -681,11 +676,6 @@ async def list_improvements(
 
 @router.patch("/improvements/{id}", response_model=ImprovementOut)
 async def update_improvement(id: str, patch_data: ImprovementUpdate):
-    from libs.db.session import AsyncSessionLocal
-    from libs.db.models.core_models import SystemImprovement
-    from sqlalchemy import select
-    import uuid
-
     try:
         uid = uuid.UUID(id)
     except ValueError:
@@ -714,10 +704,6 @@ async def update_improvement(id: str, patch_data: ImprovementUpdate):
 
 @router.get("/federation/trust")
 async def get_federation_trust(response: Response):
-    from libs.db.session import AsyncSessionLocal
-    from libs.db.models.core_models import FederationTrust
-    from sqlalchemy import select
-
     async with AsyncSessionLocal() as db:
         q = select(FederationTrust)
         res = await db.execute(q)
@@ -736,10 +722,98 @@ async def list_signoffs(
     from sqlalchemy import select, func
 
     async with AsyncSessionLocal() as db:
-        count_q = select(func.count(ProductionSignoff.id))
+        count_q = select(func.count()).select_from(ProductionSignoff)
         total_count = (await db.execute(count_q)).scalar()
         response.headers["x-total-count"] = str(total_count)
         response.headers["Access-Control-Expose-Headers"] = "x-total-count"
+
+        q = select(ProductionSignoff).order_by(ProductionSignoff.created_at.desc()).limit(limit).offset(offset)
+        res = await db.execute(q)
+        items = res.scalars().all()
+        return items
+
+@router.get("/opportunities", response_model=List[OpportunityOut])
+async def list_opportunities(
+    response: Response,
+    limit: int = Query(50),
+    offset: int = Query(0),
+    status: Optional[str] = None
+):
+    """Lists systemic improvement opportunities detected by auditors or engines."""
+    async with AsyncSessionLocal() as db:
+        count_q = select(func.count()).select_from(ImprovementOpportunity)
+        if status:
+            count_q = count_q.where(ImprovementOpportunity.status == status)
+        
+        total_count = (await db.execute(count_q)).scalar()
+        response.headers["x-total-count"] = str(total_count)
+        response.headers["Access-Control-Expose-Headers"] = "x-total-count"
+
+        q = select(ImprovementOpportunity).order_by(ImprovementOpportunity.created_at.desc()).limit(limit).offset(offset)
+        if status:
+            q = q.where(ImprovementOpportunity.status == status)
+            
+        res = await db.execute(q)
+        items = res.scalars().all()
+        return [
+            OpportunityOut(
+                id=str(i.id),
+                source_type=i.source_type,
+                title=i.title,
+                description=i.description,
+                status=i.status,
+                severity_score=i.severity_score or 0.0,
+                impact=i.impact or 0.0,
+                created_at=i.created_at
+            ) for i in items
+        ]
+
+@router.post("/opportunities/{id}/escalate")
+async def escalate_opportunity(id: str, identity: Dict[str, Any] = Depends(require_permission("audit.create"))):
+    """Converts an opportunity into a CEO-managed project task for autonomous execution."""
+    import uuid
+    try:
+        uid = uuid.UUID(id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid ID format")
+
+    async with AsyncSessionLocal() as db:
+        opp = await db.get(ImprovementOpportunity, uid)
+        if not opp:
+            raise HTTPException(status_code=404, detail="Opportunity not found")
+
+        # Create a project to address this
+        proj_id = uuid.uuid4()
+        new_project = Project(
+            id=proj_id,
+            title=f"[ESCALATED] {opp.title}",
+            description=opp.description,
+            status="pending",
+            priority_level=70, # High priority for manual escalation
+            ceo_managed=True,
+            workflow_template="default",
+            quality_profile="production",
+            notes=f"Escalated by operator {identity.get('id')} from Opportunity {id}"
+        )
+        db.add(new_project)
+        opp.status = "resolved" # Or "in_progress" depending on flow
+        
+        await db.commit()
+        
+        # Enqueue if possible
+        try:
+            from workers.workflow_worker.tasks.celery_app import celery_app
+            celery_app.send_task(
+                "run_project_task",
+                args=[str(proj_id), new_project.title, new_project.description],
+                kwargs={"workflow_template": "default", "quality_profile": "production"}
+            )
+            new_project.status = "queued"
+            await db.commit()
+        except:
+            pass
+
+        return {"status": "SUCCESS", "project_id": str(proj_id)}
 
         q = select(ProductionSignoff).order_by(ProductionSignoff.created_at.desc()).limit(limit).offset(offset)
         res = await db.execute(q)
@@ -809,7 +883,7 @@ async def list_lineage(
 
     async with AsyncSessionLocal() as db:
         try:
-            count_q = select(func.count(DecisionLineage.id))
+            count_q = select(func.count()).select_from(DecisionLineage)
             total_count = (await db.execute(count_q)).scalar()
             response.headers["x-total-count"] = str(total_count)
             response.headers["Access-Control-Expose-Headers"] = "x-total-count"
@@ -922,10 +996,14 @@ async def list_drills(
         return [
             DrillRecordOut(
                 id=str(i.id),
-                scenario=i.test_suite.replace("Drill_", ""),
-                status=i.status.value if hasattr(i.status, "value") else str(i.status),
-                outcome="SUCCESS" if i.status == "PASS" else "FAILED",
-                duration_seconds=getattr(i, "metrics", {}).get("duration", 0),
+                scenario=(i.test_suite or "Unknown_Drill").replace("Drill_", ""),
+                status=(i.status.value if hasattr(i.status, "value") else str(i.status)),
+                outcome=(
+                    "SUCCESS"
+                    if (i.status.value if hasattr(i.status, "value") else str(i.status)).upper() == "PASS"
+                    else "FAILED"
+                ),
+                duration_seconds=((i.metrics or {}).get("duration") or 0),
                 created_at=i.created_at
             ) for i in items
         ]
@@ -1044,12 +1122,12 @@ async def list_audit_bundles(response: Response):
             bundles_out.append(
                 AuditBundleOut(
                     id=str(i.id),
-                    name=i.bundle_name,
-                    purpose=(i.evidence_metadata or {}).get("purpose", "AUDIT"),
-                    project=(i.evidence_metadata or {}).get("scope", "Sovereign AGI"),
+                    name=str(i.bundle_name),
+                    purpose=str((i.evidence_metadata or {}).get("purpose", "AUDIT")),
+                    project=str((i.evidence_metadata or {}).get("scope", "Sovereign AGI")),
                     created_at=i.created_at,
-                    operator=i.created_by,
-                    seal=i.integrity_hash or "SHA256:NOT_SEALED",
+                    operator=str(i.created_by),
+                    seal=str(i.integrity_hash or "SHA256:NOT_SEALED"),
                     size=size_str,
                     status="sealed" if i.integrity_hash else "pending"
                 )
@@ -1064,27 +1142,28 @@ async def create_audit_bundle_endpoint(
     bundle_in: AuditBundleCreate,
     identity: Dict[str, Any] = Depends(require_permission("audit.create"))
 ):
-    from services.compliance.compliance_service import ComplianceService
+    from services.governance.compliance_service import ComplianceService
     from datetime import datetime, timezone, timedelta
     
     start = bundle_in.start_time or (datetime.now(timezone.utc) - timedelta(days=30))
     end = bundle_in.end_time or datetime.now(timezone.utc)
     
-    bundle = await ComplianceService.create_audit_bundle(
+    bundle = await ComplianceService.generate_audit_bundle(
         name=bundle_in.name,
-        start=start,
-        end=end,
-        creator=str(identity["id"])
+        purpose=bundle_in.purpose or "AUDIT",
+        start_time=start,
+        end_time=end,
+        operator_id=str(identity["id"])
     )
     
     return AuditBundleOut(
         id=str(bundle.id),
-        name=bundle.bundle_name,
-        purpose=bundle_in.purpose or "AUDIT",
+        name=str(bundle.bundle_name),
+        purpose=str(bundle_in.purpose or "AUDIT"),
         project="Sovereign Control Plane",
         created_at=bundle.created_at,
-        operator=bundle.created_by,
-        seal=bundle.integrity_hash,
+        operator=str(bundle.created_by),
+        seal=str(bundle.integrity_hash),
         size="0.1 MB",
         status="sealed"
     )
@@ -1102,14 +1181,14 @@ async def list_incidents(
     from sqlalchemy import select, desc, func
 
     async with AsyncSessionLocal() as session:
-        query = select(OperationalIncident).order_by(desc(OperationalIncident.created_at)).offset(offset).limit(limit)
+        query = select(OperationalIncident).order_by(OperationalIncident.created_at.desc()).offset(offset).limit(limit)
         if status:
             query = query.filter(OperationalIncident.status == status)
         
         result = await session.execute(query)
         items = result.scalars().all()
         
-        total_query = select(func.count(OperationalIncident.id))
+        total_query = select(func.count()).select_from(OperationalIncident)
         if status:
             total_query = total_query.filter(OperationalIncident.status == status)
         total = await session.scalar(total_query)
@@ -1329,13 +1408,13 @@ async def list_axiology_logs(
     from sqlalchemy import select, func
 
     async with AsyncSessionLocal() as db:
-        count_q = select(func.count(SovereignEvidence.id)).where(SovereignEvidence.evidence_type == "axiology_audit")
+        count_q = select(func.count()).select_from(SovereignEvidence).filter(SovereignEvidence.evidence_type == "axiology_audit")
         total_count = (await db.execute(count_q)).scalar()
         response.headers["x-total-count"] = str(total_count)
         response.headers["Access-Control-Expose-Headers"] = "x-total-count"
 
-        q = select(SovereignEvidence).where(SovereignEvidence.evidence_type == "axiology_audit").order_by(SovereignEvidence.created_at.desc()).limit(limit).offset(offset)
-        res = await db.execute(q)
+        query = select(SovereignEvidence).filter(SovereignEvidence.evidence_type == "axiology_audit").order_by(SovereignEvidence.created_at.desc()).offset(offset).limit(limit)
+        res = await db.execute(query)
         items = res.scalars().all()
 
         return [

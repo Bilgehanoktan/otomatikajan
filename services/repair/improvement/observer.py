@@ -6,6 +6,7 @@ Sistemdeki iyilestirme firsatlarini tarar.
 
 import uuid
 from typing import Any, Dict, List
+from datetime import datetime, timezone
 
 from libs.db.models.core_models import ImprovementOpportunity
 from services.observability.logging import get_logger
@@ -44,6 +45,15 @@ class ImprovementObserver:
             logger.error(f"Observer scan hatasi: {e}")
 
         return opportunities
+
+    @staticmethod
+    def _to_utc_aware(dt: Any) -> Any:
+        """Normalize datetime values from DB to timezone-aware UTC."""
+        if not isinstance(dt, datetime):
+            return dt
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
 
     async def scan_for_issues(self) -> List[Dict[str, Any]]:
         """Eski API uyumlulugu — core/improvement/gate.py tarafindan kullanilir."""
@@ -328,6 +338,8 @@ class ImprovementObserver:
 
                 for row in rows:
                     project_id, title, status_lower, created_at, subtask_count, last_subtask_update = row
+                    created_at = self._to_utc_aware(created_at)
+                    last_subtask_update = self._to_utc_aware(last_subtask_update)
                     age_min = max(0.0, (now - created_at).total_seconds() / 60.0) if created_at else 0.0
 
                     if subtask_count == 0 and status_lower in {"pending", "queued", "resuming", "waiting"} and age_min >= 10:
@@ -429,6 +441,7 @@ class ImprovementObserver:
                 rows = (await session.execute(stmt)).all()
                 for row in rows:
                     req_type, pending_count, oldest_pending = row
+                    oldest_pending = self._to_utc_aware(oldest_pending)
                     pending_count = int(pending_count or 0)
                     if pending_count < 4:
                         continue
@@ -499,6 +512,7 @@ class ImprovementObserver:
                 rows = (await session.execute(stmt)).all()
                 for row in rows:
                     incident_type, open_count, oldest_open = row
+                    oldest_open = self._to_utc_aware(oldest_open)
                     open_count = int(open_count or 0)
                     if open_count < 3:
                         continue
@@ -569,7 +583,7 @@ class ImprovementObserver:
                     if not status_lower:
                         continue
                     counts[str(status_lower)] = int(item_count or 0)
-                    oldest[str(status_lower)] = oldest_item
+                    oldest[str(status_lower)] = self._to_utc_aware(oldest_item)
 
                 pending_count = counts.get("pending", 0)
                 approved_count = counts.get("approved", 0)

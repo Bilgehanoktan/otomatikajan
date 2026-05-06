@@ -25,6 +25,8 @@ from libs.config import (
     LOCAL_DEV_STRICT_MODE,
     LOCAL_DEV_STRICT_MODE_APPLIED,
     JOB_QUEUE_HYDRATE_ON_STARTUP,
+    PRMR_AUDIT_ENABLED,
+    INPROCESS_JOB_WORKERS_ENABLED,
 )
 from services.observability.logging import get_logger
 
@@ -92,9 +94,15 @@ async def lifespan(app: FastAPI):
             job_queue.register("send_webhook", _dummy_handler)
             job_queue.register("cleanup", _dummy_handler)
             
-            # SRE Hardening: Background startup to prevent blocking the web server
-            asyncio.create_task(job_queue.start(num_workers=4))
-            logger.info("[STARTUP] In-process JobQueue workers initiated in background (Resilient Mode).")
+            if INPROCESS_JOB_WORKERS_ENABLED:
+                # SRE Hardening: Background startup to prevent blocking the web server
+                asyncio.create_task(job_queue.start(num_workers=4))
+                logger.info("[STARTUP] In-process JobQueue workers initiated in background (Resilient Mode).")
+            else:
+                logger.info(
+                    "[STARTUP] In-process JobQueue workers disabled for lightweight startup. "
+                    "API availability is prioritized over autonomous queue execution."
+                )
         else:
             logger.info(
                 "[STARTUP] Queue backend resolved to %s under runtime profile %s. In local development this should only happen when Celery is explicitly forced.",
@@ -157,7 +165,13 @@ async def lifespan(app: FastAPI):
             
             logger.info("[STANDBY] TRIGGER DETECTED. Exiting Standby Audit Loop. Primary Initiation authorized.")
 
-        asyncio.create_task(_prmr_audit_loop())
+        if PRMR_AUDIT_ENABLED:
+            asyncio.create_task(_prmr_audit_loop())
+        else:
+            logger.info(
+                "[STANDBY] PRMR audit loop disabled for lightweight startup. "
+                "Use manual trigger flow when needed."
+            )
         logger.info("[STANDBY] System is in STANDBY MODE. Awaiting trigger: 'Hazır, PRMR-01 Faz 1’i yeniden başlat.'")
 
     except Exception as e:

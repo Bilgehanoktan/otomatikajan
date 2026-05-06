@@ -18,8 +18,8 @@ import {
 } from "lucide-react";
 import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 import { Skeleton } from "@/components/dashboard/Skeleton";
-import { safeFetchJson } from "@/lib/api";
-import { ensureSession, getAuthHeaders } from "@/lib/auth";
+import { ApiResponseError, safeFetchJson } from "@/lib/api";
+import { getAuthHeaders } from "@/lib/auth";
 import { getApiBaseUrl } from "@/lib/runtime";
 
 type ApprovalStatus = "approved" | "rejected";
@@ -57,9 +57,10 @@ export default function ApprovalsPage() {
     setIsError(false);
 
     try {
+      const authHeaders = await getAuthHeaders();
       const response = await safeFetchJson<ApprovalRequest[] | { data?: ApprovalRequest[]; __sqv_meta?: unknown }>(
         `${apiBase}/governance/approvals?_end=10&_start=0&status=pending`,
-        { useOfflineFallback: true },
+        { useOfflineFallback: true, headers: authHeaders },
       );
 
       const items = Array.isArray(response)
@@ -74,12 +75,19 @@ export default function ApprovalsPage() {
       } else {
         setStaleMeta(null);
       }
-    } catch {
+    } catch (err) {
       setIsError(true);
+      if (err instanceof ApiResponseError && (err.status === 401 || err.status === 403)) {
+        notification.warning({
+          message: t("notifications.sessionError"),
+          description: err.detail,
+          placement: "topRight",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [apiBase]);
+  }, [apiBase, notification, t]);
 
   useEffect(() => {
     if (!isClient) return;
@@ -89,8 +97,10 @@ export default function ApprovalsPage() {
   const handleDecision = useCallback(
     async (id: string, status: ApprovalStatus) => {
       try {
+        const authHeaders = await getAuthHeaders();
         await safeFetchJson(`${apiBase}/governance/approvals/${id}`, {
           method: "PATCH",
+          headers: authHeaders,
           body: JSON.stringify({
             status,
             comment: `Actioned via Elite Control Plane at ${new Date().toISOString()}`,
@@ -105,9 +115,10 @@ export default function ApprovalsPage() {
 
         await loadRequests();
       } catch (err) {
+        const detail = err instanceof ApiResponseError ? err.detail : err instanceof Error ? err.message : "Error";
         notification.error({
           message: t("notifications.actionFailed"),
-          description: err instanceof Error ? err.message : "Error",
+          description: detail,
           placement: "topRight",
         });
       }

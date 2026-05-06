@@ -297,11 +297,11 @@ class RepairOrchestrator:
             await self._persist_job(job)
             # Canlı Yayın (WebSocket — Event Driven Faz 12.1)
             try:
-                await event_bus.emit(EVENT_JOB_PROGRESS, {
-                    "job_id": job.job_id,
-                    "status": status.value,
-                    "message": note
-                })
+                await event_bus.emit(EVENT_JOB_PROGRESS, 
+                    job_id=job.job_id,
+                    status=status.value,
+                    message=note
+                )
             except Exception as e:
                 _log.debug(f"Event broadcast failure: {e}")
 
@@ -510,12 +510,12 @@ class RepairOrchestrator:
             
             # Canlı yayın (Faz 8 Infra - Live Preview — Event Driven Faz 12.1)
             try:
-                await event_bus.emit(EVENT_LIVE_PATCH, {
-                    "job_id": job.job_id,
-                    "file_path": plan.target_files[0] if plan.target_files else "unknown",
-                    "diff": patch.diff,
-                    "status": "generated"
-                })
+                await event_bus.emit(EVENT_LIVE_PATCH, 
+                    job_id=job.job_id,
+                    file_path=plan.target_files[0] if plan.target_files else "unknown",
+                    diff=patch.diff,
+                    status="generated"
+                )
             except Exception as e:
                 _log.debug(f"Event broadcast failure (patch): {e}")
 

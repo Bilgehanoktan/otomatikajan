@@ -204,7 +204,24 @@ async def health_check():
     from services.orchestration.agency.loader import agency_loader
     from services.observability.memory_governor import memory_governor
 
-    db_ok = await is_db_available()
+    async def _with_timeout(coro, timeout_s: float, fallback):
+        try:
+            return await asyncio.wait_for(coro, timeout=timeout_s)
+        except Exception:
+            return fallback
+
+    db_ok = await _with_timeout(is_db_available(), 1.5, False)
+    db_fallback = await _with_timeout(import_db_degraded(), 0.5, False)
+    redis_status = await _with_timeout(
+        _get_redis_status(),
+        1.0,
+        {"available": False, "error": "timeout"},
+    )
+    repair_summary = await _with_timeout(
+        asyncio.to_thread(_get_repair_health_summary),
+        1.0,
+        {"available": False, "error": "timeout"},
+    )
     current_agents = len(orchestrator._agents) if hasattr(orchestrator, "_agents") else 0
     specialists = len(agency_loader.agents)
     mem_usage = memory_governor.get_current_usage_mb()
@@ -226,15 +243,15 @@ async def health_check():
         "db": {
             "available": db_ok,
             "error": "Database connection failed" if not db_ok else "",
-            "is_fallback": (await import_db_degraded())
+            "is_fallback": db_fallback,
         },
-        "redis": await _get_redis_status(),
+        "redis": redis_status,
         "queue": {
             "backend": getattr(job_queue, "backend_name", "unknown"),
             "supports_registration": getattr(job_queue, "supports_registration", False),
             "stats": job_queue.stats() if hasattr(job_queue, "stats") else {},
         },
-        "repair": _get_repair_health_summary(),
+        "repair": repair_summary,
         "governance": {
             "health_score": round(governance_watchdog.health_score, 2),
             "instinct_count": governance_watchdog.instinct_count,

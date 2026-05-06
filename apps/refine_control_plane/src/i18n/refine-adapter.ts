@@ -9,7 +9,22 @@ export function useRefineI18nProvider(): I18nProvider {
   const locale = useLocale();
 
   const fallbackLabel = (key: string): string => {
-    const tail = key.split("/").pop() || key;
+    let cleanKey = key;
+    if (key.startsWith("resources_")) cleanKey = key.replace("resources_", "");
+    if (key.startsWith("resources.")) cleanKey = key.replace("resources.", "");
+    
+    const map: Record<string, string> = {
+        "learning": "Öğrenim Merkezi",
+        "fingerprints": "Nöral Parmak İzleri",
+        "evolution": "Sistem Evrimi",
+        "safety": "Güvenlik Katmanı",
+        "dashboard": "Kontrol Paneli"
+    };
+    
+    if (map[cleanKey]) return map[cleanKey];
+    if (map[cleanKey.toLowerCase()]) return map[cleanKey.toLowerCase()];
+
+    const tail = cleanKey.split("/").pop() || cleanKey;
     return tail.replace(/[-_]/g, " ").replace(/\./g, " ");
   };
 
@@ -37,22 +52,25 @@ export function useRefineI18nProvider(): I18nProvider {
     translate: (key: string, params?: Record<string, any>, defaultMessage?: string) => {
       if (!key) return defaultMessage || "";
       
-      // Try exact
-      let value = getNestedValue(messages, key);
-      
-      // Try lowercase
-      if (!value && key !== key.toLowerCase()) {
-        value = getNestedValue(messages, key.toLowerCase());
-      }
+      const tail = key.split("/").pop() || "";
+      const searchKeys = [
+          key,
+          tail,
+          `resources.${key}`,
+          `resources.${tail}`,
+          `resources_${key.replace(/\//g, "_")}`,
+          `resources_${tail}`,
+          key.replace(/_/g, "."),
+          key.replace(/\./g, "_"),
+          key.toLowerCase()
+      ];
 
-      // Try underscore/dot swaps
-      if (!value && key.includes('_')) {
-          value = getNestedValue(messages, key.replace(/_/g, '.'));
+      let value: string | undefined;
+      for (const sk of searchKeys) {
+          if (!sk) continue;
+          value = getNestedValue(messages, sk);
+          if (value) break;
       }
-      if (!value && key.includes('.')) {
-          value = getNestedValue(messages, key.replace(/\./g, '_'));
-      }
-
       if (value) {
         let result = value;
         if (params) {

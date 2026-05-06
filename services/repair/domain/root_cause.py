@@ -19,9 +19,21 @@ if TYPE_CHECKING:
 # ── Hata Sınıflandırma ────────────────────────────────────
 ERROR_PATTERNS: list[tuple[str, list[str]]] = [
     ("RateLimitError",     ["rate limit", "429", "too many requests", "quota exceeded"]),
+    ("PaymentRequiredError", ["402", "payment required", "requires payment", "insufficient credits", "billing"]),
+    ("ProviderUnavailableError", [
+        "all providers failed",
+        "no valid provider",
+        "none configured",
+        "circuit open",
+        "provider unavailable",
+        "hicbir gecerli saglayici",
+        "gecerli saglayici konfigure edilmemis",
+    ]),
     ("ContextLengthError", ["context length", "maximum tokens", "token limit", "context window"]),
     ("TimeoutError",       ["timeout", "timed out", "deadline exceeded", "read timeout"]),
     ("AuthError",          ["401", "403", "unauthorized", "invalid api key", "authentication"]),
+    ("TokenExpiredError",  ["token expired", "jwt expired", "session expired", "signature has expired", "oturum"]),
+    ("NotFoundError",      ["404", "not found", "bulunamadi", "bulunamadÄ±"]),
     ("NetworkError",       ["connection", "network", "dns", "ssl", "socket", "unreachable"]),
     ("ServerError",        ["500", "502", "503", "504", "server error", "internal error"]),
     ("ParseError",         ["json", "parse", "decode", "invalid response", "unexpected"]),
