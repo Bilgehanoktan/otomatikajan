@@ -1,176 +1,100 @@
 "use client";
 
-import React from "react";
-import { List, useTable } from "@refinedev/antd";
-import { Table, Tag, Space, Typography, Card, Statistic, Row, Col, Progress, Tooltip } from "antd";
+import React, { useState, useEffect } from "react";
+import { Table, Typography, Progress } from "antd";
 import { 
-  RocketOutlined, 
-  CheckCircleOutlined, 
-  CloseCircleOutlined,
-  DollarOutlined,
-  SafetyOutlined,
-  AimOutlined
-} from "@ant-design/icons";
+  Rocket, 
+  Target,
+  BarChart3,
+  Zap,
+  ShieldCheck,
+  Cpu
+} from "lucide-react";
+import { useTable } from "@refinedev/antd";
+import { useTranslations } from "next-intl";
+import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 
 const { Text } = Typography;
 
-export default function StrategyMemoryList() {
+export default function StrategyMemoryPage() {
+  const t = useTranslations("learning.strategyMemory");
+  const [isClient, setIsClient] = useState(false);
   const { tableProps } = useTable({
     resource: "learning/strategy-memory",
     sorters: {
-      initial: [
-        {
-          field: "trust_score",
-          order: "desc",
-        },
-      ]
+      initial: [{ field: "trust_score", order: "desc" }]
     },
   });
 
-  return (
-    <div className="p-6">
-      <Row gutter={[16, 16]} className="mb-6">
-        <Col span={8}>
-          <Card className="bg-[#1a1c22] border-[#30363d]">
-            <Statistic
-              title={<span className="text-gray-400">Aktif Stratejiler</span>}
-              value={tableProps.dataSource?.length || 0}
-              prefix={<RocketOutlined className="text-[#66fcf1]" />}
-              valueStyle={{ color: "#66fcf1" }}
-            />
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card className="bg-[#1a1c22] border-[#30363d]">
-            <Statistic
-              title={<span className="text-gray-400">Ortalama Başarı</span>}
-              value={
-                tableProps.dataSource?.length 
-                  ? (tableProps.dataSource.reduce((acc: number, cur: any) => acc + (cur.success_count || 0), 0) / 
-                     tableProps.dataSource.reduce((acc: number, cur: any) => acc + (cur.success_count + cur.failure_count || 1), 0) * 100).toFixed(1)
-                  : 0
-              }
-              suffix="%"
-              prefix={<CheckCircleOutlined className="text-green-400" />}
-              valueStyle={{ color: "#4ade80" }}
-            />
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card className="bg-[#1a1c22] border-[#30363d]">
-            <Statistic
-              title={<span className="text-gray-400">Promosyon Bekleyen</span>}
-              value={tableProps.dataSource?.filter((i: any) => i.state === "candidate").length || 0}
-              prefix={<AimOutlined className="text-yellow-400" />}
-              valueStyle={{ color: "#fbbf24" }}
-            />
-          </Card>
-        </Col>
-      </Row>
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
-      <List
-        title={
-          <div className="flex items-center gap-2">
-            <RocketOutlined className="text-[#66fcf1]" />
-            <span className="text-[#66fcf1] font-bold">Strateji Belleği — Karar Optimizasyonu</span>
-          </div>
-        }
-      >
-        <Table {...tableProps} rowKey="id" className="custom-table">
+  if (!isClient) return <div className="min-h-screen bg-[#060a12]" />;
+
+  return (
+    <div className="min-h-screen p-8 bg-[#060a12] text-gray-300 animate-in fade-in duration-1000 overflow-x-hidden">
+      
+      <ResourceHeader 
+        title={t("title")} 
+        subtitle="Historical Performance Matrix & Behavioral Heuristics" 
+        icon={<Cpu size={32} />}
+        badge="HEURISTIC-CORE v4"
+      />
+
+      <div className="glass-panel rounded-[2.5rem] border-white/10 bg-[#0b0f19]/60 p-10 shadow-2xl backdrop-blur-md relative overflow-hidden group">
+        <div className="absolute top-0 right-0 p-10 opacity-[0.02] group-hover:opacity-[0.05] transition-opacity pointer-events-none">
+           <BarChart3 size={300} />
+        </div>
+
+        <Table 
+          {...tableProps} 
+          rowKey="id" 
+          className="custom-table-v2"
+          pagination={{ pageSize: 10 }}
+        >
           <Table.Column
             dataIndex="strategy_name"
-            title="Strateji"
+            title={t("strategy").toUpperCase()}
             render={(value) => (
-              <div className="flex flex-col">
-                <Text className="text-[#66fcf1] font-bold">{value}</Text>
-                <Text className="text-gray-500 text-[10px]">Autonmous Recovery Unit</Text>
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-purple-500/10 rounded-xl border border-purple-500/20 text-purple-400">
+                  <Rocket size={16} />
+                </div>
+                <span className="text-white font-black uppercase tracking-tight italic">{value}</span>
               </div>
             )}
           />
           <Table.Column
-            dataIndex="state"
-            title="Durum"
-            render={(value) => {
-              const states: any = {
-                promoted: { color: "green", label: "PROMOTED" },
-                trusted: { color: "cyan", label: "TRUSTED" },
-                candidate: { color: "gold", label: "CANDIDATE" },
-                observed: { color: "blue", label: "OBSERVED" },
-                deprecated: { color: "red", label: "DEPRECATED" },
-              };
-              const s = states[value] || { color: "default", label: value?.toUpperCase() };
-              return <Tag color={s.color}>{s.label}</Tag>;
-            }}
-          />
-          <Table.Column
             dataIndex="trust_score"
-            title="Güven Skoru"
-            sorter
+            title={t("trustScore").toUpperCase()}
             render={(value) => (
-              <Tooltip title={`Sistem Güven Endeksi: ${(value * 100).toFixed(1)}%`}>
-                <Progress 
-                  percent={Math.round(value * 100)} 
-                  size="small" 
-                  strokeColor={{
-                    '0%': '#f87171',
-                    '100%': '#66fcf1',
-                  }}
-                  trailColor="#1a1c22"
-                />
-              </Tooltip>
+              <div className="flex flex-col gap-1">
+                <div className="flex justify-between text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                  <span>Index</span>
+                  <span>{(value * 100).toFixed(0)}%</span>
+                </div>
+                <div className="w-32 h-1 bg-white/5 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)] transition-all duration-1000" 
+                    style={{ width: `${value * 100}%` }}
+                  />
+                </div>
+              </div>
             )}
           />
           <Table.Column
-            title="Performans (B/H/G)"
-            render={(_, record: any) => (
-              <Space split={<Text className="text-gray-700">|</Text>}>
-                <Tooltip title="Başarılı">
-                  <Text className="text-green-400 font-mono">{record.success_count}</Text>
-                </Tooltip>
-                <Tooltip title="Hatalı">
-                  <Text className="text-red-400 font-mono">{record.failure_count}</Text>
-                </Tooltip>
-                <Tooltip title="Geri Alınan">
-                  <Text className="text-orange-400 font-mono">{record.rollback_count}</Text>
-                </Tooltip>
-              </Space>
-            )}
-          />
-          <Table.Column
-            dataIndex="avg_repair_latency"
-            title="Ort. Gecikme"
-            render={(value) => <Text className="text-gray-400">{value?.toFixed(2)}s</Text>}
-          />
-          <Table.Column
-            dataIndex="avg_cost_usd"
-            title="Ort. Maliyet"
+            dataIndex="avg_latency"
+            title={t("latency").toUpperCase()}
             render={(value) => (
-              <Space className="text-gray-400">
-                <DollarOutlined />
-                <Text>{value?.toFixed(2)}</Text>
-              </Space>
+              <div className="flex items-center gap-2">
+                <Zap size={12} className="text-yellow-500/50" />
+                <span className="text-[11px] font-black text-white italic">{value}ms</span>
+              </div>
             )}
           />
         </Table>
-      </List>
-
-      <style jsx global>{`
-        .custom-table .ant-table {
-          background: #1a1c22 !important;
-          color: #c5c6c7 !important;
-        }
-        .custom-table .ant-table-thead > tr > th {
-          background: #23272e !important;
-          color: #66fcf1 !important;
-          border-bottom: 1px solid #30363d !important;
-        }
-        .custom-table .ant-table-tbody > tr > td {
-          border-bottom: 1px solid #23272e !important;
-        }
-        .custom-table .ant-table-tbody > tr:hover > td {
-          background: #23272e !important;
-        }
-      `}</style>
+      </div>
     </div>
   );
 }

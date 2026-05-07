@@ -142,7 +142,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
             {
               name: "governance/compliance/audit-bundles",
               list: "/governance/compliance/audit-bundles",
-              meta: { label: "resources_audit" },
+              meta: { label: "resources_auditBundles" },
+            },
+            {
+              name: "audit",
+              list: "/audit",
+              meta: { label: "resources_auditLedger" },
             },
             {
               name: "governance/improvements",
@@ -246,7 +251,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             },
             {
               name: "adaptation-candidates",
-              list: "/adaptation-candidates",
+              list: "/learning/adaptation-candidates",
               meta: { label: "resources_adaptationCandidates" },
             },
             {

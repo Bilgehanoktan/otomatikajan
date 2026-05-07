@@ -23,10 +23,13 @@ import {
   ChevronDown,
   Info
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 import { Skeleton } from "@/components/dashboard/Skeleton";
 
 export default function TrainingDrillsPage() {
+  const t = useTranslations("training");
+  const commonT = useTranslations("common");
   const [isClient, setIsClient] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [isAutoActive, setIsAutoActive] = useState(false);
@@ -71,14 +74,14 @@ export default function TrainingDrillsPage() {
     <div className="min-h-screen p-8 bg-[#060a12] text-gray-300 animate-in fade-in duration-1000 overflow-x-hidden">
       
       <ResourceHeader 
-        title="Training Hub" 
-        subtitle="Resilience Simulations & Autonomous Chaos Engineering" 
+        title={t("title")} 
+        subtitle={t("subtitle")} 
         icon={<Target size={32} />}
         badge="Resilience Tier-1"
         actions={
           <div className="flex items-center gap-8">
              <div className="flex flex-col items-end border-r border-white/5 pr-8">
-                <span className="text-[9px] text-gray-500 font-black uppercase tracking-widest leading-none">Resilience Score</span>
+                <span className="text-[9px] text-gray-500 font-black uppercase tracking-widest leading-none">{t("resilienceScore")}</span>
                 <span className="text-sm font-black text-green-400 mt-2 font-mono tracking-tighter italic">0.88 / 1.0</span>
              </div>
              
@@ -88,7 +91,7 @@ export default function TrainingDrillsPage() {
                 className="flex items-center gap-3 px-8 py-3 bg-red-500/10 text-red-500 border border-red-500/20 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-red-500/20 transition-all active:scale-95 group shadow-xl disabled:opacity-50"
              >
                 <Play size={14} className={isRunning ? 'animate-ping' : 'group-hover:scale-125 transition-transform'} fill="currentColor" />
-                <span>{isRunning ? "Simulating..." : "Initialize Drill"}</span>
+                <span>{isRunning ? t("simulating") : t("initializeDrill")}</span>
              </button>
           </div>
         }
@@ -98,7 +101,7 @@ export default function TrainingDrillsPage() {
         
         {/* DRILL HISTORY - Main Column */}
         <div className="xl:col-span-8">
-           <section className="glass-panel p-10 rounded-[2.5rem] border-white/[0.03] bg-gradient-to-br from-white/[0.012] to-transparent relative overflow-hidden group shadow-2xl">
+           <section className="glass-panel p-10 rounded-[2.5rem] border-white/10 bg-[#0b0f19]/60 backdrop-blur-md relative overflow-hidden group shadow-2xl">
               <div className="absolute top-0 right-0 p-10 opacity-[0.02] group-hover:opacity-[0.05] transition-opacity pointer-events-none">
                  <History size={300} />
               </div>
@@ -106,7 +109,7 @@ export default function TrainingDrillsPage() {
               <div className="flex items-center justify-between mb-12 relative z-10 px-2">
                  <div className="flex items-center gap-4">
                     <div className="w-2 h-2 rounded-full bg-red-500 animate-ping shadow-[0_0_12px_rgba(239,68,68,0.6)]" />
-                    <h2 className="text-xs font-black text-white uppercase tracking-[0.4em]">Resilience Simulation Ledger</h2>
+                    <h2 className="text-xs font-black text-white uppercase tracking-[0.4em]">{t("simulationLedger")}</h2>
                  </div>
                  <div className="flex items-center gap-6">
                     <button className="flex items-center gap-2 text-[10px] font-black text-gray-700 uppercase hover:text-white transition-colors">
@@ -122,7 +125,7 @@ export default function TrainingDrillsPage() {
                     </div>
                  ) : (
                     drills.map((drill: any) => (
-                       <div key={drill.id} className="p-8 rounded-[2rem] bg-white/[0.015] border border-white/5 hover:bg-white/[0.025] hover:border-white/10 transition-all group/item">
+                       <div key={drill.id} className="p-8 rounded-[2rem] bg-[#0b0f19]/40 border border-white/5 hover:bg-[#0b0f19]/80 hover:border-white/10 transition-all group/item backdrop-blur-sm">
                           <div className="flex justify-between items-center px-2">
                              <div className="flex items-center gap-6">
                                 <div className={`p-5 rounded-2xl border transition-all duration-500 shadow-xl
@@ -169,7 +172,7 @@ export default function TrainingDrillsPage() {
         {/* SIDEBAR - Parameters & Automation */}
         <div className="xl:col-span-4 flex flex-col gap-10">
            {/* Simulation Parameters */}
-           <section className="glass-panel p-10 rounded-[2.5rem] border-white/[0.05] bg-[#060a12]/50 relative overflow-hidden group shadow-xl">
+           <section className="glass-panel p-10 rounded-[2.5rem] border-white/10 bg-[#0b0f19]/80 backdrop-blur-md relative overflow-hidden group shadow-xl">
               <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity">
                  <Flame size={140} className="text-orange-500" />
               </div>
@@ -179,7 +182,7 @@ export default function TrainingDrillsPage() {
                     <Flame size={24} className="text-orange-500" />
                  </div>
                  <div>
-                    <h3 className="text-xl font-black text-white tracking-tighter uppercase">Parameters</h3>
+                    <h3 className="text-xl font-black text-white tracking-tighter uppercase">{t("parameters")}</h3>
                     <p className="text-[9px] text-orange-400 font-black tracking-[0.2em] uppercase mt-1">Chaos Injectors</p>
                  </div>
               </div>
@@ -196,15 +199,15 @@ export default function TrainingDrillsPage() {
                  </div>
 
                  <div className="grid grid-cols-1 gap-4">
-                    <StatItem label="Mean Recovery" val="2m 45s" icon={<Clock size={12}/>} />
-                    <StatItem label="Error Tolerance" val="5.0% EXT" icon={<AlertOctagon size={12}/>} />
+                    <StatItem label={t("meanRecovery")} val="2m 45s" icon={<Clock size={12}/>} />
+                    <StatItem label={t("errorTolerance")} val="5.0% EXT" icon={<AlertOctagon size={12}/>} />
                  </div>
               </div>
            </section>
 
            {/* Automated Drills */}
-           <section className={`glass-panel p-10 rounded-[3rem] border-white/[0.03] transition-all duration-700 relative overflow-hidden group shadow-2xl
-             ${isAutoActive ? 'bg-emerald-500/[0.02] border-emerald-500/20' : 'bg-gradient-to-br from-white/[0.01] to-transparent'}
+           <section className={`glass-panel p-10 rounded-[3rem] border-white/10 transition-all duration-700 relative overflow-hidden group shadow-2xl
+             ${isAutoActive ? 'bg-emerald-500/[0.02] border-emerald-500/20' : 'bg-[#0b0f19]/60 backdrop-blur-md'}
            `}>
               <div className="absolute -bottom-10 -right-10 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-1000">
                  <Target size={200} className={isAutoActive ? 'text-emerald-500' : 'text-gray-700'} />
@@ -218,10 +221,10 @@ export default function TrainingDrillsPage() {
                  </div>
                  
                  <h4 className={`text-xs font-black uppercase tracking-[0.3em] mb-3 transition-colors ${isAutoActive ? 'text-emerald-400' : 'text-white'}`}>
-                    {isAutoActive ? "Otonom Motor Aktif" : "Game-Day Planner"}
+                    {isAutoActive ? t("autoModeActive") : t("planner")}
                  </h4>
                  <p className="text-[11px] text-gray-700 font-bold leading-relaxed uppercase tracking-tighter mb-10 max-w-[200px]">
-                    {isAutoActive ? "Sistem rastgele aralıklarla stres testi yapmaktadır." : "Gelecek planlı tatbikat: 27 Nisan 2026"}
+                    {isAutoActive ? t("autoModeDesc") : t("plannerNext")}
                  </p>
 
                  <button 
@@ -229,7 +232,7 @@ export default function TrainingDrillsPage() {
                    className={`w-full py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95
                      ${isAutoActive ? 'bg-emerald-500 text-[#060a12] hover:shadow-[0_8px_32px_rgba(16,185,129,0.3)]' : 'bg-white/5 text-gray-600 border border-white/10 hover:text-white hover:border-white/20'}`}
                  >
-                    {isAutoActive ? "Terminate Auto-Mode" : "Initialize Auto-Mode"}
+                    {isAutoActive ? t("terminateAuto") : t("initializeAuto")}
                  </button>
               </div>
            </section>

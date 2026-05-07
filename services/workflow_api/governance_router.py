@@ -555,23 +555,28 @@ async def update_approval_status(
         
         try:
             from services.governance.learning_orchestrator import LearningOrchestrator
-            await LearningOrchestrator.record_learning(
-                incident_data={
-                    "id": f"APP-{id[:8]}",
-                    "incident_type": "MANUAL_APPROVAL",
-                    "severity": "info",
-                    "message": f"Approval {id} manually updated to {i.status}",
-                    "project_id": str(i.project_id) if i.project_id else None
-                },
-                outcome_data={
-                    "final_outcome": "SUCCESS" if i.status == "APPROVED" else "REJECTED",
-                    "root_cause": "MANUAL_INTERVENTION",
-                    "operator_override": True,
-                    "strategy_used": "OPERATOR_APPROVAL",
-                    "applied_patch": i.comment
-                },
-                db=db
-            )
+            # Keep learning writes isolated so a learning flush failure does not poison
+            # the main approval transaction/session.
+            async with db.begin_nested():
+                await LearningOrchestrator.record_learning(
+                    incident_data={
+                        # Approval actions are not OperationalIncident rows; avoid
+                        # sending synthetic non-UUID values into incident_id (UUID).
+                        "id": None,
+                        "incident_type": "MANUAL_APPROVAL",
+                        "severity": "info",
+                        "message": f"Approval {id} manually updated to {i.status}",
+                        "project_id": str(i.project_id) if i.project_id else None
+                    },
+                    outcome_data={
+                        "final_outcome": "SUCCESS" if i.status == "APPROVED" else "REJECTED",
+                        "root_cause": "MANUAL_INTERVENTION",
+                        "operator_override": True,
+                        "strategy_used": "OPERATOR_APPROVAL",
+                        "applied_patch": i.comment
+                    },
+                    db=db
+                )
         except Exception as le:
             logger.warning(f"Learning record failed in approval update: {le}")
 
@@ -614,25 +619,26 @@ async def decide_approval(id: str, dec: ApprovalDecision):
         
         try:
             from services.governance.learning_orchestrator import LearningOrchestrator
-            await LearningOrchestrator.record_learning(
-                incident_data={
-                    "id": f"APP-{id[:8]}",
-                    "incident_type": "MANUAL_APPROVAL",
-                    "severity": "info",
-                    "message": f"Approval {id} decided: {i.status}",
-                    "project_id": str(i.project_id) if i.project_id else None
-                },
-                outcome_data={
-                    "final_outcome": "SUCCESS" if i.status == "APPROVED" else "REJECTED",
-                    "root_cause": "MANUAL_DECISION",
-                    "operator_override": True,
-                    "strategy_used": "OPERATOR_APPROVAL",
-                    "approval_id": id,
-                    "lineage_id": str(lineage.id) if lineage else None,
-                    "applied_patch": i.comment
-                },
-                db=db
-            )
+            async with db.begin_nested():
+                await LearningOrchestrator.record_learning(
+                    incident_data={
+                        "id": None,
+                        "incident_type": "MANUAL_APPROVAL",
+                        "severity": "info",
+                        "message": f"Approval {id} decided: {i.status}",
+                        "project_id": str(i.project_id) if i.project_id else None
+                    },
+                    outcome_data={
+                        "final_outcome": "SUCCESS" if i.status == "APPROVED" else "REJECTED",
+                        "root_cause": "MANUAL_DECISION",
+                        "operator_override": True,
+                        "strategy_used": "OPERATOR_APPROVAL",
+                        "approval_id": id,
+                        "lineage_id": str(lineage.id) if lineage else None,
+                        "applied_patch": i.comment
+                    },
+                    db=db
+                )
         except Exception as le:
             logger.warning(f"Learning record failed in approval decision: {le}")
 
@@ -1265,22 +1271,23 @@ async def resolve_incident(
         
         try:
             from services.governance.learning_orchestrator import LearningOrchestrator
-            await LearningOrchestrator.record_incident_learning(
-                incident_data={
-                    "id": str(i.id),
-                    "incident_type": i.incident_type,
-                    "severity": i.severity,
-                    "message": i.message,
-                    "project_id": str(i.project_id) if i.project_id else None
-                },
-                outcome_data={
-                    "final_outcome": "SUCCESS",
-                    "root_cause": "MANUAL_RESOLUTION",
-                    "operator_override": True,
-                    "strategy_used": "OPERATOR_INTERVENTION"
-                },
-                db=db
-            )
+            async with db.begin_nested():
+                await LearningOrchestrator.record_incident_learning(
+                    incident_data={
+                        "id": str(i.id),
+                        "incident_type": i.incident_type,
+                        "severity": i.severity,
+                        "message": i.message,
+                        "project_id": str(i.project_id) if i.project_id else None
+                    },
+                    outcome_data={
+                        "final_outcome": "SUCCESS",
+                        "root_cause": "MANUAL_RESOLUTION",
+                        "operator_override": True,
+                        "strategy_used": "OPERATOR_INTERVENTION"
+                    },
+                    db=db
+                )
         except Exception as le:
             logger.warning(f"Learning record failed in incident resolution: {le}")
 
@@ -1337,22 +1344,23 @@ async def update_incident(id: str, data: Dict[str, Any]):
             if status_changed and item.status == "resolved":
                 try:
                     from services.governance.learning_orchestrator import LearningOrchestrator
-                    await LearningOrchestrator.record_incident_learning(
-                        incident_data={
-                            "id": str(item.id),
-                            "incident_type": item.incident_type,
-                            "severity": item.severity,
-                            "message": item.message,
-                            "project_id": str(item.project_id) if item.project_id else None
-                        },
-                        outcome_data={
-                            "final_outcome": "SUCCESS",
-                            "root_cause": "PATCH_RESOLUTION",
-                            "operator_override": True,
-                            "strategy_used": "OPERATOR_PATCH"
-                        },
-                        db=session
-                    )
+                    async with session.begin_nested():
+                        await LearningOrchestrator.record_incident_learning(
+                            incident_data={
+                                "id": str(item.id),
+                                "incident_type": item.incident_type,
+                                "severity": item.severity,
+                                "message": item.message,
+                                "project_id": str(item.project_id) if item.project_id else None
+                            },
+                            outcome_data={
+                                "final_outcome": "SUCCESS",
+                                "root_cause": "PATCH_RESOLUTION",
+                                "operator_override": True,
+                                "strategy_used": "OPERATOR_PATCH"
+                            },
+                            db=session
+                        )
                 except Exception as le:
                     logger.warning(f"Learning record failed in incident update: {le}")
 

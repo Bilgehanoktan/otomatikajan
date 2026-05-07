@@ -11,6 +11,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useList } from "@refinedev/core";
+import { useTranslations } from "next-intl";
 import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 import { Skeleton } from "@/components/dashboard/Skeleton";
 
@@ -41,6 +42,7 @@ function summarizeRecord(record: LineageRecord) {
 }
 
 export default function AuditPage() {
+  const t = useTranslations("audit");
   const [isClient, setIsClient] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -109,8 +111,8 @@ export default function AuditPage() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#060a12] p-8 text-gray-300 animate-in fade-in duration-1000">
       <ResourceHeader
-        title="Audit Ledger"
-        subtitle="Immutable Verification & Multi-Operator Quorum"
+        title={t("title")}
+        subtitle={t("subtitle")}
         icon={<FileText size={32} />}
         badge="Institutional Grade"
         actions={
@@ -118,7 +120,7 @@ export default function AuditPage() {
             <div className="flex items-center gap-4 border-r border-white/5 pr-8">
               <div className="text-right">
                 <p className="text-[9px] text-gray-500 font-black uppercase tracking-widest leading-none">
-                  Lineage State
+                  {t("lineageState")}
                 </p>
                 <p className="mt-2 text-[11px] font-black text-green-400">
                   {latestBundle ? "SEALED & SYNCED" : "CHAIN ACTIVE"}
@@ -134,7 +136,7 @@ export default function AuditPage() {
               className="flex items-center gap-2 rounded-2xl bg-[var(--primary)] px-8 py-3 text-[10px] font-black uppercase tracking-widest text-[#060a12] transition-all hover:shadow-[0_8px_32px_rgba(102,252,241,0.3)] active:scale-95"
             >
               <Fingerprint size={14} />
-              <span>Export Proof</span>
+              <span>{t("exportProof")}</span>
             </Link>
           </div>
         }

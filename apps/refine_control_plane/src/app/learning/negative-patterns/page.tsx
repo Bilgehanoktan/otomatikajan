@@ -1,137 +1,90 @@
 "use client";
 
-import React from "react";
-import { List, useTable } from "@refinedev/antd";
-import { Table, Tag, Typography, Card, Statistic, Row, Col, Space, Tooltip } from "antd";
+import React, { useState, useEffect } from "react";
+import { Table, Tag, Typography } from "antd";
 import { 
-  SafetyOutlined, 
-  WarningOutlined, 
-  GlobalOutlined,
-  BlockOutlined,
-  HistoryOutlined
-} from "@ant-design/icons";
+  AlertTriangle, 
+  ShieldAlert,
+  Ghost,
+  Target,
+  Skull
+} from "lucide-react";
+import { useTable } from "@refinedev/antd";
+import { useTranslations } from "next-intl";
+import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
-export default function NegativePatternsList() {
+export default function NegativePatternsPage() {
+  const t = useTranslations("learning.negativePatterns");
+  const [isClient, setIsClient] = useState(false);
   const { tableProps } = useTable({
     resource: "learning/negative-patterns",
     sorters: {
-      initial: [
-        {
-          field: "penalty_weight",
-          order: "desc",
-        },
-      ]
+      initial: [{ field: "occurrence_count", order: "desc" }]
     },
   });
 
-  return (
-    <div className="p-6">
-      <Row gutter={[16, 16]} className="mb-6">
-        <Col span={12}>
-          <Card className="bg-[#1a1c22] border-[#30363d]">
-            <Statistic
-              title={<span className="text-gray-400">Kayıtlı Negatif Kalıp</span>}
-              value={tableProps.dataSource?.length || 0}
-              prefix={<BlockOutlined className="text-red-400" />}
-              valueStyle={{ color: "#f87171" }}
-            />
-          </Card>
-        </Col>
-        <Col span={12}>
-          <Card className="bg-[#1a1c22] border-[#30363d]">
-            <Statistic
-              title={<span className="text-gray-400">Önlenen Tekrarlı Hata</span>}
-              value={tableProps.dataSource?.reduce((acc: number, cur: any) => acc + (cur.occurrence_count || 0), 0)}
-              prefix={<SafetyOutlined className="text-[#66fcf1]" />}
-              valueStyle={{ color: "#66fcf1" }}
-            />
-          </Card>
-        </Col>
-      </Row>
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
-      <List
-        title={
-          <div className="flex items-center gap-2">
-            <WarningOutlined className="text-red-500" />
-            <span className="text-red-500 font-bold">Negatif Kalıplar — Kara Liste & Cezalandırma</span>
-          </div>
-        }
-      >
-        <Table {...tableProps} rowKey="id" className="custom-table">
+  if (!isClient) return <div className="min-h-screen bg-[#060a12]" />;
+
+  return (
+    <div className="min-h-screen p-8 bg-[#060a12] text-gray-300 animate-in fade-in duration-1000 overflow-x-hidden">
+      
+      <ResourceHeader 
+        title={t("title")} 
+        subtitle="Blacklist Registry & Failure Pattern Recognition" 
+        icon={<ShieldAlert size={32} />}
+        badge="SECURITY-MESH ACTIVE"
+      />
+
+      <div className="glass-panel rounded-[2.5rem] border-white/10 bg-[#0b0f19]/60 p-10 shadow-2xl backdrop-blur-md relative overflow-hidden group border-red-500/10 shadow-red-500/5">
+        <div className="absolute top-0 right-0 p-10 opacity-[0.02] group-hover:opacity-[0.05] transition-opacity pointer-events-none text-red-500">
+           <Skull size={300} />
+        </div>
+
+        <Table 
+          {...tableProps} 
+          rowKey="id" 
+          className="custom-table-v2"
+          pagination={{ pageSize: 10 }}
+        >
           <Table.Column
-            dataIndex="strategy_name"
-            title="Strateji"
-            render={(value) => <Text className="text-red-400 font-bold">{value}</Text>}
-          />
-          <Table.Column
-            dataIndex="component"
-            title="Bileşen"
-            render={(value) => <Tag color="blue">{value}</Tag>}
-          />
-          <Table.Column
-            dataIndex="failure_reason"
-            title="Hata Sebebi"
+            dataIndex="pattern_name"
+            title={t("strategy").toUpperCase()}
             render={(value) => (
-              <Text className="text-gray-400 text-xs" ellipsis={{ tooltip: value }}>
-                {value}
-              </Text>
-            )}
-          />
-          <Table.Column
-            dataIndex="penalty_weight"
-            title="Ceza Ağırlığı"
-            sorter
-            render={(value) => (
-              <div className="flex items-center gap-2">
-                <Text className="text-red-500 font-mono font-bold">x{value?.toFixed(2)}</Text>
-                <div className="h-1 w-20 bg-gray-800 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-red-600" 
-                    style={{ width: `${Math.min(100, (value / 5) * 100)}%` }} 
-                  />
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-red-500/10 rounded-xl border border-red-500/20 text-red-400">
+                  <Ghost size={16} />
                 </div>
+                <span className="text-white font-black uppercase tracking-tight italic">{value}</span>
               </div>
             )}
           />
           <Table.Column
             dataIndex="occurrence_count"
-            title="Tekrar"
-            render={(value) => <Text className="text-gray-300">{value}</Text>}
-          />
-          <Table.Column
-            dataIndex="blast_radius"
-            title="Etki Çapı"
+            title={t("occurrence").toUpperCase()}
             render={(value) => (
-              <Tag color={value === 'high' ? 'red' : 'orange'}>{value?.toUpperCase()}</Tag>
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={14} className="text-red-500" />
+                <span className="text-sm font-black text-white italic">{value}x</span>
+              </div>
             )}
           />
           <Table.Column
-            dataIndex="last_seen_at"
-            title="Son Tespit"
-            render={(value) => <Text className="text-gray-500 text-[10px]">{new Date(value).toLocaleString()}</Text>}
+            dataIndex="penalty_weight"
+            title={t("penaltyWeight").toUpperCase()}
+            render={(value) => (
+              <Tag color="red" className="font-mono bg-red-950/40 border-red-900/50 text-red-400">
+                {(value * 100).toFixed(1)}% PENALTY
+              </Tag>
+            )}
           />
         </Table>
-      </List>
-
-      <style jsx global>{`
-        .custom-table .ant-table {
-          background: #1a1c22 !important;
-          color: #c5c6c7 !important;
-        }
-        .custom-table .ant-table-thead > tr > th {
-          background: #23272e !important;
-          color: #66fcf1 !important;
-          border-bottom: 1px solid #30363d !important;
-        }
-        .custom-table .ant-table-tbody > tr > td {
-          border-bottom: 1px solid #23272e !important;
-        }
-        .custom-table .ant-table-tbody > tr:hover > td {
-          background: #23272e !important;
-        }
-      `}</style>
+      </div>
     </div>
   );
 }

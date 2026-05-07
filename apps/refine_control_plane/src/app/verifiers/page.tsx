@@ -19,11 +19,13 @@ import {
   BarChart3,
   SearchCode
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 import { Skeleton } from "@/components/dashboard/Skeleton";
 import { safeFetchJson } from "@/lib/api";
 
 export default function VerifiersPage() {
+  const t = useTranslations("verifiers");
   const [isClient, setIsClient] = useState(false);
   const [verifiers, setVerifiers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,7 +95,7 @@ export default function VerifiersPage() {
                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
                        <input 
                          type="text" 
-                         placeholder="KATMAN ARA..."
+                         placeholder={t("activeLayers")}
                          className="bg-black/40 border border-white/5 rounded-xl py-2 pl-10 pr-4 text-[10px] font-black text-white focus:outline-none focus:border-purple-500/20 transition-all w-48"
                        />
                     </div>

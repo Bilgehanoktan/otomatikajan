@@ -20,6 +20,7 @@ import {
     Network,
     Terminal
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 import { Skeleton } from "@/components/dashboard/Skeleton";
 import { safeFetchJson } from "@/lib/api";
@@ -33,6 +34,7 @@ export default function GovernanceLineagePage() {
 }
 
 function GovernanceLineageContent() {
+    const t = useTranslations("lineage");
     const { notification } = App.useApp();
     const [isClient, setIsClient] = useState(false);
     useEffect(() => setIsClient(true), []);
@@ -68,8 +70,8 @@ function GovernanceLineageContent() {
         <div className="min-h-screen p-8 bg-[#060a12] text-gray-300 animate-in fade-in duration-1000 overflow-x-hidden">
             
             <ResourceHeader 
-                title="Decision Ancestry" 
-                subtitle="Autonomous Decision Lineage & Causality Tracking" 
+                title={t("title")} 
+                subtitle={t("subtitle")} 
                 icon={<GitBranch size={32} />}
                 badge="Lineage-V2 Active"
                 actions={
@@ -99,16 +101,16 @@ function GovernanceLineageContent() {
 
             {/* METRICS GRID */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
-               <EliteLineageMetric label="Ancestry Depth" val={lineage.length > 0 ? "50+" : "0"} icon={<History size={16} />} accent="text-[var(--primary)]" />
-               <EliteLineageMetric label="Integrity Seals" val={lineage.filter(l => l.integrity_hash).length} icon={<Shield size={16} />} accent="text-cyan-400" />
-               <EliteLineageMetric label="Causality Verified" val="MATCH" icon={<Network size={16} />} accent="text-green-400" />
+               <EliteLineageMetric label={t("ancestryDepth")} val={lineage.length > 0 ? "50+" : "0"} icon={<History size={16} />} accent="text-[var(--primary)]" />
+               <EliteLineageMetric label={t("integritySeals")} val={lineage.filter(l => l.integrity_hash).length} icon={<Shield size={16} />} accent="text-cyan-400" />
+               <EliteLineageMetric label={t("incidentResolution")} val="MATCH" icon={<Network size={16} />} accent="text-green-400" />
             </div>
 
             <div className="grid grid-cols-1 gap-8">
                 {loading ? (
                   [1,2,3,4,5].map(i => <Skeleton key={i} className="h-44 rounded-[2rem]" />)
                 ) : filteredLineage.length === 0 ? (
-                  <div className="h-96 flex flex-col items-center justify-center border border-dashed border-white/10 rounded-[2.5rem] bg-white/[0.012] opacity-30 shadow-2xl">
+                  <div className="h-96 flex flex-col items-center justify-center border border-dashed border-white/10 rounded-[2.5rem] bg-[#0b0f19]/60 opacity-30 shadow-2xl">
                     <BrainCircuit size={48} className="text-gray-700 mb-6 animate-pulse" />
                     <p className="font-black text-gray-700 uppercase tracking-[0.4em]">Kayıtlı Karar Bulunmuyor</p>
                   </div>
@@ -128,7 +130,7 @@ function GovernanceLineageContent() {
 
 function EliteLineageMetric({ label, val, icon, accent }: any) {
   return (
-    <div className="glass-panel p-8 rounded-[2rem] border-white/5 bg-white/[0.01] hover:bg-white/[0.02] transition-all relative overflow-hidden group">
+    <div className="glass-panel p-8 rounded-[2rem] border-white/10 bg-[#0b0f19]/40 hover:bg-[#0b0f19]/60 transition-all relative overflow-hidden group backdrop-blur-sm">
        <div className="flex justify-between items-center mb-6">
           <span className="text-[10px] text-gray-600 font-black uppercase tracking-widest">{label}</span>
           <div className="p-3 bg-black/40 rounded-xl border border-white/5 text-gray-600 group-hover:text-white transition-colors">
@@ -141,11 +143,12 @@ function EliteLineageMetric({ label, val, icon, accent }: any) {
 }
 
 function EliteLineageRow({ item, isLast }: { item: any, isLast: boolean }) {
+    const t = useTranslations("lineage");
     const { notification } = App.useApp();
     const [payloadOpen, setPayloadOpen] = useState(false);
     
     return (
-        <div className="group glass-panel rounded-[2.5rem] border border-white/5 bg-white/[0.012] hover:bg-white/[0.025] hover:border-[var(--primary)]/30 transition-all duration-500 overflow-hidden shadow-2xl relative">
+        <div className="group glass-panel rounded-[2.5rem] border border-white/10 bg-[#0b0f19]/60 hover:bg-[#0b0f19]/80 hover:border-[var(--primary)]/30 transition-all duration-500 overflow-hidden shadow-2xl relative backdrop-blur-md">
             <div className="p-10 flex flex-col xl:flex-row gap-10 items-start relative z-10">
                 
                 {/* CAUSALITY INDICATOR */}

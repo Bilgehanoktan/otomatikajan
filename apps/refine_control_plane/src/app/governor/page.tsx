@@ -33,7 +33,7 @@ export default function GovernorInbox() {
       new Promise((resolve, reject) => {
         mutate(
           {
-            url: `/governance/inbox/governor/cases/${String(id)}/override`,
+            url: `/governance/governor/cases/${String(id)}/override`,
             method: "post",
             values: { action, reason: "Toplu işlem: " + action },
           },

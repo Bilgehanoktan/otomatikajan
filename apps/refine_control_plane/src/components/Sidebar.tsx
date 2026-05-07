@@ -82,6 +82,7 @@ const icons: Record<string, React.ReactNode> = {
     "governance/inbox/governor/meta/conflicts": <Activity size={20} />,
     "governance/inbox/governor/proof": <History size={20} />,
     evolution: <Dna size={20} />,
+    audit: <Eye size={20} />,
 };
 
 const SidebarContent = () => {
@@ -139,6 +140,7 @@ const SidebarContent = () => {
             items: [
                 "governance/analytics/costs", 
                 "governance/compliance/audit-bundles", 
+                "audit",
                 "governance/ops/handover-status", 
                 "governance/ops/launch-gates"
             ]

@@ -22,11 +22,13 @@ import {
   Binary,
   AlertTriangle
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 import { Skeleton } from "@/components/dashboard/Skeleton";
 import { safeFetchJson } from "@/lib/api";
 
 export default function SelfTuningPage() {
+  const t = useTranslations("evolution");
   const [isClient, setIsClient] = useState(false);
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [evolutionFeed, setEvolutionFeed] = useState<any[]>([]);
@@ -90,18 +92,18 @@ export default function SelfTuningPage() {
     <div className="min-h-screen p-8 bg-[#060a12] text-gray-300 animate-in fade-in duration-1000 overflow-x-hidden">
       
       <ResourceHeader 
-        title="Evolution Hub" 
-        subtitle="Autonomous Multi-Parameter Calibration & Neural Self-Optimization" 
+        title={t("title")} 
+        subtitle={t("subtitle")} 
         icon={<Dna size={32} />}
         badge="AGI ALPHA-v13"
         staleMeta={staleMeta}
         actions={
           <div className="flex items-center gap-8">
              <div className="flex flex-col items-end border-r border-white/5 pr-8">
-                <span className="text-[9px] text-gray-500 font-black uppercase tracking-widest leading-none">Cycle State</span>
+                <span className="text-[9px] text-gray-500 font-black uppercase tracking-widest leading-none">{t("cycleState")}</span>
                 <div className="flex items-center gap-2 mt-2">
                    <div className={`w-2 h-2 rounded-full ${evolutionStatus?.is_running ? 'bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500'}`} />
-                   <span className="text-sm font-black text-white uppercase tracking-tighter">{evolutionStatus?.is_running ? 'Running' : 'Halted'}</span>
+                   <span className="text-sm font-black text-white uppercase tracking-tighter">{evolutionStatus?.is_running ? t("running") : t("halted")}</span>
                 </div>
              </div>
              <button onClick={() => fetchData()} className="p-4 bg-white/5 border border-white/5 rounded-2xl text-gray-500 hover:text-white transition-all active:scale-95">

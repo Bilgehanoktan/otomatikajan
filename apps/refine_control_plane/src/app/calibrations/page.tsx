@@ -1,22 +1,29 @@
 "use client";
 
 import React from "react";
-import { useTable, useImport } from "@refinedev/antd";
+import { useTable } from "@refinedev/antd";
 import { Table, Tag, Button, Space, Card, Typography, Tooltip, message, Popconfirm, Progress } from "antd";
 import { 
   ExperimentOutlined, 
   CheckCircleOutlined, 
   CloseCircleOutlined, 
   UndoOutlined, 
-  ThunderboltOutlined,
-  InfoCircleOutlined
+  ThunderboltOutlined
 } from "@ant-design/icons";
-import { useCustomMutation, useCustom } from "@refinedev/core";
+import { useCustomMutation } from "@refinedev/core";
+import { useTranslations } from "next-intl";
 import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/tr";
+
+dayjs.extend(relativeTime);
+dayjs.locale("tr");
 
 const { Title, Text, Paragraph } = Typography;
 
 export default function GovernorCalibrations() {
+  const t = useTranslations("dashboard.calibrations");
+  
   const { tableProps, tableQueryResult } = useTable({
     resource: "governance/inbox/governor/calibrations",
     syncWithLocation: true,
@@ -32,12 +39,12 @@ export default function GovernorCalibrations() {
 
   const handleAction = (id: string, action: string) => {
     mutate({
-      url: `/governance/inbox/governor/calibrations/${id}/${action}`,
+      url: `/governance/governor/calibrations/${id}/${action}`,
       method: "post",
       values: { reason: "Operatör işlemi: " + action },
     }, {
       onSuccess: () => {
-        message.success(`Kalibrasyon ${action} işlemi başarılı.`);
+        message.success(t(`success${action.charAt(0).toUpperCase() + action.slice(1)}`));
         tableQueryResult.refetch();
       },
       onError: (err: any) => {
@@ -48,12 +55,12 @@ export default function GovernorCalibrations() {
 
   const triggerProposals = () => {
     mutate({
-      url: "/governance/inbox/governor/calibrations/propose",
+      url: "/governance/governor/calibrations/propose",
       method: "post",
       values: {},
     }, {
       onSuccess: (data: any) => {
-        message.success(`${data.data.proposals_count} yeni kalibrasyon önerisi oluşturuldu.`);
+        message.success(t("successPropose", { count: data.data.proposals_count }));
         tableQueryResult.refetch();
       }
     });
@@ -69,14 +76,22 @@ export default function GovernorCalibrations() {
     }
   };
 
-  const renderValueChange = (oldVal: number, newVal: number) => {
+  const renderValueChange = (parameter: string, oldVal: number, newVal: number) => {
     const diff = newVal - oldVal;
-    const color = diff > 0 ? "#52c41a" : "#ff4d4f";
+    
+    // Higher is better for accuracy/confidence, lower is better for latency/timeouts
+    const isLowerBetter = parameter.toLowerCase().includes("latency") || 
+                          parameter.toLowerCase().includes("timeout") || 
+                          parameter.toLowerCase().includes("error");
+    
+    const isImproved = isLowerBetter ? diff < 0 : diff > 0;
+    const color = isImproved ? "#52c41a" : "#ff4d4f";
+    
     return (
       <Space>
-        <Text delete>{oldVal.toFixed(3)}</Text>
+        <Text delete style={{ opacity: 0.6 }}>{oldVal.toFixed(3)}</Text>
         <Text strong style={{ color }}>{newVal.toFixed(3)}</Text>
-        <Text type="secondary" style={{ fontSize: 12 }}>
+        <Text type="secondary" style={{ fontSize: 11 }}>
           ({diff > 0 ? "+" : ""}{diff.toFixed(3)})
         </Text>
       </Space>
@@ -88,84 +103,86 @@ export default function GovernorCalibrations() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <Title level={2} style={{ margin: 0 }}>
           <ExperimentOutlined style={{ marginRight: 12, color: "#a855f7" }} />
-          Adaptive Threshold Governance
+          {t("title")}
         </Title>
         <Button 
           type="primary" 
           icon={<ThunderboltOutlined />} 
           onClick={triggerProposals}
-          style={{ background: "#a855f7", borderColor: "#a855f7" }}
+          style={{ background: "#a855f7", borderColor: "#a855f7", borderRadius: 6 }}
         >
-          Yeni Kalibrasyon Tara
+          {t("scanButton")}
         </Button>
       </div>
 
-      <Card variant="borderless" style={{ borderRadius: 8, background: "#1f2833", marginBottom: 24 }}>
-        <Paragraph style={{ color: "#ffffffa6" }}>
-          Governor, geçmiş karar performansını (accuracy, latency, operator agreement) analiz ederek kendi eşik değerlerini (threshold) optimize eder. 
-          Önerilen değişiklikler <b>PROPOSED</b> olarak düşer ve operatör onayıyla <b>APPLIED</b> durumuna geçer.
+      <Card variant="borderless" style={{ borderRadius: 12, background: "rgba(31, 40, 51, 0.6)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.05)", marginBottom: 24 }}>
+        <Paragraph style={{ color: "#ffffffd9", margin: 0 }}>
+          {t("description")}
         </Paragraph>
       </Card>
 
-      <Card variant="borderless" style={{ borderRadius: 8, background: "#1f2833" }}>
+      <Card variant="borderless" style={{ borderRadius: 12, background: "#1f2833", border: "1px solid rgba(255,255,255,0.05)", overflow: "hidden" }}>
         <Table 
           {...tableProps} 
           rowKey="id"
+          pagination={{ ...tableProps.pagination, showSizeChanger: true }}
         >
           <Table.Column 
             dataIndex="parameter_name" 
-            title="Parametre" 
-            render={(value) => <Text strong style={{ color: "#66fcf1" }}>{value}</Text>}
+            title={t("parameter")} 
+            render={(value) => <Text strong style={{ color: "#66fcf1", fontSize: 13 }}>{value}</Text>}
           />
           <Table.Column 
-            title="Değişim (Old → New)" 
-            render={(_, record: any) => renderValueChange(record.old_value, record.proposed_value)}
+            title={t("change")} 
+            render={(_, record: any) => renderValueChange(record.parameter_name, record.old_value, record.proposed_value)}
           />
           <Table.Column 
             dataIndex="confidence_score" 
-            title="Güven Puanı" 
+            title={t("confidence")} 
             render={(value) => (
               <Tooltip title={`Örneklem büyüklüğü bazlı güven.`}>
-                <Progress percent={Math.round(value * 100)} size="small" strokeColor="#a855f7" />
+                <div style={{ width: 100 }}>
+                  <Progress percent={Math.round(value * 100)} size="small" strokeColor="#a855f7" trailColor="rgba(255,255,255,0.05)" />
+                </div>
               </Tooltip>
             )}
           />
           <Table.Column 
             dataIndex="status" 
-            title="Durum" 
+            title={t("status")} 
             render={(value) => getStatusTag(value)}
           />
           <Table.Column 
             dataIndex="change_reason" 
-            title="Gerekçe" 
+            title={t("reason")} 
             render={(value) => (
               <Tooltip title={value}>
-                <Text ellipsis style={{ maxWidth: 200 }}>{value}</Text>
+                <Text ellipsis style={{ maxWidth: 220, fontSize: 12 }}>{value}</Text>
               </Tooltip>
             )}
           />
           <Table.Column 
             dataIndex="created_at" 
-            title="Oluşturulma" 
-            render={(value) => <Text type="secondary" style={{ fontSize: 12 }}>{dayjs(value).fromNow()}</Text>}
+            title={t("created")} 
+            render={(value) => <Text type="secondary" style={{ fontSize: 11 }}>{dayjs(value).fromNow()}</Text>}
           />
           <Table.Column
-            title="Aksiyonlar"
+            title={t("actions")}
             render={(_, record: any) => (
               <Space>
                 {record.status === "PROPOSED" && (
                   <>
-                    <Popconfirm title="Bu kalibrasyonu onaylıyor musunuz?" onConfirm={() => handleAction(record.id, "approve")}>
-                      <Button type="primary" size="small" icon={<CheckCircleOutlined />}>Onayla</Button>
+                    <Popconfirm title={t("confirmApprove")} onConfirm={() => handleAction(record.id, "approve")}>
+                      <Button type="primary" size="small" icon={<CheckCircleOutlined />} style={{ borderRadius: 4 }}>{t("approve")}</Button>
                     </Popconfirm>
-                    <Popconfirm title="Bu kalibrasyonu reddetmek istediğinize emin misiniz?" onConfirm={() => handleAction(record.id, "reject")}>
-                      <Button size="small" icon={<CloseCircleOutlined />} danger>Reddet</Button>
+                    <Popconfirm title={t("confirmReject")} onConfirm={() => handleAction(record.id, "reject")}>
+                      <Button size="small" icon={<CloseCircleOutlined />} danger style={{ borderRadius: 4 }}>{t("reject")}</Button>
                     </Popconfirm>
                   </>
                 )}
                 {record.status === "APPLIED" && (
-                  <Popconfirm title="Değişikliği geri almak istiyor musunuz?" onConfirm={() => handleAction(record.id, "rollback")}>
-                    <Button size="small" icon={<UndoOutlined />}>Geri Al</Button>
+                  <Popconfirm title={t("confirmRollback")} onConfirm={() => handleAction(record.id, "rollback")}>
+                    <Button size="small" icon={<UndoOutlined />} style={{ borderRadius: 4 }}>{t("rollback")}</Button>
                   </Popconfirm>
                 )}
               </Space>

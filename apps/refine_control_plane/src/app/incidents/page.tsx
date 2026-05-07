@@ -215,7 +215,7 @@ export default function IncidentsPage() {
 
       <div className="grid grid-cols-1 gap-10 xl:grid-cols-12">
         <div className="xl:col-span-8">
-          <section className="glass-panel group relative overflow-hidden rounded-[2.5rem] border-white/[0.03] bg-gradient-to-br from-white/[0.012] to-transparent p-10 shadow-2xl">
+          <section className="glass-panel group relative overflow-hidden rounded-[2.5rem] border-white/10 bg-[#0b0f19]/60 p-10 shadow-2xl backdrop-blur-md">
             <div className="pointer-events-none absolute right-0 top-0 p-10 opacity-[0.02] transition-opacity group-hover:opacity-[0.05]">
               <Terminal size={300} />
             </div>
@@ -277,7 +277,7 @@ export default function IncidentsPage() {
         </div>
 
         <div className="space-y-8 xl:col-span-4">
-          <section className="glass-panel group relative overflow-hidden rounded-[2.5rem] border-white/[0.05] bg-[#060a12]/50 p-10 shadow-xl">
+          <section className="glass-panel group relative overflow-hidden rounded-[2.5rem] border-white/10 bg-[#0b0f19]/80 p-10 shadow-xl backdrop-blur-md">
             <div className="pointer-events-none absolute right-0 top-0 p-8 opacity-[0.03] transition-opacity group-hover:opacity-[0.08]">
               <ShieldAlert size={140} className="text-red-500" />
             </div>
@@ -355,8 +355,8 @@ function EliteIncidentItem({
     <div
       className={`group/item relative overflow-hidden rounded-[2rem] border p-8 transition-all duration-500 ${
         isCritical
-          ? "border-red-500/20 bg-red-500/[0.02] hover:border-red-500/40"
-          : "border-white/5 bg-white/[0.015] hover:border-white/10 hover:bg-white/[0.025]"
+          ? "border-red-500/30 bg-red-500/[0.03] hover:border-red-500/50 hover:bg-red-500/[0.06] shadow-[0_0_30px_rgba(239,68,68,0.05)]"
+          : "border-white/10 bg-[#0b0f19]/60 backdrop-blur-md hover:border-[var(--primary)]/30 hover:bg-[#0b0f19]/80 shadow-xl"
       }`}
     >
       <div className="relative z-10 flex items-start justify-between gap-8">
@@ -379,8 +379,8 @@ function EliteIncidentItem({
               <span
                 className={`rounded-lg border px-2.5 py-1 text-[9px] font-black uppercase tracking-widest transition-all ${
                   isResolved
-                    ? "border-green-500/20 bg-green-500/10 text-green-500"
-                    : "border-[var(--primary)]/20 bg-[var(--primary)]/10 text-[var(--primary)] shadow-[0_0_10px_rgba(102,252,241,0.1)]"
+                    ? "border-green-500/40 bg-green-500/10 text-green-400 shadow-[0_0_15px_rgba(72,187,120,0.15)]"
+                    : "border-[var(--primary)]/30 bg-[var(--primary)]/10 text-[var(--primary)] shadow-[0_0_15px_rgba(102,252,241,0.2)]"
                 }`}
               >
                 {incident.status}
@@ -388,7 +388,7 @@ function EliteIncidentItem({
             </div>
             <p
               className={`mb-6 max-w-xl text-xs font-bold leading-relaxed tracking-tight ${
-                isCritical ? "text-red-200 opacity-80" : "text-gray-500"
+                isCritical ? "text-red-400" : "text-slate-400"
               }`}
             >
               {incident.message}
@@ -424,7 +424,7 @@ function EliteIncidentItem({
                   </code>
                   <div className="absolute inset-0 pointer-events-none rounded-xl bg-gradient-to-r from-blue-500/0 via-blue-500/[0.02] to-blue-500/0 opacity-0 group-hover/code:opacity-100 transition-opacity" />
                 </div>
-                {incident.payload.diagnosis && (
+                {!!incident.payload.diagnosis && (
                     <p className="mt-4 text-[10px] font-bold text-blue-400/60 italic leading-relaxed">
                         Analiz: {String(incident.payload.diagnosis)}
                     </p>

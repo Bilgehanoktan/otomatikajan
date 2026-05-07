@@ -14,7 +14,8 @@ import {
   Cpu,
   Lock
 } from "lucide-react";
-import { useCustomMutation, useList } from "@refinedev/core";
+import { useCustomMutation, useList, useTranslate } from "@refinedev/core";
+import { useTranslations } from "next-intl";
 import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 
 export default function IdentityManagerPage() {
@@ -24,8 +25,11 @@ export default function IdentityManagerPage() {
 
   useEffect(() => setIsClient(true), []);
 
+  const t = useTranslations("identity");
+  const commonT = useTranslations("common");
+
   const { query: { data: identities, isLoading } } = useList({
-    resource: "auth/identities", // We'll ensure this exists
+    resource: "auth/identities",
     queryOptions: { enabled: isClient }
   });
 
@@ -60,21 +64,21 @@ export default function IdentityManagerPage() {
   return (
     <div className="min-h-screen p-8 bg-[#060a12] text-gray-300">
       <ResourceHeader 
-        title="Identity Manager" 
-        subtitle="System Agent Lifecycle & API Key Governance" 
+        title={t("title")} 
+        subtitle={t("subtitle")} 
         icon={<Fingerprint size={32} />}
         badge="SIF-02 Standard"
       />
 
       <div className="grid grid-cols-1 gap-8 mt-10">
-        <section className="glass-panel p-10 rounded-[3rem] border-white/5 bg-gradient-to-br from-white/[0.01] to-transparent">
+        <section className="glass-panel p-10 rounded-[3rem] border-white/10 bg-[#0b0f19]/60 backdrop-blur-md">
           <div className="flex items-center justify-between mb-10">
              <div className="flex items-center gap-4">
                 <Cpu size={20} className="text-[var(--primary)]" />
-                <h2 className="text-xs font-black text-white uppercase tracking-[0.3em]">Authorized System Identities</h2>
+                <h2 className="text-xs font-black text-white uppercase tracking-[0.3em]">{t("authorizedIdentities")}</h2>
              </div>
-             <button className="flex items-center gap-2 px-6 py-2 bg-white/5 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-white/10 transition-all">
-                <Plus size={14} /> New Identity
+             <button className="flex items-center gap-2 px-6 py-2 bg-white/5 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-white/10 transition-all text-gray-400 hover:text-white">
+                <Plus size={14} /> {t("newIdentity")}
              </button>
           </div>
 
@@ -126,7 +130,7 @@ export default function IdentityManagerPage() {
                     onClick={() => generateKey(id.id)}
                     className="flex-1 flex items-center justify-center gap-2 py-3 bg-[var(--primary)]/10 text-[var(--primary)] border border-[var(--primary)]/20 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-[var(--primary)] hover:text-[#060a12] transition-all"
                   >
-                    <RefreshCw size={14} /> Rotate
+                    <RefreshCw size={14} /> {t("rotate")}
                   </button>
                   <button 
                     onClick={() => {
@@ -163,7 +167,7 @@ export default function IdentityManagerPage() {
                   <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center z-10 rounded-[2rem]">
                      <div className="flex flex-col items-center gap-2">
                         <Lock size={32} className="text-red-500 opacity-60" />
-                        <span className="text-[8px] font-black text-red-500 uppercase tracking-widest">ISOLATED</span>
+                        <span className="text-[8px] font-black text-red-500 uppercase tracking-widest">{t("isolated")}</span>
                      </div>
                   </div>
                 )}
@@ -182,10 +186,10 @@ export default function IdentityManagerPage() {
                <ShieldAlert size={32} className="text-orange-500" />
             </div>
             
-            <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-4">CRITICAL: Identity Secret Unsealed</h3>
+            <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-4">{t("secretUnsealed")}</h3>
             <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-10 leading-relaxed">
               Bu anahtar veritabanında mühürlü (hashed) olarak saklanır. <br/>
-              <span className="text-orange-500">BİR DAHA ASLA GÖRÜNTÜLENEMEYECEKTİR.</span>
+              <span className="text-orange-500">{t("sealedWarning")}</span>
             </p>
 
             <div className="relative group">

@@ -1,169 +1,122 @@
 "use client";
 
-import React from "react";
-import { List, useTable } from "@refinedev/antd";
-import { Table, Tag, Space, Typography, Card, Button, Modal, notification, Alert } from "antd";
+import React, { useState, useEffect } from "react";
+import { App, Table, Tag, Typography, Button, Modal, Alert } from "antd";
 import { 
-  ExperimentOutlined, 
-  SafetyCertificateOutlined,
-  ThunderboltOutlined,
-  CheckCircleOutlined
-} from "@ant-design/icons";
+  FlaskConical, 
+  ShieldCheck,
+  Zap,
+  CheckCircle,
+  Rocket
+} from "lucide-react";
+import { useTable } from "@refinedev/antd";
 import { useCustomMutation } from "@refinedev/core";
+import { useTranslations } from "next-intl";
+import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 
-const { Text, Title, Paragraph } = Typography;
+const { Text } = Typography;
 
 export default function AdaptationCandidatesPage() {
+  const t = useTranslations("learning.adaptation");
+  const [isClient, setIsClient] = useState(false);
   const { tableProps } = useTable({
     resource: "learning/adaptation-candidates",
+    syncWithLocation: false,
   });
 
-  const { mutate } = useCustomMutation();
+  const { mutate, mutation } = useCustomMutation();
+  const { message } = App.useApp();
 
-  const handlePromote = (id: string, name: string) => {
-    Modal.confirm({
-      title: "Strateji Terfisi Onayı",
-      content: (
-        <div>
-          <Paragraph>
-            <Text className="text-[#66fcf1] font-bold">{name}</Text> stratejisi, istatistiksel başarı eşiklerini geçerek terfi adayı olmuştur.
-          </Paragraph>
-          <Paragraph>
-            Onaylamanız durumunda, bu strateji <Text strong>Otonom Tam Yetkili</Text> moduna geçecek ve Governance katmanında öncelikli hale gelecektir.
-          </Paragraph>
-          <Alert
-            message="Kritik İşlem"
-            description="Bu işlem denetim soyağacına (Lineage) işlenecek ve geri alınması manuel müdahale gerektirecektir."
-            type="warning"
-            showIcon
-          />
-        </div>
-      ),
-      okText: "Terfi Ettir",
-      cancelText: "İptal",
-      okButtonProps: { className: "bg-[#66fcf1] text-black border-none hover:bg-[#45a29e]" },
-      onOk: () => {
-        mutate({
-          url: `/learning/promote-strategy/${id}`,
-          method: "post",
-          values: {},
-        }, {
-          onSuccess: () => {
-            notification.success({
-              message: "Başarılı",
-              description: `${name} stratejisi başarıyla terfi ettirildi.`,
-              placement: "topRight",
-            });
-          },
-        });
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  const handleApply = (id: string) => {
+    mutate(
+      {
+        url: `/api/v1/learning/adaptation-candidates/${id}/apply`,
+        method: "post",
+        values: {},
       },
-    });
+      {
+        onSuccess: () => {
+          message.success(t("applySuccess"));
+        },
+        onError: () => {
+          message.error(t("applyError"));
+        },
+      }
+    );
   };
 
-  return (
-    <div className="p-6">
-      <div className="mb-6">
-        <Title level={2} className="!text-[#66fcf1] !mb-0 flex items-center gap-3">
-          <ExperimentOutlined /> Adaptasyon Adayları
-        </Title>
-        <Text className="text-gray-400">
-          Sistem performansı ve istatistiksel veriler ışığında otonomi seviyesi yükseltilmeye aday stratejiler.
-        </Text>
-      </div>
+  if (!isClient) return <div className="min-h-screen bg-[#060a12]" />;
 
-      <List
-        title={
-          <div className="flex items-center gap-2">
-            <ThunderboltOutlined className="text-[#66fcf1]" />
-            <span className="text-[#66fcf1] font-bold">Önerilen Sistem Güncellemeleri</span>
-          </div>
-        }
-      >
-        <Table {...tableProps} rowKey="id" className="custom-table">
+  return (
+    <div className="min-h-screen p-8 bg-[#060a12] text-gray-300 animate-in fade-in duration-1000 overflow-x-hidden">
+      
+      <ResourceHeader 
+        title={t("title")} 
+        subtitle={t("subtitle")} 
+        icon={<FlaskConical size={32} />}
+        badge="Evolution-Tier 2"
+      />
+
+      <div className="glass-panel rounded-[2.5rem] border-white/10 bg-[#0b0f19]/60 p-10 shadow-2xl backdrop-blur-md relative overflow-hidden group">
+        <div className="absolute top-0 right-0 p-10 opacity-[0.02] group-hover:opacity-[0.05] transition-opacity pointer-events-none">
+           <Zap size={300} />
+        </div>
+
+        <Table 
+          {...tableProps} 
+          rowKey="id" 
+          className="custom-table-v2"
+          pagination={false}
+        >
           <Table.Column
             dataIndex="strategy_name"
-            title="Strateji"
-            render={(value) => <Text className="text-[#66fcf1] font-bold">{value}</Text>}
-          />
-          <Table.Column
-            dataIndex="trust_score"
-            title="Sinyal Gücü"
+            title="STRATEGY"
             render={(value) => (
-              <Tag color="cyan" className="font-mono">
-                {(value * 100).toFixed(1)}%
-              </Tag>
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-[var(--primary)]/10 rounded-xl border border-[var(--primary)]/20 text-[var(--primary)]">
+                  <Rocket size={16} />
+                </div>
+                <span className="text-white font-black uppercase tracking-tight italic">{value}</span>
+              </div>
             )}
           />
           <Table.Column
-            title="Performans Metrikleri"
-            render={(_, record: any) => (
-              <div className="flex gap-4">
-                <div>
-                  <Text className="text-gray-500 block text-[10px]">SUCCESS RATE</Text>
-                  <Text className="text-green-400 font-bold">
-                    {((record.success_count / record.total_runs) * 100).toFixed(1)}%
-                  </Text>
+            dataIndex="trust_score"
+            title="CONFIDENCE"
+            render={(value) => (
+              <div className="flex flex-col gap-1">
+                <div className="flex justify-between text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                  <span>Signal</span>
+                  <span>{(value * 100).toFixed(0)}%</span>
                 </div>
-                <div>
-                  <Text className="text-gray-500 block text-[10px]">TOTAL RUNS</Text>
-                  <Text className="text-[#c5c6c7] font-bold">{record.total_runs}</Text>
+                <div className="w-32 h-1 bg-white/5 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-[var(--primary)] shadow-[0_0_8px_rgba(102,252,241,0.5)] transition-all duration-1000" 
+                    style={{ width: `${value * 100}%` }}
+                  />
                 </div>
               </div>
             )}
           />
           <Table.Column
-            dataIndex="state"
-            title="Mevcut Durum"
-            render={(value) => <Tag color="blue">{value?.toUpperCase()}</Tag>}
-          />
-          <Table.Column
-            title="İşlemler"
-            dataIndex="id"
-            render={(id, record: any) => (
-              <Button 
-                type="primary" 
-                icon={<SafetyCertificateOutlined />}
-                onClick={() => handlePromote(id, record.strategy_name)}
-                className="bg-[#66fcf1] text-black border-none hover:bg-[#45a29e]"
+            title="ACTION"
+            render={(_, record: any) => (
+              <button
+                onClick={() => handleApply(record.id)}
+                disabled={mutation.isPending}
+                className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-6 py-2 text-[10px] font-black uppercase tracking-widest text-white transition-all hover:bg-[var(--primary)] hover:text-[#060a12] active:scale-95 disabled:opacity-50"
               >
-                Terfi Onayı
-              </Button>
+                <CheckCircle size={14} />
+                {t("apply")}
+              </button>
             )}
           />
         </Table>
-      </List>
-
-      <style jsx global>{`
-        .custom-table .ant-table {
-          background: #1a1c22 !important;
-          color: #c5c6c7 !important;
-        }
-        .custom-table .ant-table-thead > tr > th {
-          background: #23272e !important;
-          color: #66fcf1 !important;
-          border-bottom: 1px solid #30363d !important;
-        }
-        .custom-table .ant-table-tbody > tr > td {
-          border-bottom: 1px solid #23272e !important;
-        }
-        .custom-table .ant-table-tbody > tr:hover > td {
-          background: #23272e !important;
-        }
-        .ant-modal-content {
-          background-color: #1a1c22 !important;
-          border: 1px solid #30363d !important;
-        }
-        .ant-modal-header {
-          background-color: #1a1c22 !important;
-          border-bottom: 1px solid #30363d !important;
-        }
-        .ant-modal-title {
-          color: #66fcf1 !important;
-        }
-        .ant-modal-close {
-          color: #c5c6c7 !important;
-        }
-      `}</style>
+      </div>
     </div>
   );
 }
