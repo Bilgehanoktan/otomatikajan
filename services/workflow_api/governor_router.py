@@ -7,12 +7,18 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
-
+import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from libs.db.session import get_db, AsyncSessionLocal
+from libs.db.models.governance_models import (
+    GovernorAlertStatus, 
+    GovernorAlertType, 
+    GovernorDriftType,
+    GovernorDomain
+)
 from services.auth.jwt_auth import require_permission
 
 router = APIRouter(tags=["Governor Inbox"])
@@ -161,6 +167,37 @@ class GovernorRuntimeOut(BaseModel):
     advisory_only: bool
     updated_at: datetime
 
+class GovernorAlertOut(BaseModel):
+    id: str
+    alert_type: str
+    severity: str
+    status: str
+    domain: Optional[str] = None
+    title: str
+    summary: str
+    metric_value: Optional[float] = None
+    threshold_value: Optional[float] = None
+    opened_at: datetime
+    acknowledged_at: Optional[datetime] = None
+    resolved_at: Optional[datetime] = None
+
+class GovernorMetricOut(BaseModel):
+    id: str
+    metric_key: str
+    domain: Optional[str] = None
+    value: float
+    baseline_value: Optional[float] = None
+    delta_value: Optional[float] = None
+    created_at: datetime
+
+class GovernorDriftOut(BaseModel):
+    id: str
+    drift_type: str
+    domain: Optional[str] = None
+    drift_score: float
+    summary: str
+    created_at: datetime
+
 
 class GovernorDrillOut(BaseModel):
     id: str
@@ -203,39 +240,6 @@ class GovernorPolicySimulationOut(BaseModel):
     predicted_accuracy_delta: float
     predicted_false_positive_delta: float
     predicted_escalation_delta: float
-    created_at: datetime
-
-
-class GovernorAlertOut(BaseModel):
-    id: str
-    alert_type: str
-    severity: str
-    status: str
-    domain: Optional[str] = None
-    title: str
-    summary: Optional[str] = None
-    metric_value: Optional[float] = None
-    threshold_value: Optional[float] = None
-    opened_at: datetime
-    acknowledged_at: Optional[datetime] = None
-    resolved_at: Optional[datetime] = None
-
-
-class GovernorMetricOut(BaseModel):
-    metric_key: str
-    domain: Optional[str] = None
-    value: float
-    baseline_value: Optional[float] = None
-    delta_value: Optional[float] = None
-    created_at: datetime
-
-
-class GovernorDriftOut(BaseModel):
-    id: str
-    drift_type: str
-    domain: Optional[str] = None
-    drift_score: float
-    summary: Optional[str] = None
     created_at: datetime
 
 
@@ -905,7 +909,12 @@ async def start_chaos_drill(
 ):
     """Yeni bir kaos tatbikatı (drill) başlatır."""
     from services.governance.governor_chaos_lab import GovernorChaosLab
-    from libs.db.models.governance_models import GovernorDrillType, GovernorDomain
+    from libs.db.models.governance_models import (
+        GovernorAlertStatus, 
+        GovernorAlertType, 
+        GovernorDrillType,
+        GovernorDomain
+    )
     
     async with AsyncSessionLocal() as db:
         drill_type = GovernorDrillType(body.drill_type)
@@ -1079,3 +1088,106 @@ async def export_audit_bundle_api(
         exporter = AuditBundleExporter(db)
         path = exporter.export_bundle(snapshot_id, "exports/audit")
         return {"status": "exported", "path": path}
+# ── Observability Endpoints ───────────────────────────────────
+
+@router.get("/alerts", response_model=List[GovernorAlertOut])
+async def list_governor_alerts(
+    limit: int = Query(50),
+    identity: Dict[str, Any] = Depends(require_permission("governor.view")),
+):
+    """Açık yönetişim uyarılarını listeler."""
+    from libs.db.repositories.governor_observability_repository import GovernorAlertRepo
+    async with AsyncSessionLocal() as db:
+        items = await GovernorAlertRepo.list_open_alerts(db, limit=limit)
+    
+    return [
+        GovernorAlertOut(
+            id=str(r.id),
+            alert_type=r.alert_type.value,
+            severity=r.severity.value,
+            status=r.status.value,
+            domain=r.domain.value if r.domain else None,
+            title=r.title,
+            summary=r.summary,
+            metric_value=r.metric_value,
+            threshold_value=r.threshold_value,
+            opened_at=r.opened_at,
+            acknowledged_at=r.acknowledged_at,
+            resolved_at=r.resolved_at
+        ) for r in items
+    ]
+
+@router.post("/alerts/{alert_id}/ack")
+async def ack_governor_alert(
+    alert_id: str,
+    identity: Dict[str, Any] = Depends(require_permission("governor.override")),
+):
+    """Bir uyarıyı onaylar (Acknowledge)."""
+    from libs.db.repositories.governor_observability_repository import GovernorAlertRepo
+    async with AsyncSessionLocal() as db:
+        success = await GovernorAlertRepo.update_status(
+            db, uuid.UUID(alert_id), GovernorAlertStatus.ACKNOWLEDGED, owner_id=identity.get("name")
+        )
+        if not success:
+            raise HTTPException(status_code=404, detail="Alert not found")
+        await db.commit()
+    return {"status": "acknowledged"}
+
+@router.post("/alerts/{alert_id}/resolve")
+async def resolve_governor_alert(
+    alert_id: str,
+    identity: Dict[str, Any] = Depends(require_permission("governor.override")),
+):
+    """Bir uyarıyı çözüldü olarak işaretler."""
+    from libs.db.repositories.governor_observability_repository import GovernorAlertRepo
+    async with AsyncSessionLocal() as db:
+        success = await GovernorAlertRepo.update_status(
+            db, uuid.UUID(alert_id), GovernorAlertStatus.RESOLVED
+        )
+        if not success:
+            raise HTTPException(status_code=404, detail="Alert not found")
+        await db.commit()
+    return {"status": "resolved"}
+
+@router.get("/metrics", response_model=List[GovernorMetricOut])
+async def list_governor_metrics(
+    limit: int = Query(20),
+    identity: Dict[str, Any] = Depends(require_permission("governor.view")),
+):
+    """Yönetişim metriklerini listeler."""
+    from libs.db.repositories.governor_observability_repository import GovernorMetricAggregateRepo
+    async with AsyncSessionLocal() as db:
+        items = await GovernorMetricAggregateRepo.get_latest_metrics(db, limit=limit)
+    
+    return [
+        GovernorMetricOut(
+            id=str(r.id),
+            metric_key=r.metric_key,
+            domain=r.domain,
+            value=r.value,
+            baseline_value=r.baseline_value,
+            delta_value=r.delta_value,
+            created_at=r.created_at
+        ) for r in items
+    ]
+
+@router.get("/drifts", response_model=List[GovernorDriftOut])
+async def list_governor_drifts(
+    limit: int = Query(50),
+    identity: Dict[str, Any] = Depends(require_permission("governor.view")),
+):
+    """Yönetişim sapmalarını (drift) listeler."""
+    from libs.db.repositories.governor_observability_repository import GovernorDriftRepo
+    async with AsyncSessionLocal() as db:
+        items = await GovernorDriftRepo.list_recent_drifts(db, limit=limit)
+    
+    return [
+        GovernorDriftOut(
+            id=str(r.id),
+            drift_type=r.drift_type.value,
+            domain=r.domain.value if r.domain else None,
+            drift_score=r.drift_score,
+            summary=r.summary,
+            created_at=r.created_at
+        ) for r in items
+    ]

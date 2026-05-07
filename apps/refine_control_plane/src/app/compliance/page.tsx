@@ -53,8 +53,8 @@ export default function CompliancePage() {
         creator: "operator_ui"
       },
       successNotification: {
-        message: "Paket Oluşturuluyor",
-        description: "Denetim paketi arka planda hazırlanıyor.",
+        message: t("notifications.creating"),
+        description: t("notifications.creatingDesc"),
         type: "success",
       },
     });
@@ -70,12 +70,12 @@ export default function CompliancePage() {
         title={t("title")} 
         subtitle={t("subtitle")} 
         icon={<ShieldCheck size={32} />}
-        badge="Regulatory Grade"
+        badge={t("badge")}
         actions={
           <div className="flex gap-4">
              <div className="glass-card !p-3 flex flex-col items-end border-white/10 bg-[#0b0f19]/40 px-4">
                 <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest leading-none">{t("integrityHash")}</span>
-                <span className="text-sm font-black text-green-400 mt-1">99.99% NOMINAL</span>
+                <span className="text-sm font-black text-green-400 mt-1">99.99% {t("nominal")}</span>
              </div>
              <button 
                onClick={() => setIsModalOpen(true)}
@@ -106,17 +106,17 @@ export default function CompliancePage() {
                         <div className="flex justify-between items-start mb-4">
                            <span className="text-[11px] font-black text-white uppercase tracking-tight group-hover:text-[var(--primary)] transition-colors">{policy.data_category}</span>
                            {policy.is_permanent && (
-                             <span className="text-[8px] font-black bg-amber-500/10 text-amber-500 border border-amber-500/20 px-2 py-0.5 rounded uppercase tracking-widest">PERMANENT</span>
+                             <span className="text-[8px] font-black bg-amber-500/10 text-amber-500 border border-amber-500/20 px-2 py-0.5 rounded uppercase tracking-widest">{t("permanent")}</span>
                            )}
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                            <div className="flex flex-col">
-                              <span className="text-[8px] text-gray-600 font-black uppercase tracking-widest">Hot Storage</span>
-                              <span className="text-[10px] font-bold text-gray-400 mt-1">{policy.hot_retention_days} Days</span>
+                              <span className="text-[8px] text-gray-600 font-black uppercase tracking-widest">{t("hotStorage")}</span>
+                              <span className="text-[10px] font-bold text-gray-400 mt-1">{t("days", { count: policy.hot_retention_days })}</span>
                            </div>
                            <div className="flex flex-col items-end">
-                              <span className="text-[8px] text-gray-600 font-black uppercase tracking-widest">Cold Retention</span>
-                              <span className="text-[10px] font-bold text-gray-400 mt-1">{policy.warm_retention_days} Days</span>
+                              <span className="text-[8px] text-gray-600 font-black uppercase tracking-widest">{t("coldRetention")}</span>
+                              <span className="text-[10px] font-bold text-gray-400 mt-1">{t("days", { count: policy.warm_retention_days })}</span>
                            </div>
                         </div>
                      </div>

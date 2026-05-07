@@ -12,7 +12,7 @@ const { Title, Text } = Typography;
 export default function GovernorInbox() {
   const t = useTranslations("dashboard");
   const { tableProps, tableQueryResult } = useTable({
-    resource: "governance/inbox/governor/cases",
+    resource: "governance/governor/cases",
     syncWithLocation: true,
     pagination: {
       pageSize: 50,
@@ -251,7 +251,7 @@ export default function GovernorInbox() {
               <Button 
                 type="primary" 
                 icon={<SearchOutlined />}
-                  onClick={() => show("governance/inbox/governor/cases", record.id)}
+                  onClick={() => show("governance/governor/cases", record.id)}
               >
                 {t("governance.review", { defaultMessage: "İncele" })}
               </Button>

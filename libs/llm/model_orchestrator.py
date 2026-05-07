@@ -199,6 +199,23 @@ class ProviderStats:
         if len(key) < 20:
             return True
 
+        # Provider-format guard:
+        # Wrong provider key in wrong env (for example OPENROUTER key in ANTHROPIC var)
+        # should be treated as invalid to prevent noisy/broken fallback attempts.
+        expected_prefixes = {
+            "openai": ("sk-", "sk-proj-"),
+            "anthropic": ("sk-ant-",),
+            "gemini": ("AIza",),
+            "groq": ("gsk_",),
+            "openrouter": ("sk-or-v1-",),
+            "nvidia": ("nvapi-",),
+            "moonshot": ("sk-",),
+            "deepseek": ("sk-",),
+        }
+        prefixes = expected_prefixes.get(self.name, ())
+        if prefixes and not key.startswith(prefixes):
+            return True
+
         return False
 
 # ── 3. Sağlayıcılar ve Rota Politikası ───────────────────
@@ -424,10 +441,14 @@ class ModelOrchestrator:
                     _log_with_throttle(
                         "provider_429",
                         provider.name,
-                        f"RATE LIMIT (429) hit on {provider.name}. Applying progressive penalty.",
+                        f"RATE LIMIT (429) hit on {provider.name}. Applying progressive penalty and jitter delay.",
                     )
                     provider.record_failure(is_rate_limit=True)
                     skipped_details.append(f"{provider.name} (429 Rate Limit)")
+                    
+                    # Faz 13.04: Add randomized delay to reduce thundering herd pressure
+                    jitter_delay = random.uniform(1.0, 5.0) * (provider.penalty_multiplier / 2)
+                    await asyncio.sleep(min(jitter_delay, 15.0))
                 else:
                     logger.warning(f"Sağlayıcı Hatası ({provider.name}): {str(e)}. Fallback modele geçiliyor.")
                     err_summary = str(e)[:50]
@@ -612,20 +633,28 @@ class ModelOrchestrator:
 
         # Proxy desteği
         base_url = os.getenv("CLAUDE_PROXY_URL") or p.base_url
-        if base_url and not base_url.endswith("/messages"):
+        is_openrouter = "openrouter.ai" in (base_url or "")
+        if is_openrouter:
+            if not (base_url or "").endswith("/chat/completions"):
+                base_url = (base_url or "").rstrip("/") + "/chat/completions"
+        elif base_url and not base_url.endswith("/messages"):
              if "/v1" not in base_url: base_url = base_url.rstrip("/") + "/v1/messages"
              else: base_url = base_url.rstrip("/") + "/messages"
 
         resp = await client.post(
             base_url,
             headers={
+                "Authorization": f"Bearer {p.api_key}"
+            } if is_openrouter else {
                 "x-api-key": p.api_key,
                 "anthropic-version": "2023-06-01",
                 "content-type": "application/json",
             },
-            json={"model": p.model, "max_tokens": max_tokens, "system": sys_msg, "messages": usr_msgs},
+            json={"model": p.model, "messages": messages, "max_tokens": max_tokens} if is_openrouter else {"model": p.model, "max_tokens": max_tokens, "system": sys_msg, "messages": usr_msgs},
         )
         resp.raise_for_status()
+        if is_openrouter:
+            return resp.json()["choices"][0]["message"]["content"]
         return resp.json()["content"][0]["text"]
 
     async def _call_gemini(self, client, p, messages, max_tokens) -> str:

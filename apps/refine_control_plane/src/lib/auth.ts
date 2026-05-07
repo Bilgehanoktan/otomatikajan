@@ -1,4 +1,5 @@
 import { getApiBaseUrl } from "@/lib/runtime";
+import { safeFetchJson } from "@/lib/api";
 
 const DEV_OPERATOR = {
   email: "admin@sovereign.agi",
@@ -7,18 +8,13 @@ const DEV_OPERATOR = {
 
 const TOKEN_KEY = "sqv_access_token";
 
-export interface AuthIdentity {
-  id: string;
-  email: string;
-  role?: string | null;
-  roles?: string[] | null;
-}
-
-export type SessionState =
-  | { kind: "authenticated"; identity: AuthIdentity }
-  | { kind: "unauthorized"; status: number }
-  | { kind: "network-error"; error: Error }
-  | { kind: "error"; status: number; detail: string };
+import { 
+  AuthIdentity, 
+  SessionState, 
+  LoginParams, 
+  RegisterParams, 
+  AuthActionResult 
+} from "@/types/auth";
 
 function storeAccessToken(token?: string | null) {
   if (!token || typeof window === "undefined") {
@@ -41,17 +37,10 @@ export function getStoredAccessToken(): string | null {
   return window.localStorage.getItem(TOKEN_KEY);
 }
 
-async function readJsonSafely<T>(response: Response): Promise<T | null> {
-  try {
-    return (await response.json()) as T;
-  } catch {
-    return null;
-  }
-}
-
-import { safeFetchJson } from "@/lib/api";
-
-async function authFetch<T = any>(path: string, init: RequestInit = {}): Promise<T> {
+/**
+ * Standardized fetch wrapper for auth-related operations.
+ */
+async function authFetch<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
   const url = `${getApiBaseUrl()}${path}`;
   return safeFetchJson<T>(url, init);
 }
@@ -63,18 +52,21 @@ export async function fetchCurrentOperator(): Promise<SessionState> {
       if (typeof window !== "undefined") {
         if (payload.role) window.localStorage.setItem("auth", JSON.stringify({ role: payload.role }));
         if (payload.email) window.localStorage.setItem("sqv_operator_email", payload.email);
+        
+        // Persist to global window for legacy component access
+        (window as { __SQV_IDENTITY__?: AuthIdentity | null } & Window).__SQV_IDENTITY__ = payload;
       }
       return { kind: "authenticated", identity: payload };
     }
     return { kind: "error", status: 500, detail: "Sunucudan geçersiz kimlik verisi alındı." };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.warn("[Auth] fetchCurrentOperator hatası:", error);
-    if (error?.status === 401) {
+    if (error && typeof error === "object" && "status" in error && error.status === 401) {
       return { kind: "unauthorized", status: 401 };
     }
     return {
       kind: "network-error",
-      error: error instanceof Error ? error : new Error(error?.message || "Kimlik ağına ulaşılamadı."),
+      error: error instanceof Error ? error : new Error("Kimlik ağına ulaşılamadı."),
     };
   }
 }
@@ -114,7 +106,13 @@ export async function ensureSession(): Promise<SessionState> {
   return current;
 }
 
-export async function performLogin(params: any): Promise<{ success: boolean; redirectTo?: string; error?: any }> {
+export interface AuthActionResult {
+  success: boolean;
+  redirectTo?: string;
+  error?: Error;
+}
+
+export async function performLogin(params: LoginParams): Promise<AuthActionResult> {
   console.log("[Auth] Giriş denemesi:", params.email);
   try {
     const payload = await authFetch<{ access_token?: string | null }>("/auth/login/", {
@@ -127,7 +125,7 @@ export async function performLogin(params: any): Promise<{ success: boolean; red
 
     if (payload?.access_token) {
       storeAccessToken(payload.access_token);
-      if (typeof window !== "undefined") {
+      if (typeof window !== "undefined" && typeof params.email === "string") {
         window.localStorage.setItem("sqv_operator_email", params.email);
       }
       return { success: true, redirectTo: "/" };
@@ -137,19 +135,19 @@ export async function performLogin(params: any): Promise<{ success: boolean; red
       success: false, 
       error: new Error("Giriş başarısız. Lütfen bilgilerinizi kontrol edin.")
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Auth] Giriş hatası:", error);
     return { 
       success: false, 
-      error: error instanceof Error ? error : new Error(error?.message || "Sunucuya bağlanılamadı.")
+      error: error instanceof Error ? error : new Error("Sunucuya bağlanılamadı.")
     };
   }
 }
 
-export async function performRegister(params: any): Promise<{ success: boolean; error?: any }> {
+export async function performRegister(params: RegisterParams): Promise<{ success: boolean; error?: Error }> {
   console.log("[Auth] Kayıt denemesi:", params.email);
   try {
-    const payload = await authFetch<any>("/auth/register/", {
+    const payload = await authFetch<AuthIdentity>("/auth/register/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(params),
@@ -157,7 +155,6 @@ export async function performRegister(params: any): Promise<{ success: boolean; 
 
     console.log("[Auth] Kayıt yanıtı:", payload);
 
-    // Backend returns the user object on success
     if (payload && (payload.id || payload.email)) {
       return { success: true };
     }
@@ -166,13 +163,22 @@ export async function performRegister(params: any): Promise<{ success: boolean; 
       success: false, 
       error: new Error("Kayıt işlemi başarısız oldu. Sunucu geçerli bir yanıt dönmedi.")
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Auth] Kayıt hatası:", error);
     return { 
       success: false, 
-      error: error instanceof Error ? error : new Error(error?.message || "Sunucuya bağlanılamadı.")
+      error: error instanceof Error ? error : new Error("Sunucuya bağlanılamadı.")
     };
   }
+}
+
+export async function performLogout(): Promise<void> {
+    clearStoredAccessToken();
+    if (typeof window !== "undefined") {
+        (window as { __SQV_IDENTITY__?: AuthIdentity | null } & Window).__SQV_IDENTITY__ = null;
+        window.localStorage.removeItem("auth");
+        window.localStorage.removeItem("sqv_operator_email");
+    }
 }
 
 export async function getAuthHeaders(): Promise<Record<string, string>> {

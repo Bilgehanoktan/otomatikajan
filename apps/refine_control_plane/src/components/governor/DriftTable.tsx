@@ -67,7 +67,7 @@ export const DriftTable: React.FC<Props> = ({ drifts, loading, onInspect }) => {
     {
       title: "Baseline / Current",
       key: "window",
-      render: (_: any, record: DriftRecord) => (
+      render: (_: unknown, record: DriftRecord) => (
         <Space split={<Text type="secondary">/</Text>}>
           <Tag icon={<HistoryOutlined />}>{record.baseline_window_days}d</Tag>
           <Tag color="cyan">{record.current_window_days}d</Tag>
@@ -91,7 +91,7 @@ export const DriftTable: React.FC<Props> = ({ drifts, loading, onInspect }) => {
       title: "Actions",
       key: "actions",
       width: 100,
-      render: (_: any, record: DriftRecord) => (
+      render: (_: unknown, record: DriftRecord) => (
         <Button 
           size="small" 
           icon={<EyeOutlined />} 

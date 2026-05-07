@@ -73,14 +73,13 @@ const icons: Record<string, React.ReactNode> = {
     "learning/negative-patterns": <ShieldOff size={20} />,
     "adaptation-candidates": <Sparkles size={20} />,
     "learning/adaptation-candidates": <Sparkles size={20} />,
-    "governance/inbox/governor/resilience/drills": <Dna size={20} />,
-    "governance/inbox/governor/status": <Eye size={20} />,
-    "governor/alerts": <ShieldAlert size={20} />,
-    "governor/drifts": <Activity size={20} />,
-    "governor/proof": <History size={20} />,
-    "governance/inbox/governor/cases": <ShieldCheck size={20} />,
-    "governance/inbox/governor/meta/conflicts": <Activity size={20} />,
-    "governance/inbox/governor/proof": <History size={20} />,
+    "governance/governor/resilience/drills": <Dna size={20} />,
+    "governance/governor/status": <Eye size={20} />,
+    "governance/governor/alerts": <ShieldAlert size={20} />,
+    "governance/governor/drifts": <Activity size={20} />,
+    "governance/governor/proof": <History size={20} />,
+    "governance/governor/cases": <ShieldCheck size={20} />,
+    "governance/governor/meta/conflicts": <Activity size={20} />,
     evolution: <Dna size={20} />,
     audit: <Eye size={20} />,
 };
@@ -110,8 +109,8 @@ const SidebarContent = () => {
                 "federation", 
                 "governance/lineage", 
                 "governance/proposals",
-                "governance/inbox/governor/cases",
-                "governance/inbox/governor/proof"
+                "governance/governor/cases",
+                "governance/governor/proof"
             ]
         },
         {

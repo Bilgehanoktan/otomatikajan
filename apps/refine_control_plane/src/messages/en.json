@@ -13,6 +13,63 @@
   "resources_selfTuning": "Self-Tuning",
   "resources_evolution": "System Evolution",
   "resources_policyProposals": "Policy Board",
+  "lineage": {
+    "title": "Decision Lineage",
+    "subtitle": "AUTONOMOUS CAUSALITY & V3 AUDIT LEDGER",
+    "ancestryDepth": "Ancestry Depth",
+    "integritySeals": "Integrity Seals",
+    "incidentResolution": "Incident Resolution",
+    "noDecisions": "NO DECISIONS RECORDED",
+    "searchPlaceholder": "SEARCH DECISIONS...",
+    "globalAccuracy": "Global Accuracy",
+    "verified": "VERIFIED",
+    "ancestry": "Ancestry",
+    "confidence": "Confidence",
+    "sealed": "SEALED",
+    "inspectEvidence": "Inspect Evidence",
+    "viewRootCause": "View Root Cause",
+    "triggerPayload": "Trigger Evolution Payload",
+    "encodedTelemetry": "JSON_ENCODED_TELEMETRY",
+    "noRationale": "No rationale provided.",
+    "evidenceContext": "Evidence Context",
+    "noExternalPage": "This node is purely autonomous/internal with no external detail page available."
+  },
+  "compliance": {
+    "title": "Compliance & Audit",
+    "subtitle": "REGULATED RETENTION & CRYPTOGRAPHIC PROOF SEALING",
+    "newBundle": "New Audit Bundle",
+    "integrityHash": "Integrity Hash",
+    "activePolicies": "Active Retention Policies",
+    "parityMonitor": "Parity Monitor",
+    "integrityBaseline": "Decision Integrity Baseline",
+    "sealingActive": "Sealing Active",
+    "sealingDesc": "All autonomous decisions and audit logs are sealed every 5 minutes to ensure immutability.",
+    "sealedEvidence": "Sealed Evidence Bundles",
+    "searchPlaceholder": "SEARCH BUNDLES...",
+    "bundleName": "Audit Evidence Bundle",
+    "purpose": "Purpose",
+    "integritySeal": "Integrity Seal",
+    "actions": "Actions",
+    "permanent": "PERMANENT",
+    "hotStorage": "Hot Storage",
+    "coldRetention": "Cold Retention",
+    "days": "{count} Days",
+    "badge": "Regulatory Grade",
+    "nominal": "NOMINAL",
+    "notifications": {
+      "creating": "Creating Bundle",
+      "creatingDesc": "Audit bundle is being prepared in the background."
+    },
+    "modal": {
+      "title": "Seal Evidence Bundle",
+      "bundleNameLabel": "Bundle ID / Name",
+      "bundleNamePlaceholder": "e.g. 2024 Q1 SECURITY SUMMARY",
+      "purposeLabel": "Purpose / Rationale",
+      "purposePlaceholder": "Audit, compliance, or strategic review...",
+      "cancel": "Cancel",
+      "sealButton": "Seal Bundle"
+    }
+  },
   "resources_costs": "Cost Analysis",
   "resources_audit": "Audit Records",
   "resources_improvements": "Improvements",
@@ -42,6 +99,32 @@
   "resources_observability": "Observability",
   "resources_drifts": "Drift Analysis",
   "resources_proofFabric": "Proof Fabric",
+  "resources_alerts": "Active Alerts",
+  "resources_metrics": "System Metrics",
+  "observability": {
+    "title": "Governance Observability",
+    "subtitle": "System decision quality, behavioral drifts, and active alerts.",
+    "kpis": {
+      "openAlerts": "Open Alerts",
+      "activeDrifts": "Active Drifts",
+      "avgAccuracy": "Avg Accuracy",
+      "systemHealth": "System Health",
+      "degraded": "DEGRADED",
+      "nominal": "NOMINAL"
+    },
+    "alerts": {
+      "recentTitle": "Recent Open Alerts",
+      "viewAll": "View All"
+    },
+    "drifts": {
+      "recentTitle": "Active Behavioral Drifts",
+      "viewAll": "View All"
+    },
+    "actions": {
+      "refresh": "Refresh",
+      "triggerScan": "Trigger Scan"
+    }
+  },
   "status": {
     "pending": "Pending",
     "queued": "Queued",
@@ -423,6 +506,23 @@
     "reestablishSync": "Re-establish Sync",
     "noIncidents": "No active incidents detected. System in autonomous equilibrium.",
     "mitigationHud": "Mitigation HUD",
+    "hazardPhase": "Hazard Phase {phase}",
+    "badge": "Critical Ops",
+    "globalPulse": "Global Pulse",
+    "nominal": "NOMINAL",
+    "chaosProtocol": "Chaos Protocol",
+    "searchPlaceholder": "SEARCH INCIDENT...",
+    "streamTitle": "Integrated Chaos Stream",
+    "severityLabels": {
+      "critical": "Critical / P0",
+      "high": "High / P1",
+      "medium": "Medium / P2",
+      "low": "Low / P3"
+    },
+    "suggestedFix": "Suggested Fix",
+    "copy": "Copy",
+    "analysis": "Analysis",
+    "details": "Details",
     "autonomousHealing": "Autonomous healing engine achieved self-healing success on low-priority events in the last 1h.",
     "clearAll": "Clear All",
     "takeAction": "Take Action",

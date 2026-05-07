@@ -3,48 +3,42 @@ import { useCallback } from "react";
 
 export const useGovernorObservability = () => {
   // 1. Alerts Hook
-  const useAlerts = (filters?: any) => {
-    return useList({
-      resource: "governor-alerts",
-      pagination: { mode: "off" },
-      filters: filters || [],
-      meta: {
-        endpoint: "/governance/observability/alerts",
-      },
-    });
+  const useAlerts = (filters?: Array<{ field: string; operator: string; value: any }>) => {
+    return {
+      query: useList({
+        resource: "governance/governor/alerts",
+        pagination: { mode: "off" },
+        filters: filters || [],
+      })
+    };
   };
 
   // 2. Alert Detail Hook
   const useAlert = (id: string) => {
     return useOne({
-      resource: "governor-alerts",
+      resource: "governance/governor/alerts",
       id,
-      meta: {
-        endpoint: `/governance/observability/alerts/${id}`,
-      },
     });
   };
 
   // 3. Drifts Hook
   const useDrifts = (limit: number = 50) => {
-    return useList({
-      resource: "governor-drifts",
-      pagination: { pageSize: limit },
-      meta: {
-        endpoint: "/governance/observability/drifts",
-      },
-    });
+    return {
+      query: useList({
+        resource: "governance/governor/drifts",
+        pagination: { pageSize: limit },
+      })
+    };
   };
 
   // 4. Metrics Hook
   const useMetrics = () => {
-    return useList({
-      resource: "governor-metrics",
-      pagination: { mode: "off" },
-      meta: {
-        endpoint: "/governance/observability/metrics",
-      },
-    });
+    return {
+      query: useList({
+        resource: "governance/governor/metrics",
+        pagination: { mode: "off" },
+      })
+    };
   };
 
   // 5. Actions
@@ -52,11 +46,11 @@ export const useGovernorObservability = () => {
 
   const ackAlert = useCallback((id: string, owner: string) => {
     return updateAlertStatus({
-      resource: "governor-alerts",
+      resource: "governance/governor/alerts",
       id,
       values: { status: "ACKNOWLEDGED", owner_id: owner },
       meta: {
-        endpoint: `/governance/observability/alerts/${id}/ack`,
+        endpoint: `/api/v1/governance/governor/alerts/${id}/ack`,
         method: "post",
       },
     });
@@ -64,11 +58,11 @@ export const useGovernorObservability = () => {
 
   const resolveAlert = useCallback((id: string, justification: string) => {
     return updateAlertStatus({
-      resource: "governor-alerts",
+      resource: "governance/governor/alerts",
       id,
       values: { status: "RESOLVED", summary: justification },
       meta: {
-        endpoint: `/governance/observability/alerts/${id}/resolve`,
+        endpoint: `/api/v1/governance/governor/alerts/${id}/resolve`,
         method: "post",
       },
     });
@@ -76,7 +70,7 @@ export const useGovernorObservability = () => {
 
   const suppressAlert = useCallback((id: string, reason: string) => {
     return updateAlertStatus({
-      resource: "governor-alerts",
+      resource: "governance/governor/alerts",
       id,
       values: { status: "SUPPRESSED", summary: reason },
       meta: {
@@ -90,10 +84,10 @@ export const useGovernorObservability = () => {
   const { mutate: triggerScan } = useCreate();
   const runScan = useCallback(() => {
     return triggerScan({
-      resource: "governor-observability",
+      resource: "governance/governor/scan",
       values: {},
       meta: {
-        endpoint: "/governance/observability/scan",
+        endpoint: "/api/v1/governance/governor/scan",
         method: "post",
       },
     });

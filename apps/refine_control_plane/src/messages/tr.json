@@ -43,6 +43,32 @@
   "resources_observability": "Gözlemlenebilirlik",
   "resources_drifts": "Sapma Analizi",
   "resources_proofFabric": "Kanıt Dokusu",
+  "resources_alerts": "Aktif Uyarılar",
+  "resources_metrics": "Sistem Metrikleri",
+  "observability": {
+    "title": "Yönetişim Gözlemlenebilirliği",
+    "subtitle": "Sistem karar kalitesi, davranışsal sapmalar ve aktif uyarılar.",
+    "kpis": {
+      "openAlerts": "Açık Uyarılar",
+      "activeDrifts": "Aktif Sapmalar",
+      "avgAccuracy": "Ort. Doğruluk",
+      "systemHealth": "Sistem Sağlığı",
+      "degraded": "BOZULMUŞ",
+      "nominal": "NOMİNAL"
+    },
+    "alerts": {
+      "recentTitle": "Son Açık Uyarılar",
+      "viewAll": "Tümünü Gör"
+    },
+    "drifts": {
+      "recentTitle": "Aktif Davranışsal Sapmalar",
+      "viewAll": "Tümünü Gör"
+    },
+    "actions": {
+      "refresh": "Yenile",
+      "triggerScan": "Taramayı Tetikle"
+    }
+  },
   "status": {
     "pending": "Beklemede",
     "queued": "Kuyrukta",
@@ -498,6 +524,23 @@
     "reestablishSync": "Senkronizasyonu Yenile",
     "noIncidents": "Aktif olay tespit edilmedi. Sistem otonom dengede.",
     "mitigationHud": "Müdahale HUD",
+    "hazardPhase": "Tehlike Fazı {phase}",
+    "badge": "Kritik Operasyonlar",
+    "globalPulse": "Küresel Nabız",
+    "nominal": "NOMİNAL",
+    "chaosProtocol": "Kaos Protokolü",
+    "searchPlaceholder": "OLAY ARA...",
+    "streamTitle": "Entegre Kaos Akışı",
+    "severityLabels": {
+      "critical": "Kritik / P0",
+      "high": "Yüksek / P1",
+      "medium": "Orta / P2",
+      "low": "Düşük / P3"
+    },
+    "suggestedFix": "Önerilen Çözüm",
+    "copy": "Kopyala",
+    "analysis": "Analiz",
+    "details": "Detaylar",
     "autonomousHealing": "Otonom tamir motoru son 1 saatte düşük öncelikli olaylarda self-healing başarısı sağladı.",
     "clearAll": "Tümünü Temizle",
     "takeAction": "Aksiyon Al",
@@ -582,12 +625,24 @@
   },
   "lineage": {
     "title": "Karar Şeceresi",
-    "subtitle": "Otonom Karar Soyu ve Nedensellik Takibi",
+    "subtitle": "OTONOM NEDENSELLİK VE V3 DENETİM DEFTERİ",
     "ancestryDepth": "Şecere Derinliği",
     "integritySeals": "Bütünlük Mühürleri",
     "incidentResolution": "Olay Çözümü",
-    "lineageSpace": "Şecere Uzayı",
-    "workflowDetail": "İş Akışı Detayı"
+    "noDecisions": "KAYITLI KARAR BULUNMUYOR",
+    "searchPlaceholder": "KARAR ARA...",
+    "globalAccuracy": "Küresel Doğruluk",
+    "verified": "DOĞRULANDI",
+    "ancestry": "Soy",
+    "confidence": "Güven",
+    "sealed": "MÜHÜRLÜ",
+    "inspectEvidence": "Kanıtı İncele",
+    "viewRootCause": "Kök Nedeni Görüntüle",
+    "triggerPayload": "Tetikleyici Evrim Verisi",
+    "encodedTelemetry": "JSON_ENCODED_TELEMETRY",
+    "noRationale": "Gerekçe belirtilmedi.",
+    "evidenceContext": "Kanıt Bağlamı",
+    "noExternalPage": "Bu düğüm tamamen otonom/dahili bir işlemdir ve harici bir detay sayfası bulunmamaktadır."
   },
   "training": {
     "title": "Eğitim Merkezi",
@@ -656,7 +711,7 @@
   },
   "compliance": {
     "title": "Uyumluluk ve Denetim",
-    "subtitle": "Düzenlenmiş Veri Saklama ve Kriptografik Kanıt Mühürleme",
+    "subtitle": "DÜZENLENMİŞ VERİ SAKLAMA VE KRİPTOGRAFİK KANIT MÜHÜRLEME",
     "newBundle": "Yeni Denetim Paketi",
     "integrityHash": "Bütünlük Özeti",
     "activePolicies": "Aktif Veri Saklama Politikaları",
@@ -670,6 +725,16 @@
     "purpose": "Kullanım Amacı",
     "integritySeal": "Bütünlük Mührü",
     "actions": "Aksiyonlar",
+    "permanent": "KALICI",
+    "hotStorage": "Sıcak Depolama",
+    "coldRetention": "Soğuk Saklama",
+    "days": "{count} Gün",
+    "badge": "Regülatör Seviyesi",
+    "nominal": "NOMİNAL",
+    "notifications": {
+      "creating": "Paket Oluşturuluyor",
+      "creatingDesc": "Denetim paketi arka planda hazırlanıyor."
+    },
     "modal": {
       "title": "Mühürlü Kanıt Paketi",
       "bundleNameLabel": "Paket Kimliği / Adı",

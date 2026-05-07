@@ -15,27 +15,29 @@ import { MetricScoreboard } from "@/components/governor/MetricScoreboard";
 import { AlertTable, AlertRecord } from "@/components/governor/AlertTable";
 import { DriftTable, DriftRecord } from "@/components/governor/DriftTable";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 const { Title, Text } = Typography;
 
 export default function ObservabilityDashboard() {
   const router = useRouter();
+  const t = useTranslations("observability");
   const { useAlerts, useDrifts, useMetrics, ackAlert, runScan } = useGovernorObservability();
   
-  const { query: alertsQuery } = useAlerts({
-    status: "OPEN"
-  }) as any;
+  const { query: alertsQuery } = useAlerts([
+    { field: "status", operator: "eq", value: "OPEN" }
+  ]);
   const { data: alertsData, isLoading: alertsLoading, refetch: refetchAlerts } = alertsQuery;
 
-  const { query: driftsQuery } = useDrifts(5) as any;
+  const { query: driftsQuery } = useDrifts(5);
   const { data: driftsData, isLoading: driftsLoading, refetch: refetchDrifts } = driftsQuery;
 
-  const { query: metricsQuery } = useMetrics() as any;
+  const { query: metricsQuery } = useMetrics();
   const { data: metricsData, isLoading: metricsLoading, refetch: refetchMetrics } = metricsQuery;
 
-  const alerts = (alertsData?.data as unknown as AlertRecord[]) || [];
-  const drifts = (driftsData?.data as unknown as DriftRecord[]) || [];
-  const metrics = (metricsData?.data as any) || [];
+  const alerts = (alertsData?.data as AlertRecord[]) || [];
+  const drifts = (driftsData?.data as DriftRecord[]) || [];
+  const metrics = (metricsData?.data as Array<{ metric_key: string; value: number }>) || [];
 
   const handleRefresh = async () => {
     await Promise.all([refetchAlerts(), refetchDrifts(), refetchMetrics()]);
@@ -48,21 +50,21 @@ export default function ObservabilityDashboard() {
 
   const kpis = {
     openAlerts: alerts.length,
-    criticalAlerts: alerts.filter((a: any) => a.severity === "CRITICAL").length,
-    activeDrifts: drifts.filter((d: any) => d.drift_score > 0.3).length,
-    accuracy: metrics.find((m: any) => m.metric_key === "decision_accuracy")?.value || 0,
+    criticalAlerts: alerts.filter((a) => a.severity === "CRITICAL").length,
+    activeDrifts: drifts.filter((d) => d.drift_score > 0.3).length,
+    accuracy: metrics.find((m) => m.metric_key === "decision_accuracy")?.value || 0,
   };
 
   return (
     <div style={{ padding: "24px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
         <div>
-          <Title level={2} style={{ margin: 0 }}>Governance Observability</Title>
-          <Text type="secondary">System decision quality, behavioral drifts, and active alerts.</Text>
+          <Title level={2} style={{ margin: 0 }}>{t("title")}</Title>
+          <Text type="secondary">{t("subtitle")}</Text>
         </div>
         <Space>
-          <Button icon={<ReloadOutlined />} onClick={handleRefresh}>Refresh</Button>
-          <Button type="primary" icon={<DashboardOutlined />} onClick={handleRunScan}>Trigger Scan</Button>
+          <Button icon={<ReloadOutlined />} onClick={handleRefresh}>{t("actions.refresh")}</Button>
+          <Button type="primary" icon={<DashboardOutlined />} onClick={handleRunScan}>{t("actions.triggerScan")}</Button>
         </Space>
       </div>
 
@@ -71,7 +73,7 @@ export default function ObservabilityDashboard() {
         <Col span={6}>
           <Card variant="borderless" style={{ borderTop: "4px solid #ff4d4f" }}>
             <Statistic 
-              title="Open Alerts" 
+              title={t("kpis.openAlerts")} 
               value={kpis.openAlerts} 
               prefix={<BellOutlined />} 
               valueStyle={{ color: kpis.openAlerts > 0 ? "#cf1322" : "#3f8600" }}
@@ -81,7 +83,7 @@ export default function ObservabilityDashboard() {
         <Col span={6}>
           <Card variant="borderless" style={{ borderTop: "4px solid #faad14" }}>
             <Statistic 
-              title="Active Drifts" 
+              title={t("kpis.activeDrifts")} 
               value={kpis.activeDrifts} 
               prefix={<RadarChartOutlined />} 
               valueStyle={{ color: kpis.activeDrifts > 0 ? "#d48806" : "#3f8600" }}
@@ -91,7 +93,7 @@ export default function ObservabilityDashboard() {
         <Col span={6}>
           <Card variant="borderless" style={{ borderTop: "4px solid #1890ff" }}>
             <Statistic 
-              title="Avg Accuracy" 
+              title={t("kpis.avgAccuracy")} 
               value={kpis.accuracy * 100} 
               precision={1}
               suffix="%"
@@ -100,10 +102,10 @@ export default function ObservabilityDashboard() {
           </Card>
         </Col>
         <Col span={6}>
-          <Card variant="borderless" style={{ borderTop: "4px solid #52c41a" }}>
+          <Card variant="borderless" style={{ borderTop: "4px solid #faad14" }}>
             <Statistic 
-              title="System Health" 
-              value="DEGRADED" 
+              title={t("kpis.systemHealth")} 
+              value={t("kpis.degraded")} 
               valueStyle={{ color: "#faad14", fontSize: "18px" }}
               prefix={<ExclamationCircleOutlined />} 
             />
@@ -118,9 +120,9 @@ export default function ObservabilityDashboard() {
       <Row gutter={24}>
         <Col span={24} style={{ marginBottom: "24px" }}>
           <Card 
-            title={<Space><BellOutlined /> Recent Open Alerts</Space>} 
+            title={<Space><BellOutlined /> {t("alerts.recentTitle")}</Space>} 
             variant="borderless"
-            extra={<Button type="link" onClick={() => router.push("/governor/alerts")}>View All</Button>}
+            extra={<Button type="link" onClick={() => router.push("/governor/alerts")}>{t("alerts.viewAll")}</Button>}
           >
             <AlertTable 
               alerts={alerts.slice(0, 5)} 
@@ -133,9 +135,9 @@ export default function ObservabilityDashboard() {
         
         <Col span={24}>
           <Card 
-            title={<Space><RadarChartOutlined /> Active Behavioral Drifts</Space>}
+            title={<Space><RadarChartOutlined /> {t("drifts.recentTitle")}</Space>}
             variant="borderless"
-            extra={<Button type="link" onClick={() => router.push("/governor/drifts")}>View All</Button>}
+            extra={<Button type="link" onClick={() => router.push("/governor/drifts")}>{t("drifts.viewAll")}</Button>}
           >
             <DriftTable 
               drifts={drifts} 

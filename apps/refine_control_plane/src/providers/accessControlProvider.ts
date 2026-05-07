@@ -32,13 +32,13 @@ export const accessControlProvider: AccessControlProvider = {
       OPS_COMMANDER: {
         resources: [
           "workflows", "approvals", "fleet", "incidents", 
-          "governance/inbox/governor/cases", 
-          "governance/inbox/governor/escalations", 
-          "governance/inbox/governor/scorecard", 
-          "governance/inbox/governor/outcomes", 
-          "governance/inbox/governor/calibrations",
-          "governance/inbox/governor/meta/decisions",
-          "governance/inbox/governor/meta/conflicts"
+          "governance/governor/cases", 
+          "governance/governor/escalations", 
+          "governance/governor/scorecard", 
+          "governance/governor/outcomes", 
+          "governance/governor/calibrations",
+          "governance/governor/meta/decisions",
+          "governance/governor/meta/conflicts"
         ],
         actions: ["list", "show", "edit", "create", "approve", "execute", "override"],
       },

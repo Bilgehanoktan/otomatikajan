@@ -124,14 +124,16 @@ class ShadowRunner:
             return result
 
         pytest_binary = shutil.which("pytest")
-        if not pytest_binary or not self._has_test_suite(shadow_root):
+        pytest_cmd = [pytest_binary, "-q"] if pytest_binary else [sys.executable, "-m", "pytest", "-q"]
+        
+        if not self._has_test_suite(shadow_root):
             result["pytest_skipped"] = True
-            logger.warning("Pytest atlandı: pytest yok veya test suite bulunamadı.")
+            logger.warning("Pytest atlandı: Test suite bulunamadı.")
             return result
 
         try:
             proc = subprocess.run(
-                [pytest_binary, "-q"],
+                pytest_cmd,
                 cwd=str(shadow_root),
                 capture_output=True,
                 text=True,

@@ -102,7 +102,7 @@ async function tryRefreshSession(): Promise<boolean> {
     return refreshInFlight;
 }
 
-export async function safeFetchJson<T = any>(url: string, options: SafeFetchOptions = {}): Promise<T> {
+export async function safeFetchJson<T = unknown>(url: string, options: SafeFetchOptions = {}): Promise<T> {
     const { retries = 2, useOfflineFallback = true, skipAuthRefresh = false, ...init } = options;
     const cache_key = `sqv_cache_${btoa(url).replace(/=/g, "").slice(0, 32)}`;
     let lastError: Error | null = null;
@@ -198,8 +198,8 @@ export async function safeFetchJson<T = any>(url: string, options: SafeFetchOpti
 
             return data;
 
-        } catch (err: any) {
-            lastError = err;
+        } catch (err: unknown) {
+            lastError = err instanceof Error ? err : new Error(String(err));
             if (err instanceof ApiResponseError && (err.status === 401 || err.status === 403)) {
                 break;
             }
@@ -228,7 +228,7 @@ export async function safeFetchJson<T = any>(url: string, options: SafeFetchOpti
 
                 // Stale veri görünürlüğü için metadata enjeksiyonu
                 if (parsed.data && typeof parsed.data === "object") {
-                    (parsed.data as any)["__sqv_meta"] = {
+                    (parsed.data as Record<string, unknown>)["__sqv_meta"] = {
                         is_stale: true,
                         age_seconds: ageSeconds,
                         source: "sealed_local_cache",
@@ -264,7 +264,7 @@ export async function safeFetchAdapter(url: string, options: RequestInit = {}): 
                 "X-Sqv-Stale": data?.__sqv_meta?.is_stale ? "true" : "false"
             }
         });
-    } catch (err: any) {
+    } catch (err: unknown) {
         if (err instanceof ApiResponseError) {
             return new Response(JSON.stringify({
                 error: "api_error",
@@ -287,34 +287,41 @@ export async function safeFetchAdapter(url: string, options: RequestInit = {}): 
     }
 }
 
-/**
- * Axios-compatible wrapper for safeFetchJson.
- * The Refine simple-rest provider expects an object with method functions (get, post, etc.)
- * and each method must return an object with a 'data' property (AxiosResponse).
- */
+export interface HttpClientConfig extends SafeFetchOptions {
+    url?: string;
+}
+
+export interface HttpClientResponse<T> {
+    data: T;
+    status: number;
+    statusText: string;
+    headers: Record<string, string>;
+    config: HttpClientConfig;
+}
+
 export const safeHttpClient = {
-    get: async (url: string, config: any = {}) => {
-        const data = await safeFetchJson(url, { ...config, method: "GET" });
+    get: async <T = unknown>(url: string, config: HttpClientConfig = {}): Promise<HttpClientResponse<T>> => {
+        const data = await safeFetchJson<T>(url, { ...config, method: "GET" });
         return { data, status: 200, statusText: "OK", headers: {}, config };
     },
-    post: async (url: string, data: any, config: any = {}) => {
-        const responseData = await safeFetchJson(url, { ...config, method: "POST", body: JSON.stringify(data) });
+    post: async <T = unknown>(url: string, body: unknown, config: HttpClientConfig = {}): Promise<HttpClientResponse<T>> => {
+        const responseData = await safeFetchJson<T>(url, { ...config, method: "POST", body: JSON.stringify(body) });
         return { data: responseData, status: 200, statusText: "OK", headers: {}, config };
     },
-    put: async (url: string, data: any, config: any = {}) => {
-        const responseData = await safeFetchJson(url, { ...config, method: "PUT", body: JSON.stringify(data) });
+    put: async <T = unknown>(url: string, body: unknown, config: HttpClientConfig = {}): Promise<HttpClientResponse<T>> => {
+        const responseData = await safeFetchJson<T>(url, { ...config, method: "PUT", body: JSON.stringify(body) });
         return { data: responseData, status: 200, statusText: "OK", headers: {}, config };
     },
-    patch: async (url: string, data: any, config: any = {}) => {
-        const responseData = await safeFetchJson(url, { ...config, method: "PATCH", body: JSON.stringify(data) });
+    patch: async <T = unknown>(url: string, body: unknown, config: HttpClientConfig = {}): Promise<HttpClientResponse<T>> => {
+        const responseData = await safeFetchJson<T>(url, { ...config, method: "PATCH", body: JSON.stringify(body) });
         return { data: responseData, status: 200, statusText: "OK", headers: {}, config };
     },
-    delete: async (url: string, config: any = {}) => {
-        const data = await safeFetchJson(url, { ...config, method: "DELETE" });
+    delete: async <T = unknown>(url: string, config: HttpClientConfig = {}): Promise<HttpClientResponse<T>> => {
+        const data = await safeFetchJson<T>(url, { ...config, method: "DELETE" });
         return { data, status: 200, statusText: "OK", headers: {}, config };
     },
-    request: async (config: any = {}) => {
-        const data = await safeFetchJson(config.url, config);
+    request: async <T = unknown>(config: HttpClientConfig & { url: string }): Promise<HttpClientResponse<T>> => {
+        const data = await safeFetchJson<T>(config.url, config);
         return { data, status: 200, statusText: "OK", headers: {}, config };
     },
 };
@@ -322,7 +329,7 @@ export const safeHttpClient = {
 /**
  * Validates the shape of Observability responses to prevent runtime UI crashes.
  */
-export const validateObservabilityResponse = (type: "alerts" | "drifts" | "metrics", data: any) => {
+export const validateObservabilityResponse = (type: "alerts" | "drifts" | "metrics", data: unknown) => {
     if (!data) return false;
     if (type === "alerts" || type === "drifts") {
         return Array.isArray(data);

@@ -272,7 +272,12 @@ class ModelRouter:
 
         # Critical / High -> NVIDIA (CHAMPION) > Anthropic öncelikli
         if complexity in (TaskComplexity.CRITICAL, TaskComplexity.HIGH):
-            return "nvidia" # New champion model
+            # Faz 13.04: Check if NVIDIA is actually configured
+            from libs.llm.model_orchestrator import model_orchestrator
+            p = model_orchestrator.providers.get("nvidia")
+            if p and p.api_key and not p.is_placeholder_key():
+                return "nvidia"
+            return "anthropic"
 
         # Medium -> Gemini (maliyet/performans dengesi)
         if complexity == TaskComplexity.MEDIUM:

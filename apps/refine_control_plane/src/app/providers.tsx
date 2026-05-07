@@ -6,18 +6,19 @@ import { Refine } from "@refinedev/core";
 import routerProvider from "@refinedev/nextjs-router";
 import { activeDataProvider } from "@/lib/api_provider";
 import { fetchCurrentOperator, clearStoredAccessToken, performLogin, performRegister } from "@/lib/auth";
+import { LoginParams, RegisterParams } from "@/types/auth";
 import { useRefineI18nProvider } from "@/i18n/refine-adapter";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const i18nProvider = useRefineI18nProvider();
 
   const accessControlProvider = {
-    can: async ({ resource, action }: any) => {
+    can: async ({ resource, action }: { resource: string; action: string }) => {
       try {
         const session = await fetchCurrentOperator();
         if (session && session.kind === "authenticated") {
           const roles = session.identity.roles || (session.identity.role ? [session.identity.role] : []);
-          if (roles.includes("admin") || roles.includes("operator") || roles.includes("SOVEREIGN_PRIME") || roles.includes("AUDIT_OBSERVER")) {
+          if (roles.includes("admin") || roles.includes("operator") || roles.includes("SOVEREIGN_PRIME") || roles.includes("AUDIT_OBSERVER") || roles.includes("OPS_COMMANDER")) {
             return { can: true };
           }
         }
@@ -29,11 +30,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
   };
 
   const authProvider = {
-    login: async (params: any) => {
+    login: async (params: LoginParams) => {
       const result = await performLogin(params);
       return result || { success: false, error: new Error("Giriş işlemi yanıt vermedi.") };
     },
-    register: async (params: any) => {
+    register: async (params: RegisterParams) => {
       const result = await performRegister(params);
       return result || { success: false, error: new Error("Kayıt işlemi yanıt vermedi.") };
     },
@@ -260,13 +261,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
               meta: { label: "resources_axiology" },
             },
             {
-              name: "governance/inbox/governor/cases",
+              name: "governance/governor/cases",
               list: "/governor",
-              show: "/governor/cases/:id",
+              show: "/governor/:id",
               meta: { label: "resources_governorInbox" },
             },
             {
-              name: "governance/inbox/escalations",
+              name: "governance/governor/escalations",
               list: "/governor/escalations",
               meta: { label: "resources_escalations" },
             },
@@ -286,7 +287,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
               meta: { label: "resources_improvements" },
             },
             {
-              name: "governance/inbox/governor/calibrations",
+              name: "governance/governor/calibrations",
               list: "/calibrations",
               meta: { label: "resources_calibrations" },
             },
@@ -301,30 +302,40 @@ export function Providers({ children }: { children: React.ReactNode }) {
               meta: { label: "resources_conflicts", parent: "federation" },
             },
             {
-              name: "governance/resilience",
+              name: "governance/governor/resilience",
               list: "/governor/resilience",
-              meta: { label: "resources_resilience", parent: "governance/inbox/governor/cases" },
+              meta: { label: "resources_resilience", parent: "governance/governor/cases" },
             },
             {
-              name: "governance/drills",
-              list: "/drills",
-              meta: { label: "resources_drills", parent: "governance/inbox/governor/cases" },
+              name: "governance/governor/drills",
+              list: "/governor/drills",
+              meta: { label: "resources_drills", parent: "governance/governor/cases" },
             },
             {
-              name: "governance/observability",
-              list: "/observability",
-              meta: { label: "resources_observability", parent: "governance/inbox/governor/cases" },
+              name: "governance/governor/observability",
+              list: "/governor/observability",
+              meta: { label: "resources_observability", parent: "governance/governor/cases" },
             },
             {
-              name: "governance/analytics/drifts",
-              list: "/drifts",
-              meta: { label: "resources_drifts", parent: "governance/inbox/governor/cases" },
+              name: "governance/governor/alerts",
+              list: "/governor/alerts",
+              meta: { label: "resources_alerts", parent: "governance/governor/cases" },
             },
             {
-              name: "governance/proof",
+              name: "governance/governor/metrics",
+              list: "/governor/metrics",
+              meta: { label: "resources_metrics", parent: "governance/governor/cases" },
+            },
+            {
+              name: "governance/governor/drifts",
+              list: "/governor/drifts",
+              meta: { label: "resources_drifts", parent: "governance/governor/cases" },
+            },
+            {
+              name: "governance/governor/proof",
               list: "/governor/proof",
               show: "/governor/proof/snapshots/:id",
-              meta: { label: "resources_proofFabric", parent: "governance/inbox/governor/cases" },
+              meta: { label: "resources_proofFabric", parent: "governance/governor/cases" },
             },
             {
               name: "evolution",

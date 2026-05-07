@@ -11,7 +11,7 @@ const { TextArea } = Input;
 
 export default function GovernorCaseDetail() {
   const { query } = useShow({
-    resource: "governance/inbox/governor/cases",
+    resource: "governance/governor/cases",
   });
   const { data, isLoading } = query;
   const record = data?.data;
@@ -31,14 +31,14 @@ export default function GovernorCaseDetail() {
     setActionLoading(true);
     mutate(
       {
-        url: `/governance/inbox/governor/cases/${record.id}/override`,
+        url: `/governance/governor/cases/${record.id}/override`,
         method: "post",
         values: { action, reason: justification },
       },
       {
         onSuccess: () => {
           message.success(`Aksiyon uygulandı: ${action}`);
-          list("governance/inbox/governor/cases");
+          list("governance/governor/cases");
         },
         onError: (err) => {
           message.error(`Hata: ${err.message}`);
@@ -52,14 +52,14 @@ export default function GovernorCaseDetail() {
     setActionLoading(true);
     mutate(
       {
-        url: `/governance/inbox/governor/cases/${record.id}/restore`,
+        url: `/governance/governor/cases/${record.id}/restore`,
         method: "post",
         values: {},
       },
       {
         onSuccess: (res) => {
           message.success(`Case geri yüklendi.`);
-          list("governance/inbox/governor/cases");
+          list("governance/governor/cases");
         },
         onError: (err) => {
           message.error(`Hata: ${err.message}`);
@@ -73,14 +73,14 @@ export default function GovernorCaseDetail() {
     setActionLoading(true);
     mutate(
       {
-        url: `/governance/inbox/governor/cases/${record.id}/execute`,
+        url: `/governance/governor/cases/${record.id}/execute`,
         method: "post",
         values: {},
       },
       {
         onSuccess: () => {
           message.success(`Governor otomatik kararı uygulandı.`);
-          list("governance/inbox/governor/cases");
+          list("governance/governor/cases");
         },
         onError: (err) => {
           message.error(`Hata: ${err.message}`);
@@ -93,7 +93,7 @@ export default function GovernorCaseDetail() {
   return (
     <div style={{ padding: 24 }}>
       <Space style={{ marginBottom: 24 }}>
-      <Button icon={<ArrowLeftOutlined />} onClick={() => list("governance/inbox/governor/cases")}>Geri</Button>
+      <Button icon={<ArrowLeftOutlined />} onClick={() => list("governance/governor/cases")}>Geri</Button>
         <Title level={3} style={{ margin: 0 }}>Case Incelemesi: {record.project_title}</Title>
       </Space>
 

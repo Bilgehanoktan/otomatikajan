@@ -77,15 +77,15 @@ function GovernanceLineageContent() {
                 actions={
                   <div className="flex items-center gap-8">
                      <div className="flex flex-col items-end border-r border-white/5 pr-8">
-                        <span className="text-[9px] text-gray-500 font-black uppercase tracking-widest leading-none">Global Accuracy</span>
-                        <span className="text-sm font-black text-[var(--primary)] mt-2 font-mono tracking-tighter italic">100% VERIFIED</span>
+                        <span className="text-[9px] text-gray-500 font-black uppercase tracking-widest leading-none">{t("globalAccuracy")}</span>
+                        <span className="text-sm font-black text-[var(--primary)] mt-2 font-mono tracking-tighter italic">100% {t("verified")}</span>
                      </div>
                      <div className="flex items-center gap-4">
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" size={14} />
                             <input 
                                 type="text" 
-                                placeholder="KARAR ARA..." 
+                                placeholder={t("searchPlaceholder")}
                                 className="bg-black/40 border border-white/5 rounded-xl py-2 pl-10 pr-4 text-[10px] font-black text-white focus:outline-none focus:border-[var(--primary)]/20 transition-all w-48"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -112,7 +112,7 @@ function GovernanceLineageContent() {
                 ) : filteredLineage.length === 0 ? (
                   <div className="h-96 flex flex-col items-center justify-center border border-dashed border-white/10 rounded-[2.5rem] bg-[#0b0f19]/60 opacity-30 shadow-2xl">
                     <BrainCircuit size={48} className="text-gray-700 mb-6 animate-pulse" />
-                    <p className="font-black text-gray-700 uppercase tracking-[0.4em]">Kayıtlı Karar Bulunmuyor</p>
+                    <p className="font-black text-gray-700 uppercase tracking-[0.4em]">{t("noDecisions")}</p>
                   </div>
                 ) : (
                   filteredLineage.map((item, idx) => (
@@ -175,7 +175,7 @@ function EliteLineageRow({ item, isLast }: { item: any, isLast: boolean }) {
                             <>
                                 <ChevronRight size={14} className="text-gray-700" />
                                 <span className="px-3 py-1 rounded-lg bg-[var(--primary)]/10 text-[9px] font-black text-[var(--primary)] border border-[var(--primary)]/20 uppercase tracking-widest">
-                                    Ancestry: {item.parent_id.slice(0,8)}
+                                    {t("ancestry")}: {item.parent_id.slice(0,8)}
                                 </span>
                             </>
                         )}
@@ -186,12 +186,12 @@ function EliteLineageRow({ item, isLast }: { item: any, isLast: boolean }) {
                     </h3>
 
                     <p className="text-sm font-bold leading-relaxed text-gray-500 max-w-4xl mb-10">
-                        {item.rationale || "Gerekçe belirtilmedi."}
+                        {item.rationale || t("noRationale")}
                     </p>
 
                     <div className="flex flex-wrap items-center gap-10 pt-8 border-t border-white/[0.03]">
                         <div className="flex items-center gap-4">
-                            <span className="text-[9px] text-gray-700 uppercase font-black tracking-widest">Confidence</span>
+                            <span className="text-[9px] text-gray-700 uppercase font-black tracking-widest">{t("confidence")}</span>
                             <div className="flex items-center gap-3">
                                 <div className="w-24 h-1.5 bg-black/40 rounded-full overflow-hidden border border-white/[0.03]">
                                     <div 
@@ -211,7 +211,7 @@ function EliteLineageRow({ item, isLast }: { item: any, isLast: boolean }) {
                         {item.integrity_hash && (
                             <div className="flex items-center gap-3 py-2 px-4 rounded-xl bg-green-500/[0.03] border border-green-500/10 group/seal cursor-help">
                                 <Fingerprint size={14} className="text-green-500 group-hover/seal:scale-125 transition-transform" />
-                                <span className="text-[9px] font-mono text-green-500 font-bold tracking-[0.1em] uppercase">SEALED: {item.integrity_hash.substring(0, 16).toUpperCase()}</span>
+                                <span className="text-[9px] font-mono text-green-500 font-bold tracking-[0.1em] uppercase">{t("sealed")}: {item.integrity_hash.substring(0, 16).toUpperCase()}</span>
                             </div>
                         )}
                     </div>
@@ -223,11 +223,11 @@ function EliteLineageRow({ item, isLast }: { item: any, isLast: boolean }) {
                             if (item.trigger_event?.approval_id) window.open(`/approvals/${item.trigger_event.approval_id}`, '_blank');
                             else if (item.trigger_event?.incident_id) window.open(`/incidents/${item.trigger_event.incident_id}`, '_blank');
                             else if (item.trigger_event?.project_id) window.open(`/workflows/${item.trigger_event.project_id}`, '_blank');
-                            else notification.info({ message: "Evidence Context", description: "This node is purely autonomous/internal with no external detail page available." });
+                            else notification.info({ message: t("evidenceContext"), description: t("noExternalPage") });
                         }}
                         className="flex-1 w-full py-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
                     >
-                        Inspect Evidence
+                        {t("inspectEvidence")}
                     </button>
                     <button 
                         onClick={() => {
@@ -235,7 +235,7 @@ function EliteLineageRow({ item, isLast }: { item: any, isLast: boolean }) {
                         }}
                         className="flex-1 w-full py-4 border border-[var(--primary)]/20 text-[var(--primary)]/70 hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
                     >
-                        View Root Cause
+                        {t("viewRootCause")}
                     </button>
                     <button 
                         onClick={() => setPayloadOpen(!payloadOpen)}
@@ -253,9 +253,9 @@ function EliteLineageRow({ item, isLast }: { item: any, isLast: boolean }) {
                         <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-4">
                             <div className="flex items-center gap-3 text-gray-700">
                                 <Database size={14} />
-                                <span className="text-[9px] font-black uppercase tracking-widest">Trigger Evolution Payload</span>
+                                <span className="text-[9px] font-black uppercase tracking-widest">{t("triggerPayload")}</span>
                             </div>
-                            <span className="text-[8px] font-mono text-gray-700">JSON_ENCODED_TELEMETRY</span>
+                            <span className="text-[8px] font-mono text-gray-700">{t("encodedTelemetry")}</span>
                         </div>
                         <pre className="text-[11px] font-mono text-[var(--primary)]/70 overflow-x-auto custom-scrollbar leading-relaxed">
                             {JSON.stringify(item.trigger_event, null, 2)}

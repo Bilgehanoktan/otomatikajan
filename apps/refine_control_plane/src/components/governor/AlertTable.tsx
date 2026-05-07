@@ -38,7 +38,7 @@ interface Props {
 
 export const AlertTable: React.FC<Props> = ({ alerts, loading, onAck, onInspect }) => {
   const getSeverityTag = (severity: string) => {
-    const map: Record<string, { color: string; icon: any }> = {
+    const map: Record<string, { color: string; icon: React.ReactNode }> = {
       CRITICAL: { color: "red", icon: <StopOutlined /> },
       HIGH: { color: "orange", icon: <WarningOutlined /> },
       WARNING: { color: "gold", icon: <WarningOutlined /> },
@@ -89,7 +89,7 @@ export const AlertTable: React.FC<Props> = ({ alerts, loading, onAck, onInspect 
       title: "Metric",
       key: "metric",
       width: 150,
-      render: (_: any, record: AlertRecord) => (
+      render: (_: unknown, record: AlertRecord) => (
         <Text>
           {record.metric_value?.toFixed(2)} 
           {record.threshold_value && (
@@ -127,7 +127,7 @@ export const AlertTable: React.FC<Props> = ({ alerts, loading, onAck, onInspect 
       key: "actions",
       fixed: "right" as const,
       width: 150,
-      render: (_: any, record: AlertRecord) => (
+      render: (_: unknown, record: AlertRecord) => (
         <Space>
           {record.status === "OPEN" && (
             <Tooltip title="Acknowledge">

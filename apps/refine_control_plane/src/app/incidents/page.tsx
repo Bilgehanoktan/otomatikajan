@@ -108,7 +108,7 @@ export default function IncidentsPage() {
   const handleResolve = React.useCallback(
     async (id: string) => {
       try {
-        const identityName = (window as any).__SQV_IDENTITY__?.name || "mimari-operator";
+        const identityName = (typeof window !== "undefined" ? (window as { __SQV_IDENTITY__?: { name?: string } } & Window).__SQV_IDENTITY__?.name : null) || "mimari-operator";
         const authHeaders = await getAuthHeaders();
 
         await safeFetchJson(`${apiBase}/governance/incidents/${id}/resolve`, {
@@ -152,7 +152,7 @@ export default function IncidentsPage() {
       // Resolve sequentially to prevent network saturation
       for (const inc of incidents) {
         if (inc.status === "resolved") continue;
-        const identityName = (window as any).__SQV_IDENTITY__?.name || "mimari-operator";
+        const identityName = (typeof window !== "undefined" ? (window as { __SQV_IDENTITY__?: { name?: string } } & Window).__SQV_IDENTITY__?.name : null) || "mimari-operator";
         
         await safeFetchJson(`${apiBase}/governance/incidents/${inc.id}/resolve`, {
           method: "POST",
@@ -189,16 +189,16 @@ export default function IncidentsPage() {
         title={t("title")}
         subtitle={t("subtitle")}
         icon={<AlertTriangle size={32} />}
-        badge="Critical Ops"
-        staleMeta={staleMeta as never}
+        badge={t("badge")}
+        staleMeta={staleMeta as Record<string, unknown>}
         actions={
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-4 border-r border-white/5 pr-8">
               <div className="text-right">
                 <p className="text-[9px] font-black uppercase leading-none tracking-widest text-gray-500">
-                  Global Pulse
+                  {t("globalPulse")}
                 </p>
-                <p className="mt-2 text-sm font-black text-blue-400">NOMINAL</p>
+                <p className="mt-2 text-sm font-black text-blue-400">{t("nominal")}</p>
               </div>
               <div className="rounded-full border border-blue-500/20 bg-blue-500/10 p-3">
                 <Radio size={16} className="animate-pulse text-blue-400" />
@@ -207,7 +207,7 @@ export default function IncidentsPage() {
 
             <button className="flex items-center gap-2 rounded-2xl border border-red-500/20 bg-red-500/10 px-8 py-3 text-[10px] font-black uppercase tracking-widest text-red-500 shadow-xl transition-all hover:bg-red-500/20 active:scale-95">
               <Zap size={14} />
-              <span>Chaos Protocol</span>
+              <span>{t("chaosProtocol")}</span>
             </button>
           </div>
         }
@@ -230,7 +230,7 @@ export default function IncidentsPage() {
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
                   <input
                     type="text"
-                    placeholder="OLAY ARA..."
+                    placeholder={t("searchPlaceholder")}
                     className="w-48 rounded-xl border border-white/5 bg-black/40 py-2 pl-10 pr-4 text-[10px] font-black text-white transition-all focus:border-[var(--primary)]/20 focus:outline-none"
                   />
                 </div>
@@ -293,9 +293,9 @@ export default function IncidentsPage() {
             </div>
 
             <div className="relative z-10 space-y-6">
-              <SeverityGauge label="Critical / P0" value={incidents.filter((i) => i.severity === "critical").length} color="bg-red-500" total={incidents.length} />
-              <SeverityGauge label="High / P1" value={incidents.filter((i) => i.severity === "high").length} color="bg-orange-500" total={incidents.length} />
-              <SeverityGauge label="Medium / P2" value={incidents.filter((i) => i.severity === "medium").length} color="bg-blue-500" total={incidents.length} />
+              <SeverityGauge label={t("severityLabels.critical")} value={incidents.filter((i) => i.severity === "critical").length} color="bg-red-500" total={incidents.length} />
+              <SeverityGauge label={t("severityLabels.high")} value={incidents.filter((i) => i.severity === "high").length} color="bg-orange-500" total={incidents.length} />
+              <SeverityGauge label={t("severityLabels.medium")} value={incidents.filter((i) => i.severity === "medium").length} color="bg-blue-500" total={incidents.length} />
             </div>
           </section>
 
@@ -316,7 +316,7 @@ export default function IncidentsPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-black text-green-400">92% SUCCESS</span>
                   <button className="text-[9px] font-black uppercase text-gray-700 transition-colors hover:text-white">
-                    Details
+                    {t("details")}
                   </button>
                 </div>
               </div>
@@ -346,7 +346,7 @@ function EliteIncidentItem({
 }: {
   incident: Incident;
   onResolve: () => void;
-  t: any;
+  t: (key: string, values?: Record<string, unknown>) => string;
 }) {
   const isCritical = incident.severity === "critical";
   const isResolved = incident.status === "resolved";
@@ -401,32 +401,32 @@ function EliteIncidentItem({
                     <div className="rounded-lg bg-blue-500/10 p-1.5">
                       <Terminal size={14} />
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em]">Önerilen Çözüm</span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em]">{t("suggestedFix")}</span>
                   </div>
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();
-                      const cmd = (incident.payload?.suggested_fix as any)?.command;
-                      if (cmd) {
+                      const cmd = (incident.payload?.suggested_fix as Record<string, unknown>)?.command;
+                      if (typeof cmd === "string") {
                         navigator.clipboard.writeText(cmd);
-                        alert("Komut panoya kopyalandı.");
+                        alert(t("copy") + " ok.");
                       }
                     }}
                     className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-gray-500 transition-colors hover:text-blue-400"
                   >
                     <Copy size={12} />
-                    Kopyala
+                    {t("copy")}
                   </button>
                 </div>
                 <div className="group/code relative">
                   <code className="block rounded-xl border border-white/5 bg-black/40 p-4 font-mono text-[11px] leading-relaxed text-blue-200/90 shadow-inner break-all">
-                    {String((incident.payload.suggested_fix as any)?.command || "")}
+                    {String((incident.payload?.suggested_fix as Record<string, unknown>)?.command || "")}
                   </code>
                   <div className="absolute inset-0 pointer-events-none rounded-xl bg-gradient-to-r from-blue-500/0 via-blue-500/[0.02] to-blue-500/0 opacity-0 group-hover/code:opacity-100 transition-opacity" />
                 </div>
                 {!!incident.payload.diagnosis && (
                     <p className="mt-4 text-[10px] font-bold text-blue-400/60 italic leading-relaxed">
-                        Analiz: {String(incident.payload.diagnosis)}
+                        {t("analysis")}: {String(incident.payload.diagnosis)}
                     </p>
                 )}
               </div>
