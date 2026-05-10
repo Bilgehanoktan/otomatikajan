@@ -35,5 +35,49 @@ class MultiProjectController:
         project = self.db.get(Project, project_id)
         if project:
             project.status = ProjectStatus.CANCELLED
-            # TODO: Release agents via assignment_repo
+            self.scheduler.release_project_agents(project_id, success=False)
             self.db.commit()
+
+    def complete_project(self, project_id: uuid.UUID):
+        project = self.db.get(Project, project_id)
+        if project:
+            project.status = ProjectStatus.COMPLETED
+            self.scheduler.release_project_agents(project_id, success=True)
+            self.db.commit()
+
+    def fail_project(self, project_id: uuid.UUID):
+        project = self.db.get(Project, project_id)
+        if project:
+            project.status = ProjectStatus.FAILED
+            self.scheduler.release_project_agents(project_id, success=False)
+            self.db.commit()
+
+    def process_pending_queue(self):
+        """Phase 12.2: Starvation prevention mechanism."""
+        from sqlalchemy import select
+        from libs.db.base import utcnow
+        
+        pending_projects = self.db.scalars(
+            select(Project)
+            .where(Project.status == ProjectStatus.PENDING)
+        ).all()
+        
+        now = utcnow()
+        def calculate_score(p: Project):
+            from datetime import timezone
+            created_at = p.created_at
+            if created_at.tzinfo is None:
+                created_at = created_at.replace(tzinfo=timezone.utc)
+            wait_hours = (now - created_at).total_seconds() / 3600.0
+            return p.priority_level + (wait_hours * 10.0)
+            
+        pending_projects.sort(key=calculate_score, reverse=True)
+        
+        results = {}
+        for p in pending_projects:
+            success = self.scheduler.schedule_project(p.id)
+            results[str(p.id)] = "scheduled" if success else "deferred"
+            if not success:
+                # If budget/resources hit limits, maybe stop processing further
+                pass
+        return results

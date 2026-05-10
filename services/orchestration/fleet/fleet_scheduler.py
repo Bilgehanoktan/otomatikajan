@@ -120,8 +120,79 @@ class FleetScheduler:
 
     def rebalance_fleet(self):
         """Redistributes load if some clusters are overloaded."""
-        # TODO: Implementation for Phase 12.2 (Dynamic rebalancing)
-        pass
+        from sqlalchemy import select
+        from libs.db.models.core_models import FleetCluster, AgentNode
+        
+        clusters = self.db.scalars(select(FleetCluster)).all()
+        overloaded = []
+        underloaded = []
+        
+        for cluster in clusters:
+            usage_pct = (cluster.current_budget_usage / cluster.budget_limit) if cluster.budget_limit > 0 else 0
+            if usage_pct > 0.85:
+                overloaded.append(cluster)
+            elif usage_pct < 0.4:
+                underloaded.append(cluster)
+                
+        if not overloaded or not underloaded:
+            return
+            
+        for overloaded_cluster in overloaded:
+            for underloaded_cluster in underloaded:
+                idle_agents = self.db.scalars(
+                    select(AgentNode)
+                    .where(AgentNode.cluster_id == underloaded_cluster.id)
+                    .where(AgentNode.status == AgentStatus.IDLE)
+                ).all()
+                
+                for agent in idle_agents:
+                    agent.cluster_id = overloaded_cluster.id
+                    
+                    self._fire_and_forget_logging(LineageService.log_fleet_event(
+                        event_type="FLEET_REBALANCED",
+                        target_id=str(agent.id),
+                        details=f"Agent {agent.name} moved to overloaded cluster {overloaded_cluster.name}"
+                    ))
+                    
+                    # Basic capacity limit check
+                    from sqlalchemy import func
+                    current_count = self.db.scalar(select(func.count(AgentNode.id)).where(AgentNode.cluster_id == overloaded_cluster.id))
+                    # Using arbitrary logic: if agent count exceeds parallel projects limit * 3
+                    if current_count is not None and current_count >= overloaded_cluster.max_parallel_projects * 3:
+                        break
+                        
+        self.db.commit()
+
+    def release_project_agents(self, project_id: uuid.UUID, success: Optional[bool] = None):
+        """Release all agents assigned to a project."""
+        from libs.db.models.core_models import FleetAssignment
+        from sqlalchemy import select
+        from libs.db.base import utcnow
+        
+        assignments = self.db.scalars(
+            select(FleetAssignment)
+            .where(FleetAssignment.project_id == project_id)
+            .where(FleetAssignment.status == "active")
+        ).all()
+        
+        for assignment in assignments:
+            assignment.status = "released"
+            assignment.ended_at = utcnow()
+            
+            agent = self.agent_repo.get_agent(assignment.agent_id)
+            if agent:
+                agent.status = AgentStatus.IDLE
+                
+                # Phase 12.2 Reputation Update
+                if success is not None:
+                    self.registry.update_agent_reputation(agent.id, success=success)
+                
+            self._fire_and_forget_logging(LineageService.log_fleet_event(
+                event_type="AGENT_RELEASED",
+                target_id=str(assignment.agent_id),
+                details=f"Agent released from project {project_id} (Success: {success})"
+            ))
+        self.db.commit()
 
     def drain_cluster(self, cluster_id: uuid.UUID):
         """Prevents new assignments to a cluster and marks it for maintenance."""
