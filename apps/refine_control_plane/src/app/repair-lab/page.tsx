@@ -23,10 +23,25 @@ import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 import { Skeleton } from "@/components/dashboard/Skeleton";
 import { safeFetchJson } from "@/lib/api";
 
+interface RepairImprovement {
+  id: string;
+  title: string;
+  component: string;
+  description?: string;
+  status: "completed" | "action_required" | "failed" | string;
+  diagnostic_id?: string;
+  actions?: string[];
+  requires_operator_action?: boolean;
+  decision_type?: string;
+  outcome?: string;
+  created_at?: string;
+}
+
 export default function RepairLabPage() {
   const [benchmarks, setBenchmarks] = useState<any[]>([]);
   const [tournament, setTournament] = useState<any>(null);
   const [matrix, setMatrix] = useState<any>(null);
+  const [improvements, setImprovements] = useState<RepairImprovement[]>([]);
   const [loading, setLoading] = useState(true);
   const [isClient, setIsClient] = useState(false);
 
@@ -34,15 +49,18 @@ export default function RepairLabPage() {
 
   const fetchData = async () => {
     try {
-      const benchData = await safeFetchJson('/api/v1/repair-lab/benchmarks');
+      const benchData: any = await safeFetchJson('/api/v1/repair-lab/benchmarks');
       setBenchmarks(Array.isArray(benchData) ? benchData : []);
 
-      const tourData = await safeFetchJson('/api/v1/repair-lab/tournaments');
+      const improvementData: any = await safeFetchJson('/api/v1/repair-lab/improvements');
+      setImprovements(Array.isArray(improvementData) ? improvementData : []);
+
+      const tourData: any = await safeFetchJson('/api/v1/repair-lab/tournaments');
       if (tourData && tourData.length > 0) {
         const latest = tourData[0];
         setTournament(latest);
 
-        const matrixData = await safeFetchJson(`/api/v1/repair-lab/verifiers/matrix?tournament_id=${latest.id}`);
+        const matrixData: any = await safeFetchJson(`/api/v1/repair-lab/verifiers/matrix?tournament_id=${latest.id}`);
         setMatrix(matrixData);
       }
     } catch (err) {
@@ -198,11 +216,87 @@ export default function RepairLabPage() {
               </div>
            </div>
            
+           <RuntimeRepairTimeline improvements={improvements} loading={loading} />
+
            <VerifierMatrix matrix={matrix} />
         </div>
 
       </div>
     </div>
+  );
+}
+
+function RuntimeRepairTimeline({ improvements, loading }: { improvements: RepairImprovement[]; loading: boolean }) {
+  const runtimeItems = improvements.filter(
+    (item) => item.decision_type === "RUNTIME_REPAIR_ATTEMPT" || item.diagnostic_id,
+  );
+
+  const toneFor = (status: string) => {
+    if (status === "completed") return "border-green-400/15 bg-green-500/5 text-green-300";
+    if (status === "action_required") return "border-amber-400/15 bg-amber-500/5 text-amber-300";
+    return "border-red-400/15 bg-red-500/5 text-red-300";
+  };
+
+  return (
+    <section className="glass-panel p-10 rounded-[2.5rem] border-white/[0.03] bg-gradient-to-br from-white/[0.012] to-transparent shadow-xl">
+      <div className="mb-8 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h3 className="text-xs font-black text-white uppercase tracking-[0.3em] italic">Runtime Repair Timeline</h3>
+          <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-gray-600">
+            System Health repair attempts mirrored from DecisionLineage.
+          </p>
+        </div>
+        <span className="w-fit rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-gray-500">
+          {runtimeItems.length} records
+        </span>
+      </div>
+
+      {loading && runtimeItems.length === 0 ? (
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          {[1, 2].map((i) => <Skeleton key={i} className="h-28 rounded-2xl" />)}
+        </div>
+      ) : runtimeItems.length === 0 ? (
+        <div className="rounded-2xl border border-white/5 bg-black/20 p-8 text-center">
+          <span className="text-[10px] font-black uppercase tracking-widest text-gray-700">No Runtime Repairs Recorded</span>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          {runtimeItems.slice(0, 6).map((item) => (
+            <div key={item.id} className={`rounded-2xl border p-5 ${toneFor(item.status)}`}>
+              <div className="mb-4 flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-current">
+                    {item.diagnostic_id || item.component}
+                  </div>
+                  <div className="mt-1 text-[9px] font-black uppercase tracking-widest text-gray-600">
+                    {item.component}
+                  </div>
+                </div>
+                <span className="rounded-lg border border-current/20 bg-black/20 px-2 py-1 text-[8px] font-black uppercase tracking-widest">
+                  {item.status}
+                </span>
+              </div>
+              <p className="mb-4 line-clamp-2 text-xs font-semibold text-gray-400">{item.description || item.title}</p>
+              <div className="flex flex-wrap items-center gap-2">
+                {(item.actions || []).slice(0, 3).map((action) => (
+                  <span key={action} className="rounded-lg border border-white/5 bg-black/30 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-gray-500">
+                    {action}
+                  </span>
+                ))}
+                {item.requires_operator_action ? (
+                  <span className="rounded-lg border border-amber-400/20 bg-amber-500/10 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-amber-300">
+                    operator action
+                  </span>
+                ) : null}
+              </div>
+              <div className="mt-4 border-t border-white/[0.04] pt-3 text-[9px] font-mono font-black uppercase tracking-widest text-gray-700">
+                {item.created_at ? new Date(item.created_at).toLocaleString() : "No timestamp"}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 

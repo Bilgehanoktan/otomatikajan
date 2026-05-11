@@ -12,9 +12,10 @@ import uuid
 from urllib.parse import urlparse
 from typing import AsyncGenerator, Optional
 from contextlib import asynccontextmanager
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy import create_engine, event, text, select, func
+# SQLAlchemy imports moved to local scopes to prevent Phase 13.04 startup hangs in Python 3.14+
+# from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+# from sqlalchemy.orm import sessionmaker, Session
+# from sqlalchemy import create_engine, event, text, select, func
 
 # Import variables directly from libs.config
 try:
@@ -119,6 +120,7 @@ def db_error() -> str:
 async def is_db_available() -> bool:
     global _DB_ERROR
     try:
+        from sqlalchemy import text
         engine = get_engine()
         async with engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
@@ -130,6 +132,8 @@ async def is_db_available() -> bool:
         return False
 
 def get_engine():
+    from sqlalchemy.ext.asyncio import create_async_engine
+    from sqlalchemy import event, text
     global _engine, _last_loop, _DB_DEGRADED, _DB_CHECKED
     try:
         curr_active_loop = asyncio.get_running_loop()
@@ -174,7 +178,8 @@ def get_engine():
                         _DB_ERROR = "SQLite Fallback Active"
                 else:
                     # SRE Hardening: Ensure pool params are only passed for Postgres
-                    engine_kwargs = {
+                    from typing import Dict, Any
+                    engine_kwargs: Dict[str, Any] = {
                         "pool_pre_ping": True,
                     }
                     if not str(DATABASE_URL).startswith("sqlite"):
@@ -187,6 +192,7 @@ def get_engine():
     return _engine
 
 def _get_session_factory():
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
     global _async_session_factory
     engine = get_engine()
     if _async_session_factory is None or _async_session_factory.kw["bind"] is not engine:
@@ -198,7 +204,8 @@ class _LazySessionLocal:
 
 AsyncSessionLocal = _LazySessionLocal()
 
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
+async def get_db() -> AsyncGenerator: # Type hint simplified to avoid import
+    from sqlalchemy.ext.asyncio import AsyncSession
     async with AsyncSessionLocal() as session: yield session
 
 @asynccontextmanager
@@ -219,6 +226,7 @@ async def session_scope():
 get_db_ctx = session_scope
 
 async def init_db():
+    from sqlalchemy import select, func, text
     import hashlib
     import json
     from datetime import datetime, timezone
@@ -809,6 +817,7 @@ async def get_redis_client():
 
 # ── Sync Support ───
 def get_sync_engine():
+    from sqlalchemy import create_engine, event
     global _sync_engine
     if _sync_engine is None:
         if is_db_degraded():
@@ -829,13 +838,14 @@ def get_sync_engine():
     return _sync_engine
 
 def _get_sync_session_factory():
+    from sqlalchemy.orm import sessionmaker
     global _sync_session_factory
     engine = get_sync_engine()
     if _sync_session_factory is None:
         _sync_session_factory = sessionmaker(bind=engine, expire_on_commit=False)
     return _sync_session_factory
 
-def get_sync_session() -> Session:
+def get_sync_session():
     return _get_sync_session_factory()()
 
 from contextlib import contextmanager

@@ -8,7 +8,22 @@ from libs.db.models.governance_models import GovernorDomain
 from services.governance.base_governor import BaseDomainGovernor
 from services.observability.logging import get_logger
 
+from pydantic import BaseModel, Field
+
 logger = get_logger("governance.approval_governor")
+
+class GovernorCase(BaseModel):
+    project_id: str
+    title: str
+    status: str
+    source: str = "UNKNOWN"
+    priority: str = "MEDIUM"
+    recommended_action: str
+    risk_score: float = 0.0
+    risk_class: str = "LOW"
+    pending_reason: Optional[str] = None
+    rationale: Optional[str] = None
+    metadata: Dict[str, Any] = Field(default_factory=dict)
 
 class ApprovalGovernor(BaseDomainGovernor):
     """

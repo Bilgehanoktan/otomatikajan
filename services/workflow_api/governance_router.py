@@ -15,16 +15,16 @@ logger = logging.getLogger(__name__)
 
 # Top-level imports for IDE support and type-safety
 from libs.db.session import AsyncSessionLocal
-from libs.db.models.core_models import (
-    Project, SovereignGoal, OperationalIncident, ApprovalRequest, 
-    SystemImprovement, ImprovementOpportunity, CEOSuggestedTask, 
-    LLMCostLog, SovereignEvidence, CEODecision, FederationTrust
-)
+# from libs.db.models.core_models import (
+#     Project, SovereignGoal, OperationalIncident, ApprovalRequest, 
+#     SystemImprovement, ImprovementOpportunity, CEOSuggestedTask, 
+#     LLMCostLog, SovereignEvidence, CEODecision, FederationTrust
+# )
 from services.governance.lineage_service import LineageService
-from libs.db.models.lineage_models import DecisionLineage, PolicyEvolution
-from libs.db.models.governance_models import ProductionSignoff, ValidationResult, ValidationType
-from libs.db.models.learning_models import ErrorFingerprint
-from sqlalchemy import select, func, desc
+# from libs.db.models.lineage_models import DecisionLineage, PolicyEvolution
+# from libs.db.models.governance_models import ProductionSignoff, ValidationResult, ValidationType
+# from libs.db.models.learning_models import ErrorFingerprint
+# from sqlalchemy import select, func, desc
 from datetime import datetime, timezone, timedelta
 
 @router.get("/analytics/costs/summary")
@@ -33,6 +33,8 @@ async def get_cost_summary():
     Returns summarized cost data for the Sovereignty Runway dashboard.
     Moved from legacy bridge_router.
     """
+    from sqlalchemy import select, func
+    from libs.db.models.core_models import LLMCostLog, Project
     async with AsyncSessionLocal() as db:
         try:
             # 1. Total Cost (Last 30 days)
@@ -237,6 +239,10 @@ async def get_governance_status():
     """
     is_in_standby = StandbyManager.is_in_standby()
     
+    from sqlalchemy import select, func
+    from libs.db.models.learning_models import ErrorFingerprint
+    from libs.db.models.governance_models import SystemImprovement
+    
     async with AsyncSessionLocal() as db:
         try:
             # Count active fingerprints
@@ -278,6 +284,10 @@ async def get_governance_status():
 @router.get("/systemic-summary", response_model=SystemicSummaryOut)
 async def get_systemic_summary():
     """Unified view of fingerprints and pending improvements for the Mission Control dashboard."""
+    from sqlalchemy import select
+    from libs.db.models.learning_models import ErrorFingerprint
+    from libs.db.models.governance_models import SystemImprovement
+    
     async with AsyncSessionLocal() as db:
         try:
             # Fetch active fingerprints
@@ -338,6 +348,9 @@ async def list_fingerprints(
     limit: int = 50,
     offset: int = 0,
 ):
+    from sqlalchemy import select, func
+    from libs.db.models.learning_models import ErrorFingerprint
+    
     async with AsyncSessionLocal() as db:
         count_q = select(func.count()).select_from(ErrorFingerprint)
         total_count = (await db.execute(count_q)).scalar()
@@ -368,7 +381,7 @@ async def list_fingerprints(
 class ValidationOut(BaseModel):
     id: str
     component_name: str
-    test_suite: str
+    test_suite: Optional[str] = None
     validation_type: str
     status: str
     metrics: Optional[Dict[str, Any]] = None
@@ -453,6 +466,9 @@ async def list_approvals(
     offset: int = 0,
     identity: Dict[str, Any] = Depends(require_permission("approval.view"))
 ):
+    from sqlalchemy import select, func
+    from libs.db.models.core_models import ApprovalRequest
+    
     async with AsyncSessionLocal() as db:
         count_q = select(func.count()).select_from(ApprovalRequest)
         if status:
@@ -484,6 +500,9 @@ async def list_approvals(
 
 @router.get("/approvals/{id}", response_model=ApprovalOut)
 async def get_approval(id: str):
+    from sqlalchemy import select
+    from libs.db.models.core_models import ApprovalRequest
+    
     async with AsyncSessionLocal() as db:
         res = await db.execute(select(ApprovalRequest).where(ApprovalRequest.id == id))
         i = res.scalar_one_or_none()
@@ -591,6 +610,9 @@ async def update_approval_status(
 
 @router.post("/approvals/{id}/decide")
 async def decide_approval(id: str, dec: ApprovalDecision):
+    from sqlalchemy import select
+    from libs.db.models.core_models import ApprovalRequest
+    
     async with AsyncSessionLocal() as db:
         res = await db.execute(select(ApprovalRequest).where(ApprovalRequest.id == id))
         i = res.scalar_one_or_none()
@@ -657,6 +679,9 @@ async def list_improvements(
     limit: int = 50,
     offset: int = 0,
 ):
+    from sqlalchemy import select, func
+    from libs.db.models.governance_models import SystemImprovement
+    
     async with AsyncSessionLocal() as db:
         count_q = select(func.count(SystemImprovement.id))
         total_count = (await db.execute(count_q)).scalar()
@@ -687,6 +712,9 @@ async def update_improvement(id: str, patch_data: ImprovementUpdate):
     except ValueError:
         raise HTTPException(status_code=404, detail="Improvement not found")
 
+    from sqlalchemy import select
+    from libs.db.models.governance_models import SystemImprovement
+    
     async with AsyncSessionLocal() as db:
         res = await db.execute(select(SystemImprovement).where(SystemImprovement.id == uid))
         improvement = res.scalar_one_or_none()
@@ -703,13 +731,16 @@ async def update_improvement(id: str, patch_data: ImprovementUpdate):
             target_file=improvement.target_file,
             instruction=improvement.instruction,
             proposed_patch=improvement.proposed_patch,
-            status=improvement.status.value if hasattr(improvement.status, "value") else str(improvement.status),
+            status=str(improvement.status.value if hasattr(improvement.status, "value") else improvement.status),
             created_at=improvement.created_at,
             test_results=improvement.test_results,
         )
 
 @router.get("/federation/trust")
 async def get_federation_trust(response: Response):
+    from sqlalchemy import select
+    from libs.db.models.governance_models import FederationTrust
+    
     async with AsyncSessionLocal() as db:
         q = select(FederationTrust)
         res = await db.execute(q)
@@ -736,7 +767,16 @@ async def list_signoffs(
         q = select(ProductionSignoff).order_by(ProductionSignoff.created_at.desc()).limit(limit).offset(offset)
         res = await db.execute(q)
         items = res.scalars().all()
-        return items
+        return [
+            SignoffOut(
+                id=str(i.id),
+                component_name=i.component_name,
+                version=i.version,
+                status=i.status.value if hasattr(i.status, "value") else str(i.status),
+                created_at=i.created_at,
+            )
+            for i in items
+        ]
 
 @router.get("/opportunities", response_model=List[OpportunityOut])
 async def list_opportunities(
@@ -746,6 +786,9 @@ async def list_opportunities(
     status: Optional[str] = None
 ):
     """Lists systemic improvement opportunities detected by auditors or engines."""
+    from sqlalchemy import select, func
+    from libs.db.models.governance_models import ImprovementOpportunity
+    
     async with AsyncSessionLocal() as db:
         count_q = select(func.count()).select_from(ImprovementOpportunity)
         if status:
@@ -783,6 +826,9 @@ async def escalate_opportunity(id: str, identity: Dict[str, Any] = Depends(requi
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid ID format")
 
+    from libs.db.models.governance_models import ImprovementOpportunity
+    from libs.db.models.core_models import Project
+    
     async with AsyncSessionLocal() as db:
         opp = await db.get(ImprovementOpportunity, uid)
         if not opp:
@@ -814,26 +860,12 @@ async def escalate_opportunity(id: str, identity: Dict[str, Any] = Depends(requi
                 args=[str(proj_id), new_project.title, new_project.description],
                 kwargs={"workflow_template": "default", "quality_profile": "production"}
             )
-            new_project.status = "queued"
+            # Satisfy linter for SQLAlchemy column assignment
+            setattr(new_project, "status", "queued")
             await db.commit()
         except:
             pass
 
-        return {"status": "SUCCESS", "project_id": str(proj_id)}
-
-        q = select(ProductionSignoff).order_by(ProductionSignoff.created_at.desc()).limit(limit).offset(offset)
-        res = await db.execute(q)
-        items = res.scalars().all()
-
-        return [
-            SignoffOut(
-                id=str(i.id),
-                component_name=i.component_name,
-                version=i.version,
-                status=i.status.value if hasattr(i.status, "value") else str(i.status),
-                created_at=i.created_at
-            ) for i in items
-        ]
 
 @router.get("/validations", response_model=List[ValidationOut])
 async def list_validations(
@@ -1165,9 +1197,9 @@ async def create_audit_bundle_endpoint(
     return AuditBundleOut(
         id=str(bundle.id),
         name=str(bundle.bundle_name),
-        purpose=str(bundle_in.purpose or "AUDIT"),
+        purpose=bundle_in.purpose or "AUDIT",
         project="Sovereign Control Plane",
-        created_at=bundle.created_at,
+        created_at=bundle.created_at, # type: ignore
         operator=str(bundle.created_by),
         seal=str(bundle.integrity_hash),
         size="0.1 MB",

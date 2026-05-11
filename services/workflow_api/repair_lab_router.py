@@ -4,11 +4,12 @@ services/workflow_api/repair_lab_router.py — Phase 28
 Exposes Laboratory, Tournament, and Tuning data to the Refine Dashboard.
 """
 from __future__ import annotations
+import asyncio
 import uuid
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Body
 from pydantic import BaseModel
 from sqlalchemy import select, func, desc
 
@@ -59,29 +60,65 @@ class TuningSuggestionOut(BaseModel):
     status: str
     created_at: datetime
 
+class LabRunRequest(BaseModel):
+    diagnostic_id: Optional[str] = None
+    source: Optional[str] = "repair_lab"
+
+
+def _normalize_improvement_status(meta: Dict[str, Any], outcome: Optional[str]) -> str:
+    payload = meta.get("payload") if isinstance(meta.get("payload"), dict) else {}
+    raw = str(meta.get("status") or payload.get("status") or outcome or "").lower()
+    if raw in {"repaired", "completed", "success", "repaired_success"}:
+        return "completed"
+    if raw == "noop":
+        return "completed"
+    if raw in {"requires_operator_action", "operator_required", "action_required"}:
+        return "action_required"
+    return "failed"
+
+
+def _lineage_to_improvement(item: Any) -> Dict[str, Any]:
+    meta = item.meta_data if isinstance(item.meta_data, dict) else {}
+    payload = meta.get("payload") if isinstance(meta.get("payload"), dict) else {}
+    trigger_event = item.trigger_event if isinstance(item.trigger_event, dict) else {}
+    diagnostic_id = meta.get("diagnostic_id") or payload.get("diagnostic_id") or trigger_event.get("diagnostic_id")
+    actions = meta.get("actions") or payload.get("actions") or []
+    requires_operator_action = bool(
+        meta.get("requires_operator_action")
+        if "requires_operator_action" in meta
+        else payload.get("requires_operator_action")
+    )
+    normalized_status = _normalize_improvement_status(meta, item.outcome)
+    return {
+        "id": str(item.id),
+        "title": f"Runtime Repair: {diagnostic_id}" if diagnostic_id else f"Evolution: {item.component_name}",
+        "component": item.component_name,
+        "description": item.rationale,
+        "status": normalized_status,
+        "risk_level": meta.get("risk_level", "low"),
+        "created_at": item.created_at,
+        "diagnostic_id": diagnostic_id,
+        "actions": actions,
+        "requires_operator_action": requires_operator_action,
+        "decision_type": item.decision_type,
+        "outcome": item.outcome,
+    }
+
+
+async def _fetch_improvements(db, limit: int = 20) -> List[Dict[str, Any]]:
+    from libs.db.models.lineage_models import DecisionLineage
+
+    q = select(DecisionLineage).order_by(desc(DecisionLineage.created_at)).limit(limit)
+    res = await db.execute(q)
+    return [_lineage_to_improvement(item) for item in res.scalars().all()]
+
+
 @router.get("/improvements")
 async def list_improvements(limit: int = 20):
     """Sistem tarafindan tespit edilen iyileshtirme firsatlarini ve otonom tamir kayitlarini listeler."""
-    from libs.db.models.lineage_models import DecisionLineage
     async with AsyncSessionLocal() as db:
         try:
-            # 'SYSTEM_EVOLUTION' veya 'SELF_HEAL' tipindeki kararlari getir
-            q = select(DecisionLineage).order_by(desc(DecisionLineage.created_at)).limit(limit)
-            res = await db.execute(q)
-            items = res.scalars().all()
-            
-            return [
-                {
-                    "id": str(i.id),
-                    "title": f"Evolution: {i.component_name}",
-                    "component": i.component_name,
-                    "description": i.rationale,
-                    "status": "completed" if (i.meta_data or {}).get("success", False) else "failed",
-                    "risk_level": (i.meta_data or {}).get("risk_level", "low"),
-                    "created_at": i.created_at
-                }
-                for i in items
-            ]
+            return await _fetch_improvements(db, limit=limit)
         except Exception as exc:
             from libs.infra.logger import logger
             logger.warning("Improvements list fallback: %s", exc)
@@ -378,13 +415,87 @@ async def get_repair_memory_details(subsystem: str = Query(...), limit: int = 50
             return []
 
 @router.post("/run")
-async def trigger_lab_run(cortex=Depends(get_sovereign_cortex)):
+async def trigger_lab_run(
+    request: Optional[LabRunRequest] = Body(default=None),
+    cortex=Depends(get_sovereign_cortex),
+):
     """Otonom tamir benchmark turunu başlatır."""
+    from libs.db.models.lineage_models import DecisionLineage
+
+    diagnostic_id = request.diagnostic_id if request else None
+    source = request.source if request and request.source else "repair_lab"
+    project_id = f"diagnostic:{diagnostic_id}" if diagnostic_id else "sovereign-agi"
+    cluster_id = source if diagnostic_id else "local-lab"
     bench_svc = RepairBenchService(model_orch=cortex.model_orch)
-    # Run in background to avoid timeout
-    import asyncio
-    asyncio.create_task(bench_svc.run_full_bench())
-    return {"status": "started", "message": "Otonom benchmark turu arka planda başlatıldı."}
+
+    if diagnostic_id:
+        async with AsyncSessionLocal() as db:
+            db.add(
+                DecisionLineage(
+                    decision_type="REPAIR_LAB_TARGETED_RUN_REQUESTED",
+                    component_name="repair_lab",
+                    trigger_event={"diagnostic_id": diagnostic_id, "source": source},
+                    rationale=f"Targeted repair benchmark requested for runtime diagnostic {diagnostic_id}.",
+                    outcome="STARTED",
+                    meta_data={
+                        "source": source,
+                        "diagnostic_id": diagnostic_id,
+                        "success": True,
+                        "status": "started",
+                        "project_id": project_id,
+                        "cluster_id": cluster_id,
+                    },
+                )
+            )
+            await db.commit()
+
+    # Run in background to avoid timeout.
+    asyncio.create_task(bench_svc.run_full_bench(project_id=project_id, cluster_id=cluster_id))
+    return {
+        "status": "started",
+        "message": "Otonom benchmark turu arka planda baslatildi.",
+        "diagnostic_id": diagnostic_id,
+        "source": source,
+    }
+
+
+@router.get("/dashboard")
+async def get_lab_dashboard():
+    benchmarks = await list_benchmarks(limit=10)
+    tournaments = await list_tournaments(limit=5)
+    latest_tournament = tournaments[0].model_dump() if tournaments else None
+    matrix = await get_verifier_matrix(tournament_id=latest_tournament["id"] if latest_tournament else None)
+    async with AsyncSessionLocal() as db:
+        improvements = await _fetch_improvements(db, limit=10)
+    return {
+        "benchmarks": benchmarks,
+        "tournament": latest_tournament,
+        "matrix": matrix,
+        "improvements": improvements,
+    }
+
+
+@router.get("/summary")
+async def get_lab_summary():
+    from libs.db.models.lineage_models import DecisionLineage
+
+    async with AsyncSessionLocal() as db:
+        benchmark_count = await db.scalar(select(func.count()).select_from(RepairBenchmarkRun)) or 0
+        avg_success = await db.scalar(select(func.coalesce(func.avg(RepairBenchmarkRun.success_rate), 0.0))) or 0.0
+        active_tournaments = await db.scalar(select(func.count()).select_from(RepairTournament)) or 0
+        repair_rows = (
+            await db.execute(
+                select(DecisionLineage).where(DecisionLineage.decision_type == "RUNTIME_REPAIR_ATTEMPT")
+            )
+        ).scalars().all()
+        mapped = [_lineage_to_improvement(row) for row in repair_rows]
+        return {
+            "total_benchmarks": int(benchmark_count),
+            "success_rate": float(avg_success),
+            "active_tournaments": int(active_tournaments),
+            "runtime_repair_count": len(mapped),
+            "action_required_count": sum(1 for item in mapped if item["status"] == "action_required"),
+        }
 
 @router.get("/evolution/feed")
 async def get_evolution_feed(limit: int = 15):
@@ -424,4 +535,3 @@ async def get_evolution_status():
         "failure_counts": evolution_orchestrator.failure_counter,
         "stuck_threshold": evolution_orchestrator.STUCK_THRESHOLD
     }
-

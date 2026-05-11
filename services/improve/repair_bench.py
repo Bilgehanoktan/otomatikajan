@@ -33,7 +33,13 @@ class RepairBenchService:
         self.loader = loader or RepairBenchLoader()
         self.results_history: List[BenchResult] = []
 
-    async def run_benchmark_case(self, case_id: str, run_id: Optional[str] = None) -> Optional[BenchResult]:
+    async def run_benchmark_case(
+        self,
+        case_id: str,
+        run_id: Optional[str] = None,
+        project_id: str = "sovereign-agi",
+        cluster_id: str = "local-lab",
+    ) -> Optional[BenchResult]:
         """Runs a single repair benchmark and evaluates the candidate tournament."""
         case = self.loader.load_case(case_id)
         if not case:
@@ -86,8 +92,8 @@ class RepairBenchService:
                 tournament_id=tournament_res.tournament_id,
                 run_id=run_id,
                 incident_id=case.incident_id,
-                project_id="sovereign-agi",
-                cluster_id="local-lab",
+                project_id=project_id,
+                cluster_id=cluster_id,
                 winner_candidate_id=tournament_res.winner_id,
                 winner_score=score,
                 verifier_score_breakdown=winner_eval.scores.breakdown if winner_eval else {},
@@ -111,7 +117,7 @@ class RepairBenchService:
         self.results_history.append(result)
         return result
 
-    async def run_full_bench(self) -> str:
+    async def run_full_bench(self, project_id: str = "sovereign-agi", cluster_id: str = "local-lab") -> str:
         """Runs all cases in the index and returns a run_id."""
         run_id = f"RUN-{uuid.uuid4().hex[:8].upper()}"
         cases = self.loader.list_all_cases()
@@ -119,15 +125,15 @@ class RepairBenchService:
         async with session_scope() as session:
             db_run = RepairBenchmarkRun(
                 run_id=run_id,
-                project_id="sovereign-agi",
-                cluster_id="local-lab",
+                project_id=project_id,
+                cluster_id=cluster_id,
                 total_cases=len(cases),
                 status="running"
             )
             session.add(db_run)
             
         for case in cases:
-            await self.run_benchmark_case(case.id, run_id=run_id)
+            await self.run_benchmark_case(case.id, run_id=run_id, project_id=project_id, cluster_id=cluster_id)
             
         # Update run stats
         stats = await self.get_lab_stats()
