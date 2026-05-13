@@ -3,26 +3,35 @@ CEO Engine API — Phase 12.1
 Exposes strategic findings, manual task approval, and on-demand scanning.
 """
 from fastapi import APIRouter, Depends, HTTPException, status
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 import uuid
 import logging
 
 from libs.db.session import get_db
 from services.auth.jwt_auth import require_permission
-from services.orchestration.ceo.engine import CEOEngine
-from libs.llm.model_orchestrator import model_orchestrator
+# from services.orchestration.ceo.engine import CEOEngine
+# from libs.llm.model_orchestrator import model_orchestrator
 
 router = APIRouter(tags=["CEO Engine"])
 logger = logging.getLogger("services.orchestration.ceo.router")
 
-# Singleton CEO Engine
-ceo_engine = CEOEngine(model_orch=model_orchestrator)
+# Lazy Singleton Pattern for CEO Engine
+_ceo_engine: Optional[Any] = None
+
+def get_ceo_engine():
+    global _ceo_engine
+    if _ceo_engine is None:
+        from services.orchestration.ceo.engine import CEOEngine
+        from libs.llm.model_orchestrator import model_orchestrator
+        _ceo_engine = CEOEngine(model_orch=model_orchestrator)
+    return _ceo_engine
 
 @router.get("/overview")
 async def get_ceo_overview(
     identity: Dict[str, Any] = Depends(require_permission("governor.view"))
 ):
     """Returns strategic findings, suggestions, and health metrics."""
+    ceo_engine = get_ceo_engine()
     try:
         return await ceo_engine.get_overview()
     except Exception as e:
@@ -34,6 +43,7 @@ async def trigger_ceo_scan(
     identity: Dict[str, Any] = Depends(require_permission("governor.scan"))
 ):
     """Triggers an on-demand strategic scan of the system."""
+    ceo_engine = get_ceo_engine()
     try:
         findings = await ceo_engine.run_scan()
         return {"status": "success", "findings_count": len(findings) if findings else 0}
@@ -47,6 +57,7 @@ async def approve_ceo_suggestion(
     identity: Dict[str, Any] = Depends(require_permission("governor.execute"))
 ):
     """Manually approves a CEO suggestion and creates a project."""
+    ceo_engine = get_ceo_engine()
     try:
         uid = uuid.UUID(suggestion_id)
     except ValueError:

@@ -1,18 +1,19 @@
 "use client";
 
-import { useTable, useCustomMutation } from "@refinedev/core";
+import { useTable } from "@refinedev/antd";
+import { useCustomMutation } from "@refinedev/core";
 import { Table, Tag, Button, Space, Card, Typography, Tooltip, message, Modal, Dropdown, MenuProps } from "antd";
 import { SafetyOutlined, CheckCircleOutlined, InfoCircleOutlined, StopOutlined, DownOutlined } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
 
 export default function GovernorEscalations() {
-  const { tableQueryResult } = useTable({
-    resource: "governance/inbox/governor/escalations",
+  const { tableProps, tableQuery } = useTable({
+    resource: "governance/governor/escalations",
     syncWithLocation: true,
-  }) as any;
+  });
 
-  const { data, isLoading } = tableQueryResult;
+  const { data, isLoading } = tableQuery;
   const escalations = data?.data || [];
   const { mutate } = useCustomMutation();
 
@@ -28,17 +29,17 @@ export default function GovernorEscalations() {
 
     mutate(
       {
-        url: `/governance/inbox/governor/escalations/${id}/${action}`,
+        url: `/governance/governor/escalations/${id}/${action}`,
         method: "post",
         values: payload,
       },
       {
         onSuccess: () => {
           message.success(`Eskalasyon durumu güncellendi: ${action}`);
-          tableQueryResult.refetch();
+          tableQuery.refetch();
         },
         onError: (err) => {
-          message.error(`Hata: ${err.message}`);
+          message.error(`Hata: ${(err as any).message}`);
         }
       }
     );
@@ -54,7 +55,7 @@ export default function GovernorEscalations() {
       </div>
 
       <Card variant="borderless" style={{ borderRadius: 8, background: "#1f2833" }}>
-        <Table dataSource={escalations} rowKey="id" loading={isLoading}>
+        <Table {...tableProps} rowKey="id">
           <Table.Column 
             dataIndex="project_id" 
             title="Proje ID" 

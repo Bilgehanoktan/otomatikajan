@@ -7,12 +7,12 @@ Orchestrates autonomous learning from incidents and repair cycles.
 import hashlib
 import json
 from datetime import datetime, timezone
-from typing import Dict, Any, Optional
-from sqlalchemy import select, update
-from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Dict, Any, Optional, List
+# from sqlalchemy import select, update
+# from sqlalchemy.ext.asyncio import AsyncSession
 
 from libs.db.session import get_db_ctx, AsyncSessionLocal
-from libs.db.models.learning_models import ErrorFingerprint, LearningRecord, StrategyMemory, NegativePatternMemory
+# from libs.db.models.learning_models import ErrorFingerprint, LearningRecord, StrategyMemory, NegativePatternMemory
 from services.observability.logging import get_logger
 
 logger = get_logger("governance.learning")
@@ -22,8 +22,8 @@ class LearningOrchestrator:
     async def record_incident_learning(
         incident_data: Dict[str, Any],
         outcome_data: Dict[str, Any],
-        db: Optional[AsyncSession] = None
-    ) -> LearningRecord:
+        db: Optional[Any] = None
+    ) -> Any:
         """
         Alias for record_learning, specifically for incident resolution workflows.
         """
@@ -33,8 +33,8 @@ class LearningOrchestrator:
     async def record_learning(
         incident_data: Dict[str, Any],
         outcome_data: Dict[str, Any],
-        db: Optional[AsyncSession] = None
-    ) -> LearningRecord:
+        db: Optional[Any] = None
+    ) -> Any:
         """
         Her çözülmüş incident, approval veya repair döngüsü sonrası öğrenme kaydı oluşturur.
         """
@@ -47,7 +47,8 @@ class LearningOrchestrator:
             return await LearningOrchestrator._record_core(db, incident_data, outcome_data)
 
     @staticmethod
-    async def _record_core(db: AsyncSession, incident: Dict[str, Any], outcome: Dict[str, Any]) -> LearningRecord:
+    async def _record_core(db: Any, incident: Dict[str, Any], outcome: Dict[str, Any]) -> Any:
+        from libs.db.models.learning_models import LearningRecord
         # 1. Fingerprint create or update
         fingerprint = await LearningOrchestrator._get_or_create_fingerprint(db, incident)
         
@@ -73,8 +74,8 @@ class LearningOrchestrator:
         if not is_success or rollback:
             await LearningOrchestrator._update_negative_pattern(
                 db, fingerprint.id, component, strategy_name,
-                outcome.get("failure_reason", outcome.get("root_cause")),
-                outcome.get("rollback_reason"),
+                outcome.get("failure_reason", outcome.get("root_cause") or "unknown"),
+                outcome.get("rollback_reason", "unknown"),
                 outcome.get("blast_radius", "medium")
             )
         
@@ -108,7 +109,9 @@ class LearningOrchestrator:
         return record
 
     @staticmethod
-    async def _get_or_create_fingerprint(db: AsyncSession, incident: Dict[str, Any]) -> ErrorFingerprint:
+    async def _get_or_create_fingerprint(db: Any, incident: Dict[str, Any]) -> Any:
+        from sqlalchemy import select
+        from libs.db.models.learning_models import ErrorFingerprint
         service = incident.get("service", "unknown")
         component = incident.get("component", incident.get("incident_type", "unknown"))
         exc_type = incident.get("exception_type", "GeneralError")
@@ -125,6 +128,13 @@ class LearningOrchestrator:
         if fp:
             fp.recurrence_count += 1
             fp.last_seen_at = datetime.now(timezone.utc)
+            logger.warning(
+                "Error fingerprint recurrence: id=%s component=%s severity=%s recurrence=%s",
+                fp.id,
+                component,
+                fp.severity,
+                fp.recurrence_count,
+            )
         else:
             fp = ErrorFingerprint(
                 fingerprint_hash=fp_hash,
@@ -137,16 +147,25 @@ class LearningOrchestrator:
                 risk_domain=incident.get("risk_domain", "general")
             )
             db.add(fp)
+            logger.warning(
+                "Error fingerprint created: component=%s severity=%s family=%s message=%s",
+                component,
+                fp.severity,
+                fp.error_family,
+                normalized_msg[:240],
+            )
         
         await db.flush()
         return fp
 
     @staticmethod
     async def _update_strategy_memory(
-        db: AsyncSession, component: str, family: str, strategy: str, 
+        db: Any, component: str, family: str, strategy: str, 
         success: bool, latency: float, score: float, cost: float, 
         rollback: bool, operator_override: bool
     ):
+        from sqlalchemy import select
+        from libs.db.models.learning_models import StrategyMemory
         res = await db.execute(
             select(StrategyMemory).where(
                 StrategyMemory.component == component,
@@ -217,9 +236,11 @@ class LearningOrchestrator:
 
     @staticmethod
     async def _update_negative_pattern(
-        db: AsyncSession, fingerprint_id: Any, component: str, strategy: str,
+        db: Any, fingerprint_id: Any, component: str, strategy: str,
         failure_reason: str, rollback_reason: str, blast_radius: str
     ):
+        from sqlalchemy import select
+        from libs.db.models.learning_models import NegativePatternMemory
         res = await db.execute(
             select(NegativePatternMemory).where(
                 NegativePatternMemory.fingerprint_id == fingerprint_id,
@@ -273,8 +294,10 @@ class LearningOrchestrator:
         return exc_type.upper()
 
     @staticmethod
-    async def get_strategy_memory(strategy_name: str) -> Optional[StrategyMemory]:
+    async def get_strategy_memory(strategy_name: str) -> Optional[Any]:
         """Fetches memory for a specific strategy across all components."""
+        from sqlalchemy import select
+        from libs.db.models.learning_models import StrategyMemory
         async with get_db_ctx() as db:
             res = await db.execute(select(StrategyMemory).where(StrategyMemory.strategy_name == strategy_name))
             # Returns the one with highest trust or most recent if multiple (though name is unique in many cases)
@@ -283,6 +306,8 @@ class LearningOrchestrator:
     @staticmethod
     async def get_global_learning_stats() -> Dict[str, Any]:
         """Aggregates learning signals for system-wide self-tuning."""
+        from sqlalchemy import select
+        from libs.db.models.learning_models import StrategyMemory
         async with get_db_ctx() as db:
             # Success vs Failure ratio
             res_total = await db.execute(select(StrategyMemory))
@@ -306,6 +331,8 @@ class LearningOrchestrator:
     @staticmethod
     async def get_adaptation_signals(component: str, family: str) -> Dict[str, Any]:
         """PatchRanker ve Policy Engine için sinyal üretir."""
+        from sqlalchemy import select
+        from libs.db.models.learning_models import StrategyMemory, NegativePatternMemory
         async with get_db_ctx() as db:
             res = await db.execute(
                 select(StrategyMemory).where(

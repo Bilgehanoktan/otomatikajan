@@ -1,11 +1,11 @@
-from sqlalchemy.orm import Session
-from typing import List
+# from sqlalchemy.orm import Session
+from typing import Any, List
 import uuid
-from libs.db.models.core_models import Project, ProjectStatus
+# from libs.db.models.core_models import Project, ProjectStatus
 from services.orchestration.fleet.fleet_scheduler import FleetScheduler
 
 class MultiProjectController:
-    def __init__(self, db: Session):
+    def __init__(self, db: Any):
         self.db = db
         self.scheduler = FleetScheduler(db)
 

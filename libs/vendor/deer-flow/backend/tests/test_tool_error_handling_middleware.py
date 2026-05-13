@@ -4,7 +4,7 @@ import pytest
 from langchain_core.messages import ToolMessage
 from langgraph.errors import GraphInterrupt
 
-from deerflow.packages.orchestration.agi.middlewares.tool_error_handling_middleware import ToolErrorHandlingMiddleware
+from deerflow.agents.middlewares.tool_error_handling_middleware import ToolErrorHandlingMiddleware
 
 
 def _request(name: str = "web_search", tool_call_id: str | None = "tc-1"):
@@ -94,3 +94,4 @@ async def test_awrap_tool_call_reraises_graph_interrupt():
 
     with pytest.raises(GraphInterrupt):
         await middleware.awrap_tool_call(req, _interrupt)
+

@@ -15,7 +15,7 @@ const { Title, Text } = Typography;
 
 export default function FederatedGovernorPage() {
   const { query } = useList<any, HttpError>({
-    resource: "governance/inbox/governor/meta/decisions",
+    resource: "governance/governor/meta/decisions",
   }) as any;
   const { data, isLoading } = query;
 

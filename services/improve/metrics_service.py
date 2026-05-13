@@ -1,6 +1,7 @@
 from typing import Dict, Any, List
-from sqlalchemy import select, func, and_
-from libs.db.models.core_models import SystemImprovement, OperationalIncident, Project
+# SQLAlchemy and Model imports moved to local scopes to prevent Phase 13.04 startup hangs in Python 3.14+
+# from sqlalchemy import select, func, and_
+# from libs.db.models.core_models import SystemImprovement, OperationalIncident, Project
 from datetime import datetime, timezone, timedelta
 from uuid import UUID
 
@@ -10,6 +11,9 @@ class ImprovementMetricsService:
 
     async def get_canary_stats(self, days: int = 7) -> Dict[str, Any]:
         """Calculates canary evidence depth."""
+        from sqlalchemy import select, func, and_
+        from libs.db.models.core_models import SystemImprovement
+        
         since = datetime.now(timezone.utc) - timedelta(days=days)
         
         # Total patches
@@ -47,6 +51,9 @@ class ImprovementMetricsService:
 
     async def get_risk_calibration_data(self) -> Dict[str, Any]:
         """Analyzes risk scoring effectiveness."""
+        from sqlalchemy import select, func
+        from libs.db.models.core_models import SystemImprovement
+        
         # Average risk of rolled back patches
         rb_risk_stmt = select(func.avg(SystemImprovement.risk_score)).where(SystemImprovement.status == "rolled_back")
         rb_avg_risk = (await self.db.execute(rb_risk_stmt)).scalar() or 0.0
@@ -64,6 +71,9 @@ class ImprovementMetricsService:
 
     async def get_pilot_performance(self) -> Dict[str, Any]:
         """Gathers Pilot KPI Baselines."""
+        from sqlalchemy import select, func
+        from libs.db.models.core_models import SystemImprovement, OperationalIncident
+        
         # MTTR: Mean Time to Resolution (Incident created -> Patch applied)
         # Simplified: OperationalIncident.created_at vs SystemImprovement.applied_at
         

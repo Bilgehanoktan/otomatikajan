@@ -45,7 +45,7 @@ export function DashboardCommandPanel({ apiBase }: { apiBase: string }) {
     setLoadingAction(action);
     try {
       // Phase 32: Use safeFetchJson for resilience and auth-cookie inclusion
-      const data = await safeFetchJson(`/api/v1${endpoint}`, {
+      const data: any = await safeFetchJson(`/api/v1${endpoint}`, {
         method,
         headers: { "Content-Type": "application/json" },
         body: body ? JSON.stringify(body) : undefined,

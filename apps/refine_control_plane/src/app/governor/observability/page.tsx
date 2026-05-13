@@ -26,13 +26,13 @@ export default function ObservabilityDashboard() {
   
   const { query: alertsQuery } = useAlerts([
     { field: "status", operator: "eq", value: "OPEN" }
-  ]);
+  ]) as any;
   const { data: alertsData, isLoading: alertsLoading, refetch: refetchAlerts } = alertsQuery;
 
-  const { query: driftsQuery } = useDrifts(5);
+  const { query: driftsQuery } = useDrifts(5) as any;
   const { data: driftsData, isLoading: driftsLoading, refetch: refetchDrifts } = driftsQuery;
 
-  const { query: metricsQuery } = useMetrics();
+  const { query: metricsQuery } = useMetrics() as any;
   const { data: metricsData, isLoading: metricsLoading, refetch: refetchMetrics } = metricsQuery;
 
   const alerts = (alertsData?.data as AlertRecord[]) || [];

@@ -20,50 +20,42 @@ import {
 } from "lucide-react";
 import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 import { Skeleton } from "@/components/dashboard/Skeleton";
+import { useList } from "@refinedev/core";
 
 export default function LaunchGatesPage() {
     const [isClient, setIsClient] = useState(false);
     useEffect(() => setIsClient(true), []);
 
-    if (!isClient) return <div className="min-h-screen bg-[#060a12]" />;
+    const { query } = useList<any>({
+        resource: "governance/validations",
+    });
+    const { data, isLoading } = query;
 
-    // Mock data based on the latest gatekeeper run
-    const gates = [
+    if (!isClient || isLoading) return <div className="min-h-screen bg-[#060a12]"><Skeleton /></div>;
+
+    const rawGates = data?.data || [];
+    
+    // Map backend validations to HUD gates
+    const gates = rawGates.map((v: any) => ({
+        id: v.id,
+        title: v.component_name || v.test_suite,
+        icon: <ShieldCheck size={24} />,
+        status: v.status === "PASS" || v.status === "SUCCESS" ? "PASS" : "FAIL",
+        metric: v.metrics ? JSON.stringify(v.metrics) : "N/A",
+        threshold: v.validation_type || "Standard",
+        detail: v.test_suite || "Otonom doğrulama sonucu."
+    })).slice(0, 4);
+
+    // Fallback if no data
+    const finalGates = gates.length > 0 ? gates : [
         {
-            id: "budget",
-            title: "Bütçe Bütünlüğü",
-            icon: <Wallet size={24} />,
-            status: "PASS",
-            metric: "$0.00 consumed",
-            threshold: "Max $90.00 (90%)",
-            detail: "Ekonomik drift tespit edilmedi. Cari tüketim limitler dahilinde."
-        },
-        {
-            id: "governance",
-            title: "Yönetişim Kilidi",
-            icon: <ShieldAlert size={24} />,
-            status: "PASS",
-            metric: "Constitutional Guards Active",
-            threshold: "Strict Lockdown",
-            detail: "Kritik oturum sürücüleri (DB/Session) otonom değişime karşı kilitli."
-        },
-        {
-            id: "quorum",
-            title: "Mutabakat (Quorum)",
-            icon: <Users size={24} />,
-            status: "PASS",
-            metric: "0 Pending Sign-offs",
-            threshold: "Tier-1 Requirements",
-            detail: "Bu katman için gerekli tüm operatör onayları tamamlanmış durumda."
-        },
-        {
-            id: "accuracy",
-            title: "Doğruluk Skorları",
-            icon: <Target size={24} />,
-            status: "PASS",
-            metric: "0.94 Confidence",
-            threshold: "Min 0.90",
-            detail: "Sistem kararlılığı ve verifikasyon ağ skoru beklentilerin üzerinde."
+            id: "no-data",
+            title: "Veri Bekleniyor",
+            icon: <Info size={24} />,
+            status: "WAIT",
+            metric: "0 items",
+            threshold: "N/A",
+            detail: "Henüz bir doğrulama kaydı bulunamadı."
         }
     ];
 
@@ -135,9 +127,8 @@ export default function LaunchGatesPage() {
                 </div>
             </div>
 
-            {/* Gates Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
-                {gates.map((gate) => (
+                {finalGates.map((gate) => (
                     <div key={gate.id} className="glass-panel p-8 rounded-[2.5rem] border-white/[0.03] bg-white/[0.015] hover:bg-white/[0.04] hover:border-[var(--primary)]/20 transition-all group/gate relative overflow-hidden">
                         <div className="mb-8 flex items-start justify-between">
                             <div className="p-4 bg-black/40 rounded-2xl border border-white/5 text-gray-500 group-hover/gate:text-[var(--primary)] group-hover/gate:border-[var(--primary)]/20 transition-all duration-500">

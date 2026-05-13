@@ -9,7 +9,7 @@ const { Title, Text } = Typography;
 
 export default function GovernorOutcomesPage() {
   const { tableProps } = useTable({
-    resource: "governance/inbox/governor/outcomes",
+    resource: "governance/governor/outcomes",
     syncWithLocation: true,
     pagination: {
       pageSize: 20,

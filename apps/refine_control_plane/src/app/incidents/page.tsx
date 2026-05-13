@@ -90,10 +90,10 @@ export default function IncidentsPage() {
           setErrorDetail("Incident endpoint is unavailable on this runtime profile.");
         } else {
           setErrorSummary(`API Error [${err.status}]`);
-          setErrorDetail(err.detail || "Unknown server error.");
+          setErrorDetail((err as any).message || "Unknown server error.");
         }
       } else if (err instanceof Error) {
-        setErrorDetail(err.message);
+        setErrorDetail((err as any).message);
       }
     } finally {
       setIsLoading(false);
@@ -190,7 +190,7 @@ export default function IncidentsPage() {
         subtitle={t("subtitle")}
         icon={<AlertTriangle size={32} />}
         badge={t("badge")}
-        staleMeta={staleMeta as Record<string, unknown>}
+        staleMeta={staleMeta as never}
         actions={
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-4 border-r border-white/5 pr-8">
@@ -346,7 +346,7 @@ function EliteIncidentItem({
 }: {
   incident: Incident;
   onResolve: () => void;
-  t: (key: string, values?: Record<string, unknown>) => string;
+  t: any;
 }) {
   const isCritical = incident.severity === "critical";
   const isResolved = incident.status === "resolved";

@@ -44,10 +44,10 @@ export default function MeshHub() {
 
   const fetchMeshState = async () => {
     try {
-      const topoData = await safeFetchJson(`${API_BASE}/status`);
+      const topoData: any = await safeFetchJson(`${API_BASE}/status`);
       setMeshData(topoData);
 
-      const evidenceData = await safeFetchJson(`${API_BASE}/timeline?limit=15`);
+      const evidenceData: any = await safeFetchJson(`${API_BASE}/timeline?limit=15`);
       
       const formattedTimeline = evidenceData.map((e: any) => ({
           event_id: e.event_id,
@@ -60,6 +60,7 @@ export default function MeshHub() {
       setLoading(false);
     } catch (err) {
       console.error("Failed to fetch mesh state:", err);
+      setLoading(false);
     }
   };
 

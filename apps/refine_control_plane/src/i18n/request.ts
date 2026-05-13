@@ -26,6 +26,8 @@ export default getRequestConfig(async ({ requestLocale }) => {
     refine: (refineMessages.default || refineMessages)
   };
 
+
+
   return {
     locale,
     messages

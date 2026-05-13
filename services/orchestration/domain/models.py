@@ -75,7 +75,7 @@ class ProblemFrame:
 @dataclass
 class ContextPackage:
     """Planlama için toplanan bağlam paketi."""
-    working_context: str
+    working_context: str = ""
     relevant_episodes: List[str] = field(default_factory=list)
     relevant_skills: List[str] = field(default_factory=list)
     semantic_facts: List[str] = field(default_factory=list)
@@ -85,6 +85,15 @@ class ContextPackage:
     synapse_lessons: List[Dict[str, Any]] = field(default_factory=list)
     affective_context: Optional['AffectiveState'] = None # Phase 28
     integrity_status: Dict[str, Any] = field(default_factory=dict) # Faz 12.2: State Awareness
+    thought_thread: str = ""
+    north_star_vision: str = ""
+    
+    # --- ECC / Codex Harness Integration (Faz 12.1) ---
+    selected_skill_ids: List[str] = field(default_factory=list)
+    selected_rule_ids: List[str] = field(default_factory=list)
+    harness_profile: str = "standard"
+    skill_telemetry: Dict[str, Any] = field(default_factory=dict) # Learning Loop: performance, latency, error_rate
+    harness_metadata: Dict[str, Any] = field(default_factory=dict) # Project-level ECC context
 
 @dataclass
 class PlanStep:

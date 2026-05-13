@@ -190,15 +190,20 @@ class CentralExecutive:
             )
             max_attempts = strategy.max_attempts
             
+            from services.orchestration.application.skill_catalog import skill_catalog
+            selected_skills = skill_catalog.find_skills_by_context(current_frame.objective)
+            
             ctx = ContextPackage(
                 working_context=f"History: {cumulative_history}",
                 graph_links=[{"hubs": summary["hubs"]}],
                 relevant_skills=list(self.specialists.keys()),
+                selected_skill_ids=selected_skills,
                 affective_context=affective_state,
                 synapse_lessons=synapse_lessons or [], 
                 thought_thread=thought_thread, 
                 north_star_vision=f"Goal: {north_star_goal.title}\nVision: {north_star_goal.vision_statement}" if north_star_goal else "Standard Autonomy",
-                integrity_status=await self._get_integrity_status()
+                integrity_status=await self._get_integrity_status(),
+                harness_profile="ecc_core"
             )
 
             try:

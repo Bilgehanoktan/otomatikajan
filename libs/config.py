@@ -63,12 +63,19 @@ def validate_production_config():
         raise RuntimeError(f"Üretim ortamı için kritik değişkenler eksik: {missing}")
 
     # Şablon/Zayıf şifre kontrolü
+    weak_templates = {
+        *globals().get("WEAK_TEMPLATES", []),
+        "sovereign-agi-control-plane-local-secret-stable-v1",
+        "agi-admin-fallback-secret-2026",
+        "your-webhook-secret",
+        "admin1234",
+    }
     for name, secret in [
         ("ADMIN_SECRET", ADMIN_SECRET),
         ("JWT_SECRET", JWT_SECRET),
         ("WEBHOOK_SECRET", WEBHOOK_SECRET),
     ]:
-        is_weak = any(tpl in secret for tpl in WEAK_TEMPLATES)
+        is_weak = any(tpl and tpl in secret for tpl in weak_templates)
         if is_weak:
             raise RuntimeError(f"{name} üretim ortamı için kabul edilemez!")
     
@@ -88,7 +95,12 @@ try:
     if os.path.exists(".env"):
         load_dotenv(".env", override=True)
     if os.path.exists(".env.local"):
-        load_dotenv(".env.local", override=True) # local SHOULD override environment
+        try:
+            load_dotenv(".env.local", override=True) # local SHOULD override environment
+        except UnicodeDecodeError:
+            # .env.local dosyası bozuk encoding ile kaydedilmiş (UTF-16 BOM vb.)
+            # Sessizce atla, .env yeterli olacak.
+            pass
         
     # Sadece development/test modunda örnek dosyayı yükle (güvenlik için)
     _temp_env = os.getenv("APP_ENV", os.getenv("ENVIRONMENT", "development")).lower()
@@ -216,7 +228,21 @@ SOVEREIGN_BACKGROUND_LOOPS_ENABLED = _env_bool(
     "SOVEREIGN_BACKGROUND_LOOPS_ENABLED",
     not SOVEREIGN_LIGHTWEIGHT_STARTUP,
 )
+EPHEMERAL_WORKFLOWS_ENABLED = _env_bool("EPHEMERAL_WORKFLOWS_ENABLED", False)
 
+# ── MCP (Model Context Protocol) ──────────────────────────
+MCP_SERVERS = {
+    "sovereign_agi": {
+        "command": "python",
+        "args": ["services/mcp_server/main.py"],
+        "env": {"MCP_API_KEY": os.getenv("MCP_API_KEY", "agiv13_internal_key_default")},
+        "enabled": True,
+        "type": "stdio",
+        "description": "Core Sovereign AGI tool interface"
+    }
+}
+
+# ── Exported env variables for subprocesses ──────────────────
 os.environ["RUNTIME_PROFILE"] = RUNTIME_PROFILE
 os.environ["QUEUE_BACKEND"] = QUEUE_BACKEND
 os.environ["APP_UI_MODE"] = APP_UI_MODE
@@ -240,7 +266,10 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "DEBUG" if is_dev else "INFO")
 # ── Veritabanı URL Tespiti ────────────────────────────────
 _raw_db_url = os.getenv("DATABASE_URL", "")
 _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sqlite_path = os.path.join(_root, "runtime", "data", "cortex_local_v2.db")
+sqlite_dir = os.path.join(_root, "runtime", "data")
+if not os.path.exists(sqlite_dir):
+    os.makedirs(sqlite_dir, exist_ok=True)
+sqlite_path = os.path.join(sqlite_dir, "cortex_local_v2.db")
 
 # Docker ortamında mıyız? (Konteyner içi tespiti)
 _is_in_docker = os.path.exists("/.dockerenv") or os.getenv("DOCKER_CONTAINER", "false").lower() == "true"
@@ -361,3 +390,5 @@ TELEGRAM_BURST_LIMIT      = int(os.getenv("TELEGRAM_BURST_LIMIT", "30"))
 QUALITY_PASS_THRESHOLD            = float(os.getenv("QUALITY_PASS_THRESHOLD", "0.85"))
 ENABLE_AUTONOMOUS_IMPROVEMENT     = os.getenv("ENABLE_AUTONOMOUS_IMPROVEMENT", "true").lower() == "true"
 IMPROVEMENT_AUTO_APPLY_THRESHOLD  = float(os.getenv("IMPROVEMENT_AUTO_APPLY_THRESHOLD", "0.8"))
+
+validate_production_config()

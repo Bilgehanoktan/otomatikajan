@@ -33,55 +33,50 @@ import {
     Fingerprint,
     Brain,
     Sparkles,
-    ShieldOff
+    ShieldOff,
+    Search,
+    FlaskConical,
+    DollarSign,
+    GraduationCap
 } from "lucide-react";
 
 const icons: Record<string, React.ReactNode> = {
     workflows: <Workflow size={20} />,
     dashboard: <LayoutDashboard size={20} />,
-    agents: <Zap size={20} />,
-    "repair-lab/improvements": <ShieldCheck size={20} />,
-    security: <ShieldCheck size={20} />,
-    observability: <Eye size={20} />,
+    "governance/governor/cases": <ShieldCheck size={20} />,
+    "governance/governor/escalations": <AlertTriangle size={20} />,
+    "governance/governor/scorecard": <BarChart3 size={20} />,
+    "governance/governor/outcomes": <CheckSquare size={20} />,
+    "governance/governor/calibrations": <Activity size={20} />,
+    "governance/governor/resilience": <Dna size={20} />,
+    "governance/ops/handover": <Rocket size={20} />,
+    "governance/ops/launch-gates": <Target size={20} />,
+    "governance/drills": <Dna size={20} />,
+    mesh: <Globe size={20} />,
+    verifiers: <Activity size={20} />,
     "governance/approvals": <CheckSquare size={20} />,
     "governance/incidents": <AlertTriangle size={20} />,
-    "governance/analytics/costs": <BarChart3 size={20} />,
-    "governance/compliance/audit-bundles": <FileText size={20} />,
-    federation: <Network size={20} />,
-    fleet: <Boxes size={20} />,
-    "fleet/agents": <Zap size={20} />,
-    "fleet/operations": <Settings size={20} />,
-    mesh: <Globe size={20} />,
-    safety: <ShieldAlert size={20} />,
-    "repair-lab/dashboard": <Cpu size={20} />,
-    "repair-lab/repair-memory": <History size={20} />,
-    verifiers: <Activity size={20} />,
-    "governance/axiology": <Scale size={20} />,
-    "repair-lab/suggestions": <Settings size={20} />,
-    "governance/lineage": <Settings2 size={20} />,
-    "governance/drills": <Dna size={20} />,
-    "governance/compliance/policies": <Scale size={20} />,
     "governance/proposals": <Signature size={20} />,
-    "governance/ops/handover-status": <Rocket size={20} />,
-    "governance/ops/launch-gates": <Target size={20} />,
-    "learning": <Brain size={20} />,
-    "fingerprints": <Fingerprint size={20} />,
+    learning: <Brain size={20} />,
     "learning/fingerprints": <Fingerprint size={20} />,
-    "strategy-memory": <Brain size={20} />,
     "learning/strategy-memory": <Brain size={20} />,
-    "negative-patterns": <ShieldOff size={20} />,
     "learning/negative-patterns": <ShieldOff size={20} />,
     "adaptation-candidates": <Sparkles size={20} />,
-    "learning/adaptation-candidates": <Sparkles size={20} />,
-    "governance/governor/resilience/drills": <Dna size={20} />,
-    "governance/governor/status": <Eye size={20} />,
-    "governance/governor/alerts": <ShieldAlert size={20} />,
-    "governance/governor/drifts": <Activity size={20} />,
-    "governance/governor/proof": <History size={20} />,
-    "governance/governor/cases": <ShieldCheck size={20} />,
-    "governance/governor/meta/conflicts": <Activity size={20} />,
     evolution: <Dna size={20} />,
-    audit: <Eye size={20} />,
+    federation: <Network size={20} />,
+    "federation/conflicts": <Activity size={20} />,
+    "governance/safety": <ShieldAlert size={20} />,
+    "governance/audit": <Eye size={20} />,
+    axiology: <Search size={20} />,
+    "repair-lab": <FlaskConical size={20} />,
+    fleet: <Rocket size={20} />,
+    identity: <Fingerprint size={20} />,
+    costs: <DollarSign size={20} />,
+    training: <GraduationCap size={20} />,
+    "governance/compliance": <ShieldCheck size={20} />,
+    "mcp-hub": <Boxes size={20} />,
+    "prompt-studio": <Brain size={20} />,
+    "system-health": <Activity size={20} />,
 };
 
 const SidebarContent = () => {
@@ -96,52 +91,44 @@ const SidebarContent = () => {
     const groups = [
         {
             title: t("groups.operations"),
-            items: ["dashboard", "workflows", "agents", "governance/incidents", "fleet", "fleet/operations"]
+            items: ["dashboard", "workflows", "fleet", "mcp-hub", "governance/ops/handover", "governance/ops/launch-gates", "governance/incidents"]
         },
         {
             title: t("groups.governance"),
             items: [
+                "governance/governor/cases",
+                "governance/governor/escalations",
+                "governance/governor/scorecard",
+                "governance/governor/outcomes",
                 "governance/approvals", 
-                "governance/axiology", 
-                "governance/compliance/policies", 
                 "safety", 
+                "identity",
+                "compliance",
                 "mesh", 
                 "federation", 
-                "governance/lineage", 
-                "governance/proposals",
-                "governance/governor/cases",
-                "governance/governor/proof"
+                "governance/proposals"
             ]
         },
         {
             title: t("groups.autonomous"),
             items: [
-                "learning",
-                "fingerprints",
-                "learning/fingerprints",
-                "strategy-memory",
-                "learning/strategy-memory",
-                "negative-patterns",
-                "learning/negative-patterns",
-                "adaptation-candidates",
-                "learning/adaptation-candidates",
-                "repair-lab/improvements", 
-                "repair-lab/dashboard", 
-                "repair-lab/repair-memory", 
-                "repair-lab/suggestions", 
-                "verifiers", 
+                "repair-lab",
                 "governance/drills",
-                "evolution"
+                "learning",
+                "adaptation-candidates",
+                "evolution",
+                "verifiers",
+                "training",
+                "prompt-studio"
             ]
         },
         {
             title: t("groups.reporting"),
             items: [
-                "governance/analytics/costs", 
-                "governance/compliance/audit-bundles", 
                 "audit",
-                "governance/ops/handover-status", 
-                "governance/ops/launch-gates"
+                "axiology",
+                "costs",
+                "system-health"
             ]
         }
     ];

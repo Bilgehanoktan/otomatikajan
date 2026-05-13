@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 # Break the circular import chain that exists in production code:
 #   deerflow.subagents.__init__
 #     -> .executor (SubagentExecutor, SubagentResult)
-#       -> deerflow.packages.orchestration.agi.thread_state
+#       -> deerflow.agents.thread_state
 #         -> deerflow.packages.orchestration.agi.__init__
 #           -> lead_agent.agent
 #             -> subagent_limit_middleware
@@ -31,3 +31,4 @@ _executor_mock.MAX_CONCURRENT_SUBAGENTS = 3
 _executor_mock.get_background_task_result = MagicMock()
 
 sys.modules["deerflow.subagents.executor"] = _executor_mock
+

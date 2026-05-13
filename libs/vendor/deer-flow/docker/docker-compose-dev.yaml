@@ -47,7 +47,7 @@ services:
       - "host.docker.internal:host-gateway"
     networks:
       - deer-flow-dev
-    restart: unless-stopped
+    restart: no
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
       interval: 10s
@@ -73,7 +73,7 @@ services:
       - langgraph
     networks:
       - deer-flow-dev
-    restart: unless-stopped
+    restart: no
 
   # Frontend - Next.js Development Server
   frontend:
@@ -101,7 +101,7 @@ services:
       - ../frontend/.env
     networks:
       - deer-flow-dev
-    restart: unless-stopped
+    restart: no
 
   # Backend - Gateway API
   gateway:
@@ -150,7 +150,7 @@ services:
       - "host.docker.internal:host-gateway"
     networks:
       - deer-flow-dev
-    restart: unless-stopped
+    restart: no
 
   # Backend - LangGraph Server
   langgraph:
@@ -199,7 +199,7 @@ services:
       - "host.docker.internal:host-gateway"
     networks:
       - deer-flow-dev
-    restart: unless-stopped
+    restart: no
 
 volumes:
   # Persist .venv across container restarts so dependencies installed during

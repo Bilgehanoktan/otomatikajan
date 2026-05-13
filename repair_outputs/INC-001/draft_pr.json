@@ -1,0 +1,14 @@
+{
+  "body": "## Summary\nSample failed repair flow smoke case.\n\n## Changed files\n\n## Risk decision\n- status: DRAFT_PR_READY\n- risk_score: 0.2\n- recommended_action: DRAFT_PR_ALLOWED",
+  "branch_name": "codex/repair-inc-001",
+  "changed_files": [],
+  "dry_run": true,
+  "risk_decision": {
+    "reason": "No files changed by Phase 1-3 mock candidate.",
+    "recommended_action": "DRAFT_PR_ALLOWED",
+    "risk_level": "LOW",
+    "risk_score": 0.2,
+    "status": "DRAFT_PR_READY"
+  },
+  "title": "fix: repair INC-001"
+}

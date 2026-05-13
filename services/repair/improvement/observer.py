@@ -172,8 +172,8 @@ class ImprovementObserver:
             "repair_lab": "apps/refine_control_plane/src/app/repair-lab/page.tsx",
             "health": "apps/refine_control_plane/src/app/page.tsx",
             "training": "apps/refine_control_plane/src/app/training/page.tsx",
-            "lineage": "apps/refine_control_plane/src/app/governance-lineage/page.tsx",
-            "governance": "apps/refine_control_plane/src/app/governance-lineage/page.tsx",
+            "lineage": "apps/refine_control_plane/src/app/governance/lineage/page.tsx",
+            "governance": "apps/refine_control_plane/src/app/governance/lineage/page.tsx",
             "mesh": "apps/refine_control_plane/src/app/mesh/page.tsx",
             "other": "services/api/routes",
         }

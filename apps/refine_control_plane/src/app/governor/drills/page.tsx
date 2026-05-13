@@ -2,7 +2,8 @@
 
 import React from "react";
 import { List, Table, Tag, Space, Card, Typography, Button, Modal, Form, Select, notification } from "antd";
-import { useList, useCustomMutation } from "@refinedev/core";
+import { useTable } from "@refinedev/antd";
+import { useCustomMutation } from "@refinedev/core";
 import { 
     BugOutlined, 
     PlayCircleOutlined, 
@@ -13,9 +14,11 @@ import {
 const { Title, Text } = Typography;
 
 export default function GovernorDrillsPage() {
-    const { query: { data, isLoading, refetch } } = useList<any>({
-        resource: "governance/inbox/governor/resilience/drills",
+    const { tableProps, tableQuery } = useTable<any>({
+        resource: "governance/governor/resilience/drills",
     });
+
+    const { data, isLoading, refetch } = tableQuery;
 
     const { mutate } = useCustomMutation();
 
@@ -24,7 +27,7 @@ export default function GovernorDrillsPage() {
 
     const handleStartDrill = async (values: any) => {
         mutate({
-            url: "/governance/inbox/governor/resilience/drills",
+            url: "/governance/governor/resilience/drills",
             method: "post",
             values,
         }, {
@@ -103,9 +106,8 @@ export default function GovernorDrillsPage() {
 
             <Card variant="borderless" title={<span><HistoryOutlined /> Drill History</span>}>
                 <Table 
-                    dataSource={data?.data} 
+                    {...tableProps}
                     columns={columns} 
-                    loading={isLoading}
                     rowKey="id"
                 />
             </Card>
@@ -116,6 +118,7 @@ export default function GovernorDrillsPage() {
                 onCancel={() => setIsModalOpen(false)}
                 onOk={() => form.submit()}
                 okText="Run Scenario"
+                forceRender={true}
             >
                 <Form form={form} layout="vertical" onFinish={handleStartDrill}>
                     <Form.Item 

@@ -1,16 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
-from typing import List, Dict, Any, Optional
+# from sqlalchemy.ext.asyncio import AsyncSession
+# from sqlalchemy import select, func
+from typing import Any, List, Dict, Any, Optional
 import uuid
 import json
 
 from libs.db.session import get_db
-from libs.db.models.core_models import AgentStatus, AgentRole, FleetStatus, AgentNode, FleetCluster
-from libs.db.models.governance_models import ProofEventType, GovernanceProofEventRecord
-from services.orchestration.fleet.fleet_scheduler import FleetScheduler
-from services.orchestration.fleet.multi_project_controller import MultiProjectController
-from services.governance.fleet_observability import FleetObservability
+# from libs.db.models.core_models import AgentStatus, AgentRole, FleetStatus, AgentNode, FleetCluster
+# from libs.db.models.governance_models import ProofEventType, GovernanceProofEventRecord
+# from services.orchestration.fleet.fleet_scheduler import FleetScheduler
+# from services.orchestration.fleet.multi_project_controller import MultiProjectController
+# from services.governance.fleet_observability import FleetObservability
 
 from pydantic import BaseModel, Field
 from datetime import datetime
@@ -37,8 +37,8 @@ class FleetClusterOut(BaseModel):
 class FleetAgentOut(BaseModel):
     id: str
     name: str
-    role: AgentRole
-    status: AgentStatus
+    role: Any # AgentRole
+    status: Any # AgentStatus
     trust_score: float = Field(..., ge=0, le=1)
     current_load: int
     last_heartbeat: Optional[datetime] = None
@@ -49,7 +49,7 @@ class FleetAgentOut(BaseModel):
 
 class FleetEventOut(BaseModel):
     id: str
-    event_type: ProofEventType
+    event_type: Any # ProofEventType
     entity_id: Optional[str] = None
     payload_summary: Optional[str] = None
     created_at: datetime
@@ -61,11 +61,13 @@ router = APIRouter(tags=["Orchestration"])
 
 @router.get("/agents", response_model=List[FleetAgentOut])
 async def list_agents(
-    role: Optional[AgentRole] = None, 
-    status: Optional[AgentStatus] = None, 
+    role: Optional[Any] = None, 
+    status: Optional[Any] = None, 
     cluster_id: Optional[uuid.UUID] = None, 
-    db: AsyncSession = Depends(get_db)
+    db: Any = Depends(get_db)
 ):
+    from sqlalchemy import select
+    from libs.db.models.core_models import AgentNode
     query = select(AgentNode)
     if role:
         query = query.where(AgentNode.role == role)
@@ -91,7 +93,9 @@ async def list_agents(
     ]
 
 @router.get("/clusters", response_model=List[FleetClusterOut])
-async def list_clusters(db: AsyncSession = Depends(get_db)):
+async def list_clusters(db: Any = Depends(get_db)):
+    from sqlalchemy import select, func
+    from libs.db.models.core_models import FleetCluster, AgentNode
     query = select(FleetCluster)
     result = await db.execute(query)
     clusters = result.scalars().all()
@@ -113,12 +117,15 @@ async def list_clusters(db: AsyncSession = Depends(get_db)):
     return out
 
 @router.get("/metrics", response_model=FleetMetricsOut)
-async def get_fleet_metrics(db: AsyncSession = Depends(get_db)):
+async def get_fleet_metrics(db: Any = Depends(get_db)):
+    from services.governance.fleet_observability import FleetObservability
     obs = FleetObservability(db)
     return await obs.aggregate_fleet_metrics()
 
 @router.get("/events", response_model=List[FleetEventOut])
-async def list_fleet_events(limit: int = 10, db: AsyncSession = Depends(get_db)):
+async def list_fleet_events(limit: int = 10, db: Any = Depends(get_db)):
+    from sqlalchemy import select
+    from libs.db.models.governance_models import ProofEventType, GovernanceProofEventRecord
     fleet_event_types = [
         ProofEventType.AGENT_ASSIGNED, 
         ProofEventType.AGENT_QUARANTINED, 
@@ -157,11 +164,10 @@ async def list_fleet_events(limit: int = 10, db: AsyncSession = Depends(get_db))
     return events
 
 # --- Mutations ---
-# Note: For mutations that use sync services (FleetScheduler, etc.), 
-# we wrap them in run_sync to maintain thread safety with the async session.
 
 @router.post("/projects/{project_id}/schedule")
-async def schedule_project(project_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+async def schedule_project(project_id: uuid.UUID, db: Any = Depends(get_db)):
+    from services.orchestration.fleet.fleet_scheduler import FleetScheduler
     def _sync_op(sync_db):
         scheduler = FleetScheduler(sync_db)
         return scheduler.schedule_project(project_id)
@@ -172,7 +178,8 @@ async def schedule_project(project_id: uuid.UUID, db: AsyncSession = Depends(get
     return {"status": "scheduled"}
 
 @router.post("/projects/{project_id}/pause")
-async def pause_project(project_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+async def pause_project(project_id: uuid.UUID, db: Any = Depends(get_db)):
+    from services.orchestration.fleet.multi_project_controller import MultiProjectController
     def _sync_op(sync_db):
         controller = MultiProjectController(sync_db)
         controller.pause_project(project_id)
@@ -181,7 +188,7 @@ async def pause_project(project_id: uuid.UUID, db: AsyncSession = Depends(get_db
     return {"status": "paused"}
 
 @router.post("/agents/{agent_id}/quarantine")
-async def quarantine_agent(agent_id: uuid.UUID, reason: str, db: AsyncSession = Depends(get_db)):
+async def quarantine_agent(agent_id: uuid.UUID, reason: str, db: Any = Depends(get_db)):
     from services.orchestration.fleet.agent_registry import AgentRegistry
     def _sync_op(sync_db):
         registry = AgentRegistry(sync_db)
@@ -191,7 +198,8 @@ async def quarantine_agent(agent_id: uuid.UUID, reason: str, db: AsyncSession = 
     return {"status": "quarantined"}
 
 @router.post("/rebalance")
-async def trigger_rebalance(db: AsyncSession = Depends(get_db)):
+async def trigger_rebalance(db: Any = Depends(get_db)):
+    from services.orchestration.fleet.fleet_scheduler import FleetScheduler
     def _sync_op(sync_db):
         scheduler = FleetScheduler(sync_db)
         scheduler.rebalance_fleet()

@@ -1,4 +1,3 @@
-
 """
 services/improve/repair_bench.py — Phase 28
 Orchestrates the Autonomous Repair Lab benchmarking and tournament execution.
@@ -13,7 +12,8 @@ from services.improve.benchmark_loader import RepairBenchLoader, BenchmarkCase
 from services.observability.logging import get_logger
 from libs.db.session import session_scope
 from libs.llm.model_orchestrator import ModelOrchestrator
-from libs.db.models.repair_models import RepairBenchmarkRun, RepairTournament, RepairCandidate, VerifierResult
+# Move to local scopes to prevent Phase 13.04 startup hangs
+# from libs.db.models.repair_models import RepairBenchmarkRun, RepairTournament, RepairCandidate, VerifierResult
 
 logger = get_logger("repair.bench")
 
@@ -87,6 +87,7 @@ class RepairBenchService:
         )
         
         # --- PERSISTENCE ---
+        from libs.db.models.repair_models import RepairTournament, RepairCandidate
         async with session_scope() as session:
             db_tourney = RepairTournament(
                 tournament_id=tournament_res.tournament_id,
@@ -119,6 +120,7 @@ class RepairBenchService:
 
     async def run_full_bench(self, project_id: str = "sovereign-agi", cluster_id: str = "local-lab") -> str:
         """Runs all cases in the index and returns a run_id."""
+        from libs.db.models.repair_models import RepairBenchmarkRun
         run_id = f"RUN-{uuid.uuid4().hex[:8].upper()}"
         cases = self.loader.list_all_cases()
         

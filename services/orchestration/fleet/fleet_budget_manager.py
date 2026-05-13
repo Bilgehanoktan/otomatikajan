@@ -1,16 +1,19 @@
-from sqlalchemy.orm import Session
-from sqlalchemy import select, func
+from typing import Any
+# from sqlalchemy.orm import Session
+# from sqlalchemy import select, func
 import uuid
-from libs.db.models.core_models import Project, FleetCluster, AgentNode
-from libs.db.repositories.fleet_repository import FleetClusterRepo
+# from libs.db.models.core_models import Project, FleetCluster, AgentNode
+# from libs.db.repositories.fleet_repository import FleetClusterRepo
 
 class FleetBudgetManager:
-    def __init__(self, db: Session):
+    def __init__(self, db: Any):
+        from libs.db.repositories.fleet_repository import FleetClusterRepo
         self.db = db
         self.cluster_repo = FleetClusterRepo(db)
 
     def can_schedule_project(self, project_id: uuid.UUID) -> bool:
         """Checks if a project can be scheduled within global and cluster budget limits."""
+        from libs.db.models.core_models import Project
         project = self.db.get(Project, project_id)
         if not project:
             return False

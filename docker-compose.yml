@@ -8,7 +8,7 @@ services:
     build:
       context: .
       target: production-slim
-    restart: unless-stopped
+    restart: no
     env_file:
       - .env
     environment:
@@ -26,9 +26,9 @@ services:
       DEERFLOW_BRIDGE_URL: http://deerflow-bridge:8010
       WORKERS: "1"
       GUNICORN_TIMEOUT: "120"
-      SOVEREIGN_LIGHTWEIGHT_STARTUP: "true"
+      SOVEREIGN_LIGHTWEIGHT_STARTUP: ${SOVEREIGN_LIGHTWEIGHT_STARTUP:-true}
       SOVEREIGN_BACKGROUND_LOOPS_ENABLED: "false"
-      INPROCESS_JOB_WORKERS_ENABLED: "false"
+      INPROCESS_JOB_WORKERS_ENABLED: ${INPROCESS_JOB_WORKERS_ENABLED:-false}
       PRMR_AUDIT_ENABLED: "false"
       PYTHONPATH: /app
       DOCKER_CONTAINER: "true"
@@ -54,7 +54,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.cms
-    restart: unless-stopped
+    restart: no
     env_file:
       - .env
     environment:
@@ -79,7 +79,7 @@ services:
   db:
     profiles: ["full-stack"]
     image: pgvector/pgvector:pg16
-    restart: unless-stopped
+    restart: no
     environment:
       POSTGRES_DB: ai_company
       POSTGRES_USER: ${DB_USER:-postgres}
@@ -97,7 +97,7 @@ services:
   redis:
     profiles: ["full-stack"]
     image: redis:7-alpine
-    restart: unless-stopped
+    restart: no
     command: >
       sh -c "
         if [ -z \"$REDIS_PASSWORD\" ]; then
@@ -119,7 +119,7 @@ services:
     build:
       context: .
       target: production-worker
-    restart: unless-stopped
+    restart: no
     env_file:
       - .env
     environment:
@@ -158,7 +158,7 @@ services:
     build:
       context: .
       target: production-worker
-    restart: unless-stopped
+    restart: no
     env_file:
       - .env
     environment:
@@ -208,7 +208,7 @@ services:
     build:
       context: .
       target: production-slim
-    restart: unless-stopped
+    restart: no
     env_file:
       - .env
     environment:
@@ -245,7 +245,7 @@ services:
       context: ./libs/vendor/deer-flow
       dockerfile: ./backend/Dockerfile
     container_name: deerflow-bridge
-    restart: unless-stopped
+    restart: no
     env_file:
       - .env
     environment:
@@ -289,7 +289,7 @@ services:
     build:
       context: .
       target: production-slim
-    restart: unless-stopped
+    restart: no
     env_file:
       - .env
     environment:

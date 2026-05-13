@@ -34,7 +34,7 @@ export default function VerifiersPage() {
     setIsClient(true);
     const fetchVerifiers = async () => {
       try {
-        const data = await safeFetchJson('/api/v1/repair-lab/verifiers');
+        const data: any = await safeFetchJson('/api/v1/repair-lab/verifiers');
         setVerifiers(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("Doğrulayıcı verileri alınamadı", err);

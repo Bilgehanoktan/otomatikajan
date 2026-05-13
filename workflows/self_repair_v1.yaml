@@ -1,0 +1,65 @@
+workflow_id: self_repair_v1
+name: Egemen YAZ Self Repair Workflow
+version: 1
+
+trigger:
+  type: incident_or_failed_test
+
+steps:
+  - id: build_repair_case
+    type: deterministic
+    handler: services.repair.repair_orchestrator.build_repair_case_step
+    timeout_seconds: 60
+    retry: 1
+
+  - id: localize_code
+    type: deterministic
+    handler: services.repair.repair_orchestrator.localize_code_step
+    timeout_seconds: 120
+    retry: 1
+
+  - id: create_repair_plan
+    type: planning
+    handler: services.repair.repair_orchestrator.create_repair_plan_step
+    timeout_seconds: 180
+    retry: 1
+
+  - id: generate_patch_candidate
+    type: agent
+    handler: services.repair.repair_orchestrator.generate_patch_candidate_step
+    timeout_seconds: 900
+    retry: 2
+    requires_sandbox: true
+
+  - id: run_sandbox_verification
+    type: sandbox
+    handler: services.repair.repair_orchestrator.run_sandbox_verification_step
+    timeout_seconds: 1200
+    retry: 1
+
+  - id: run_verifier_mesh
+    type: verifier
+    handler: services.repair.repair_orchestrator.run_verifier_mesh_step
+    timeout_seconds: 600
+    retry: 1
+
+  - id: score_risk
+    type: governance
+    handler: services.repair.repair_orchestrator.score_risk_step
+    timeout_seconds: 60
+    retry: 0
+
+  - id: approval_gate
+    type: human_gate
+    handler: services.taskflow.taskflow_gates.evaluate_gate
+    condition: risk_score > 0.30
+
+  - id: prepare_draft_pr
+    type: rollout
+    handler: services.repair.github_pr_adapter.prepare_draft_pr
+    condition: risk_score <= 0.30
+
+  - id: update_learning_memory
+    type: learning
+    handler: services.repair.repair_orchestrator.update_learning_memory_step
+    always_run: true

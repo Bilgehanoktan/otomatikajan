@@ -23,6 +23,8 @@ import { AuditBundleModal } from "@/components/ops/AuditBundleModal";
 import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 import { Skeleton } from "@/components/dashboard/Skeleton";
 
+import { useList } from "@refinedev/core";
+
 export default function HandoverStatusPage() {
     const router = useRouter();
     const [isClient, setIsClient] = useState(false);
@@ -30,20 +32,42 @@ export default function HandoverStatusPage() {
     const [selectedRollout, setSelectedRollout] = useState<any>(null);
     const [frozenRollouts, setFrozenRollouts] = useState<Set<string>>(new Set());
 
+    const { query } = useList<any>({
+        resource: "governance/signoffs",
+    });
+    const { data, isLoading } = query || {};
+
     useEffect(() => { setIsClient(true); }, []);
 
-    // Mock data based on the Phase 31 Pilot Rollout
-    const rollouts = [
+    if (!isClient || isLoading) return <div className="min-h-screen bg-[#060a12]"><Skeleton /></div>;
+
+    const rawRollouts = data?.data || [];
+    
+    // Map backend signoffs to rollout cards
+    const rollouts = rawRollouts.map((s: any) => ({
+        id: s.id,
+        name: s.component_name || "Unknown Rollout",
+        status: s.status === "APPROVED" || s.status === "SUCCESS" ? "LIVE" : "PENDING",
+        tier: "Tier-2", // Default for now
+        progress: s.status === "APPROVED" ? 100 : 45,
+        launchedAt: s.created_at || "N/A",
+        auditBundle: `AUDIT_${s.id.substring(0,8)}.zip`,
+        observability: s.status === "APPROVED" ? "Healthy" : "Monitoring",
+        autonomy: "Advisory Mode"
+    }));
+
+    // Fallback if no data
+    const finalRollouts = rollouts.length > 0 ? rollouts : [
         {
-            id: "f462f604",
-            name: "Resilience Pilot v1",
-            status: "LIVE",
-            tier: "Tier-2",
-            progress: 100,
-            launchedAt: "2026-04-17 19:23:29",
-            auditBundle: "LAUNCH_f462f604_61319b0a.zip",
-            observability: "Healthy",
-            autonomy: "Advisory Mode"
+            id: "no-data",
+            name: "Aktif Pilot Yok",
+            status: "STANDBY",
+            tier: "N/A",
+            progress: 0,
+            launchedAt: "-",
+            auditBundle: "N/A",
+            observability: "None",
+            autonomy: "Manual Only"
         }
     ];
 
@@ -100,7 +124,7 @@ export default function HandoverStatusPage() {
                     </div>
 
                     <div className="grid grid-cols-1 gap-10">
-                        {rollouts.map((rollout) => {
+                        {finalRollouts.map((rollout) => {
                             const isFrozen = frozenRollouts.has(rollout.id);
                             return (
                                 <EliteRolloutCard 

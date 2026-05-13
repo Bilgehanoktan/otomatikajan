@@ -13,7 +13,7 @@ const { Title, Text } = Typography;
 
 export default function ConflictsPage() {
   const { query } = useList<any, HttpError>({
-    resource: "governance/inbox/governor/meta/conflicts",
+    resource: "governance/governor/meta/conflicts",
     filters: [
       {
         field: "status",
@@ -28,7 +28,7 @@ export default function ConflictsPage() {
 
   const handleResolve = (id: string) => {
     resolveConflict({
-      resource: "governance/inbox/governor/meta/conflicts",
+      resource: "governance/governor/meta/conflicts",
       id,
       values: {},
       successNotification: {

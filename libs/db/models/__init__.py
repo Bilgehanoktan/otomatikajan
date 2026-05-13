@@ -5,3 +5,4 @@ from .compliance_models import *
 from .learning_models import *
 from .repair_models import *
 from .auth_models import *
+from .federation_models import *

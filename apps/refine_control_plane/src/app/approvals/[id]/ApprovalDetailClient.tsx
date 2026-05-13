@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useParams } from "next/navigation";
 import { 
     Card, 
     Typography, 
@@ -38,8 +39,14 @@ const { Title, Text, Paragraph } = Typography;
 
 export default function ApprovalDetailClient() {
     const { notification } = App.useApp();
+    const params = useParams<{ id?: string | string[] }>();
+    const approvalId = Array.isArray(params?.id) ? params.id[0] : params?.id;
     const showResult = useShow({
         resource: "governance/approvals",
+        id: approvalId,
+        queryOptions: {
+            enabled: Boolean(approvalId),
+        },
     });
     const { query: { data, isLoading, isError, refetch } } = showResult as any;
 
@@ -51,7 +58,7 @@ export default function ApprovalDetailClient() {
         try {
             if (!approval) return;
             const authHeaders = await getAuthHeaders();
-            const response = await safeFetchJson(`/api/v1/governance/approvals/${approval.id}/decide`, {
+            const response: any = await safeFetchJson(`/api/v1/governance/approvals/${approval.id}/decide`, {
                 method: "POST",
                 headers: authHeaders,
                 body: JSON.stringify({
@@ -77,7 +84,7 @@ export default function ApprovalDetailClient() {
         } catch (err: any) {
             notification.error({
                 message: "Network Error",
-                description: err.message || "Failed to connect to the Mission Control API.",
+                description: (err as any).message || "Failed to connect to the Mission Control API.",
             });
         } finally {
             setIsSubmitting(false);
@@ -152,7 +159,7 @@ export default function ApprovalDetailClient() {
                     </Col>
                     <Col span={8} style={{ textAlign: "right" }}>
                         <Space>
-                            <Button icon={<BranchesOutlined />} onClick={() => window.open('/governance-lineage', '_blank')} style={{ background: "rgba(102, 252, 241, 0.1)", color: "#66fcf1", border: "1px solid rgba(102, 252, 241, 0.3)" }}>Lineage Space</Button>
+                            <Button icon={<BranchesOutlined />} onClick={() => window.open('/governance/lineage', '_blank')} style={{ background: "rgba(102, 252, 241, 0.1)", color: "#66fcf1", border: "1px solid rgba(102, 252, 241, 0.3)" }}>Lineage Space</Button>
                             {approval?.project_id && (
                                 <Button icon={<NodeIndexOutlined />} onClick={() => window.open(`/workflows/${approval.project_id}`, '_blank')} style={{ background: "rgba(255, 255, 255, 0.05)", color: "#c5c6c7", border: "1px solid rgba(255, 255, 255, 0.1)" }}>Workflow Detail</Button>
                             )}

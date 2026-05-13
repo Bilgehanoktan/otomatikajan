@@ -60,6 +60,20 @@ class ConnectionManager:
         for conn in disconnected:
             self.disconnect(conn)
 
+    async def broadcast_event(self, event_type: str, component: str, rationale: str, severity: str = "info", category: str = "workflow", summary: Optional[str] = None):
+        """Standardized event broadcast for the Dashboard."""
+        from datetime import datetime, timezone
+        ev = {
+            "seq": int(datetime.now(timezone.utc).timestamp() * 1000),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "type": event_type,
+            "severity": severity,
+            "category": category,
+            "message": f"[{component}] {summary or rationale}"
+        }
+        await self.broadcast(ev)
+
+
     async def broadcast_to_project(self, project_id: str, message: dict | str):
         """Sends a message to clients watching a specific project."""
         if project_id not in self.project_rooms:

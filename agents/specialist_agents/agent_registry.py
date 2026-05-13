@@ -15,6 +15,8 @@ from typing import Dict, Any, Optional
 from datetime import datetime, timezone
 import logging
 import traceback
+from services.orchestration.application.prompt_manager import prompt_manager
+from services.orchestration.domain.models import ContextPackage
 
 _log = logging.getLogger("agent_registry")
 
@@ -47,7 +49,7 @@ class Agent(BaseAgent):
         if context:
             full_prompt = f"### ÖNCEKİ ÇIKTILAR (BAĞLAM):\n{context}\n\n### YENİ GÖREV:\n{prompt}"
         
-        return await self.libs.llm.complete_task(
+        return await self.llm.complete_task(
             agent_role=self.id,
             prompt=full_prompt,
             system_prompt=self.system_prompt
@@ -74,15 +76,31 @@ class Agent(BaseAgent):
             if not self.llm:
                 raise ValueError(f"Agent {self.id} için LLM orchestrator atanmamış.")
 
-            llm_response = await self.libs.llm.complete_task(
+            # ECC Entegrasyonu: Prompt Assembly Katmanı (Faz 12.1)
+            # context dict ise ContextPackage objesine çeviriyoruz (veya varsayılan boş paket)
+            ctx_obj = None
+            if isinstance(context, dict):
+                # Dict'ten ContextPackage'a güvenli dönüşüm (eksik alanları varsayılanla doldurur)
+                ctx_obj = ContextPackage(**{k: v for k, v in context.items() if k in ContextPackage.__dataclass_fields__})
+            elif isinstance(context, ContextPackage):
+                ctx_obj = context
+
+            assembled_system_prompt = prompt_manager.assemble_prompt(
+                agent_id=self.id,
+                base_prompt=self.system_prompt,
+                context=ctx_obj,
+                task_context=f"Task ID: {task_id} | Subtask: {subtask_id}"
+            )
+
+            llm_response = await self.llm.complete_task(
                 agent_role=self.id,
                 prompt=user_prompt,
-                system_prompt=self.system_prompt,
+                system_prompt=assembled_system_prompt,
                 task_id=task_id,
                 project_id=project_id
             )
 
-            # Çıktıyı parse et (Deneysel ama proaktif: AgentOutput şemasına zorlar)
+            # ECC Quality Gate: Çıktıyı şemaya göre doğrula ve parse et
             from services.governance.quality.output_schema import output_parser
             parsed = output_parser.parse(self.id, llm_response.content)
 

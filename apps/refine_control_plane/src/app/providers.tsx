@@ -5,8 +5,32 @@ import { ConfigProvider, theme, App } from "antd";
 import { Refine } from "@refinedev/core";
 import routerProvider from "@refinedev/nextjs-router";
 import { activeDataProvider } from "@/lib/api_provider";
-import { fetchCurrentOperator, clearStoredAccessToken, performLogin, performRegister } from "@/lib/auth";
+import { ensureSession, clearStoredAccessToken, performLogin, performRegister } from "@/lib/auth";
 import { LoginParams, RegisterParams } from "@/types/auth";
+import { 
+  DollarSign,
+  GraduationCap,
+  Fingerprint,
+  FlaskConical,
+  Activity, 
+  ShieldAlert, 
+  AlertTriangle, 
+  BarChart2, 
+  Settings, 
+  Rocket, 
+  Target, 
+  CheckCircle, 
+  AlertCircle, 
+  FileText, 
+  Search, 
+  Shield, 
+  Cpu, 
+  Brain, 
+  ShieldOff, 
+  Zap,
+  Boxes,
+  ShieldCheck
+} from "lucide-react";
 import { useRefineI18nProvider } from "@/i18n/refine-adapter";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -15,7 +39,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const accessControlProvider = {
     can: async ({ resource, action }: { resource: string; action: string }) => {
       try {
-        const session = await fetchCurrentOperator();
+        const session = await ensureSession();
         if (session && session.kind === "authenticated") {
           const roles = session.identity.roles || (session.identity.role ? [session.identity.role] : []);
           if (roles.includes("admin") || roles.includes("operator") || roles.includes("SOVEREIGN_PRIME") || roles.includes("AUDIT_OBSERVER") || roles.includes("OPS_COMMANDER")) {
@@ -44,7 +68,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     },
     check: async () => {
       try {
-        const session = await fetchCurrentOperator();
+        const session = await ensureSession();
         return { authenticated: session && session.kind === "authenticated" };
       } catch {
         return { authenticated: false };
@@ -52,7 +76,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     },
     getPermissions: async () => {
       try {
-        const session = await fetchCurrentOperator();
+        const session = await ensureSession();
         if (session && session.kind === "authenticated") {
           return session.identity.roles ?? (session.identity.role ? [session.identity.role] : null);
         }
@@ -61,7 +85,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     },
     getIdentity: async () => {
       try {
-        const session = await fetchCurrentOperator();
+        const session = await ensureSession();
         if (session && session.kind === "authenticated") {
           return {
             id: session.identity.id,
@@ -107,8 +131,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <Refine
           routerProvider={routerProvider}
           dataProvider={activeDataProvider}
-          authProvider={authProvider}
-          accessControlProvider={accessControlProvider}
+          authProvider={authProvider as any}
+          accessControlProvider={accessControlProvider as any}
           i18nProvider={i18nProvider}
           resources={[
             {
@@ -124,76 +148,186 @@ export function Providers({ children }: { children: React.ReactNode }) {
               meta: { label: "resources_workflows" },
             },
             {
+              name: "governance/governor/status",
+              list: "/governor",
+              meta: { label: "Governor Status", icon: <Activity className="w-4 h-4" />, parent: "governance" },
+            },
+            {
+              name: "governance/governor/cases",
+              list: "/governor",
+              meta: { label: "Governor Cases", icon: <ShieldAlert className="w-4 h-4" />, parent: "governance" },
+            },
+            {
+              name: "governance/governor/escalations",
+              list: "/governor/escalations",
+              meta: { label: "resources_escalations", icon: <AlertTriangle className="w-4 h-4" />, parent: "governance" },
+            },
+            {
+              name: "governance/governor/outcomes",
+              list: "/governor/outcomes",
+              meta: { label: "resources_outcomes", icon: <BarChart2 className="w-4 h-4" />, parent: "governance" },
+            },
+            {
+              name: "governance/governor/scorecard",
+              list: "/governor/scorecard",
+              meta: { label: "resources_scorecard", icon: <Activity className="w-4 h-4" />, parent: "governance" },
+            },
+            {
+              name: "governance/governor/calibrations",
+              list: "/governor/calibrations",
+              meta: { label: "resources_calibrations", icon: <Settings className="w-4 h-4" />, parent: "governance" },
+            },
+            {
+              name: "governance/governor/resilience/drills",
+              list: "/governor/drills",
+              meta: { label: "resources_drills", icon: <Activity className="w-4 h-4" />, parent: "governance" },
+            },
+            {
+              name: "governance/ops/handover",
+              list: "/ops/handover-status",
+              meta: { label: "resources_handoverStatus", icon: <Rocket className="w-4 h-4" /> },
+            },
+            {
+              name: "governance/ops/launch-gates",
+              list: "/ops/launch-gates",
+              meta: { label: "resources_launchGates", icon: <Target className="w-4 h-4" /> },
+            },
+            {
+              name: "governance/drills",
+              list: "/governor/drills",
+              meta: { label: "Drills", hide: true },
+            },
+            {
               name: "governance/approvals",
               list: "/governance/approvals",
-              show: "/approvals/:id",
-              meta: { label: "resources_approvals" },
+              show: "/governance/approvals/:id",
+              meta: { label: "resources_approvals", icon: <CheckCircle className="w-4 h-4" /> },
             },
             {
               name: "governance/incidents",
               list: "/governance/incidents",
-              show: "/incidents/:id",
-              meta: { label: "resources_incidents" },
+              show: "/governance/incidents/:id",
+              meta: { label: "resources_incidents", icon: <AlertCircle className="w-4 h-4" /> },
             },
             {
-              name: "governance/analytics/costs",
-              list: "/costs",
-              meta: { label: "resources_costs" },
+              name: "governance/proposals",
+              list: "/governance/proposals",
+              meta: { label: "resources_policyProposals", icon: <FileText className="w-4 h-4" /> },
             },
             {
-              name: "governance/compliance/audit-bundles",
-              list: "/governance/compliance/audit-bundles",
-              meta: { label: "resources_auditBundles" },
+              name: "mcp-hub",
+              list: "/mcp-hub",
+              meta: { label: "resources_mcpHub", icon: <Boxes className="w-4 h-4" /> },
             },
             {
-              name: "audit",
-              list: "/audit",
-              meta: { label: "resources_auditLedger" },
+              name: "governance/audit",
+              list: "/governance/audit",
+              meta: { label: "resources_auditLedger", icon: <Search className="w-4 h-4" /> },
             },
             {
-              name: "governance/improvements",
-              list: "/improvements",
-              meta: { label: "resources_improvements" },
+              name: "governance/safety",
+              list: "/governance/safety",
+              meta: { label: "resources_safety", icon: <Shield className="w-4 h-4" /> },
             },
             {
-              name: "federation",
-              list: "/federation",
-              meta: { label: "resources_federation" },
+              name: "governance/compliance",
+              list: "/governance/compliance",
+              meta: { label: "resources_compliance", icon: <Shield className="w-4 h-4" /> },
             },
             {
-              name: "fleet",
-              list: "/fleet",
-              meta: { label: "resources_fleet", icon: "🚀" },
+              name: "governance/lineage",
+              list: "/governance/lineage",
+              meta: { label: "Lineage", icon: <Search className="w-4 h-4" /> },
             },
             {
-              name: "fleet/ops/agents",
-              list: "/fleet/agents",
-              meta: { label: "resources_agents", parent: "fleet" },
+              name: "governance/signoffs",
+              list: "/ops/handover-status",
+              meta: { label: "Signoffs", icon: <CheckCircle className="w-4 h-4" /> },
             },
             {
-              name: "fleet/ops",
-              list: "/fleet/operations",
-              meta: { label: "resources_operations", parent: "fleet" },
+              name: "governance/validations",
+              list: "/ops/launch-gates",
+              meta: { label: "Validations", icon: <Target className="w-4 h-4" /> },
+            },
+            {
+              name: "governance/governor/proof/snapshots",
+              list: "/proof/snapshots",
+              meta: { label: "Proof Snapshots", parent: "governance/audit" },
+            },
+            {
+              name: "governance/governor/proof",
+              list: "/governor/proof",
+              meta: { label: "Proof Fabric", parent: "governance/audit" },
+            },
+            {
+              name: "governance/governor/proof/events",
+              list: "/proof/events",
+              meta: { label: "Proof Events", parent: "governance/audit" },
+            },
+            {
+              name: "learning/fingerprints",
+              list: "/learning/fingerprints",
+              meta: { label: "resources_fingerprints", icon: <Cpu className="w-4 h-4" />, parent: "learning" },
+            },
+            {
+              name: "learning/strategy-memory",
+              list: "/learning/strategy-memory",
+              meta: { label: "resources_strategyMemory", icon: <Brain className="w-4 h-4" />, parent: "learning" },
+            },
+            {
+              name: "learning/negative-patterns",
+              list: "/learning/negative-patterns",
+              meta: { label: "resources_negativePatterns", icon: <ShieldOff className="w-4 h-4" />, parent: "learning" },
+            },
+            {
+              name: "learning/adaptation-candidates",
+              list: "/learning/adaptation-candidates",
+              meta: { label: "resources_adaptationCandidates", icon: <Zap className="w-4 h-4" />, parent: "learning" },
             },
             {
               name: "mesh",
               list: "/mesh",
-              meta: { label: "resources_mesh" },
+              meta: { label: "resources_mesh", icon: <Activity className="w-4 h-4" /> },
             },
             {
-              name: "safety",
-              list: "/safety",
-              meta: { label: "resources_safety" },
+              name: "axiology",
+              list: "/axiology",
+              meta: { label: "resources_axiology", icon: <Search className="w-4 h-4" /> },
             },
             {
-              name: "repair-lab/dashboard",
+              name: "repair-lab",
               list: "/repair-lab",
-              meta: { label: "resources_repairLab" },
+              meta: { label: "resources_repairLab", icon: <FlaskConical className="w-4 h-4" /> },
             },
             {
-              name: "repair-lab/repair-memory",
-              list: "/repair-memory",
-              meta: { label: "resources_repairMemory" },
+              name: "fleet",
+              list: "/fleet",
+              meta: { label: "resources_fleet", icon: <Rocket className="w-4 h-4" /> },
+            },
+            {
+              name: "identity",
+              list: "/identity",
+              meta: { label: "resources_identity", icon: <Fingerprint className="w-4 h-4" /> },
+            },
+            {
+              name: "costs",
+              list: "/costs",
+              meta: { label: "resources_costs", icon: <DollarSign className="w-4 h-4" /> },
+            },
+            {
+                name: "prompt-studio",
+                list: "/prompt-studio",
+                meta: { label: "resources_promptStudio", icon: <Brain className="w-4 h-4" /> }
+            },
+            {
+                name: "system-health",
+                list: "/system-health",
+                meta: { label: "resources_systemHealth", icon: <Activity className="w-4 h-4" /> }
+            },
+            {
+              name: "training",
+              list: "/training",
+              meta: { label: "resources_training", icon: <GraduationCap className="w-4 h-4" /> },
             },
             {
               name: "verifiers",
@@ -201,146 +335,19 @@ export function Providers({ children }: { children: React.ReactNode }) {
               meta: { label: "resources_verifiers" },
             },
             {
-              name: "governance/lineage",
-              list: "/governance-lineage",
-              meta: { label: "resources_lineage" },
+              name: "evolution",
+              list: "/evolution",
+              meta: { label: "resources_evolution" },
             },
             {
-              name: "governance/compliance/policies",
-              list: "/compliance",
-              meta: { label: "resources_compliance" },
-            },
-            {
-              name: "governance/proposals",
-              list: "/policy-proposals",
-              meta: { label: "resources_policyProposals" },
-            },
-            {
-              name: "training",
-              list: "/training",
-              meta: { label: "resources_training" },
-            },
-            {
-              name: "governance/inbox/handover",
-              list: "/governance/handover",
-              meta: { label: "resources_handoverStatus" },
-            },
-            {
-              name: "governance/inbox/launch-gates",
-              list: "/governance/launch-gates",
-              meta: { label: "resources_launchGates" },
-            },
-            {
-              name: "learning",
-              list: "/learning/fingerprints",
-              meta: { label: "resources_learning" },
-            },
-            {
-              name: "learning/fingerprints",
-              list: "/learning/fingerprints",
-              meta: { label: "resources_fingerprints", parent: "learning" },
-            },
-            {
-              name: "learning/strategy-memory",
-              list: "/learning/strategy-memory",
-              meta: { label: "resources_strategyMemory", parent: "learning" },
-            },
-            {
-              name: "learning/negative-patterns",
-              list: "/learning/negative-patterns",
-              meta: { label: "resources_negativePatterns", parent: "learning" },
-            },
-            {
-              name: "adaptation-candidates",
-              list: "/learning/adaptation-candidates",
-              meta: { label: "resources_adaptationCandidates" },
-            },
-            {
-              name: "governance/axiology",
-              list: "/axiology",
-              meta: { label: "resources_axiology" },
-            },
-            {
-              name: "governance/governor/cases",
-              list: "/governor",
-              show: "/governor/:id",
-              meta: { label: "resources_governorInbox" },
-            },
-            {
-              name: "governance/governor/escalations",
-              list: "/governor/escalations",
-              meta: { label: "resources_escalations" },
-            },
-            {
-               name: "governance/analytics/scorecard",
-               list: "/scorecard",
-               meta: { label: "resources_scorecard" },
-            },
-            {
-              name: "governance/analytics/outcomes",
-              list: "/outcomes",
-              meta: { label: "resources_outcomes" },
-            },
-            {
-              name: "governance/improvements",
-              list: "/improvements",
-              meta: { label: "resources_improvements" },
-            },
-            {
-              name: "governance/governor/calibrations",
-              list: "/calibrations",
-              meta: { label: "resources_calibrations" },
-            },
-            {
-              name: "federation/decisions",
-              list: "/federation/decisions",
-              meta: { label: "resources_federated", parent: "federation" },
+              name: "federation",
+              list: "/federation",
+              meta: { label: "resources_federation" },
             },
             {
               name: "federation/conflicts",
               list: "/federation/conflicts",
               meta: { label: "resources_conflicts", parent: "federation" },
-            },
-            {
-              name: "governance/governor/resilience",
-              list: "/governor/resilience",
-              meta: { label: "resources_resilience", parent: "governance/governor/cases" },
-            },
-            {
-              name: "governance/governor/drills",
-              list: "/governor/drills",
-              meta: { label: "resources_drills", parent: "governance/governor/cases" },
-            },
-            {
-              name: "governance/governor/observability",
-              list: "/governor/observability",
-              meta: { label: "resources_observability", parent: "governance/governor/cases" },
-            },
-            {
-              name: "governance/governor/alerts",
-              list: "/governor/alerts",
-              meta: { label: "resources_alerts", parent: "governance/governor/cases" },
-            },
-            {
-              name: "governance/governor/metrics",
-              list: "/governor/metrics",
-              meta: { label: "resources_metrics", parent: "governance/governor/cases" },
-            },
-            {
-              name: "governance/governor/drifts",
-              list: "/governor/drifts",
-              meta: { label: "resources_drifts", parent: "governance/governor/cases" },
-            },
-            {
-              name: "governance/governor/proof",
-              list: "/governor/proof",
-              show: "/governor/proof/snapshots/:id",
-              meta: { label: "resources_proofFabric", parent: "governance/governor/cases" },
-            },
-            {
-              name: "evolution",
-              list: "/evolution",
-              meta: { label: "resources_evolution" },
             },
           ]}
           options={{

@@ -9,8 +9,8 @@ persisting in long-term memory:
 
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
-from deerflow.packages.orchestration.agi.packages.memory.updater import _strip_upload_mentions_from_memory
-from deerflow.packages.orchestration.agi.middlewares.memory_middleware import _filter_messages_for_memory
+from deerflow.agents.memory.updater import _strip_upload_mentions_from_memory
+from deerflow.agents.middlewares.memory_middleware import _filter_messages_for_memory
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -212,3 +212,4 @@ class TestStripUploadMentionsFromMemory:
         mem = {"user": {}, "history": {}, "facts": []}
         result = _strip_upload_mentions_from_memory(mem)
         assert result == {"user": {}, "history": {}, "facts": []}
+

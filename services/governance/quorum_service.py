@@ -1,3 +1,4 @@
+import uuid
 from typing import List, Dict, Any, Optional
 from sqlalchemy import select, and_
 from libs.db.session import get_db, get_db_ctx
@@ -21,24 +22,37 @@ class QuorumService:
     @staticmethod
     async def register_quorum_requirement(component: str, risk: str, count: int, desc: str = None) -> QuorumRequirement:
         async with get_db_ctx() as session:
-            # Check if exists
-            existing = await QuorumService.get_requirement(component, risk)
+            result = await session.execute(
+                select(QuorumRequirement).where(
+                    and_(
+                        QuorumRequirement.component_type == component,
+                        QuorumRequirement.risk_level == risk
+                    )
+                )
+            )
+            existing = result.scalar_one_or_none()
             if existing:
-                existing.required_quorum = count
-                existing.description = desc
+                existing.required_count = count
                 await session.commit()
+                await session.refresh(existing)
                 return existing
             
             req = QuorumRequirement(
                 component_type=component,
                 risk_level=risk,
-                required_quorum=count,
-                description=desc
+                required_count=count,
             )
             session.add(req)
             await session.commit()
             await session.refresh(req)
             return req
+
+    @staticmethod
+    def _operator_uuid(approver_id: str) -> uuid.UUID:
+        try:
+            return uuid.UUID(str(approver_id))
+        except ValueError:
+            return uuid.uuid5(uuid.NAMESPACE_DNS, f"sovereign-operator:{approver_id}")
 
     @staticmethod
     async def add_signoff(target_id: str, approver_id: str, note: str = None) -> MultiPartySignoff:
@@ -50,13 +64,16 @@ class QuorumService:
             if res.scalar_one_or_none():
                 is_proposal = True
 
-            signoff = MultiPartySignoff(
-                signoff_id=None if is_proposal else target_id,
-                proposal_id=target_id if is_proposal else None,
-                approver_id=approver_id,
-                note=note,
-                status=SignoffStatus.SIGNED
-            )
+            signoff_data = {
+                "operator_id": QuorumService._operator_uuid(approver_id),
+                "justification": note,
+                "decision": SignoffStatus.SIGNED.value,
+            }
+            if is_proposal and hasattr(MultiPartySignoff, "proposal_id"):
+                signoff_data["proposal_id"] = target_id
+            else:
+                signoff_data["signoff_id"] = target_id
+            signoff = MultiPartySignoff(**signoff_data)
             session.add(signoff)
             await session.commit()
             await session.refresh(signoff)
@@ -83,7 +100,7 @@ class QuorumService:
                 select(MultiPartySignoff).where(
                     and_(
                         MultiPartySignoff.signoff_id == signoff_id,
-                        MultiPartySignoff.status == SignoffStatus.SIGNED
+                        MultiPartySignoff.decision == SignoffStatus.SIGNED.value
                     )
                 )
             )
@@ -101,7 +118,7 @@ class QuorumService:
 
             # Get requirement
             req = await QuorumService.get_requirement(main_signoff.component_name, "HIGH" if not is_relaxed else "LOW") 
-            required = req.required_quorum if req else (1 if is_relaxed else 2)
+            required = req.required_count if req else (1 if is_relaxed else 2)
             
             if len(approvals) >= required:
                 main_signoff.status = SignoffStatus.SIGNED
@@ -110,6 +127,9 @@ class QuorumService:
     @staticmethod
     async def check_and_update_policy_proposal(proposal_id: str):
         """Checks if enough approvals are collected and triggers Git commit if approved."""
+        if not hasattr(MultiPartySignoff, "proposal_id"):
+            return
+
         async with get_db_ctx() as session:
             # Get proposal
             result = await session.execute(select(PolicyProposal).where(PolicyProposal.id == proposal_id))
@@ -122,7 +142,7 @@ class QuorumService:
                 select(MultiPartySignoff).where(
                     and_(
                         MultiPartySignoff.proposal_id == proposal_id,
-                        MultiPartySignoff.status == SignoffStatus.SIGNED
+                        MultiPartySignoff.decision == SignoffStatus.SIGNED.value
                     )
                 )
             )
@@ -130,7 +150,7 @@ class QuorumService:
             
             # Quorum Requirement for policies is usually high
             req = await QuorumService.get_requirement("CONSTITUTION", "HIGH")
-            required = req.required_quorum if req else 2 # Default 2 for policy changes
+            required = req.required_count if req else 2 # Default 2 for policy changes
             
             if len(approvals) >= required:
                 proposal.status = "APPROVED"

@@ -1,9 +1,10 @@
-from typing import List, Dict, Any
-from libs.db.models.core_models import Project, AgentRole
+from typing import Any, List, Dict, Any
+# from libs.db.models.core_models import Project, AgentRole
 import uuid
 
 class ProjectOrchestraBuilder:
     def __init__(self):
+        from libs.db.models.core_models import AgentRole
         # Default team templates
         self.templates = {
             "standard": [AgentRole.PLANNER, AgentRole.EXECUTOR, AgentRole.REVIEWER],
@@ -13,8 +14,9 @@ class ProjectOrchestraBuilder:
             "audit_only": [AgentRole.AUDITOR, AgentRole.REVIEWER]
         }
 
-    def infer_required_roles(self, project: Project) -> List[AgentRole]:
+    def infer_required_roles(self, project: Any) -> List[Any]:
         """Determines the required agent roles based on project title/description or type."""
+        from libs.db.models.core_models import Project, AgentRole
         desc = (project.description or "").lower()
         title = project.title.lower()
         
@@ -31,8 +33,9 @@ class ProjectOrchestraBuilder:
             
         return self.templates["standard"]
 
-    def estimate_team_cost(self, roles: List[AgentRole]) -> float:
+    def estimate_team_cost(self, roles: List[Any]) -> float:
         """Rough estimation of cost based on team size and roles."""
+        from libs.db.models.core_models import AgentRole
         # Baseline costs for different roles
         role_weights = {
             AgentRole.PLANNER: 1.0,

@@ -2,7 +2,7 @@
 
 import pytest
 
-from deerflow.packages.orchestration.agi.middlewares.title_middleware import TitleMiddleware
+from deerflow.agents.middlewares.title_middleware import TitleMiddleware
 from deerflow.config.title_config import TitleConfig, get_title_config, set_title_config
 
 
@@ -88,3 +88,4 @@ class TestTitleMiddleware:
 # - Test title persistence with checkpointer
 # - Test fallback behavior when LLM fails
 # - Test concurrent title generation
+

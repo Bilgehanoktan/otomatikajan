@@ -1,0 +1,79 @@
+        from sqlalchemy import select, and_, or_
+        from libs.db.models import SystemIdentity, PermissionGrant
+        
+        # SIF-01 Dev-Override: In local development, we grant full access to prevent UX friction.
+        is_dev_env = APP_ENV not in ("production", "prod") or RUNTIME_PROFILE in ("local-dev", "full-stack-local")
+        if is_dev_env:
+            logger.info(f"[SIF-01] Dev-Bypass: Granting '{permission}' to {identity_type}:{identity_id} (Role: {role})")
+            return True, "Authorized: Local development bypass active."
+
+        normalized_role = AccessControlService._normalize_role(role)
+        permission_candidates = AccessControlService._permission_candidates(permission)
+        
+        if normalized_role == "SOVEREIGN_PRIME" or normalized_role == "ADMIN":
+            return True, f"Override: {normalized_role} privileges granted."
+
+        if AccessControlService._baseline_enabled() and AccessControlService._has_baseline_permission(normalized_role, permission):
+            return True, "Authorized via Baseline Role Policy"
+
+        if identity_type == "system":
+            res = await db.execute(select(SystemIdentity).where(SystemIdentity.id == identity_id))
+            sys_id = res.scalar_one_or_none()
+            if sys_id:
+                if sys_id.quarantined_at:
+                    return False, f"SIF-04: Identity QUARANTINED due to: {sys_id.risk_reason or 'Security Breach'}"
+                if sys_id.risk_level == "CRITICAL" and not permission.endswith(".view"):
+                    return False, "SIF-04: Autonomous write-lock active due to CRITICAL risk level."
+                if sys_id.trust_score < 40 and permission.startswith("workflow."):
+                    return False, f"SIF-04: Insufficient Trust Score ({sys_id.trust_score}) for sensitive operations."
+
+        try:
+            deny_query = select(PermissionGrant).where(
+                and_(
+                    PermissionGrant.operator_id == identity_id if identity_type == "operator" else PermissionGrant.system_id == identity_id,
+                    PermissionGrant.permission.in_(permission_candidates),
+                    PermissionGrant.effect == "deny"
+                )
+            )
+            
+            if scope_type != "global":
+                deny_query = deny_query.where(
+                    or_(
+                        PermissionGrant.scope_type == "global",
+                        and_(PermissionGrant.scope_type == scope_type, PermissionGrant.scope_value == scope_value)
+                    )
+                )
+            else:
+                deny_query = deny_query.where(PermissionGrant.scope_type == "global")
+
+            deny_res = await db.execute(deny_query)
+            if deny_res.scalar_one_or_none():
+                logger.info(f"[SIF-03] Deny rule triggered for {identity_id} on {permission}")
+                return False, f"SIF-03: Access blocked by an Explicit Deny rule for '{permission}'"
+        except Exception as e:
+            logger.error(f"[SIF-03] Error checking deny rules: {str(e)}", exc_info=True)
+            raise
+
+        query = select(PermissionGrant).where(
+                and_(
+                    PermissionGrant.operator_id == identity_id if identity_type == "operator" else PermissionGrant.system_id == identity_id,
+                    PermissionGrant.permission.in_(permission_candidates),
+                    PermissionGrant.effect == "allow"
+                )
+            )
+        
+        if scope_type != "global":
+            query = query.where(
+                or_(
+                    PermissionGrant.scope_type == "global",
+                    and_(PermissionGrant.scope_type == scope_type, PermissionGrant.scope_value == scope_value)
+                )
+            )
+        else:
+            query = query.where(PermissionGrant.scope_type == "global")
+
+        res = await db.execute(query)
+        if res.scalar_one_or_none():
+            return True, "Authorized via Permission Matrix (Allow/Alias)"
+
+        return False, f"Missing required permission '{permission}' for role '{normalized_role}' in scope '{scope_type}:{scope_value}'"

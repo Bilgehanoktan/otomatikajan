@@ -12,8 +12,7 @@ import {
   AuthIdentity, 
   SessionState, 
   LoginParams, 
-  RegisterParams, 
-  AuthActionResult 
+  RegisterParams 
 } from "@/types/auth";
 
 function storeAccessToken(token?: string | null) {
@@ -47,7 +46,7 @@ async function authFetch<T = unknown>(path: string, init: RequestInit = {}): Pro
 
 export async function fetchCurrentOperator(): Promise<SessionState> {
   try {
-    const payload = await authFetch<AuthIdentity>("/auth/me/");
+    const payload = await authFetch<AuthIdentity>("/auth/me");
     if (payload && (payload.id || payload.email)) {
       if (typeof window !== "undefined") {
         if (payload.role) window.localStorage.setItem("auth", JSON.stringify({ role: payload.role }));
@@ -71,6 +70,9 @@ export async function fetchCurrentOperator(): Promise<SessionState> {
   }
 }
 
+let lastAutoLoginTime = 0;
+const AUTO_LOGIN_COOLDOWN = 10000; // 10 seconds
+
 export async function ensureSession(): Promise<SessionState> {
   const current = await fetchCurrentOperator();
   if (current.kind === "authenticated") {
@@ -81,10 +83,18 @@ export async function ensureSession(): Promise<SessionState> {
     return current;
   }
 
+  // Prevent rapid-fire automatic login attempts that cause loops
+  const now = Date.now();
+  if (now - lastAutoLoginTime < AUTO_LOGIN_COOLDOWN) {
+    console.warn("[Auth] Otomatik giriş beklemede (cooldown active).");
+    return current;
+  }
+  lastAutoLoginTime = now;
+
   console.warn("[Auth] Oturum bulunamadı, otomatik giriş deneniyor...");
 
   try {
-    const payload = await authFetch<{ access_token?: string | null }>("/auth/login/", {
+    const payload = await authFetch<{ access_token?: string | null }>("/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(DEV_OPERATOR),
@@ -93,6 +103,7 @@ export async function ensureSession(): Promise<SessionState> {
     if (payload?.access_token) {
         storeAccessToken(payload.access_token);
         console.info("[Auth] Otomatik giriş başarılı.");
+        // We call fetchCurrentOperator one more time to verify the new token
         return fetchCurrentOperator();
     }
   } catch (error) {
@@ -115,7 +126,7 @@ export interface AuthActionResult {
 export async function performLogin(params: LoginParams): Promise<AuthActionResult> {
   console.log("[Auth] Giriş denemesi:", params.email);
   try {
-    const payload = await authFetch<{ access_token?: string | null }>("/auth/login/", {
+    const payload = await authFetch<{ access_token?: string | null }>("/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(params),
@@ -147,7 +158,7 @@ export async function performLogin(params: LoginParams): Promise<AuthActionResul
 export async function performRegister(params: RegisterParams): Promise<{ success: boolean; error?: Error }> {
   console.log("[Auth] Kayıt denemesi:", params.email);
   try {
-    const payload = await authFetch<AuthIdentity>("/auth/register/", {
+    const payload = await authFetch<AuthIdentity>("/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(params),

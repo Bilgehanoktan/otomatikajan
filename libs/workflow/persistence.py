@@ -1,5 +1,5 @@
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
 from sqlalchemy import select, update
 from libs.db.session import AsyncSessionLocal
@@ -21,7 +21,7 @@ class WorkflowPersistence:
                 "error_detail": instance.error or "",
                 "started_at": instance.started_at,
                 "completed_at": instance.completed_at,
-                "updated_at": datetime.utcnow()
+                "updated_at": datetime.now(timezone.utc)
             }
             if "final_report" in instance.context:
                 values["report"] = instance.context["final_report"]

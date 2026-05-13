@@ -142,7 +142,7 @@ class TestConfigQueries:
 
     def test_get_memory(self, client):
         memory = {"version": "1.0", "facts": []}
-        with patch("deerflow.packages.orchestration.agi.packages.memory.updater.get_memory_data", return_value=memory) as mock_mem:
+        with patch("deerflow.agents.memory.updater.get_memory_data", return_value=memory) as mock_mem:
             result = client.get_memory()
             mock_mem.assert_called_once()
         assert result == memory
@@ -411,7 +411,7 @@ class TestEnsureAgent:
             patch("deerflow.client._build_middlewares", return_value=[]),
             patch("deerflow.client.apply_prompt_template", return_value="prompt"),
             patch.object(client, "_get_tools", return_value=[]),
-            patch("deerflow.packages.orchestration.agi.checkpointer.get_checkpointer", return_value=mock_checkpointer),
+            patch("deerflow.agents.checkpointer.get_checkpointer", return_value=mock_checkpointer),
         ):
             client._ensure_agent(config)
 
@@ -427,7 +427,7 @@ class TestEnsureAgent:
             patch("deerflow.client._build_middlewares", return_value=[]),
             patch("deerflow.client.apply_prompt_template", return_value="prompt"),
             patch.object(client, "_get_tools", return_value=[]),
-            patch("deerflow.packages.orchestration.agi.checkpointer.get_checkpointer", return_value=None),
+            patch("deerflow.agents.checkpointer.get_checkpointer", return_value=None),
         ):
             client._ensure_agent(config)
 
@@ -641,7 +641,7 @@ class TestSkillsManagement:
 class TestMemoryManagement:
     def test_reload_memory(self, client):
         data = {"version": "1.0", "facts": []}
-        with patch("deerflow.packages.orchestration.agi.packages.memory.updater.reload_memory_data", return_value=data):
+        with patch("deerflow.agents.memory.updater.reload_memory_data", return_value=data):
             result = client.reload_memory()
         assert result == data
 
@@ -675,7 +675,7 @@ class TestMemoryManagement:
 
         with (
             patch("deerflow.config.memory_config.get_memory_config", return_value=config),
-            patch("deerflow.packages.orchestration.agi.packages.memory.updater.get_memory_data", return_value=data),
+            patch("deerflow.agents.memory.updater.get_memory_data", return_value=data),
         ):
             result = client.get_memory_status()
 
@@ -1340,17 +1340,17 @@ class TestScenarioMemoryWorkflow:
         config.injection_enabled = True
         config.max_injection_tokens = 2000
 
-        with patch("deerflow.packages.orchestration.agi.packages.memory.updater.get_memory_data", return_value=initial_data):
+        with patch("deerflow.agents.memory.updater.get_memory_data", return_value=initial_data):
             mem = client.get_memory()
         assert len(mem["facts"]) == 1
 
-        with patch("deerflow.packages.orchestration.agi.packages.memory.updater.reload_memory_data", return_value=updated_data):
+        with patch("deerflow.agents.memory.updater.reload_memory_data", return_value=updated_data):
             refreshed = client.reload_memory()
         assert len(refreshed["facts"]) == 2
 
         with (
             patch("deerflow.config.memory_config.get_memory_config", return_value=config),
-            patch("deerflow.packages.orchestration.agi.packages.memory.updater.get_memory_data", return_value=updated_data),
+            patch("deerflow.agents.memory.updater.get_memory_data", return_value=updated_data),
         ):
             status = client.get_memory_status()
         assert status["config"]["enabled"] is True
@@ -1732,10 +1732,11 @@ class TestGatewayConformance:
 
         with (
             patch("deerflow.config.memory_config.get_memory_config", return_value=mem_cfg),
-            patch("deerflow.packages.orchestration.agi.packages.memory.updater.get_memory_data", return_value=memory_data),
+            patch("deerflow.agents.memory.updater.get_memory_data", return_value=memory_data),
         ):
             result = client.get_memory_status()
 
         parsed = MemoryStatusResponse(**result)
         assert parsed.config.enabled is True
         assert parsed.data.version == "1.0"
+

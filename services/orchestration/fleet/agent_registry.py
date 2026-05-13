@@ -1,20 +1,22 @@
-from sqlalchemy.orm import Session
-from typing import List, Optional, Dict, Any
+# from sqlalchemy.orm import Session
+from typing import Any, List, Optional, Dict, Any
 import uuid
-from libs.db.models.core_models import AgentNode, AgentRole, AgentStatus
-from libs.db.repositories.fleet_repository import AgentNodeRepo
+# from libs.db.models.core_models import AgentNode, AgentRole, AgentStatus
+# from libs.db.repositories.fleet_repository import AgentNodeRepo
 
 class AgentRegistry:
-    def __init__(self, db: Session):
+    def __init__(self, db: Any):
+        from libs.db.repositories.fleet_repository import AgentNodeRepo
         self.db = db
         self.repo = AgentNodeRepo(db)
 
     def register_agent(self, 
                        name: str, 
-                       role: AgentRole, 
+                       role: Any, 
                        cluster_id: Optional[uuid.UUID] = None,
-                       capabilities: Dict[str, Any] = None) -> AgentNode:
+                       capabilities: Dict[str, Any] = None) -> Any:
         """Adds a new agent to the fleet registry."""
+        from libs.db.models.core_models import AgentNode
         agent = AgentNode(
             name=name,
             role=role,

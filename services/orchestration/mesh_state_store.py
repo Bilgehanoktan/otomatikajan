@@ -16,25 +16,56 @@ logger = logging.getLogger(__name__)
 
 class MeshStateStore:
     def __init__(self, redis_url: Optional[str] = None):
-        self.redis_url = redis_url or os.getenv("REDIS_URL", "redis://redis:6379/0")
+        self.redis_url = redis_url or os.getenv("REDIS_URL")
+        self._redis = None
+        self._key = "sovereign:mesh:state"
+        
+        if not self.redis_url:
+            logger.info("MeshStateStore: No Redis URL provided, using fallback state.")
+            return
+
         try:
             self._redis = redis.from_url(self.redis_url, decode_responses=True)
-            self._key = "sovereign:mesh:state"
             logger.info(f"MeshStateStore initialized with Redis: {self.redis_url}")
         except Exception as e:
             logger.error(f"Failed to connect to Redis for MeshStateStore: {e}")
             self._redis = None
 
+    def _get_fallback_state(self) -> Dict[str, Any]:
+        """Returns a baseline state based on the region registry when Redis is down."""
+        registry_path = "configs/region_registry.yaml"
+        regions = {}
+        
+        if os.path.exists(registry_path):
+            try:
+                import yaml
+                with open(registry_path, "r", encoding="utf-8") as f:
+                    data = yaml.safe_load(f)
+                    for r in data.get("regions", []):
+                        regions[r["id"]] = {
+                            "name": r["name"],
+                            "health_score": 1.0,
+                            "latency_ms": 12,
+                            "active_clusters": r.get("active_clusters", []),
+                            "updated_at": datetime.now(timezone.utc).isoformat(),
+                            "fallback": True
+                        }
+            except Exception as e:
+                logger.error(f"Failed to load fallback from registry: {e}")
+        
+        return {"regions": regions, "last_update": datetime.now(timezone.utc).isoformat()}
+
     def _get_state(self) -> Dict[str, Any]:
         if not self._redis:
-            return {"regions": {}, "last_update": None}
+            return self._get_fallback_state()
         try:
             data = self._redis.get(self._key)
             if data:
                 return json.loads(data)
         except Exception as e:
             logger.error(f"Error reading mesh state from Redis: {e}")
-        return {"regions": {}, "last_update": None}
+        
+        return self._get_fallback_state()
 
     def _save_state(self, state: Dict[str, Any]):
         if not self._redis:

@@ -8,8 +8,9 @@ from fastapi import APIRouter, Depends, Response, Request, HTTPException, status
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from libs.db.models.auth_models import Operator, SystemIdentity
+# SQLAlchemy imports moved to local scopes to prevent Phase 13.04 startup hangs in Python 3.14+
+# from sqlalchemy import select
+# from libs.db.models.auth_models import Operator, SystemIdentity
 from libs.db.session import get_db
 from services.auth.jwt_auth import get_current_identity, require_permission
 
@@ -31,7 +32,8 @@ def _svc():
 
 @router.post("/register", summary="Yeni operatör kaydı")
 @router.post("/register/", include_in_schema=False)
-async def register(body: dict, db: "AsyncSession" = Depends(get_db)):
+async def register(body: dict, db: Any = Depends(get_db)):
+    from libs.db.models.auth_models import Operator
     svc, _, _, _, _, _ = _svc()
     operator = await svc.register(db, body["email"], body["password"], body.get("username"))
     await db.commit()
@@ -136,6 +138,7 @@ async def quarantine_identity(
     identity: Dict[str, Any] = Depends(require_permission("identity.manage"))
 ):
     """Isolates an agent identity immediately."""
+    from sqlalchemy import select
     from libs.db.models.auth_models import SystemIdentity
     import uuid
     from datetime import datetime

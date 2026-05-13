@@ -248,16 +248,23 @@ async def init_db():
     from libs.db.models.lineage_models import Base as LineageBase, DecisionLineage
     from libs.db.models.compliance_models import Base as CompBase
     from libs.db.models.auth_models import Base as AuthBase, Operator, SystemIdentity
+    from libs.db.models.repair_models import Base as RepairBase
+    from libs.db.models.federation_models import Base as FederationBase
     
     engine = get_engine()
     
     async with engine.begin() as conn:
+        # All models share the same Base from libs.db.base, 
+        # so one create_all would be enough if all are imported.
+        # We keep the explicit calls for clarity and modularity.
         await conn.run_sync(Base.metadata.create_all)
         await conn.run_sync(LearningBase.metadata.create_all)
         await conn.run_sync(GovBase.metadata.create_all)
         await conn.run_sync(LineageBase.metadata.create_all)
         await conn.run_sync(CompBase.metadata.create_all)
         await conn.run_sync(AuthBase.metadata.create_all)
+        await conn.run_sync(RepairBase.metadata.create_all)
+        await conn.run_sync(FederationBase.metadata.create_all)
         db_label = "SQLite Fallback" if is_db_degraded() else "PostgreSQL"
         logger.info(f"OK: Veritabanı tabloları hazır ({db_label}).")
 

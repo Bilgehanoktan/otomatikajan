@@ -304,35 +304,35 @@ class TestListCustomAgents:
 class TestMemoryFilePath:
     def test_global_memory_path(self, tmp_path):
         """None agent_name should return global memory file."""
-        import deerflow.packages.orchestration.agi.packages.memory.updater as updater_mod
+        import deerflow.agents.memory.updater as updater_mod
         from deerflow.config.memory_config import MemoryConfig
 
         with (
-            patch("deerflow.packages.orchestration.agi.packages.memory.updater.get_paths", return_value=_make_paths(tmp_path)),
-            patch("deerflow.packages.orchestration.agi.packages.memory.updater.get_memory_config", return_value=MemoryConfig(storage_path="")),
+            patch("deerflow.agents.memory.updater.get_paths", return_value=_make_paths(tmp_path)),
+            patch("deerflow.agents.memory.updater.get_memory_config", return_value=MemoryConfig(storage_path="")),
         ):
             path = updater_mod._get_memory_file_path(None)
         assert path == tmp_path / "packages.memory.json"
 
     def test_agent_memory_path(self, tmp_path):
         """Providing agent_name should return per-agent memory file."""
-        import deerflow.packages.orchestration.agi.packages.memory.updater as updater_mod
+        import deerflow.agents.memory.updater as updater_mod
         from deerflow.config.memory_config import MemoryConfig
 
         with (
-            patch("deerflow.packages.orchestration.agi.packages.memory.updater.get_paths", return_value=_make_paths(tmp_path)),
-            patch("deerflow.packages.orchestration.agi.packages.memory.updater.get_memory_config", return_value=MemoryConfig(storage_path="")),
+            patch("deerflow.agents.memory.updater.get_paths", return_value=_make_paths(tmp_path)),
+            patch("deerflow.agents.memory.updater.get_memory_config", return_value=MemoryConfig(storage_path="")),
         ):
             path = updater_mod._get_memory_file_path("code-reviewer")
         assert path == tmp_path / "agents" / "code-reviewer" / "packages.memory.json"
 
     def test_different_paths_for_different_agents(self, tmp_path):
-        import deerflow.packages.orchestration.agi.packages.memory.updater as updater_mod
+        import deerflow.agents.memory.updater as updater_mod
         from deerflow.config.memory_config import MemoryConfig
 
         with (
-            patch("deerflow.packages.orchestration.agi.packages.memory.updater.get_paths", return_value=_make_paths(tmp_path)),
-            patch("deerflow.packages.orchestration.agi.packages.memory.updater.get_memory_config", return_value=MemoryConfig(storage_path="")),
+            patch("deerflow.agents.memory.updater.get_paths", return_value=_make_paths(tmp_path)),
+            patch("deerflow.agents.memory.updater.get_memory_config", return_value=MemoryConfig(storage_path="")),
         ):
             path_global = updater_mod._get_memory_file_path(None)
             path_a = updater_mod._get_memory_file_path("agent-a")
@@ -525,3 +525,4 @@ class TestUserProfileAPI:
         response = agent_client.put("/api/user-profile", json={"content": ""})
         assert response.status_code == 200
         assert response.json()["content"] is None
+

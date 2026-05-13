@@ -3,17 +3,6 @@ libs/infra/router_registry.py — Phase 13.04
 Centralized router registration for Sovereign AGI services.
 """
 from fastapi import FastAPI
-from services.workflow_api.router import router as workflow_router
-from services.auth.router import router as auth_router
-from services.workflow_api.metrics_router import router as metrics_router
-from services.workflow_api.health_router import router as health_router
-from services.workflow_api.compatibility_router import router as compatibility_router
-from services.observability.mesh_status_api import router as mesh_router
-from services.observability.fleet_status_api import router as fleet_router
-from services.governance.mesh_actions_api import router as mesh_actions_router
-from services.workflow_api.repair_lab_router import router as repair_lab_router
-from services.workflow_api.fleet_router import router as fleet_orchestra_router
-from services.orchestration.ceo.router import router as ceo_router
 
 def register_routers(app: FastAPI):
     """
@@ -22,6 +11,32 @@ def register_routers(app: FastAPI):
     static dashboard files served at the root.
     """
     from fastapi import APIRouter
+    
+    print("[DEBUG] Router Registry: Loading routers...")
+    # Lazy load routers inside the function to prevent circular imports and startup hangs
+    print("[DEBUG] Loading workflow_router...")
+    from services.workflow_api.router import router as workflow_router
+    print("[DEBUG] Loading auth_router...")
+    from services.auth.router import router as auth_router
+    print("[DEBUG] Loading metrics_router...")
+    from services.workflow_api.metrics_router import router as metrics_router
+    print("[DEBUG] Loading health_router...")
+    from services.workflow_api.health_router import router as health_router
+    print("[DEBUG] Loading compatibility_router...")
+    from services.workflow_api.compatibility_router import router as compatibility_router
+    print("[DEBUG] Loading mesh_router...")
+    from services.observability.mesh_status_api import router as mesh_router
+    print("[DEBUG] Loading fleet_router...")
+    from services.observability.fleet_status_api import router as fleet_router
+    print("[DEBUG] Loading mesh_actions_router...")
+    from services.governance.mesh_actions_api import router as mesh_actions_router
+    print("[DEBUG] Loading repair_lab_router...")
+    from services.workflow_api.repair_lab_router import router as repair_lab_router
+    print("[DEBUG] Loading fleet_orchestra_router...")
+    from services.workflow_api.fleet_router import router as fleet_orchestra_router
+    print("[DEBUG] Loading ceo_router...")
+    from services.orchestration.ceo.router import router as ceo_router
+    
     api_v1 = APIRouter(prefix="/api/v1")
 
     # 1. Auth Service (mapped to /api/v1/auth)
@@ -34,6 +49,7 @@ def register_routers(app: FastAPI):
     api_v1.include_router(metrics_router)
 
     # 4. Governance & Self-Healing
+    print("[DEBUG] Loading governance_router...")
     from services.workflow_api.governance_router import router as governance_router
     api_v1.include_router(governance_router, prefix="/governance")
 
@@ -50,15 +66,26 @@ def register_routers(app: FastAPI):
     # 7. Repair Lab & Self-Tuning
     api_v1.include_router(repair_lab_router, prefix="/repair-lab")
 
-    # 7.1 Cross-cutting Improvements (Mapped to top level for Refine compatibility)
-    api_v1.include_router(governance_router, prefix="", tags=["Legacy Improvements"])
-
-    # 8. Phase 31: Autonomous Learning
+    # 8. Phase 31: Autonomous Learning & Governance Harness
+    print("[DEBUG] Loading learning_router...")
     from services.governance.learning_api import router as learning_router
+    print("[DEBUG] Loading governor_router...")
     from services.workflow_api.governor_router import router as governor_router
+    print("[DEBUG] Loading harness_router...")
+    from services.governance.harness_api import router as harness_router
+    print("[DEBUG] Loading mcp_router...")
+    from services.workflow_api.mcp_router import router as mcp_router
+    
     api_v1.include_router(learning_router)
-    api_v1.include_router(governor_router, prefix="/governance/inbox/governor")
+    api_v1.include_router(governor_router, prefix="/governance/governor")
     api_v1.include_router(ceo_router, prefix="/ceo")
+    api_v1.include_router(harness_router, prefix="/harness", tags=["Harness API"])
+    api_v1.include_router(mcp_router, prefix="/mcp")
+    
+    # 8.1 Aliases for Refine Compatibility
+    api_v1.include_router(governance_router, prefix="/axiology", tags=["Compatibility"]) # Alias for /axiology
+    api_v1.include_router(mcp_router, prefix="/mcp-hub", tags=["Compatibility"]) # Alias for /mcp-hub
 
     # Register the unified API router
     app.include_router(api_v1)
+    print("[DEBUG] All routers registered successfully.")

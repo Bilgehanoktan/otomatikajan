@@ -1,9 +1,10 @@
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any, Optional
-from sqlalchemy import select, update, delete, func, cast, Integer
+# Move to local scopes to prevent Phase 13.04 startup hangs
+# from sqlalchemy import select, update, delete, func, cast, Integer
 from libs.db.session import session_scope
-from libs.db.models import LLMCostLog, SovereignModelPolicy, ModelBenchmarking
+# from libs.db.models import LLMCostLog, SovereignModelPolicy, ModelBenchmarking
 from services.observability.logging import get_logger
 
 logger = get_logger("ceo.optimizer")
@@ -36,6 +37,9 @@ class CEOStochasticOptimizer:
         """
         Calculates ROI (Cost per successful completion) for each provider in a given role.
         """
+        from sqlalchemy import select, func, cast, Integer
+        from libs.db.models import LLMCostLog
+        
         now = datetime.now(timezone.utc)
         seven_days_ago = now - timedelta(days=7)
         
@@ -65,6 +69,10 @@ class CEOStochasticOptimizer:
         Gelişmiş ROI Karşılaştırması: Aynı rol için farklı sağlayıcıları kıyaslar
         ve verimlilik farkı (Efficiency Factor) %30'u aşarsa otomatik pivot yapar.
         """
+        from sqlalchemy import select
+        from libs.db.models import SovereignModelPolicy, CEODecision
+        import uuid
+        
         # Aktif rolleri bul
         roles_stmt = select(SovereignModelPolicy.agent_role)
         res_roles = await db.execute(roles_stmt)
@@ -99,9 +107,6 @@ class CEOStochasticOptimizer:
                     policy.winner_provider = best_provider
                     
                     # Kararı logla
-                    from libs.db.models import CEODecision
-                    from datetime import datetime, timezone
-                    import uuid
                     decision = CEODecision(
                         id=str(uuid.uuid4()),
                         decision_type="MODEL_ROI_PIVOT",
@@ -116,6 +121,9 @@ class CEOStochasticOptimizer:
         """
         LLMCostLog verilerini kullanarak ModelBenchmarking tablosunu günceller.
         """
+        from sqlalchemy import select, func, cast, Integer
+        from libs.db.models import LLMCostLog, ModelBenchmarking
+        
         # Son 24 saatlik verileri özetle
         now = datetime.now(timezone.utc)
         yesterday = now - timedelta(days=1)
@@ -158,6 +166,9 @@ class CEOStochasticOptimizer:
         """
         Gecikmesi artan modelleri tespit edip politikada alt sıralara iter.
         """
+        from sqlalchemy import select
+        from libs.db.models import ModelBenchmarking, SovereignModelPolicy
+        
         # Gecikme limiti: 4.0 saniye
         LATENCY_THRESHOLD = 4.0 
         
@@ -194,6 +205,8 @@ class CEOStochasticOptimizer:
         if latency_s > 10.0: # Kritik eşik: 10 saniye
             logger.warning(f"🚨 CEO Optimizer: CRITICAL LATENCY on '{provider}' ({latency_s:.1f}s). Emergency pivoting role '{agent_role}'.")
             async with session_scope() as db:
+                from sqlalchemy import select
+                from libs.db.models import SovereignModelPolicy
                 policy_stmt = select(SovereignModelPolicy).where(SovereignModelPolicy.agent_role == agent_role)
                 res_policy = await db.execute(policy_stmt)
                 policy = res_policy.scalars().first()
@@ -211,6 +224,9 @@ class CEOStochasticOptimizer:
         """
         Returns a map of agent_role -> policy details for the ModelOrchestrator.
         """
+        from sqlalchemy import select
+        from libs.db.models import SovereignModelPolicy
+        
         async with session_scope() as db:
             stmt = select(SovereignModelPolicy)
             res = await db.execute(stmt)

@@ -1,10 +1,10 @@
-from sqlalchemy.orm import Session
+# from sqlalchemy.orm import Session
 import uuid
-from typing import List, Optional
-from libs.db.models.core_models import Project, ProjectStatus, AgentStatus, AgentRole, ProjectExecutionPlan
-from libs.db.repositories.fleet_repository import (
-    AgentNodeRepo, FleetClusterRepo, FleetAssignmentRepo, ProjectExecutionPlanRepo
-)
+from typing import Any, List, Optional
+# from libs.db.models.core_models import Project, ProjectStatus, AgentStatus, AgentRole, ProjectExecutionPlan
+# from libs.db.repositories.fleet_repository import (
+#     AgentNodeRepo, FleetClusterRepo, FleetAssignmentRepo, ProjectExecutionPlanRepo
+# )
 from services.orchestration.fleet.agent_registry import AgentRegistry
 from services.orchestration.fleet.project_orchestra_builder import ProjectOrchestraBuilder
 from services.orchestration.fleet.fleet_budget_manager import FleetBudgetManager
@@ -13,7 +13,10 @@ import asyncio
 import threading
 
 class FleetScheduler:
-    def __init__(self, db: Session):
+    def __init__(self, db: Any):
+        from libs.db.repositories.fleet_repository import (
+            AgentNodeRepo, FleetClusterRepo, FleetAssignmentRepo
+        )
         self.db = db
         self.agent_repo = AgentNodeRepo(db)
         self.cluster_repo = FleetClusterRepo(db)

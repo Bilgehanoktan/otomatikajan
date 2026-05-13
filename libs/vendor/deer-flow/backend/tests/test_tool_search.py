@@ -282,7 +282,7 @@ class TestDeferredToolFilterMiddleware:
     def _ensure_middlewares_package(self):
         """Remove mock entries injected by test_subagent_executor.py.
 
-        That file replaces deerflow.agents and deerflow.packages.orchestration.agi.middlewares with
+        That file replaces deerflow.agents and deerflow.agents.middlewares with
         MagicMock objects in sys.modules (session-scoped) to break circular imports.
         We must clear those mocks so real submodule imports work.
         """
@@ -290,15 +290,15 @@ class TestDeferredToolFilterMiddleware:
 
         mock_keys = [
             "deerflow.agents",
-            "deerflow.packages.orchestration.agi.middlewares",
-            "deerflow.packages.orchestration.agi.middlewares.deferred_tool_filter_middleware",
+            "deerflow.agents.middlewares",
+            "deerflow.agents.middlewares.deferred_tool_filter_middleware",
         ]
         for key in mock_keys:
             if isinstance(sys.modules.get(key), MagicMock):
                 del sys.modules[key]
 
     def test_filters_deferred_tools(self, registry):
-        from deerflow.packages.orchestration.agi.middlewares.deferred_tool_filter_middleware import DeferredToolFilterMiddleware
+        from deerflow.agents.middlewares.deferred_tool_filter_middleware import DeferredToolFilterMiddleware
 
         set_deferred_registry(registry)
         middleware = DeferredToolFilterMiddleware()
@@ -321,7 +321,7 @@ class TestDeferredToolFilterMiddleware:
         assert filtered.tools[0].name == "my_active_tool"
 
     def test_no_op_when_no_registry(self):
-        from deerflow.packages.orchestration.agi.middlewares.deferred_tool_filter_middleware import DeferredToolFilterMiddleware
+        from deerflow.agents.middlewares.deferred_tool_filter_middleware import DeferredToolFilterMiddleware
 
         middleware = DeferredToolFilterMiddleware()
         active_tool = _make_mock_tool("my_tool", "A tool")
@@ -341,7 +341,7 @@ class TestDeferredToolFilterMiddleware:
 
     def test_preserves_dict_tools(self, registry):
         """Dict tools (provider built-ins) should not be filtered."""
-        from deerflow.packages.orchestration.agi.middlewares.deferred_tool_filter_middleware import DeferredToolFilterMiddleware
+        from deerflow.agents.middlewares.deferred_tool_filter_middleware import DeferredToolFilterMiddleware
 
         set_deferred_registry(registry)
         middleware = DeferredToolFilterMiddleware()
@@ -361,3 +361,4 @@ class TestDeferredToolFilterMiddleware:
 
         # dict_tool has no .name attr → getattr returns None → not in deferred_names → kept
         assert len(filtered.tools) == 2
+

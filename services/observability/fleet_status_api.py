@@ -5,11 +5,12 @@ Exposes global fleet metrics and project snapshots for the Fleet Hub dashboard.
 """
 from fastapi import APIRouter
 from typing import Dict, Any, List
-from services.orchestration.fleet_manager import fleet_manager
-from services.orchestration.economic_engine import economic_engine
-from libs.db.session import AsyncSessionLocal
-from libs.db.models.core_models import SovereignEvidence
-from sqlalchemy import select, desc
+# Move to local scopes to prevent Phase 13.04 startup hangs
+# from services.orchestration.fleet_manager import fleet_manager
+# from services.orchestration.economic_engine import economic_engine
+# from libs.db.session import AsyncSessionLocal
+# from libs.db.models.core_models import SovereignEvidence
+# from sqlalchemy import select, desc
 
 router = APIRouter(tags=["fleet-ops"])
 
@@ -20,6 +21,7 @@ async def get_fleet_status():
     Returns high-level fleet statistics.
     Used by ResourceArbitrationChart.
     """
+    from services.orchestration.fleet_manager import fleet_manager
     stats = fleet_manager.get_fleet_stats()
     
     # Enrich for the UI
@@ -55,6 +57,8 @@ async def get_fleet_projects():
     Returns a unified list of real and mock projects for the Heatmap.
     Include Phase 25 elasticity metrics (base_limit, adjustment_status).
     """
+    from services.orchestration.fleet_manager import fleet_manager
+    from services.orchestration.economic_engine import economic_engine
     projects = []
     
     # 1. Real Internal Workloads (Phase 24-25 Data)
@@ -71,7 +75,7 @@ async def get_fleet_projects():
             "current_limit": p.concurrency_limit,
             "adjustment_status": "Expanded" if p.concurrency_limit > p.base_concurrency_limit else "Nominal",
             "current_budget": economic_engine._project_budgets.get(p.project_id, 0.0),
-            "anomaly_score": economic_engine.detect_spend_anomaly(p.project_id),
+            "anomaly_score": economic_engine.detect_spend_anomaly(p.project_id).get("score", 0.0),
             "health_reason": p.health
         })
 
@@ -130,6 +134,7 @@ async def get_economics_summary():
     Returns aggregated cost metrics for the global fleet.
     Used by the 'analytics/costs' resource in the dashboard.
     """
+    from services.orchestration.economic_engine import economic_engine
     # Real data from economic_engine (Phase 24)
     summary = economic_engine.get_total_spend_summary()
     
@@ -152,6 +157,10 @@ async def get_mesh_evidence(limit: int = 10):
     """
     Returns the latest deep-dive evidence from SovereignEvidence table.
     """
+    from libs.db.session import AsyncSessionLocal
+    from libs.db.models.core_models import SovereignEvidence
+    from sqlalchemy import select, desc
+    
     async with AsyncSessionLocal() as session:
         result = await session.execute(
             select(SovereignEvidence).order_by(desc(SovereignEvidence.created_at)).limit(limit)

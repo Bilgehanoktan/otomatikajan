@@ -9,7 +9,7 @@ services:
       - "9000:9000"
     volumes:
       - clickhouse-data:/var/lib/clickhouse
-    restart: unless-stopped
+    restart: no
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
       interval: 5s
@@ -21,7 +21,7 @@ services:
     container_name: signoz-alertmanager
     volumes:
       - alertmanager-data:/data
-    restart: unless-stopped
+    restart: no
     depends_on:
       - clickhouse
 
@@ -34,7 +34,7 @@ services:
       - ClickHouseUrl=tcp://clickhouse:9000/?database=signoz_traces
       - ALERTMANAGER_API_URL=http://alertmanager:9093/api/v2/
       - DEPLOYMENT_TYPE=web
-    restart: unless-stopped
+    restart: no
     depends_on:
       clickhouse:
         condition: service_healthy
@@ -46,7 +46,7 @@ services:
       - "3301:3301" # Browser UI
     depends_on:
       - query-service
-    restart: unless-stopped
+    restart: no
 
   otel-collector:
     image: signoz/signoz-otel-collector:0.88.11
@@ -62,7 +62,7 @@ services:
     depends_on:
       clickhouse:
         condition: service_healthy
-    restart: unless-stopped
+    restart: no
 
 volumes:
   clickhouse-data:

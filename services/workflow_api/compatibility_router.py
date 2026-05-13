@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, Response
 from typing import List, Dict, Any
-from pydantic import BaseModel
+# from pydantic import BaseModel # Not used directly in this file
 from services.auth.jwt_auth import require_permission
-from services.workflow_api.governance_router import AuditBundleCreate
+# Moved to local scope to prevent circular/hang issues
+# from services.workflow_api.governance_router import AuditBundleCreate
 
 router = APIRouter(tags=["Compatibility & Stubs"])
 
@@ -14,6 +15,18 @@ async def list_safety_stub(): return []
 
 @router.get("/training")
 async def list_training_stub(): return []
+
+@router.get("/compliance/policies")
+@router.get("/compliance/policies/")
+async def list_compliance_policies_compat(response: Response):
+    from services.workflow_api.governance_router import list_retention_policies
+    return await list_retention_policies(response)
+
+@router.get("/evolution/state")
+@router.get("/evolution/state/")
+async def get_evolution_state_compat():
+    from services.workflow_api.governance_router import get_evolution_state
+    return await get_evolution_state()
 
 @router.get("/costs")
 async def list_costs_stub(): return []
@@ -34,10 +47,11 @@ async def list_audit_bundles_compat(response: Response):
 @router.post("/compliance/audit-bundles")
 @router.post("/compliance/audit-bundles/")
 async def create_audit_bundle_compat(
-    req: AuditBundleCreate,
+    req: Any, # Use Any instead of AuditBundleCreate
     identity: Dict[str, Any] = Depends(require_permission("audit.create"))
 ):
-    from services.workflow_api.governance_router import create_audit_bundle_endpoint
+    from services.workflow_api.governance_router import create_audit_bundle_endpoint, AuditBundleCreate
+    # Cast to AuditBundleCreate if needed or just pass through
     return await create_audit_bundle_endpoint(req, identity)
 
 @router.get("/mesh")

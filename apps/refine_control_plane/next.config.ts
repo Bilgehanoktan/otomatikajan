@@ -51,8 +51,12 @@ const nextConfig: NextConfig = {
         destination: `${backendOrigin}/api/mcp/:path*`,
       },
       {
+        source: '/api/agents',
+        destination: `${backendOrigin}/api/v1/harness/agents`,
+      },
+      {
         source: '/api/agents/:path*',
-        destination: `${backendOrigin}/api/agents/:path*`,
+        destination: `${backendOrigin}/api/v1/harness/agents/:path*`,
       },
       {
         source: '/api/models/:path*',

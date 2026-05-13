@@ -62,7 +62,7 @@ export default function AuditPage() {
   const {
     query: { data: bundlesData, isLoading: bundlesLoading },
   } = useList<ProofSnapshotRecord>({
-    resource: "governance/inbox/governor/proof/snapshots",
+    resource: "governance/governor/proof/snapshots",
     pagination: { pageSize: 10 },
     sorters: [{ field: "created_at", order: "desc" }],
     queryOptions: { enabled: isClient },

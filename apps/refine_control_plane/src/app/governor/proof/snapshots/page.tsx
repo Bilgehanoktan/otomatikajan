@@ -27,7 +27,7 @@ export default function ProofSnapshotsPage() {
   const {
     query: { data, isLoading },
   } = useList<ProofSnapshotRecord>({
-    resource: "governance/inbox/governor/proof/snapshots",
+    resource: "governance/governor/proof/snapshots",
     pagination: { pageSize: 50 },
     sorters: [{ field: "created_at", order: "desc" }],
   });

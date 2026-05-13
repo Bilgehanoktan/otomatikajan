@@ -3,7 +3,7 @@ import { useCallback } from "react";
 
 export const useGovernorObservability = () => {
   // 1. Alerts Hook
-  const useAlerts = (filters?: Array<{ field: string; operator: string; value: any }>) => {
+  const useAlerts = (filters?: any[]) => {
     return {
       query: useList({
         resource: "governance/governor/alerts",
@@ -74,7 +74,7 @@ export const useGovernorObservability = () => {
       id,
       values: { status: "SUPPRESSED", summary: reason },
       meta: {
-        endpoint: `/governance/observability/alerts/${id}/suppress`,
+        endpoint: `/api/v1/governance/governor/alerts/${id}/suppress`,
         method: "post",
       },
     });

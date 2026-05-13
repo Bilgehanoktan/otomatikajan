@@ -12,7 +12,7 @@ from unittest.mock import MagicMock
 
 from langchain_core.messages import AIMessage, HumanMessage
 
-from deerflow.packages.orchestration.agi.middlewares.uploads_middleware import UploadsMiddleware
+from deerflow.agents.middlewares.uploads_middleware import UploadsMiddleware
 from deerflow.config.paths import Paths
 
 THREAD_ID = "thread-abc123"
@@ -339,3 +339,4 @@ class TestBeforeAgent:
         result = mw.before_agent(self._state(msg), _runtime())
 
         assert result["messages"][-1].id == "original-id-42"
+

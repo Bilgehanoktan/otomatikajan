@@ -33,9 +33,9 @@ const normalizeApiErrorDetail = (status: number, rawDetail: string): string => {
 
     if (status === 403) {
         if (lowered.includes("missing required permission") || lowered.includes("access denied")) {
-            return "Bu islem icin gerekli yetkiniz bulunmuyor.";
+            return `Erisim Engellendi: ${detail}. Mevcut rolunuz bu aksiyonu desteklemiyor olabilir.`;
         }
-        return "Bu islem icin erisim izniniz yok.";
+        return "Bu islem icin yeterli yetkiniz yok. Lutfen OPERATOR yetkisine sahip bir hesapla giris yapin veya oturumunuzu yenileyin.";
     }
 
     if (status === 404) {
@@ -43,6 +43,12 @@ const normalizeApiErrorDetail = (status: number, rawDetail: string): string => {
     }
 
     return detail || `HTTP ${status}`;
+};
+
+const normalizeApiRequestUrl = (url: string): string => {
+    const [pathWithOrigin, query = ""] = url.split("?", 2);
+    const normalizedPath = pathWithOrigin.replace(/(\/api\/v1\/.+)\/$/, "$1");
+    return query ? `${normalizedPath}?${query}` : normalizedPath;
 };
 
 /**
@@ -119,10 +125,20 @@ export async function safeFetchJson<T = unknown>(url: string, options: SafeFetch
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout (increased for SIF-02 reliability)
 
+            // Phase 32: Auto-prefix relative URLs with /api/v1 if needed
+            let finalUrl = url;
+            if (typeof window !== "undefined" && !url.startsWith("http") && !url.startsWith("/api/")) {
+                const base = getApiBaseUrl(); // "/api/v1"
+                finalUrl = `${base}${url.startsWith("/") ? "" : "/"}${url}`;
+            }
+
+            finalUrl = normalizeApiRequestUrl(finalUrl);
+
             const fetchInit: RequestInit = { 
                 ...init, 
                 credentials: "include" as RequestCredentials,
-                signal: controller.signal
+                signal: controller.signal,
+                cache: "no-store"
             };
             
             let res: Response;
@@ -144,7 +160,7 @@ export async function safeFetchJson<T = unknown>(url: string, options: SafeFetch
                     fetchInit.headers = headers;
                 }
 
-                res = await fetch(url, fetchInit);
+                res = await fetch(finalUrl, fetchInit);
             } finally {
                 clearTimeout(timeoutId);
             }
@@ -261,7 +277,7 @@ export async function safeFetchAdapter(url: string, options: RequestInit = {}): 
             headers: {
                 "Content-Type": "application/json",
                 // Pass back the stale flag if exists so the data-provider doesn't block it
-                "X-Sqv-Stale": data?.__sqv_meta?.is_stale ? "true" : "false"
+                "X-Sqv-Stale": (data as any)?.__sqv_meta?.is_stale ? "true" : "false"
             }
         });
     } catch (err: unknown) {
@@ -278,7 +294,7 @@ export async function safeFetchAdapter(url: string, options: RequestInit = {}): 
         // If everything fails, return a 500 JSON response instead of a raw crash
         return new Response(JSON.stringify({
             error: "internal_server_error",
-            detail: err.message
+            detail: (err as any).message
         }), {
             status: 500,
             statusText: "Internal Server Error",

@@ -53,7 +53,7 @@ class SelfImprovementCoordinator:
             except Exception as e:
                 logger.error(f"Improvement loop hatası: {e}")
             
-            await asyncio.sleep(120) # Her 2 dakikada bir tara (Otonom Mod)
+            await asyncio.sleep(300) # Her 5 dakikada bir tara (Otonom Mod)
 
     async def _process_opportunities(self, opportunities: List[ImprovementOpportunity]):
         """Bulunan fırsatları sırayla işle."""

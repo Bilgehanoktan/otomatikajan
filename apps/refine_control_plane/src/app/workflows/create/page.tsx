@@ -30,7 +30,6 @@ export default function CreateWorkflowPage() {
   const tCommon = useTranslations("common");
   const { list } = useNavigation();
   const { mutate, mutation } = useCustomMutation();
-  const [form] = Form.useForm();
   const apiBase = getApiBaseUrl();
   const isLoading = mutation.isPending;
 
@@ -61,7 +60,11 @@ export default function CreateWorkflowPage() {
           },
           onError: (error: any) => {
             console.error("[CreateWorkflow] Mutation Error:", error);
-            const detail = error?.response?.data?.detail || error?.message || "Bilinmeyen hata";
+            const rawDetail = error?.response?.data?.detail || error?.message || "Bilinmeyen hata";
+            const status = error?.statusCode || error?.status || error?.response?.status;
+            const detail = status === 403
+              ? "Bu islem icin OPERATOR yetkisi gerekir. AUDIT_OBSERVER hesaplari salt okunurdur."
+              : rawDetail;
             message.error("İş akışı oluşturulamadı: " + detail);
           },
         }
@@ -86,7 +89,7 @@ export default function CreateWorkflowPage() {
         <Card
           variant="borderless"
           className="overflow-hidden rounded-[2rem] border border-white/5 bg-white/[0.02] shadow-2xl"
-          bodyStyle={{ padding: 0 }}
+          styles={{ body: { padding: 0 } }}
         >
           <div className="relative overflow-hidden bg-gradient-to-br from-[var(--primary)]/10 via-transparent to-transparent p-12">
             <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[var(--primary)]/5 blur-[100px]" />
@@ -109,7 +112,6 @@ export default function CreateWorkflowPage() {
 
           <div className="p-12">
             <Form
-              form={form}
               layout="vertical"
               onFinish={onFinish}
               initialValues={{ template: "default", priority: "MEDIUM", quality: "standard" }}

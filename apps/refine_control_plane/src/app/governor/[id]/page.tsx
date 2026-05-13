@@ -41,7 +41,7 @@ export default function GovernorCaseDetail() {
           list("governance/governor/cases");
         },
         onError: (err) => {
-          message.error(`Hata: ${err.message}`);
+          message.error(`Hata: ${(err as any).message}`);
         },
         onSettled: () => setActionLoading(false),
       }
@@ -62,7 +62,7 @@ export default function GovernorCaseDetail() {
           list("governance/governor/cases");
         },
         onError: (err) => {
-          message.error(`Hata: ${err.message}`);
+          message.error(`Hata: ${(err as any).message}`);
         },
         onSettled: () => setActionLoading(false),
       }
@@ -83,7 +83,7 @@ export default function GovernorCaseDetail() {
           list("governance/governor/cases");
         },
         onError: (err) => {
-          message.error(`Hata: ${err.message}`);
+          message.error(`Hata: ${(err as any).message}`);
         },
         onSettled: () => setActionLoading(false),
       }

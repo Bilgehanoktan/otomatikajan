@@ -1,3 +1,4 @@
+print("[DEBUG] Main.py is being loaded...")
 """
 AI Yazılım Şirketi — Ana Uygulama
 Modülerleştirilmiş Versiyon: Tüm başlatma mantığı startup/ paketinde.
@@ -15,19 +16,26 @@ ROOT_DIR = str(Path(__file__).resolve().parents[2])
 if ROOT_DIR not in sys.path:
     sys.path.append(ROOT_DIR)
 
+
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
+print("[DEBUG] Environment loading...")
 # ── .env otomatik yükle ───────────────────────────────────
 try:
     from dotenv import load_dotenv as _load_dotenv
     if os.path.exists(".env"):
         _load_dotenv(".env", override=True)
     if os.path.exists(".env.local"):
-        _load_dotenv(".env.local", override=False)
+        try:
+            _load_dotenv(".env.local", override=False)
+        except UnicodeDecodeError:
+            # .env.local dosyası bozuk encoding ile kaydedilmiş (UTF-16 BOM vb.)
+            # Sessizce atla, .env yeterli olacak.
+            pass
     env = os.getenv("APP_ENV", os.getenv("ENVIRONMENT", "development"))
     if env != "production" and not os.path.exists(".env"):
         if os.path.exists(".env.example"):
@@ -53,19 +61,18 @@ if _ENV == "production":
         sys.exit(1)
 
 
-# ── Core singleton'ları ───────────────────────────────────
-from services.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
-from services.orchestration.agi.governance.watchdog import governance_watchdog
-from services.repair.application.heal_engine import heal_engine
-from services.orchestration.domain.events import event_bus
-from services.orchestration.application.job_queue import job_queue
-from libs.infra.ws_manager import ws_manager
-from services.observability.metrics import metrics
+# ── Core singleton'ları (Dinamik Yükleme için Kaldırıldı) ───────────
+# Not: orchestrator, governance_watchdog vb. artık fonksiyon bazında import ediliyor.
 
+print("[DEBUG] Middleware & Router setup...")
 # ── Startup modülleri ─────────────────────────────────────
+print("[DEBUG] Loading lifespan...")
 from libs.infra.lifespan import lifespan, register_event_listeners
+print("[DEBUG] Loading middleware config...")
 from libs.infra.middleware import configure_middleware
+print("[DEBUG] Loading router registry...")
 from libs.infra.router_registry import register_routers
+print("[DEBUG] All infra modules loaded.")
 
 # Event bus dinleyicilerini kaydet (modül yüklenirken)
 register_event_listeners()
@@ -79,7 +86,17 @@ app = FastAPI(
 )
 
 configure_middleware(app)
+print("[DEBUG] Registering routers...")
 register_routers(app)
+print("[DEBUG] Routers registered.")
+
+# ── Route Debugging (Phase 13.05) ─────────────────────────
+if os.getenv("DEBUG_ROUTES", "false").lower() == "true":
+    logger.info("--- REGISTERED ROUTES ---")
+    for route in app.routes:
+        if hasattr(route, 'path'):
+            logger.info(f"[ROUTE] {getattr(route, 'methods', 'ANY')} {route.path}")
+    logger.info("--- END ROUTES ---")
 
 # ── OTel Tracing Middleware (Phase 13.04) ─────────────────
 try:
@@ -98,6 +115,7 @@ try:
     logger.info("[INCIDENT] Sovereign Incident Middleware registered")
 except Exception as _inc_err:
     logger.error(f"[INCIDENT] Middleware failed: {_inc_err}")
+
 
 # ── Dashboard & Control Plane (Unified Routing) ───────────
 _dash_legacy = os.path.join(ROOT_DIR, "hub_interaction", "dashboard")
@@ -139,6 +157,9 @@ else:
 
 # ── WebSocket ─────────────────────────────────────────────
 async def _authenticated_websocket_stream(ws: WebSocket):
+    from libs.infra.ws_manager import ws_manager
+    from services.orchestration.domain.events import event_bus
+    
     # Faz 12.1 Security: WebSocket Authentication
     token = ws.query_params.get("token")
     if not token:
@@ -170,11 +191,50 @@ async def _authenticated_websocket_stream(ws: WebSocket):
         return
 
     await ws_manager.connect(ws)
-    for evt in event_bus.recent(20):
-        try:
-            await ws.send_text(json.dumps(evt, default=str))
-        except Exception:
-            break
+    
+    # Faz 12.1: Populate with actual historical events from DecisionLineage if available
+    try:
+        from libs.db.session import AsyncSessionLocal
+        from sqlalchemy import select, desc
+        from libs.db.models.lineage_models import DecisionLineage
+        
+        async with AsyncSessionLocal() as db:
+            q = select(DecisionLineage).order_by(desc(DecisionLineage.created_at)).limit(25)
+            res = await db.execute(q)
+            items = res.scalars().all()
+            
+            for i in reversed(items):
+                sev = "info"
+                if "FAIL" in (i.outcome or "").upper() or "ERROR" in (i.rationale or "").upper():
+                    sev = "critical"
+                elif "WARN" in (i.rationale or "").upper():
+                    sev = "warning"
+                
+                await ws.send_text(json.dumps({
+                    "seq": int(i.created_at.timestamp() * 1000) if i.created_at else 0,
+                    "timestamp": i.created_at.isoformat() if i.created_at else datetime.now(timezone.utc).isoformat(),
+                    "type": i.decision_type,
+                    "severity": sev,
+                    "category": "workflow",
+                    "message": f"[{i.component_name}] {getattr(i, 'summary', None) or i.rationale}"
+                }))
+    except Exception as e:
+        logger.warning(f"[WS] Lineage history failed, falling back to event_bus: {e}")
+        for evt in event_bus.recent(20):
+            try:
+                # Ensure it has the required fields
+                mapped = {
+                    "seq": evt.get("seq", int(datetime.now(timezone.utc).timestamp() * 1000)),
+                    "timestamp": evt.get("timestamp", datetime.now(timezone.utc).isoformat()),
+                    "type": evt.get("type", "EVENT"),
+                    "severity": evt.get("severity", "info"),
+                    "category": evt.get("category", "workflow"),
+                    "message": evt.get("message") or evt.get("rationale") or f"Event: {evt.get('type')}"
+                }
+                await ws.send_text(json.dumps(mapped, default=str))
+            except Exception:
+                break
+
     try:
         while True:
             data = await ws.receive_text()
@@ -203,6 +263,11 @@ async def health_check():
     from libs.db.session import is_db_available
     from services.orchestration.agency.loader import agency_loader
     from services.observability.memory_governor import memory_governor
+    from services.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
+    from services.orchestration.agi.governance.watchdog import governance_watchdog
+    from services.repair.application.heal_engine import heal_engine
+    from libs.infra.ws_manager import ws_manager
+    from services.orchestration.application.job_queue import job_queue
 
     async def _with_timeout(coro, timeout_s: float, fallback):
         try:
@@ -230,6 +295,7 @@ async def health_check():
         "status": "degraded" if (not db_ok or mem_usage > memory_governor.MAX_MEMORY_MB) else "ok",
         "reason": "memory_limit_exceeded" if mem_usage > memory_governor.MAX_MEMORY_MB else ("db_failed" if not db_ok else None),
         "version": APP_VERSION,
+        "v13_stabilized_final": True,
         "env": _ENV,
         "agents": current_agents,
         "specialists": specialists,
@@ -266,6 +332,7 @@ async def health_check():
 @app.get("/health/diagnostics", tags=["Sistem"])
 async def advanced_health():
     from libs.db.session import is_db_available
+    from services.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex as orchestrator
     db_ok = await is_db_available()
     all_tasks = asyncio.all_tasks()
     active_watchdogs = [t.get_name() for t in all_tasks if "Watchdog" in t.get_name() or "Controller" in t.get_name()]
@@ -299,6 +366,7 @@ async def deep_health_check():
 
 @app.get("/metrics", tags=["Sistem"])
 async def get_metrics():
+    from services.observability.metrics import metrics
     return metrics.snapshot()
 
 

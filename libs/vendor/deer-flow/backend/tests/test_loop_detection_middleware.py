@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 from langchain_core.messages import AIMessage, SystemMessage
 
-from deerflow.packages.orchestration.agi.middlewares.loop_detection_middleware import (
+from deerflow.agents.middlewares.loop_detection_middleware import (
     _HARD_STOP_MSG,
     LoopDetectionMiddleware,
     _hash_tool_calls,
@@ -229,3 +229,4 @@ class TestLoopDetection:
 
         mw._apply(_make_state(tool_calls=call), runtime)
         assert "default" in mw._history
+

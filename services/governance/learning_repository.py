@@ -1,25 +1,25 @@
-"""
-Sovereign AGI — Phase 31
-services/governance/learning_repository.py
-Repository for accessing learning records, fingerprints and strategy memory.
-"""
-
 import uuid
 from typing import List, Dict, Any, Optional
-from sqlalchemy import select, desc, func
-from sqlalchemy.ext.asyncio import AsyncSession
-from libs.db.models.learning_models import ErrorFingerprint, LearningRecord, StrategyMemory, NegativePatternMemory
+# SQLAlchemy and Model imports moved to local scopes to prevent Phase 13.04 startup hangs in Python 3.14+
+# from sqlalchemy import select, desc, func
+# from sqlalchemy.ext.asyncio import AsyncSession
+# from libs.db.models.learning_models import ErrorFingerprint, LearningRecord, StrategyMemory, NegativePatternMemory
 
 class LearningRepository:
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: Any):
         self.db = db
 
-    async def get_fingerprints(self, limit: int = 50, offset: int = 0) -> List[ErrorFingerprint]:
+    async def get_fingerprints(self, limit: int = 50, offset: int = 0) -> List[Any]:
+        from sqlalchemy import select, desc
+        from libs.db.models.learning_models import ErrorFingerprint
         stmt = select(ErrorFingerprint).order_by(desc(ErrorFingerprint.last_seen_at)).limit(limit).offset(offset)
         res = await self.db.execute(stmt)
         return list(res.scalars().all())
 
     async def get_fingerprint_detail(self, fp_id: uuid.UUID) -> Optional[Dict[str, Any]]:
+        from sqlalchemy import select, desc
+        from libs.db.models.learning_models import ErrorFingerprint, LearningRecord, StrategyMemory
+        
         stmt = select(ErrorFingerprint).where(ErrorFingerprint.id == fp_id)
         res = await self.db.execute(stmt)
         fp = res.scalar_one_or_none()
@@ -45,23 +45,31 @@ class LearningRepository:
             "strategies": strategies
         }
 
-    async def get_learning_records(self, limit: int = 50, offset: int = 0) -> List[LearningRecord]:
+    async def get_learning_records(self, limit: int = 50, offset: int = 0) -> List[Any]:
+        from sqlalchemy import select, desc
+        from libs.db.models.learning_models import LearningRecord
         stmt = select(LearningRecord).order_by(desc(LearningRecord.created_at)).limit(limit).offset(offset)
         res = await self.db.execute(stmt)
         return list(res.scalars().all())
 
-    async def get_strategy_memory(self) -> List[StrategyMemory]:
+    async def get_strategy_memory(self) -> List[Any]:
+        from sqlalchemy import select, desc
+        from libs.db.models.learning_models import StrategyMemory
         stmt = select(StrategyMemory).order_by(desc(StrategyMemory.trust_score))
         res = await self.db.execute(stmt)
         return list(res.scalars().all())
 
-    async def get_negative_patterns(self) -> List[NegativePatternMemory]:
+    async def get_negative_patterns(self) -> List[Any]:
+        from sqlalchemy import select, desc
+        from libs.db.models.learning_models import NegativePatternMemory
         stmt = select(NegativePatternMemory).order_by(desc(NegativePatternMemory.penalty_weight))
         res = await self.db.execute(stmt)
         return list(res.scalars().all())
 
-    async def get_adaptation_candidates(self) -> List[StrategyMemory]:
+    async def get_adaptation_candidates(self) -> List[Any]:
         """State'i 'candidate' olan ve 'trusted' olmaya yakın olanları döner."""
+        from sqlalchemy import select, desc
+        from libs.db.models.learning_models import StrategyMemory
         stmt = select(StrategyMemory).where(StrategyMemory.state == "candidate").order_by(desc(StrategyMemory.trust_score))
         res = await self.db.execute(stmt)
         return list(res.scalars().all())

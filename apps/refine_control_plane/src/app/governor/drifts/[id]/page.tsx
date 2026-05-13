@@ -108,7 +108,7 @@ export default function DriftDetailPage() {
             </Row>
 
             <Title level={5}><DeploymentUnitOutlined /> Evidence & Correlation</Title>
-            <Card variant="borderless" size="small" bodyStyle={{ padding: 0 }}>
+            <Card variant="borderless" size="small" styles={{ body: { padding: 0 } }}>
               <pre style={{ fontSize: "11px", padding: "16px", background: "#fafafa", margin: 0, maxHeight: "300px", overflow: "auto" }}>
                 {JSON.stringify(drift.evidence_payload || {}, null, 2)}
               </pre>

@@ -2,7 +2,7 @@
 
 import math
 
-from deerflow.packages.orchestration.agi.packages.memory.prompt import _coerce_confidence, format_memory_for_injection
+from deerflow.agents.memory.prompt import _coerce_confidence, format_memory_for_injection
 
 
 def test_format_memory_includes_facts_section() -> None:
@@ -39,7 +39,7 @@ def test_format_memory_sorts_facts_by_confidence_desc() -> None:
 
 def test_format_memory_respects_budget_when_adding_facts(monkeypatch) -> None:
     # Make token counting deterministic for this test by counting characters.
-    monkeypatch.setattr("deerflow.packages.orchestration.agi.packages.memory.prompt._count_tokens", lambda text, encoding_name="cl100k_base": len(text))
+    monkeypatch.setattr("deerflow.agents.memory.prompt._count_tokens", lambda text, encoding_name="cl100k_base": len(text))
 
     memory_data = {
         "user": {},
@@ -119,4 +119,5 @@ def test_format_memory_skips_non_string_content_facts() -> None:
     # The formatted line for a list content would be "- [knowledge | 0.85] ['list']".
     assert "| 0.85]" not in result
     assert "Valid fact" in result
+
 

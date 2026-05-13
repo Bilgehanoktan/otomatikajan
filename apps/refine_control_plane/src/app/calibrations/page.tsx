@@ -24,8 +24,8 @@ const { Title, Text, Paragraph } = Typography;
 export default function GovernorCalibrations() {
   const t = useTranslations("dashboard.calibrations");
   
-  const { tableProps, tableQueryResult } = useTable({
-    resource: "governance/inbox/governor/calibrations",
+  const { tableProps, tableQuery } = useTable({
+    resource: "governance/governor/calibrations",
     syncWithLocation: true,
     pagination: {
       pageSize: 20,
@@ -45,10 +45,10 @@ export default function GovernorCalibrations() {
     }, {
       onSuccess: () => {
         message.success(t(`success${action.charAt(0).toUpperCase() + action.slice(1)}`));
-        tableQueryResult.refetch();
+        tableQuery.refetch();
       },
       onError: (err: any) => {
-        message.error(`Hata: ${err.message}`);
+        message.error(`Hata: ${(err as any).message}`);
       }
     });
   };
@@ -61,7 +61,7 @@ export default function GovernorCalibrations() {
     }, {
       onSuccess: (data: any) => {
         message.success(t("successPropose", { count: data.data.proposals_count }));
-        tableQueryResult.refetch();
+        tableQuery.refetch();
       }
     });
   };

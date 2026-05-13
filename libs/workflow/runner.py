@@ -7,7 +7,7 @@ This is the single entry-point called by Celery workers instead of
 directly talking to SovereignCortex.
 """
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from services.observability.logging import get_logger
 from libs.observability.tracer import traced, span
 from libs.workflow.engine import WorkflowEngine
@@ -25,6 +25,7 @@ def get_engine() -> WorkflowEngine:
     if _engine is None:
         _engine = WorkflowEngine()
         _register_default_actions(_engine)
+        _register_repair_actions(_engine)
         logger.info("[WorkflowRunner] WorkflowEngine initialized and actions registered.")
     return _engine
 
@@ -200,6 +201,71 @@ def _register_default_actions(engine: WorkflowEngine):
     engine.register_action("await_operator_signoff", _dummy_action)
 
 
+def _register_repair_actions(engine: WorkflowEngine):
+    """Register Autonomous Self-Repair actions (Phase 13.04/28 Integration)."""
+
+    @traced("repair.build_case")
+    async def _repair_build_case(context: dict, **kw) -> dict:
+        from services.repair.repair_orchestrator import build_repair_case_step
+        return build_repair_case_step(context) or {}
+
+    @traced("repair.localize")
+    async def _repair_localize(context: dict, **kw) -> dict:
+        from services.repair.repair_orchestrator import localize_code_step
+        return localize_code_step(context) or {}
+
+    @traced("repair.plan")
+    async def _repair_plan(context: dict, **kw) -> dict:
+        from services.repair.repair_orchestrator import create_repair_plan_step
+        return create_repair_plan_step(context) or {}
+
+    @traced("repair.generate")
+    async def _repair_generate(context: dict, **kw) -> dict:
+        from services.repair.repair_orchestrator import generate_patch_candidate_step
+        return generate_patch_candidate_step(context) or {}
+
+    @traced("repair.sandbox")
+    async def _repair_sandbox(context: dict, **kw) -> dict:
+        from services.repair.repair_orchestrator import run_sandbox_verification_step
+        return run_sandbox_verification_step(context) or {}
+
+    @traced("repair.verify")
+    async def _repair_verify(context: dict, **kw) -> dict:
+        from services.repair.repair_orchestrator import run_verifier_mesh_step
+        return run_verifier_mesh_step(context) or {}
+
+    @traced("repair.score")
+    async def _repair_score(context: dict, **kw) -> dict:
+        from services.repair.repair_orchestrator import score_risk_step
+        return score_risk_step(context) or {}
+
+    @traced("repair.learn")
+    async def _repair_learn(context: dict, **kw) -> dict:
+        from services.repair.repair_orchestrator import update_learning_memory_step
+        return update_learning_memory_step(context) or {}
+
+    @traced("repair.prepare_pr")
+    async def _repair_prepare_pr(context: dict, **kw) -> dict:
+        from services.repair.github_pr_adapter import prepare_draft_pr
+        return prepare_draft_pr(context) or {}
+
+    @traced("taskflow.evaluate_gate")
+    async def _taskflow_evaluate_gate(context: dict, **kw) -> dict:
+        from services.taskflow.taskflow_gates import evaluate_gate
+        return evaluate_gate(context) or {}
+
+    engine.register_action("repair.build_case", _repair_build_case)
+    engine.register_action("repair.localize", _repair_localize)
+    engine.register_action("repair.plan", _repair_plan)
+    engine.register_action("repair.generate", _repair_generate)
+    engine.register_action("repair.sandbox", _repair_sandbox)
+    engine.register_action("repair.verify", _repair_verify)
+    engine.register_action("repair.score", _repair_score)
+    engine.register_action("repair.learn", _repair_learn)
+    engine.register_action("repair.prepare_pr", _repair_prepare_pr)
+    engine.register_action("taskflow.evaluate_gate", _taskflow_evaluate_gate)
+
+
 def build_project_workflow(
     project_id: str,
     title: str,
@@ -211,18 +277,11 @@ def build_project_workflow(
     existing_status: str | None = None,
 ) -> WorkflowInstance:
     """
-    Construct a WorkflowInstance for a project with the standard 3-step pipeline:
-      1. plan_subtasks
-      2. execute_subtasks  (depends on step 1)
-      3. synthesize_report (depends on step 2)
-
-    If `existing_status` is provided and equals an in-progress status, the
-    instance will be initialized to allow resumption.
+    Construct a WorkflowInstance using the WorkflowRegistry to define the step graph.
     """
-    step_plan_id   = str(uuid.uuid4())
-    step_exec_id   = str(uuid.uuid4())
-    step_synth_id  = str(uuid.uuid4())
-
+    from libs.workflow.registry import WorkflowRegistry
+    definition = WorkflowRegistry.get_definition(workflow_template)
+    
     ctx = {
         "project_id": project_id,
         "title": title,
@@ -233,29 +292,24 @@ def build_project_workflow(
         **(execution_context or {}),
     }
 
-    steps = [
-        WorkflowStep(
-            id=step_plan_id,
-            name="plan_subtasks",
-            action="plan_subtasks",
-            input_data={"title": title, "description": description},
-            dependencies=[],
-        ),
-        WorkflowStep(
-            id=step_exec_id,
-            name="execute_subtasks",
-            action="execute_subtasks",
-            input_data={},
-            dependencies=[step_plan_id],
-        ),
-        WorkflowStep(
-            id=step_synth_id,
-            name="synthesize_report",
-            action="synthesize_report",
-            input_data={},
-            dependencies=[step_exec_id],
-        ),
-    ]
+    steps = []
+    # Map step templates to real WorkflowStep objects
+    for t in definition.steps:
+        steps.append(
+            WorkflowStep(
+                id=str(uuid.uuid4()), # Step instance ID
+                name=t.id,            # Template-defined name
+                action=t.action,
+                condition=t.condition,
+                input_data={**t.config, "title": title, "description": description},
+                dependencies=t.depends_on, # Note: Needs ID mapping if dependencies refer to template IDs
+            )
+        )
+    
+    # Step ID Mapping (Fixing template ID references to instance IDs)
+    template_to_instance_id = {definition.steps[i].id: steps[i].id for i in range(len(steps))}
+    for step in steps:
+        step.dependencies = [template_to_instance_id[d] for d in step.dependencies if d in template_to_instance_id]
 
     status = WorkflowStatus.PENDING
     if existing_status and existing_status.lower() in ("running", "resuming"):
@@ -267,7 +321,7 @@ def build_project_workflow(
         status=status,
         steps=steps,
         context=ctx,
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
     )
 
 
@@ -329,3 +383,24 @@ class WorkflowRunner:
 
     async def run_project_workflow(self, **kwargs) -> WorkflowInstance:
         return await run_project_workflow(**kwargs)
+
+async def register_workflow_handlers(job_queue):
+    """Unify job handler registration for workflow execution across the platform."""
+    async def _project_handler(**payload):
+        p_id = payload.get("db_project_id") or payload.get("project_id")
+        logger.info(f"[JOB-QUEUE] EXEC: {p_id} ({payload.get('title')})")
+        try:
+            await run_project_workflow(
+                project_id=p_id,
+                title=payload.get("title", "Untitled"),
+                description=payload.get("description", ""),
+                workflow_template=payload.get("workflow_template", "default"),
+                quality_profile=payload.get("quality_profile", "standard"),
+                execution_context=payload.get("execution_context"),
+            )
+            logger.info(f"[JOB-QUEUE] SUCCESS: {p_id}")
+        except Exception as ex:
+            logger.error(f"[JOB-QUEUE] FAILED: {p_id} | Error: {ex}")
+
+    job_queue.register("run_project", _project_handler)
+    logger.info("[WorkflowRunner] Workflow handlers registered to job queue.")

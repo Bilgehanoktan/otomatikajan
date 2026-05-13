@@ -2,6 +2,12 @@
 
 import React from "react";
 import { ArrowLeft } from "lucide-react";
+import { safeFetchJson } from "@/lib/api";
+import {
+  compactRuntimeDiagnosticLabel,
+  RuntimeDiagnosticsResponse,
+  selectPrimaryRuntimeDiagnostic,
+} from "@/lib/runtimeDiagnostics";
 
 interface ResourceHeaderProps {
   title: string;
@@ -18,6 +24,36 @@ interface ResourceHeaderProps {
 }
 
 export function ResourceHeader({ title, subtitle, icon, badge, onBack, actions, staleMeta }: ResourceHeaderProps) {
+  const [runtimeDiagnostics, setRuntimeDiagnostics] = React.useState<RuntimeDiagnosticsResponse["diagnostics"]>([]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    const loadDiagnostics = async () => {
+      try {
+        const response = await safeFetchJson<RuntimeDiagnosticsResponse>("/api/v1/health/runtime-diagnostics", {
+          retries: 0,
+          useOfflineFallback: false,
+        });
+        if (!cancelled) {
+          setRuntimeDiagnostics(Array.isArray(response.diagnostics) ? response.diagnostics : []);
+        }
+      } catch {
+        if (!cancelled) {
+          setRuntimeDiagnostics([]);
+        }
+      }
+    };
+
+    void loadDiagnostics();
+    const interval = window.setInterval(() => void loadDiagnostics(), 30000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  const primaryDiagnostic = selectPrimaryRuntimeDiagnostic(runtimeDiagnostics);
+
   return (
     <header className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
       <div className="flex items-center gap-6">
@@ -53,6 +89,21 @@ export function ResourceHeader({ title, subtitle, icon, badge, onBack, actions, 
                <span className="px-2 py-0.5 rounded bg-orange-500/10 border border-orange-500/20 text-[9px] text-orange-400 font-black uppercase tracking-widest h-fit flex items-center gap-1 animate-pulse">
                   <span className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]" />
                   Degraded (T-{staleMeta.age_seconds}s)
+               </span>
+            )}
+            {primaryDiagnostic && (
+               <span
+                 title={primaryDiagnostic.recommended_action}
+                 className={`px-2 py-0.5 rounded border text-[9px] font-black uppercase tracking-widest h-fit flex items-center gap-1 ${
+                   primaryDiagnostic.severity === "error"
+                     ? "bg-red-500/10 border-red-500/25 text-red-400"
+                     : primaryDiagnostic.severity === "warning"
+                       ? "bg-amber-500/10 border-amber-500/25 text-amber-400"
+                       : "bg-cyan-500/10 border-cyan-500/25 text-cyan-300"
+                 }`}
+               >
+                  <span className="w-1.5 h-1.5 rounded-full bg-current shadow-[0_0_8px_currentColor]" />
+                  {compactRuntimeDiagnosticLabel(primaryDiagnostic)}
                </span>
             )}
           </div>

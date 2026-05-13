@@ -1,14 +1,16 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+# from sqlalchemy.ext.asyncio import AsyncSession
+# from sqlalchemy import select, func
 from typing import Dict, Any
-from libs.db.models.core_models import AgentNode, AgentStatus, FleetCluster, Project, ProjectStatus
+# from libs.db.models.core_models import AgentNode, AgentStatus, FleetCluster, Project, ProjectStatus
 
 class FleetObservability:
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: Any):
         self.db = db
 
     async def aggregate_fleet_metrics(self) -> Dict[str, Any]:
         """Collects real-time metrics for the entire fleet."""
+        from sqlalchemy import select, func
+        from libs.db.models.core_models import AgentNode, AgentStatus, FleetCluster, Project, ProjectStatus
         
         # 1. Agent Stats
         active_agents = await self.db.scalar(select(func.count(AgentNode.id)).where(AgentNode.status != AgentStatus.OFFLINE))

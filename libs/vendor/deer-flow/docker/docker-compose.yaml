@@ -36,7 +36,7 @@ services:
       - langgraph
     networks:
       - deer-flow
-    restart: unless-stopped
+    restart: no
 
   # ── Frontend: Next.js Production ───────────────────────────────────────────
   frontend:
@@ -53,7 +53,7 @@ services:
       - ../frontend/.env
     networks:
       - deer-flow
-    restart: unless-stopped
+    restart: no
 
   # ── Gateway API ────────────────────────────────────────────────────────────
   gateway:
@@ -96,7 +96,7 @@ services:
       - "host.docker.internal:host-gateway"
     networks:
       - deer-flow
-    restart: unless-stopped
+    restart: no
 
   # ── LangGraph Server ───────────────────────────────────────────────────────
   # TODO: switch to langchain/langgraph-api (licensed) once a license key is available.
@@ -145,7 +145,7 @@ services:
       - "host.docker.internal:host-gateway"
     networks:
       - deer-flow
-    restart: unless-stopped
+    restart: no
 
   # ── Sandbox Provisioner (optional, Kubernetes mode) ────────────────────────
   provisioner:
@@ -171,7 +171,7 @@ services:
       - "host.docker.internal:host-gateway"
     networks:
       - deer-flow
-    restart: unless-stopped
+    restart: no
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
       interval: 10s

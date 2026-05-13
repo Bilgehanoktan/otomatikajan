@@ -78,8 +78,13 @@ export function LiveEventStream({ apiUrl, height }: { apiUrl: string, height?: s
 
       try {
         const wsUrl = wsCandidates[candidateIndex];
-        const ws = new WebSocket(wsUrl);
+        const token = typeof window !== "undefined" ? localStorage.getItem("sqv_access_token") : null;
+        const finalWsUrl = token ? `${wsUrl}${wsUrl.includes("?") ? "&" : "?"}token=${token}` : wsUrl;
+        
+        console.debug(`[WS] Connecting to ${finalWsUrl}`);
+        const ws = new WebSocket(finalWsUrl);
         wsRef.current = ws;
+
 
         const openTimeout = setTimeout(() => { if (ws.readyState !== WebSocket.OPEN) ws.close(); }, 8000);
 

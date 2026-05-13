@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
 import { SystemHeader } from "./SystemHeader";
 import { CommandPalette } from "./dashboard/CommandPalette";
+import { RuntimeDiagnosticsHUD } from "./dashboard/RuntimeDiagnosticsHUD";
 
 import { useTranslations } from "next-intl";
 
@@ -91,6 +92,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
 
             {/* Global Services */}
             <CommandPalette />
+            <RuntimeDiagnosticsHUD />
         </div>
     );
 }

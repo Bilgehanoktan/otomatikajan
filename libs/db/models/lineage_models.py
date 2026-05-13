@@ -26,6 +26,7 @@ class DecisionLineage(Base):
     root_id = Column(GUID, nullable=True)
     
     trigger_event = Column(JSON, nullable=True) # The event data that triggered this
+    summary = Column(String, nullable=True) # Short human-readable summary
     rationale = Column(String, nullable=True) # AI reasoning
     confidence_score = Column(Float, default=1.0)
     outcome = Column(String, nullable=True) # e.g. "APPROVED", "REJECTED", "SUCCESS"

@@ -29,8 +29,9 @@ from libs.config import (
     INPROCESS_JOB_WORKERS_ENABLED,
 )
 from services.observability.logging import get_logger
-
+print("[DEBUG] Lifespan: getting logger...")
 logger = get_logger("infra.lifespan")
+print("[DEBUG] Lifespan: logger obtained.")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -71,26 +72,12 @@ async def lifespan(app: FastAPI):
                 getattr(job_queue, "supports_registration", False),
             )
             
-            async def _project_handler(**payload):
-                p_id = payload.get("db_project_id") or payload.get("project_id")
-                logger.info(f"[JOB-QUEUE] EXEC: {p_id} ({payload.get('title')})")
-                try:
-                    await run_project_workflow(
-                        project_id=p_id,
-                        title=payload.get("title", "Untitled"),
-                        description=payload.get("description", ""),
-                        workflow_template=payload.get("workflow_template", "default"),
-                        quality_profile=payload.get("quality_profile", "standard"),
-                    )
-                    logger.info(f"[JOB-QUEUE] SUCCESS: {p_id}")
-                except Exception as ex:
-                    logger.error(f"[JOB-QUEUE] FAILED: {p_id} | Error: {ex}")
-                    # Note: WorkflowEngine already handles DB error marking if it crashes inside engine.execute
+            from libs.workflow.runner import register_workflow_handlers
+            await register_workflow_handlers(job_queue)
 
             async def _dummy_handler(**payload):
                 logger.info(f"🔔 [JOB-QUEUE] Background task triggered (InProcess): {payload}")
 
-            job_queue.register("run_project", _project_handler)
             job_queue.register("send_webhook", _dummy_handler)
             job_queue.register("cleanup", _dummy_handler)
             
@@ -172,6 +159,37 @@ async def lifespan(app: FastAPI):
                 "[STANDBY] PRMR audit loop disabled for lightweight startup. "
                 "Use manual trigger flow when needed."
             )
+
+        # 5. Governance Background Orchestration (Phase 13.05)
+        async def _governance_orchestration_loop():
+            from services.governance.governor_drift_detector import GovernorDriftDetector
+            from services.governance.governor_chaos_lab import GovernorChaosLab
+            from libs.db.session import AsyncSessionLocal
+            
+            logger.info("[GOVERNANCE] Background Orchestration loop started.")
+            
+            while True:
+                try:
+                    # A. Drift Detection (Scan for policy divergence)
+                    async with AsyncSessionLocal() as session:
+                        await GovernorDriftDetector.run_drift_scan(session)
+                        # B. Periodic Maintenance or Drift Cleanup
+                        await session.commit()
+                except Exception as e:
+                    logger.warning(f"[GOVERNANCE-LOOP] Drift scan error: {e}")
+                
+                # C. Chaos Lab - Check for stale drills and cleanup
+                # In this version, we just ensure the module is 'hot'
+                
+                # Check interval: 5 minutes for drift detection in background
+                await asyncio.sleep(300)
+
+        if SCHEDULER_ENABLED:
+            asyncio.create_task(_governance_orchestration_loop())
+            logger.info("[STARTUP] Governance background orchestration loop initiated.")
+        else:
+            logger.info("[STARTUP] Governance background loops skipped (SCHEDULER_ENABLED=false).")
+
         logger.info("[STANDBY] System is in STANDBY MODE. Awaiting trigger: 'Hazır, PRMR-01 Faz 1’i yeniden başlat.'")
 
     except Exception as e:

@@ -11,7 +11,9 @@ async def test_quorum_requirement_registration():
         count=2,
         desc="Test requirement"
     )
-    assert req.required_quorum == 2
+    assert req.required_count == 2
+    assert req.component_type == "test_component"
+    assert req.risk_level == "HIGH"
     
     # Update
     req2 = await QuorumService.register_quorum_requirement(
@@ -19,7 +21,7 @@ async def test_quorum_requirement_registration():
         risk="HIGH",
         count=3
     )
-    assert req2.required_quorum == 3
+    assert req2.required_count == 3
 
 @pytest.mark.asyncio
 async def test_quorum_signoff_logic():

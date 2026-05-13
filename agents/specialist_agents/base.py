@@ -107,7 +107,7 @@ class BaseAgent(ABC):
         """
         
         try:
-            audit_res = await self.libs.llm.complete_task(
+            audit_res = await self.llm.complete_task(
                 agent_role=self.role,
                 prompt=audit_prompt,
                 system_prompt=f"Sen bir Öz-Denetleme (Reflective Reasoning) motorusun. Hatalarından ders alarak çıktını mükemmelleştirirsin. Rolün: {self.role}"

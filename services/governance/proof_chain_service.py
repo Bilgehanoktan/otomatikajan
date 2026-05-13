@@ -1,37 +1,38 @@
-
 import hashlib
 import json
 from typing import Any, Optional
 from datetime import datetime
-from libs.db.models.governance_models import GovernanceProofEventRecord, ProofEventType, GovernorDomain
+# from libs.db.models.governance_models import GovernanceProofEventRecord, ProofEventType, GovernorDomain
 from services.governance.proof_canonicalizer import canonicalize_payload
-from libs.db.repositories.governance_proof_repository import GovernanceProofEventRepo
-from sqlalchemy.orm import Session
-from sqlalchemy.ext.asyncio import AsyncSession
+# from libs.db.repositories.governance_proof_repository import GovernanceProofEventRepo
+# from sqlalchemy.orm import Session
+# from sqlalchemy.ext.asyncio import AsyncSession
 
 class ProofChainService:
-    def __init__(self, db: Session | AsyncSession):
+    def __init__(self, db: Any):
+        from libs.db.repositories.governance_proof_repository import GovernanceProofEventRepo
         self.db = db
         self.repo = GovernanceProofEventRepo(db)
 
     def compute_payload_hash(self, canonical_payload: str) -> str:
         return hashlib.sha256(canonical_payload.encode('utf-8')).hexdigest()
 
-    def get_last_chain_event(self) -> Optional[GovernanceProofEventRecord]:
+    def get_last_chain_event(self) -> Optional[Any]:
         return self.repo.get_last_event()
 
-    async def get_last_chain_event_async(self) -> Optional[GovernanceProofEventRecord]:
+    async def get_last_chain_event_async(self) -> Optional[Any]:
         return await self.repo.get_last_event_async()
 
     def append_event(self, 
-                     event_type: ProofEventType, 
-                     domain: Optional[GovernorDomain], 
+                     event_type: Any, 
+                     domain: Optional[Any], 
                      entity_id: Optional[str], 
                      payload: Any, 
-                     actor: Optional[str] = None) -> GovernanceProofEventRecord:
+                     actor: Optional[str] = None) -> Any:
         """
         Calculates hashes and appends a new event to the immutable chain (Sync).
         """
+        from libs.db.models.governance_models import GovernanceProofEventRecord
         canonical = canonicalize_payload(payload)
         payload_hash = self.compute_payload_hash(canonical)
         
@@ -58,14 +59,15 @@ class ProofChainService:
         return self.repo.save_event(event)
 
     async def append_event_async(self, 
-                                 event_type: ProofEventType, 
-                                 domain: Optional[GovernorDomain], 
+                                 event_type: Any, 
+                                 domain: Optional[Any], 
                                  entity_id: Optional[str], 
                                  payload: Any, 
-                                 actor: Optional[str] = None) -> GovernanceProofEventRecord:
+                                 actor: Optional[str] = None) -> Any:
         """
         Calculates hashes and appends a new event to the immutable chain (Async).
         """
+        from libs.db.models.governance_models import GovernanceProofEventRecord
         canonical = canonicalize_payload(payload)
         payload_hash = self.compute_payload_hash(canonical)
         

@@ -1,42 +1,22 @@
 @echo off
-chcp 65001 >nul 2>&1
-title Sovereign AGI - Sistem Durdurma
+title Sovereign AGI - Stop System
+echo [*] Sistem durduruluyor... Lutfen bekleyin.
+
+:: 1) Docker sureclerini durdur
+echo [*] Docker konteynerleri durduruluyor...
+docker compose --profile full-stack down >nul 2>&1
+
+:: 2) Lokal surecleri temizle
+echo [*] Lokal Python ve Node surecleri temizleniyor...
+powershell -Command "Get-Process -Name python,node,uvicorn -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue"
+
+:: 3) Portlari zorla serbest birak
+powershell -Command "$pids = netstat -ano | Select-String 'LISTENING' | ForEach-Object { $parts = $_.ToString().Split(' ', [System.StringSplitOptions]::RemoveEmptyEntries); $addr = $parts[1]; if ($addr -like '*:8000' -or $addr -like '*:3100' -or $addr -like '*:6379') { $parts[-1] } } | Select-Object -Unique; if ($pids) { Stop-Process -Id $pids -Force -ErrorAction SilentlyContinue }"
 
 echo.
-echo ====================================================
-echo    EGEMEN YAZ - Servisler Durduruluyor...
-echo ====================================================
+echo ==========================================
+echo    SISTEM DURDURULDU
+echo ==========================================
 echo.
-
-set "PROJECT_ROOT=%~dp0"
-
-set "PY_CMD=python"
-where python >nul 2>&1
-if %ERRORLEVEL% neq 0 (
-    set "PY_CMD=C:\Python314\python.exe"
-)
-
-where docker >nul 2>&1
-if %ERRORLEVEL% equ 0 (
-    docker info >nul 2>&1
-    if %ERRORLEVEL% equ 0 (
-        echo [DOCKER] Minimal ve full-stack compose servisleri durduruluyor...
-        docker compose -f "%PROJECT_ROOT%docker-compose.yml" --profile full-stack down --remove-orphans
-    )
-)
-
-echo [TEMIZLIK] Aktif servisler ve hayalet portlar temizleniyor...
-if exist "%PROJECT_ROOT%infra\port_surgeon.py" (
-    "%PY_CMD%" "%PROJECT_ROOT%infra\port_surgeon.py"
-) else (
-    echo [!] port_surgeon.py bulunamadi, manuel temizlik yapiliyor...
-    taskkill /F /IM node.exe /T >nul 2>&1
-    taskkill /F /IM uvicorn.exe /T >nul 2>&1
-    taskkill /F /IM python.exe /T >nul 2>&1
-)
-
-echo.
-echo ====================================================
-echo    KONTROL PANELI VE SERVISLER DURDURULDU.
-echo ====================================================
-timeout /t 3
+pause
+exit

@@ -2,12 +2,12 @@ import hashlib
 import json
 from typing import Dict, Any, Optional, List
 from datetime import datetime
-from sqlalchemy.ext.asyncio import AsyncSession
+# from sqlalchemy.ext.asyncio import AsyncSession
 from libs.db.session import get_db, get_db_ctx
-from libs.db.models.lineage_models import DecisionLineage, PolicyEvolution
+# from libs.db.models.lineage_models import DecisionLineage, PolicyEvolution
 from services.observability.logging import get_logger
 from services.governance.proof_fabric import ProofFabric
-from libs.db.models.governance_models import ProofEventType, GovernorDomain
+# from libs.db.models.governance_models import ProofEventType, GovernorDomain
 
 logger = get_logger("governance.lineage")
 
@@ -23,8 +23,8 @@ class LineageService:
         trigger_event: Optional[Dict[str, Any]] = None,
         confidence_score: float = 1.0,
         meta_data: Optional[Dict[str, Any]] = None,
-        db: Optional[AsyncSession] = None
-    ) -> DecisionLineage:
+        db: Optional[Any] = None
+    ) -> Any:
         """
         Otonom bir kararı soyağacına kaydeder. 
         Her karar bir 'integrity_hash' ile mühürlenir.
@@ -43,7 +43,7 @@ class LineageService:
 
     @staticmethod
     async def _log_decision_core(
-        db: AsyncSession,
+        db: Any,
         decision_type: str,
         component_name: str,
         rationale: str,
@@ -53,7 +53,9 @@ class LineageService:
         trigger_event: Optional[Dict[str, Any]] = None,
         confidence_score: float = 1.0,
         meta_data: Optional[Dict[str, Any]] = None
-    ) -> DecisionLineage:
+    ) -> Any:
+        from libs.db.models.lineage_models import DecisionLineage
+        from libs.db.models.governance_models import ProofEventType
         # Hash calculation for Proof Fabric
         parent_hash = ""
         if parent_id:
@@ -131,8 +133,8 @@ class LineageService:
         change_reason: Optional[str] = None,
         author_id: Optional[str] = "SYSTEM",
         decision_id: Optional[str] = None,
-        db: Optional[AsyncSession] = None
-    ) -> PolicyEvolution:
+        db: Optional[Any] = None
+    ) -> Any:
         """Yönetişim politikası değişikliğini kaydeder."""
         if db is None:
             async with get_db_ctx() as session:
@@ -148,14 +150,16 @@ class LineageService:
 
     @staticmethod
     async def _log_policy_core(
-        db: AsyncSession,
+        db: Any,
         policy_key: str,
         new_value: Any,
         previous_value: Optional[Any] = None,
         change_reason: Optional[str] = None,
         author_id: Optional[str] = "SYSTEM",
         decision_id: Optional[str] = None
-    ) -> PolicyEvolution:
+    ) -> Any:
+        from libs.db.models.lineage_models import PolicyEvolution
+        from libs.db.models.governance_models import ProofEventType, GovernorDomain
         evolution = PolicyEvolution(
             policy_key=policy_key,
             version="v" + str(int(datetime.now().timestamp())),
@@ -218,8 +222,8 @@ class LineageService:
         staleness_hours: float = 0.0,
         parent_id: Optional[str] = None,
         extra_meta: Optional[Dict[str, Any]] = None,
-        db: Optional[AsyncSession] = None
-    ) -> "DecisionLineage":
+        db: Optional[Any] = None
+    ) -> Any:
         meta = {
             "risk_class": risk_class,
             "pending_reason": pending_reason,
@@ -250,8 +254,8 @@ class LineageService:
         final_decision: Dict[str, Any],
         conflicts: List[Dict[str, Any]],
         constraints: List[str],
-        db: Optional[AsyncSession] = None
-    ) -> "DecisionLineage":
+        db: Optional[Any] = None
+    ) -> Any:
         meta = {
             "domain_decisions": domain_decisions,
             "conflicts": conflicts,
@@ -277,8 +281,8 @@ class LineageService:
         event_type: str,
         details: str,
         meta: Optional[Dict[str, Any]] = None,
-        db: Optional[AsyncSession] = None
-    ) -> "DecisionLineage":
+        db: Optional[Any] = None
+    ) -> Any:
         return await LineageService.log_decision(
             decision_type="GOVERNOR_RESILIENCE",
             component_name=f"governor:{domain.lower()}",
@@ -290,14 +294,14 @@ class LineageService:
         )
 
     @staticmethod
-    async def log_policy_evolution(
+    async def log_policy_evolution_decision(
         evolution_id: str,
         policy_key: str,
         event_type: str,
         details: str,
         meta: Optional[Dict[str, Any]] = None,
-        db: Optional[AsyncSession] = None
-    ) -> "DecisionLineage":
+        db: Optional[Any] = None
+    ) -> Any:
         return await LineageService.log_decision(
             decision_type="POLICY_EVOLUTION",
             component_name="governor_policy_engine",
@@ -315,8 +319,8 @@ class LineageService:
         severity: str,
         status: str,
         summary: str,
-        db: Optional[AsyncSession] = None
-    ) -> "DecisionLineage":
+        db: Optional[Any] = None
+    ) -> Any:
         return await LineageService.log_decision(
             decision_type="GOVERNOR_ALERT",
             component_name="governor_observability",
@@ -332,8 +336,8 @@ class LineageService:
         drift_type: str,
         score: float,
         summary: str,
-        db: Optional[AsyncSession] = None
-    ) -> "DecisionLineage":
+        db: Optional[Any] = None
+    ) -> Any:
         return await LineageService.log_decision(
             decision_type="GOVERNOR_DRIFT",
             component_name="governor_drift_detector",
@@ -351,10 +355,10 @@ class LineageService:
         details: str,
         meta: Optional[Dict[str, Any]] = None,
         actor: str = "FleetScheduler",
-        db: Optional[AsyncSession] = None
-    ) -> "DecisionLineage":
+        db: Optional[Any] = None
+    ) -> Any:
         """Logs fleet orchestration events (assignment, rebalance, etc)."""
-        
+        from libs.db.models.governance_models import ProofEventType
         # Map fleet string event to ProofEventType
         proof_map = {
             "AGENT_ASSIGNED": ProofEventType.AGENT_ASSIGNED,

@@ -22,6 +22,8 @@ export default async function RootLayout({
   const locale = await getLocale();
   const messages = await getMessages();
 
+
+
   return (
     <html lang={locale} className="min-h-screen antialiased dark">
       <body className="min-h-screen bg-[#0b0c10] text-[#c5c6c7]" suppressHydrationWarning>

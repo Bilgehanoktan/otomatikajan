@@ -2,12 +2,10 @@ import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any, Optional
-try:
-    from sqlalchemy import select, func, desc
-except ImportError:
-    pass
+# Move to local scopes to prevent Phase 13.04 startup hangs
+# from sqlalchemy import select, func, desc
 from libs.db.session import session_scope
-from libs.db.models import LLMCostLog, Project, TaskLog, ApiMetric
+# from libs.db.models import LLMCostLog, Project, TaskLog, ApiMetric
 from services.observability.logging import get_logger
 
 logger = get_logger("ceo.forecaster")
@@ -23,6 +21,9 @@ class CEOForecaster:
         """
         Son 7 günlük harcama trendine bakarak gelecek tahmini yapar.
         """
+        from sqlalchemy import select, func
+        from libs.db.models import LLMCostLog
+        
         async with session_scope() as db:
             # Son 7 günün günlük maliyetlerini al
             end_date = datetime.now(timezone.utc)
@@ -65,6 +66,9 @@ class CEOForecaster:
         """
         Hata oranlarında veya işlem hacminde ani sapmaları tespit eder.
         """
+        from sqlalchemy import select, func
+        from libs.db.models import Project, TaskLog
+        
         anomalies = []
         async with session_scope() as db:
             # Son 1 saatteki hata sayısı vs son 24 saat ortalaması
@@ -113,6 +117,9 @@ class CEOForecaster:
         """
         API uç noktalarındaki gecikme (latency) artışlarını tespit eder.
         """
+        from sqlalchemy import select, func
+        from libs.db.models import ApiMetric
+        
         anomalies = []
         async with session_scope() as db:
             now = datetime.now(timezone.utc)
@@ -148,6 +155,9 @@ class CEOForecaster:
         Kısa vadeli metrikleri uzun vadeli baseline ile karşılaştırarak 
         sinsi performans düşüşlerini (drift) tespit eder.
         """
+        from sqlalchemy import select, func
+        from libs.db.models import ApiMetric
+        
         anomalies = []
         async with session_scope() as db:
             now = datetime.now(timezone.utc)
@@ -182,9 +192,12 @@ class CEOForecaster:
         """
         Ajanların başarı oranı / maliyet rasyosunu hesaplar.
         """
+        from sqlalchemy import select, func
+        from libs.db.models import LLMCostLog
+        
         roi_data = []
         async with session_scope() as db:
-            from libs.db.models import CEOPerformanceLog
+            # from libs.db.models import CEOPerformanceLog # Not used in this snippet
             # Ajan bazlı başarıları ve toplam maliyetleri birleştir
             stmt = select(
                 LLMCostLog.agent_id,
@@ -207,6 +220,9 @@ class CEOForecaster:
         """
         Aşırı token tüketen 'chatty' ajanları tespit eder.
         """
+        from sqlalchemy import select, func
+        from libs.db.models import LLMCostLog
+        
         findings = []
         async with session_scope() as db:
             stmt = select(

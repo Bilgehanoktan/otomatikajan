@@ -11,7 +11,7 @@ const { Title, Text } = Typography;
 
 export default function GovernorInbox() {
   const t = useTranslations("dashboard");
-  const { tableProps, tableQueryResult } = useTable({
+  const { tableProps, tableQuery } = useTable({
     resource: "governance/governor/cases",
     syncWithLocation: true,
     pagination: {
@@ -45,9 +45,9 @@ export default function GovernorInbox() {
     Promise.all(promises).then(() => {
       message.success(`${selectedRowKeys.length} case için '${action}' uygulandı.`);
       setSelectedRowKeys([]);
-      tableQueryResult.refetch();
+      tableQuery.refetch();
     }).catch((err) => {
-      message.error("Toplu işlem sırasında hata oluştu: " + err.message);
+      message.error("Toplu işlem sırasında hata oluştu: " + (err as any).message);
     });
   };
 
@@ -112,7 +112,7 @@ export default function GovernorInbox() {
           </Button>
           <Button 
             icon={<SyncOutlined />} 
-            onClick={() => tableQueryResult.refetch()}
+            onClick={() => tableQuery.refetch()}
           >
             {t("governance.refresh", { defaultMessage: "Yenile" })}
           </Button>

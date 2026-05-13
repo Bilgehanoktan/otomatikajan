@@ -33,13 +33,13 @@ const { Title, Text } = Typography;
 
 export default function ProofFabricDashboard() {
   const eventsQuery = useCustom<any[]>({
-    url: "governance/inbox/governor/proof/events",
+    url: "governance/governor/proof/events",
     method: "get",
   });
   const { data: eventsData, isLoading: eventsLoading } = eventsQuery.query;
 
   const snapshotsQuery = useCustom<any[]>({
-    url: "governance/inbox/governor/proof/snapshots",
+    url: "governance/governor/proof/snapshots",
     method: "get",
   });
   const { data: snapshotsData, isLoading: snapshotsLoading } = snapshotsQuery.query;

@@ -45,7 +45,7 @@ function GovernanceLineageContent() {
 
     const fetchLineage = async () => {
         try {
-            const data = await safeFetchJson('/api/v1/governance/lineage?limit=50');
+            const data: any = await safeFetchJson('/api/v1/governance/lineage?limit=50');
             setLineage(Array.isArray(data) ? data : []);
         } catch (err) {
             console.error("Lineage verileri alınamadı", err);
@@ -231,7 +231,7 @@ function EliteLineageRow({ item, isLast }: { item: any, isLast: boolean }) {
                     </button>
                     <button 
                         onClick={() => {
-                            if (item.root_id) window.location.href = `/governance-lineage?root_id=${item.root_id}`;
+                            if (item.root_id) window.location.href = `/governance/lineage?root_id=${item.root_id}`;
                         }}
                         className="flex-1 w-full py-4 border border-[var(--primary)]/20 text-[var(--primary)]/70 hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
                     >

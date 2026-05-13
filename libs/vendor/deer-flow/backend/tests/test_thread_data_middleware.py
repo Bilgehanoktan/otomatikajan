@@ -1,7 +1,7 @@
 import pytest
 from langgraph.runtime import Runtime
 
-from deerflow.packages.orchestration.agi.middlewares.thread_data_middleware import ThreadDataMiddleware
+from deerflow.agents.middlewares.thread_data_middleware import ThreadDataMiddleware
 
 
 class TestThreadDataMiddleware:
@@ -19,7 +19,7 @@ class TestThreadDataMiddleware:
         middleware = ThreadDataMiddleware(base_dir=str(tmp_path), lazy_init=True)
         runtime = Runtime(context=None)
         monkeypatch.setattr(
-            "deerflow.packages.orchestration.agi.middlewares.thread_data_middleware.get_config",
+            "deerflow.agents.middlewares.thread_data_middleware.get_config",
             lambda: {"configurable": {"thread_id": "thread-from-config"}},
         )
 
@@ -33,7 +33,7 @@ class TestThreadDataMiddleware:
         middleware = ThreadDataMiddleware(base_dir=str(tmp_path), lazy_init=True)
         runtime = Runtime(context={})
         monkeypatch.setattr(
-            "deerflow.packages.orchestration.agi.middlewares.thread_data_middleware.get_config",
+            "deerflow.agents.middlewares.thread_data_middleware.get_config",
             lambda: {"configurable": {"thread_id": "thread-from-config"}},
         )
 
@@ -46,9 +46,10 @@ class TestThreadDataMiddleware:
     def test_before_agent_raises_clear_error_when_thread_id_missing_everywhere(self, tmp_path, monkeypatch):
         middleware = ThreadDataMiddleware(base_dir=str(tmp_path), lazy_init=True)
         monkeypatch.setattr(
-            "deerflow.packages.orchestration.agi.middlewares.thread_data_middleware.get_config",
+            "deerflow.agents.middlewares.thread_data_middleware.get_config",
             lambda: {"configurable": {}},
         )
 
         with pytest.raises(ValueError, match="Thread ID is required in runtime context or config.configurable"):
             middleware.before_agent(state={}, runtime=Runtime(context=None))
+
