@@ -388,7 +388,7 @@ async def create_project(
     dispatch_state = "enqueued"
     try:
         from services.orchestration.application.job_queue import job_queue
-        await job_queue.enqueue(
+        job = await job_queue.enqueue(
             "run_project",
             project_id=str(project.id),
             title=project.title,
@@ -396,6 +396,8 @@ async def create_project(
             workflow_template=project.workflow_template or "default",
             quality_profile=project.quality_profile or "standard",
         )
+        project.job_id = job.id
+        await db.commit()
     except Exception as e:
         logger.error(f"Failed to dispatch workflow {project.id}: {e}")
         dispatch_state = "deferred"

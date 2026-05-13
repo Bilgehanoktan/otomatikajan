@@ -6,7 +6,7 @@ from sqlalchemy import text
 async def fix():
     engine = get_engine()
     async with engine.begin() as conn:
-        # Check if workflow_events table exists
+        # 1. Check if workflow_events table exists
         result = await conn.execute(text(
             "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'workflow_events')"
         ))
@@ -25,28 +25,47 @@ async def fix():
                 await conn.run_sync(b.metadata.create_all)
             print("All tables created.")
         else:
-            result = await conn.execute(text(
-                "SELECT column_name FROM information_schema.columns WHERE table_name = 'workflow_events' ORDER BY ordinal_position"
-            ))
-            cols = [row[0] for row in result.fetchall()]
-            print(f"workflow_events columns: {cols}")
+            print("Base tables exist, checking for missing columns...")
 
-        # Check and fix agent_nodes columns
+        # 2. Fix agent_nodes columns
         result = await conn.execute(text(
-            "SELECT column_name FROM information_schema.columns WHERE table_name = 'agent_nodes' ORDER BY ordinal_position"
+            "SELECT column_name FROM information_schema.columns WHERE table_name = 'agent_nodes'"
         ))
         agent_cols = [row[0] for row in result.fetchall()]
-        print(f"agent_nodes columns: {agent_cols}")
-
-        missing_cols = {
+        
+        missing_agent_cols = {
             "success_count": "INTEGER DEFAULT 0",
             "failure_count": "INTEGER DEFAULT 0",
         }
-        for col_name, col_type in missing_cols.items():
+        for col_name, col_type in missing_agent_cols.items():
             if col_name not in agent_cols:
                 await conn.execute(text(f"ALTER TABLE agent_nodes ADD COLUMN {col_name} {col_type}"))
                 print(f"  Added agent_nodes.{col_name}")
 
+        # 3. Fix decision_lineage columns (CRITICAL FIX)
+        result = await conn.execute(text(
+            "SELECT column_name FROM information_schema.columns WHERE table_name = 'decision_lineage'"
+        ))
+        lineage_cols = [row[0] for row in result.fetchall()]
+        print(f"decision_lineage columns found: {len(lineage_cols)}")
+
+        missing_lineage_cols = {
+            "root_id": "UUID",
+            "trigger_event": "JSONB",
+            "summary": "TEXT",
+            "rationale": "TEXT",
+            "confidence_score": "DOUBLE PRECISION DEFAULT 1.0",
+            "outcome": "TEXT",
+            "integrity_hash": "VARCHAR(64)",
+            "meta_data": "JSONB DEFAULT '{}'::jsonb"
+        }
+        
+        for col_name, col_type in missing_lineage_cols.items():
+            if col_name not in lineage_cols:
+                print(f"  Fixing: Adding missing column decision_lineage.{col_name}")
+                await conn.execute(text(f"ALTER TABLE decision_lineage ADD COLUMN {col_name} {col_type}"))
+
     print("Schema fix complete.")
 
-asyncio.run(fix())
+if __name__ == "__main__":
+    asyncio.run(fix())

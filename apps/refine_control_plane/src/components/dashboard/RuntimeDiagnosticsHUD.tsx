@@ -16,7 +16,7 @@ import {
   Zap,
   Loader2
 } from "lucide-react";
-import { message, Tooltip } from "antd";
+import { App, Tooltip } from "antd";
 import { safeFetchJson } from "@/lib/api";
 import {
   RuntimeDiagnostic,
@@ -25,6 +25,7 @@ import {
 } from "@/lib/runtimeDiagnostics";
 
 export function RuntimeDiagnosticsHUD() {
+  const { message } = App.useApp();
   const apiUrl = useApiUrl();
   const [isOpen, setIsOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);

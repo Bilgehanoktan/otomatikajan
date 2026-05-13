@@ -3,9 +3,7 @@ import sys
 import os
 sys.path.append(os.getcwd())
 
-# Ensure environment is set
-os.environ["REDIS_URL"] = "redis://127.0.0.1:6380/0"
-os.environ["DATABASE_URL"] = "postgresql+asyncpg://postgres:postgres@127.0.0.1:5433/ai_company"
+# Environment will be picked up from libs.config or default session behavior
 
 from workers.workflow_worker.tasks.project_tasks import run_project_task
 from libs.db.session import AsyncSessionLocal
@@ -13,12 +11,15 @@ from libs.db.models.core_models import Project
 from sqlalchemy import select
 
 async def trigger():
+    from libs.db.session import DATABASE_URL
+    print(f"DEBUG: Using DATABASE_URL={DATABASE_URL}")
     async with AsyncSessionLocal() as db:
-        # Get a project with 0 steps
-        # Project [Workflow Beta] (ec68e46b-3fa4-4999-89c7-11c4aeff1650)
-        p_id = "ec68e46b-3fa4-4999-89c7-11c4aeff1650"
+
+        # Get a project that is stuck
+        p_id = "93be3249-2d45-40a6-96e2-eaa9dcf31312"
         res = await db.execute(select(Project).where(Project.id == p_id))
         project = res.scalar_one_or_none()
+
         
         if project:
             print(f"Triggering task for Project: {project.title} ({project.id})")

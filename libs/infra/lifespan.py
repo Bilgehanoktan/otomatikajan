@@ -96,6 +96,9 @@ async def lifespan(app: FastAPI):
                 getattr(job_queue, "backend_name", "unknown"),
                 RUNTIME_PROFILE,
             )
+            if JOB_QUEUE_HYDRATE_ON_STARTUP and hasattr(job_queue, "hydrate_from_db"):
+                asyncio.create_task(job_queue.hydrate_from_db())
+                logger.info("[STARTUP] Celery JobQueue hydration scheduled in background.")
 
         if APP_ENV == "development":
             if LOCAL_DEV_STRICT_MODE_APPLIED:

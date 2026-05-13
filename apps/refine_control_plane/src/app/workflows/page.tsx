@@ -49,7 +49,10 @@ export default function WorkflowList() {
     pending_approval: 0,
   });
   const [isLoading, setIsLoading] = React.useState(true);
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const hasLoadedRef = React.useRef(false);
+  const loadInFlightRef = React.useRef(false);
 
   const apiBase = React.useMemo(() => {
     const base = getApiBaseUrl();
@@ -57,12 +60,19 @@ export default function WorkflowList() {
     return base;
   }, []);
 
-  const load = React.useCallback(async () => {
-    setIsLoading(true);
+  const load = React.useCallback(async (options: { background?: boolean } = {}) => {
+    if (loadInFlightRef.current) return;
+
+    const isBackground = options.background || hasLoadedRef.current;
+    loadInFlightRef.current = true;
+    if (isBackground) {
+      setIsRefreshing(true);
+    } else {
+      setIsLoading(true);
+    }
     setError(null);
 
     try {
-      console.log("[Workflows] Fetching from:", `${apiBase}/workflows`);
       const [workflowResp, summaryResp] = await Promise.all([
         safeFetchJson<WorkflowListItem[] | { data?: WorkflowListItem[] }>(
           `${apiBase}/workflows?_end=10&_order=desc&_sort=started_at&_start=0`,
@@ -70,8 +80,6 @@ export default function WorkflowList() {
         ),
         safeFetchJson<WorkflowSummary>(`${apiBase}/workflows/stats/summary`, { useOfflineFallback: false }),
       ]);
-
-      console.log("[Workflows] Received response:", { workflowResp, summaryResp });
 
       const workflowItems = (Array.isArray(workflowResp)
         ? workflowResp
@@ -96,13 +104,18 @@ export default function WorkflowList() {
           workflowItems.filter((w) => w.status?.toLowerCase() === "pending_approval").length,
         __sqv_meta: summaryResp?.__sqv_meta,
       });
+      hasLoadedRef.current = true;
     } catch (err) {
       console.error("[Workflows] Load error:", err);
       const msg = err instanceof Error ? err.message : "Bilinmeyen hata";
-      setError(msg);
+      if (!hasLoadedRef.current) {
+        setError(msg);
+      }
       setDebugInfo(`ERROR: ${msg}`);
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
+      loadInFlightRef.current = false;
     }
   }, [apiBase]);
 
@@ -112,11 +125,18 @@ export default function WorkflowList() {
     void load();
   }, [load]);
 
+  React.useEffect(() => {
+    const interval = window.setInterval(() => {
+      void load({ background: true });
+    }, 10000);
+    return () => window.clearInterval(interval);
+  }, [load]);
+
   const activeJobs = summary.running;
   const staleMeta = summary.__sqv_meta;
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#060a12] p-8 text-gray-300 animate-in fade-in duration-1000">
+    <div className="min-h-screen overflow-x-hidden bg-[#060a12] p-8 text-gray-300">
       <ResourceHeader
         title={t("listTitle")}
         subtitle={t("listSubtitle")}
@@ -147,10 +167,11 @@ export default function WorkflowList() {
               <span className="hidden text-[10px] uppercase xl:inline">{t("create")}</span>
             </button>
             <button
-              onClick={() => void load()}
+              onClick={() => void load({ background: true })}
               className="rounded-2xl border border-white/5 bg-white/5 p-4 text-gray-500 transition-all hover:bg-white/10 hover:text-white active:scale-90"
+              aria-busy={isRefreshing}
             >
-              <RotateCcw size={18} />
+              <RotateCcw size={18} className={isRefreshing ? "animate-spin" : ""} />
             </button>
           </div>
         }

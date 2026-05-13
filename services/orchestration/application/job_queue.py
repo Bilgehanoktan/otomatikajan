@@ -559,12 +559,14 @@ class CeleryJobQueue(BaseQueueCapabilities):
         try:
             from libs.db.session import AsyncSessionLocal
             from libs.db.repositories.repository import ProjectRepository
+            from libs.db.models import ProjectStatus
             
             async with AsyncSessionLocal() as db:
                 active_statuses = ["PENDING", "RUNNING", "QUEUED", "RETRYING", "PAUSED"]
                 projects = await ProjectRepository.list_recent(db, limit=100)
                 
                 count = 0
+                redispatched = 0
                 for p in projects:
                     p_status = str(p.status.value if hasattr(p.status, "value") else p.status).upper()
                     if p_status in active_statuses:
@@ -581,8 +583,36 @@ class CeleryJobQueue(BaseQueueCapabilities):
                             # later will sync current Celery state via AsyncResult.
                             self._jobs[job.id] = job
                             count += 1
+
+                        should_redispatch = p_status in {"PENDING", "QUEUED", "RETRYING"}
+                        if p_status == "RUNNING" and not getattr(p, "started_at", None):
+                            should_redispatch = True
+                            p.status = ProjectStatus.QUEUED.value
+
+                        if should_redispatch:
+                            queued_job = await self.enqueue(
+                                "run_project",
+                                job_id=job_id,
+                                project_id=str(p.id),
+                                title=p.title,
+                                description=p.description or "",
+                                workflow_template=p.workflow_template or "default",
+                                quality_profile=p.quality_profile or "standard",
+                                acceptance_criteria=getattr(p, "acceptance_criteria", []) or [],
+                                execution_context=getattr(p, "execution_context", {}) or {},
+                            )
+                            if not p.job_id:
+                                p.job_id = queued_job.id
+                            redispatched += 1
+
+                if redispatched:
+                    await db.commit()
                 
-                _log.info(f"Successfully hydrated {count} tasks into CeleryJobQueue cache.")
+                _log.info(
+                    "Successfully hydrated %s tasks into CeleryJobQueue cache; redispatched %s queued tasks.",
+                    count,
+                    redispatched,
+                )
                 return count
         except Exception as e:
             _log.error(f"Failed to hydrate Celery tasks: {e}")

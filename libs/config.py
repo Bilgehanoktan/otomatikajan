@@ -11,6 +11,15 @@ Kullanım:
 import os
 
 
+def _is_container_runtime() -> bool:
+    return os.path.exists("/.dockerenv") or os.getenv("DOCKER_CONTAINER", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
 def _env_bool(name: str, default: bool) -> bool:
     raw = os.getenv(name)
     if raw is None or not raw.strip():
@@ -91,12 +100,13 @@ def validate_production_config():
 try:
     from dotenv import load_dotenv
     _base_dir = os.path.dirname(os.path.abspath(__file__))
+    _dotenv_override = not _is_container_runtime()
     # Öncelik: .env -> .env.local (Host mode)
     if os.path.exists(".env"):
-        load_dotenv(".env", override=True)
+        load_dotenv(".env", override=_dotenv_override)
     if os.path.exists(".env.local"):
         try:
-            load_dotenv(".env.local", override=True) # local SHOULD override environment
+            load_dotenv(".env.local", override=_dotenv_override) # local SHOULD override environment outside Docker
         except UnicodeDecodeError:
             # .env.local dosyası bozuk encoding ile kaydedilmiş (UTF-16 BOM vb.)
             # Sessizce atla, .env yeterli olacak.
@@ -106,7 +116,7 @@ try:
     _temp_env = os.getenv("APP_ENV", os.getenv("ENVIRONMENT", "development")).lower()
     if "prod" not in _temp_env and not os.path.exists(".env"):
         if os.path.exists(os.path.join(_base_dir, ".env.example")):
-            load_dotenv(os.path.join(_base_dir, ".env.example"), override=True) # SRE Hardening: override=True
+            load_dotenv(os.path.join(_base_dir, ".env.example"), override=_dotenv_override) # SRE Hardening: host fallback
 except ImportError:
     pass
 

@@ -15,16 +15,16 @@ logger = logging.getLogger(__name__)
 
 # Top-level imports for IDE support and type-safety
 from libs.db.session import AsyncSessionLocal
-# from libs.db.models.core_models import (
-#     Project, SovereignGoal, OperationalIncident, ApprovalRequest, 
-#     SystemImprovement, ImprovementOpportunity, CEOSuggestedTask, 
-#     LLMCostLog, SovereignEvidence, CEODecision, FederationTrust
-# )
+from libs.db.models.core_models import (
+    Project, SovereignGoal, OperationalIncident, ApprovalRequest, 
+    SystemImprovement, ImprovementOpportunity, CEOSuggestedTask, 
+    LLMCostLog, SovereignEvidence, CEODecision, FederationTrust
+)
 from services.governance.lineage_service import LineageService
-# from libs.db.models.lineage_models import DecisionLineage, PolicyEvolution
-# from libs.db.models.governance_models import ProductionSignoff, ValidationResult, ValidationType
-# from libs.db.models.learning_models import ErrorFingerprint
-# from sqlalchemy import select, func, desc
+from libs.db.models.lineage_models import DecisionLineage, PolicyEvolution
+from libs.db.models.governance_models import ProductionSignoff, ValidationResult, ValidationType
+from libs.db.models.learning_models import ErrorFingerprint
+from sqlalchemy import select, func, desc
 from datetime import datetime, timezone, timedelta
 
 @router.get("/analytics/costs/summary")
@@ -33,8 +33,6 @@ async def get_cost_summary():
     Returns summarized cost data for the Sovereignty Runway dashboard.
     Moved from legacy bridge_router.
     """
-    from sqlalchemy import select, func
-    from libs.db.models.core_models import LLMCostLog, Project
     async with AsyncSessionLocal() as db:
         try:
             # 1. Total Cost (Last 30 days)
@@ -239,10 +237,6 @@ async def get_governance_status():
     """
     is_in_standby = StandbyManager.is_in_standby()
     
-    from sqlalchemy import select, func
-    from libs.db.models.learning_models import ErrorFingerprint
-    from libs.db.models.governance_models import SystemImprovement
-    
     async with AsyncSessionLocal() as db:
         try:
             # Count active fingerprints
@@ -251,7 +245,6 @@ async def get_governance_status():
             i_count = (await db.execute(select(func.count(SystemImprovement.id)).where(SystemImprovement.status == "pending"))).scalar() or 0
             
             # Count active drills (Real query)
-            from libs.db.models.governance_models import ValidationResult, ValidationType
             drill_count_q = select(func.count()).select_from(ValidationResult).filter(
                 ValidationResult.validation_type == ValidationType.DRILL,
                 ValidationResult.status == "RUNNING"
@@ -1046,23 +1039,24 @@ async def list_drills(
             ) for i in items
         ]
 
+class DrillTriggerRequest(BaseModel):
+    scenario: str
+
 @router.post("/drills/trigger")
-async def trigger_drill_endpoint(scenario: str):
+async def trigger_drill_endpoint(data: DrillTriggerRequest):
     from services.training.drill_engine import DrillEngine
     from services.repair.repair_orchestrator import RepairOrchestrator
     
     orch = RepairOrchestrator()
     engine = DrillEngine(orch)
     
-    result = await engine.run_governance_drill(scenario)
+    result = await engine.run_governance_drill(data.scenario)
     return result
 
 @router.get("/compliance/policies", response_model=List[RetentionPolicyOut])
 async def list_retention_policies(response: Response):
-    from libs.db.session import AsyncSessionLocal
     from libs.db.models.compliance_models import RetentionPolicy
-    from sqlalchemy import select
-
+    
     async with AsyncSessionLocal() as db:
         res = await db.execute(select(RetentionPolicy))
         items = res.scalars().all()

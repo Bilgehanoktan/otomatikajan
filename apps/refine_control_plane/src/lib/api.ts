@@ -266,38 +266,59 @@ export async function safeFetchJson<T = unknown>(url: string, options: SafeFetch
 /**
  * Standard fetch adapter that wraps safeFetchJson for standard data-providers (Refine).
  */
-export async function safeFetchAdapter(url: string, options: RequestInit = {}): Promise<Response> {
+export async function safeFetchAdapter(url: string, options: SafeFetchOptions = {}): Promise<Response> {
     try {
-        const data = await safeFetchJson(url, options as SafeFetchOptions);
-
-        // Return a polyfilled Response object that Refine expectations
-        return new Response(JSON.stringify(data), {
-            status: 200,
-            statusText: "OK",
-            headers: {
-                "Content-Type": "application/json",
-                // Pass back the stale flag if exists so the data-provider doesn't block it
-                "X-Sqv-Stale": (data as any)?.__sqv_meta?.is_stale ? "true" : "false"
-            }
-        });
-    } catch (err: unknown) {
-        if (err instanceof ApiResponseError) {
-            return new Response(JSON.stringify({
-                error: "api_error",
-                detail: err.detail
-            }), {
-                status: err.status,
-                statusText: err.status === 401 ? "Unauthorized" : err.status === 403 ? "Forbidden" : "API Error",
-                headers: { "Content-Type": "application/json" }
-            });
+        const { retries = 2, useOfflineFallback = true, skipAuthRefresh = false, ...init } = options;
+        
+        // Phase 12.1: We need the actual Response object to extract headers for Refine (x-total-count)
+        let finalUrl = url;
+        if (typeof window !== "undefined" && !url.startsWith("http") && !url.startsWith("/api/")) {
+            const base = getApiBaseUrl();
+            finalUrl = `${base}${url.startsWith("/") ? "" : "/"}${url}`;
         }
-        // If everything fails, return a 500 JSON response instead of a raw crash
+        finalUrl = normalizeApiRequestUrl(finalUrl);
+
+        const fetchInit: RequestInit = { 
+            ...init, 
+            credentials: "include" as RequestCredentials,
+            cache: "no-store"
+        };
+        
+        if (typeof window !== "undefined") {
+            const token = localStorage.getItem("sqv_access_token");
+            const headers = new Headers(fetchInit.headers || {});
+            if (token && !headers.has("Authorization")) {
+                headers.set("Authorization", `Bearer ${token}`);
+            }
+            if (fetchInit.body && !headers.has("Content-Type")) {
+                headers.set("Content-Type", "application/json");
+            }
+            fetchInit.headers = headers;
+        }
+
+        const res = await fetch(finalUrl, fetchInit);
+        
+        if (!res.ok) {
+            if (res.status === 401 && !skipAuthRefresh && typeof window !== "undefined") {
+                const refreshed = await tryRefreshSession();
+                if (refreshed) return safeFetchAdapter(url, { ...options, skipAuthRefresh: true });
+            }
+            const raw = await res.text();
+            let detail = raw;
+            try { const jsonErr = JSON.parse(raw); detail = jsonErr.detail || jsonErr.msg || raw; } catch { }
+            throw new ApiResponseError(res.status, normalizeApiErrorDetail(res.status, detail));
+        }
+
+        return res; // Return the actual response so headers are preserved
+    } catch (err: unknown) {
+        const status = err instanceof ApiResponseError ? err.status : 500;
+        const detail = err instanceof Error ? err.message : String(err);
+        
         return new Response(JSON.stringify({
-            error: "internal_server_error",
-            detail: (err as any).message
+            error: status === 500 ? "internal_server_error" : "api_error",
+            detail: detail
         }), {
-            status: 500,
-            statusText: "Internal Server Error",
+            status: status,
             headers: { "Content-Type": "application/json" }
         });
     }

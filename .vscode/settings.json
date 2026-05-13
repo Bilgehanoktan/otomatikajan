@@ -1,8 +1,10 @@
 {
     "robotcode.disableExtension": true,
     "python.analysis.extraPaths": [
-        "./",
-        "e:/ai_company_faz12.1"
+        "E:\\ai_company_faz12.1",
+        "E:\\ai_company_faz12.1\\libs\\vendor\\deer-flow\\backend\\packages\\harness",
+        "E:\\ai_company_faz12.1\\libs\\vendor\\deer-flow\\backend",
+        "E:\\ai_company_faz12.1\\libs\\vendor\\deer-flow\\backend\\.venv\\lib\\python3.12\\site-packages"
     ],
     "python.analysis.autoSearchPaths": true,
     "python.analysis.useLibraryCodeForTypes": true,

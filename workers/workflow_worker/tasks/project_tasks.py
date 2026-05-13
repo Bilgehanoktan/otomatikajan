@@ -66,22 +66,32 @@ class _WorkflowResult:
 )
 def run_project_task(
     self: Task, 
-    db_project_id: str, 
-    title: str, 
-    description: str, 
+    db_project_id: str = None, 
+    title: str = "", 
+    description: str = "", 
     job_id: str = "", 
     user_id: str = "",
     workflow_template: str = "default",
     quality_profile: str = "standard",
     acceptance_criteria: list | None = None,
     execution_context: dict | None = None,
-    db_subtask_map: dict | None = None
+    db_subtask_map: dict | None = None,
+    project_id: str = None,  # Faz 13.04: Alias support
+    **kwargs                 # Guard against unexpected payload fields
 ):
     """
     Projeyi arka planda çalıştır.
     Durum makinesini işletir (pending -> running -> done/failed).
     Orchestrator ProjectTask döner — FinalReport DEĞİL.
     """
+    # ── Parametre Normalizasyonu ──────────────────────────
+    # API project_id gönderirken, worker db_project_id bekliyor olabilir.
+    db_project_id = db_project_id or project_id or kwargs.get("project_id")
+    
+    if not db_project_id:
+        logger.error("run_project_task: db_project_id veya project_id eksik!")
+        return {"status": "error", "reason": "missing_project_id"}
+
     import uuid as _uuid
     from libs.observability.middleware import extract_celery_context
     from libs.observability.tracer import span

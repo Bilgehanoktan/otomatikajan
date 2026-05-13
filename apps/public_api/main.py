@@ -27,8 +27,15 @@ print("[DEBUG] Environment loading...")
 # ── .env otomatik yükle ───────────────────────────────────
 try:
     from dotenv import load_dotenv as _load_dotenv
+    _in_container = os.path.exists("/.dockerenv") or os.getenv("DOCKER_CONTAINER", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+    _dotenv_override = not _in_container
     if os.path.exists(".env"):
-        _load_dotenv(".env", override=True)
+        _load_dotenv(".env", override=_dotenv_override)
     if os.path.exists(".env.local"):
         try:
             _load_dotenv(".env.local", override=False)
@@ -39,7 +46,7 @@ try:
     env = os.getenv("APP_ENV", os.getenv("ENVIRONMENT", "development"))
     if env != "production" and not os.path.exists(".env"):
         if os.path.exists(".env.example"):
-            _load_dotenv(".env.example", override=True)
+            _load_dotenv(".env.example", override=_dotenv_override)
 except ImportError:
     pass
 

@@ -279,6 +279,7 @@ export default function RepairLabPage() {
 }
 
 function TaskflowRunsPanel({ runs, loading }: { runs: TaskflowRun[]; loading: boolean }) {
+  const t = useTranslations("repair_lab");
   const toneFor = (status: string, gateWaiting: boolean) => {
     if (gateWaiting || status === "WAITING_HUMAN") return "border-amber-400/15 bg-amber-500/5 text-amber-300";
     if (status === "DRAFT_PR_READY" || status === "COMPLETED") return "border-green-400/15 bg-green-500/5 text-green-300";
@@ -371,6 +372,7 @@ function TaskflowRunsPanel({ runs, loading }: { runs: TaskflowRun[]; loading: bo
 }
 
 function SelfRepairRunsPanel({ runs, loading }: { runs: SelfRepairRun[]; loading: boolean }) {
+  const t = useTranslations("repair_lab");
   const toneFor = (status: string) => {
     if (status === "DRAFT_PR_READY" || status === "SANDBOX_PASSED") return "border-green-400/15 bg-green-500/5 text-green-300";
     if (status === "HUMAN_APPROVAL_REQUIRED" || status === "QUORUM_REQUIRED") return "border-amber-400/15 bg-amber-500/5 text-amber-300";
@@ -450,6 +452,7 @@ function SelfRepairRunsPanel({ runs, loading }: { runs: SelfRepairRun[]; loading
 }
 
 function RuntimeRepairTimeline({ improvements, loading }: { improvements: RepairImprovement[]; loading: boolean }) {
+  const t = useTranslations("repair_lab");
   const runtimeItems = improvements.filter(
     (item) => item.decision_type === "RUNTIME_REPAIR_ATTEMPT" || item.diagnostic_id,
   );
