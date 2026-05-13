@@ -13,7 +13,7 @@ const backendOrigin = (
 
 const nextConfig: NextConfig = {
   // output: 'export', // Comment out for local dev if routing is needed
-  trailingSlash: true,
+  trailingSlash: false,
   allowedDevOrigins: ["127.0.0.1", "localhost"],
   images: {
     unoptimized: true,
@@ -27,8 +27,36 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
+        source: '/api/v1/:path*/',
+        destination: `${backendOrigin}/api/v1/:path*`,
+      },
+      {
         source: '/api/v1/:path*',
         destination: `${backendOrigin}/api/v1/:path*`,
+      },
+      {
+        source: '/docs',
+        destination: `${backendOrigin}/docs`,
+      },
+      {
+        source: '/redoc',
+        destination: `${backendOrigin}/redoc`,
+      },
+      {
+        source: '/openapi.json',
+        destination: `${backendOrigin}/openapi.json`,
+      },
+      {
+        source: '/api/mcp/:path*',
+        destination: `${backendOrigin}/api/mcp/:path*`,
+      },
+      {
+        source: '/api/agents/:path*',
+        destination: `${backendOrigin}/api/agents/:path*`,
+      },
+      {
+        source: '/api/models/:path*',
+        destination: `${backendOrigin}/api/models/:path*`,
       },
       {
         source: '/ws/:path*',

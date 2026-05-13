@@ -13,15 +13,50 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
-import uuid
-
 from libs.db.session import get_db
 from services.auth.jwt_auth import require_permission
 
 router = APIRouter(tags=["Workflow Control Plane"])
 logger = logging.getLogger("services.workflow_api.router")
 _EPHEMERAL_WORKFLOWS: Dict[str, Dict[str, Any]] = {}
+
+
+def _workflow_template_step_count(workflow_template: str | None) -> int:
+    from libs.workflow.registry import WorkflowRegistry
+
+    definition = WorkflowRegistry.get_definition(workflow_template or "default")
+    return len(definition.steps)
+
+
+def _planned_steps_for_template(workflow_template: str | None) -> List["StepOut"]:
+    from libs.workflow.registry import WorkflowRegistry
+
+    definition = WorkflowRegistry.get_definition(workflow_template or "default")
+    return [
+        StepOut(
+            id=template.id,
+            name=template.id,
+            action=template.action,
+            status="pending",
+            retries=0,
+            max_retries=3,
+            dependencies=template.depends_on,
+            output_summary=template.description,
+        )
+        for template in definition.steps
+    ]
+
+
+def _is_active_workflow_status(status_value: str | None) -> bool:
+    return str(status_value or "").lower() in {
+        "queued",
+        "pending",
+        "running",
+        "resuming",
+        "replaying",
+        "waiting_approval",
+        "pending_approval",
+    }
 
 
 # ── Response Schemas ──────────────────────────────────────────────────────────
@@ -187,6 +222,7 @@ def _build_ephemeral_workflow(
     status: str = "queued",
 ) -> Dict[str, Any]:
     now = datetime.now(timezone.utc)
+    planned_steps = _planned_steps_for_template(req.workflow_template or "default")
     return {
         "id": workflow_id,
         "title": req.title,
@@ -200,11 +236,11 @@ def _build_ephemeral_workflow(
         "started_at": None,
         "completed_at": None,
         "progress_pct": 0,
-        "total_steps": 0,
+        "total_steps": len(planned_steps),
         "completed_steps": 0,
         "failed_steps": 0,
         "has_active_workflow": True,
-        "steps": [],
+        "steps": planned_steps,
         "history": [],
         "payload": {
             "description": req.description,
@@ -218,14 +254,9 @@ def _build_ephemeral_workflow(
 
 
 def _prefer_ephemeral_workflows() -> bool:
-    strategy = (os.getenv("LOCAL_DEV_DB_STRATEGY", "") or "").strip().lower()
-    runtime_profile = (os.getenv("RUNTIME_PROFILE", "") or "").strip().lower()
-    queue_backend = (os.getenv("QUEUE_BACKEND", "") or "").strip().lower()
-    return (
-        strategy == "sqlite-fallback"
-        or runtime_profile == "local-dev"
-        or queue_backend == "inprocess"
-    )
+    # Ephemeral workflows are intentionally opt-in. The default API contract must
+    # persist created workflows so list/detail/approve/cancel operate on one store.
+    return os.getenv("EPHEMERAL_WORKFLOWS_ENABLED", "false").lower() == "true"
 
 
 def _map_workflow(project, subtasks) -> WorkflowOut:
@@ -248,6 +279,9 @@ def _map_workflow(project, subtasks) -> WorkflowOut:
             dependencies=st.dependencies if isinstance(st.dependencies, list) else [],
             output_summary=output_summary,
         ))
+
+    if not steps:
+        steps = _planned_steps_for_template(project.workflow_template or "default")
 
     p_status = project.status.value if hasattr(project.status, "value") else str(project.status)
     ctx_keys = list((project.execution_context or {}).keys())
@@ -317,28 +351,28 @@ async def create_project(
     identity: Dict[str, Any] = Depends(require_permission("workflow.create"))
 ):
     """
-    Manually create a new project/workflow and trigger its execution.
+    Manually create a new project/workflow and trigger its execution using the unified runner.
     """
     from libs.db.repositories.repository import ProjectRepository
     from libs.db.models.core_models import ProjectSource, TaskPriority
-    # Normalization Guard: Protect against case-insensitive and localized inputs
+
+    # Normalization Guard
     p_val = (req.priority or "MEDIUM").upper().strip()
-    mapping = {
-        "YÜKSEK": "HIGH", "YUKSEK": "HIGH",
-        "ORTA": "MEDIUM", "DÜŞÜK": "LOW", "DUSUK": "LOW",
-        "KRİTİK": "CRITICAL", "KRITIK": "CRITICAL"
-    }
+    mapping = {"YÜKSEK": "HIGH", "ORTA": "MEDIUM", "DÜŞÜK": "LOW", "KRİTİK": "CRITICAL"}
     normalized_priority = mapping.get(p_val, p_val)
-    
-    # Ensure it's a valid enum member name
     if normalized_priority not in [m.name for m in TaskPriority]:
         normalized_priority = "MEDIUM"
 
     if _prefer_ephemeral_workflows():
         workflow_id = str(uuid.uuid4())
         _EPHEMERAL_WORKFLOWS[workflow_id] = _build_ephemeral_workflow(workflow_id, req)
-        logger.warning("Workflow %s created in ephemeral degraded mode.", workflow_id)
-        return {"id": workflow_id, "status": "queued"}
+        logger.warning("Workflow %s created in memory (ephemeral mode).", workflow_id)
+        return {
+            "id": workflow_id,
+            "status": "queued",
+            "dispatch_state": "enqueued",
+            "workflow_template": req.workflow_template
+        }
 
     project = await ProjectRepository.create(
         db,
@@ -350,18 +384,28 @@ async def create_project(
         source=ProjectSource.CONTROL_PLANE
     )
     await db.commit()
-    dispatch_payload = {
-        "project_id": str(project.id),
-        "title": project.title,
-        "description": project.description or "",
-        "workflow_template": project.workflow_template or "default",
-        "quality_profile": project.quality_profile or "standard",
+
+    dispatch_state = "enqueued"
+    try:
+        from services.orchestration.application.job_queue import job_queue
+        await job_queue.enqueue(
+            "run_project",
+            project_id=str(project.id),
+            title=project.title,
+            description=project.description or "",
+            workflow_template=project.workflow_template or "default",
+            quality_profile=project.quality_profile or "standard",
+        )
+    except Exception as e:
+        logger.error(f"Failed to dispatch workflow {project.id}: {e}")
+        dispatch_state = "deferred"
+
+    return {
+        "id": str(project.id),
+        "status": project.status.value.lower() if hasattr(project.status, "value") else str(project.status).lower(),
+        "dispatch_state": dispatch_state,
+        "workflow_template": project.workflow_template or "default"
     }
-
-    # Queue dispatch should never block the HTTP response path in local mode.
-    asyncio.create_task(_dispatch_project_job(dispatch_payload))
-
-    return {"id": str(project.id), "status": "queued"}
 
 
 @router.get("", response_model=List[ProjectListItem])
@@ -432,6 +476,8 @@ async def list_projects(
             )
             row = res_counts.one()
             total, completed, failed = row.total, row.completed, row.failed
+            if total == 0:
+                total = _workflow_template_step_count(p.workflow_template or "default")
             progress = int((completed / total * 100) if total > 0 else 0)
             p_status = p.status.value if hasattr(p.status, "value") else str(p.status)
 
@@ -447,7 +493,7 @@ async def list_projects(
                 total_steps=total,
                 completed_steps=completed,
                 failed_steps=failed,
-                has_active_workflow=p_status.lower() in ("running", "pending", "resuming"),
+                has_active_workflow=_is_active_workflow_status(p_status),
             ))
         for workflow in _EPHEMERAL_WORKFLOWS.values():
             items.insert(0, ProjectListItem(
@@ -481,7 +527,7 @@ async def get_workflow(project_id: str):
             workflow_type=workflow["workflow_type"],
             status=workflow["status"],
             source=workflow["source"],
-            steps=[],
+            steps=workflow["steps"] or _planned_steps_for_template(workflow["workflow_type"]),
             context_keys=workflow["context_keys"],
             payload=workflow["payload"],
             created_at=workflow["created_at"],
@@ -629,11 +675,16 @@ async def replay_workflow(
 
 @router.post("/{project_id}/cancel")
 async def cancel_workflow(project_id: str):
-    """Cancel a running or pending workflow."""
+    """Cancel a running or pending workflow by updating status and notifying the queue."""
     from libs.db.session import AsyncSessionLocal
     from libs.db.models.core_models import Project, ProjectStatus
     from libs.db.repositories.repository import ProjectRepository
+    from services.orchestration.application.job_queue import job_queue
     from sqlalchemy import select
+
+    if project_id in _EPHEMERAL_WORKFLOWS:
+        _EPHEMERAL_WORKFLOWS[project_id]["status"] = "cancelled"
+        return {"message": "Ephemeral workflow cancelled", "project_id": project_id}
 
     async with AsyncSessionLocal() as db:
         uid = await _resolve_project_id(db, project_id)
@@ -650,7 +701,14 @@ async def cancel_workflow(project_id: str):
         )
         await db.commit()
 
-    return {"message": "Workflow cancelled", "project_id": project_id}
+        # Request cancellation from the job queue if active
+        try:
+            if hasattr(job_queue, "request_cancel"):
+                await job_queue.request_cancel(str(project.id))
+        except Exception as e:
+            logger.warning(f"Failed to request job cancellation for {project.id}: {e}")
+
+    return {"message": "Workflow cancelled and queue notified.", "project_id": project_id}
 
 
 @router.post("/{project_id}/approve")

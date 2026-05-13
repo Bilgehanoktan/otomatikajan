@@ -5,9 +5,12 @@ Exposes Laboratory, Tournament, and Tuning data to the Refine Dashboard.
 """
 from __future__ import annotations
 import asyncio
+import json
+import logging
 import uuid
 from datetime import datetime
-from typing import List, Dict, Any, Optional
+from pathlib import Path
+from typing import Any, List, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Body
 from pydantic import BaseModel
@@ -20,14 +23,16 @@ from libs.db.models.repair_models import (
     RepairCandidate,
     VerifierResult,
     RepairMemory,
-    RepairPattern,
-    SelfTuningSuggestion
+    SelfTuningSuggestion,
 )
 from libs.db.models.learning_models import StrategyMemory, NegativePatternMemory
 from services.orchestration.application.sovereign_cortex import get_sovereign_cortex
 from services.improve.repair_bench import RepairBenchService
 
 router = APIRouter(tags=["Autonomous Repair Lab"])
+logger = logging.getLogger(__name__)
+REPO_ROOT = Path(__file__).resolve().parents[2]
+REPAIR_OUTPUTS_DIR = REPO_ROOT / "repair_outputs"
 
 # ── Response Schemas ──────────────────────────────────────────────────────────
 
@@ -63,6 +68,98 @@ class TuningSuggestionOut(BaseModel):
 class LabRunRequest(BaseModel):
     diagnostic_id: Optional[str] = None
     source: Optional[str] = "repair_lab"
+
+
+def _load_self_repair_reports(limit: int = 20) -> List[Dict[str, Any]]:
+    if not REPAIR_OUTPUTS_DIR.exists():
+        return []
+
+    reports: List[Dict[str, Any]] = []
+    for report_path in REPAIR_OUTPUTS_DIR.glob("*/repair_report.json"):
+        try:
+            raw = json.loads(report_path.read_text(encoding="utf-8"))
+            repair_case = raw.get("repair_case") or {}
+            risk_decision = raw.get("risk_decision") or {}
+            sandbox_result = raw.get("sandbox_result") or {}
+            candidate = raw.get("candidate") or {}
+            stat = report_path.stat()
+            reports.append(
+                {
+                    "incident_id": repair_case.get("incident_id") or report_path.parent.name,
+                    "trace_id": repair_case.get("trace_id"),
+                    "summary": repair_case.get("summary") or "",
+                    "final_status": raw.get("final_status") or "UNKNOWN",
+                    "risk_level": risk_decision.get("risk_level") or "UNKNOWN",
+                    "risk_score": risk_decision.get("risk_score"),
+                    "recommended_action": risk_decision.get("recommended_action"),
+                    "tests_passed": bool(sandbox_result.get("tests_passed")),
+                    "patch_applied": bool(sandbox_result.get("patch_applied")),
+                    "suspected_files": repair_case.get("suspected_files") or [],
+                    "changed_files": candidate.get("changed_files") or [],
+                    "patch_path": candidate.get("patch_path"),
+                    "report_path": str(report_path),
+                    "updated_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                    "source": "repair_outputs",
+                }
+            )
+        except Exception:
+            continue
+
+    return sorted(reports, key=lambda item: item["updated_at"], reverse=True)[:limit]
+
+
+def _load_taskflow_runs(limit: int = 20) -> List[Dict[str, Any]]:
+    if not REPAIR_OUTPUTS_DIR.exists():
+        return []
+
+    runs: List[Dict[str, Any]] = []
+    for trace_path in REPAIR_OUTPUTS_DIR.glob("*/taskflow_trace.json"):
+        try:
+            raw = json.loads(trace_path.read_text(encoding="utf-8"))
+            workflow_run = raw.get("workflow_run") if isinstance(raw.get("workflow_run"), dict) else {}
+            steps = workflow_run.get("steps") if isinstance(workflow_run.get("steps"), list) else []
+            events = workflow_run.get("events") if isinstance(workflow_run.get("events"), list) else []
+            metrics = raw.get("metrics") if isinstance(raw.get("metrics"), list) else []
+            artifacts = workflow_run.get("artifacts") if isinstance(workflow_run.get("artifacts"), list) else []
+            step_statuses = [str(step.get("status") or "UNKNOWN") for step in steps if isinstance(step, dict)]
+            gate_waiting = any(
+                isinstance(event, dict) and event.get("event_name") == "taskflow.gate.waiting"
+                for event in events
+            )
+            failed_steps = [
+                str(step.get("step_id"))
+                for step in steps
+                if isinstance(step, dict) and str(step.get("status") or "").upper() in {"FAILED", "BLOCKED"}
+            ]
+            stat = trace_path.stat()
+            runs.append(
+                {
+                    "incident_id": workflow_run.get("incident_id") or trace_path.parent.name,
+                    "trace_id": workflow_run.get("trace_id"),
+                    "workflow_id": workflow_run.get("workflow_id") or "unknown",
+                    "workflow_name": workflow_run.get("workflow_name") or "",
+                    "status": workflow_run.get("status") or "UNKNOWN",
+                    "current_step": workflow_run.get("current_step"),
+                    "final_decision": workflow_run.get("final_decision"),
+                    "risk_score": workflow_run.get("risk_score"),
+                    "step_count": len(steps),
+                    "succeeded_step_count": sum(1 for status_name in step_statuses if status_name == "SUCCEEDED"),
+                    "skipped_step_count": sum(1 for status_name in step_statuses if status_name == "SKIPPED"),
+                    "failed_step_count": len(failed_steps),
+                    "failed_steps": failed_steps,
+                    "gate_waiting": gate_waiting,
+                    "event_count": len(events),
+                    "metric_count": len(metrics),
+                    "artifact_count": len(artifacts),
+                    "trace_path": str(trace_path),
+                    "updated_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                    "source": "taskflow_trace",
+                }
+            )
+        except Exception:
+            continue
+
+    return sorted(runs, key=lambda item: item["updated_at"], reverse=True)[:limit]
 
 
 def _normalize_improvement_status(meta: Dict[str, Any], outcome: Optional[str]) -> str:
@@ -120,9 +217,20 @@ async def list_improvements(limit: int = 20):
         try:
             return await _fetch_improvements(db, limit=limit)
         except Exception as exc:
-            from libs.infra.logger import logger
             logger.warning("Improvements list fallback: %s", exc)
             return []
+
+
+@router.get("/self-repair-runs")
+async def list_self_repair_runs(limit: int = 20):
+    """Phase 1-3 self-repair JSON artifact runs visible to the dashboard."""
+    return _load_self_repair_reports(limit=limit)
+
+
+@router.get("/taskflow-runs")
+async def list_taskflow_runs(limit: int = 20):
+    """TaskFlow trace artifacts visible to the dashboard."""
+    return _load_taskflow_runs(limit=limit)
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
@@ -148,7 +256,6 @@ async def list_benchmarks(limit: int = 10):
                 for r in runs
             ]
         except Exception as exc:
-            from libs.infra.logger import logger
             logger.warning("Benchmarks list fallback: %s", exc)
             return []
 
@@ -188,7 +295,6 @@ async def list_tournaments(limit: int = 20):
                 ))
             return results
         except Exception as exc:
-            from libs.infra.logger import logger
             logger.warning("Tournaments list fallback: %s", exc)
             return []
 
@@ -227,7 +333,6 @@ async def get_learning_insights():
                 ]
             }
         except Exception as exc:
-            from libs.infra.logger import logger
             logger.warning("Learning insights fallback: %s", exc)
             return {"strategies": [], "penalized_patterns": []}
 
@@ -269,7 +374,6 @@ async def get_verifier_matrix(tournament_id: Optional[str] = None):
                 "candidates": matrix
             }
         except Exception as exc:
-            from libs.infra.logger import logger
             logger.warning("Verifier matrix fallback: %s", exc)
             return {"verifiers": [], "candidates": []}
 
@@ -296,7 +400,6 @@ async def get_tuning_suggestions():
                 for s in suggestions
             ]
         except Exception as exc:
-            from libs.infra.logger import logger
             logger.warning("Tuning suggestions fallback: %s", exc)
             return []
 
@@ -350,7 +453,6 @@ async def get_verifiers_stats():
                 for k, v in stats.items()
             ]
         except Exception as exc:
-            from libs.infra.logger import logger
             logger.warning("Verifiers stats fallback: %s", exc)
             return []
 
@@ -379,7 +481,6 @@ async def get_repair_memory():
                 for k, v in stats.items()
             ]
         except Exception as exc:
-            from libs.infra.logger import logger
             logger.warning("Repair memory heatmap fallback: %s", exc)
             return []
 
@@ -410,7 +511,6 @@ async def get_repair_memory_details(subsystem: str = Query(...), limit: int = 50
                 for m in memories
             ]
         except Exception as exc:
-            from libs.infra.logger import logger
             logger.warning("Repair memory details fallback: %s", exc)
             return []
 
@@ -466,12 +566,20 @@ async def get_lab_dashboard():
     latest_tournament = tournaments[0].model_dump() if tournaments else None
     matrix = await get_verifier_matrix(tournament_id=latest_tournament["id"] if latest_tournament else None)
     async with AsyncSessionLocal() as db:
-        improvements = await _fetch_improvements(db, limit=10)
+        try:
+            improvements = await _fetch_improvements(db, limit=10)
+        except Exception as exc:
+            logger.warning("Dashboard improvements fallback: %s", exc)
+            improvements = []
+    self_repair_runs = _load_self_repair_reports(limit=10)
+    taskflow_runs = _load_taskflow_runs(limit=10)
     return {
         "benchmarks": benchmarks,
         "tournament": latest_tournament,
         "matrix": matrix,
         "improvements": improvements,
+        "self_repair_runs": self_repair_runs,
+        "taskflow_runs": taskflow_runs,
     }
 
 
@@ -483,18 +591,26 @@ async def get_lab_summary():
         benchmark_count = await db.scalar(select(func.count()).select_from(RepairBenchmarkRun)) or 0
         avg_success = await db.scalar(select(func.coalesce(func.avg(RepairBenchmarkRun.success_rate), 0.0))) or 0.0
         active_tournaments = await db.scalar(select(func.count()).select_from(RepairTournament)) or 0
-        repair_rows = (
-            await db.execute(
-                select(DecisionLineage).where(DecisionLineage.decision_type == "RUNTIME_REPAIR_ATTEMPT")
-            )
-        ).scalars().all()
-        mapped = [_lineage_to_improvement(row) for row in repair_rows]
+        try:
+            repair_rows = (
+                await db.execute(
+                    select(DecisionLineage).where(DecisionLineage.decision_type == "RUNTIME_REPAIR_ATTEMPT")
+                )
+            ).scalars().all()
+            mapped = [_lineage_to_improvement(row) for row in repair_rows]
+        except Exception as exc:
+            logger.warning("Summary runtime repair fallback: %s", exc)
+            mapped = []
+        taskflow_runs = _load_taskflow_runs(limit=100)
         return {
             "total_benchmarks": int(benchmark_count),
             "success_rate": float(avg_success),
             "active_tournaments": int(active_tournaments),
             "runtime_repair_count": len(mapped),
             "action_required_count": sum(1 for item in mapped if item["status"] == "action_required"),
+            "self_repair_run_count": len(_load_self_repair_reports(limit=100)),
+            "taskflow_run_count": len(taskflow_runs),
+            "taskflow_waiting_count": sum(1 for item in taskflow_runs if item["gate_waiting"]),
         }
 
 @router.get("/evolution/feed")
@@ -519,7 +635,6 @@ async def get_evolution_feed(limit: int = 15):
                 for i in items
             ]
         except Exception as exc:
-            from libs.infra.logger import logger
             logger.warning("Evolution feed fallback: %s", exc)
             return []
 

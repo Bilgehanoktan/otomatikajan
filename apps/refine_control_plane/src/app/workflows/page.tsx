@@ -51,27 +51,41 @@ export default function WorkflowList() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  const apiBase = React.useMemo(() => getApiBaseUrl(), []);
+  const apiBase = React.useMemo(() => {
+    const base = getApiBaseUrl();
+    console.log("[Workflows] apiBase detected:", base);
+    return base;
+  }, []);
 
   const load = React.useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
+      console.log("[Workflows] Fetching from:", `${apiBase}/workflows`);
       const [workflowResp, summaryResp] = await Promise.all([
         safeFetchJson<WorkflowListItem[] | { data?: WorkflowListItem[] }>(
           `${apiBase}/workflows?_end=10&_order=desc&_sort=started_at&_start=0`,
+          { useOfflineFallback: false },
         ),
-        safeFetchJson<WorkflowSummary>(`${apiBase}/workflows/stats/summary`),
+        safeFetchJson<WorkflowSummary>(`${apiBase}/workflows/stats/summary`, { useOfflineFallback: false }),
       ]);
 
-      const workflowItems = Array.isArray(workflowResp)
+      console.log("[Workflows] Received response:", { workflowResp, summaryResp });
+
+      const workflowItems = (Array.isArray(workflowResp)
         ? workflowResp
         : Array.isArray(workflowResp?.data)
           ? workflowResp.data
-          : [];
+          : []
+      ).filter((item) => item.id && item.id !== "no-data");
 
       setWorkflows(workflowItems);
+      setDebugInfo(JSON.stringify({
+        base: apiBase,
+        count: workflowItems.length,
+        meta: summaryResp?.__sqv_meta || "none"
+      }));
       setSummary({
         total: summaryResp?.total ?? workflowItems.length,
         running:
@@ -83,11 +97,16 @@ export default function WorkflowList() {
         __sqv_meta: summaryResp?.__sqv_meta,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Bilinmeyen hata");
+      console.error("[Workflows] Load error:", err);
+      const msg = err instanceof Error ? err.message : "Bilinmeyen hata";
+      setError(msg);
+      setDebugInfo(`ERROR: ${msg}`);
     } finally {
       setIsLoading(false);
     }
   }, [apiBase]);
+
+  const [debugInfo, setDebugInfo] = React.useState<string>("");
 
   React.useEffect(() => {
     void load();
@@ -215,6 +234,13 @@ function WorkflowCard({
   const isCompleted = statusKey === "completed";
   const isFailed = statusKey === "failed" || statusKey === "error";
   const progress = workflow.progress_pct ?? 0;
+  const statusLabel = (() => {
+    try {
+      return tStatus.has(statusKey as never) ? tStatus(statusKey as never) : statusKey.replace(/_/g, " ");
+    } catch {
+      return statusKey.replace(/_/g, " ");
+    }
+  })();
 
   return (
     <div
@@ -258,7 +284,7 @@ function WorkflowCard({
                         : "bg-white/5 text-gray-300"
                 }`}
               >
-                {tStatus(statusKey as any)}
+                {statusLabel}
               </span>
               <span className="rounded-lg border border-white/5 bg-white/[0.02] px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-gray-500">
                 {workflow.workflow_type}

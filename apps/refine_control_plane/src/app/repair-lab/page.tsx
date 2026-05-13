@@ -22,6 +22,8 @@ import { PatchTournamentBoard, VerifierMatrix } from "@/components/repair/LabCom
 import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 import { Skeleton } from "@/components/dashboard/Skeleton";
 import { safeFetchJson } from "@/lib/api";
+import { getApiBaseUrl } from "@/lib/runtime";
+import { useTranslations } from "next-intl";
 
 interface RepairImprovement {
   id: string;
@@ -37,30 +39,76 @@ interface RepairImprovement {
   created_at?: string;
 }
 
+interface SelfRepairRun {
+  incident_id: string;
+  trace_id?: string;
+  summary?: string;
+  final_status: string;
+  risk_level: string;
+  risk_score?: number;
+  recommended_action?: string;
+  tests_passed: boolean;
+  patch_applied: boolean;
+  suspected_files: string[];
+  changed_files: string[];
+  report_path: string;
+  updated_at: string;
+}
+
+interface TaskflowRun {
+  incident_id: string;
+  trace_id?: string;
+  workflow_id: string;
+  workflow_name?: string;
+  status: string;
+  current_step?: string;
+  final_decision?: string;
+  risk_score?: number;
+  step_count: number;
+  succeeded_step_count: number;
+  skipped_step_count: number;
+  failed_step_count: number;
+  gate_waiting: boolean;
+  event_count: number;
+  metric_count: number;
+  artifact_count: number;
+  updated_at: string;
+}
+
 export default function RepairLabPage() {
   const [benchmarks, setBenchmarks] = useState<any[]>([]);
   const [tournament, setTournament] = useState<any>(null);
   const [matrix, setMatrix] = useState<any>(null);
   const [improvements, setImprovements] = useState<RepairImprovement[]>([]);
+  const [selfRepairRuns, setSelfRepairRuns] = useState<SelfRepairRun[]>([]);
+  const [taskflowRuns, setTaskflowRuns] = useState<TaskflowRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [isClient, setIsClient] = useState(false);
+  const t = useTranslations("repair_lab");
+  const apiUrl = getApiBaseUrl();
 
   useEffect(() => { setIsClient(true); }, []);
 
   const fetchData = async () => {
     try {
-      const benchData: any = await safeFetchJson('/api/v1/repair-lab/benchmarks');
+      const benchData: any = await safeFetchJson(`${apiUrl}/repair-lab/benchmarks`);
       setBenchmarks(Array.isArray(benchData) ? benchData : []);
 
-      const improvementData: any = await safeFetchJson('/api/v1/repair-lab/improvements');
+      const improvementData: any = await safeFetchJson(`${apiUrl}/repair-lab/improvements`);
       setImprovements(Array.isArray(improvementData) ? improvementData : []);
 
-      const tourData: any = await safeFetchJson('/api/v1/repair-lab/tournaments');
+      const selfRepairData: any = await safeFetchJson(`${apiUrl}/repair-lab/self-repair-runs`);
+      setSelfRepairRuns(Array.isArray(selfRepairData) ? selfRepairData : []);
+
+      const taskflowData: any = await safeFetchJson(`${apiUrl}/repair-lab/taskflow-runs`);
+      setTaskflowRuns(Array.isArray(taskflowData) ? taskflowData : []);
+
+      const tourData: any = await safeFetchJson(`${apiUrl}/repair-lab/tournaments`);
       if (tourData && tourData.length > 0) {
         const latest = tourData[0];
         setTournament(latest);
 
-        const matrixData: any = await safeFetchJson(`/api/v1/repair-lab/verifiers/matrix?tournament_id=${latest.id}`);
+        const matrixData: any = await safeFetchJson(`${apiUrl}/repair-lab/verifiers/matrix?tournament_id=${latest.id}`);
         setMatrix(matrixData);
       }
     } catch (err) {
@@ -80,7 +128,7 @@ export default function RepairLabPage() {
   const runLab = async () => {
     setLoading(true);
     try {
-      await safeFetchJson('/api/v1/repair-lab/run', { method: 'POST' });
+      await safeFetchJson(`${apiUrl}/repair-lab/run`, { method: 'POST' });
       // We don't use window.alert in elite UI, but for now we follow the existing pattern with a small delay
       setTimeout(fetchData, 2000);
     } catch (err) {
@@ -96,14 +144,14 @@ export default function RepairLabPage() {
     <div className="min-h-screen p-8 bg-[#060a12] text-gray-300 animate-in fade-in duration-1000 overflow-x-hidden">
       
       <ResourceHeader 
-        title="Repair Laboratory" 
-        subtitle="Scientific Evidence Chain & Patch Tournament Matrix" 
+        title={t("title")} 
+        subtitle={t("subtitle")} 
         icon={<FlaskConical size={32} />}
         badge="Phase 28 Active"
         actions={
           <div className="flex items-center gap-8">
              <div className="flex flex-col items-end border-r border-white/5 pr-8">
-                <span className="text-[9px] text-gray-500 font-black uppercase tracking-widest leading-none">Global Accuracy</span>
+                <span className="text-[9px] text-gray-500 font-black uppercase tracking-widest leading-none">{t("globalAccuracy")}</span>
                 <span className="text-sm font-black text-[var(--primary)] mt-2 font-mono tracking-tighter italic">94.2% NOMINAL</span>
              </div>
              <button 
@@ -111,7 +159,7 @@ export default function RepairLabPage() {
                className="flex items-center gap-2 px-10 py-4 bg-[var(--primary)] text-[#060a12] text-[11px] font-black uppercase tracking-widest rounded-2xl hover:shadow-[0_8px_48px_rgba(102,252,241,0.4)] transition-all active:scale-95 group"
              >
                 <Play size={16} className="fill-[#060a12] group-hover:scale-125 transition-transform" />
-                <span>Execute Benchmark</span>
+                <span>{t("executeBenchmark")}</span>
              </button>
           </div>
         }
@@ -127,7 +175,7 @@ export default function RepairLabPage() {
               </div>
 
               <div className="flex items-center justify-between mb-10 relative z-10 px-2">
-                 <h3 className="text-xs font-black text-white uppercase tracking-[0.3em] italic">System Benchmarks</h3>
+                 <h3 className="text-xs font-black text-white uppercase tracking-[0.3em] italic">{t("systemBenchmarks")}</h3>
                  <BarChart3 size={16} className="text-gray-700" />
               </div>
 
@@ -139,7 +187,7 @@ export default function RepairLabPage() {
                  ) : benchmarks.length === 0 ? (
                     <div className="py-20 text-center opacity-30 flex flex-col items-center gap-4">
                        <Target size={32} className="text-gray-700" />
-                       <span className="text-[9px] font-black text-gray-700 uppercase tracking-widest">No Active Samples</span>
+                       <span className="text-[9px] font-black text-gray-700 uppercase tracking-widest">{t("noActiveSamples")}</span>
                     </div>
                  ) : (
                     benchmarks.map((b: any) => (
@@ -151,10 +199,10 @@ export default function RepairLabPage() {
               <div className="mt-10 p-5 bg-black/40 rounded-2xl border border-white/5 relative z-10">
                  <div className="flex items-center gap-3 mb-3">
                     <Info size={14} className="text-[var(--primary)]" />
-                    <span className="text-[9px] font-black text-[var(--primary)] uppercase tracking-widest">Evidence Notice</span>
+                    <span className="text-[9px] font-black text-[var(--primary)] uppercase tracking-widest">{t("evidenceNotice")}</span>
                  </div>
                  <p className="text-[10px] text-gray-600 leading-relaxed font-mono uppercase font-black">
-                    Results are signed & <br/>ledgered in Lineage V2.
+                    {t("evidenceNoticeDesc")}
                  </p>
               </div>
            </section>
@@ -177,7 +225,7 @@ export default function RepairLabPage() {
                        <div className="p-3 bg-white/5 rounded-xl border border-white/10 text-[var(--primary)]">
                           <TrendingUp size={20} />
                        </div>
-                       <h3 className="text-xl font-black text-white tracking-tighter uppercase">Stats</h3>
+                       <h3 className="text-xl font-black text-white tracking-tighter uppercase">{t("stats")}</h3>
                     </div>
                     
                     {tournament ? (
@@ -202,14 +250,14 @@ export default function RepairLabPage() {
                          
                          <div className="mt-10 p-6 bg-[var(--primary)]/[0.03] rounded-3xl border border-[var(--primary)]/10 text-center">
                             <p className="text-[10px] text-gray-500 leading-loose uppercase font-black italic tracking-widest">
-                               "Optimal strategy selected <br/>via multi-critera evaluation."
+                               {t("optimalStrategyNotice")}
                             </p>
                          </div>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center flex-1 py-12 text-gray-700 opacity-40">
                         <RefreshCcw size={48} className="animate-spin mb-6" />
-                        <span className="text-[9px] font-black uppercase tracking-widest">Syncing Telemetry...</span>
+                        <span className="text-[9px] font-black uppercase tracking-widest">{t("syncingTelemetry")}</span>
                       </div>
                     )}
                  </section>
@@ -218,11 +266,186 @@ export default function RepairLabPage() {
            
            <RuntimeRepairTimeline improvements={improvements} loading={loading} />
 
+           <SelfRepairRunsPanel runs={selfRepairRuns} loading={loading} />
+
+           <TaskflowRunsPanel runs={taskflowRuns} loading={loading} />
+
            <VerifierMatrix matrix={matrix} />
         </div>
 
       </div>
     </div>
+  );
+}
+
+function TaskflowRunsPanel({ runs, loading }: { runs: TaskflowRun[]; loading: boolean }) {
+  const toneFor = (status: string, gateWaiting: boolean) => {
+    if (gateWaiting || status === "WAITING_HUMAN") return "border-amber-400/15 bg-amber-500/5 text-amber-300";
+    if (status === "DRAFT_PR_READY" || status === "COMPLETED") return "border-green-400/15 bg-green-500/5 text-green-300";
+    if (status === "BLOCKED" || status === "FAILED") return "border-red-400/15 bg-red-500/5 text-red-300";
+    return "border-cyan-400/15 bg-cyan-500/5 text-cyan-300";
+  };
+
+  return (
+    <section className="glass-panel p-10 rounded-[2.5rem] border-white/[0.03] bg-gradient-to-br from-white/[0.012] to-transparent shadow-xl">
+      <div className="mb-8 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h3 className="text-xs font-black text-white uppercase tracking-[0.3em] italic">{t("taskflowTrace")}</h3>
+          <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-gray-600">
+            {t("taskflowTraceDesc")}
+          </p>
+        </div>
+        <span className="w-fit rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-gray-500">
+          {runs.length} traces
+        </span>
+      </div>
+
+      {loading && runs.length === 0 ? (
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          {[1, 2].map((i) => <Skeleton key={i} className="h-32 rounded-2xl" />)}
+        </div>
+      ) : runs.length === 0 ? (
+        <div className="rounded-2xl border border-white/5 bg-black/20 p-8 text-center">
+          <span className="text-[10px] font-black uppercase tracking-widest text-gray-700">No TaskFlow Traces Found</span>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          {runs.slice(0, 6).map((run) => (
+            <div key={`${run.workflow_id}-${run.incident_id}`} className={`rounded-2xl border p-5 ${toneFor(run.status, run.gate_waiting)}`}>
+              <div className="mb-4 flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-current">
+                    {run.workflow_id}
+                  </div>
+                  <div className="mt-1 text-[9px] font-black uppercase tracking-widest text-gray-600">
+                    {run.incident_id}
+                  </div>
+                </div>
+                <span className="rounded-lg border border-current/20 bg-black/20 px-2 py-1 text-[8px] font-black uppercase tracking-widest">
+                  {run.status}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-[9px] font-black uppercase tracking-widest">
+                <div className="rounded-xl border border-white/5 bg-black/20 p-3">
+                  <div className="text-gray-700">Current Step</div>
+                  <div className="mt-1 truncate text-current" title={run.current_step || "complete"}>{run.current_step || "complete"}</div>
+                </div>
+                <div className="rounded-xl border border-white/5 bg-black/20 p-3">
+                  <div className="text-gray-700">Decision</div>
+                  <div className="mt-1 truncate text-current" title={run.final_decision || "none"}>{run.final_decision || "none"}</div>
+                </div>
+                <div className="rounded-xl border border-white/5 bg-black/20 p-3">
+                  <div className="text-gray-700">Steps</div>
+                  <div className="mt-1 text-current">{run.succeeded_step_count}/{run.step_count} ok</div>
+                </div>
+                <div className="rounded-xl border border-white/5 bg-black/20 p-3">
+                  <div className="text-gray-700">Artifacts</div>
+                  <div className="mt-1 text-current">{run.artifact_count} files</div>
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {run.gate_waiting ? (
+                  <span className="rounded-lg border border-amber-400/20 bg-amber-500/10 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-amber-300">
+                    human gate waiting
+                  </span>
+                ) : null}
+                <span className="rounded-lg border border-white/5 bg-black/30 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-gray-500">
+                  {run.event_count} events
+                </span>
+                <span className="rounded-lg border border-white/5 bg-black/30 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-gray-500">
+                  {run.metric_count} metrics
+                </span>
+              </div>
+
+              <div className="mt-4 border-t border-white/[0.04] pt-3 text-[9px] font-mono font-black uppercase tracking-widest text-gray-700">
+                {run.updated_at ? new Date(run.updated_at).toLocaleString() : "No timestamp"}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function SelfRepairRunsPanel({ runs, loading }: { runs: SelfRepairRun[]; loading: boolean }) {
+  const toneFor = (status: string) => {
+    if (status === "DRAFT_PR_READY" || status === "SANDBOX_PASSED") return "border-green-400/15 bg-green-500/5 text-green-300";
+    if (status === "HUMAN_APPROVAL_REQUIRED" || status === "QUORUM_REQUIRED") return "border-amber-400/15 bg-amber-500/5 text-amber-300";
+    return "border-red-400/15 bg-red-500/5 text-red-300";
+  };
+
+  return (
+    <section className="glass-panel p-10 rounded-[2.5rem] border-white/[0.03] bg-gradient-to-br from-white/[0.012] to-transparent shadow-xl">
+      <div className="mb-8 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h3 className="text-xs font-black text-white uppercase tracking-[0.3em] italic">{t("selfRepairReports")}</h3>
+          <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-gray-600">
+            {t("selfRepairReportsDesc")}
+          </p>
+        </div>
+        <span className="w-fit rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-gray-500">
+          {runs.length} reports
+        </span>
+      </div>
+
+      {loading && runs.length === 0 ? (
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          {[1, 2].map((i) => <Skeleton key={i} className="h-32 rounded-2xl" />)}
+        </div>
+      ) : runs.length === 0 ? (
+        <div className="rounded-2xl border border-white/5 bg-black/20 p-8 text-center">
+          <span className="text-[10px] font-black uppercase tracking-widest text-gray-700">No Self-Repair Reports Found</span>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          {runs.slice(0, 6).map((run) => (
+            <div key={run.incident_id} className={`rounded-2xl border p-5 ${toneFor(run.final_status)}`}>
+              <div className="mb-4 flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-current">
+                    {run.incident_id}
+                  </div>
+                  <div className="mt-1 text-[9px] font-black uppercase tracking-widest text-gray-600">
+                    {run.recommended_action || "review"}
+                  </div>
+                </div>
+                <span className="rounded-lg border border-current/20 bg-black/20 px-2 py-1 text-[8px] font-black uppercase tracking-widest">
+                  {run.final_status}
+                </span>
+              </div>
+
+              <p className="mb-4 line-clamp-2 text-xs font-semibold text-gray-400">{run.summary || "No summary"}</p>
+
+              <div className="grid grid-cols-2 gap-3 text-[9px] font-black uppercase tracking-widest">
+                <div className="rounded-xl border border-white/5 bg-black/20 p-3">
+                  <div className="text-gray-700">Risk</div>
+                  <div className="mt-1 text-current">{run.risk_level} {run.risk_score ?? ""}</div>
+                </div>
+                <div className="rounded-xl border border-white/5 bg-black/20 p-3">
+                  <div className="text-gray-700">Sandbox</div>
+                  <div className="mt-1 text-current">{run.tests_passed ? "passed" : "failed"}</div>
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {run.suspected_files.slice(0, 3).map((file) => (
+                  <span key={file} className="rounded-lg border border-white/5 bg-black/30 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-gray-500">
+                    {file}
+                  </span>
+                ))}
+              </div>
+
+              <div className="mt-4 border-t border-white/[0.04] pt-3 text-[9px] font-mono font-black uppercase tracking-widest text-gray-700">
+                {run.updated_at ? new Date(run.updated_at).toLocaleString() : "No timestamp"}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -241,9 +464,9 @@ function RuntimeRepairTimeline({ improvements, loading }: { improvements: Repair
     <section className="glass-panel p-10 rounded-[2.5rem] border-white/[0.03] bg-gradient-to-br from-white/[0.012] to-transparent shadow-xl">
       <div className="mb-8 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h3 className="text-xs font-black text-white uppercase tracking-[0.3em] italic">Runtime Repair Timeline</h3>
+          <h3 className="text-xs font-black text-white uppercase tracking-[0.3em] italic">{t("runtimeRepairTimeline")}</h3>
           <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-gray-600">
-            System Health repair attempts mirrored from DecisionLineage.
+            {t("runtimeRepairTimelineDesc")}
           </p>
         </div>
         <span className="w-fit rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-gray-500">

@@ -35,6 +35,12 @@ import { DashboardCommandPanel } from "@/components/dashboard/DashboardCommandPa
 import { Skeleton } from "@/components/dashboard/Skeleton";
 import { LaunchEvidencePanel } from "../components/dashboard/LaunchEvidencePanel";
 import { EvolutionTimeline } from "../components/dashboard/EvolutionTimeline";
+import { safeFetchJson } from "@/lib/api";
+import {
+  compactRuntimeDiagnosticLabel,
+  RuntimeDiagnostic,
+  RuntimeDiagnosticsResponse,
+} from "@/lib/runtimeDiagnostics";
 
 interface DashboardData {
   health_score?: number;
@@ -70,6 +76,30 @@ interface DashboardData {
   };
 }
 
+interface SelfRepairRun {
+  incident_id: string;
+  summary?: string;
+  final_status: string;
+  risk_level: string;
+  risk_score?: number;
+  recommended_action?: string;
+  tests_passed: boolean;
+  updated_at: string;
+}
+
+interface TaskflowRun {
+  incident_id: string;
+  workflow_id: string;
+  status: string;
+  current_step?: string;
+  final_decision?: string;
+  gate_waiting: boolean;
+  step_count: number;
+  succeeded_step_count: number;
+  artifact_count: number;
+  updated_at: string;
+}
+
 export default function ControlPlaneDashboard() {
   const t = useTranslations("dashboard");
   const tStatus = useTranslations("status");
@@ -78,6 +108,8 @@ export default function ControlPlaneDashboard() {
   const [activeTab, setActiveTab] = useState<"overview" | "workflows" | "events" | "health" | "economy">("overview");
   const apiUrl = useApiUrl();
   const [liveSeed, setLiveSeed] = useState("");
+  const [repairingId, setRepairingId] = useState<string | null>(null);
+  const [repairStatus, setRepairStatus] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setLiveSeed(Math.random().toString(36).substring(7).toUpperCase());
@@ -106,7 +138,34 @@ export default function ControlPlaneDashboard() {
   });
   const { data: evoRaw } = evoQuery.query;
 
+  const diagnosticsQuery = useCustom<RuntimeDiagnosticsResponse>({
+    url: `${apiUrl}/health/runtime-diagnostics`,
+    method: "get",
+    queryOptions: {
+      enabled: isClient,
+      refetchInterval: 10000,
+    },
+  });
+
+  const selfRepairQuery = useCustom<SelfRepairRun[]>({
+    url: `${apiUrl}/repair-lab/self-repair-runs`,
+    method: "get",
+    queryOptions: {
+      enabled: isClient,
+      refetchInterval: 15000,
+    },
+  });
+
   // İş Akışları
+  const taskflowQuery = useCustom<TaskflowRun[]>({
+    url: `${apiUrl}/repair-lab/taskflow-runs`,
+    method: "get",
+    queryOptions: {
+      enabled: isClient,
+      refetchInterval: 15000,
+    },
+  });
+
   const { query: wfQuery } = useList({
     resource: "workflows",
     pagination: { pageSize: 6 },
@@ -116,6 +175,9 @@ export default function ControlPlaneDashboard() {
 
   const dash = (dashRaw?.data as DashboardData) || {};
   const evolutionEvents = (evoRaw?.data as any[]) || [];
+  const runtimeDiagnostics = diagnosticsQuery.query.data?.data?.diagnostics || [];
+  const selfRepairRuns = selfRepairQuery.query.data?.data || [];
+  const taskflowRuns = taskflowQuery.query.data?.data || [];
   const workflows = wfData?.data || [];
   const wfStats = dash.workflows || {};
   
@@ -126,6 +188,33 @@ export default function ControlPlaneDashboard() {
   const healthBg = healthScore >= 80 ? 'from-green-500/[0.05]' : healthScore >= 60 ? 'from-amber-500/[0.05]' : 'from-red-500/[0.05]';
   const latency = dash.api_latency_ms ?? 0;
   const budgetPct = dash.cost?.budget_used_pct ?? 0;
+  const runtimeRepairable = runtimeDiagnostics.filter((item) => item.auto_repairable);
+
+  const runRuntimeRepair = async (item: RuntimeDiagnostic) => {
+    setRepairingId(item.id);
+    try {
+      const result = await safeFetchJson<{ status: string; actions?: string[]; recommended_action?: string }>(
+        `${apiUrl}/health/runtime-diagnostics/${item.id}/repair`,
+        {
+          method: "POST",
+          body: "{}",
+          useOfflineFallback: false,
+        },
+      );
+      const summary = result.actions?.length
+        ? `${result.status}: ${result.actions.join(", ")}`
+        : result.recommended_action || result.status;
+      setRepairStatus((current) => ({ ...current, [item.id]: summary }));
+      await diagnosticsQuery.query.refetch?.();
+    } catch (err) {
+      setRepairStatus((current) => ({
+        ...current,
+        [item.id]: err instanceof Error ? err.message : "Repair failed",
+      }));
+    } finally {
+      setRepairingId(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#060a12] p-8 space-y-12 animate-in fade-in duration-1000 overflow-x-hidden pb-40">
@@ -266,6 +355,164 @@ export default function ControlPlaneDashboard() {
         />
       </section>
 
+      {runtimeDiagnostics.length > 0 && (
+        <section className="rounded-[2rem] border border-white/[0.04] bg-white/[0.012] p-8 shadow-2xl">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-5">
+              <div className="rounded-2xl border border-[var(--primary)]/20 bg-[var(--primary)]/10 p-4 text-[var(--primary)]">
+                <ZapOff size={22} />
+              </div>
+              <div>
+                <h2 className="text-[12px] font-black uppercase tracking-[0.35em] text-white">
+                  Runtime Self-Healing
+                </h2>
+                <p className="mt-2 text-xs font-bold uppercase tracking-widest text-gray-600">
+                  {runtimeDiagnostics.length} signal, {runtimeRepairable.length} safe repair available
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {runtimeDiagnostics.slice(0, 3).map((item) => (
+                <div
+                  key={item.id}
+                  className={`flex items-center gap-3 rounded-2xl border px-4 py-3 ${
+                    item.severity === "error"
+                      ? "border-red-500/20 bg-red-500/5 text-red-400"
+                      : item.severity === "warning"
+                        ? "border-amber-500/20 bg-amber-500/5 text-amber-400"
+                        : "border-cyan-500/20 bg-cyan-500/5 text-cyan-300"
+                  }`}
+                >
+                  <span className="text-[10px] font-black uppercase tracking-widest">
+                    {compactRuntimeDiagnosticLabel(item)}
+                  </span>
+                  {item.auto_repairable ? (
+                    <button
+                      onClick={() => void runRuntimeRepair(item)}
+                      disabled={repairingId === item.id}
+                      className="rounded-lg border border-current/20 bg-black/30 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-current transition-all hover:bg-white/10 disabled:cursor-wait disabled:opacity-60"
+                    >
+                      {repairingId === item.id ? "Repairing" : "Repair"}
+                    </button>
+                  ) : (
+                    <span className="text-[9px] font-black uppercase tracking-widest text-current/70">
+                      Manual
+                    </span>
+                  )}
+                  {repairStatus[item.id] && (
+                    <span className="max-w-56 truncate text-[9px] font-bold text-gray-500" title={repairStatus[item.id]}>
+                      {repairStatus[item.id]}
+                    </span>
+                  )}
+                </div>
+              ))}
+              <a
+                href="/system-health"
+                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-[10px] font-black uppercase tracking-widest text-gray-300 transition-all hover:border-[var(--primary)]/30 hover:text-[var(--primary)]"
+              >
+                Open Diagnostics
+              </a>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {selfRepairRuns.length > 0 && (
+        <section className="rounded-[2rem] border border-[var(--primary)]/10 bg-[var(--primary)]/[0.025] p-8 shadow-2xl">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-5">
+              <div className="rounded-2xl border border-[var(--primary)]/20 bg-black/30 p-4 text-[var(--primary)]">
+                <FlaskConical size={22} />
+              </div>
+              <div>
+                <h2 className="text-[12px] font-black uppercase tracking-[0.35em] text-white">
+                  Self-Repair Case Reports
+                </h2>
+                <p className="mt-2 text-xs font-bold uppercase tracking-widest text-gray-600">
+                  {selfRepairRuns.length} repair_outputs artifact connected
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {selfRepairRuns.slice(0, 3).map((run) => (
+                <div
+                  key={run.incident_id}
+                  className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-[var(--primary)]"
+                >
+                  <span className="text-[10px] font-black uppercase tracking-widest">
+                    {run.incident_id}
+                  </span>
+                  <span className="rounded-lg border border-current/20 bg-black/30 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-current">
+                    {run.final_status}
+                  </span>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-gray-500">
+                    {run.risk_level}
+                  </span>
+                </div>
+              ))}
+              <a
+                href="/repair-lab"
+                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-[10px] font-black uppercase tracking-widest text-gray-300 transition-all hover:border-[var(--primary)]/30 hover:text-[var(--primary)]"
+              >
+                Open Repair Lab
+              </a>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {taskflowRuns.length > 0 && (
+        <section className="rounded-[2rem] border border-cyan-400/10 bg-cyan-500/[0.025] p-8 shadow-2xl">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-5">
+              <div className="rounded-2xl border border-cyan-400/20 bg-black/30 p-4 text-cyan-300">
+                <GitBranch size={22} />
+              </div>
+              <div>
+                <h2 className="text-[12px] font-black uppercase tracking-[0.35em] text-white">
+                  TaskFlow Execution Trace
+                </h2>
+                <p className="mt-2 text-xs font-bold uppercase tracking-widest text-gray-600">
+                  {taskflowRuns.length} taskflow_trace artifact connected
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {taskflowRuns.slice(0, 3).map((run) => (
+                <div
+                  key={`${run.workflow_id}-${run.incident_id}`}
+                  className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-cyan-300"
+                >
+                  <span className="text-[10px] font-black uppercase tracking-widest">
+                    {run.workflow_id}
+                  </span>
+                  <span className="rounded-lg border border-current/20 bg-black/30 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-current">
+                    {run.status}
+                  </span>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-gray-500">
+                    {run.succeeded_step_count}/{run.step_count} steps
+                  </span>
+                  {run.gate_waiting ? (
+                    <span className="rounded-lg border border-amber-400/20 bg-amber-500/10 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-amber-300">
+                      gate
+                    </span>
+                  ) : null}
+                </div>
+              ))}
+              <a
+                href="/repair-lab"
+                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-[10px] font-black uppercase tracking-widest text-gray-300 transition-all hover:border-cyan-400/30 hover:text-cyan-300"
+              >
+                Open Repair Lab
+              </a>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* ── BÖLÜM 3: COMMAND & STREAM HUB ────────────────────── */}
       <section className="grid grid-cols-1 xl:grid-cols-12 gap-10">
         <div className="xl:col-span-4 h-full">
@@ -322,7 +569,7 @@ export default function ControlPlaneDashboard() {
                           <div className="grid grid-cols-1 gap-4">
                               {[
                                   { label: t("quickAccess.refine"), sub: "localhost:3100", href: "http://localhost:3100", icon: <ArrowRight size={14}/> },
-                                  { label: t("quickAccess.docs"), sub: t("quickAccess.apiSub"), href: `${apiUrl}/docs`, icon: <Terminal size={14}/> },
+                                  { label: t("quickAccess.docs"), sub: t("quickAccess.apiSub"), href: "/docs", icon: <Terminal size={14}/> },
                                   { label: t("quickAccess.telemetry"), sub: t("quickAccess.jsonSub"), href: `${apiUrl}/health`, icon: <Activity size={14}/> },
                               ].map(link => (
                                   <a key={link.label} href={link.href} target="_blank" className="flex items-center justify-between p-6 rounded-[2rem] border border-white/5 bg-white/[0.01] hover:bg-[var(--primary)]/[0.03] hover:border-[var(--primary)]/30 transition-all group shadow-lg">

@@ -145,8 +145,14 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
 
     const apiBase = React.useMemo(() => getApiBaseUrl(), []);
 
+    React.useEffect(() => {
+        if (isClient && (!id || id === "index" || id === "no-data")) {
+            list("workflows");
+        }
+    }, [id, isClient, list]);
+
     const loadWorkflow = React.useCallback(async () => {
-        if (!id || id === "index") {
+        if (!id || id === "index" || id === "no-data") {
             setWorkflow(null);
             setIsLoading(false);
             setIsError(true);
@@ -219,7 +225,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                 });
             }
 
-            const response = await safeFetchJson(`${apiBase}/workflows/${workflow.id}/approve`, {
+            const response: any = await safeFetchJson(`${apiBase}/workflows/${workflow.id}/approve`, {
                 method: "POST",
                 headers: authHeaders,
                 body: JSON.stringify({
@@ -252,7 +258,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
             if (err instanceof ApiResponseError && err.status === 403) {
                 notification.error({
                     message: t("notifications.networkError"),
-                    description: t("notifications.permissionDenied"),
+                    description: "Bu islem icin OPERATOR yetkisi gerekir. AUDIT_OBSERVER hesaplari salt okunurdur.",
                 });
                 return;
             }
@@ -285,7 +291,13 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
 
     const getStatusTag = (status: string) => {
         const normalized = String(status || "").toLowerCase();
-        const label = tStatus(normalized as any);
+        const label = (() => {
+            try {
+                return tStatus.has(normalized as never) ? tStatus(normalized as never) : normalized.replace(/_/g, " ");
+            } catch {
+                return normalized.replace(/_/g, " ");
+            }
+        })();
         switch (normalized) {
             case "running":
                 return (
@@ -527,7 +539,17 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                                                     }
                                                     style={{ fontSize: "9px", borderRadius: "4px" }}
                                                 >
-                                                    {tStatus(normalizedStatus as any).toUpperCase()}
+                                                    {(() => {
+                                                        try {
+                                                            return (
+                                                                tStatus.has(normalizedStatus as never)
+                                                                    ? tStatus(normalizedStatus as never)
+                                                                    : normalizedStatus.replace(/_/g, " ")
+                                                            ).toUpperCase();
+                                                        } catch {
+                                                            return normalizedStatus.replace(/_/g, " ").toUpperCase();
+                                                        }
+                                                    })()}
                                                 </Tag>
                                             </div>
                                         ),

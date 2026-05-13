@@ -9,7 +9,7 @@ Trace IDs propagate to logs via correlation_id().
 import asyncio
 import logging
 from datetime import datetime
-from typing import Callable, Any, Dict, Awaitable
+from typing import Callable, Any, Dict, Awaitable, Optional
 
 from libs.workflow.models import WorkflowInstance, WorkflowStep, StepStatus, WorkflowStatus
 from libs.workflow.registry import WorkflowRegistry
@@ -33,7 +33,7 @@ except ImportError:
         yield type("_NoOp", (), {"set_attribute": lambda *a, **kw: None})()
 
     def set_span_attrs(**kw): pass
-    def add_span_event(name, **kw): pass
+    def add_span_event(name, attributes=None, **kw): pass
     def correlation_id(): return "no-otel"
 
 logger = get_logger("libs.workflow.engine")
@@ -44,6 +44,45 @@ try:
     _WS_AVAILABLE = True
 except ImportError:
     _WS_AVAILABLE = False
+
+
+def _condition_value(value: str, context: dict[str, Any]) -> Any:
+    lowered = value.strip().lower()
+    if lowered == "true":
+        return True
+    if lowered == "false":
+        return False
+    try:
+        return float(value)
+    except ValueError:
+        return context.get(value.strip())
+
+
+def _condition_matches(condition: str | None, context: dict[str, Any]) -> bool:
+    if not condition:
+        return True
+    # Phase 28: Simple expression parser for branching
+    for operator in (">=", "<=", "==", ">", "<"):
+        if operator in condition:
+            left_raw, right_raw = condition.split(operator, 1)
+            left = _condition_value(left_raw, context)
+            right = _condition_value(right_raw, context)
+            if operator == "==":
+                return left == right
+            try:
+                left_number = float(left or 0)
+                right_number = float(right or 0)
+                if operator == ">=":
+                    return left_number >= right_number
+                if operator == "<=":
+                    return left_number <= right_number
+                if operator == ">":
+                    return left_number > right_number
+                if operator == "<":
+                    return left_number < right_number
+            except (ValueError, TypeError):
+                return False
+    return False
 
 
 class WorkflowEngine:
@@ -71,15 +110,16 @@ class WorkflowEngine:
             return
 
         span_attrs = {
-            "workflow.id":   str(instance.id),
+            "workflow.id":   instance.id,
             "workflow.type": instance.workflow_type,
             "workflow.steps": len(instance.steps),
         }
 
         async def _run():
             nonlocal instance
+            from datetime import timezone
             instance.status = WorkflowStatus.RUNNING if instance.status != WorkflowStatus.REPLAYING else WorkflowStatus.REPLAYING
-            instance.started_at = instance.started_at or datetime.utcnow()
+            instance.started_at = instance.started_at or datetime.now(timezone.utc)
             
             # Hardening: Capture Trace ID for audit & continuity
             tid = correlation_id()
@@ -90,24 +130,30 @@ class WorkflowEngine:
             await self.persistence.save_event(instance.id, "workflow_started", payload={"type": instance.workflow_type, "trace_id": tid})
 
             if _WS_AVAILABLE:
+                from datetime import timezone
                 await ws_manager.broadcast({
                     "type": "WORKFLOW_STARTED",
-                    "project_id": str(instance.id),
+                    "project_id": instance.id,
                     "status": instance.status.value,
-                    "timestamp": datetime.utcnow().isoformat()
+                    "timestamp": datetime.now(timezone.utc).isoformat()
                 })
 
             try:
                 while instance.status in (WorkflowStatus.RUNNING, WorkflowStatus.REPLAYING):
                     # Reload instance at loop start to catch external cancellation or status changes
-                    instance = await self.persistence.load_instance(instance.id)
+                    loaded = await self.persistence.load_instance(instance.id)
+                    if not loaded:
+                        logger.error(f"Workflow {instance.id} disappeared during execution.")
+                        break
+                    instance = loaded
+
                     if instance.status == WorkflowStatus.CANCELLED:
                         logger.warning(f"[Workflow {instance.id}] Cancellation signal detected. Terminating loop.")
                         break
 
                     completed_ids = {
                         s.id for s in instance.steps
-                        if s.status == StepStatus.COMPLETED
+                        if s.status in (StepStatus.COMPLETED, StepStatus.SKIPPED)
                     }
 
                     ready_steps = [
@@ -115,6 +161,18 @@ class WorkflowEngine:
                         if s.status in (StepStatus.PENDING, StepStatus.REPLAY_PENDING)
                         and all(dep_id in completed_ids for dep_id in s.dependencies)
                     ]
+
+                    # Condition Filter (Phase 28)
+                    final_ready = []
+                    for s in ready_steps:
+                        if _condition_matches(s.condition, instance.context):
+                            final_ready.append(s)
+                        else:
+                            logger.info(f"[Workflow {instance.id}] Skipping step {s.name} due to condition: {s.condition}")
+                            s.status = StepStatus.SKIPPED
+                            await self.persistence.save_step(instance.id, s)
+
+                    ready_steps = final_ready
 
                     if not ready_steps:
                         all_terminal = all(
@@ -146,7 +204,7 @@ class WorkflowEngine:
                         f"[Workflow {instance.id}] Running {len(ready_steps)} steps in parallel: "
                         f"{step_names}"
                     )
-                    add_span_event("workflow.batch_start", {"steps": str(step_names)})
+                    add_span_event("workflow.batch_start", attributes={"steps": str(step_names)})
 
                     await asyncio.gather(
                         *[self._execute_step(instance, step) for step in ready_steps]
@@ -172,7 +230,8 @@ class WorkflowEngine:
                         await self.persistence.save_event(instance.id, "workflow_failed")
                         break
 
-                instance.completed_at = datetime.utcnow()
+                from datetime import timezone
+                instance.completed_at = datetime.now(timezone.utc)
                 await self.persistence.save_instance(instance)
                 terminal_event = "workflow_completed" if instance.status == WorkflowStatus.COMPLETED else "workflow_failed"
                 await self.persistence.save_event(instance.id, terminal_event)
@@ -180,9 +239,9 @@ class WorkflowEngine:
                 if _WS_AVAILABLE:
                     await ws_manager.broadcast({
                         "type": "WORKFLOW_COMPLETED",
-                        "project_id": str(instance.id),
+                        "project_id": instance.id,
                         "status": instance.status.value,
-                        "timestamp": datetime.utcnow().isoformat()
+                        "timestamp": datetime.now(timezone.utc).isoformat()
                     })
 
                 set_span_attrs(
@@ -242,7 +301,7 @@ class WorkflowEngine:
             "step.name":         step.name,
             "step.action":       step.action,
             "step.max_retries":  step.max_retries,
-            "workflow.id":       str(instance.id),
+            "workflow.id":       instance.id,
         }
 
         async def _run_step():
@@ -267,7 +326,7 @@ class WorkflowEngine:
 
             # 2. Autonomy & Approval Check
             autonomy_check = autonomy_engine.check_execution_permission({
-                "step_id": str(step.id),
+                "step_id": step.id,
                 "step_name": step.name,
                 "tool_name": step.action,
                 "risk_score": step.input_data.get("_risk_score", 0.0)
@@ -311,25 +370,26 @@ class WorkflowEngine:
                     await self.persistence.save_event(instance.id, "step_waiting_approval", step_id=step.id)
                     return # Pause this step (and since it's gathered, it stops the batch)
 
+            from datetime import timezone
             logger.info(f"[Step {step.name}] Starting action: {step.action}")
             step.status = StepStatus.RUNNING
-            step.started_at = datetime.utcnow()
+            step.started_at = datetime.now(timezone.utc)
             await self.persistence.save_step(instance.id, step)
             await self.persistence.save_event(instance.id, "step_started", step_id=step.id)
 
             if _WS_AVAILABLE:
                 await ws_manager.broadcast({
                     "type": "STEP_STARTED",
-                    "project_id": str(instance.id),
+                    "project_id": instance.id,
                     "step_id": step.id,
                     "step_name": step.name,
-                    "timestamp": datetime.utcnow().isoformat()
+                    "timestamp": datetime.now(timezone.utc).isoformat()
                 })
 
             try:
                 # Pre-execution Cancellation Check
                 instance_check = await self.persistence.load_instance(instance.id)
-                if instance_check.status == WorkflowStatus.CANCELLED:
+                if instance_check and instance_check.status == WorkflowStatus.CANCELLED:
                     logger.warning(f"[Step {step.name}] Workflow cancelled before execution. Aborting.")
                     step.status = StepStatus.FAILED
                     return
@@ -341,9 +401,10 @@ class WorkflowEngine:
                 # Actual execution wrapped in a potential cancellation listener
                 result = await action_func(instance.context, **step.input_data)
 
+                from datetime import timezone
                 step.output_data = result if isinstance(result, dict) else {"result": result}
                 step.status = StepStatus.COMPLETED
-                step.completed_at = datetime.utcnow()
+                step.completed_at = datetime.now(timezone.utc)
                 await self.persistence.save_event(instance.id, "step_completed", step_id=step.id, payload=step.output_data)
 
                 if isinstance(step.output_data, dict) and "_context_update" in step.output_data:
@@ -358,7 +419,7 @@ class WorkflowEngine:
             except Exception as e:
                 logger.error(f"[Step {step.name}] FAILED (attempt {step.retries + 1}): {e}")
                 step.error = str(e)
-                add_span_event("step.error", {"error": str(e), "attempt": step.retries + 1})
+                add_span_event("step.error", attributes={"error": str(e), "attempt": step.retries + 1})
 
                 if step.retries < step.max_retries:
                     step.retries += 1
@@ -375,13 +436,14 @@ class WorkflowEngine:
             await self.persistence.save_step(instance.id, step)
 
             if _WS_AVAILABLE:
+                from datetime import timezone
                 await ws_manager.broadcast({
                     "type": "STEP_COMPLETED" if step.status == StepStatus.COMPLETED else "STEP_FAILED",
-                    "project_id": str(instance.id),
+                    "project_id": instance.id,
                     "step_id": step.id,
                     "status": step.status.value,
                     "error": step.error,
-                    "timestamp": datetime.utcnow().isoformat()
+                    "timestamp": datetime.now(timezone.utc).isoformat()
                 })
 
         with _otel_span(f"step.{step.action}", attributes=step_attrs):
@@ -390,7 +452,7 @@ class WorkflowEngine:
 
     # ── Replay Operations (Phase 2.1) ──────────────────────────────────────────
 
-    async def replay(self, instance: WorkflowInstance, from_step_id: str, mode: str = "same_input", overrides: dict = None, operator_id: str = "system", reason: str = "manual trigger"):
+    async def replay(self, instance: WorkflowInstance, from_step_id: str, mode: str = "same_input", overrides: Optional[dict] = None, operator_id: str = "system", reason: str = "manual trigger"):
         """
         Force a workflow to re-execute from a specific point with full audit trail.
         - mode 'same_input': only reset the target step.
