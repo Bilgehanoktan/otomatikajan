@@ -111,10 +111,28 @@
     "totalConsumption": "Toplam Tüketim",
     "usage": "%{pct} Kullanım"
   },
+  "commands": {
+    "auditBundle": "Denetim Paketi Oluştur",
+    "auditBundleSub": "Denetim Paketi Oluştur · /compliance/audit-bundles",
+    "connectionError": "Bağlantı Hatası",
+    "connectionErrorDesc": "Backend servisine ulaşılamadı veya geçersiz yanıt alındı. Hata: {error}",
+    "drill": "Operasyonel Tatbikat (Drill)",
+    "drillSub": "Yönetişim Tatbikatı Tetikleyici · /governance/drills/trigger",
+    "handover": "Üretim Devir Teslim (Handover)",
+    "handoverSub": "Üretim Devir Teslimi · /governance/ops/handover",
+    "pending": "Onay Bekleyenler",
+    "pendingSub": "Bekleyen Onaylar · /approvals?status=pending",
+    "safeMode": "Güvenli Mod",
+    "safeModeActive": "Aktif",
+    "success": "Komut İletildi",
+    "successDesc": "İşlem başarıyla tetiklendi.",
+    "quickAccess": "HIZLI ERİŞİM MERKEZİ"
+  },
   "dashboard": {
     "aboveThreshold": "EŞİK ÜZERİNDE",
     "active": "Aktif",
     "activeQuorum": "AKTİF KORUM",
+    "artifactsConnected": "{count} {type} artifaktı bağlı",
     "criticalRisk": "KRİTİK RİSK TESPİT EDİLDİ",
     "disconnected": "BAĞLANTI KESİLDİ",
     "economy": {
@@ -129,6 +147,7 @@
     },
     "engineVersion": "Motor Versiyonu",
     "error": "Hata",
+    "gate": "geçit",
     "governance": {
       "accuracy": "DOĞRULUK (1sa)",
       "actions": "Aksiyonlar",
@@ -170,6 +189,7 @@
       "title": "ALTYAPI VE KİMLİK",
       "vcsBranch": "VCS Dalı"
     },
+    "manual": "Manuel",
     "metabolicPulse": "METABOLİK NABIZ",
     "metrics": {
       "activeAgents": "Aktif Ajanlar",
@@ -189,6 +209,8 @@
     "nominal": "NOMİNAL",
     "notificationsDesc": "Yeni sistem mesajı yok.",
     "notificationsTitle": "Bildirimler",
+    "openDiagnostics": "Tanılamayı Aç",
+    "openRepairLab": "Onarım Laboratuvarını Aç",
     "operator": "Operatör",
     "orchestration": {
       "progress": "İlerleme",
@@ -205,6 +227,8 @@
       "telemetry": "Sistem Telemetrisi",
       "title": "HIZLI ERİŞİM MERKEZİ"
     },
+    "repair": "Onar",
+    "repairing": "Onarılıyor",
     "resilience": {
       "idle": "BOŞTA",
       "nodes": {
@@ -222,29 +246,57 @@
       "status": "AKTİF",
       "synced": "SENKRONİZE"
     },
+    "runtimeHealingSignals": "{count} sinyal, {safeCount} güvenli onarım mevcut",
+    "runtimeHealingTitle": "Çalışma Zamanı Kendi Kendini Onarma",
     "sealedVerified": "MÜHÜRLENDİ VE DOĞRULANDI",
     "searchPlaceholder": "Sistem komutlarını veya verilerini ara...",
+    "selfRepairReports": "Kendi Kendini Onarma Vaka Raporları",
+    "repairArtifactsConnected": "{count} repair_outputs artifaktı bağlı",
+    "taskflowTrace": "TaskFlow Yürütme İzleme",
+    "taskflowArtifactsConnected": "{count} taskflow_trace artifaktı bağlı",
     "settingsLocked": "Sistem ayarları şu anda kilitli.",
     "settingsTitle": "Ayarlar",
     "stable": "STABİL",
     "start": "Yeni Başlat",
+    "steps": "adım",
+    "stepsCount": "{succeeded}/{total} adım",
     "success": "Başarı",
     "synchronized": "SENKRONİZE",
     "systemIntegrity": "SİSTEM BÜTÜNLÜĞÜ",
+    "telemetry": {
+      "all": "Tümü",
+      "connectionActive": "Sovereign Mesh WebSocket bağlantısı aktif — Nöral akış senkronize ediliyor.",
+      "connectionLost": "Bağlantı Kayboldu: Polling deniyorlar...",
+      "liveSeed": "CANLI TOHUM",
+      "status": {
+        "stable": "WS_LINK: STABİL",
+        "sync": "WS_LINK: SENK",
+        "lost": "WS_LINK: KAYIP",
+        "fallback": "WS_LINK: FALLBACK"
+      },
+      "categories": {
+        "alert": "Uyarı",
+        "failover": "Yük Devretme",
+        "repair": "Onarım",
+        "budget": "Bütçe",
+        "quorum": "Korum",
+        "governance": "Yönetişim",
+        "workflow": "İş Akışı"
+      },
+      "subtitle": "GERÇEK ZAMANLI OLAY AKIŞI",
+      "title": "SİSTEM TELEMETRİSİ",
+      "waitingEvents": "Olay bekleniyor..."
+    },
+    "uptime": "ÇALIŞMA SÜRESİ",
     "tabs": {
       "economy": "Ekonomi",
       "events": "Olaylar",
       "health": "Sistem Sağlığı",
       "overview": "Genel Bakış",
       "workflows": "İş Akışları"
-    },
-    "telemetry": {
-      "liveSeed": "CANLI TOHUM",
-      "subtitle": "GERÇEK ZAMANLI OLAY AKIŞI",
-      "title": "SİSTEM TELEMETRİSİ"
-    },
-    "uptime": "ÇALIŞMA SÜRESİ"
+    }
   },
+
   "evolution": {
     "badge": "AGI EVRİMİ",
     "events": "OLAYLAR",
@@ -577,6 +629,13 @@
   "resources_training": "Eğitim ve Tatbikat",
   "resources_verifiers": "Doğrulayıcılar",
   "resources_workflows": "İş Akışları",
+  "resources_uiRepair": "UI Onarım Merkezi",
+  "repair_attempts": "Onarım Girişimleri",
+  "repair_events": "Olay Günlüğü",
+  "diagnostic_brief": "Teşhis Özeti",
+  "suspected_files": "Şüpheli Dosyalar",
+  "repair_instruction": "Onarım Talimatı",
+  "patch_summary": "Yama Özeti",
   "safety": {
     "badge": "DÜZENLEYİCİ SINIF",
     "critical": "KRİTİK",
@@ -621,7 +680,58 @@
     "selfRepairReports": "Öz-Onarım Vaka Raporları",
     "selfRepairReportsDesc": "Aşama 1-3 repair_outputs artifaktları kontrol paneline bağlanmıştır.",
     "runtimeRepairTimeline": "Çalışma Zamanı Onarım Zaman Çizelgesi",
-    "runtimeRepairTimelineDesc": "Sistem Sağlığı onarım girişimleri DecisionLineage'dan yansıtılmıştır."
+    "runtimeRepairTimelineDesc": "Sistem Sağlığı onarım girişimleri DecisionLineage'dan yansıtılmıştır.",
+    "noActiveRepairs": "Aktif Onarım Bulunamadı",
+    "noActiveRepairsDesc": "Şu anda izlenen otonom bir UI onarım vakası bulunmuyor. Yeni bir hata tespit edildiğinde burada görünecektir.",
+    "chaosDrills": "Kaos Tatbikatları",
+    "soakValidation": "Soak Doğrulaması",
+    "recoveryProofPacks": "Kurtarma Kanıt Paketleri",
+    "runDrill": "Tatbikatı Başlat",
+    "startSoak": "Soak Başlat",
+    "generateProofPack": "Kanıt Paketi Oluştur",
+    "scenario": "Senaryo",
+    "expectedDetection": "Beklenen Tespit",
+    "detectedStatus": "Tespit Durumu",
+    "passed": "Başarılı",
+    "failed": "Başarısız",
+    "cleanupRequired": "Temizlik Gerekli",
+    "governanceBoundary": "Yönetişim Sınırı",
+    "soakMetrics": "Soak Metrikleri",
+    "memoryGrowth": "Bellek Artışı",
+    "schedulerOverlap": "Planlayıcı Çakışması",
+    "executiveSummary": "Yönetici Özeti",
+    "evidenceHash": "Kanıt Özeti (Hash)",
+    "downloadReport": "Raporu İndir",
+    "advancedChaosScenarios": "Gelişmiş Kaos Senaryoları",
+    "activeChaosRuns": "Aktif Kaos Çalışmaları",
+    "operatorEscalationCenter": "Operatör Eskalasyon Merkezi",
+    "acknowledge": "Onayla",
+    "markResolved": "Çözüldü İşaretle",
+    "crisisManagementConsole": "Kriz Yönetim Konsolu",
+    "resumeNormalMode": "Normal Moda Dön",
+    "freezeSelfHealing": "Öz-Onarımı Dondur",
+    "totalLockdown": "Tam Kilitleme",
+    "notificationDeliveryLogs": "Bildirim Gönderim Günlükleri",
+    "advancedChaos": "Gelişmiş Kaos",
+    "escalation": "Eskalasyon",
+    "crisis_control_panel": "Kriz Kontrol Paneli",
+    "final_readiness": "Final Hazırlık",
+    "enterprise_readiness": "Kurumsal Hazırlık",
+    "red_team_scenarios": "Red Team Senaryoları",
+    "release_gate": "Yayın Kapısı",
+    "final_audit_pack": "Final Denetim Paketi",
+    "operator_handover": "Operatör Devir Teslim",
+    "production_readiness_score": "Üretim Hazırlık Puanı",
+    "go_decision": "GEÇ",
+    "no_go_decision": "DUR",
+    "pilot_only_decision": "SADECE PİLOT",
+    "generate_assessment": "Değerlendirme Oluştur",
+    "generate_scenarios": "Senaryo Oluştur",
+    "evaluate_gate": "Kapıyı Değerlendir",
+    "seal_audit_pack": "Denetim Paketini Mühürle",
+    "generate_handover": "Devir Teslim Oluştur",
+    "crisisControl": "Kriz Kontrol",
+    "notifications": "Bildirimler"
   },
   "status": {
     "cancelled": "İptal Edildi",
@@ -641,14 +751,27 @@
     "waiting": "Bekliyor"
   },
   "system_health": {
-    "subtitle": "Çekirdek sistem mimarisi ve hesaplama verimliliğine ilişkin gerçek zamanlı gözlemlenebilirlik.",
-    "uptime": "Sistem Çalışma Süresi",
-    "version": "Çekirdek Versiyonu",
+    "activeRuntimeCauses": "Düşük sağlık durumunun arkasındaki aktif çalışma zamanı nedenleri ve güvenli onarım sınırları.",
+    "computeLoad": "İşlem Yükü",
+    "globalNodes": "Küresel Düğümler",
+    "kernelHealth": "Çekirdek {highlight}",
+    "latencyProfile": "SİSTEM GERÇEK ZAMANLI YÜK PROFİLİ",
+    "manualOperatorAction": "Manuel operatör eylemi",
+    "memoryCluster": "Bellek Kümesi",
+    "memoryDriftDetected": "Node-3 bellek sapması tespit edildi",
+    "networkLatency": "Ağ Gecikmesi",
+    "noDiagnostics": "Şu anda aktif çalışma zamanı tanılaması yok.",
+    "pulse": "Altyapı Nabzı",
     "resourceUsage": "KAYNAK KULLANIMI",
+    "runtimeDiagnostics": "Çalışma Zamanı Tanılamaları",
+    "safeRepairAvailable": "Güvenli onarım mevcut",
+    "subtitle": "Çekirdek sistem mimarisi ve hesaplama verimliliğine ilişkin gerçek zamanlı gözlemlenebilirlik.",
     "telemetry": {
       "latencyTitle": "GECİKME PERFORMANSI",
       "recentIncidents": "SON OLAYLAR"
-    }
+    },
+    "uptime": "Sistem Çalışma Süresi",
+    "version": "Çekirdek Versiyonu"
   },
   "training": {
     "autoModeActive": "OTOMATİK MOD AKTİF",
