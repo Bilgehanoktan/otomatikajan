@@ -7,6 +7,7 @@ This is the single entry-point called by Celery workers instead of
 directly talking to SovereignCortex.
 """
 import uuid
+import json
 from datetime import datetime, timezone
 from services.observability.logging import get_logger
 from libs.observability.tracer import traced, span
@@ -66,18 +67,36 @@ def _register_default_actions(engine: WorkflowEngine):
         subtasks = await cortex.planner_svc.execute_dialectic_planning(
             project_id, title, full_context, description, asdict(aff_state)
         )
-        # Serialize subtask list into context for next steps
+        # Faz 13.04: Persist planned subtasks to DB so UI can see them (Agents: 0 fix)
+        from libs.db.session import AsyncSessionLocal
+        from libs.db.repositories.repository import SubTaskRepository
+        
+        db_subtasks = []
+        async with AsyncSessionLocal() as db:
+            subtask_specs = [
+                {
+                    "agent_id": st.agent_id,
+                    "prompt": st.prompt,
+                    "title": st.title,
+                }
+                for st in subtasks
+            ]
+            db_subtasks = await SubTaskRepository.bulk_create(db, uuid.UUID(project_id), subtask_specs)
+            await db.commit()
+
+        # Serialize subtask list into context for next steps, using DB IDs
         return {
             "_context_update": {
                 "subtasks": [
                     {
-                        "id": st.id, "agent_id": st.agent_id,
+                        "id": str(st.id), 
+                        "agent_id": st.agent_id,
                         "title": getattr(st, "title", ""),
                         "prompt": getattr(st, "prompt", ""),
                         "status": str(st.status),
                         "dependencies": getattr(st, "dependencies", []),
                     }
-                    for st in subtasks
+                    for st in db_subtasks
                 ]
             }
         }
@@ -159,17 +178,22 @@ def _register_default_actions(engine: WorkflowEngine):
         has_failures = context.get("has_failures", False)
         task.status = TaskStatus.ERROR if has_failures else TaskStatus.COMPLETED
         try:
-            report = cortex.synthesizer.synthesize(task)
+            # Phase 13.04.2: Structured JSON synthesis
+            report_data = await cortex.synthesizer.synthesize_structured(task, cortex=cortex)
+            report = json.dumps(report_data, indent=2, ensure_ascii=False)
         except Exception as exc:
-            logger.warning(f"[WorkflowRunner] Report synthesis fallback activated: {exc}")
-            completed_count = sum(1 for st in task.subtasks if "completed" in str(st.status).lower())
-            report = (
-                f"### Workflow Completion Report\n\n"
-                f"Project: **{task.title}**\n"
-                f"Status: {task.status}\n"
-                f"Completed Agents: {completed_count}/{len(task.subtasks)}\n\n"
-                f"Synthesis fallback was used because the rich report renderer raised: `{exc}`."
-            )
+            logger.warning(f"[WorkflowRunner] Structured report synthesis failed: {exc}")
+            completed_count = sum(1 for st in task.subtasks if st.status == TaskStatus.COMPLETED)
+            # Minimal structured fallback
+            report_data = {
+                "title": task.title,
+                "executive_summary": "Sentezleme hatası oluştu, ancak görev tamamlandı.",
+                "analysis_type": "RESEARCH",
+                "average_quality": 0.0,
+                "findings": [],
+                "risks": [f"Synthesis Error: {exc}", f"Completed Agents: {completed_count}/{len(task.subtasks)}"]
+            }
+            report = json.dumps(report_data, ensure_ascii=False)
         
         # Faz 13.04: Ensure report visibility even for empty/mock tasks
         if not report or len(report.strip()) < 10:
@@ -184,7 +208,28 @@ def _register_default_actions(engine: WorkflowEngine):
         # Reflective learning
         await cortex.reflection_svc.reflect_on_task(task)
 
-        return {"_context_update": {"final_report": report, "final_status": str(task.status)}}
+        # Calculate quality metrics for persistence
+        total_q = 0.0
+        q_count = 0
+        q_detail = {}
+        for st in task.subtasks:
+            # OperationalExecutor might have stored it in execution_results
+            # or it might be directly on the st object if synthesized from context
+            if hasattr(st, "quality_score") and st.quality_score is not None:
+                total_q += st.quality_score
+                q_count += 1
+                q_detail[st.agent_id] = st.quality_score
+        
+        avg_quality = total_q / q_count if q_count > 0 else 0.0
+
+        return {
+            "_context_update": {
+                "final_report": report, 
+                "final_status": str(task.status),
+                "quality_score": avg_quality,
+                "quality_detail": q_detail
+            }
+        }
 
     async def _dummy_action(context: dict, **kw) -> dict:
         """Fallback dummy action for seed data."""
@@ -383,6 +428,28 @@ class WorkflowRunner:
 
     async def run_project_workflow(self, **kwargs) -> WorkflowInstance:
         return await run_project_workflow(**kwargs)
+
+    async def run(self, task: Any) -> Any:
+        """Compatibility method for direct ProjectTask execution."""
+        from services.orchestration.domain.models import ProjectTask
+        if not isinstance(task, ProjectTask):
+            logger.warning(f"[WorkflowRunner] Compatibility run() called with non-ProjectTask: {type(task)}")
+            return task
+            
+        instance = await run_project_workflow(
+            project_id=str(task.id),
+            title=task.title,
+            description=task.description or "",
+            workflow_template=getattr(task, "workflow_template", "default"),
+            quality_profile=getattr(task, "quality_profile", "standard"),
+            execution_context=getattr(task, "execution_context", {}),
+        )
+        # Update task object with results for compatibility
+        task.status = instance.status
+        task.report = instance.context.get("final_report", "")
+        # We don't fully sync subtasks here as they are in DB, 
+        # but SovereignCortex expects them for final reflection.
+        return task
 
 async def register_workflow_handlers(job_queue):
     """Unify job handler registration for workflow execution across the platform."""

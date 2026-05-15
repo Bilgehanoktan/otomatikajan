@@ -84,6 +84,8 @@ class OperationalExecutor:
                 subtask.status = TaskStatus.COMPLETED
                 subtask.result = str(result.output_data)
                 subtask.internal_monologue = result.reflection
+                subtask.quality_score = result.quality_score
+                subtask.quality_detail = result.quality_detail
                 
                 # Faz 12.3: Bilişsel Yansıtma Denetimi (Reflective Audit)
                 if self.reflection:
@@ -96,6 +98,9 @@ class OperationalExecutor:
                         raise Exception(f"Bilişsel Denetim Reddi: {audit_result.get('critique')}")
                     
                     subtask.causal_anchor = audit_result.get('causal_anchor', "")
+                    # Reflection can also adjust quality score
+                    if audit_result.get("quality_score"):
+                        subtask.quality_score = audit_result["quality_score"]
                     _log.info(f"[EXECUTOR-AUDIT] Denetim onaylandı. Anchor: {subtask.causal_anchor}")
 
                 # Otonom Başarı Sinyali
@@ -116,6 +121,8 @@ class OperationalExecutor:
                     output_tokens=0,
                     cost_usd=0.0,
                     latency_s=subtask.duration_s,
+                    quality_score=subtask.quality_score,
+                    quality_detail=subtask.quality_detail,
                     internal_monologue=subtask.internal_monologue,
                     causal_anchor=getattr(subtask, "causal_anchor", "")
                 )

@@ -35,6 +35,7 @@ celery_app = Celery(
         "workers.workflow_worker.tasks.project_tasks",
         "workers.workflow_worker.tasks.deerflow_tasks",
         "workers.workflow_worker.tasks.mesh_tasks",
+        "workers.workflow_worker.tasks.ui_repair_tasks",
     ],
 )
 
@@ -86,6 +87,12 @@ celery_app.conf.beat_schedule = {
     "cleanup-memories-weekly": {
         "task": "workers.workflow_worker.tasks.project_tasks.cleanup_memories",
         "schedule": crontab(day_of_week=0, hour=4, minute=0),
+    },
+    # UI Smoke Monitor (Her 5 dakikada bir)
+    "ui-smoke-monitor-5m": {
+        "task": "workers.workflow_worker.tasks.ui_repair_tasks.ui_smoke_monitor_task",
+        "schedule": 300.0,
+        "options": {"queue": "background"},
     },
 }
 

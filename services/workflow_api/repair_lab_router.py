@@ -8,11 +8,13 @@ import asyncio
 import json
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, List, Dict, Optional
 
+# FastAPI imports
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Body
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy import select, func, desc
 
@@ -24,15 +26,20 @@ from libs.db.models.repair_models import (
     VerifierResult,
     RepairMemory,
     SelfTuningSuggestion,
+    UIRepairPRReview,
+    UIRepairPRFinding,
 )
 from libs.db.models.learning_models import StrategyMemory, NegativePatternMemory
 from services.orchestration.application.sovereign_cortex import get_sovereign_cortex
 from services.improve.repair_bench import RepairBenchService
 
 router = APIRouter(tags=["Autonomous Repair Lab"])
+# Logger init
 logger = logging.getLogger(__name__)
 REPO_ROOT = Path(__file__).resolve().parents[2]
 REPAIR_OUTPUTS_DIR = REPO_ROOT / "repair_outputs"
+REPAIR_ARTIFACT_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".zip", ".json", ".md", ".log", ".diff"}
+REPAIR_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
 
 # ── Response Schemas ──────────────────────────────────────────────────────────
 
@@ -69,6 +76,83 @@ class LabRunRequest(BaseModel):
     diagnostic_id: Optional[str] = None
     source: Optional[str] = "repair_lab"
 
+# ── PR-Agent Schemas (Phase 32) ─────────────────────────────────────────────
+
+class PRAgentActionRequest(BaseModel):
+    pr_url: str
+
+class PRAgentFindingOut(BaseModel):
+    id: str
+    file_path: Optional[str] = None
+    line_number: Optional[int] = None
+    severity: str
+    category: str
+    message: str
+    suggestion: Optional[str] = None
+
+class PRAgentReviewOut(BaseModel):
+    review_id: str
+    case_id: str
+    pr_url: str
+    status: str
+    summary: str
+    governance_decision: Optional[str] = None
+    findings: List[PRAgentFindingOut] = []
+    created_at: datetime
+
+
+def _safe_repair_artifact_path(incident_id: str, artifact_path: str) -> Path:
+    incident_dir = (REPAIR_OUTPUTS_DIR / incident_id).resolve()
+    candidate = (incident_dir / artifact_path).resolve()
+    if incident_dir != candidate and incident_dir not in candidate.parents:
+        raise HTTPException(status_code=400, detail="Artifact path escapes repair output scope.")
+    if candidate.suffix.lower() not in REPAIR_ARTIFACT_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="Artifact type is not allowed.")
+    if not candidate.exists() or not candidate.is_file():
+        raise HTTPException(status_code=404, detail="Artifact not found.")
+    return candidate
+
+
+def _artifact_url(incident_id: str, path: Path) -> str:
+    incident_dir = REPAIR_OUTPUTS_DIR / incident_id
+    rel_path = path.relative_to(incident_dir).as_posix()
+    return f"/api/v1/repair-lab/artifacts/{incident_id}/{rel_path}"
+
+
+def _load_draft_pr(incident_dir: Path) -> Dict[str, Any]:
+    draft_path = incident_dir / "draft_pr.json"
+    if not draft_path.exists():
+        return {}
+    try:
+        raw = json.loads(draft_path.read_text(encoding="utf-8"))
+        if isinstance(raw, dict):
+            raw["draft_pr_path"] = str(draft_path)
+            return raw
+    except Exception:
+        logger.warning("Draft PR artifact could not be parsed: %s", draft_path)
+    return {}
+
+
+def _load_evidence_assets(incident_id: str, incident_dir: Path) -> List[Dict[str, Any]]:
+    assets: List[Dict[str, Any]] = []
+    for artifact in sorted(incident_dir.rglob("*")):
+        if not artifact.is_file() or artifact.suffix.lower() not in REPAIR_IMAGE_EXTENSIONS:
+            continue
+        try:
+            stat = artifact.stat()
+            assets.append(
+                {
+                    "name": artifact.name,
+                    "path": str(artifact),
+                    "url": _artifact_url(incident_id, artifact),
+                    "kind": "image",
+                    "timestamp": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                }
+            )
+        except Exception:
+            continue
+    return assets
+
 
 def _load_self_repair_reports(limit: int = 20) -> List[Dict[str, Any]]:
     if not REPAIR_OUTPUTS_DIR.exists():
@@ -83,9 +167,12 @@ def _load_self_repair_reports(limit: int = 20) -> List[Dict[str, Any]]:
             sandbox_result = raw.get("sandbox_result") or {}
             candidate = raw.get("candidate") or {}
             stat = report_path.stat()
+            incident_id = repair_case.get("incident_id") or report_path.parent.name
+            draft_pr = _load_draft_pr(report_path.parent)
+            pr_url = draft_pr.get("pr_url") or draft_pr.get("html_url") or draft_pr.get("url")
             reports.append(
                 {
-                    "incident_id": repair_case.get("incident_id") or report_path.parent.name,
+                    "incident_id": incident_id,
                     "trace_id": repair_case.get("trace_id"),
                     "summary": repair_case.get("summary") or "",
                     "final_status": raw.get("final_status") or "UNKNOWN",
@@ -97,6 +184,11 @@ def _load_self_repair_reports(limit: int = 20) -> List[Dict[str, Any]]:
                     "suspected_files": repair_case.get("suspected_files") or [],
                     "changed_files": candidate.get("changed_files") or [],
                     "patch_path": candidate.get("patch_path"),
+                    "pr_url": pr_url,
+                    "pr_title": draft_pr.get("title"),
+                    "branch_name": draft_pr.get("branch_name"),
+                    "draft_pr_path": draft_pr.get("draft_pr_path"),
+                    "evidence": _load_evidence_assets(incident_id, report_path.parent),
                     "report_path": str(report_path),
                     "updated_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
                     "source": "repair_outputs",
@@ -227,6 +319,13 @@ async def list_self_repair_runs(limit: int = 20):
     return _load_self_repair_reports(limit=limit)
 
 
+@router.get("/artifacts/{incident_id}/{artifact_path:path}")
+async def get_repair_artifact(incident_id: str, artifact_path: str):
+    """Serve allowlisted repair evidence artifacts from repair_outputs."""
+    path = _safe_repair_artifact_path(incident_id, artifact_path)
+    return FileResponse(path)
+
+
 @router.get("/taskflow-runs")
 async def list_taskflow_runs(limit: int = 20):
     """TaskFlow trace artifacts visible to the dashboard."""
@@ -242,7 +341,7 @@ async def list_benchmarks(limit: int = 10):
             q = select(RepairBenchmarkRun).order_by(desc(RepairBenchmarkRun.start_time)).limit(limit)
             res = await db.execute(q)
             runs = res.scalars().all()
-            
+
             return [
                 {
                     "id": str(r.run_id),
@@ -267,14 +366,14 @@ async def list_tournaments(limit: int = 20):
             q = select(RepairTournament).order_by(desc(RepairTournament.created_at)).limit(limit)
             res = await db.execute(q)
             tournaments = res.scalars().all()
-            
+
             results = []
             for t in tournaments:
                 # Load candidates for this tournament
                 cq = select(RepairCandidate).where(RepairCandidate.tournament_id == t.tournament_id)
                 cres = await db.execute(cq)
                 candidates = cres.scalars().all()
-                
+
                 results.append(TournamentOut(
                     id=t.tournament_id,
                     incident_id=t.incident_id,
@@ -306,11 +405,11 @@ async def get_learning_insights():
             # Fetch Trusted Strategies
             s_res = await db.execute(select(StrategyMemory).order_by(desc(StrategyMemory.trust_score)))
             memories = s_res.scalars().all()
-            
+
             # Fetch Negative Patterns
             n_res = await db.execute(select(NegativePatternMemory).order_by(desc(NegativePatternMemory.penalty_weight)))
             negatives = n_res.scalars().all()
-            
+
             return {
                 "strategies": [
                     {
@@ -351,14 +450,14 @@ async def get_verifier_matrix(tournament_id: Optional[str] = None):
             # Get all candidates for the tournament
             cq = select(RepairCandidate).where(RepairCandidate.tournament_id == tournament_id)
             candidates = (await db.execute(cq)).scalars().all()
-            
+
             # Get all verifiers used in this tournament
             c_ids = [c.candidate_id for c in candidates]
             vq = select(VerifierResult).where(VerifierResult.candidate_id.in_(c_ids))
             v_results = (await db.execute(vq)).scalars().all()
-            
+
             verifiers = sorted(list(set(vr.verifier_name for vr in v_results)))
-            
+
             matrix = []
             for c in candidates:
                 row = {"name": c.strategy.capitalize(), "results": []}
@@ -367,7 +466,7 @@ async def get_verifier_matrix(tournament_id: Optional[str] = None):
                     match = next((vr.score for vr in v_results if vr.candidate_id == c.candidate_id and vr.verifier_name == v), 0.0)
                     row["results"].append(match)
                 matrix.append(row)
-                
+
             return {
                 "tournament_id": tournament_id,
                 "verifiers": verifiers,
@@ -385,7 +484,7 @@ async def get_tuning_suggestions():
             q = select(SelfTuningSuggestion).order_by(desc(SelfTuningSuggestion.created_at))
             res = await db.execute(q)
             suggestions = res.scalars().all()
-            
+
             return [
                 TuningSuggestionOut(
                     id=s.suggestion_id,
@@ -409,10 +508,10 @@ async def apply_tuning_suggestion(suggestion_id: str, data: SuggestionUpdate):
     async with AsyncSessionLocal() as db:
         q = select(SelfTuningSuggestion).where(SelfTuningSuggestion.suggestion_id == suggestion_id)
         suggestion = (await db.execute(q)).scalar_one_or_none()
-        
+
         if not suggestion:
             raise HTTPException(status_code=404, detail="Öneri bulunamadı")
-            
+
         suggestion.status = data.status
         await db.commit()
         return {"id": suggestion_id, "status": data.status}
@@ -424,24 +523,24 @@ async def get_verifiers_stats():
         try:
             q = select(VerifierResult).order_by(desc(VerifierResult.timestamp)).limit(500)
             results = (await db.execute(q)).scalars().all()
-            
+
             # Aggregate stats by verifier
             stats = {}
             for r in results:
                 name = r.verifier_name
                 if name not in stats:
                     stats[name] = {"passed": 0, "total": 0, "latency": 0.0, "errors_blocked": 0}
-                
+
                 stats[name]["total"] += 1
                 if r.passed:
                     stats[name]["passed"] += 1
                 else:
                     stats[name]["errors_blocked"] += 1
-                    
+
                 # Simulate latency if details.latency is missing
                 latency = r.details.get("latency", 0.15) if isinstance(r.details, dict) else 0.15
                 stats[name]["latency"] += latency
-                
+
             return [
                 {
                     "name": k,
@@ -463,7 +562,7 @@ async def get_repair_memory():
         try:
             q = select(RepairMemory).order_by(desc(RepairMemory.recorded_at)).limit(100)
             memories = (await db.execute(q)).scalars().all()
-            
+
             # Aggregate by subsystem
             stats = {}
             for m in memories:
@@ -475,7 +574,7 @@ async def get_repair_memory():
                     stats[ss]["success"] += 1
                 else:
                     stats[ss]["failure"] += 1
-            
+
             return [
                 {"subsystem": k, "success": v["success"], "failure": v["failure"], "rate": round(v["success"]/v["total"], 2)}
                 for k, v in stats.items()
@@ -497,7 +596,7 @@ async def get_repair_memory_details(subsystem: str = Query(...), limit: int = 50
             )
             res = await db.execute(q)
             memories = res.scalars().all()
-            
+
             return [
                 {
                     "id": str(m.memory_id),
@@ -622,7 +721,7 @@ async def get_evolution_feed(limit: int = 15):
             q = select(DecisionLineage).where(DecisionLineage.decision_type == "SYSTEM_EVOLUTION").order_by(desc(DecisionLineage.created_at)).limit(limit)
             res = await db.execute(q)
             items = res.scalars().all()
-            
+
             return [
                 {
                     "id": str(i.id),
@@ -644,9 +743,243 @@ async def get_evolution_status():
     from services.improve.evolution_orchestrator import evolution_orchestrator
     if not evolution_orchestrator:
         return {"is_running": False, "failure_counts": {}}
-    
+
     return {
         "is_running": evolution_orchestrator.is_running,
         "failure_counts": evolution_orchestrator.failure_counter,
         "stuck_threshold": evolution_orchestrator.STUCK_THRESHOLD
     }
+
+# �� PR-Agent Endpoints (Phase 32) ������������������������������������������
+
+@router.post("/cases/{case_id}/pr-agent/describe")
+async def pr_agent_describe(case_id: str, data: PRAgentActionRequest):
+    from services.repair.pr_agent_adapter import PRAgentAdapter
+    adapter = PRAgentAdapter()
+    msg = await adapter.run_action(data.pr_url, "describe")
+    return {"status": "ok", "message": msg}
+
+@router.post("/cases/{case_id}/pr-agent/review")
+async def pr_agent_review(case_id: str, data: PRAgentActionRequest):
+    from services.repair.pr_agent_adapter import PRAgentAdapter
+    adapter = PRAgentAdapter()
+    msg = await adapter.run_action(data.pr_url, "review")
+    return {"status": "ok", "message": msg}
+
+@router.post("/cases/{case_id}/pr-agent/improve")
+async def pr_agent_improve(case_id: str, data: PRAgentActionRequest):
+    from services.repair.pr_agent_adapter import PRAgentAdapter
+    adapter = PRAgentAdapter()
+    msg = await adapter.run_action(data.pr_url, "improve")
+    return {"status": "ok", "message": msg}
+
+@router.post("/cases/{case_id}/pr-agent/full-review", response_model=PRAgentReviewOut)
+async def pr_agent_full_review(case_id: str, data: PRAgentActionRequest):
+    from services.repair.pr_agent_adapter import PRAgentAdapter
+    adapter = PRAgentAdapter()
+    result = await adapter.run_full_review_cycle(case_id, data.pr_url)
+
+    return PRAgentReviewOut(
+        review_id=result.review_id,
+        case_id=case_id,
+        pr_url=result.pr_url,
+        status=result.status,
+        summary=result.summary,
+        governance_decision=result.governance_decision,
+        findings=[
+            PRAgentFindingOut(
+                id=str(uuid.uuid4()),
+                file_path=f.file_path,
+                line_number=f.line_number,
+                severity=f.severity,
+                category=f.category,
+                message=f.message,
+                suggestion=f.suggestion
+            ) for f in result.findings
+        ],
+        created_at=datetime.now(timezone.utc)
+    )
+
+@router.get("/cases/{case_id}/pr-agent/findings", response_model=List[PRAgentReviewOut])
+async def get_pr_agent_findings(case_id: str):
+    async with AsyncSessionLocal() as db:
+        q = select(UIRepairPRReview).where(UIRepairPRReview.case_id == case_id).order_by(desc(UIRepairPRReview.created_at))
+        res = await db.execute(q)
+        reviews = res.scalars().all()
+
+        results = []
+        for r in reviews:
+            fq = select(UIRepairPRFinding).where(UIRepairPRFinding.review_id == r.review_id)
+            fres = await db.execute(fq)
+            findings = fres.scalars().all()
+
+            results.append(PRAgentReviewOut(
+                review_id=r.review_id,
+                case_id=r.case_id,
+                pr_url=r.pr_url,
+                status=r.status,
+                summary=r.summary,
+                governance_decision=r.governance_decision,
+                findings=[
+                    PRAgentFindingOut(
+                        id=str(f.finding_id),
+                        file_path=f.file_path,
+                        line_number=f.line_number,
+                        severity=f.severity,
+                        category=f.category,
+                        message=f.message,
+                        suggestion=f.suggestion
+                    ) for f in findings
+                ],
+                created_at=r.created_at
+            ))
+        return results
+
+
+@router.post("/cases/{case_id}/trigger-autonomous-repair")
+async def trigger_autonomous_repair(case_id: str, target_url: str):
+    from services.repair.ui_repair_orchestrator import UIRepairOrchestrator
+    orchestrator = UIRepairOrchestrator()
+    result = await orchestrator.run_full_repair_cycle(case_id, target_url)
+
+    # Persistence for Phase 32: Save results to DB
+    async with AsyncSessionLocal() as db:
+        review_id = str(uuid.uuid4())
+        review_obj = result.get("review")
+        patch_obj = result.get("patch")
+        
+        # 1. Create Review Record
+        review = UIRepairPRReview(
+            review_id=review_id,
+            case_id=case_id,
+            pr_url=getattr(review_obj, 'pr_url', f"https://github.com/Sovereign-AGI/sovereign-control-plane/pull/{case_id}") if review_obj else f"https://github.com/Sovereign-AGI/sovereign-control-plane/pull/{case_id}",
+            status=result.get("final_status", "PENDING"),
+            summary=getattr(patch_obj, 'agent_summary', "Autonomous repair run completed.") if patch_obj else "Autonomous repair run completed.",
+            governance_decision=result.get("final_status", "PENDING"),
+            confidence_score=getattr(patch_obj, 'confidence', 0.0) if patch_obj else 0.0
+        )
+        db.add(review)
+
+        # 2. Save Findings if available
+        if review_obj and hasattr(review_obj, "findings"):
+            for f in review_obj.findings:
+                finding = UIRepairPRFinding(
+                    finding_id=str(uuid.uuid4()),
+                    review_id=review_id,
+                    file_path=f.file_path,
+                    line_number=f.line_number,
+                    severity=f.severity,
+                    category=f.category,
+                    message=f.message,
+                    suggestion=f.suggestion
+                )
+                db.add(finding)
+
+        # 3. Save patch diff to disk for later application (Phase 32 Human-in-the-Loop)
+        if patch_obj and hasattr(patch_obj, 'diff_text') and patch_obj.diff_text:
+            try:
+                patch_dir = REPAIR_OUTPUTS_DIR / case_id
+                patch_dir.mkdir(parents=True, exist_ok=True)
+                (patch_dir / "patch.diff").write_text(patch_obj.diff_text, encoding="utf-8")
+                logger.info(f"Saved patch.diff for case {case_id}")
+            except Exception as e:
+                logger.error(f"Failed to save patch.diff for {case_id}: {e}")
+        
+        await db.commit()
+
+    return {"status": "ok", "result": result, "review_id": review_id}
+
+@router.post("/cases/{case_id}/apply-patch")
+async def apply_patch(case_id: str):
+    """
+    Operator-Approved Patch Application.
+    Applies the generated patch to the production source tree using 'git apply'.
+    """
+    import subprocess
+    from libs.db.models.lineage_models import DecisionLineage
+    
+    # 1. Locate the patch diff
+    patch_path = REPAIR_OUTPUTS_DIR / case_id / "patch.diff"
+    if not patch_path.exists():
+        # Fallback: check if it's in the report JSON
+        report_path = REPAIR_OUTPUTS_DIR / case_id / "repair_report.json"
+        if report_path.exists():
+             try:
+                 report_data = json.loads(report_path.read_text(encoding="utf-8"))
+                 diff_text = report_data.get("candidate", {}).get("patch_diff") or report_data.get("patch", {}).get("diff_text")
+             except Exception:
+                 diff_text = None
+        else:
+             diff_text = None
+             
+        if not diff_text:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, 
+                detail=f"Patch diff for case {case_id} not found."
+            )
+    else:
+        diff_text = patch_path.read_text(encoding="utf-8")
+
+    # 2. Apply the patch
+    try:
+        logger.info(f"Applying patch for case {case_id} to {REPO_ROOT}")
+        # Use git apply to apply the unified diff
+        process = subprocess.run(
+            ["git", "apply", "-"],
+            input=diff_text,
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            encoding="utf-8"
+        )
+        
+        if process.returncode != 0:
+            error_msg = process.stderr or "Unknown git apply error"
+            logger.error(f"Patch application failed for {case_id}: {error_msg}")
+            return {
+                "status": "failed",
+                "error": error_msg,
+                "detail": "Git was unable to apply this patch. It might be stale or conflict with current code."
+            }
+            
+        # 3. Log the decision in Lineage
+        async with AsyncSessionLocal() as db:
+            decision = DecisionLineage(
+                decision_type="UI_REPAIR_PATCH_APPLIED",
+                component_name="RepairLab",
+                summary=f"Operator applied autonomous repair patch for {case_id}",
+                rationale="Human-in-the-loop approval granted via Control Plane Dashboard.",
+                outcome="SUCCESS",
+                trigger_event={"case_id": case_id},
+                meta_data={"case_id": case_id, "applied_at": datetime.now(timezone.utc).isoformat()}
+            )
+            db.add(decision)
+            
+            # Update the review status if found
+            q = select(UIRepairPRReview).where(UIRepairPRReview.case_id == case_id).order_by(desc(UIRepairPRReview.created_at))
+            res = await db.execute(q)
+            review = res.scalars().first()
+            if review:
+                review.status = "APPLIED"
+                review.governance_decision = "APPROVED_BY_OPERATOR"
+                
+            await db.commit()
+
+        logger.info(f"Successfully applied patch for case {case_id}")
+        return {"status": "ok", "message": "Patch applied successfully and recorded in lineage."}
+
+    except Exception as e:
+        logger.exception(f"Exception during patch application for {case_id}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"System error while applying patch: {str(e)}"
+        )
+
+@router.get("/cases/{case_id}/patch")
+async def get_case_patch(case_id: str):
+    """Returns the generated patch diff for a given case."""
+    patch_path = REPAIR_OUTPUTS_DIR / case_id / "patch.diff"
+    if not patch_path.exists():
+        raise HTTPException(status_code=404, detail="Patch not found")
+    
+    return {"case_id": case_id, "diff": patch_path.read_text(encoding="utf-8")}

@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { 
-  FlaskConical, 
-  Play, 
-  BarChart3, 
-  Activity, 
-  Cpu, 
+import {
+  FlaskConical,
+  Play,
+  BarChart3,
+  Activity,
+  Cpu,
   Zap,
   Info,
   Clock,
@@ -18,7 +18,9 @@ import {
   Search,
   Filter
 } from "lucide-react";
-import { PatchTournamentBoard, VerifierMatrix } from "@/components/repair/LabComponents";
+import { PatchTournamentBoard, VerifierMatrix, PRAgentGovernancePanel, UIRepairTimeline, EvidenceGallery } from "@/components/repair/LabComponents";
+import { FinOpsCenter } from "@/components/ui-repair/FinOpsCenter";
+import GovernanceCenter from "@/components/ui-repair/GovernanceCenter";
 import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 import { Skeleton } from "@/components/dashboard/Skeleton";
 import { safeFetchJson } from "@/lib/api";
@@ -52,6 +54,16 @@ interface SelfRepairRun {
   suspected_files: string[];
   changed_files: string[];
   report_path: string;
+  pr_url?: string;
+  pr_title?: string;
+  branch_name?: string;
+  evidence?: Array<{
+    name: string;
+    path: string;
+    url: string;
+    kind: string;
+    timestamp: string;
+  }>;
   updated_at: string;
 }
 
@@ -82,7 +94,28 @@ export default function RepairLabPage() {
   const [improvements, setImprovements] = useState<RepairImprovement[]>([]);
   const [selfRepairRuns, setSelfRepairRuns] = useState<SelfRepairRun[]>([]);
   const [taskflowRuns, setTaskflowRuns] = useState<TaskflowRun[]>([]);
+  const [currentCase, setCurrentCase] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'lab' | 'finops' | 'governance'>('lab');
+
+  const handlePRAction = async (action: string) => {
+    if (!currentCase?.id || !currentCase?.pr_url) return;
+    
+    // Phase 32: Apply patch requires a specific endpoint, others go to pr-agent
+    const endpoint = action === 'apply' 
+      ? `${apiUrl}/repair-lab/cases/${currentCase.id}/apply-patch`
+      : `${apiUrl}/repair-lab/cases/${currentCase.id}/pr-agent/${action}`;
+
+    try {
+      await safeFetchJson(endpoint, {
+        method: 'POST',
+        body: action === 'apply' ? undefined : JSON.stringify({ pr_url: currentCase.pr_url })
+      });
+      fetchData();
+    } catch (err) {
+      console.error(`PR-Agent action ${action} failed`, err);
+    }
+  };
   const [isClient, setIsClient] = useState(false);
   const t = useTranslations("repair_lab");
   const apiUrl = getApiBaseUrl();
@@ -111,6 +144,43 @@ export default function RepairLabPage() {
         const matrixData: any = await safeFetchJson(`${apiUrl}/repair-lab/verifiers/matrix?tournament_id=${latest.id}`);
         setMatrix(matrixData);
       }
+
+      // Phase 32: Real-time hydration
+      if (selfRepairData && selfRepairData.length > 0) {
+          const latestRun = selfRepairData[0];
+          const newCase = {
+              id: latestRun.incident_id,
+              pr_url: latestRun.pr_url,
+              pr_title: latestRun.pr_title,
+              branch_name: latestRun.branch_name,
+              summary: latestRun.summary,
+              status: latestRun.final_status,
+              evidence: latestRun.evidence || [],
+              timeline: [
+                  {
+                    name: "Self-Repair Lifecycle",
+                    description: latestRun.summary || latestRun.final_status,
+                    status: latestRun.patch_applied ? "completed" : "failed",
+                    artifact: latestRun.report_path,
+                  }
+              ]
+          };
+          setCurrentCase(newCase);
+
+          // Fetch findings for this case
+          try {
+            const findingsData: any = await safeFetchJson(`${apiUrl}/repair-lab/cases/${latestRun.incident_id}/pr-agent/findings`);
+            if (findingsData && findingsData.length > 0) {
+                const latestReview = findingsData[0];
+                setCurrentCase((prev: any) => ({
+                    ...prev,
+                    pr_url: latestReview.pr_url || prev?.pr_url,
+                    review_status: latestReview.status,
+                    governance: latestReview.governance_decision
+                }));
+            }
+          } catch (fErr) { }
+      }
     } catch (err) {
       console.error("Laboratuvar verileri alınamadı", err);
     } finally {
@@ -121,16 +191,23 @@ export default function RepairLabPage() {
   useEffect(() => {
     if (!isClient) return;
     fetchData();
-    const interval = setInterval(fetchData, 15000); 
+    const interval = setInterval(fetchData, 15000);
     return () => clearInterval(interval);
   }, [isClient]);
 
   const runLab = async () => {
     setLoading(true);
     try {
-      await safeFetchJson(`${apiUrl}/repair-lab/run`, { method: 'POST' });
-      // We don't use window.alert in elite UI, but for now we follow the existing pattern with a small delay
-      setTimeout(fetchData, 2000);
+      // Phase 32: Trigger the new autonomous repair orchestrator
+      const testCaseId = `UI-RUN-${Math.random().toString(36).substring(7).toUpperCase()}`;
+      const targetUrl = window.location.href;
+      
+      await safeFetchJson(`${apiUrl}/repair-lab/cases/${testCaseId}/trigger-autonomous-repair?target_url=${encodeURIComponent(targetUrl)}`, { 
+        method: 'POST' 
+      });
+      
+      // Refresh data after a delay to show the new record
+      setTimeout(fetchData, 3000);
     } catch (err) {
       console.error("Laboratuvar başlatılamadı.");
     } finally {
@@ -142,33 +219,55 @@ export default function RepairLabPage() {
 
   return (
     <div className="min-h-screen p-8 bg-[#060a12] text-gray-300 animate-in fade-in duration-1000 overflow-x-hidden">
-      
-      <ResourceHeader 
-        title={t("title")} 
-        subtitle={t("subtitle")} 
+
+      <ResourceHeader
+        title={t("title")}
+        subtitle={t("subtitle")}
         icon={<FlaskConical size={32} />}
-        badge="Phase 28 Active"
+        badge="Phase 32 — Autonomous UI Repair"
         actions={
           <div className="flex items-center gap-8">
              <div className="flex flex-col items-end border-r border-white/5 pr-8">
                 <span className="text-[9px] text-gray-500 font-black uppercase tracking-widest leading-none">{t("globalAccuracy")}</span>
                 <span className="text-sm font-black text-[var(--primary)] mt-2 font-mono tracking-tighter italic">94.2% NOMINAL</span>
              </div>
-             <button 
+             <button
                onClick={runLab}
                className="flex items-center gap-2 px-10 py-4 bg-[var(--primary)] text-[#060a12] text-[11px] font-black uppercase tracking-widest rounded-2xl hover:shadow-[0_8px_48px_rgba(102,252,241,0.4)] transition-all active:scale-95 group"
              >
                 <Play size={16} className="fill-[#060a12] group-hover:scale-125 transition-transform" />
                 <span>{t("executeBenchmark")}</span>
              </button>
+             <div className="flex bg-white/5 p-1 rounded-2xl border border-white/10">
+                <button 
+                  onClick={() => setViewMode('lab')}
+                  className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'lab' ? 'bg-[var(--primary)] text-[#060a12]' : 'text-gray-500 hover:text-white'}`}
+                >
+                  Lab
+                </button>
+                <button 
+                  onClick={() => setViewMode('finops')}
+                  className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'finops' ? 'bg-amber-400 text-[#060a12]' : 'text-gray-500 hover:text-white'}`}
+                >
+                  FinOps
+                </button>
+                <button 
+                  onClick={() => setViewMode('governance')}
+                  className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'governance' ? 'bg-indigo-500 text-[#060a12]' : 'text-gray-500 hover:text-white'}`}
+                >
+                  Governance
+                </button>
+             </div>
           </div>
         }
       />
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-10">
-        
+
         {/* LEFT: Benchmarks & Samples */}
-        <div className="xl:col-span-3 space-y-10">
+        {viewMode === 'lab' && (
+          <>
+            <div className="xl:col-span-3 space-y-10">
            <section className="glass-panel p-8 rounded-[2.5rem] border-white/[0.03] bg-gradient-to-br from-white/[0.012] to-transparent relative overflow-hidden group shadow-xl">
               <div className="absolute top-0 right-0 p-8 opacity-[0.02] group-hover:opacity-[0.05] transition-opacity pointer-events-none">
                  <Binary size={120} />
@@ -214,20 +313,20 @@ export default function RepairLabPage() {
               <div className="xl:col-span-8">
                  <PatchTournamentBoard data={tournament} />
               </div>
-              
+
               <div className="xl:col-span-4 h-full">
                  <section className="glass-panel p-10 rounded-[2.5rem] border-white/[0.03] bg-gradient-to-br from-white/[0.012] to-transparent h-full flex flex-col relative overflow-hidden group shadow-xl">
                     <div className="absolute -bottom-10 -right-10 opacity-[0.02] group-hover:opacity-[0.05] transition-opacity duration-1000">
                        <TrendingUp size={200} className="text-[var(--primary)]" />
                     </div>
-                    
+
                     <div className="flex items-center gap-4 mb-10 relative z-10 px-2">
                        <div className="p-3 bg-white/5 rounded-xl border border-white/10 text-[var(--primary)]">
                           <TrendingUp size={20} />
                        </div>
                        <h3 className="text-xl font-black text-white tracking-tighter uppercase">{t("stats")}</h3>
                     </div>
-                    
+
                     {tournament ? (
                       <div className="flex-1 flex flex-col justify-between relative z-10">
                          <div className="space-y-1">
@@ -247,7 +346,7 @@ export default function RepairLabPage() {
                                </div>
                             ))}
                          </div>
-                         
+
                          <div className="mt-10 p-6 bg-[var(--primary)]/[0.03] rounded-3xl border border-[var(--primary)]/10 text-center">
                             <p className="text-[10px] text-gray-500 leading-loose uppercase font-black italic tracking-widest">
                                {t("optimalStrategyNotice")}
@@ -263,7 +362,35 @@ export default function RepairLabPage() {
                  </section>
               </div>
            </div>
-           
+
+           {/* Phase 32: Autonomous UI Repair Pipeline */}
+           {currentCase ? (
+             <>
+               <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+                  <div className="lg:col-span-8">
+                     <PRAgentGovernancePanel
+                       caseId={currentCase.id}
+                       prUrl={currentCase.pr_url}
+                       onAction={handlePRAction}
+                     />
+                  </div>
+                  <div className="lg:col-span-4">
+                     <UIRepairTimeline steps={currentCase.timeline || []} />
+                  </div>
+               </div>
+
+               <EvidenceGallery evidence={currentCase.evidence || []} />
+             </>
+           ) : (
+             <div className="glass-panel p-10 rounded-[2.5rem] border-white/[0.03] bg-gradient-to-br from-white/[0.012] to-transparent text-center">
+                <Search size={48} className="mx-auto mb-6 text-gray-700 opacity-40" />
+                <h3 className="text-xs font-black text-gray-500 uppercase tracking-[0.3em]">{t("noActiveRepairs")}</h3>
+                <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-gray-700">
+                   {t("noActiveRepairsDesc")}
+                </p>
+             </div>
+           )}
+
            <RuntimeRepairTimeline improvements={improvements} loading={loading} />
 
            <SelfRepairRunsPanel runs={selfRepairRuns} loading={loading} />
@@ -272,6 +399,20 @@ export default function RepairLabPage() {
 
            <VerifierMatrix matrix={matrix} />
         </div>
+        </>
+        )}
+
+         {viewMode === 'finops' && (
+           <div className="xl:col-span-12">
+             <FinOpsCenter />
+           </div>
+         )}
+
+         {viewMode === 'governance' && (
+           <div className="xl:col-span-12">
+             <GovernanceCenter />
+           </div>
+         )}
 
       </div>
     </div>
@@ -544,7 +685,7 @@ function EliteBenchmarkCard({ benchmark }: { benchmark: any }) {
              {isPass ? 'Pass' : 'Active'}
           </span>
        </div>
-       
+
        <div className="flex items-center justify-between pt-4 border-t border-white/[0.03]">
           <div className="flex flex-col gap-1">
              <span className="text-[8px] font-black text-gray-700 uppercase tracking-widest">Accuracy</span>

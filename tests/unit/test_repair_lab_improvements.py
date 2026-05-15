@@ -126,6 +126,66 @@ def test_taskflow_trace_artifacts_are_visible_to_repair_lab_dashboard(tmp_path, 
     assert runs[0]["artifact_count"] == 1
 
 
+def test_self_repair_runs_include_real_pr_and_evidence_assets(tmp_path, monkeypatch):
+    incident_dir = tmp_path / "INC-UI"
+    incident_dir.mkdir()
+    (incident_dir / "repair_report.json").write_text(
+        json.dumps(
+            {
+                "repair_case": {
+                    "incident_id": "INC-UI",
+                    "summary": "Repair Lab blank page",
+                    "suspected_files": ["apps/refine_control_plane/src/app/repair-lab/page.tsx"],
+                },
+                "risk_decision": {"risk_level": "LOW", "recommended_action": "DRAFT_PR_ALLOWED"},
+                "sandbox_result": {"tests_passed": True, "patch_applied": True},
+                "candidate": {
+                    "changed_files": ["apps/refine_control_plane/src/app/repair-lab/page.tsx"],
+                    "patch_path": str(incident_dir / "patch.diff"),
+                },
+                "final_status": "DRAFT_PR_READY",
+            }
+        ),
+        encoding="utf-8",
+    )
+    (incident_dir / "draft_pr.json").write_text(
+        json.dumps(
+            {
+                "pr_url": "https://github.com/acme/repo/pull/123",
+                "title": "fix: repair lab blank page",
+                "branch_name": "codex/repair-inc-ui",
+            }
+        ),
+        encoding="utf-8",
+    )
+    screenshot = incident_dir / "dashboard-repair-lab-visible.png"
+    screenshot.write_bytes(b"fake-png")
+    monkeypatch.setattr(repair_lab_router, "REPAIR_OUTPUTS_DIR", tmp_path)
+
+    runs = repair_lab_router._load_self_repair_reports(limit=10)
+
+    assert len(runs) == 1
+    assert runs[0]["incident_id"] == "INC-UI"
+    assert runs[0]["pr_url"] == "https://github.com/acme/repo/pull/123"
+    assert runs[0]["pr_title"] == "fix: repair lab blank page"
+    assert runs[0]["branch_name"] == "codex/repair-inc-ui"
+    assert runs[0]["evidence"][0]["url"] == "/api/v1/repair-lab/artifacts/INC-UI/dashboard-repair-lab-visible.png"
+
+
+def test_repair_artifact_path_is_scoped_to_incident_dir(tmp_path, monkeypatch):
+    incident_dir = tmp_path / "INC-SAFE"
+    incident_dir.mkdir()
+    artifact = incident_dir / "visible.png"
+    artifact.write_bytes(b"fake-png")
+    monkeypatch.setattr(repair_lab_router, "REPAIR_OUTPUTS_DIR", tmp_path)
+
+    resolved = repair_lab_router._safe_repair_artifact_path("INC-SAFE", "visible.png")
+
+    assert resolved == artifact.resolve()
+    with pytest.raises(Exception):
+        repair_lab_router._safe_repair_artifact_path("INC-SAFE", "../visible.png")
+
+
 @pytest.mark.asyncio
 async def test_lab_dashboard_keeps_taskflow_runs_when_improvements_fallback(monkeypatch):
     async def empty_list(*args, **kwargs):

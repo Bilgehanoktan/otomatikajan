@@ -1,7 +1,8 @@
 import json
 import os
-from datetime import datetime, timedelta
-from typing import List, Dict, Any, Optional, cast
+from datetime import datetime, timedelta, timezone
+from typing import List, Dict, Any, Optional, cast, Union
+import uuid
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,11 +13,18 @@ from libs.db.models.ui_repair_models import (
     UIMonitoringConfig, UIMonitoringRun, UIRouteHealthHist, UIRepairAttempt,
     UIChaosDrillScenario, UIChaosDrillRun, UISoakValidationRun, UIRecoveryProofPack,
     UIAdvancedChaosScenario, UIAdvancedChaosRun, UIOperatorEscalation, UINotificationDelivery, UICrisisControlState,
-    UIRedTeamScenario, UIRedTeamRun, UIEnterpriseReadinessAssessment, UIReleaseGateDecision, UIFinalAuditPack, UIOperatorHandoverReport
+    UIRedTeamScenario, UIRedTeamRun, UIEnterpriseReadinessAssessment, UIReleaseGateDecision, UIFinalAuditPack, UIOperatorHandoverReport,
+    UIPilotRollout, UIPilotEvent, UIPilotMetrics, UIOperatorActionLedger, UIPilotFinalReport,
+    UIOperationsTeam, UIProjectOwnership, UIMaintenancePolicy, UIReleaseRecord, UICompatibilityCheck, UISLOBreach, UIEvidenceRetentionPolicy,
+    UIRepairProjectProfile, UIRolloutWave, UIGAReadinessAssessment, UIEnterpriseRunbook,
+    UICostEvent, UIBudgetPolicy, UICostAnomaly, UICapacityForecast, UIFinOpsRecommendation,
+    UIPolicyRule, UIPolicyEvaluation, UIPolicyConflict, UIPolicyProposal, UIAutonomousOverride, UIComplianceFinding
 )
 from libs.db.models.core_models import OperationalIncident, SovereignEvidence
 from services.ui_repair.playwright_runner import UIEvidenceRunner
 from services.ui_repair.risk_classifier import UIRiskClassifier
+from services.ui_repair.policy_as_code_engine import PolicyAsCodeEngine
+from services.ui_repair.compliance_guardrails import ComplianceGuardrails
 from services.observability.logging import get_logger
 from .drill_runner import AdvancedDrillRunner
 from .operator_escalation_service import OperatorEscalationService
@@ -25,6 +33,18 @@ from .enterprise_readiness_assessor import EnterpriseReadinessAssessor
 from .release_gatekeeper import ReleaseGatekeeper
 from .final_audit_pack_generator import FinalAuditPackGenerator
 from .handover_report_generator import HandoverReportGenerator
+from .cost_telemetry import CostTelemetry
+from .cost_attribution_service import CostAttributionService
+from .budget_guard import BudgetGuard
+from .cost_anomaly_detector import CostAnomalyDetector
+from .capacity_planner import CapacityPlanner
+from .finops_recommendation_engine import FinOpsRecommendationEngine
+from .schemas import (
+    UIProjectProfileCreate, UIRolloutWaveCreate, UIOperationsTeamCreate, 
+    UIProjectOwnershipCreate, UIMaintenancePolicyCreate, UIReleaseRecordCreate, 
+    UIEvidenceRetentionPolicyCreate, UIPolicyRuleCreate, UIAutonomousOverrideCreate,
+    UIPolicyProposalCreate, PolicyDecision, PolicyScope, PolicyRuleType, PolicyProposalStatus
+)
 
 _log = get_logger("ui_repair_service")
 
@@ -275,6 +295,29 @@ class UIRepairService:
 
     async def trigger_autonomous_repair(self, case_id: str) -> Dict[str, Any]:
         """Hand-off to the Stagehand/SWE-Agent orchestrator."""
+        
+        # Phase 15: Governance Policy Evaluation Hook
+        case_stmt = select(UIRepairCase).where(UIRepairCase.id == case_id)
+        case = (await self.db.execute(case_stmt)).scalar_one_or_none()
+        
+        if case:
+            project_key = getattr(case, 'project_key', 'GLOBAL')
+            policy_eval = await self.evaluate_action("AUTO_REPAIR_TRIGGER", {
+                "project_key": project_key,
+                "case_id": case_id,
+                "route": case.route,
+                "severity": case.severity,
+                "risk_level": "MEDIUM" # Calculated based on case
+            })
+            
+            if policy_eval.decision in [PolicyDecision.DENY, PolicyDecision.BLOCKED_BY_BUDGET]:
+                _log.warning(f"Autonomous repair for case {case_id} BLOCKED by policy: {policy_eval.reason}")
+                return {
+                    "status": "BLOCKED_BY_POLICY",
+                    "reason": policy_eval.reason,
+                    "evaluation_id": str(policy_eval.id)
+                }
+
         from .repair_orchestrator import UIRepairOrchestrator
         
         stmt = select(UIRepairCase).where(UIRepairCase.id == case_id)
@@ -567,7 +610,7 @@ class UIRepairService:
         if esc:
             cast(Any, esc).status = "ACKNOWLEDGED"
             cast(Any, esc).acknowledged_by = operator_id
-            cast(Any, esc).acknowledged_at = datetime.utcnow()
+            cast(Any, esc).acknowledged_at = datetime.now(timezone.utc)
             await self.db.commit()
 
     async def resolve_escalation(self, escalation_id: str, operator_id: str):
@@ -576,7 +619,7 @@ class UIRepairService:
         if esc:
             cast(Any, esc).status = "RESOLVED"
             cast(Any, esc).resolved_by = operator_id
-            cast(Any, esc).resolved_at = datetime.utcnow()
+            cast(Any, esc).resolved_at = datetime.now(timezone.utc)
             await self.db.commit()
 
     async def get_notification_deliveries(self, limit: int = 20) -> List[UINotificationDelivery]:
@@ -599,7 +642,7 @@ class UIRepairService:
         cast(Any, state).mode = mode
         cast(Any, state).reason = reason
         cast(Any, state).activated_by = operator_id
-        cast(Any, state).activated_at = datetime.utcnow()
+        cast(Any, state).activated_at = datetime.now(timezone.utc)
         
         # Apply mode logic
         cast(Any, state).self_healing_frozen = mode in ["SELF_HEALING_FROZEN", "FULL_UI_REPAIR_FREEZE", "CRISIS_RESPONSE"]
@@ -619,6 +662,8 @@ class UIRepairService:
         # Mocking run logic: in real case, this would trigger AdvancedDrillRunner
         # with specific red-team parameters.
         scenario = await self.db.get(UIRedTeamScenario, scenario_id)
+        if not scenario:
+            raise ValueError(f"Red Team Scenario {scenario_id} not found")
         run = UIRedTeamRun(
             scenario_id=scenario_id,
             status="COMPLETED",
@@ -639,6 +684,8 @@ class UIRepairService:
 
     async def evaluate_release_gate(self, assessment_id: UUID, approver: str) -> UIReleaseGateDecision:
         assessment = await self.db.get(UIEnterpriseReadinessAssessment, assessment_id)
+        if not assessment:
+            raise ValueError(f"Assessment {assessment_id} not found")
         gatekeeper = ReleaseGatekeeper(self.db)
         return await gatekeeper.evaluate_release(assessment, approver)
 
@@ -665,3 +712,460 @@ class UIRepairService:
             "gate": gate,
             "status": "READY"
         }
+
+    # Phase 11: Pilot Rollout
+    async def start_pilot(self, name: str, mode: Any, duration: int, created_by: str):
+        from .pilot_rollout_manager import PilotRolloutManager
+        return await PilotRolloutManager.start_pilot(self.db, name, mode, duration, created_by)
+
+    async def get_pilot_status(self):
+        stmt = select(UIPilotRollout).order_by(UIPilotRollout.created_at.desc()).limit(1)
+        result = await self.db.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def pause_pilot(self, rollout_id: str, rationale: str):
+        from .pilot_rollout_manager import PilotRolloutManager
+        return await PilotRolloutManager.pause_pilot(self.db, rollout_id, rationale)
+
+    async def record_operator_action(self, rollout_id: str, operator: str, action_type: str, rationale: str, target_type: Optional[str] = None, target_id: Optional[str] = None):
+        from .operator_action_ledger import OperatorActionLedger
+        return await OperatorActionLedger.record_action(self.db, rollout_id, operator, action_type, rationale, target_type, target_id)
+
+    async def get_pilot_metrics(self, rollout_id: str):
+        from .pilot_metrics_collector import PilotMetricsCollector
+        return await PilotMetricsCollector.get_metrics(self.db, rollout_id)
+
+    async def generate_pilot_report(self, rollout_id: str):
+        from .pilot_report_generator import PilotReportGenerator
+        return await PilotReportGenerator.generate_report(self.db, rollout_id)
+
+    # --- Phase 12: General Availability + Multi-Project Rollout Methods ---
+
+    async def list_projects(self) -> List[UIRepairProjectProfile]:
+        from .project_rollout_manager import ProjectRolloutManager
+        return list(await ProjectRolloutManager.list_projects(self.db))
+
+    async def create_project(self, data: UIProjectProfileCreate) -> UIRepairProjectProfile:
+        from .project_rollout_manager import ProjectRolloutManager
+        return await ProjectRolloutManager.create_project(self.db, data)
+
+    async def get_project(self, project_key: str) -> Optional[UIRepairProjectProfile]:
+        from .project_rollout_manager import ProjectRolloutManager
+        return await ProjectRolloutManager.get_project(self.db, project_key)
+
+    async def update_project_status(self, project_key: str, status: str) -> Optional[UIRepairProjectProfile]:
+        from .project_rollout_manager import ProjectRolloutManager
+        return await ProjectRolloutManager.update_project_status(self.db, project_key, status)
+
+    async def update_project_policy(self, project_key: str, safety: Optional[Dict[str, Any]] = None, governance: Optional[Dict[str, Any]] = None):
+        from .project_policy_registry import ProjectPolicyRegistry
+        return await ProjectPolicyRegistry.update_policy(self.db, project_key, safety, governance)
+
+    async def list_rollout_waves(self) -> List[UIRolloutWave]:
+        from .rollout_wave_manager import RolloutWaveManager
+        return list(await RolloutWaveManager.list_waves(self.db))
+
+    async def create_rollout_wave(self, data: UIRolloutWaveCreate) -> UIRolloutWave:
+        from .rollout_wave_manager import RolloutWaveManager
+        return await RolloutWaveManager.create_wave(self.db, data)
+
+    async def start_rollout_wave(self, wave_id: str) -> Optional[UIRolloutWave]:
+        from .rollout_wave_manager import RolloutWaveManager
+        return await RolloutWaveManager.start_wave(self.db, wave_id)
+
+    async def complete_rollout_wave(self, wave_id: str) -> Optional[UIRolloutWave]:
+        from .rollout_wave_manager import RolloutWaveManager
+        return await RolloutWaveManager.complete_wave(self.db, wave_id)
+
+    async def get_enterprise_overview(self) -> Dict[str, Any]:
+        from .multi_project_dashboard_service import MultiProjectDashboardService
+        return await MultiProjectDashboardService.get_enterprise_overview(self.db)
+
+    async def get_sla_slo_metrics(self) -> Dict[str, Any]:
+        from .sla_slo_tracker import SLASLOTracker
+        return await SLASLOTracker.get_enterprise_metrics(self.db)
+
+    async def check_ga_readiness(self, assessor: str) -> UIGAReadinessAssessment:
+        from .ga_readiness_checker import GAReadinessChecker
+        return await GAReadinessChecker.perform_check(self.db, assessor)
+
+    async def get_latest_ga_readiness(self) -> Optional[UIGAReadinessAssessment]:
+        from .ga_readiness_checker import GAReadinessChecker
+        return await GAReadinessChecker.get_latest_assessment(self.db)
+
+    async def generate_enterprise_runbook(self, title: str, version: str) -> UIEnterpriseRunbook:
+        from .runbook_generator import RunbookGenerator
+        return await RunbookGenerator.generate_runbook(self.db, title, version)
+
+    async def get_latest_runbook(self) -> Optional[UIEnterpriseRunbook]:
+        from .runbook_generator import RunbookGenerator
+        return await RunbookGenerator.get_latest_runbook(self.db)
+
+    # --- Phase 13: GA Hardening + Cross-Team Operations Methods ---
+
+    async def list_operations_teams(self) -> List[UIOperationsTeam]:
+        from .operations_model import OperationsModel
+        return list(await OperationsModel.list_teams(self.db))
+
+    async def create_operations_team(self, data: UIOperationsTeamCreate) -> UIOperationsTeam:
+        from .operations_model import OperationsModel
+        return await OperationsModel.create_team(self.db, data)
+
+    async def list_project_ownerships(self) -> List[UIProjectOwnership]:
+        from .ownership_registry import OwnershipRegistry
+        return list(await OwnershipRegistry.list_ownerships(self.db))
+
+    async def create_project_ownership(self, data: UIProjectOwnershipCreate) -> UIProjectOwnership:
+        from .ownership_registry import OwnershipRegistry
+        return await OwnershipRegistry.create_project_ownership(self.db, data)
+
+    async def get_escalation_path(self, project_key: str, severity: str) -> Dict[str, Any]:
+        from .escalation_matrix_service import EscalationMatrixService
+        return await EscalationMatrixService.get_escalation_path(self.db, project_key, severity)
+
+    async def list_maintenance_policies(self) -> List[UIMaintenancePolicy]:
+        from .maintenance_policy import MaintenancePolicy
+        return list(await MaintenancePolicy.list_policies(self.db))
+
+    async def create_maintenance_policy(self, data: UIMaintenancePolicyCreate) -> UIMaintenancePolicy:
+        from .maintenance_policy import MaintenancePolicy
+        return await MaintenancePolicy.create_policy(self.db, data)
+
+    async def list_releases(self) -> List[UIReleaseRecord]:
+        from .release_notes_generator import ReleaseNotesGenerator
+        return list(await ReleaseNotesGenerator.list_releases(self.db))
+
+    async def generate_release_record(self, data: UIReleaseRecordCreate) -> UIReleaseRecord:
+        from .release_notes_generator import ReleaseNotesGenerator
+        return await ReleaseNotesGenerator.generate_release_record(self.db, data)
+
+    async def run_compatibility_check(self, project_key: str, version: str) -> UICompatibilityCheck:
+        from .compatibility_checker import CompatibilityChecker
+        return await CompatibilityChecker.run_check(self.db, project_key, version)
+
+    async def get_latest_compatibility_check(self, project_key: str) -> Optional[UICompatibilityCheck]:
+        from .compatibility_checker import CompatibilityChecker
+        return await CompatibilityChecker.get_latest_check(self.db, project_key)
+
+    async def list_evidence_retention_policies(self) -> List[UIEvidenceRetentionPolicy]:
+        from .evidence_retention_policy import EvidenceRetentionPolicy
+        return list(await EvidenceRetentionPolicy.list_policies(self.db))
+
+    async def create_evidence_retention_policy(self, data: UIEvidenceRetentionPolicyCreate) -> UIEvidenceRetentionPolicy:
+        from .evidence_retention_policy import EvidenceRetentionPolicy
+        return await EvidenceRetentionPolicy.create_policy(self.db, data)
+
+    async def list_slo_breaches(self, project_key: Optional[str] = None) -> List[UISLOBreach]:
+        from .slo_breach_manager import SLOBreachManager
+        return list(await SLOBreachManager.list_breaches(self.db, project_key))
+
+    async def acknowledge_slo_breach(self, breach_id: str) -> Optional[UISLOBreach]:
+        from .slo_breach_manager import SLOBreachManager
+        return await SLOBreachManager.acknowledge_breach(self.db, breach_id)
+
+    async def resolve_slo_breach(self, breach_id: str) -> Optional[UISLOBreach]:
+        from .slo_breach_manager import SLOBreachManager
+        return await SLOBreachManager.resolve_breach(self.db, breach_id)
+
+    # --- Phase 14: Enterprise FinOps Methods ---
+
+    async def get_finops_overview(self) -> Dict[str, Any]:
+        """Provides a high-level overview of operational costs and efficiency."""
+        today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        week_ago = today - timedelta(days=7)
+        month_ago = today - timedelta(days=30)
+        
+        cost_today = await CostTelemetry.get_total_cost(self.db, since=today)
+        cost_week = await CostTelemetry.get_total_cost(self.db, since=week_ago)
+        cost_month = await CostTelemetry.get_total_cost(self.db, since=month_ago)
+        
+        project_dist = await CostAttributionService.get_project_attribution(self.db, days=30)
+        team_dist = await CostAttributionService.get_team_attribution(self.db, days=30)
+        op_dist = await CostAttributionService.get_operation_attribution(self.db, days=30)
+        
+        anomalies = await CostAnomalyDetector.list_anomalies(self.db)
+        active_anomalies = [a for a in anomalies if a.status == "OPEN"]
+        
+        recs = await FinOpsRecommendationEngine.list_recommendations(self.db)
+        potential_savings = sum(r.expected_savings_usd for r in recs if r.status == "PENDING")
+        
+        return {
+            "total_cost_today": cost_today,
+            "total_cost_week": cost_week,
+            "total_cost_month": cost_month,
+            "project_cost_distribution": project_dist,
+            "team_cost_distribution": team_dist,
+            "operation_type_distribution": op_dist,
+            "budget_usage_percent": 45.0, # Mocked for now
+            "active_anomalies_count": len(active_anomalies),
+            "forecasted_next_30d_cost": cost_month * 1.1, # Mocked forecast
+            "potential_savings_usd": potential_savings
+        }
+
+    async def record_cost_event(self, data: Any) -> UICostEvent:
+        return await CostTelemetry.record_event(self.db, data)
+
+    async def list_cost_events(self, project_key: Optional[str] = None) -> List[UICostEvent]:
+        return await CostTelemetry.list_events(self.db, project_key)
+
+    async def get_budget_policy(self, project_key: str) -> Optional[UIBudgetPolicy]:
+        return await BudgetGuard.get_policy(self.db, project_key)
+
+    async def update_budget_policy(self, data: Any) -> UIBudgetPolicy:
+        return await BudgetGuard.create_or_update_policy(self.db, data)
+
+    async def list_cost_anomalies(self, project_key: Optional[str] = None) -> List[UICostAnomaly]:
+        return await CostAnomalyDetector.list_anomalies(self.db, project_key)
+
+    async def resolve_cost_anomaly(self, anomaly_id: str) -> Optional[UICostAnomaly]:
+        return await CostAnomalyDetector.resolve_anomaly(self.db, anomaly_id)
+
+    async def get_capacity_forecast(self, project_key: str) -> Optional[UICapacityForecast]:
+        return await CapacityPlanner.get_latest_plan(self.db, project_key)
+
+    async def generate_capacity_forecast(self, project_key: str) -> UICapacityForecast:
+        return await CapacityPlanner.generate_capacity_plan(self.db, project_key)
+
+    async def list_finops_recommendations(self, project_key: Optional[str] = None) -> List[UIFinOpsRecommendation]:
+        return await FinOpsRecommendationEngine.list_recommendations(self.db, project_key)
+
+    async def update_recommendation_status(self, rec_id: str, status: str) -> Optional[UIFinOpsRecommendation]:
+        return await FinOpsRecommendationEngine.update_recommendation_status(self.db, rec_id, status)
+
+    # --- Phase 15: Autonomous Ecosystem Governance Methods ---
+
+    async def get_policy_engine(self, project_key: Optional[str] = None) -> PolicyAsCodeEngine:
+        """Loads active rules and initializes the engine."""
+        query = select(UIPolicyRule).where(UIPolicyRule.enabled == True)
+        if project_key:
+            query = query.filter((UIPolicyRule.scope == "GLOBAL") | (UIPolicyRule.project_key == project_key))
+        else:
+            query = query.where(UIPolicyRule.scope == "GLOBAL")
+        
+        result = await self.db.execute(query)
+        rules = list(result.scalars().all())
+        return PolicyAsCodeEngine(rules)
+
+    async def evaluate_action(self, action_type: str, context: Dict[str, Any]) -> UIPolicyEvaluation:
+        """Evaluates an action and persists the result."""
+        project_key = context.get("project_key", "GLOBAL")
+        engine = await self.get_policy_engine(project_key)
+        
+        eval_result = engine.evaluate(action_type, context)
+        
+        evaluation = UIPolicyEvaluation(
+            project_key=project_key,
+            action_type=action_type,
+            decision=eval_result["decision"],
+            reason=eval_result["reason"],
+            matched_rules_json={"rules": eval_result["matched_rules"]},
+            input_context_json=context,
+            output_json=eval_result
+        )
+        
+        self.db.add(evaluation)
+        await self.db.commit()
+        await self.db.refresh(evaluation)
+        
+        # 4. Integrate with Sovereign Evidence chain
+        import hashlib
+        evidence_payload = {
+            "evaluation_id": str(evaluation.id),
+            "decision": eval_result["decision"],
+            "reason": eval_result["reason"],
+            "policy_key": eval_result.get("policy_key"),
+            "context": context
+        }
+        prov_hash = hashlib.sha256(json.dumps(evidence_payload, sort_keys=True).encode()).hexdigest()
+        
+        evidence = SovereignEvidence(
+            evidence_type="POLICY_EVALUATION",
+            severity="info",
+            payload=evidence_payload,
+            provenance_hash=prov_hash
+        )
+        self.db.add(evidence)
+        await self.db.commit()
+        
+        return evaluation
+
+    async def create_policy_rule(self, rule_data: UIPolicyRuleCreate) -> UIPolicyRule:
+        """Registers a new governance policy rule."""
+        rule = UIPolicyRule(
+            policy_key=rule_data.policy_key,
+            scope=rule_data.scope,
+            project_key=rule_data.project_key,
+            rule_type=rule_data.rule_type,
+            priority=rule_data.priority,
+            enabled=rule_data.enabled,
+            rule_definition_json=rule_data.rule_definition,
+            description=rule_data.description,
+            created_by=rule_data.created_by
+        )
+        self.db.add(rule)
+        await self.db.commit()
+        await self.db.refresh(rule)
+        return rule
+
+    async def list_policy_rules(self, project_key: Optional[str] = None) -> List[UIPolicyRule]:
+        """Lists active policy rules."""
+        query = select(UIPolicyRule)
+        if project_key:
+            query = query.filter((UIPolicyRule.scope == "GLOBAL") | (UIPolicyRule.project_key == project_key))
+        
+        result = await self.db.execute(query)
+        return list(result.scalars().all())
+
+    async def create_autonomous_override(self, override_data: UIAutonomousOverrideCreate) -> UIAutonomousOverride:
+        """Records a manual override of a blocked action."""
+        override = UIAutonomousOverride(
+            action_type=override_data.action_type,
+            target_type=override_data.target_type,
+            target_id=override_data.target_id,
+            blocked_policy_key=override_data.blocked_policy_key,
+            override_reason=override_data.override_reason,
+            operator=override_data.operator,
+            risk_level=override_data.risk_level,
+            approval_id=override_data.approval_id
+        )
+        self.db.add(override)
+        await self.db.flush() # Flush to get ID
+        
+        import hashlib
+        evidence_payload = {
+            "override_id": str(override.id),
+            "operator": override.operator,
+            "reason": override.override_reason,
+            "blocked_policy": override.blocked_policy_key
+        }
+        prov_hash = hashlib.sha256(json.dumps(evidence_payload, sort_keys=True).encode()).hexdigest()
+        override.evidence_hash = prov_hash
+
+        evidence = SovereignEvidence(
+            evidence_type="GOVERNANCE_OVERRIDE",
+            severity=override.risk_level,
+            payload=evidence_payload,
+            provenance_hash=prov_hash
+        )
+        self.db.add(evidence)
+        
+        # Trigger OperationalIncident for high risk overrides
+        if override.risk_level in ["HIGH", "CRITICAL"]:
+            incident = OperationalIncident(
+                title=f"Governance Policy Override: {override.blocked_policy_key}",
+                severity=override.risk_level,
+                component="UI_REPAIR_GOVERNANCE",
+                description=f"Operator {override.operator} bypassed governance policy. Rationale: {override.override_reason}",
+                status="OPEN"
+            )
+            self.db.add(incident)
+
+        await self.db.commit()
+        await self.db.refresh(override)
+        return override
+
+    async def get_compliance_findings(self, project_key: Optional[str] = None) -> List[UIComplianceFinding]:
+        """Lists active compliance findings."""
+        query = select(UIComplianceFinding)
+        if project_key:
+            query = query.where(UIComplianceFinding.project_key == project_key)
+        
+        result = await self.db.execute(query)
+        return list(result.scalars().all())
+
+    async def create_policy_proposal(self, proposal_data: UIPolicyProposalCreate) -> UIPolicyProposal:
+        """Submits a new policy proposal for review."""
+        proposal = UIPolicyProposal(
+            proposal_type=proposal_data.proposal_type,
+            policy_key=proposal_data.policy_key,
+            scope=proposal_data.scope,
+            project_key=proposal_data.project_key,
+            proposed_rule_json=proposal_data.proposed_rule,
+            rationale=proposal_data.rationale,
+            risk_level=proposal_data.risk_level,
+            status=PolicyProposalStatus.SUBMITTED,
+            proposed_by=proposal_data.proposed_by
+        )
+        self.db.add(proposal)
+        await self.db.commit()
+        await self.db.refresh(proposal)
+        return proposal
+
+    async def approve_policy_proposal(self, proposal_id: UUID, reviewer: str) -> UIPolicyRule:
+        """Approves a proposal and creates/updates the corresponding rule."""
+        stmt = select(UIPolicyProposal).where(UIPolicyProposal.id == proposal_id)
+        proposal = (await self.db.execute(stmt)).scalar_one_or_none()
+        
+        if not proposal:
+            raise ValueError("Proposal not found")
+        
+        proposal.status = PolicyProposalStatus.APPROVED
+        proposal.reviewed_by = reviewer
+        proposal.reviewed_at = datetime.now(timezone.utc)
+        
+        # Create or update rule
+        rule_stmt = select(UIPolicyRule).where(UIPolicyRule.policy_key == proposal.policy_key)
+        existing_rule = (await self.db.execute(rule_stmt)).scalar_one_or_none()
+        
+        if existing_rule:
+            existing_rule.rule_definition_json = proposal.proposed_rule_json
+            existing_rule.scope = proposal.scope
+            existing_rule.project_key = proposal.project_key
+            rule = existing_rule
+        else:
+            rule = UIPolicyRule(
+                policy_key=proposal.policy_key,
+                scope=proposal.scope,
+                project_key=proposal.project_key,
+                rule_definition_json=proposal.proposed_rule_json,
+                created_by=proposal.proposed_by,
+                enabled=True
+            )
+            self.db.add(rule)
+            
+        await self.db.commit()
+        await self.db.refresh(rule)
+        return rule
+
+    async def list_policy_conflicts(self, project_key: Optional[str] = None) -> List[UIPolicyConflict]:
+        """Lists detected policy conflicts."""
+        query = select(UIPolicyConflict)
+        if project_key:
+            query = query.where(UIPolicyConflict.project_key == project_key)
+        
+        result = await self.db.execute(query)
+        return list(result.scalars().all())
+
+    # --- Phase 16: Multi-Tenant Federation + Cross-Cluster Governance ---
+
+    async def create_tenant(self, data: UITenantProfileCreate) -> UITenantProfile:
+        from services.ui_repair.tenant_registry import TenantRegistry
+        return await TenantRegistry.create_tenant(self.db, data)
+
+    async def list_tenants(self) -> List[UITenantProfile]:
+        from services.ui_repair.tenant_registry import TenantRegistry
+        return await TenantRegistry.list_tenants(self.db)
+
+    async def bind_project_to_tenant(self, data: UITenantProjectBindingCreate) -> UITenantProjectBinding:
+        from services.ui_repair.tenant_registry import TenantRegistry
+        return await TenantRegistry.bind_project_to_tenant(self.db, data)
+
+    async def create_cluster(self, data: UIClusterProfileCreate) -> UIClusterProfile:
+        from services.ui_repair.cluster_registry import ClusterRegistry
+        return await ClusterRegistry.create_cluster(self.db, data)
+
+    async def list_clusters(self) -> List[UIClusterProfile]:
+        from services.ui_repair.cluster_registry import ClusterRegistry
+        return await ClusterRegistry.list_clusters(self.db)
+
+    async def get_federated_health(self) -> Dict[str, Any]:
+        from services.ui_repair.cluster_health_aggregator import ClusterHealthAggregator
+        return await ClusterHealthAggregator.get_federated_health_summary(self.db)
+
+    async def scan_policy_drift(self, tenant_key: Optional[str] = None) -> List[UIPolicyDrift]:
+        from services.ui_repair.policy_drift_detector import PolicyDriftDetector
+        return await PolicyDriftDetector.scan_for_drifts(self.db, tenant_key)
+
+    async def get_federated_evidence(self, tenant_key: Optional[str] = None) -> List[UIFederatedEvidenceRecord]:
+        from services.ui_repair.federated_evidence_ledger import FederatedEvidenceLedger
+        return await FederatedEvidenceLedger.list_federated_evidence(self.db, tenant_key=tenant_key)

@@ -1,7 +1,10 @@
 "use client";
 
 import React from "react";
-import { Zap, ShieldCheck, TrendingUp, Trophy, AlertTriangle, Fingerprint, Activity, Binary, Cpu, FlaskConical } from "lucide-react";
+import {
+  Zap, ShieldCheck, TrendingUp, Trophy, AlertTriangle, Fingerprint, Activity, Binary, Cpu, FlaskConical,
+  GitPullRequest, FileSearch, Bug, CheckCircle2, Clock, Image, ExternalLink, ChevronRight, Search
+} from "lucide-react";
 
 export const PatchTournamentBoard = ({ data }: { data: any }) => {
   if (!data) return (
@@ -49,13 +52,13 @@ export const PatchTournamentBoard = ({ data }: { data: any }) => {
         {data?.candidates?.map((candidate: any, idx: number) => {
           const isWinner = candidate.status === 'winner';
           const isRejected = candidate.status === 'rejected';
-          
+
           return (
-            <div 
+            <div
               key={idx}
               className={`p-6 rounded-[2rem] border transition-all duration-700 hover:translate-x-2 group/card relative overflow-hidden
-                ${isWinner 
-                  ? 'bg-[var(--primary)]/[0.04] border-[var(--primary)]/40 shadow-[0_12px_48px_rgba(102,252,241,0.1)] ring-1 ring-[var(--primary)]/20' 
+                ${isWinner
+                  ? 'bg-[var(--primary)]/[0.04] border-[var(--primary)]/40 shadow-[0_12px_48px_rgba(102,252,241,0.1)] ring-1 ring-[var(--primary)]/20'
                   : isRejected
                   ? 'bg-red-500/[0.02] border-red-500/10 opacity-30 grayscale'
                   : 'bg-white/[0.015] border-white/5 hover:border-white/10 hover:bg-white/[0.025]'}
@@ -166,18 +169,18 @@ export const VerifierMatrix = ({ matrix }: { matrix: any }) => {
                   <td key={i} className={`py-6 px-6 bg-white/[0.015] border-y border-white/5 group-hover/row:bg-white/[0.03] transition-colors last:border-r last:rounded-r-[1.5rem] text-center`}>
                     <div className="flex flex-col items-center gap-3 relative group/cell">
                        <div className="w-24 h-2 bg-black/40 rounded-full overflow-hidden border border-white/[0.03] relative">
-                          <div 
+                          <div
                             className={`h-full rounded-full transition-all duration-1000 shadow-[0_0_12px_rgba(255,255,255,0.1)]
-                              ${res > 0.9 ? 'bg-green-500 shadow-green-500/20' : 
-                                res > 0.75 ? 'bg-[var(--primary)] shadow-[var(--primary)]/20' : 
-                                res > 0.5 ? 'bg-amber-500 shadow-amber-500/20' : 
+                              ${res > 0.9 ? 'bg-green-500 shadow-green-500/20' :
+                                res > 0.75 ? 'bg-[var(--primary)] shadow-[var(--primary)]/20' :
+                                res > 0.5 ? 'bg-amber-500 shadow-amber-500/20' :
                                 'bg-red-500 shadow-red-500/20'}
                             `}
                             style={{ width: `${res * 100}%` }}
                           />
                        </div>
                        <span className="text-[10px] font-mono font-black text-gray-700 opacity-60 group-hover/cell:opacity-100 transition-opacity">{(res * 100).toFixed(0)}%</span>
-                       
+
                        {/* Floating Evidence Tooltip */}
                        <div className="absolute bottom-full mb-4 px-4 py-3 bg-black/95 border border-white/10 rounded-2xl text-[9px] font-mono text-white opacity-0 group-hover/cell:opacity-100 transition-all pointer-events-none scale-75 group-hover/cell:scale-100 z-50 shadow-2xl backdrop-blur-xl min-w-[150px]">
                           <div className="flex justify-between items-center mb-2 pb-2 border-b border-white/5">
@@ -185,7 +188,7 @@ export const VerifierMatrix = ({ matrix }: { matrix: any }) => {
                              <span className="text-[var(--primary)]">{(res * 100).toFixed(2)}%</span>
                           </div>
                           <div className="text-gray-400 leading-relaxed uppercase tracking-tighter font-bold">
-                             Evidence chain verified by layer core 0{i+1}. 
+                             Evidence chain verified by layer core 0{i+1}.
                           </div>
                           <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-black rotate-45 border-r border-b border-white/10" />
                        </div>
@@ -196,6 +199,184 @@ export const VerifierMatrix = ({ matrix }: { matrix: any }) => {
             ))}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+};
+
+export const PRAgentGovernancePanel = ({ caseId, prUrl, onAction }: { caseId: string, prUrl?: string, onAction?: (action: string) => void }) => {
+  const [showDiff, setShowDiff] = React.useState(false);
+  const [diffContent, setDiffContent] = React.useState<string | null>(null);
+  const [loading, setLoading] = React.useState(false);
+
+  const fetchDiff = async () => {
+    if (diffContent) {
+      setShowDiff(!showDiff);
+      return;
+    }
+    setLoading(true);
+    try {
+      const baseUrl = window.location.origin.replace(':3100', ':8000');
+      const res = await fetch(`${baseUrl}/repair-lab/cases/${caseId}/patch`);
+      const data = await res.json();
+      setDiffContent(data.diff);
+      setShowDiff(true);
+    } catch (err) {
+      console.error("Failed to fetch diff", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!prUrl) return (
+    <div className="glass-panel p-10 rounded-[2.5rem] border-white/5 bg-white/[0.01] opacity-40">
+      <div className="flex flex-col items-center gap-6 py-10">
+        <GitPullRequest size={48} className="text-gray-700" />
+        <p className="text-[10px] font-black text-gray-700 uppercase tracking-[0.3em]">Awaiting PR Generation</p>
+      </div>
+    </div>
+  );
+
+  const actions = [
+    { id: 'describe', name: 'AI Describe', icon: <FileSearch size={18} />, color: 'var(--primary)' },
+    { id: 'review', name: 'AI Review', icon: <ShieldCheck size={18} />, color: '#8b5cf6' },
+    { id: 'improve', name: 'AI Improve', icon: <Zap size={18} />, color: '#f59e0b' },
+    { id: 'full-review', name: 'Full Governance Cycle', icon: <GitPullRequest size={18} />, color: '#ec4899', highlight: true },
+    { id: 'preview', name: 'Preview Patch', icon: <Binary size={18} />, color: '#3b82f6', onClick: fetchDiff },
+    { id: 'apply', name: 'Approve & Apply', icon: <CheckCircle2 size={18} />, color: '#22c55e', highlight: true }
+  ];
+
+  return (
+    <div className="glass-panel p-10 rounded-[2.5rem] border-[var(--primary)]/10 bg-gradient-to-br from-[var(--primary)]/[0.02] to-transparent relative overflow-hidden group shadow-2xl">
+      <div className="flex items-center justify-between mb-10">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-[var(--primary)]/10 rounded-xl border border-[var(--primary)]/20">
+            <GitPullRequest size={20} className="text-[var(--primary)]" />
+          </div>
+          <div>
+            <h3 className="text-lg font-black text-white uppercase tracking-tight">PR Governance Gate</h3>
+            <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mt-1">Autonomous PR-Agent Integration</p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+           <a href={prUrl} target="_blank" className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-all text-[10px] font-black text-gray-400 uppercase tracking-widest">
+              View PR <ExternalLink size={12} />
+           </a>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {actions.map(action => (
+          <button
+            key={action.id}
+            onClick={() => action.onClick ? action.onClick() : onAction?.(action.id)}
+            className={`p-5 rounded-3xl border transition-all duration-500 flex flex-col items-center gap-4 group/btn relative overflow-hidden
+              ${action.highlight ? 'bg-white/[0.03] border-white/10' : 'bg-transparent border-white/5'}
+            `}
+          >
+            <div className={`p-3 rounded-2xl transition-all group-hover/btn:scale-110`} style={{ color: action.color, backgroundColor: `${action.color}10` }}>
+              {action.icon}
+            </div>
+            <span className="text-[9px] font-black uppercase tracking-widest text-center">{action.name}</span>
+          </button>
+        ))}
+      </div>
+
+      {showDiff && diffContent && (
+        <div className="mt-8 p-6 bg-black/60 rounded-[2rem] border border-white/5 animate-in slide-in-from-top duration-500">
+           <div className="flex items-center justify-between mb-4">
+              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Unified Diff Preview</span>
+              <button onClick={() => setShowDiff(false)} className="text-[10px] font-black text-red-500 uppercase">Close</button>
+           </div>
+           <pre className="text-[10px] font-mono text-gray-400 overflow-x-auto whitespace-pre p-4 bg-black/40 rounded-xl leading-relaxed">
+              {diffContent}
+           </pre>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export const UIRepairTimeline = ({ steps }: { steps: any[] }) => {
+  return (
+    <div className="glass-panel p-10 rounded-[2.5rem] border-white/5 bg-white/[0.015] shadow-2xl">
+      <div className="flex items-center gap-4 mb-12">
+        <div className="p-3 bg-white/5 rounded-xl border border-white/10">
+          <Clock size={20} className="text-gray-400" />
+        </div>
+        <div>
+          <h3 className="text-lg font-black text-white uppercase tracking-tight">Repair Life-Cycle</h3>
+          <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mt-1">Traceability Feed</p>
+        </div>
+      </div>
+
+      <div className="space-y-12 ml-4">
+        {steps.map((step, idx) => (
+          <div key={idx} className="relative pl-12 group/step">
+            {idx !== steps.length - 1 && (
+              <div className="absolute left-[11px] top-8 w-[2px] h-20 bg-gradient-to-b from-white/10 to-transparent group-hover/step:from-[var(--primary)]/40 transition-all duration-700" />
+            )}
+            <div className="absolute left-0 top-0 w-6 h-6 rounded-lg border flex items-center justify-center transition-all duration-500">
+              {step.status === 'completed' ? <CheckCircle2 size={12} /> : idx + 1}
+            </div>
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-widest mb-2">
+                {step.name}
+              </h4>
+              <p className="text-[10px] text-gray-600 font-medium leading-relaxed max-w-md">
+                {step.description}
+              </p>
+              {step.artifact && (
+                <div className="mt-4 flex items-center gap-3">
+                   <div className="px-3 py-1.5 rounded-lg bg-black/40 border border-white/5 flex items-center gap-2">
+                      <Binary size={10} className="text-gray-500" />
+                      <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Artifact: {step.artifact}</span>
+                   </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export const EvidenceGallery = ({ evidence }: { evidence: any[] }) => {
+  return (
+    <div className="glass-panel p-10 rounded-[2.5rem] border-white/5 bg-white/[0.015] shadow-2xl relative overflow-hidden">
+       <div className="absolute top-0 right-0 p-8 opacity-[0.02] pointer-events-none">
+          <Image size={150} />
+       </div>
+
+      <div className="flex items-center justify-between mb-10 relative z-10">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-violet-500/10 rounded-xl border border-violet-500/20">
+            <Image size={20} className="text-violet-400" />
+          </div>
+          <div>
+            <h3 className="text-lg font-black text-white uppercase tracking-tight">Visual Evidence</h3>
+            <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mt-1">Playwright Trace Frames</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-6 relative z-10">
+        {evidence.length === 0 && (
+          <div className="col-span-2 py-20 text-center flex flex-col items-center gap-4 opacity-30">
+            <Search size={32} className="text-gray-700" />
+            <p className="text-[9px] font-black text-gray-700 uppercase tracking-[0.2em]">No Evidence Found</p>
+          </div>
+        )}
+        {evidence.map((item, idx) => (
+          <div key={idx} className="group/img relative rounded-2xl overflow-hidden border border-white/5 aspect-video hover:border-[var(--primary)]/40 transition-all cursor-zoom-in">
+             <div className="absolute inset-0 bg-black/40 group-hover/img:bg-transparent transition-all z-10" />
+             <img src={item.url} alt="evidence" className="w-full h-full object-cover transition-transform duration-1000 group-hover/img:scale-105" />
+             <div className="absolute bottom-4 left-4 z-20 px-3 py-1.5 bg-black/80 backdrop-blur-xl border border-white/10 rounded-xl opacity-0 group-hover/img:opacity-100 transition-all translate-y-4 group-hover/img:translate-y-0">
+                <span className="text-[8px] font-black text-white uppercase tracking-[0.2em]">{item.timestamp}</span>
+             </div>
+          </div>
+        ))}
       </div>
     </div>
   );

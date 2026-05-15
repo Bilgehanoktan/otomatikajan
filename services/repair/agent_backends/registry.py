@@ -43,8 +43,13 @@ def _register_defaults() -> None:
         logger.debug("agentless backend not available (missing deps)")
 
     from services.repair.agent_backends.safe_mini_swe_backend import SafeMiniSweBackend
-
     _BACKENDS["mini_swe"] = SafeMiniSweBackend
+
+    try:
+        from services.repair.agent_backends.open_swe_backend import OpenSWEAgentBackend
+        _BACKENDS["open_swe"] = OpenSWEAgentBackend
+    except ImportError:
+        logger.debug("open_swe backend not available")
 
     if os.getenv("REPAIR_ENABLE_LEGACY_MINI_SWE", "").strip() != "1":
         logger.debug("legacy mini_swe backend disabled; safe mini_swe adapter registered")

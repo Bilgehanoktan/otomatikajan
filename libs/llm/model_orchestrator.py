@@ -3,7 +3,7 @@ import os
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel
 import logging
 import httpx
@@ -81,6 +81,14 @@ class ProviderStats:
 
     def __post_init__(self):
         object.__setattr__(self, "_fail_streak", 0)
+        # Faz 12.1: Dynamic config override from environment
+        prefix = self.name.upper()
+        env_base = os.getenv(f"{prefix}_BASE_URL")
+        if env_base:
+            self.base_url = env_base
+        env_model = os.getenv(f"{prefix}_MODEL")
+        if env_model:
+            self.model = env_model
 
     @property
     def health_score(self) -> float:
@@ -104,12 +112,12 @@ class ProviderStats:
 
         if self.circuit == CircuitState.OPEN: base = 0.0
         elif self.circuit == CircuitState.HALF_OPEN: base *= 0.3
-        return round(float(base), 3)
+        return round(base, 3)
 
     @property
     def avg_latency(self) -> float:
         total = self.success + self.failure
-        return round(float(self.total_latency / total), 2) if total else 0.0
+        return round(self.total_latency / total, 2) if total else 0.0
 
     def record_success(self, latency: float):
         self.success      += 1
@@ -141,12 +149,12 @@ class ProviderStats:
 
         # Increase backoff penalty
         penalty_step = 1.1 # Further reduced from 1.2 to be ultra-permissive
-        self.penalty_multiplier = min(self.penalty_multiplier * penalty_step, 64)
+        self.penalty_multiplier = int(min(self.penalty_multiplier * penalty_step, 64))
 
         if self.history.count(False) >= self.OPEN_THRESHOLD or is_rate_limit:
             self.circuit = CircuitState.OPEN
-            level = "WARNING" if is_rate_limit else "ERROR"
-            logger.log(logging.getLevelName(level), f"Devre Kesici AÇILDI ({'429' if is_rate_limit else 'OPEN'}): {self.name}. Ceza: {self.penalty_multiplier}x")
+            log_level = logging.WARNING if is_rate_limit else logging.ERROR
+            logger.log(log_level, f"Devre Kesici AÇILDI ({'429' if is_rate_limit else 'OPEN'}): {self.name}. Ceza: {self.penalty_multiplier}x")
 
             # Otonom Karantina (Eğer çok sık hata alıyorsa 1 saat kapat)
             # 429'lar için daha müsamahakarız
@@ -199,6 +207,9 @@ class ProviderStats:
         if len(key) < 20:
             return True
 
+        # Faz 12.1: OpenRouter/Proxy Check
+        is_proxy = "openrouter.ai" in (self.base_url or "").lower()
+
         # Provider-format guard:
         # Wrong provider key in wrong env (for example OPENROUTER key in ANTHROPIC var)
         # should be treated as invalid to prevent noisy/broken fallback attempts.
@@ -213,6 +224,11 @@ class ProviderStats:
             "deepseek": ("sk-",),
         }
         prefixes = expected_prefixes.get(self.name, ())
+
+        # If it's a proxy, we allow OpenRouter prefix even for 'anthropic'
+        if is_proxy and key.startswith("sk-or-v1-"):
+            return False
+
         if prefixes and not key.startswith(prefixes):
             return True
 
@@ -279,6 +295,9 @@ class ModelOrchestrator:
 
     def __init__(self):
         self.providers = {p.name: p for p in PROVIDERS}
+        # Refresh config from env for all providers
+        for p in self.providers.values():
+            p.__post_init__()
         self._log_provider_status()
 
     async def generate(self, prompt: str, system_prompt: str = "Sen yardımcı bir AI asistansın.") -> str:
@@ -542,18 +561,13 @@ class ModelOrchestrator:
                     )
 
                     # In-memory Tracker & DB Persistence
-                    record_coro = cost_tracker.record(
+                    rec = await cost_tracker.record(
                         provider=provider.name, model=provider.model, agent_id="orchestrator",
                         input_tokens=est_tokens, output_tokens=out_tokens,
                         latency_s=latency, success=True, project_id=project_id
                     )
-                    import inspect
-                    if inspect.iscoroutine(record_coro):
-                        rec = await record_coro
-                    else:
-                        rec = record_coro
 
-                    # Arka planda DB'ye yaz (fire and forget tarzı ama await etmek daha güvenli)
+                    # Arka planda DB'ye yaz
                     async with AsyncSessionLocal() as db:
                         await cost_tracker.persist(db, rec)
                         await db.commit()
@@ -631,8 +645,14 @@ class ModelOrchestrator:
         sys_msg = next((m["content"] for m in messages if m["role"] == "system"), "")
         usr_msgs = [m for m in messages if m["role"] != "system"]
 
-        # Proxy desteği
-        base_url = os.getenv("CLAUDE_PROXY_URL") or p.base_url
+        # Faz 12.1: Use configured base_url (which handles overrides)
+        base_url = p.base_url
+        
+        # Backward compat for explicit proxy env var if exists
+        legacy_proxy = os.getenv("CLAUDE_PROXY_URL")
+        if legacy_proxy:
+            base_url = legacy_proxy
+
         is_openrouter = "openrouter.ai" in (base_url or "")
         if is_openrouter:
             if not (base_url or "").endswith("/chat/completions"):
@@ -749,7 +769,7 @@ class ModelOrchestrator:
             async with httpx.AsyncClient(timeout=60.0) as client:
                 if provider.name == "gemini":
                     # Gemini Vision format (Supports multiple parts)
-                    parts = [{"text": prompt}]
+                    parts: List[Dict[str, Any]] = [{"text": prompt}]
                     for img in images:
                         parts.append({"inline_data": {"mime_type": "image/png", "data": img}})
 
@@ -762,7 +782,7 @@ class ModelOrchestrator:
                     text = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
                 elif provider.name == "openai":
                     # OpenAI Vision format
-                    content_parts = [{"type": "text", "text": prompt}]
+                    content_parts: List[Dict[str, Any]] = [{"type": "text", "text": prompt}]
                     for img in images:
                         content_parts.append({"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img}"}})
 

@@ -626,24 +626,133 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                         )}
                     </Card>
 
-                    {finalReport ? (
-                        <Card
-                            variant="borderless"
-                            className="glass-card"
-                            style={{
-                                background: "rgba(11, 12, 16, 0.4)",
-                                border: "1px solid rgba(255, 255, 255, 0.05)",
-                                borderRadius: "16px",
-                            }}
-                        >
-                            <Title level={5} style={{ color: "#45a29e", fontSize: "12px", textTransform: "uppercase" }}>
-                                {t("finalReport")}
-                            </Title>
-                            <Text style={{ color: "#d5d8df", whiteSpace: "pre-wrap", lineHeight: 1.7 }}>
-                                {finalReport}
-                            </Text>
-                        </Card>
-                    ) : null}
+                    {(() => {
+                        if (!finalReport) return null;
+                        
+                        let structured = null;
+                        if (finalReport.trim().startsWith("{")) {
+                            try {
+                                structured = JSON.parse(finalReport);
+                            } catch (e) {
+                                console.error("Structured report parse error:", e);
+                            }
+                        }
+
+                        if (structured) {
+                            return (
+                                <Card
+                                    variant="borderless"
+                                    className="glass-card"
+                                    style={{
+                                        background: "rgba(11, 12, 16, 0.4)",
+                                        border: "1px solid rgba(102, 252, 241, 0.1)",
+                                        borderRadius: "16px",
+                                        boxShadow: "0 8px 32px rgba(0,0,0,0.4)"
+                                    }}
+                                >
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                                        <Title level={4} style={{ color: "#66fcf1", margin: 0, fontSize: "16px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "1px" }}>
+                                            {structured.title || t("finalReport")}
+                                        </Title>
+                                        <Tag color="cyan" style={{ borderRadius: "4px", fontSize: "10px" }}>{structured.analysis_type || "RESEARCH"}</Tag>
+                                    </div>
+
+                                    <div style={{ marginBottom: "24px" }}>
+                                        <Text style={{ color: "#45a29e", fontSize: "11px", fontWeight: "bold", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
+                                            {t("executiveSummary") || "Executive Summary"}
+                                        </Text>
+                                        <div style={{ padding: "16px", background: "rgba(255,255,255,0.02)", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.05)" }}>
+                                            <Text style={{ color: "#d5d8df", fontSize: "14px", lineHeight: "1.6" }}>
+                                                {structured.executive_summary}
+                                            </Text>
+                                        </div>
+                                    </div>
+
+                                    {structured.findings && structured.findings.length > 0 && (
+                                        <div style={{ marginBottom: "24px" }}>
+                                            <Text style={{ color: "#45a29e", fontSize: "11px", fontWeight: "bold", textTransform: "uppercase", display: "block", marginBottom: "12px" }}>
+                                                {t("keyFindings") || "Key Findings"}
+                                            </Text>
+                                            <Row gutter={[16, 16]}>
+                                                {structured.findings.map((f: any, idx: number) => (
+                                                    <Col span={24} key={idx}>
+                                                        <div style={{ padding: "16px", background: "rgba(10,12,18,0.6)", borderRadius: "12px", border: "1px solid rgba(102,252,241,0.05)", position: "relative", overflow: "hidden" }}>
+                                                            <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: "3px", background: f.severity === "HIGH" ? "#f5222d" : f.severity === "MEDIUM" ? "#faad14" : "#52c41a" }} />
+                                                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                                                                <Text style={{ color: "#fff", fontWeight: "bold", fontSize: "13px" }}>{f.title}</Text>
+                                                                <Tag color={f.severity === "HIGH" ? "error" : f.severity === "MEDIUM" ? "warning" : "success"} style={{ fontSize: "9px" }}>{f.severity}</Tag>
+                                                            </div>
+                                                            <Text style={{ color: "#9ca3af", fontSize: "12px", display: "block", marginBottom: "12px" }}>{f.evidence}</Text>
+                                                            <div style={{ display: "flex", gap: "16px", paddingTop: "12px", borderTop: "1px solid rgba(255,255,255,0.03)" }}>
+                                                                <div style={{ flex: 1 }}>
+                                                                    <Text style={{ fontSize: "9px", color: "#45a29e", textTransform: "uppercase", display: "block" }}>Impact</Text>
+                                                                    <Text style={{ fontSize: "11px", color: "#d5d8df" }}>{f.impact}</Text>
+                                                                </div>
+                                                                <div style={{ flex: 1 }}>
+                                                                    <Text style={{ fontSize: "9px", color: "#66fcf1", textTransform: "uppercase", display: "block" }}>Recommendation</Text>
+                                                                    <Text style={{ fontSize: "11px", color: "#d5d8df" }}>{f.recommendation}</Text>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </Col>
+                                                ))}
+                                            </Row>
+                                        </div>
+                                    )}
+
+                                    <Row gutter={24}>
+                                        <Col span={12}>
+                                            <Text style={{ color: "#45a29e", fontSize: "11px", fontWeight: "bold", textTransform: "uppercase", display: "block", marginBottom: "12px" }}>
+                                                {t("risks") || "Risks"}
+                                            </Text>
+                                            <List
+                                                size="small"
+                                                dataSource={structured.risks || []}
+                                                renderItem={(item: string) => (
+                                                    <List.Item style={{ border: "none", padding: "4px 0" }}>
+                                                        <Space><div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#f5222d" }} /><Text style={{ color: "#d5d8df", fontSize: "12px" }}>{item}</Text></Space>
+                                                    </List.Item>
+                                                )}
+                                            />
+                                        </Col>
+                                        <Col span={12}>
+                                            <Text style={{ color: "#45a29e", fontSize: "11px", fontWeight: "bold", textTransform: "uppercase", display: "block", marginBottom: "12px" }}>
+                                                {t("nextActions") || "Next Actions"}
+                                            </Text>
+                                            <List
+                                                size="small"
+                                                dataSource={structured.next_actions || []}
+                                                renderItem={(item: string) => (
+                                                    <List.Item style={{ border: "none", padding: "4px 0" }}>
+                                                        <Space>< ThunderboltOutlined style={{ color: "#66fcf1", fontSize: "10px" }} /><Text style={{ color: "#d5d8df", fontSize: "12px" }}>{item}</Text></Space>
+                                                    </List.Item>
+                                                )}
+                                            />
+                                        </Col>
+                                    </Row>
+                                </Card>
+                            );
+                        }
+
+                        return (
+                            <Card
+                                variant="borderless"
+                                className="glass-card"
+                                style={{
+                                    background: "rgba(11, 12, 16, 0.4)",
+                                    border: "1px solid rgba(255, 255, 255, 0.05)",
+                                    borderRadius: "16px",
+                                }}
+                            >
+                                <Title level={5} style={{ color: "#45a29e", fontSize: "12px", textTransform: "uppercase" }}>
+                                    {t("finalReport")}
+                                </Title>
+                                <Text style={{ color: "#d5d8df", whiteSpace: "pre-wrap", lineHeight: 1.7 }}>
+                                    {finalReport}
+                                </Text>
+                            </Card>
+                        );
+                    })()}
 
                     {history.length > 0 ? (
                         <Card

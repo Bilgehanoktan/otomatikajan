@@ -47,10 +47,12 @@ def run_async(coro):
 
 class _WorkflowResult:
     """Thin compatibility shim so the success/failure block below works unchanged."""
-    def __init__(self, has_failures: bool, report: str, workflow_status: str):
+    def __init__(self, has_failures: bool, report: str, workflow_status: str, quality_score: float = 0.0, quality_detail: dict = None):
         self.has_failures = has_failures
         self.report = report
         self.workflow_status = workflow_status
+        self.quality_score = quality_score
+        self.quality_detail = quality_detail or {}
         self.subtasks = []  # No legacy subtasks in new engine
 
 
@@ -145,10 +147,15 @@ def run_project_task(
         # 3. Return a result dict compatible with the rest of the task
         has_failures = instance.status == WorkflowStatus.FAILED
         final_report = instance.context.get("final_report", "")
+        quality_score = instance.context.get("quality_score", 0.0)
+        quality_detail = instance.context.get("quality_detail", {})
+        
         return _WorkflowResult(
             has_failures=has_failures,
             report=final_report,
             workflow_status=instance.status.value,
+            quality_score=quality_score,
+            quality_detail=quality_detail,
         )
 
     try:
@@ -177,6 +184,8 @@ def run_project_task(
                         db, p.id,
                         report=getattr(result, "report", "") or "",
                         status=final_status.value,
+                        quality_score=getattr(result, "quality_score", 0.0),
+                        quality_detail=getattr(result, "quality_detail", {}),
                     )
                     await db.commit()
         run_async(_mark_done())

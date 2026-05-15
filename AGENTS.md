@@ -47,4 +47,9 @@ Aşağıdaki çekirdek yetenekler `.agents/skills/` altında tanımlanmıştır 
 ## Git ve İletişim
 
 - **Commit Formatı**: `type: description` (feat, fix, refactor, docs, test, chore).
-- **PR Özetleri**: Yapılan değişiklikleri, test planını ve riskleri içermelidir.
+## Otonom UI Onarım Kuralları (Phase 32)
+
+1.  **Kanıt Zorunluluğu**: Her UI onarımı için Playwright kanıtı (screenshot/trace) toplanmalıdır.
+2.  **Yönetişim Geçidi (Governance Gate)**: Tüm UI PR'ları `UIRepairPRReview` sürecinden geçmelidir. `BLOCKED` durumundaki PR'lar asla merge edilmemelidir.
+3.  **Hata Teşhisi**: Karmaşık UI hatalarında Stagehand veya muadili bir teşhis motoru kullanılmalıdır.
+4.  **Güvenlik**: UI değişiklikleri `AuditGate` ve `VerifierMesh` denetiminden geçmek zorundadır.

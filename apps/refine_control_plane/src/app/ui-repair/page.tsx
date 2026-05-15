@@ -22,6 +22,7 @@ import {
   Lock,
   GitPullRequest
 } from 'lucide-react';
+import GAOperationsDashboard from './GAOperationsDashboard';
 
 // Premium UI Components
 const Card = ({ children, className = "", onClick }: { children: React.ReactNode, className?: string, onClick?: () => void }) => (
@@ -80,6 +81,17 @@ export default function UIRepairPage() {
   const { CrisisControlPanel } = require("@/components/ui-repair/CrisisControlPanel");
   const { NotificationDeliveryPanel } = require("@/components/ui-repair/NotificationDeliveryPanel");
   const { FinalReadinessPanel } = require("@/components/ui-repair/FinalReadinessPanel");
+  const { PilotRolloutPanel } = require("@/components/ui-repair/PilotRolloutPanel");
+
+  // Phase 12 Imports
+  const { EnterpriseRolloutPanel } = require("@/components/ui-repair/EnterpriseRolloutPanel");
+  const { ProjectProfilePanel } = require("@/components/ui-repair/ProjectProfilePanel");
+  const { RolloutWavePanel } = require("@/components/ui-repair/RolloutWavePanel");
+  const { ProjectHealthMatrixPanel } = require("@/components/ui-repair/ProjectHealthMatrixPanel");
+  const { SLASLOTrackerPanel } = require("@/components/ui-repair/SLASLOTrackerPanel");
+  const { GAReadinessPanel } = require("@/components/ui-repair/GAReadinessPanel");
+  const { EnterpriseRunbookPanel } = require("@/components/ui-repair/EnterpriseRunbookPanel");
+  const { ResiliencyMeshPanel } = require("@/components/ui-repair/ResiliencyMeshPanel");
 
   useEffect(() => {
     fetchData();
@@ -349,6 +361,30 @@ export default function UIRepairPage() {
             className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "readiness" ? 'border-indigo-500 text-indigo-400 bg-indigo-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
           >
             Final Readiness
+          </button>
+          <button 
+            onClick={() => setMainTab("pilot")}
+            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "pilot" ? 'border-orange-500 text-orange-400 bg-orange-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+          >
+            Pilot Rollout
+          </button>
+          <button 
+            onClick={() => setMainTab("enterprise")}
+            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "enterprise" ? 'border-indigo-500 text-indigo-400 bg-indigo-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+          >
+            Enterprise GA
+          </button>
+          <button 
+            onClick={() => setMainTab("ga-operations")}
+            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "ga-operations" ? 'border-emerald-500 text-emerald-400 bg-emerald-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+          >
+            GA Operations
+          </button>
+          <button 
+            onClick={() => setMainTab("resiliency")}
+            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "resiliency" ? 'border-blue-500 text-blue-400 bg-blue-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+          >
+            Resiliency Mesh
           </button>
         </div>
 
@@ -717,6 +753,41 @@ export default function UIRepairPage() {
         ) : mainTab === "readiness" ? (
           <div className="animate-in fade-in duration-500">
             <FinalReadinessPanel />
+          </div>
+        ) : mainTab === "pilot" ? (
+          <div className="animate-in fade-in duration-500">
+            <PilotRolloutPanel />
+          </div>
+        ) : mainTab === "enterprise" ? (
+          <div className="space-y-10 animate-in fade-in duration-700">
+            <EnterpriseRolloutPanel />
+            
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
+              <ProjectProfilePanel />
+              <RolloutWavePanel />
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
+              <div className="xl:col-span-2">
+                <ProjectHealthMatrixPanel />
+              </div>
+              <div>
+                <SLASLOTrackerPanel />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
+              <GAReadinessPanel />
+              <EnterpriseRunbookPanel />
+            </div>
+          </div>
+        ) : mainTab === "ga-operations" ? (
+          <div className="animate-in fade-in duration-500">
+            <GAOperationsDashboard />
+          </div>
+        ) : mainTab === "resiliency" ? (
+          <div className="animate-in fade-in duration-500">
+            <ResiliencyMeshPanel />
           </div>
         ) : null}
 

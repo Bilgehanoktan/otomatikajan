@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Rocket, ShieldAlert, FileSearch, ShieldCheck, Play, ArrowRight, Loader2 } from "lucide-react";
 import { safeFetchJson } from "@/lib/api";
 import { App } from "antd";
+import { useTranslations } from "next-intl";
 
 interface CommandButtonProps {
   label: string;
@@ -38,6 +39,7 @@ function CommandButton({ label, sub, icon, color, onClick, loading }: CommandBut
 }
 
 export function DashboardCommandPanel({ apiBase }: { apiBase: string }) {
+  const t = useTranslations("commands");
   const { notification } = App.useApp();
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
@@ -52,14 +54,14 @@ export function DashboardCommandPanel({ apiBase }: { apiBase: string }) {
       });
       
       notification.success({
-        message: "Komut İletildi",
-        description: data.message || "İşlem başarıyla tetiklendi.",
+        message: t("success"),
+        description: data.message || t("successDesc"),
         placement: "bottomRight"
       });
     } catch (err: any) {
       notification.error({
-        message: "Bağlantı Hatası",
-        description: `Backend servisine ulaşılamadı veya geçersiz yanıt alındı. Hata: ${err.message}`,
+        message: t("connectionError"),
+        description: t("connectionErrorDesc", { error: err.message }),
         placement: "bottomRight"
       });
     } finally {
@@ -72,15 +74,15 @@ export function DashboardCommandPanel({ apiBase }: { apiBase: string }) {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] animate-pulse shadow-[0_0_8px_var(--primary)]" />
-          <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.25em]">Hızlı Aksiyonlar</h3>
+          <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.25em]">{t("quickAccess")}</h3>
         </div>
         <span className="text-[8px] font-mono text-gray-600 uppercase">Operator Auth: Active</span>
       </div>
 
       <div className="grid grid-cols-1 gap-3 flex-1 overflow-y-auto pr-1">
         <CommandButton
-          label="Operasyonel Tatbikat (Drill)"
-          sub="Governance Drill Trigger · /governance/drills/trigger"
+          label={t("drill")}
+          sub={t("drillSub")}
           icon={<ShieldAlert size={18} />}
           color="text-amber-400"
           loading={loadingAction === "drill"}
@@ -88,8 +90,8 @@ export function DashboardCommandPanel({ apiBase }: { apiBase: string }) {
         />
 
         <CommandButton
-          label="Üretim Devir Teslim (Handover)"
-          sub="Production Handover · /governance/ops/handover"
+          label={t("handover")}
+          sub={t("handoverSub")}
           icon={<Rocket size={18} />}
           color="text-[#66fcf1]"
           loading={loadingAction === "handover"}
@@ -97,8 +99,8 @@ export function DashboardCommandPanel({ apiBase }: { apiBase: string }) {
         />
 
         <CommandButton
-          label="Denetim Paketi Oluştur"
-          sub="Generate Audit Bundle · /compliance/audit-bundles"
+          label={t("auditBundle")}
+          sub={t("auditBundleSub")}
           icon={<FileSearch size={18} />}
           color="text-gray-400"
           loading={loadingAction === "audit"}
@@ -106,8 +108,8 @@ export function DashboardCommandPanel({ apiBase }: { apiBase: string }) {
         />
 
         <CommandButton
-          label="Onay Bekleyenler"
-          sub="Pending Approvals · /approvals?status=pending"
+          label={t("pending")}
+          sub={t("pendingSub")}
           icon={<ShieldCheck size={18} />}
           color="text-green-400"
           loading={loadingAction === "approvals"}
@@ -118,8 +120,8 @@ export function DashboardCommandPanel({ apiBase }: { apiBase: string }) {
       <div className="mt-8 pt-6 border-t border-white/5">
          <div className="flex items-center gap-4 justify-between bg-black/30 p-4 rounded-xl border border-white/[0.03]">
             <div className="flex flex-col">
-               <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest leading-none">Safe Mode</span>
-               <span className="text-[10px] font-bold text-gray-400 mt-1 uppercase">Aktif</span>
+               <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest leading-none">{t("safeMode")}</span>
+               <span className="text-[10px] font-bold text-gray-400 mt-1 uppercase">{t("safeModeActive")}</span>
             </div>
             <div className="w-12 h-6 bg-white/5 rounded-full relative p-1 cursor-pointer hover:bg-white/10 transition-colors">
                <div className="w-4 h-4 bg-green-400 rounded-full shadow-[0_0_8px_rgba(72,187,120,0.5)]" />

@@ -1,4 +1,5 @@
 import uuid
+import asyncio
 from typing import Any, Optional, List, Dict
 from datetime import datetime, timezone
 from services.observability.logging import get_logger
@@ -153,6 +154,8 @@ class TaskPlanner:
             
         return {"level": risk_level, "consensus_required": consensus_required}
 
+import json
+
 class TaskStateService:
     def __init__(self):
         self._tasks: Dict[str, SovereignGoal] = {}
@@ -164,43 +167,168 @@ class TaskStateService:
         return list(self._tasks.values())
 
 class ReportSynthesizer:
-    def synthesize(self, task: SovereignGoal) -> str:
-        done    = [s for s in task.subtasks if str(s.status).split('.')[-1] == "COMPLETED"]
-        failed  = [s for s in task.subtasks if str(s.status).split('.')[-1] in ["ERROR", "SKIPPED"]]
-        scores  = [getattr(s, "quality_score", None) for s in done if getattr(s, "quality_score", None) is not None]
-        avg_q   = sum(scores) / len(scores) if scores else None
-        
-        agi_meta = task.execution_context.get("agi_metadata", {})
-        mood = task.execution_context.get("mood", "NEUTRAL")
-        reasoning = task.execution_context.get("reflective_reasoning", "")
-        
-        lines = [f"# Proje Raporu: {task.title}", ""]
-        if reasoning or agi_meta:
-            lines.append("> [!NOTE]")
-            lines.append("> **CORTEX ANALYSIS (v121.0)**")
-            if reasoning: lines.append(f"> **Reasoning:** {reasoning}")
-            if mood: lines.append(f"> **Affective State:** {mood}")
-            if agi_meta.get("verification"):
-                score = agi_meta["verification"].get("integration_reality_score", 0) * 100
-                lines.append(f"> **Reality Score:** {score:.0f}%")
-            lines.append("")
+    async def synthesize_structured(self, task: SovereignGoal, cortex=None) -> dict:
+        """
+        [Faz 13.04.2] Generates a structured JSON report following the mandated schema.
+        Uses LLM synthesis for concrete findings if cortex is available.
+        """
+        def is_completed(s):
+            status_str = str(s.status).upper()
+            return "COMPLETED" in status_str or "DONE" in status_str or status_str == "SUCCESS"
 
+        def is_failed(s):
+            status_str = str(s.status).upper()
+            return "ERROR" in status_str or "FAILED" in status_str or "CRITICAL" in status_str
+
+        done    = [s for s in task.subtasks if is_completed(s)]
+        failed  = [s for s in task.subtasks if is_failed(s)]
+        scores  = [getattr(s, "quality_score", None) for s in done if getattr(s, "quality_score", None) is not None]
+        avg_q   = sum(scores) / len(scores) if scores else 0.0
+        
+        # 1. Extract Findings (LLM or Heuristic)
+        findings = []
+        if cortex and done:
+            findings = await self._extract_findings_llm(done, cortex)
+        
+        # Fallback if LLM extraction failed or returned too few
+        if len(findings) < 3:
+            for s in done:
+                if len(findings) >= 3: break
+                findings.append({
+                    "severity": "MEDIUM" if s.quality_score > 0.6 else "HIGH",
+                    "category": "OPERATIONAL",
+                    "title": f"Ajan {s.agent_id} Görev İcrası",
+                    "evidence": str(s.result)[:300] if s.result else "Kanıt bulunamadı.",
+                    "impact": "Sistem durumunda değişiklik saptandı.",
+                    "recommendation": "Ajan çıktısı manuel olarak doğrulanmalı."
+                })
+
+        # 2. Extract Risks & Recommendations
+        risks = []
+        for s in failed:
+            risks.append(f"Ajan {s.agent_id} adımı başarısız oldu (Hata: {s.result or 'Unknown'})")
+        if avg_q < 0.6:
+            risks.append("Genel kalite skoru kritik seviyenin altında.")
+
+        recs = ["Tüm bulgular için teknik doğrulama (QA) yapılmalı."]
+        if risks:
+            recs.append("Başarısız olan adımlar için manuel telafi süreci başlatılmalı.")
+
+        # 3. Assemble JSON Report
+        report_data = {
+            "title": task.title or "Sistem Analizi",
+            "executive_summary": task.execution_context.get("reflective_reasoning") or f"Görev {len(done)} ajan tarafından başarıyla icra edildi. Ortalama kalite: {avg_q:.2f}",
+            "scope": task.execution_context.get("scope", "Full System"),
+            "analysis_type": "RESEARCH",
+            "agent_count": len(done),
+            "average_quality": round(avg_q, 2),
+            "findings": findings[:5], # Keep max 5 for UI stability
+            "risks": risks,
+            "recommendations": recs,
+            "next_actions": [
+                "Hafıza katmanının güncellenmesi",
+                "Operatör onayı ve yama (patch) hazırlığı"
+            ],
+            "limitations": [
+                "Analiz sadece aktif workspace dosyaları ile sınırlıdır.",
+                "Zaman kısıtı nedeniyle derinlemesine stres testi yapılmamıştır."
+            ]
+        }
+
+        # Side effect: Governance Advisory
+        if avg_q < 0.5 or failed:
+            from services.orchestration.domain.events import event_bus
+            asyncio.create_task(event_bus.emit(
+                "GOVERNANCE_ADVISORY",
+                severity="error" if failed else "warning",
+                message=f"Workflow {task.id} low quality or partial failure.",
+                payload={"project_id": task.id, "avg_quality": avg_q, "failed_count": len(failed)}
+            ))
+
+        return report_data
+
+    async def _extract_findings_llm(self, subtasks: list, cortex) -> list:
+        """Uses LLM to synthesize concrete, structured findings from agent outputs."""
+        outputs = "\n\n".join([f"AGENT: {s.agent_id}\nRESULT: {s.result}" for s in subtasks if s.result])
+        if not outputs: return []
+
+        prompt = f"""
+As a Senior Research Synthesizer, analyze the following agent outputs and extract exactly 3 concrete, high-quality findings.
+Each finding must be significant and structured as JSON.
+
+AGENT OUTPUTS:
+{outputs}
+
+Return ONLY a JSON array with exactly this structure:
+[
+  {{
+    "severity": "HIGH/MEDIUM/LOW",
+    "category": "API/Performance/Security/Reliability/Logic",
+    "title": "Short descriptive title",
+    "evidence": "Concrete proof or snippet from the agent output",
+    "impact": "Technical or business impact",
+    "recommendation": "Actionable fix or improvement"
+  }}
+]
+"""
+        try:
+            res = await cortex.model_orch.generate(prompt, system_prompt="You are a precise JSON synthesis engine.")
+            # JSON cleaning
+            clean_res = res.strip()
+            if "```json" in clean_res:
+                clean_res = clean_res.split("```json")[1].split("```")[0].strip()
+            elif "```" in clean_res:
+                clean_res = clean_res.split("```")[1].split("```")[0].strip()
+            
+            data = json.loads(clean_res)
+            if isinstance(data, list):
+                return data
+            return []
+        except Exception as e:
+            _log.warning(f"LLM Finding extraction failed: {e}")
+            return []
+
+    def synthesize_markdown(self, report_data: dict) -> str:
+        """Converts structured JSON report back to beautiful Markdown for legacy UI support."""
+        lines = [f"# {report_data['title']}", ""]
+        
+        lines.append("## 📝 Yönetici Özeti")
+        lines.append(report_data['executive_summary'])
+        lines.append("")
+        
+        lines.append("## 🔍 Kapsam ve Metrikler")
         lines.extend([
-            f"**Durum:** {'Tamamlandı' if not failed else 'Kısmi Başarı'}  |  ",
-            f"**Ajanlar:** {len(done)}/{len(task.subtasks)}  |  ",
-            f"**Ort. Kalite:** {avg_q:.0%}" if avg_q else "**Ort. Kalite:** ---", ""
+            f"- **Kapsam:** {report_data['scope']}",
+            f"- **Analiz Tipi:** {report_data['analysis_type']}",
+            f"- **Aktif Ajanlar:** {report_data['agent_count']}",
+            f"- **Ortalama Kalite:** {report_data['average_quality']:.0%}",
+            ""
         ])
 
-        for st in task.subtasks:
-            if str(st.status).split('.')[-1] == "SKIPPED":
-                lines.append(f"### ⏭️ {st.agent_id.upper()} (Atlandı - Bağımlılık Hatası)\n")
-                continue
-            icon = "✅" if str(st.status).split('.')[-1] == "COMPLETED" else "❌"
-            q = f" | Q:{st.quality_score:.0%}" if st.quality_score is not None else ""
-            rev = " 🔄" if st.reviewed else ""
-            lines.append(f"### {icon} {st.agent_id.upper()}{q}{rev}")
-            lines.append(st.result or "_Sonuç yok_")
+        lines.append("## 🤖 Somut Bulgular (Findings)")
+        for f in report_data['findings']:
+            severity_icon = "🔴" if f['severity'] == "HIGH" else "🟡" if f['severity'] == "MEDIUM" else "🟢"
+            lines.append(f"### {severity_icon} {f['title']} ({f['category']})")
+            lines.append(f"**Kanıt:** {f['evidence']}")
+            lines.append(f"**Etki:** {f['impact']}")
+            lines.append(f"**Öneri:** {f['recommendation']}")
             lines.append("")
 
-        task.avg_quality = avg_q
+        if report_data['risks']:
+            lines.append("## ⚠️ Tespit Edilen Riskler")
+            for r in report_data['risks']:
+                lines.append(f"- {r}")
+            lines.append("")
+
+        lines.append("## 🚀 Sonraki Adımlar")
+        for a in report_data['next_actions']:
+            lines.append(f"- [ ] {a}")
+        lines.append("")
+        
         return "\n".join(lines)
+
+    async def synthesize(self, task: SovereignGoal, cortex=None) -> str:
+        """Legacy wrapper that returns Markdown string."""
+        data = await self.synthesize_structured(task, cortex)
+        return self.synthesize_markdown(data)
+

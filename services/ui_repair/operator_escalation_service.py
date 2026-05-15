@@ -1,7 +1,8 @@
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from libs.db.models.ui_repair_models import UIOperatorEscalation, UINotificationDelivery
 from .notification_adapter import NotificationAdapter
 
@@ -29,7 +30,7 @@ class EscalationPolicy:
 class OperatorEscalationService:
     """Manages the creation and lifecycle of operator escalations."""
     
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
         self.notifier = NotificationAdapter(db)
 
@@ -42,10 +43,12 @@ class OperatorEscalationService:
         reason: str
     ) -> UIOperatorEscalation:
         # Check if active escalation already exists for this route/source
-        existing = self.db.query(UIOperatorEscalation).filter(
+        stmt = select(UIOperatorEscalation).where(
             UIOperatorEscalation.route == route,
             UIOperatorEscalation.status.in_(["OPEN", "NOTIFIED", "ACKNOWLEDGED"])
-        ).first()
+        )
+        result = await self.db.execute(stmt)
+        existing = result.scalar_one_or_none()
         
         if existing:
             return existing
@@ -63,8 +66,8 @@ class OperatorEscalationService:
             status="OPEN"
         )
         self.db.add(escalation)
-        self.db.commit()
-        self.db.refresh(escalation)
+        await self.db.commit()
+        await self.db.refresh(escalation)
 
         # Trigger notifications
         await self.notifier.send_escalation_notifications(escalation)
@@ -72,17 +75,19 @@ class OperatorEscalationService:
         return escalation
 
     async def acknowledge(self, escalation_id: uuid.UUID, operator_id: str):
-        escalation = self.db.query(UIOperatorEscalation).filter_by(id=escalation_id).first()
+        result = await self.db.execute(select(UIOperatorEscalation).filter_by(id=escalation_id))
+        escalation = result.scalar_one_or_none()
         if escalation:
             escalation.status = "ACKNOWLEDGED"
             escalation.acknowledged_by = operator_id
-            escalation.acknowledged_at = datetime.utcnow()
-            self.db.commit()
+            escalation.acknowledged_at = datetime.now(timezone.utc)
+            await self.db.commit()
 
     async def resolve(self, escalation_id: uuid.UUID, operator_id: str):
-        escalation = self.db.query(UIOperatorEscalation).filter_by(id=escalation_id).first()
+        result = await self.db.execute(select(UIOperatorEscalation).filter_by(id=escalation_id))
+        escalation = result.scalar_one_or_none()
         if escalation:
             escalation.status = "RESOLVED"
             escalation.resolved_by = operator_id
-            escalation.resolved_at = datetime.utcnow()
-            self.db.commit()
+            escalation.resolved_at = datetime.now(timezone.utc)
+            await self.db.commit()

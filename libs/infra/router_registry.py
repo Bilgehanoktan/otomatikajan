@@ -36,6 +36,7 @@ def register_routers(app: FastAPI):
     from services.workflow_api.fleet_router import router as fleet_orchestra_router
     print("[DEBUG] Loading ceo_router...")
     from services.orchestration.ceo.router import router as ceo_router
+    from services.ui_repair.router import router as ui_repair_router
     
     api_v1 = APIRouter(prefix="/api/v1")
 
@@ -81,6 +82,7 @@ def register_routers(app: FastAPI):
     api_v1.include_router(ceo_router, prefix="/ceo")
     api_v1.include_router(harness_router, prefix="/harness", tags=["Harness API"])
     api_v1.include_router(mcp_router, prefix="/mcp")
+    api_v1.include_router(ui_repair_router, prefix="/ui-repair")
     
     # 8.1 Aliases for Refine Compatibility
     api_v1.include_router(governance_router, prefix="/axiology", tags=["Compatibility"]) # Alias for /axiology

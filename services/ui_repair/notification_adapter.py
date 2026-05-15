@@ -1,13 +1,13 @@
 import asyncio
 from typing import List, Dict, Any
-from datetime import datetime
-from sqlalchemy.orm import Session
+from datetime import datetime, timezone
+from sqlalchemy.ext.asyncio import AsyncSession
 from libs.db.models.ui_repair_models import UIOperatorEscalation, UINotificationDelivery
 
 class NotificationAdapter:
     """Handles delivery of notifications via various channels."""
     
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
 
     async def send_escalation_notifications(self, escalation: UIOperatorEscalation):
@@ -26,7 +26,7 @@ class NotificationAdapter:
         else:
             escalation.status = "FAILED_TO_NOTIFY"
         
-        self.db.commit()
+        await self.db.commit()
 
     async def dispatch(self, escalation: UIOperatorEscalation, channel: str) -> Dict[str, Any]:
         delivery = UINotificationDelivery(
@@ -38,7 +38,7 @@ class NotificationAdapter:
             message_summary=escalation.reason[:200]
         )
         self.db.add(delivery)
-        self.db.commit()
+        await self.db.commit()
 
         try:
             # Mock delivery logic
@@ -49,18 +49,18 @@ class NotificationAdapter:
             
             if success:
                 delivery.status = "SENT"
-                delivery.sent_at = datetime.utcnow()
+                delivery.sent_at = datetime.now(timezone.utc)
             else:
                 delivery.status = "FAILED"
-                delivery.failed_at = datetime.utcnow()
+                delivery.failed_at = datetime.now(timezone.utc)
                 delivery.error_message = "Provider rejected request"
                 
         except Exception as e:
             delivery.status = "FAILED"
-            delivery.failed_at = datetime.utcnow()
+            delivery.failed_at = datetime.now(timezone.utc)
             delivery.error_message = str(e)
         
-        self.db.commit()
+        await self.db.commit()
         return {"channel": channel, "status": delivery.status}
 
     def _get_recipient(self, channel: str) -> str:

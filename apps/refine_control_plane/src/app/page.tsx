@@ -364,10 +364,10 @@ export default function ControlPlaneDashboard() {
               </div>
               <div>
                 <h2 className="text-[12px] font-black uppercase tracking-[0.35em] text-white">
-                  Runtime Self-Healing
+                  {t("runtimeHealingTitle")}
                 </h2>
                 <p className="mt-2 text-xs font-bold uppercase tracking-widest text-gray-600">
-                  {runtimeDiagnostics.length} signal, {runtimeRepairable.length} safe repair available
+                  {t("runtimeHealingSignals", { count: runtimeDiagnostics.length, safeCount: runtimeRepairable.length })}
                 </p>
               </div>
             </div>
@@ -393,11 +393,11 @@ export default function ControlPlaneDashboard() {
                       disabled={repairingId === item.id}
                       className="rounded-lg border border-current/20 bg-black/30 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-current transition-all hover:bg-white/10 disabled:cursor-wait disabled:opacity-60"
                     >
-                      {repairingId === item.id ? "Repairing" : "Repair"}
+                      {repairingId === item.id ? t("repairing") : t("repair")}
                     </button>
                   ) : (
                     <span className="text-[9px] font-black uppercase tracking-widest text-current/70">
-                      Manual
+                      {t("manual")}
                     </span>
                   )}
                   {repairStatus[item.id] && (
@@ -411,7 +411,7 @@ export default function ControlPlaneDashboard() {
                 href="/system-health"
                 className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-[10px] font-black uppercase tracking-widest text-gray-300 transition-all hover:border-[var(--primary)]/30 hover:text-[var(--primary)]"
               >
-                Open Diagnostics
+                {t("openDiagnostics")}
               </a>
             </div>
           </div>
@@ -427,10 +427,10 @@ export default function ControlPlaneDashboard() {
               </div>
               <div>
                 <h2 className="text-[12px] font-black uppercase tracking-[0.35em] text-white">
-                  Self-Repair Case Reports
+                  {t("selfRepairReports")}
                 </h2>
                 <p className="mt-2 text-xs font-bold uppercase tracking-widest text-gray-600">
-                  {selfRepairRuns.length} repair_outputs artifact connected
+                  {t("repairArtifactsConnected", { count: selfRepairRuns.length })}
                 </p>
               </div>
             </div>
@@ -456,7 +456,7 @@ export default function ControlPlaneDashboard() {
                 href="/repair-lab"
                 className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-[10px] font-black uppercase tracking-widest text-gray-300 transition-all hover:border-[var(--primary)]/30 hover:text-[var(--primary)]"
               >
-                Open Repair Lab
+                {t("openRepairLab")}
               </a>
             </div>
           </div>
@@ -472,10 +472,10 @@ export default function ControlPlaneDashboard() {
               </div>
               <div>
                 <h2 className="text-[12px] font-black uppercase tracking-[0.35em] text-white">
-                  TaskFlow Execution Trace
+                  {t("taskflowTrace")}
                 </h2>
                 <p className="mt-2 text-xs font-bold uppercase tracking-widest text-gray-600">
-                  {taskflowRuns.length} taskflow_trace artifact connected
+                  {t("taskflowArtifactsConnected", { count: taskflowRuns.length })}
                 </p>
               </div>
             </div>
@@ -493,7 +493,7 @@ export default function ControlPlaneDashboard() {
                     {run.status}
                   </span>
                   <span className="text-[9px] font-black uppercase tracking-widest text-gray-500">
-                    {run.succeeded_step_count}/{run.step_count} steps
+                    {t("stepsCount", { succeeded: run.succeeded_step_count, total: run.step_count })}
                   </span>
                   {run.gate_waiting ? (
                     <span className="rounded-lg border border-amber-400/20 bg-amber-500/10 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-amber-300">
@@ -506,7 +506,7 @@ export default function ControlPlaneDashboard() {
                 href="/repair-lab"
                 className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-[10px] font-black uppercase tracking-widest text-gray-300 transition-all hover:border-cyan-400/30 hover:text-cyan-300"
               >
-                Open Repair Lab
+                {t("openRepairLab")}
               </a>
             </div>
           </div>

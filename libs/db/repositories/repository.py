@@ -303,6 +303,200 @@ class ProjectRepository:
         return float(result.scalar() or 0.0)
 
 
+    @staticmethod
+    async def get_by_job_id(db: AsyncSession, job_id: str) -> Optional[Project]:
+        if not job_id:
+            return None
+        result = await db.execute(
+            select(Project).where(Project.job_id == job_id)
+        )
+        return result.scalars().first()
+
+    @staticmethod
+    async def list_recent(
+        db: AsyncSession,
+        limit: int = 50,
+        offset: int = 0,
+        status: str | None = None,
+        source: str | None = None,
+        priority: str | None = None,
+        search: str | None = None,
+        is_pilot: bool | None = None,
+    ) -> list[Project]:
+        q = select(Project).order_by(Project.created_at.desc())
+        if status:
+            q = q.where(Project.status == status)
+        if source:
+            q = q.where(Project.source == source)
+        if priority:
+            q = q.where(Project.priority == priority)
+        if is_pilot is not None:
+            q = q.where(Project.is_pilot == is_pilot)
+        if search:
+            q = q.where(Project.title.ilike(f"%{search}%"))
+        q = q.offset(offset).limit(limit)
+        result = await db.execute(q)
+        return list(result.scalars().all())
+
+    @staticmethod
+    async def mark_started(db: AsyncSession, project_id) -> None:
+        await db.execute(
+            update(Project)
+            .where(Project.id == project_id)
+            .values(status=ProjectStatus.RUNNING.value, started_at=_utcnow(), error_detail="")
+        )
+
+    @staticmethod
+    async def mark_completed(
+        db: AsyncSession,
+        project_id,
+        report: str,
+        status: str = ProjectStatus.COMPLETED.value,
+        total_cost: float = 0.0,
+    ) -> None:
+        await db.execute(
+            update(Project)
+            .where(Project.id == project_id)
+            .values(
+                status=status,
+                report=report,
+                total_cost=total_cost,
+                progress_pct=100 if status in (ProjectStatus.COMPLETED.value, ProjectStatus.PARTIAL_COMPLETE.value) else 0,
+                completed_at=_utcnow(),
+            )
+        )
+
+    @staticmethod
+    async def update_progress(db: AsyncSession, project_id, pct: int) -> None:
+        await db.execute(
+            update(Project)
+            .where(Project.id == project_id)
+            .values(progress_pct=max(0, min(100, pct)))
+        )
+
+    @staticmethod
+    async def cancel(db: AsyncSession, project_id, cancelled_by: str = "system") -> bool:
+        """
+        Sadece aktif durumdaki işleri iptal eder. 
+        Geriye işlemin başarılı olup olmadığını döner (status guard).
+        """
+        cancellable = [
+            ProjectStatus.PENDING.value, 
+            ProjectStatus.RUNNING.value, 
+            ProjectStatus.QUEUED.value, 
+            ProjectStatus.RETRYING.value,
+            ProjectStatus.PAUSED.value
+        ]
+        res = await db.execute(
+            update(Project)
+            .where(Project.id == project_id)
+            .where(Project.status.in_(cancellable))
+            .values(
+                status=ProjectStatus.CANCELLED.value,
+                cancelled_at=_utcnow(),
+                cancelled_by=cancelled_by,
+            )
+        )
+        return res.rowcount > 0
+
+    @staticmethod
+    async def update_fields(db: AsyncSession, project_id, **fields) -> None:
+        """Genel güncelleme — sadece izinli alanlar."""
+        allowed = {
+            "title", "description", "priority", "tags",
+            "deadline", "assigned_agent", "notes", "status",
+            "job_id", "progress_pct", "error_detail", "retry_count",
+            "workflow_template", "quality_profile",
+            "acceptance_criteria", "execution_context", "review_required",
+            "is_pilot",
+            "cancelled_at", "cancelled_by",
+            "ceo_status", "stuck_reason", "next_action", "last_supervised_at",
+            "updated_at",
+        }
+        safe = {k: v for k, v in fields.items() if k in allowed}
+        if safe:
+            await db.execute(
+                update(Project).where(Project.id == project_id).values(**safe)
+            )
+
+    @staticmethod
+    async def update_context(db: AsyncSession, project_id, context: dict) -> None:
+        """Proje execution_context'ini atomik olarak günceller."""
+        # Mevcut context'i al
+        p = await ProjectRepository.get(db, project_id)
+        if not p: return
+        
+        current = p.execution_context or {}
+        current.update(context)
+        
+        await db.execute(
+            update(Project)
+            .where(Project.id == project_id)
+            .values(execution_context=current, updated_at=_utcnow())
+        )
+        await db.commit()
+
+    @staticmethod
+    async def set_error(db: AsyncSession, project_id, error: str) -> None:
+        await db.execute(
+            update(Project)
+            .where(Project.id == project_id)
+            .values(error_detail=error, status=ProjectStatus.ERROR.value)
+        )
+
+    @staticmethod
+    async def increment_retry(db: AsyncSession, project_id) -> None:
+        await db.execute(
+            update(Project)
+            .where(Project.id == project_id)
+            .values(
+                retry_count=Project.retry_count + 1,
+                status=ProjectStatus.PENDING.value,
+                error_detail="",
+            )
+        )
+
+    @staticmethod
+    async def set_job_id(db: AsyncSession, project_id, job_id: str) -> None:
+        await db.execute(
+            update(Project).where(Project.id == project_id).values(job_id=job_id)
+        )
+
+    @staticmethod
+    async def mark_queued(db: AsyncSession, project_id, job_id: str) -> None:
+        await db.execute(
+            update(Project)
+            .where(Project.id == project_id)
+            .values(
+                job_id=job_id,
+                status=ProjectStatus.QUEUED.value,
+            )
+        )
+
+    @staticmethod
+    async def counts_by_status(db: AsyncSession) -> dict[str, int]:
+        result = await db.execute(
+            select(Project.status, func.count(Project.id))
+            .group_by(Project.status)
+        )
+        # SRE: Ensure all keys are UPPERCASE for consistent API response mapping
+        counts = {}
+        for row in result.all():
+            status_val = row[0]
+            if status_val is None: continue
+            
+            # Handle both enum values and raw strings
+            key = str(status_val.value if hasattr(status_val, 'value') else status_val).upper()
+            counts[key] = counts.get(key, 0) + row[1]
+        return counts
+
+    @staticmethod
+    async def get_total_cost(db: AsyncSession) -> float:
+        """Tüm alt görevlerden toplam harcanan maliyet (USD)."""
+        result = await db.execute(select(func.sum(SubTask.cost_usd)))
+        return float(result.scalar() or 0.0)
+
+
 # ════════════════════════════════════════════════════════
 # SubTask Repository
 # ════════════════════════════════════════════════════════
@@ -321,6 +515,8 @@ class SubTaskRepository:
                 agent_id=spec["agent_id"],
                 prompt=spec["prompt"],
                 status=ProjectStatus.PENDING.value,
+                dependencies=spec.get("dependencies", []),
+                internal_monologue="",
             )
             for spec in subtask_specs
         ]

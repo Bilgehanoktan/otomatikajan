@@ -64,6 +64,7 @@ class RepairCase:
     allowed_paths: list[str] = field(default_factory=list)
     forbidden_paths: list[str] = field(default_factory=lambda: list(DEFAULT_FORBIDDEN_PATHS))
     suspected_files: list[str] = field(default_factory=list)
+    context_data: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -120,6 +121,31 @@ class RepairReport:
     risk_decision: RepairDecision
     final_status: str
     repair_plan: RepairPlan | None = None
+
+
+@dataclass
+class UIRepairPRReview:
+    review_id: str
+    case_id: str
+    pr_url: str
+    status: str  # PENDING | RUNNING | PASSED | CHANGES_REQUESTED | BLOCKED | FAILED | MANUAL_REVIEW_REQUIRED
+    summary: str = ""
+    confidence_score: float = 0.0
+    verifier_mesh_pass: bool = False
+    governance_decision: str = "PENDING"
+    findings: list[UIRepairPRFinding] = field(default_factory=list)
+
+
+@dataclass
+class UIRepairPRFinding:
+    finding_id: str
+    review_id: str
+    severity: str # info | warning | error | critical
+    category: str # security | quality | logic | style
+    message: str
+    file_path: str | None = None
+    line_number: int | None = None
+    suggestion: str | None = None
 
 
 def to_plain_data(value: Any) -> Any:

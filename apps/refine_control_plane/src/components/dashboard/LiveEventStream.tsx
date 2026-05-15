@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Zap } from "lucide-react";
 import { Skeleton } from "./Skeleton";
 import { buildWebSocketCandidates } from "@/lib/runtime";
+import { useTranslations } from "next-intl";
 
 interface SystemEvent {
   seq: number;
@@ -15,7 +16,7 @@ interface SystemEvent {
 }
 
 const CATEGORY_FILTERS = [
-  { key: "all", label: "Tümü" },
+  { key: "all", label: "all", icon: "" },
   { key: "alert", label: "Alert", icon: "⚠" },
   { key: "failover", label: "Failover", icon: "⚡" },
   { key: "repair", label: "Repair", icon: "🔧" },
@@ -32,6 +33,7 @@ const SEV_STYLES: Record<string, { bg: string; text: string; border: string; lab
 };
 
 export function LiveEventStream({ apiUrl, height }: { apiUrl: string, height?: string }) {
+  const t = useTranslations("dashboard.telemetry");
   const [events, setEvents] = useState<SystemEvent[]>([]);
   const [filter, setFilter] = useState("all");
   const [wsStatus, setWsStatus] = useState<"connecting" | "connected" | "polling" | "offline">("connecting");
@@ -96,7 +98,7 @@ export function LiveEventStream({ apiUrl, height }: { apiUrl: string, height?: s
           pushEvent({
             seq: -Date.now(), timestamp: new Date().toISOString(), type: "SYSTEM_INFO",
             severity: "info", category: "alert",
-            message: "Sovereign Mesh WebSocket bağlantısı aktif — Nöral akış senkronize ediliyor.",
+            message: t("connectionActive"),
           });
         };
 
@@ -129,7 +131,7 @@ export function LiveEventStream({ apiUrl, height }: { apiUrl: string, height?: s
       clearTimeout(reconnectTimer);
       wsRef.current?.close();
     };
-  }, [pushEvent]);
+  }, [pushEvent, t]);
 
   useEffect(() => {
     if (wsStatus === "connected") return;
@@ -170,7 +172,7 @@ export function LiveEventStream({ apiUrl, height }: { apiUrl: string, height?: s
               }`} style={{ animation: wsStatus !== "offline" ? "pulse-ring 2s infinite" : "none" }} />
           </div>
           <span className="text-[10px] font-black tracking-[0.25em] uppercase text-white font-mono">
-            Sistem Olay Akışı
+            {t("title")}
           </span>
         </div>
 
@@ -185,7 +187,7 @@ export function LiveEventStream({ apiUrl, height }: { apiUrl: string, height?: s
                   : "bg-transparent border-white/[0.05] text-[#4a5568] hover:border-white/10 hover:text-[#a0aec0]"
               }`}
             >
-              {f.icon ? <span className="mr-1">{f.icon}</span> : ""}{f.label}
+              {f.icon ? <span className="mr-1">{f.icon}</span> : ""}{f.key === "all" ? t("all") : t(`categories.${f.key}`)}
             </button>
           ))}
         </div>
@@ -195,7 +197,7 @@ export function LiveEventStream({ apiUrl, height }: { apiUrl: string, height?: s
           wsStatus === "offline"   ? "bg-red-500/[0.08] text-red-100 border-red-500/20" :
                                      "bg-amber-500/[0.08] text-amber-300 border-amber-500/15"
         }`}>
-          {wsStatus === "connected" ? "WS_LINK: STABLE" : wsStatus === "connecting" ? "WS_LINK: SYNC" : wsStatus === "offline" ? "WS_LINK: LOST" : "WS_LINK: FALLBACK"}
+          {wsStatus === "connected" ? t("status.stable") : wsStatus === "connecting" ? t("status.sync") : wsStatus === "offline" ? t("status.lost") : t("status.fallback")}
         </div>
       </div>
 
@@ -219,7 +221,7 @@ export function LiveEventStream({ apiUrl, height }: { apiUrl: string, height?: s
           <div className="flex flex-col items-center justify-center h-full opacity-30 grayscale gap-3">
             <Zap size={32} className="animate-pulse text-gray-500" />
             <span className="text-[10px] text-gray-400 font-mono tracking-[0.2em] uppercase">
-              {wsStatus === "offline" ? "Bağlantı Hatası: Polling deniyorlar..." : "Olay bekleniyor"}
+              {wsStatus === "offline" ? t("connectionLost") : t("waitingEvents")}
             </span>
           </div>
         ) : (

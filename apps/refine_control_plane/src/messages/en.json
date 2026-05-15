@@ -730,8 +730,199 @@
     "seal_audit_pack": "Seal Audit Pack",
     "generate_handover": "Generate Handover",
     "crisisControl": "Crisis Control",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "pilot_rollout": "Pilot Rollout",
+    "pilot_status": "Pilot Status",
+    "pilot_mode": "Pilot Mode",
+    "operator_actions": "Operator Actions",
+    "pilot_metrics": "Pilot Metrics",
+    "generate_pilot_report": "Generate Pilot Report",
+    "enterprise_rollout": {
+      "tabs": {
+        "projects": "Project Profiles",
+        "waves": "Rollout Waves",
+        "health_matrix": "Project Health Matrix",
+        "sla_slo": "SLA/SLO Tracker",
+        "ga_readiness": "GA Readiness",
+        "runbook": "Enterprise Runbook"
+      },
+      "stats": {
+        "total_projects": "Total Projects",
+        "active_projects": "Active Projects",
+        "global_health": "Global Health Score",
+        "ga_status": "GA Status"
+      },
+      "projects": {
+        "table": {
+          "name": "Project Name",
+          "key": "Key",
+          "env": "Environment",
+          "status": "Status",
+          "auto_repair": "Auto Repair",
+          "actions": "Actions"
+        },
+        "actions": {
+          "new_project": "New Project",
+          "pause": "Pause",
+          "activate": "Activate",
+          "edit": "Edit"
+        },
+        "modal": {
+          "title": "Project Profile",
+          "name": "Project Name",
+          "key": "Project Key (slug)",
+          "env": "Environment",
+          "owner": "Owner/Responsible",
+          "auto_repair": "Enable Auto Repair"
+        }
+      },
+      "waves": {
+        "table": {
+          "name": "Wave Name",
+          "status": "Status",
+          "projects": "Projects",
+          "mode": "Mode",
+          "actions": "Actions"
+        },
+        "actions": {
+          "start": "Start Wave",
+          "complete": "Complete Wave"
+        },
+        "timeline": {
+          "wave1": "Internal Control-Plane Routes",
+          "wave2": "Low-Risk Dashboards",
+          "wave3": "Governance-Adjacent Routes",
+          "wave4": "Critical Enterprise Routes"
+        }
+      },
+      "health_matrix": {
+        "table": {
+          "project": "Project",
+          "health_score": "Health Score",
+          "open_cases": "Open Cases",
+          "sla_status": "SLA Status",
+          "slo_status": "SLO Status",
+          "route_coverage": "Coverage"
+        }
+      },
+      "sla_slo": {
+        "stats": {
+          "mt_detect": "MTTD (Detect)",
+          "mt_diagnose": "MTTD (Diagnose)",
+          "mt_pr": "MTTP (PR)",
+          "fp_rate": "FP Rate"
+        },
+        "slo_compliance": "SLO Compliance",
+        "slo": {
+          "uptime": "Monitoring Uptime",
+          "coverage": "Critical Route Coverage",
+          "compliance": "Rollback Compliance",
+          "notifications": "Notification Delivery"
+        }
+      },
+      "ga_readiness": {
+        "actions": {
+          "reassess": "Reassess GA Readiness",
+          "start_assessment": "Start Assessment"
+        },
+        "no_assessment": "No assessment found",
+        "no_assessment_sub": "Run a readiness check to evaluate General Availability status.",
+        "projects_ready": "Projects Ready",
+        "blockers": "Blockers (NO-GO)",
+        "warnings": "Warnings"
+      },
+      "runbook": {
+        "actions": {
+          "generate": "Generate Runbook",
+          "regenerate": "Regenerate",
+          "download_pdf": "Download PDF"
+        },
+        "no_runbook": "No runbook found",
+        "no_runbook_sub": "Generate an enterprise operating model and runbook for operators."
+      }
+    },
+    "ga_operations": {
+      "tabs": {
+        "teams": "Team Ownership",
+        "maintenance": "Maintenance Policies",
+        "releases": "Release Records",
+        "compatibility": "Compatibility Checks",
+        "evidence": "Evidence Retention",
+        "slo": "SLO Breaches",
+        "escalation": "Escalation Matrix"
+      },
+      "stats": {
+        "owner_coverage": "Project Owner Coverage",
+        "active_windows": "Active Maintenance Windows",
+        "open_breaches": "Open SLO Breaches",
+        "recent_releases": "Recent Releases"
+      },
+      "teams": {
+        "table": {
+          "name": "Team Name",
+          "key": "Key",
+          "status": "Status",
+          "projects": "Owned Projects"
+        },
+        "actions": {
+          "new_team": "New Team",
+          "edit_oncall": "Edit On-Call Policy"
+        }
+      },
+      "ownership": {
+        "technical": "Technical Owner",
+        "business": "Business Owner",
+        "escalation": "Escalation Level",
+        "backup": "Backup Owner"
+      },
+      "maintenance": {
+        "table": {
+          "policy": "Policy Name",
+          "window": "Window",
+          "auto_repair": "Auto Repair",
+          "auto_apply": "Auto Apply"
+        },
+        "override_required": "Emergency override rationale required"
+      },
+      "releases": {
+        "table": {
+          "version": "Version",
+          "type": "Type",
+          "date": "Release Date",
+          "status": "Status"
+        },
+        "generate": "Generate Release Record"
+      },
+      "compatibility": {
+        "status": {
+          "passed": "Compatible",
+          "warning": "Warning",
+          "failed": "Incompatible"
+        },
+        "breaking": "Breaking Changes",
+        "deprecated": "Deprecated Features"
+      },
+      "evidence": {
+        "policy": "Retention Policy",
+        "archive": "Archive (days)",
+        "delete": "Delete (days)",
+        "legal_hold": "Legal Hold"
+      },
+      "slo": {
+        "severity": {
+          "warning": "Warning",
+          "critical": "Critical"
+        },
+        "status": {
+          "open": "Open",
+          "acknowledged": "Acknowledged",
+          "resolving": "Resolving",
+          "resolved": "Resolved"
+        }
+      }
+    }
   },
+
   "status": {
     "cancelled": "Cancelled",
     "completed": "Completed",

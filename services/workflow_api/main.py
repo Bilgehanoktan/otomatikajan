@@ -19,6 +19,7 @@ from services.observability.mesh_status_api import router as mesh_status_router
 from services.governance.mesh_actions_api import router as mesh_actions_router
 from services.workflow_api.governor_router import router as governor_api_router
 from services.governance.harness_api import router as harness_router
+from services.ui_repair.router import router as ui_repair_router
 from libs.db.session import init_db
 from services.orchestration.application.job_queue import job_queue
 from services.orchestration.application.sovereign_cortex import sovereign_cortex
@@ -54,6 +55,7 @@ app.include_router(mesh_status_router, prefix="/api/v1/mesh")
 app.include_router(mesh_actions_router, prefix="/api/v1/mesh/actions")
 app.include_router(governor_api_router, prefix="/api/v1/governance/governor")
 app.include_router(harness_router, prefix="/api/v1/harness")
+app.include_router(ui_repair_router, prefix="/api/v1/ui-repair")
 
 
 @app.websocket("/ws/events")

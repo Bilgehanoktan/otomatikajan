@@ -189,15 +189,15 @@ class RepairCandidate(Base):
     patch_signature = Column(String(256), index=True) # for deduplication/memory
     risk_score    = Column(Float, default=0.0)
     final_score   = Column(Float, default=0.0)
-    
+
     # Outcomes
     canary_outcome = Column(String(32))               # success | failure | rollback
     rollback_reason = Column(Text)
-    
+
     # Metrics
     total_validation_cost = Column(Float, default=0.0)
     total_validation_time = Column(Float, default=0.0) # seconds
-    
+
     status        = Column(String(32), default="draft") # draft | verified | winner | rejected
 
 
@@ -257,3 +257,37 @@ class SelfTuningSuggestion(Base):
     expected_impact = Column(Text)
     status          = Column(String(32), default="pending") # pending | applied | rejected
     created_at      = Column(DateTime(timezone=True), default=_utcnow)
+
+
+# ── Phase 32: UI Repair & PR Governance ──────────────────
+
+# class UIRepairPRReview(Base):
+#     __tablename__ = "ui_repair_pr_reviews"
+# 
+#     id              = Column(GUID, primary_key=True, default=uuid.uuid4)
+#     review_id       = Column(String(64), unique=True, nullable=False, index=True)
+#     case_id         = Column(String(64), nullable=False, index=True) # Linked to RepairJobRecord.job_id
+#     pr_url          = Column(String(512), nullable=False)
+#     status          = Column(String(32), nullable=False, index=True)
+#     # PENDING | RUNNING | PASSED | CHANGES_REQUESTED | BLOCKED | FAILED | MANUAL_REVIEW_REQUIRED
+#     summary         = Column(Text, default="")
+#     confidence_score = Column(Float, default=0.0)
+#     verifier_mesh_pass = Column(Boolean, default=False)
+#     governance_decision = Column(String(32), default="PENDING")
+#     created_at      = Column(DateTime(timezone=True), default=_utcnow, nullable=False)
+#     updated_at      = Column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow)
+
+
+class UIRepairPRFinding(Base):
+    __tablename__ = "ui_repair_pr_findings"
+
+    id              = Column(GUID, primary_key=True, default=uuid.uuid4)
+    finding_id      = Column(String(64), unique=True, nullable=False, index=True)
+    review_id       = Column(String(64), nullable=False, index=True)
+    file_path       = Column(String(512), nullable=True)
+    line_number     = Column(Integer, nullable=True)
+    severity        = Column(String(16), nullable=False) # info | warning | error | critical
+    category        = Column(String(64), nullable=False) # security | quality | logic | style
+    message         = Column(Text, nullable=False)
+    suggestion      = Column(Text, nullable=True)
+    created_at      = Column(DateTime(timezone=True), default=_utcnow, nullable=False)

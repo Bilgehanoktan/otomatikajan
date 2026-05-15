@@ -77,6 +77,7 @@ const icons: Record<string, React.ReactNode> = {
     "mcp-hub": <Boxes size={20} />,
     "prompt-studio": <Brain size={20} />,
     "system-health": <Activity size={20} />,
+    "ui-repair": <ShieldCheck size={20} />,
 };
 
 const SidebarContent = () => {
@@ -117,6 +118,7 @@ const SidebarContent = () => {
                 "learning",
                 "adaptation-candidates",
                 "evolution",
+                "ui-repair",
                 "verifiers",
                 "training",
                 "prompt-studio"
@@ -154,7 +156,7 @@ const SidebarContent = () => {
             </span>
             {!isCollapsed && (
                 <span className={`font-bold text-[11px] uppercase tracking-wider transition-all truncate ${selectedKey === item.key ? "tracking-[0.1em]" : "tracking-tight"}`}>
-                    {translate(item.label, item.label)}
+                    {translate(item.label, undefined, item.label)}
                 </span>
             )}
             

@@ -13,19 +13,15 @@ export function useRefineI18nProvider(): I18nProvider {
     if (key.startsWith("resources_")) cleanKey = key.replace("resources_", "");
     if (key.startsWith("resources.")) cleanKey = key.replace("resources.", "");
     
-    const map: Record<string, string> = {
-        "learning": "Öğrenim Merkezi",
-        "fingerprints": "Nöral Parmak İzleri",
-        "evolution": "Sistem Evrimi",
-        "safety": "Güvenlik Katmanı",
-        "dashboard": "Kontrol Paneli"
-    };
-    
-    if (map[cleanKey]) return map[cleanKey];
-    if (map[cleanKey.toLowerCase()]) return map[cleanKey.toLowerCase()];
+    // Attempt to find it in the generic 'resources' namespace if it exists
+    const resources = messages.resources || {};
+    if (resources[cleanKey]) return resources[cleanKey];
 
     const tail = cleanKey.split("/").pop() || cleanKey;
-    return tail.replace(/[-_]/g, " ").replace(/\./g, " ");
+    return tail
+      .replace(/[-_]/g, " ")
+      .replace(/\./g, " ")
+      .replace(/\b\w/g, (l) => l.toUpperCase());
   };
 
   const getNestedValue = (obj: any, path: string) => {
@@ -73,7 +69,7 @@ export function useRefineI18nProvider(): I18nProvider {
       }
       if (value) {
         let result = value;
-        if (params) {
+        if (params && typeof params === 'object') {
           Object.entries(params).forEach(([k, v]) => {
             result = result.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
             result = result.replace(new RegExp(`%\\{${k}\\}`, 'g'), String(v));

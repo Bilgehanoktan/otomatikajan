@@ -36,6 +36,8 @@ class EngineResult:
     reflection: str = ""
     errors: List[str] = field(default_factory=list)
     duration_s: float = 0.0
+    quality_score: float = 1.0
+    quality_detail: Dict[str, Any] = field(default_factory=dict)
 
 class VelocityEngine:
     """
@@ -125,13 +127,24 @@ class VelocityEngine:
             out = await agent.execute(task_id=task_id, subtask_id=str(uuid.uuid4()), prompt=prompt, context=context)
             final_output = out.raw_output
             
+            quality_score = 1.0
+            quality_detail = {}
+            
             # 1. Self-Critique (If output is large or contains code)
             if "```" in str(final_output) or len(str(final_output)) > 500:
                 is_valid, critique_feedback = await self._self_critique_output(agent_id, prompt, final_output)
                 if not is_valid:
-                    response = await self.model_orch.complete([{"role": "system", "content": "Sen bir Üstat Yazılımcı ve Denetçisin."}, {"role": "user", "content": f"Şu talimat için bir çıktı üretildi: {prompt}\n\nÇIKTI:\n{final_output}\n\nELEŞTİRİ:\n{critique_feedback}\n\nLütfen eleştiriyi dikkate alarak KESİN, DOĞRU ve DÜZELTİLMİŞ yeni çıktıyı üret."}], preferred_agent="architect")
+                    _log.info(f"[VELOCITY] Self-critique failed, attempting fix: {agent_id}")
+                    response = await self.model_orch.complete([
+                        {"role": "system", "content": "Sen bir Üstat Yazılımcı ve Denetçisin."}, 
+                        {"role": "user", "content": f"Şu talimat için bir çıktı üretildi: {prompt}\n\nÇIKTI:\n{final_output}\n\nELEŞTİRİ:\n{critique_feedback}\n\nLütfen eleştiriyi dikkate alarak KESİN, DOĞRU ve DÜZELTİLMİŞ yeni çıktıyı üret."}
+                    ], preferred_agent="architect")
                     final_output = response
-
+                    quality_score = 0.75 # Penalize for retry
+                    quality_detail["critique"] = critique_feedback
+                else:
+                    quality_score = 0.95 # High quality if passed critique first try
+            
             # 2. Parse Structured Output & Execute Tools (Phase 12.2 Integration)
             parsed: AgentOutput = output_parser.parse(str(final_output))
             if parsed.tool_calls:
@@ -140,8 +153,15 @@ class VelocityEngine:
                 # Sonuçları ana çıktıya enjekte et (Ajanın bir sonraki adımda görmesi için)
                 parsed.quality_notes.append(f"Autonomous Tool Results: {json.dumps(tool_results)}")
                 final_output = parsed.to_dict()
+                quality_score = max(quality_score, 0.9) # Tools increase confidence
 
-            return EngineResult(success=True, output_data=final_output, reflection=getattr(out, "reflection", ""))
+            return EngineResult(
+                success=True, 
+                output_data=final_output, 
+                reflection=getattr(out, "reflection", ""),
+                quality_score=quality_score,
+                quality_detail=quality_detail
+            )
         except Exception as e: return EngineResult(success=False, output_data=None, errors=[str(e)])
 
     async def _self_critique_output(self, agent_id: str, prompt: str, output: Any) -> Tuple[bool, str]:

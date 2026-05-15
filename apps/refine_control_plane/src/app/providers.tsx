@@ -260,6 +260,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
               meta: { label: "Proof Fabric", parent: "governance/audit" },
             },
             {
+              name: "learning",
+              meta: { label: "resources_learning", icon: <Brain className="w-4 h-4" /> },
+            },
+            {
               name: "governance/governor/proof/events",
               list: "/proof/events",
               meta: { label: "Proof Events", parent: "governance/audit" },
@@ -348,6 +352,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
               name: "federation/conflicts",
               list: "/federation/conflicts",
               meta: { label: "resources_conflicts", parent: "federation" },
+            },
+            {
+              name: "ui-repair",
+              list: "/ui-repair",
+              meta: { label: "resources_uiRepair", icon: <ShieldCheck className="w-4 h-4" /> },
             },
           ]}
           options={{

@@ -296,7 +296,6 @@
       "workflows": "İş Akışları"
     }
   },
-
   "evolution": {
     "badge": "AGI EVRİMİ",
     "events": "OLAYLAR",
@@ -372,7 +371,6 @@
     "searchPlaceholder": "Modül, talimat veya duruma göre ara...",
     "streamTitle": "Otonom Gelişim Akışı",
     "subtitle": "Otonom Çok Parametreli Kalibrasyon ve Sinirsel Öz-Optimizasyon",
-    "telemetryOffline": "Gelişim telemetrisi çevrimdışı",
     "title": "Gelişim Merkezi"
   },
   "incidents": {
@@ -411,8 +409,6 @@
     },
     "streamTitle": "Entegre Kaos Akışı",
     "subtitle": "Sistem Sapmaları ve Müdahale Kayıtları",
-    "suggestedFix": "Önerilen Çözüm",
-    "takeAction": "Aksiyon Al",
     "title": "Operasyonel Olaylar"
   },
   "lineage": {
@@ -731,7 +727,197 @@
     "seal_audit_pack": "Denetim Paketini Mühürle",
     "generate_handover": "Devir Teslim Oluştur",
     "crisisControl": "Kriz Kontrol",
-    "notifications": "Bildirimler"
+    "notifications": "Bildirimler",
+    "pilot_rollout": "Pilot Dağıtım",
+    "pilot_status": "Pilot Durumu",
+    "pilot_mode": "Pilot Modu",
+    "operator_actions": "Operatör İşlemleri",
+    "pilot_metrics": "Pilot Metrikleri",
+    "generate_pilot_report": "Pilot Raporu Oluştur",
+    "enterprise_rollout": {
+      "tabs": {
+        "projects": "Proje Profilleri",
+        "waves": "Yaygınlaştırma Dalgaları",
+        "health_matrix": "Proje Sağlık Matrisi",
+        "sla_slo": "SLA/SLO Takibi",
+        "ga_readiness": "GA Hazırlığı",
+        "runbook": "Kurumsal Rehber (Runbook)"
+      },
+      "stats": {
+        "total_projects": "Toplam Proje",
+        "active_projects": "Aktif Proje",
+        "global_health": "Küresel Sağlık Skoru",
+        "ga_status": "GA Durumu"
+      },
+      "projects": {
+        "table": {
+          "name": "Proje Adı",
+          "key": "Anahtar",
+          "env": "Ortam",
+          "status": "Durum",
+          "auto_repair": "Oto Onarım",
+          "actions": "Eylemler"
+        },
+        "actions": {
+          "new_project": "Yeni Proje",
+          "pause": "Duraklat",
+          "activate": "Aktifleştir",
+          "edit": "Düzenle"
+        },
+        "modal": {
+          "title": "Proje Profili",
+          "name": "Proje Adı",
+          "key": "Proje Anahtarı (slug)",
+          "env": "Ortam",
+          "owner": "Sahibi/Sorumlu",
+          "auto_repair": "Oto Onarımı Etkinleştir"
+        }
+      },
+      "waves": {
+        "table": {
+          "name": "Dalga Adı",
+          "status": "Durum",
+          "projects": "Projeler",
+          "mode": "Mod",
+          "actions": "Eylemler"
+        },
+        "actions": {
+          "start": "Dalga Başlat",
+          "complete": "Dalga Tamamla"
+        },
+        "timeline": {
+          "wave1": "İç Kontrol Paneli Rotaları",
+          "wave2": "Düşük Riskli Dashboardlar",
+          "wave3": "Yönetişimle İlgili Rotalar",
+          "wave4": "Kritik Kurumsal Rotalar"
+        }
+      },
+      "health_matrix": {
+        "table": {
+          "project": "Proje",
+          "health_score": "Sağlık Skoru",
+          "open_cases": "Açık Vakalar",
+          "sla_status": "SLA Durumu",
+          "slo_status": "SLO Durumu",
+          "route_coverage": "Kapsam"
+        }
+      },
+      "sla_slo": {
+        "stats": {
+          "mt_detect": "MTTD (Tespit)",
+          "mt_diagnose": "MTTD (Tanı)",
+          "mt_pr": "MTTP (PR)",
+          "fp_rate": "FP Oranı"
+        },
+        "slo_compliance": "SLO Uyumluluğu",
+        "slo": {
+          "uptime": "İzleme Çalışma Süresi",
+          "coverage": "Kritik Rota Kapsamı",
+          "compliance": "Geri Dönüş Uyumluluğu",
+          "notifications": "Bildirim Gönderimi"
+        }
+      },
+      "ga_readiness": {
+        "actions": {
+          "reassess": "GA Hazırlığını Yeniden Değerlendir",
+          "start_assessment": "Değerlendirmeyi Başlat"
+        },
+        "no_assessment": "Değerlendirme bulunamadı",
+        "no_assessment_sub": "Genel Erişilebilirlik durumunu değerlendirmek için hazırlık kontrolü yapın.",
+        "projects_ready": "Hazır Projeler",
+        "blockers": "Engelleyiciler (NO-GO)",
+        "warnings": "Uyarılar"
+      },
+      "runbook": {
+        "actions": {
+          "generate": "Rehber Oluştur",
+          "regenerate": "Yeniden Oluştur",
+          "download_pdf": "PDF İndir"
+        },
+        "no_runbook": "Rehber bulunamadı",
+        "no_runbook_sub": "Operatörler için kurumsal işletim modeli ve rehber oluşturun."
+      }
+    },
+    "ga_operations": {
+      "tabs": {
+        "teams": "Ekip Sahipliği",
+        "maintenance": "Bakım Politikaları",
+        "releases": "Sürüm Kayıtları",
+        "compatibility": "Uyumluluk Kontrolleri",
+        "evidence": "Kanıt Saklama",
+        "slo": "SLO İhlalleri",
+        "escalation": "Eskalasyon Matrisi"
+      },
+      "stats": {
+        "owner_coverage": "Proje Sahibi Kapsamı",
+        "active_windows": "Aktif Bakım Pencereleri",
+        "open_breaches": "Açık SLO İhlalleri",
+        "recent_releases": "Son Sürümler"
+      },
+      "teams": {
+        "table": {
+          "name": "Ekip Adı",
+          "key": "Anahtar",
+          "status": "Durum",
+          "projects": "Sahip Olunan Projeler"
+        },
+        "actions": {
+          "new_team": "Yeni Ekip",
+          "edit_oncall": "Nöbet Politikasını Düzenle"
+        }
+      },
+      "ownership": {
+        "technical": "Teknik Sahip",
+        "business": "İş Sahibi",
+        "escalation": "Eskalasyon Seviyesi",
+        "backup": "Yedek Sahip"
+      },
+      "maintenance": {
+        "table": {
+          "policy": "Politika Adı",
+          "window": "Pencere",
+          "auto_repair": "Oto Onarım",
+          "auto_apply": "Oto Uygula"
+        },
+        "override_required": "Acil durum geçersiz kılma gerekçesi gerekli"
+      },
+      "releases": {
+        "table": {
+          "version": "Versiyon",
+          "type": "Tür",
+          "date": "Yayın Tarihi",
+          "status": "Durum"
+        },
+        "generate": "Sürüm Kaydı Oluştur"
+      },
+      "compatibility": {
+        "status": {
+          "passed": "Uyumlu",
+          "warning": "Uyarı",
+          "failed": "Uyumsuz"
+        },
+        "breaking": "Bozucu Değişiklikler",
+        "deprecated": "Kaldırılan Özellikler"
+      },
+      "evidence": {
+        "policy": "Saklama Politikası",
+        "archive": "Arşiv (gün)",
+        "delete": "Silme (gün)",
+        "legal_hold": "Yasal Tutma"
+      },
+      "slo": {
+        "severity": {
+          "warning": "Uyarı",
+          "critical": "Kritik"
+        },
+        "status": {
+          "open": "Açık",
+          "acknowledged": "Onaylandı",
+          "resolving": "Çözülüyor",
+          "resolved": "Çözüldü"
+        }
+      }
+    }
   },
   "status": {
     "cancelled": "İptal Edildi",
