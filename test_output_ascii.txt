@@ -1,0 +1,427 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.0.2, pluggy-1.6.0
+rootdir: E:\ai_company_faz12.1
+configfile: pytest.ini (WARNING: ignoring pytest config in pyproject.toml!)
+plugins: anyio-4.12.1, langsmith-0.7.14, asyncio-1.3.0, base-url-2.1.0, cov-7.0.0, mock-3.15.1, playwright-0.7.2
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collected 1 item
+
+tests\ui_repair\test_security_posture.py E                               [100%]
+
+=================================== ERRORS ====================================
+______________ ERROR at setup of test_security_posture_scan_flow ______________
+
+self = <Coroutine test_security_posture_scan_flow>
+
+    def setup(self) -> None:
+        runner_fixture_id = f"_{self._loop_scope}_scoped_runner"
+        if runner_fixture_id not in self.fixturenames:
+            self.fixturenames.append(runner_fixture_id)
+>       return super().setup()
+               ^^^^^^^^^^^^^^^
+
+C:\Users\BÝLGEHAN\AppData\Roaming\Python\Python314\site-packages\pytest_asyncio\plugin.py:458: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+fixturedef = <FixtureDef argname='client' scope='function' baseid='tests/ui_repair'>
+request = <SubRequest 'client' for <Coroutine test_security_posture_scan_flow>>
+
+    @pytest.hookimpl(wrapper=True)
+    def pytest_fixture_setup(fixturedef: FixtureDef, request) -> object | None:
+        asyncio_mode = _get_asyncio_mode(request.config)
+        if not _is_asyncio_fixture_function(fixturedef.func):
+            if asyncio_mode == Mode.STRICT:
+                # Ignore async fixtures without explicit asyncio mark in strict mode
+                # This applies to pytest_trio fixtures, for example
+                return (yield)
+            if not _is_coroutine_or_asyncgen(fixturedef.func):
+                return (yield)
+        default_loop_scope = request.config.getini("asyncio_default_fixture_loop_scope")
+        loop_scope = (
+            getattr(fixturedef.func, "_loop_scope", None)
+            or default_loop_scope
+            or fixturedef.scope
+        )
+        runner_fixture_id = f"_{loop_scope}_scoped_runner"
+        runner = request.getfixturevalue(runner_fixture_id)
+        synchronizer = _fixture_synchronizer(fixturedef, runner, request)
+        _make_asyncio_fixture_function(synchronizer, loop_scope)
+        with MonkeyPatch.context() as c:
+            c.setattr(fixturedef, "func", synchronizer)
+>           hook_result = yield
+                          ^^^^^
+
+C:\Users\BÝLGEHAN\AppData\Roaming\Python\Python314\site-packages\pytest_asyncio\plugin.py:743: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+args = ()
+kwargs = {'db_session': <sqlalchemy.ext.asyncio.session.AsyncSession object at 0x000001B13A094AD0>}
+setup = <function _wrap_asyncgen_fixture.<locals>._asyncgen_fixture_wrapper.<locals>.setup at 0x000001B139F29900>
+
+    @functools.wraps(fixture_function)
+    def _asyncgen_fixture_wrapper(
+        *args: AsyncGenFixtureParams.args,
+        **kwargs: AsyncGenFixtureParams.kwargs,
+    ):
+        gen_obj = fixture_function(*args, **kwargs)
+    
+        async def setup():
+            res = await gen_obj.__anext__()
+            return res
+    
+        context = contextvars.copy_context()
+>       result = runner.run(setup(), context=context)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\BÝLGEHAN\AppData\Roaming\Python\Python314\site-packages\pytest_asyncio\plugin.py:313: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <asyncio.runners.Runner object at 0x000001B139EF1A90>
+coro = <coroutine object _wrap_asyncgen_fixture.<locals>._asyncgen_fixture_wrapper.<locals>.setup at 0x000001B139ECC450>
+
+    def run(self, coro, *, context=None):
+        """Run code in the embedded event loop."""
+        if events._get_running_loop() is not None:
+            # fail fast with short traceback
+            raise RuntimeError(
+                "Runner.run() cannot be called from a running event loop")
+    
+        self._lazy_init()
+    
+        if not coroutines.iscoroutine(coro):
+            if inspect.isawaitable(coro):
+                async def _wrap_awaitable(awaitable):
+                    return await awaitable
+    
+                coro = _wrap_awaitable(coro)
+            else:
+                raise TypeError('An asyncio.Future, a coroutine or an '
+                                'awaitable is required')
+    
+        if context is None:
+            context = self._context
+    
+        task = self._loop.create_task(coro, context=context)
+    
+        if (threading.current_thread() is threading.main_thread()
+            and signal.getsignal(signal.SIGINT) is signal.default_int_handler
+        ):
+            sigint_handler = functools.partial(self._on_sigint, main_task=task)
+            try:
+                signal.signal(signal.SIGINT, sigint_handler)
+            except ValueError:
+                # `signal.signal` may throw if `threading.main_thread` does
+                # not support signals (e.g. embedded interpreter with signals
+                # not registered - see gh-91880)
+                sigint_handler = None
+        else:
+            sigint_handler = None
+    
+        self._interrupt_count = 0
+        try:
+>           return self._loop.run_until_complete(task)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Python314\Lib\asyncio\runners.py:127: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <ProactorEventLoop running=False closed=False debug=False>
+future = <Task finished name='Task-4' coro=<_wrap_asyncgen_fixture.<locals>._asyncgen_fixture_wrapper.<locals>.setup() done, de...IRedTeamOperationSchema' from 'services.ui_repair.schemas' (E:\\ai_company_faz12.1\\services\\ui_repair\\schemas.py)")>
+
+    def run_until_complete(self, future):
+        """Run until the Future is done.
+    
+        If the argument is a coroutine, it is wrapped in a Task.
+    
+        WARNING: It would be disastrous to call run_until_complete()
+        with the same coroutine twice -- it would wrap it in two
+        different Tasks and that can't be good.
+    
+        Return the Future's result, or raise its exception.
+        """
+        self._check_closed()
+        self._check_running()
+    
+        new_task = not futures.isfuture(future)
+        future = tasks.ensure_future(future, loop=self)
+        if new_task:
+            # An exception is raised if the future didn't complete, so there
+            # is no need to log the "destroy pending task" message
+            future._log_destroy_pending = False
+    
+        future.add_done_callback(_run_until_complete_cb)
+        try:
+            self.run_forever()
+        except:
+            if new_task and future.done() and not future.cancelled():
+                # The coroutine raised a BaseException. Consume the exception
+                # to not log a warning, the caller doesn't have access to the
+                # local task.
+                future.exception()
+            raise
+        finally:
+            future.remove_done_callback(_run_until_complete_cb)
+        if not future.done():
+            raise RuntimeError('Event loop stopped before Future completed.')
+    
+>       return future.result()
+               ^^^^^^^^^^^^^^^
+
+C:\Python314\Lib\asyncio\base_events.py:719: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    async def setup():
+>       res = await gen_obj.__anext__()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+C:\Users\BÝLGEHAN\AppData\Roaming\Python\Python314\site-packages\pytest_asyncio\plugin.py:309: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+db_session = <sqlalchemy.ext.asyncio.session.AsyncSession object at 0x000001B13A094AD0>
+
+    @pytest.fixture
+    async def client(db_session):
+>       from apps.public_api.main import app
+
+tests\ui_repair\conftest.py:27: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    print("[DEBUG] Main.py is being loaded...")
+    """
+    AI Yazýlým Þirketi — Ana Uygulama
+    Modülerleþtirilmiþ Versiyon: Tüm baþlatma mantýðý startup/ paketinde.
+    """
+    APP_VERSION = "4.0.0-RC1.7"
+    
+    import asyncio
+    import json
+    import os
+    import sys
+    from pathlib import Path
+    
+    # Project root path (3 levels up from apps/api/main.py)
+    ROOT_DIR = str(Path(__file__).resolve().parents[2])
+    if ROOT_DIR not in sys.path:
+        sys.path.append(ROOT_DIR)
+    
+    
+    from datetime import datetime, timezone
+    
+    from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+    from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
+    from fastapi.staticfiles import StaticFiles
+    
+    print("[DEBUG] Environment loading...")
+    # \u2500\u2500 .env otomatik y\xfckle \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    try:
+        from dotenv import load_dotenv as _load_dotenv
+        _in_container = os.path.exists("/.dockerenv") or os.getenv("DOCKER_CONTAINER", "").strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+        _dotenv_override = not _in_container
+        if os.path.exists(".env"):
+            _load_dotenv(".env", override=_dotenv_override)
+        if os.path.exists(".env.local"):
+            try:
+                _load_dotenv(".env.local", override=False)
+            except UnicodeDecodeError:
+                # .env.local dosyasý bozuk encoding ile kaydedilmiþ (UTF-16 BOM vb.)
+                # Sessizce atla, .env yeterli olacak.
+                pass
+        env = os.getenv("APP_ENV", os.getenv("ENVIRONMENT", "development"))
+        if env != "production" and not os.path.exists(".env"):
+            if os.path.exists(".env.example"):
+                _load_dotenv(".env.example", override=_dotenv_override)
+    except ImportError:
+        pass
+    
+    # \u2500\u2500 G\xfcvenlik \xe7ekirdek kontrolleri \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    from libs.config import APP_ENV as _ENV, APP_UI_MODE, ADMIN_SECRET, JWT_SECRET, validate_production_config
+    from services.observability.logging import get_logger
+    
+    logger = get_logger("main")
+    
+    if _ENV == "production":
+        try:
+            validate_production_config()
+            logger.info("[SECURITY] Production environment validation passed.")
+        except RuntimeError as e:
+            print(f"KRÝTÝK GÜVENLÝK HATASI: {e}")
+            sys.exit(1)
+        except Exception as e:
+            print(f"BEKLENMEDÝK KURULUM HATASI: {e}")
+            sys.exit(1)
+    
+    
+    # \u2500\u2500 Core singleton'lar\u0131 (Dinamik Y\xfckleme i\xe7in Kald\u0131r\u0131ld\u0131) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    # Not: orchestrator, governance_watchdog vb. artýk fonksiyon bazýnda import ediliyor.
+    
+    print("[DEBUG] Middleware & Router setup...")
+    # \u2500\u2500 Startup mod\xfclleri \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    print("[DEBUG] Loading lifespan...")
+    from libs.infra.lifespan import lifespan, register_event_listeners
+    print("[DEBUG] Loading middleware config...")
+    from libs.infra.middleware import configure_middleware
+    print("[DEBUG] Loading router registry...")
+    from libs.infra.router_registry import register_routers
+    print("[DEBUG] All infra modules loaded.")
+    
+    # Event bus dinleyicilerini kaydet (modül yüklenirken)
+    register_event_listeners()
+    
+    # \u2500\u2500 Uygulama Tan\u0131m\u0131 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    app = FastAPI(
+        title="Otonom Yazilim Gelistirme Sirketi",
+        description="V2 Mimari | 8 Ajan | DAG Motoru | Öz-Ýyileþtirme",
+        version=APP_VERSION,
+        lifespan=lifespan,
+    )
+    
+    configure_middleware(app)
+    print("[DEBUG] Registering routers...")
+>   register_routers(app)
+
+apps\public_api\main.py:97: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+app = <fastapi.applications.FastAPI object at 0x000001B13A45CEC0>
+
+    def register_routers(app: FastAPI):
+        """
+        Registers all service routers to the main FastAPI application.
+        All API endpoints are prefixed with /api/v1 to avoid conflicts with
+        static dashboard files served at the root.
+        """
+        from fastapi import APIRouter
+    
+        print("[DEBUG] Router Registry: Loading routers...")
+        # Lazy load routers inside the function to prevent circular imports and startup hangs
+        print("[DEBUG] Loading workflow_router...")
+        from services.workflow_api.router import router as workflow_router
+        print("[DEBUG] Loading auth_router...")
+        from services.auth.router import router as auth_router
+        print("[DEBUG] Loading metrics_router...")
+        from services.workflow_api.metrics_router import router as metrics_router
+        print("[DEBUG] Loading health_router...")
+        from services.workflow_api.health_router import router as health_router
+        print("[DEBUG] Loading compatibility_router...")
+        from services.workflow_api.compatibility_router import router as compatibility_router
+        print("[DEBUG] Loading mesh_router...")
+        from services.observability.mesh_status_api import router as mesh_router
+        print("[DEBUG] Loading fleet_router...")
+        from services.observability.fleet_status_api import router as fleet_router
+        print("[DEBUG] Loading mesh_actions_router...")
+        from services.governance.mesh_actions_api import router as mesh_actions_router
+        print("[DEBUG] Loading repair_lab_router...")
+        from services.workflow_api.repair_lab_router import router as repair_lab_router
+        print("[DEBUG] Loading fleet_orchestra_router...")
+        from services.workflow_api.fleet_router import router as fleet_orchestra_router
+        print("[DEBUG] Loading ceo_router...")
+        from services.orchestration.ceo.router import router as ceo_router
+>       from services.ui_repair.router import router as ui_repair_router
+
+libs\infra\router_registry.py:39: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    from fastapi import APIRouter, Depends, HTTPException, Query, Body
+    from sqlalchemy.ext.asyncio import AsyncSession
+    from sqlalchemy import select
+    from uuid import UUID
+    from typing import List, Dict, Any, Optional, cast
+    
+    from libs.db.session import get_db
+    from libs.db.models.ui_repair_models import (
+        UIRepairCase, UIRouteHealth, UISmokeRun, UIRepairStatus,
+        UIPolicyRule, UIPolicyEvaluation, UIPolicyConflict, UIPolicyProposal,
+        UIAutonomousOverride, UISecurityPostureFinding
+    )
+    from services.ui_repair.service import UIRepairService
+>   from services.ui_repair.schemas import (
+        UIRepairOverview, UIRouteHealthSchema, UIRepairCaseSchema, UISmokeRunSchema,
+        UIChaosDrillScenarioSchema, UIChaosDrillRunSchema, UISoakValidationRunSchema, UIRecoveryProofPackSchema,
+        UIAdvancedChaosScenarioSchema, UIAdvancedChaosRunSchema, UIOperatorEscalationSchema, UINotificationDeliverySchema, UICrisisControlStateSchema,
+        UIRedTeamScenarioSchema, UIRedTeamOperationSchema, UIAdversarialDriftRecordSchema, UIRedTeamOverviewSchema, UIEnterpriseReadinessAssessmentSchema,
+        UIReleaseGateDecisionSchema, UIFinalAuditPackSchema, UIOperatorHandoverReportSchema,
+        UIPilotRolloutSchema, UIPilotRolloutCreate, UIPilotEventSchema, UIPilotEventCreate,
+        UIPilotMetricsSchema, UIOperatorActionLedgerSchema, UIOperatorActionLedgerCreate, UIPilotFinalReportSchema,
+        UIProjectProfileSchema, UIProjectProfileCreate, UIRolloutWaveSchema, UIRolloutWaveCreate,
+        UIProjectHealthSnapshotSchema, UIGAReadinessAssessmentSchema, UIEnterpriseRunbookSchema, UIEnterpriseOverviewSchema,
+        UIOperationsTeamSchema, UIOperationsTeamCreate, UIProjectOwnershipSchema, UIProjectOwnershipCreate,
+        UIMaintenancePolicySchema, UIMaintenancePolicyCreate, UIReleaseRecordSchema, UIReleaseRecordCreate,
+        UICompatibilityCheckSchema, UICompatibilityCheckCreate, UIEvidenceRetentionPolicySchema, UIEvidenceRetentionPolicyCreate,
+        UISLOBreachSchema, UISLOBreachCreate,
+        UIPolicyRuleSchema, UIPolicyRuleCreate, UIPolicyEvaluationSchema, UIPolicyConflictSchema,
+        UIPolicyProposalSchema, UIPolicyProposalCreate, UIAutonomousOverrideSchema, UIAutonomousOverrideCreate,
+        UICognitiveIntegrityCheckSchema,
+        UIHallucinationFindingSchema,
+        UILLMClaimSchema,
+        UICognitiveIntegrityVerifyRequest,
+        UISecurityPostureScoreSchema,
+        UIComplianceControlSchema,
+        UISecurityPostureFindingSchema,
+        UISecurityCertificationSchema,
+        UIMonitoringConfigSchema, UIMonitoringRunSchema, UIRouteHealthHistSchema,
+        UIBudgetPolicyCreate,
+        UITenantProfileSchema, UITenantProfileCreate, UIClusterProfileSchema, UIClusterProfileCreate,
+        UITenantProjectBindingSchema, UITenantProjectBindingCreate, UIClusterHealthSnapshotSchema, UIClusterHealthSnapshotCreate,
+        UIFinOpsOverviewSchema, UIFinOpsRecommendationSchema,
+        UICostEventSchema, UICostAnomalySchema, UIBudgetPolicySchema,
+        UICapacityForecastSchema,
+        UISecurityRemediationPlanSchema,
+        UISecurityAutoFixAttemptSchema,
+        UIComplianceFixResultSchema,
+        UISecurityRemediationEventSchema,
+        UIAttackSurfaceAssetSchema,
+        UIThreatModelSchema,
+        UIAttackPathSchema,
+        UIAttackSimulationRunSchema,
+        UIThreatMitigationSchema,
+        UIThreatSummarySchema,
+        UIGuardrailTuningProposalSchema,
+        UIDefensivePatternSchema,
+        UIPolicyRegressionRunSchema,
+        UIGuardrailCanaryRunSchema,
+        UIDefenseOptimizationReportSchema,
+        UIIncidentWarRoomSchema, UIIncidentTimelineEventSchema, UIExecutiveRiskSnapshotSchema,
+        UIIncidentActionItemSchema, UIExecutiveRiskReportSchema,
+        UIIncidentActionItemCreate, WarRoomResolveRequest, ExecutiveRiskOverview,
+        UIRedTeamRunSchema, UIAdversarialProbeSchema, UIAdversarialDriftEventSchema,
+        UIRedTeamFindingSchema, UIRedTeamReportSchema,
+        AutoPatchExecutionSchema, PatchCandidateSchema, VerificationRunV2Schema,
+        PostApplyValidationSchema, RollbackExecutionSchema,
+        AutoPatchStartRequest, AutoPatchActionRequest
+    )
+E   ImportError: cannot import name 'UIRedTeamOperationSchema' from 'services.ui_repair.schemas' (E:\ai_company_faz12.1\services\ui_repair\schemas.py)
+
+services\ui_repair\router.py:14: ImportError
+---------------------------- Captured stdout setup ----------------------------
+[DEBUG] Main.py is being loaded...
+[DEBUG] Environment loading...
+[DEBUG] Middleware & Router setup...
+[DEBUG] Loading lifespan...
+[DEBUG] Lifespan: getting logger...
+[DEBUG] Lifespan: logger obtained.
+[DEBUG] Loading middleware config...
+[DEBUG] Loading router registry...
+[DEBUG] All infra modules loaded.
+00:11:46  INFO      [infra.events] [no-trace] Global event listeners registered.
+[DEBUG] Registering routers...
+[DEBUG] Router Registry: Loading routers...
+[DEBUG] Loading workflow_router...
+[DEBUG] Loading auth_router...
+[DEBUG] Loading metrics_router...
+[DEBUG] Loading health_router...
+[DEBUG] Loading compatibility_router...
+[DEBUG] Loading mesh_router...
+[DEBUG] Loading fleet_router...
+[DEBUG] Loading mesh_actions_router...
+[DEBUG] Loading repair_lab_router...
+00:11:46  INFO      [libs.llm.model_orchestrator] [no-trace] [LLM] Hazýr saðlayýcýlar: openai, anthropic, gemini, groq, openrouter
+[DEBUG] Loading fleet_orchestra_router...
+[DEBUG] Loading ceo_router...
+=========================== short test summary info ===========================
+ERROR tests/ui_repair/test_security_posture.py::test_security_posture_scan_flow
+============================== 1 error in 1.26s ===============================

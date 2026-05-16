@@ -1,115 +1,238 @@
-"use client";
+import React, { useState, useEffect } from 'react';
+import { 
+  ShieldX, 
+  Play, 
+  Terminal, 
+  Activity, 
+  Clock, 
+  AlertOctagon, 
+  BarChart3,
+  Search,
+  Zap,
+  Target
+} from 'lucide-react';
 
-import React, { useState, useEffect } from "react";
-import { useTranslations } from "next-intl";
-import { Card, Table, Typography, Space, Tag, Button, List, Tooltip } from "antd";
-import { BugOutlined, PlayCircleOutlined, ShieldOutlined } from "@ant-design/icons";
+interface Scenario {
+  id: string;
+  name: string;
+  description: string;
+  tactic: string;
+  technique_id: string;
+  risk_level: string;
+  is_active: boolean;
+}
 
-const { Title, Text } = Typography;
+interface RedTeamOverview {
+  total_scenarios: number;
+  active_operations: number;
+  success_rate: number;
+  avg_detection_latency: number;
+  critical_drifts: number;
+  last_run_at: string;
+}
 
-export const RedTeamPanel: React.FC = () => {
-    const t = useTranslations("repair_lab");
-    const [scenarios, setScenarios] = useState([]);
-    const [runs, setRuns] = useState([]);
-    const [loading, setLoading] = useState(false);
+export default function RedTeamPanel() {
+  const [scenarios, setScenarios] = useState<Scenario[]>([]);
+  const [overview, setOverview] = useState<RedTeamOverview | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [running, setRunning] = useState<string | null>(null);
 
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            const sRes = await fetch("/api/v1/ui-repair/red-team/generate", { method: "POST" });
-            const sData = await sRes.json();
-            setScenarios(sData);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-            // Fetch runs
-            // const rRes = await fetch("/api/v1/ui-repair/red-team/runs");
-            // const rData = await rRes.json();
-            // setRuns(rData);
-        } catch (error) {
-            console.error("Failed to fetch red team data", error);
-        } finally {
-            setLoading(false);
-        }
-    };
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [overRes, scenRes] = await Promise.all([
+        fetch('/api/v1/ui-repair/security/red-team/overview'),
+        fetch('/api/v1/ui-repair/security/red-team/scenarios')
+      ]);
+      
+      if (overRes.ok) setOverview(await overRes.json());
+      if (scenRes.ok) setScenarios(await scenRes.json());
+    } catch (err) {
+      console.error('Failed to fetch red team data', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    useEffect(() => {
+  const handleRunOperation = async (scenarioId: string) => {
+    setRunning(scenarioId);
+    try {
+      const res = await fetch('/api/v1/ui-repair/security/red-team/operations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scenario_id: scenarioId })
+      });
+      
+      if (res.ok) {
+        const op = await res.json();
+        // Trigger drift analysis
+        await fetch(`/api/v1/ui-repair/security/red-team/operations/${op.id}/analyze-drift`, { method: 'POST' });
         fetchData();
-    }, []);
+      }
+    } catch (err) {
+      console.error('Operation failed', err);
+    } finally {
+      setRunning(null);
+    }
+  };
 
-    const runScenario = async (id: string) => {
-        setLoading(true);
-        try {
-            await fetch(`/api/v1/ui-repair/red-team/scenarios/${id}/run`, { method: "POST" });
-            // Refresh
-            fetchData();
-        } catch (error) {
-            console.error("Run failed", error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const columns = [
-        {
-            title: "Scenario Name",
-            dataIndex: "name",
-            key: "name",
-            render: (text: string, record: any) => (
-                <Space>
-                    <BugOutlined />
-                    <Text strong>{text}</Text>
-                    {record.is_destructive && <Tag color="red">DESTRUCTIVE</Tag>}
-                </Space>
-            )
-        },
-        {
-            title: "Risk Type",
-            dataIndex: "risk_type",
-            key: "risk_type",
-            render: (type: string) => <Tag>{type.replace("_", " ")}</Tag>
-        },
-        {
-            title: "Expected Detection",
-            dataIndex: "expected_detection",
-            key: "expected_detection",
-        },
-        {
-            title: "Actions",
-            key: "actions",
-            render: (_: any, record: any) => (
-                <Button 
-                    icon={<PlayCircleOutlined />} 
-                    onClick={() => runScenario(record.id)}
-                    loading={loading}
-                    disabled={record.is_destructive}
-                >
-                    Run Simulation
-                </Button>
-            )
-        }
-    ];
-
+  if (loading && !overview) {
     return (
-        <Space direction="vertical" style={{ width: "100%" }} size="large">
-            <Card title={<Space><ShieldOutlined /> {t("red_team_scenarios")}</Space>} extra={<Button onClick={fetchData} loading={loading}>{t("generate_scenarios")}</Button>}>
-                <Table 
-                    dataSource={scenarios} 
-                    columns={columns} 
-                    rowKey="id" 
-                    loading={loading}
-                    pagination={false}
-                />
-            </Card>
-
-            <AlertBanner />
-        </Space>
+      <div className="flex items-center justify-center h-64">
+        <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
+      </div>
     );
-};
+  }
 
-const AlertBanner = () => (
-    <div style={{ backgroundColor: "#fffbe6", border: "1px solid #ffe58f", padding: "12px 16px", borderRadius: "8px" }}>
-        <Space>
-            <ShieldOutlined style={{ color: "#faad14" }} />
-            <Text>Red team scenarios are executed in a sandbox environment. Destructive production tests are disabled by default.</Text>
-        </Space>
+  return (
+    <div className="space-y-6">
+      {/* Overview Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-red-500/10 rounded-lg">
+              <ShieldX className="w-5 h-5 text-red-500" />
+            </div>
+            <span className="text-slate-400 text-sm">Active Scenarios</span>
+          </div>
+          <div className="text-2xl font-bold text-white">{overview?.total_scenarios || 0}</div>
+        </div>
+
+        <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-blue-500/10 rounded-lg">
+              <Zap className="w-5 h-5 text-blue-500" />
+            </div>
+            <span className="text-slate-400 text-sm">Avg. Latency</span>
+          </div>
+          <div className="text-2xl font-bold text-white">{overview?.avg_detection_latency.toFixed(1)}ms</div>
+        </div>
+
+        <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-amber-500/10 rounded-lg">
+              <Activity className="w-5 h-5 text-amber-500" />
+            </div>
+            <span className="text-slate-400 text-sm">Critical Drifts</span>
+          </div>
+          <div className="text-2xl font-bold text-amber-500">{overview?.critical_drifts || 0}</div>
+        </div>
+
+        <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-emerald-500/10 rounded-lg">
+              <BarChart3 className="w-5 h-5 text-emerald-500" />
+            </div>
+            <span className="text-slate-400 text-sm">Defense Success</span>
+          </div>
+          <div className="text-2xl font-bold text-emerald-500">{((1 - (overview?.success_rate || 0)) * 100).toFixed(1)}%</div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Scenarios List */}
+        <div className="lg:col-span-2 space-y-4">
+          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+            <Target className="w-5 h-5 text-red-500" />
+            Autonomous Attack Scenarios
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {scenarios.map(scen => (
+              <div key={scen.id} className="bg-slate-900/50 border border-slate-800 p-5 rounded-xl hover:border-red-500/30 transition-colors">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="px-2 py-1 bg-red-500/10 text-red-500 rounded text-xs font-mono uppercase">
+                    {scen.tactic}
+                  </div>
+                  <div className={`px-2 py-1 rounded text-xs font-semibold ${
+                    scen.risk_level === 'CRITICAL' ? 'bg-red-500 text-white' :
+                    scen.risk_level === 'HIGH' ? 'bg-amber-600 text-white' :
+                    'bg-blue-600 text-white'
+                  }`}>
+                    {scen.risk_level}
+                  </div>
+                </div>
+                <h4 className="text-white font-medium mb-1">{scen.name}</h4>
+                <p className="text-slate-400 text-sm mb-4 h-10 line-clamp-2">{scen.description}</p>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono text-slate-500">{scen.technique_id}</span>
+                  <button
+                    onClick={() => handleRunOperation(scen.id)}
+                    disabled={running !== null}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {running === scen.id ? (
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Play className="w-3 h-3 fill-current" />
+                    )}
+                    EXECUTE
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Live Drift Monitor */}
+        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+          <div className="p-4 border-b border-slate-800 bg-slate-800/50 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+              <Terminal className="w-4 h-4 text-blue-400" />
+              Adversarial Drift
+            </h3>
+            <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          </div>
+          <div className="p-4 space-y-4 max-h-[500px] overflow-y-auto">
+            <div className="text-xs font-mono text-slate-500 uppercase tracking-wider mb-2">Live Behavioral Drift</div>
+            
+            {/* Mock Drift Item */}
+            <div className="p-3 bg-red-500/5 border-l-2 border-red-500 rounded">
+              <div className="flex justify-between items-start mb-1">
+                <span className="text-red-400 text-xs font-bold">LATENCY_SPIKE</span>
+                <span className="text-slate-500 text-[10px]">Just now</span>
+              </div>
+              <p className="text-slate-300 text-xs mb-2">Exfiltration detection delayed by 4.2x baseline.</p>
+              <div className="flex gap-2">
+                <span className="text-[10px] px-1.5 py-0.5 bg-slate-800 text-slate-400 rounded">BASE: 250ms</span>
+                <span className="text-[10px] px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded">ACTUAL: 1050ms</span>
+              </div>
+            </div>
+
+            <div className="p-3 bg-amber-500/5 border-l-2 border-amber-500 rounded">
+              <div className="flex justify-between items-start mb-1">
+                <span className="text-amber-400 text-xs font-bold">LOG_SUPPRESSION</span>
+                <span className="text-slate-500 text-[10px]">2m ago</span>
+              </div>
+              <p className="text-slate-300 text-xs mb-2">Credential access logs suppressed at mesh node ALPHA.</p>
+              <div className="flex gap-2 font-mono">
+                <span className="text-[10px] px-1.5 py-0.5 bg-slate-800 text-slate-400 rounded">NODE: mesh-01</span>
+              </div>
+            </div>
+            
+            <div className="p-3 bg-slate-800/50 border-l-2 border-slate-700 rounded opacity-60">
+              <div className="flex justify-between items-start mb-1">
+                <span className="text-slate-400 text-xs font-bold">NORMAL_PRESSURE</span>
+                <span className="text-slate-500 text-[10px]">15m ago</span>
+              </div>
+              <p className="text-slate-500 text-xs">Guardrail performance within 5% variance.</p>
+            </div>
+          </div>
+          <div className="p-4 bg-slate-800/30 border-t border-slate-800">
+            <button className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-2">
+              <Search className="w-3 h-3" />
+              VIEW FULL DRIFT ANALYSIS
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
+  );
+}
+
+const RefreshCw = (props: any) => (
+  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
 );

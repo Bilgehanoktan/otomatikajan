@@ -20,9 +20,33 @@ import {
   Shield,
   MessageSquare,
   Lock,
-  GitPullRequest
+  GitPullRequest,
+  Brain
 } from 'lucide-react';
 import GAOperationsDashboard from './GAOperationsDashboard';
+import { ChaosDrillsPanel } from "@/components/ui-repair/ChaosDrillsPanel";
+import { SoakValidationPanel } from "@/components/ui-repair/SoakValidationPanel";
+import { RecoveryProofPackPanel } from "@/components/ui-repair/RecoveryProofPackPanel";
+import { AdvancedChaosPanel } from "@/components/ui-repair/AdvancedChaosPanel";
+import { EscalationCenter } from "@/components/ui-repair/EscalationCenter";
+import { CrisisControlPanel } from "@/components/ui-repair/CrisisControlPanel";
+import { NotificationDeliveryPanel } from "@/components/ui-repair/NotificationDeliveryPanel";
+import { FinalReadinessPanel } from "@/components/ui-repair/FinalReadinessPanel";
+import { PilotRolloutPanel } from "@/components/ui-repair/PilotRolloutPanel";
+import EnterpriseRolloutPanel from "@/components/ui-repair/EnterpriseRolloutPanel";
+import ProjectProfilePanel from "@/components/ui-repair/ProjectProfilePanel";
+import RolloutWavePanel from "@/components/ui-repair/RolloutWavePanel";
+import ProjectHealthMatrixPanel from "@/components/ui-repair/ProjectHealthMatrixPanel";
+import SLASLOTrackerPanel from "@/components/ui-repair/SLASLOTrackerPanel";
+import GAReadinessPanel from "@/components/ui-repair/GAReadinessPanel";
+import EnterpriseRunbookPanel from "@/components/ui-repair/EnterpriseRunbookPanel";
+import { ResiliencyMeshPanel } from "@/components/ui-repair/ResiliencyMeshPanel";
+import ExternalToolGovernancePanel from "@/components/ui-repair/ExternalToolGovernancePanel";
+import { IdentityTrustCenterPanel } from "@/components/ui-repair/IdentityTrustCenterPanel";
+import CognitiveIntegrityCenterPanel from "@/components/ui-repair/CognitiveIntegrityCenterPanel";
+import SecurityPostureCenterPanel from "@/components/ui-repair/SecurityPostureCenterPanel";
+import { FinalReleaseCenterPanel } from "@/components/ui-repair/FinalReleaseCenterPanel";
+import { KnowledgeCenterPanel } from "@/components/ui-repair/KnowledgeCenterPanel";
 
 // Premium UI Components
 const Card = ({ children, className = "", onClick }: { children: React.ReactNode, className?: string, onClick?: () => void }) => (
@@ -70,28 +94,6 @@ export default function UIRepairPage() {
   const [mainTab, setMainTab] = useState("matrix"); // matrix | monitoring | chaos | soak | proof
   const [triggeringMonitoring, setTriggeringMonitoring] = useState(false);
 
-  // Phase 8 Imports (Components)
-  const { ChaosDrillsPanel } = require("@/components/ui-repair/ChaosDrillsPanel");
-  const { SoakValidationPanel } = require("@/components/ui-repair/SoakValidationPanel");
-  const { RecoveryProofPackPanel } = require("@/components/ui-repair/RecoveryProofPackPanel");
-
-  // Phase 9 Imports
-  const { AdvancedChaosPanel } = require("@/components/ui-repair/AdvancedChaosPanel");
-  const { EscalationCenter } = require("@/components/ui-repair/EscalationCenter");
-  const { CrisisControlPanel } = require("@/components/ui-repair/CrisisControlPanel");
-  const { NotificationDeliveryPanel } = require("@/components/ui-repair/NotificationDeliveryPanel");
-  const { FinalReadinessPanel } = require("@/components/ui-repair/FinalReadinessPanel");
-  const { PilotRolloutPanel } = require("@/components/ui-repair/PilotRolloutPanel");
-
-  // Phase 12 Imports
-  const { EnterpriseRolloutPanel } = require("@/components/ui-repair/EnterpriseRolloutPanel");
-  const { ProjectProfilePanel } = require("@/components/ui-repair/ProjectProfilePanel");
-  const { RolloutWavePanel } = require("@/components/ui-repair/RolloutWavePanel");
-  const { ProjectHealthMatrixPanel } = require("@/components/ui-repair/ProjectHealthMatrixPanel");
-  const { SLASLOTrackerPanel } = require("@/components/ui-repair/SLASLOTrackerPanel");
-  const { GAReadinessPanel } = require("@/components/ui-repair/GAReadinessPanel");
-  const { EnterpriseRunbookPanel } = require("@/components/ui-repair/EnterpriseRunbookPanel");
-  const { ResiliencyMeshPanel } = require("@/components/ui-repair/ResiliencyMeshPanel");
 
   useEffect(() => {
     fetchData();
@@ -210,9 +212,15 @@ export default function UIRepairPage() {
     setApplying(true);
     try {
       const res = await fetch(`/api/v1/ui-repair/cases/${caseId}/attempts/${attemptId}/apply?operator=admin`, { method: 'POST' });
+      const data = await res.json();
+      
       if (res.ok) {
         await fetchData();
         setSelectedCase(null);
+      } else if (res.status === 403) {
+        alert(`REPAIR BLOCKED: ${data.reason}\n\nIntegrity Score: ${(data.score * 100).toFixed(1)}%`);
+      } else {
+        alert(`Error: ${data.detail || 'Failed to apply patch'}`);
       }
     } catch (err) {
       console.error("Failed to apply patch", err);
@@ -301,7 +309,7 @@ export default function UIRepairPage() {
         </div>
 
         {/* Main Navigation Tabs */}
-        <div className="flex gap-4 border-b border-slate-800">
+        <div className="flex gap-4 border-b border-slate-800 overflow-x-auto no-scrollbar scroll-smooth">
           <button 
             onClick={() => setMainTab("matrix")}
             className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "matrix" ? 'border-blue-500 text-blue-400 bg-blue-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
@@ -319,6 +327,18 @@ export default function UIRepairPage() {
             className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "chaos" ? 'border-red-500 text-red-400 bg-red-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
           >
             Chaos Drills
+          </button>
+          <button 
+            onClick={() => setMainTab("resiliency")}
+            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "resiliency" ? 'border-indigo-500 text-indigo-400 bg-indigo-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+          >
+            Resiliency Mesh
+          </button>
+          <button 
+            onClick={() => setMainTab("tools")}
+            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "tools" ? 'border-cyan-500 text-cyan-400 bg-cyan-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+          >
+            External Tools
           </button>
           <button 
             onClick={() => setMainTab("soak")}
@@ -381,10 +401,35 @@ export default function UIRepairPage() {
             GA Operations
           </button>
           <button 
-            onClick={() => setMainTab("resiliency")}
-            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "resiliency" ? 'border-blue-500 text-blue-400 bg-blue-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+            onClick={() => setMainTab("identity")}
+            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "identity" ? 'border-amber-500 text-amber-400 bg-amber-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
           >
-            Resiliency Mesh
+            Identity & Trust
+          </button>
+          <button 
+            onClick={() => setMainTab("cognitive")}
+            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "cognitive" ? 'border-purple-500 text-purple-400 bg-purple-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+          >
+            Cognitive Integrity
+          </button>
+
+          <button 
+            onClick={() => setMainTab("security")}
+            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "security" ? 'border-rose-500 text-rose-400 bg-rose-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+          >
+            Security Posture
+          </button>
+          <button 
+            onClick={() => setMainTab("knowledge")}
+            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "knowledge" ? 'border-purple-500 text-purple-400 bg-purple-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+          >
+            Knowledge Center
+          </button>
+          <button 
+            onClick={() => setMainTab("release-center")}
+            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "release-center" ? 'border-blue-500 text-blue-400 bg-blue-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+          >
+            Release Center
           </button>
         </div>
 
@@ -789,6 +834,30 @@ export default function UIRepairPage() {
           <div className="animate-in fade-in duration-500">
             <ResiliencyMeshPanel />
           </div>
+        ) : mainTab === "identity" ? (
+          <div className="animate-in fade-in duration-500">
+            <IdentityTrustCenterPanel />
+          </div>
+        ) : mainTab === "tools" ? (
+          <div className="animate-in fade-in duration-500">
+            <ExternalToolGovernancePanel />
+          </div>
+        ) : mainTab === "cognitive" ? (
+          <div className="animate-in fade-in duration-500">
+            <CognitiveIntegrityCenterPanel />
+          </div>
+        ) : mainTab === "security" ? (
+          <div className="animate-in fade-in duration-500">
+            <SecurityPostureCenterPanel />
+          </div>
+        ) : mainTab === "knowledge" ? (
+          <div className="animate-in fade-in duration-500">
+            <KnowledgeCenterPanel />
+          </div>
+        ) : mainTab === "release-center" ? (
+          <div className="animate-in fade-in duration-500">
+            <FinalReleaseCenterPanel />
+          </div>
         ) : null}
 
         {/* Detailed Repair View Modal/Panel */}
@@ -1026,7 +1095,7 @@ export default function UIRepairPage() {
                             </div>
                             <div className="flex justify-between items-center p-3 bg-slate-950/50 rounded-lg border border-slate-800">
                               <span className="text-xs text-slate-400">Policy Verdict</span>
-                              <span className="text-xs font-bold text-slate-200 italic">"{repairDetail.governance.policy_decision.policy_decision}"</span>
+                              <span className="text-xs font-bold text-slate-200 italic">"{repairDetail.governance.policy_decision?.policy_decision || 'NEUTRAL'}"</span>
                             </div>
                             <div className="flex justify-between items-center p-3 bg-slate-950/50 rounded-lg border border-slate-800">
                               <span className="text-xs text-slate-400">Operator Review Required</span>

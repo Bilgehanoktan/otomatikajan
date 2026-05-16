@@ -50,6 +50,8 @@ class ConnectionManager:
         if isinstance(message, dict):
             message = json.dumps(message)
             
+        logger.debug(f"[WS] Broadcasting to {len(self.active_connections)} clients: {message[:100]}...")
+            
         disconnected = []
         for connection in self.active_connections:
             try:

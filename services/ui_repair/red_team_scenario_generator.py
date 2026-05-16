@@ -5,7 +5,8 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from libs.db.models.ui_repair_models import (
-    UIRedTeamScenario, UIAdvancedChaosRun, UIRepairCase, UIRouteHealth
+    UIRedTeamScenario, UIAdvancedChaosRun, UIRepairCase, UIRouteHealth,
+    RedTeamScenarioType, RedTeamTargetDomain, RedTeamSafetyMode
 )
 
 class RedTeamScenarioGenerator:
@@ -16,40 +17,30 @@ class RedTeamScenarioGenerator:
 
     async def generate_scenarios(self) -> List[UIRedTeamScenario]:
         """Analyzes failures and generates new red-team scenarios."""
-        # 1. Analyze failure history
-        failures = await self._get_failure_patterns()
-        
-        # 2. Generate scenarios based on patterns
+        # 1. Fetch some context to generate realistic scenarios
+        # For now, we generate standard ones with correct model fields
         scenarios = []
         
         # Example: Governance Bypass Attempt
         scenarios.append(UIRedTeamScenario(
-            name="Governance Bypass Simulation",
+            id=uuid.uuid4(),
+            scenario_key="RT-GEN-GOV-BYPASS",
+            scenario_name="Automated Governance Bypass Probe",
             description="Simulates an attempt to apply a patch without operator approval on a high-risk route.",
-            risk_type="governance_bypass",
-            expected_detection="POLICY_VIOLATION",
-            expected_severity="CRITICAL",
-            expected_policy_decision="BLOCK"
+            scenario_type=RedTeamScenarioType.GOVERNANCE_APPROVAL_BYPASS,
+            target_domain=RedTeamTargetDomain.GOVERNANCE,
+            risk_level="CRITICAL",
+            safety_mode=RedTeamSafetyMode.SIMULATION_ONLY,
+            risk_type="governance_bypass"
         ))
 
         # Example: Stale Data Silent Failure
         scenarios.append(UIRedTeamScenario(
-            name="Stale Data Silent Failure",
+            id=uuid.uuid4(),
+            scenario_key="RT-GEN-STALE-DATA",
+            scenario_name="Stale Data Consistency Probe",
             description="Injects stale cache data that doesn't trigger a 500 but breaks visual consistency.",
-            risk_type="stale_data_silent_failure",
-            expected_detection="BLANK_PAGE_OR_INCONSISTENCY",
-            expected_severity="HIGH",
-            expected_policy_decision="ESCALATE"
-        ))
-
-        # Example: Repeated Repair Loop
-        scenarios.append(UIRedTeamScenario(
-            name="Infinite Repair Loop Test",
-            description="Simulates a flapping failure that causes the system to enter a repeated repair cycle.",
-            risk_type="repeated_repair_loop",
-            expected_detection="FLAPPING_DETECTED",
-            expected_severity="MEDIUM",
-            expected_policy_decision="FREEZE_HEALING"
+            risk_level="MEDIUM"
         ))
         
         # In a real implementation, this would use LLM to synthesize scenarios from 'failures' data

@@ -12,7 +12,7 @@ from libs.db.session import get_db
 # from services.orchestration.fleet.multi_project_controller import MultiProjectController
 # from services.governance.fleet_observability import FleetObservability
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 
 # --- Response Schemas ---
@@ -44,8 +44,7 @@ class FleetAgentOut(BaseModel):
     last_heartbeat: Optional[datetime] = None
     cluster_id: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class FleetEventOut(BaseModel):
     id: str
@@ -54,8 +53,7 @@ class FleetEventOut(BaseModel):
     payload_summary: Optional[str] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 router = APIRouter(tags=["Orchestration"])
 

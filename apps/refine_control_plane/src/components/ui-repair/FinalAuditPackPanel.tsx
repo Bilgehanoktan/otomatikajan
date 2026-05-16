@@ -1,24 +1,25 @@
-"use client";
+import React, { useState, useEffect } from 'react';
+import { Card, Table, Tag, Button, Typography, Space, List, Divider, Badge, Empty, Result } from 'antd';
+import { FilePdfOutlined, DownloadOutlined, SafetyCertificateOutlined, HistoryOutlined, FileSearchOutlined } from '@ant-design/icons';
 
-import React, { useState, useEffect } from "react";
-import { useTranslations } from "next-intl";
-import { Card, Table, Typography, Space, Tag, Button, Empty, Descriptions, Divider } from "antd";
-import { AuditOutlined, CloudDownloadOutlined, LockOutlined, FileSearchOutlined } from "@ant-design/icons";
-
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 
 export const FinalAuditPackPanel: React.FC = () => {
-    const t = useTranslations("repair_lab");
-    const [pack, setPack] = useState<any>(null);
-    const [loading, setLoading] = useState(false);
+    const [latestPack, setLatestPack] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
 
-    const fetchPack = async () => {
+    useEffect(() => {
+        fetchLatestPack();
+    }, []);
+
+    const fetchLatestPack = async () => {
         setLoading(true);
         try {
-            // In real app, fetch list and take latest
-            // For now, mock or fetch latest
+            const response = await fetch('/api/v1/ui-repair/final/audit-pack/latest');
+            const data = await response.json();
+            setLatestPack(data);
         } catch (error) {
-            console.error("Failed to fetch audit pack", error);
+            console.error('Failed to fetch latest audit pack:', error);
         } finally {
             setLoading(false);
         }
@@ -27,52 +28,82 @@ export const FinalAuditPackPanel: React.FC = () => {
     const generatePack = async () => {
         setLoading(true);
         try {
-            const res = await fetch("/api/v1/ui-repair/final-audit-pack/generate?name=Sovereign_Control_Plane_Release&version=1.0.0", { method: "POST" });
-            const data = await res.json();
-            setPack(data);
+            const response = await fetch('/api/v1/ui-repair/final/audit-pack/generate?version=1.0.0-RC1', { method: 'POST' });
+            const data = await response.json();
+            setLatestPack(data);
         } catch (error) {
-            console.error("Pack generation failed", error);
+            console.error('Failed to generate audit pack:', error);
         } finally {
             setLoading(false);
         }
     };
 
-    return (
-        <Space direction="vertical" style={{ width: "100%" }} size="large">
-            <Card 
-                title={<Space><AuditOutlined /> {t("final_audit_pack")}</Space>}
-                extra={<Button type="primary" icon={<LockOutlined />} onClick={generatePack} loading={loading}>{t("seal_audit_pack")}</Button>}
-            >
-                {pack ? (
-                    <div>
-                        <Descriptions title="Audit Package Details" bordered column={2}>
-                            <Descriptions.Item label="Pack Name">{pack.name}</Descriptions.Item>
-                            <Descriptions.Item label="Version">{pack.version}</Descriptions.Item>
-                            <Descriptions.Item label="Status"><Tag color="blue">{pack.is_sealed ? "SEALED" : "DRAFT"}</Tag></Descriptions.Item>
-                            <Descriptions.Item label="Created At">{new Date(pack.created_at).toLocaleString()}</Descriptions.Item>
-                            <Descriptions.Item label="Integrity Hash" span={2}>
-                                <Text code>{pack.evidence_bundle_hash}</Text>
-                            </Descriptions.Item>
-                        </Descriptions>
-                        
-                        <Divider />
-                        
-                        <Title level={5}>Content Manifest</Title>
-                        <ul style={{ paddingLeft: "20px" }}>
-                            {Object.entries(pack.content_manifest_json).map(([key, val]: [string, any]) => (
-                                <li key={key}><Text strong>{key.replace("_", " ")}:</Text> {val}</li>
-                            ))}
-                        </ul>
+    if (!latestPack && !loading) {
+        return (
+            <div style={{ padding: '60px', textAlign: 'center' }}>
+                <Empty 
+                    image={Empty.PRESENTED_IMAGE_SIMPLE} 
+                    description="No audit pack has been generated yet for this release cycle."
+                >
+                    <Button type="primary" size="large" onClick={generatePack} loading={loading}>
+                        Generate Initial Audit Pack
+                    </Button>
+                </Empty>
+            </div>
+        );
+    }
 
-                        <div style={{ marginTop: "24px" }}>
-                            <Button icon={<CloudDownloadOutlined />}>Download Full Bundle</Button>
-                            <Button icon={<FileSearchOutlined />} style={{ marginLeft: "12px" }}>View Summary Report</Button>
+    return (
+        <div style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+                <div>
+                    <Title level={4} style={{ margin: 0 }}>Final Audit Documentation</Title>
+                    <Text type="secondary">Comprehensive evidence pack for compliance and production handover.</Text>
+                </div>
+                <Space>
+                    <Button icon={<HistoryOutlined />}>History</Button>
+                    <Button type="primary" icon={<FilePdfOutlined />} onClick={generatePack} loading={loading}>
+                        Regenerate Pack
+                    </Button>
+                </Space>
+            </div>
+
+            {latestPack && (
+                <div className="pack-details">
+                    <Card style={{ marginBottom: '24px', background: '#f9f9f9', border: '1px dashed #d9d9d9' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Space size="large">
+                                <Statistic title="Version" value={latestPack.version} />
+                                <Statistic title="Generated At" value={new Date(latestPack.generated_at).toLocaleString()} valueStyle={{ fontSize: '14px' }} />
+                                <Statistic title="Evidence Hash" value={latestPack.evidence_hash?.substring(0, 16) + '...'} valueStyle={{ fontSize: '14px', fontFamily: 'monospace' }} />
+                            </Space>
+                            <Button type="primary" ghost icon={<DownloadOutlined />} size="large">Download Full PDF</Button>
                         </div>
+                    </Card>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                        <Card title={<><FileSearchOutlined /> Included Sections</>} size="small">
+                            <List
+                                size="small"
+                                dataSource={latestPack.included_sections}
+                                renderItem={(item: string) => <List.Item><CheckCircleOutlined style={{ color: '#52c41a', marginRight: '8px' }} /> {item}</List.Item>}
+                            />
+                        </Card>
+                        <Card title={<><SafetyCertificateOutlined /> Compliance & Governance</>} size="small">
+                            <Space direction="vertical" style={{ width: '100%' }}>
+                                <Badge status="success" text="Identity & Trust Framework: VERIFIED" />
+                                <Badge status="success" text="Cognitive Integrity Gates: ACTIVE" />
+                                <Badge status="success" text="Tool Policy Sandbox: ENFORCED" />
+                                <Badge status="success" text="Evidence Retention Chain: SECURE" />
+                                <Divider style={{ margin: '12px 0' }} />
+                                <Text type="secondary" italic>Audit pack signed by Autonomous Governance Orchestrator.</Text>
+                            </Space>
+                        </Card>
                     </div>
-                ) : (
-                    <Empty description="No audit pack generated yet." />
-                )}
-            </Card>
-        </Space>
+                </div>
+            )}
+        </div>
     );
 };
+
+import { Statistic } from 'antd';

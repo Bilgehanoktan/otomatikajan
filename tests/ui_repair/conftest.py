@@ -3,7 +3,9 @@ import asyncio
 import uuid
 from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from libs.db.models.ui_repair_models import Base
+from httpx import AsyncClient, ASGITransport
+from libs.db.models import Base
+from libs.db.session import get_db
 
 @pytest.fixture
 async def db_engine():
@@ -19,3 +21,19 @@ async def db_session(db_engine):
     async with async_session() as session:
         yield session
         await session.rollback()
+
+@pytest.fixture
+async def client(db_session):
+    from apps.public_api.main import app
+    
+    # Override get_db to use our test session
+    async def override_get_db():
+        yield db_session
+        
+    app.dependency_overrides[get_db] = override_get_db
+    
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        yield ac
+        
+    app.dependency_overrides.clear()

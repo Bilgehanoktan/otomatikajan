@@ -1,8 +1,9 @@
 import enum
+from enum import Enum
 import uuid
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
-from sqlalchemy import Column, String, Text, Integer, Float, DateTime, ForeignKey, Boolean, Enum as SAEnum
+from sqlalchemy import Column, String, Text, Integer, Float, DateTime, ForeignKey, Boolean, JSON, Enum as SAEnum
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from libs.db.base import Base, GUID, SmartJSON, utcnow
 
@@ -83,6 +84,119 @@ class UIRepairSeverity(str, enum.Enum):
     MEDIUM = "MEDIUM"
     HIGH = "HIGH"
     CRITICAL = "CRITICAL"
+
+class RedTeamScenarioType(str, enum.Enum):
+    TENANT_ISOLATION_PROBE = "TENANT_ISOLATION_PROBE"
+    IDENTITY_REPLAY_PROBE = "IDENTITY_REPLAY_PROBE"
+    CAPABILITY_TOKEN_ABUSE = "CAPABILITY_TOKEN_ABUSE"
+    POLICY_BYPASS_ATTEMPT = "POLICY_BYPASS_ATTEMPT"
+    TOOL_GOVERNANCE_ABUSE = "TOOL_GOVERNANCE_ABUSE"
+    MCP_WRITE_ABUSE = "MCP_WRITE_ABUSE"
+    SECRET_EXFILTRATION_SIMULATION = "SECRET_EXFILTRATION_SIMULATION"
+    COGNITIVE_HALLUCINATION_INJECTION = "COGNITIVE_HALLUCINATION_INJECTION"
+    EVIDENCE_TAMPERING_SIMULATION = "EVIDENCE_TAMPERING_SIMULATION"
+    GOVERNANCE_APPROVAL_BYPASS = "GOVERNANCE_APPROVAL_BYPASS"
+    COST_EXHAUSTION_SIMULATION = "COST_EXHAUSTION_SIMULATION"
+    MESH_FAILOVER_ABUSE = "MESH_FAILOVER_ABUSE"
+    CRISIS_MODE_MISUSE = "CRISIS_MODE_MISUSE"
+
+class GuardrailTuningStatus(str, enum.Enum):
+    DRAFT = "DRAFT"
+    SIMULATED = "SIMULATED"
+    REGRESSION_PASSED = "REGRESSION_PASSED"
+    REGRESSION_FAILED = "REGRESSION_FAILED"
+    CANARY_RUNNING = "CANARY_RUNNING"
+    CANARY_PASSED = "CANARY_PASSED"
+    CANARY_FAILED = "CANARY_FAILED"
+    GOVERNANCE_REQUESTED = "GOVERNANCE_REQUESTED"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    APPLIED = "APPLIED"
+    ROLLED_BACK = "ROLLED_BACK"
+    MANUAL_REVIEW_REQUIRED = "MANUAL_REVIEW_REQUIRED"
+
+class GuardrailDomain(str, enum.Enum):
+    TENANT_ISOLATION = "TENANT_ISOLATION"
+    IDENTITY = "IDENTITY"
+    POLICY_AS_CODE = "POLICY_AS_CODE"
+    TOOL_GOVERNANCE = "TOOL_GOVERNANCE"
+    MCP_GOVERNANCE = "MCP_GOVERNANCE"
+    COGNITIVE_INTEGRITY = "COGNITIVE_INTEGRITY"
+    SECURITY_POSTURE = "SECURITY_POSTURE"
+    BUDGET_GUARD = "BUDGET_GUARD"
+    LIVE_SAFETY_GUARD = "LIVE_SAFETY_GUARD"
+    EVIDENCE_LEDGER = "EVIDENCE_LEDGER"
+    RESILIENCY_MESH = "RESILIENCY_MESH"
+    REMEDIATION_LOOP_ABUSE = "REMEDIATION_LOOP_ABUSE"
+
+class RedTeamTargetDomain(str, enum.Enum):
+    IDENTITY = "IDENTITY"
+    POLICY = "POLICY"
+    TENANT_ISOLATION = "TENANT_ISOLATION"
+    TOOL_GOVERNANCE = "TOOL_GOVERNANCE"
+    MCP = "MCP"
+    EVIDENCE = "EVIDENCE"
+    COGNITIVE_INTEGRITY = "COGNITIVE_INTEGRITY"
+    GOVERNANCE = "GOVERNANCE"
+    FINOPS = "FINOPS"
+    RESILIENCY_MESH = "RESILIENCY_MESH"
+    SECURITY_POSTURE = "SECURITY_POSTURE"
+    REMEDIATION = "REMEDIATION"
+
+class RedTeamSafetyMode(str, enum.Enum):
+    SIMULATION_ONLY = "SIMULATION_ONLY"
+    DRY_RUN = "DRY_RUN"
+    SANDBOX = "SANDBOX"
+    NON_DESTRUCTIVE_LIVE_CHECK = "NON_DESTRUCTIVE_LIVE_CHECK"
+
+class RedTeamRunStatus(str, enum.Enum):
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    PASSED = "PASSED"
+    FAILED = "FAILED"
+    BLOCKED_BY_SAFETY = "BLOCKED_BY_SAFETY"
+    CANCELLED = "CANCELLED"
+    MANUAL_REVIEW_REQUIRED = "MANUAL_REVIEW_REQUIRED"
+
+class AdversarialDriftType(str, enum.Enum):
+    DECISION_DRIFT = "DECISION_DRIFT"
+    POLICY_DRIFT_UNDER_ATTACK = "POLICY_DRIFT_UNDER_ATTACK"
+    TRUST_SCORE_DRIFT = "TRUST_SCORE_DRIFT"
+    EVIDENCE_CHAIN_DRIFT = "EVIDENCE_CHAIN_DRIFT"
+    TOOL_DECISION_DRIFT = "TOOL_DECISION_DRIFT"
+    COGNITIVE_INTEGRITY_DRIFT = "COGNITIVE_INTEGRITY_DRIFT"
+    COST_POLICY_DRIFT = "COST_POLICY_DRIFT"
+    TENANT_SCOPE_DRIFT = "TENANT_SCOPE_DRIFT"
+
+class IncidentSeverity(str, enum.Enum):
+    P0_CRITICAL = "P0_CRITICAL"
+    P1_HIGH = "P1_HIGH"
+    P2_MEDIUM = "P2_MEDIUM"
+    P3_LOW = "P3_LOW"
+
+class WarRoomStatus(str, enum.Enum):
+    OPEN = "OPEN"
+    INVESTIGATING = "INVESTIGATING"
+    MITIGATING = "MITIGATING"
+    WAITING_GOVERNANCE = "WAITING_GOVERNANCE"
+    WAITING_OPERATOR = "WAITING_OPERATOR"
+    RESOLVED = "RESOLVED"
+    CLOSED = "CLOSED"
+    ESCALATED = "ESCALATED"
+
+class IncidentSource(str, enum.Enum):
+    SECURITY_POSTURE_FINDING = "SECURITY_POSTURE_FINDING"
+    RED_TEAM_FINDING = "RED_TEAM_FINDING"
+    COGNITIVE_INTEGRITY_BLOCK = "COGNITIVE_INTEGRITY_BLOCK"
+    IDENTITY_VIOLATION = "IDENTITY_VIOLATION"
+    TOOL_POLICY_VIOLATION = "TOOL_POLICY_VIOLATION"
+    TENANT_ISOLATION_VIOLATION = "TENANT_ISOLATION_VIOLATION"
+    MESH_FAILOVER = "MESH_FAILOVER"
+    SLO_BREACH = "SLO_BREACH"
+    COST_ANOMALY = "COST_ANOMALY"
+    GOVERNANCE_BYPASS_ATTEMPT = "GOVERNANCE_BYPASS_ATTEMPT"
+    EVIDENCE_CHAIN_FAILURE = "EVIDENCE_CHAIN_FAILURE"
+    REMEDIATION_FAILURE = "REMEDIATION_FAILURE"
 
 class UISmokeRun(Base):
     """Log record for a complete UI smoke test run."""
@@ -627,40 +741,11 @@ class UICrisisControlState(Base):
 
 # --- Phase 10: Final Enterprise Readiness & Release Gate Models ---
 
-class UIRedTeamScenario(Base):
-    """AI-generated adversarial scenarios to test system robustness."""
-    __tablename__ = "ui_red_team_scenarios"
+# --- Phase 10 Red Team placeholders removed in favor of Phase 24 consolidation ---
 
-    id          = Column(GUID, primary_key=True, default=uuid.uuid4)
-    name        = Column(String(128), nullable=False)
-    description = Column(Text)
-    risk_type   = Column(String(64)) # governance_bypass, repair_loop, etc.
-    
-    expected_detection = Column(String(64))
-    expected_severity  = Column(String(32))
-    expected_policy_decision = Column(String(64))
-    
-    is_destructive = Column(Boolean, default=False)
-    created_at     = Column(DateTime(timezone=True), default=utcnow)
 
-class UIRedTeamRun(Base):
-    """Execution results of Red Team scenarios."""
-    __tablename__ = "ui_red_team_runs"
+# --- Phase 10 Red Team runs removed in favor of Phase 24 operations ---
 
-    id          = Column(GUID, primary_key=True, default=uuid.uuid4)
-    scenario_id = Column(GUID, ForeignKey("ui_red_team_scenarios.id"))
-    status      = Column(String(32), default="PENDING")
-    
-    actual_detection = Column(String(64))
-    actual_severity  = Column(String(32))
-    actual_decision  = Column(String(64))
-    
-    passed          = Column(Boolean, default=False)
-    vulnerability_found = Column(Boolean, default=False)
-    findings_json   = Column(SmartJSON(), default=dict)
-    
-    started_at  = Column(DateTime(timezone=True), default=utcnow)
-    finished_at = Column(DateTime(timezone=True))
 
 class UIEnterpriseReadinessAssessment(Base):
     """Holistic scoring of the UI repair system for enterprise production."""
@@ -699,21 +784,7 @@ class UIReleaseGateDecision(Base):
     approver    = Column(String(128))
     decided_at  = Column(DateTime(timezone=True), default=utcnow)
 
-class UIFinalAuditPack(Base):
-    """Aggregated evidence and governance documents for external audit."""
-    __tablename__ = "ui_final_audit_packs"
 
-    id          = Column(GUID, primary_key=True, default=uuid.uuid4)
-    name        = Column(String(128))
-    version     = Column(String(32))
-    
-    summary_report_path = Column(String(512))
-    evidence_bundle_hash = Column(String(128))
-    
-    content_manifest_json = Column(SmartJSON(), default=dict)
-    
-    is_sealed   = Column(Boolean, default=True)
-    created_at  = Column(DateTime(timezone=True), default=utcnow)
 
 class UIOperatorHandoverReport(Base):
     """Operational documentation for human-in-the-loop takeover."""
@@ -1541,7 +1612,7 @@ class UIGlobalSLOSnapshot(Base):
     repair_success_rate: Mapped[float] = mapped_column(Float)
     failover_success_rate: Mapped[float] = mapped_column(Float)
     policy_violation_count: Mapped[int] = mapped_column(Integer, default=0)
-    evidence_sync_success_rate: Mapped[float] = mapped_column(Float)
+    evidence_sync_success_rate: Mapped[float] = mapped_column(Float, default=100.0)
     
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
@@ -1567,3 +1638,1803 @@ class UIAutomatedPostmortem(Base):
     
     evidence_hash: Mapped[Optional[str]] = mapped_column(String(255))
     generated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+class ToolType(str, enum.Enum):
+    MCP_SERVER = "MCP_SERVER"
+    GITHUB = "GITHUB"
+    GITLAB = "GITLAB"
+    BROWSER_AUTOMATION = "BROWSER_AUTOMATION"
+    LLM_PROVIDER = "LLM_PROVIDER"
+    NOTIFICATION_PROVIDER = "NOTIFICATION_PROVIDER"
+    ISSUE_TRACKER = "ISSUE_TRACKER"
+    CLOUD_API = "CLOUD_API"
+    FILE_SYSTEM = "FILE_SYSTEM"
+    DATABASE = "DATABASE"
+    WEB_SEARCH = "WEB_SEARCH"
+    CUSTOM_API = "CUSTOM_API"
+
+class ToolDecision(str, enum.Enum):
+    ALLOW = "ALLOW"
+    DENY = "DENY"
+    REQUIRE_APPROVAL = "REQUIRE_APPROVAL"
+    REQUIRE_SANDBOX = "REQUIRE_SANDBOX"
+    READ_ONLY = "READ_ONLY"
+    SIMULATION_ONLY = "SIMULATION_ONLY"
+
+class ToolViolationType(str, enum.Enum):
+    SECRET_EXPOSURE = "SECRET_EXPOSURE"
+    CROSS_TENANT_ACCESS = "CROSS_TENANT_ACCESS"
+    POLICY_BYPASS = "POLICY_BYPASS"
+    UNAPPROVED_WRITE = "UNAPPROVED_WRITE"
+    UNSAFE_NETWORK_ACCESS = "UNSAFE_NETWORK_ACCESS"
+    MALICIOUS_OUTPUT = "MALICIOUS_OUTPUT"
+    COST_LIMIT_EXCEEDED = "COST_LIMIT_EXCEEDED"
+    PROVIDER_UNHEALTHY = "PROVIDER_UNHEALTHY"
+    TOOL_NOT_REGISTERED = "TOOL_NOT_REGISTERED"
+    ACTION_NOT_ALLOWED = "ACTION_NOT_ALLOWED"
+
+class ProviderStatus(str, enum.Enum):
+    HEALTHY = "HEALTHY"
+    DEGRADED = "DEGRADED"
+    UNAVAILABLE = "UNAVAILABLE"
+    RATE_LIMITED = "RATE_LIMITED"
+    BLOCKED_BY_POLICY = "BLOCKED_BY_POLICY"
+    UNKNOWN = "UNKNOWN"
+
+class UIExternalTool(Base):
+    """Phase 18: Registry of allowed external tools and their safety policies."""
+    __tablename__ = "ui_external_tools"
+    
+    id           = Column(GUID, primary_key=True, default=uuid.uuid4)
+    tool_key     = Column(String(64), unique=True, index=True)
+    tool_name    = Column(String(128))
+    tool_type    = Column(String(32)) # ToolType
+    provider     = Column(String(128))
+    description  = Column(Text)
+    enabled      = Column(Boolean, default=True)
+    risk_level   = Column(String(32), default="MEDIUM")
+    
+    tenant_scope_json   = Column(SmartJSON(), default=list) # List of allowed tenant_keys
+    project_scope_json  = Column(SmartJSON(), default=list) # List of allowed project_keys
+    allowed_actions_json = Column(SmartJSON(), default=list)
+    blocked_actions_json = Column(SmartJSON(), default=list)
+    
+    requires_approval   = Column(Boolean, default=False)
+    requires_sandbox    = Column(Boolean, default=False)
+    cost_policy_json    = Column(SmartJSON(), default=dict)
+    
+    created_at   = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+    updated_at   = Column(DateTime(timezone=True), onupdate=datetime.now(timezone.utc))
+
+class UIMCPServer(Base):
+    """Phase 18: Registry and health of Model Context Protocol (MCP) servers."""
+    __tablename__ = "ui_mcp_servers"
+    
+    id           = Column(GUID, primary_key=True, default=uuid.uuid4)
+    server_key   = Column(String(64), unique=True, index=True)
+    server_name  = Column(String(128))
+    endpoint     = Column(String(512))
+    transport_type = Column(String(32), default="stdio") # stdio, sse
+    enabled      = Column(Boolean, default=True)
+    
+    tenant_scope_json   = Column(SmartJSON(), default=list)
+    allowed_tools_json  = Column(SmartJSON(), default=list)
+    blocked_tools_json  = Column(SmartJSON(), default=list)
+    
+    auth_mode    = Column(String(32), default="NONE")
+    risk_level   = Column(String(32), default="MEDIUM")
+    health_status = Column(String(32), default="UNKNOWN") # ProviderStatus
+    
+    last_checked_at = Column(DateTime(timezone=True))
+    created_at   = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+    updated_at   = Column(DateTime(timezone=True), onupdate=datetime.now(timezone.utc))
+
+class UIToolPermission(Base):
+    """Phase 18: Granular permission matrix for tool-tenant-project tuples."""
+    __tablename__ = "ui_tool_permissions"
+    
+    id           = Column(GUID, primary_key=True, default=uuid.uuid4)
+    tool_key     = Column(String(64), index=True)
+    tenant_key   = Column(String(64), index=True)
+    project_key  = Column(String(64), index=True)
+    action_type  = Column(String(64), index=True)
+    
+    decision     = Column(String(32)) # ToolDecision
+    reason       = Column(Text)
+    requires_approval = Column(Boolean, default=False)
+    requires_sandbox  = Column(Boolean, default=False)
+    
+    created_at   = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+    updated_at   = Column(DateTime(timezone=True), onupdate=datetime.now(timezone.utc))
+
+class UIToolCallAudit(Base):
+    """Phase 18: Non-repudiable ledger of all external tool calls."""
+    __tablename__ = "ui_tool_call_audits"
+    
+    id           = Column(GUID, primary_key=True, default=uuid.uuid4)
+    tool_key     = Column(String(64), index=True)
+    server_key   = Column(String(64), nullable=True, index=True)
+    tenant_key   = Column(String(64), index=True)
+    project_key  = Column(String(64), index=True)
+    
+    caller_type  = Column(String(32)) # AGENT, OPERATOR, SYSTEM
+    caller_id    = Column(String(128))
+    action_type  = Column(String(128))
+    
+    input_hash   = Column(String(128))
+    output_hash  = Column(String(128))
+    redaction_applied = Column(Boolean, default=False)
+    
+    policy_decision = Column(String(32)) # ToolDecision
+    risk_level      = Column(String(32))
+    cost_estimate_usd = Column(Float, default=0.0)
+    latency_ms      = Column(Integer)
+    
+    status       = Column(String(32)) # SUCCESS, FAILED, BLOCKED
+    error_message = Column(Text)
+    evidence_hash = Column(String(128))
+    
+    created_at   = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+
+class UIToolPolicyViolation(Base):
+    """Phase 18: Recorded security violations and policy breaches."""
+    __tablename__ = "ui_tool_policy_violations"
+    
+    id           = Column(GUID, primary_key=True, default=uuid.uuid4)
+    tool_key     = Column(String(64), index=True)
+    server_key   = Column(String(64), nullable=True)
+    tenant_key   = Column(String(64), index=True)
+    project_key  = Column(String(64), index=True)
+    
+    violation_type = Column(String(64), index=True) # ToolViolationType
+    severity     = Column(String(32), default="MEDIUM")
+    description  = Column(Text)
+    blocked      = Column(Boolean, default=True)
+    
+    incident_id   = Column(GUID, nullable=True)
+    evidence_hash = Column(String(128))
+    
+    created_at   = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+    resolved_at  = Column(DateTime(timezone=True))
+
+class UIProviderHealth(Base):
+    """Phase 18: Operational health of third-party API providers."""
+    __tablename__ = "ui_provider_health"
+    
+    id           = Column(GUID, primary_key=True, default=uuid.uuid4)
+    provider     = Column(String(128), unique=True, index=True)
+    status       = Column(String(32)) # ProviderStatus
+    
+    latency_ms      = Column(Integer, default=0)
+    error_rate      = Column(Float, default=0.0)
+    cost_spike_detected = Column(Boolean, default=False)
+    
+    last_success_at = Column(DateTime(timezone=True))
+    last_failure_at = Column(DateTime(timezone=True))
+    health_score    = Column(Float, default=1.0) # 0.0 to 1.0
+    
+    created_at   = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+
+class UIThirdPartyRiskAssessment(Base):
+    """Phase 18: Periodic risk assessment for external integrations."""
+    __tablename__ = "ui_third_party_risk_assessments"
+    
+    id           = Column(GUID, primary_key=True, default=uuid.uuid4)
+    provider     = Column(String(128), index=True)
+    tool_key     = Column(String(64), nullable=True, index=True)
+    
+    risk_score   = Column(Float) # 0 to 100
+    risk_level   = Column(String(32)) # LOW, MEDIUM, HIGH, CRITICAL
+    findings_json = Column(SmartJSON(), default=list)
+    recommendation = Column(Text)
+    
+    assessed_at  = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+
+# --- Phase 19: Sovereign Identity Framework v2 ---
+
+class IdentityType(str, enum.Enum):
+    AGENT = "AGENT"
+    WORKER = "WORKER"
+    TOOL = "TOOL"
+    MCP_SERVER = "MCP_SERVER"
+    CLUSTER_NODE = "CLUSTER_NODE"
+    OPERATOR = "OPERATOR"
+    SERVICE_ACCOUNT = "SERVICE_ACCOUNT"
+
+class IdentityStatus(str, enum.Enum):
+    ACTIVE = "ACTIVE"
+    SUSPENDED = "SUSPENDED"
+    REVOKED = "REVOKED"
+    QUARANTINED = "QUARANTINED"
+
+class HandshakeStatus(str, enum.Enum):
+    PASSED = "PASSED"
+    FAILED = "FAILED"
+    BLOCKED_BY_POLICY = "BLOCKED_BY_POLICY"
+    BLOCKED_BY_SCOPE = "BLOCKED_BY_SCOPE"
+    BLOCKED_BY_STALE_TOKEN = "BLOCKED_BY_STALE_TOKEN"
+    BLOCKED_BY_REPLAY_GUARD = "BLOCKED_BY_REPLAY_GUARD"
+
+class UISovereignIdentity(Base):
+    """Phase 19: Unified identity registry for all entities."""
+    __tablename__ = "ui_sovereign_identities"
+    
+    id           = Column(GUID, primary_key=True, default=uuid.uuid4)
+    identity_key = Column(String(128), unique=True, index=True)
+    identity_type = Column(String(32)) # IdentityType
+    display_name = Column(String(128))
+    
+    tenant_key   = Column(String(64), index=True)
+    project_key  = Column(String(64), index=True)
+    cluster_key  = Column(String(64), index=True)
+    
+    allowed_actions_json = Column(SmartJSON(), default=list)
+    trust_level  = Column(String(32), default="STANDARD")
+    status       = Column(String(32), default="ACTIVE") # IdentityStatus
+    
+    public_key_fingerprint = Column(String(128))
+    
+    created_at   = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+    updated_at   = Column(DateTime(timezone=True), default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+
+class UICapabilityToken(Base):
+    """Phase 19: Short-lived, scoped authorization tokens."""
+    __tablename__ = "ui_capability_tokens"
+    
+    id           = Column(GUID, primary_key=True, default=uuid.uuid4)
+    token_id     = Column(String(128), unique=True, index=True)
+    subject_identity_key = Column(String(128), index=True)
+    
+    scope_json   = Column(SmartJSON(), default=dict)
+    allowed_actions_json = Column(SmartJSON(), default=list)
+    
+    expires_at   = Column(DateTime(timezone=True))
+    revoked_at   = Column(DateTime(timezone=True))
+    issued_by    = Column(String(128))
+    
+    evidence_hash = Column(String(128))
+    created_at   = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+
+class UIAgentHandshake(Base):
+    """Phase 19: Records of agent-to-agent cryptographic handshakes."""
+    __tablename__ = "ui_agent_handshakes"
+    
+    id           = Column(GUID, primary_key=True, default=uuid.uuid4)
+    source_identity_key = Column(String(128), index=True)
+    target_identity_key = Column(String(128), index=True)
+    
+    handshake_status = Column(String(32)) # HandshakeStatus
+    nonce        = Column(String(64), unique=True)
+    signed_context_hash = Column(String(128))
+    
+    tenant_key   = Column(String(64), index=True)
+    project_key  = Column(String(64), index=True)
+    cluster_key  = Column(String(64), index=True)
+    
+    action_type  = Column(String(64))
+    risk_level   = Column(String(32))
+    
+    created_at   = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+
+class UIIdentityAuditEvent(Base):
+    """Phase 19: Audit trail for identity and trust events."""
+    __tablename__ = "ui_identity_audit_events"
+    
+    id           = Column(GUID, primary_key=True, default=uuid.uuid4)
+    identity_key = Column(String(128), index=True)
+    event_type   = Column(String(64), index=True) # CREATED, REVOKED, HANDSHAKE_FAIL, etc.
+    action_type  = Column(String(64), nullable=True)
+    
+    decision     = Column(String(32))
+    reason       = Column(Text)
+    
+    tenant_key   = Column(String(64), index=True)
+    project_key  = Column(String(64), index=True)
+    cluster_key  = Column(String(64), index=True)
+    
+    evidence_hash = Column(String(128))
+    created_at   = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+
+class UITrustScore(Base):
+    """Phase 19: Dynamic behavior-based trust scoring."""
+    __tablename__ = "ui_trust_scores"
+    
+    id           = Column(GUID, primary_key=True, default=uuid.uuid4)
+    identity_key = Column(String(128), unique=True, index=True)
+    
+    trust_score  = Column(Float, default=1.0) # 0.0 to 1.0
+    success_count = Column(Integer, default=0)
+    policy_violation_count = Column(Integer, default=0)
+    failed_handshake_count = Column(Integer, default=0)
+    stale_token_count = Column(Integer, default=0)
+    
+    last_updated_at = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+
+class UICognitiveStatus(enum.Enum):
+    PENDING = "PENDING"
+    PASSED = "PASSED"
+    WARNING = "WARNING"
+    FAILED = "FAILED"
+    BLOCKED = "BLOCKED"
+    MANUAL_REVIEW_REQUIRED = "MANUAL_REVIEW_REQUIRED"
+
+class UICognitiveOutputType(enum.Enum):
+    STAGEHAND_DIAGNOSTIC = "STAGEHAND_DIAGNOSTIC"
+    OPENSWE_REPAIR_INSTRUCTION = "OPENSWE_REPAIR_INSTRUCTION"
+    PR_AGENT_REVIEW = "PR_AGENT_REVIEW"
+    VERIFIER_SUMMARY = "VERIFIER_SUMMARY"
+    POSTMORTEM_REPORT = "POSTMORTEM_REPORT"
+    POLICY_PROPOSAL = "POLICY_PROPOSAL"
+    FINOPS_RECOMMENDATION = "FINOPS_RECOMMENDATION"
+    RED_TEAM_SCENARIO = "RED_TEAM_SCENARIO"
+    GOVERNANCE_SUMMARY = "GOVERNANCE_SUMMARY"
+    RELEASE_NOTE = "RELEASE_NOTE"
+    PILOT_REPORT = "PILOT_REPORT"
+
+class UICognitiveFindingType(enum.Enum):
+    UNSUPPORTED_CLAIM = "UNSUPPORTED_CLAIM"
+    FABRICATED_FILE = "FABRICATED_FILE"
+    FABRICATED_ENDPOINT = "FABRICATED_ENDPOINT"
+    FABRICATED_TEST_RESULT = "FABRICATED_TEST_RESULT"
+    FABRICATED_POLICY = "FABRICATED_POLICY"
+    MISSING_EVIDENCE = "MISSING_EVIDENCE"
+    WRONG_ROOT_CAUSE = "WRONG_ROOT_CAUSE"
+    RISK_UNDERSTATEMENT = "RISK_UNDERSTATEMENT"
+    CONTEXT_DRIFT = "CONTEXT_DRIFT"
+    CONTRADICTORY_RECOMMENDATION = "CONTRADICTORY_RECOMMENDATION"
+    UNSAFE_REPAIR_INSTRUCTION = "UNSAFE_REPAIR_INSTRUCTION"
+    POLICY_DRIFT = "POLICY_DRIFT"
+
+class UICognitiveDecision(enum.Enum):
+    ALLOW = "ALLOW"
+    ALLOW_WITH_WARNING = "ALLOW_WITH_WARNING"
+    REQUIRE_MANUAL_REVIEW = "REQUIRE_MANUAL_REVIEW"
+    BLOCK_ACTION = "BLOCK_ACTION"
+    REQUEST_REGENERATION = "REQUEST_REGENERATION"
+    REQUIRE_MORE_EVIDENCE = "REQUIRE_MORE_EVIDENCE"
+
+class UICognitiveIntegrityCheck(Base):
+    """Phase 20: Zero-trust verification for LLM/Agent outputs."""
+    __tablename__ = "ui_cognitive_integrity_checks"
+    
+    id           = Column(GUID, primary_key=True, default=uuid.uuid4)
+    source_type  = Column(String(64), index=True) # e.g., REPAIR_CASE, INCIDENT
+    source_id    = Column(String(128), index=True)
+    agent_name   = Column(String(64), index=True)
+    output_type  = Column(SAEnum(UICognitiveOutputType), index=True)
+    
+    status       = Column(SAEnum(UICognitiveStatus), default=UICognitiveStatus.PENDING)
+    
+    integrity_score          = Column(Float, default=0.0)
+    hallucination_score      = Column(Float, default=0.0) # Lower is better in finding, higher is better in integrity
+    evidence_grounding_score = Column(Float, default=0.0)
+    semantic_drift_score     = Column(Float, default=0.0)
+    claim_verification_score = Column(Float, default=0.0)
+    
+    decision     = Column(SAEnum(UICognitiveDecision), nullable=True)
+    reason       = Column(Text, nullable=True)
+    
+    created_at   = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+
+class UILLMClaim(Base):
+    """Phase 20: Individual claims extracted from LLM output."""
+    __tablename__ = "ui_llm_claims"
+    
+    id           = Column(GUID, primary_key=True, default=uuid.uuid4)
+    check_id     = Column(GUID, ForeignKey("ui_cognitive_integrity_checks.id"), index=True)
+    
+    claim_text   = Column(Text)
+    claim_type   = Column(String(64)) # file, endpoint, test_result, root_cause, etc.
+    
+    verification_status = Column(String(32)) # VERIFIED, UNSUPPORTED, CONTRADICTED
+    evidence_refs_json  = Column(SmartJSON(), nullable=True)
+    
+    confidence   = Column(Float, default=0.0)
+    failure_reason = Column(Text, nullable=True)
+    
+    created_at   = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+
+class UIHallucinationFinding(Base):
+    """Phase 20: Detected hallucinations (fabricated references)."""
+    __tablename__ = "ui_hallucination_findings"
+    
+    id           = Column(GUID, primary_key=True, default=uuid.uuid4)
+    check_id     = Column(GUID, ForeignKey("ui_cognitive_integrity_checks.id"), index=True)
+    
+    finding_type = Column(SAEnum(UICognitiveFindingType))
+    severity     = Column(String(32)) # LOW, MEDIUM, HIGH, CRITICAL
+    description  = Column(Text)
+    
+    unsupported_reference = Column(String(256), nullable=True) # The fabricated file/id
+    suggested_action      = Column(String(128), nullable=True)
+    
+    blocked      = Column(Boolean, default=False)
+    created_at   = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+
+class UISemanticDriftEvent(Base):
+    """Phase 20: Records of context deviation in agent workflows."""
+    __tablename__ = "ui_semantic_drift_events"
+    
+    id           = Column(GUID, primary_key=True, default=uuid.uuid4)
+    source_type  = Column(String(64), index=True)
+    source_id    = Column(String(128), index=True)
+    
+    expected_context_hash = Column(String(128))
+    actual_context_hash   = Column(String(128))
+    
+    drift_type   = Column(String(64)) # TENANT_DRIFT, ROUTE_DRIFT, etc.
+    drift_score  = Column(Float)
+    
+    severity     = Column(String(32)) # LOW, MEDIUM, HIGH, CRITICAL
+    description  = Column(Text)
+    
+    created_at   = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+
+class UICognitivePolicyDecision(Base):
+    """Phase 20: Governance decision for cognitive checks."""
+    __tablename__ = "ui_cognitive_policy_decisions"
+    
+    id           = Column(GUID, primary_key=True, default=uuid.uuid4)
+    check_id     = Column(GUID, ForeignKey("ui_cognitive_integrity_checks.id"), index=True)
+    
+    action_type  = Column(String(64))
+    decision     = Column(SAEnum(UICognitiveDecision))
+    reason       = Column(Text)
+    
+    requires_manual_review = Column(Boolean, default=False)
+    blocked_action         = Column(String(128), nullable=True)
+    
+    evidence_hash = Column(String(128))
+    created_at   = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+
+# --- Phase 21: Autonomous Security Posture Management + Continuous Compliance Certification ---
+
+class UIPostureLevel(str, enum.Enum):
+    SECURE = "SECURE"
+    RELIABLE = "RELIABLE"
+    DEGRADED = "DEGRADED"
+    CRITICAL = "CRITICAL"
+    UNKNOWN = "UNKNOWN"
+
+class UIControlStatus(str, enum.Enum):
+    PASSED = "PASSED"
+    FAILED = "FAILED"
+    WARNING = "WARNING"
+    DISABLED = "DISABLED"
+    NOT_APPLICABLE = "NOT_APPLICABLE"
+
+class UISecurityPostureScore(Base):
+    """Phase 21: Historical tracking of the platform's security score."""
+    __tablename__ = "ui_security_posture_scores"
+    __table_args__ = {"extend_existing": True}
+    
+    id           = Column(GUID, primary_key=True, default=uuid.uuid4)
+    overall_score = Column(Float, default=0.0)
+    
+    # Domain specific scores
+    identity_score    = Column(Float, default=0.0)
+    policy_score      = Column(Float, default=0.0)
+    isolation_score   = Column(Float, default=0.0)
+    governance_score  = Column(Float, default=0.0)
+    evidence_score    = Column(Float, default=0.0)
+    
+    posture_level     = Column(SAEnum(UIPostureLevel), default=UIPostureLevel.UNKNOWN)
+    
+    tenant_key   = Column(String(64), nullable=True) # Global if null
+    created_at   = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+
+class UIComplianceControl(Base):
+    """Phase 21: Mandatory security controls definition matrix."""
+    __tablename__ = "ui_compliance_controls"
+    __table_args__ = {"extend_existing": True}
+    
+    id           = Column(GUID, primary_key=True, default=uuid.uuid4)
+    control_key  = Column(String(64), unique=True)
+    domain       = Column(String(64)) # IDENTITY, POLICY, ISOLATION, etc.
+    title        = Column(String(128))
+    description  = Column(Text)
+    
+    severity     = Column(String(32)) # LOW, MEDIUM, HIGH, CRITICAL
+    is_mandatory = Column(Boolean, default=True)
+    
+    created_at   = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+
+class UISecurityPostureFinding(Base):
+    """Phase 21: Results of specific compliance control checks."""
+    __tablename__ = "ui_security_posture_findings"
+    __table_args__ = {"extend_existing": True}
+    
+    id           = Column(GUID, primary_key=True, default=uuid.uuid4)
+    control_key  = Column(String(64))
+    status       = Column(SAEnum(UIControlStatus))
+    
+    evidence_hash = Column(String(128))
+    rationale     = Column(Text)
+    
+    tenant_key   = Column(String(64), nullable=True)
+    cluster_key  = Column(String(64), nullable=True)
+    
+    last_check_at = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+    created_at    = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+
+class UISecurityCertification(Base):
+    """Phase 21: Non-repudiable compliance certification records."""
+    __tablename__ = "ui_security_certifications"
+    __table_args__ = {"extend_existing": True}
+    
+    id           = Column(GUID, primary_key=True, default=uuid.uuid4)
+    cert_id      = Column(String(128), unique=True, index=True) # Format: CERT-YYYYMMDD-XXXX
+    
+    overall_score = Column(Float)
+    compliance_score = Column(Float)
+    
+    posture_level = Column(SAEnum(UIPostureLevel))
+    
+    summary_json = Column(SmartJSON(), default=dict) # Aggregated scores/findings
+    findings_json = Column(SmartJSON(), default=list) # Snapshot of failed controls
+    
+    certified_by = Column(String(128)) # Agent or Operator name
+    evidence_ledger_hash = Column(String(128))
+    
+    tenant_key   = Column(String(64), nullable=True)
+    created_at   = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+
+# --- Phase 22: Autonomous Remediation of Security Findings + Compliance Auto-Fix ---
+
+class RemediationStatus(str, enum.Enum):
+    PLANNED = "PLANNED"
+    WAITING_APPROVAL = "WAITING_APPROVAL"
+    AUTO_FIX_RUNNING = "AUTO_FIX_RUNNING"
+    PATCH_GENERATED = "PATCH_GENERATED"
+    PR_OPENED = "PR_OPENED"
+    VERIFIER_RUNNING = "VERIFIER_RUNNING"
+    GOVERNANCE_REQUESTED = "GOVERNANCE_REQUESTED"
+    FIX_APPLIED = "FIX_APPLIED"
+    RESCAN_REQUIRED = "RESCAN_REQUIRED"
+    FIX_VERIFIED = "FIX_VERIFIED"
+    FAILED = "FAILED"
+    MANUAL_REQUIRED = "MANUAL_REQUIRED"
+    BLOCKED_BY_POLICY = "BLOCKED_BY_POLICY"
+
+class RemediationType(str, enum.Enum):
+    POLICY_TIGHTENING = "POLICY_TIGHTENING"
+    CONFIG_HARDENING = "CONFIG_HARDENING"
+    EVIDENCE_CHAIN_REPAIR = "EVIDENCE_CHAIN_REPAIR"
+    IDENTITY_TRUST_REPAIR = "IDENTITY_TRUST_REPAIR"
+    TOOL_GOVERNANCE_REPAIR = "TOOL_GOVERNANCE_REPAIR"
+    TENANT_ISOLATION_REPAIR = "TENANT_ISOLATION_REPAIR"
+    COMPLIANCE_METADATA_FIX = "COMPLIANCE_METADATA_FIX"
+    DASHBOARD_VISIBILITY_FIX = "DASHBOARD_VISIBILITY_FIX"
+    MANUAL_SECURITY_REVIEW = "MANUAL_SECURITY_REVIEW"
+
+class UISecurityRemediationPlan(Base):
+    """Phase 22: Strategy for fixing a detected security finding."""
+    __tablename__ = "ui_security_remediation_plans"
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    finding_id: Mapped[uuid.UUID] = mapped_column(GUID, index=True)
+    finding_type: Mapped[str] = mapped_column(String(64))
+    severity: Mapped[str] = mapped_column(String(32))
+    risk_level: Mapped[str] = mapped_column(String(32))
+    
+    remediation_type: Mapped[RemediationType] = mapped_column(SAEnum(RemediationType))
+    recommended_action: Mapped[str] = mapped_column(Text)
+    
+    affected_module: Mapped[Optional[str]] = mapped_column(String(256))
+    affected_policy: Mapped[Optional[str]] = mapped_column(String(256))
+    affected_route: Mapped[Optional[str]] = mapped_column(String(256))
+    
+    requires_approval: Mapped[bool] = mapped_column(Boolean, default=True)
+    requires_patch: Mapped[bool] = mapped_column(Boolean, default=False)
+    requires_operator: Mapped[bool] = mapped_column(Boolean, default=True)
+    
+    status: Mapped[RemediationStatus] = mapped_column(SAEnum(RemediationStatus), default=RemediationStatus.PLANNED)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+class UISecurityAutoFixAttempt(Base):
+    """Phase 22: Execution record of an autonomous fix."""
+    __tablename__ = "ui_security_autofix_attempts"
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    remediation_plan_id: Mapped[uuid.UUID] = mapped_column(GUID, ForeignKey("ui_security_remediation_plans.id"), index=True)
+    finding_id: Mapped[uuid.UUID] = mapped_column(GUID, index=True)
+    
+    status: Mapped[RemediationStatus] = mapped_column(SAEnum(RemediationStatus), default=RemediationStatus.AUTO_FIX_RUNNING)
+    fix_strategy: Mapped[str] = mapped_column(String(128))
+    
+    patch_path: Mapped[Optional[str]] = mapped_column(String(512))
+    pr_url: Mapped[Optional[str]] = mapped_column(String(512))
+    
+    verifier_status: Mapped[Optional[str]] = mapped_column(String(32))
+    governance_status: Mapped[Optional[str]] = mapped_column(String(32))
+    
+    posture_before_score: Mapped[float] = mapped_column(Float, default=0.0)
+    posture_after_score: Mapped[Optional[float]] = mapped_column(Float)
+    
+    error_message: Mapped[Optional[str]] = mapped_column(Text)
+    
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+class UIComplianceFixResult(Base):
+    """Phase 22: Impact analysis of a compliance fix."""
+    __tablename__ = "ui_compliance_fix_results"
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    finding_id: Mapped[uuid.UUID] = mapped_column(GUID, index=True)
+    remediation_plan_id: Mapped[uuid.UUID] = mapped_column(GUID, index=True)
+    
+    certification_before_id: Mapped[uuid.UUID] = mapped_column(GUID, nullable=True)
+    certification_after_id: Mapped[uuid.UUID] = mapped_column(GUID, nullable=True)
+    
+    compliance_status_before: Mapped[str] = mapped_column(String(32))
+    compliance_status_after: Mapped[str] = mapped_column(String(32))
+    
+    fixed: Mapped[bool] = mapped_column(Boolean, default=False)
+    residual_risk: Mapped[Optional[str]] = mapped_column(Text)
+    evidence_hash: Mapped[Optional[str]] = mapped_column(String(128))
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+class UISecurityRemediationEvent(Base):
+    """Phase 22: Audit log for remediation events."""
+    __tablename__ = "ui_security_remediation_events"
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    finding_id: Mapped[uuid.UUID] = mapped_column(GUID, index=True)
+    plan_id: Mapped[uuid.UUID] = mapped_column(GUID, index=True)
+    attempt_id: Mapped[Optional[uuid.UUID]] = mapped_column(GUID, index=True)
+    
+    event_type: Mapped[str] = mapped_column(String(64))
+    message: Mapped[str] = mapped_column(Text)
+    payload_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON(), default=dict)
+    evidence_hash: Mapped[Optional[str]] = mapped_column(String(128))
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+class AssetType(str, enum.Enum):
+    TENANT = "TENANT"
+    PROJECT = "PROJECT"
+    CLUSTER = "CLUSTER"
+    IDENTITY = "IDENTITY"
+    CAPABILITY_TOKEN = "CAPABILITY_TOKEN"
+    MCP_SERVER = "MCP_SERVER"
+    EXTERNAL_TOOL = "EXTERNAL_TOOL"
+    POLICY_RULE = "POLICY_RULE"
+    GOVERNANCE_APPROVAL = "GOVERNANCE_APPROVAL"
+    EVIDENCE_RECORD = "EVIDENCE_RECORD"
+    REPAIR_CASE = "REPAIR_CASE"
+    REPAIR_ATTEMPT = "REPAIR_ATTEMPT"
+    MESH_NODE = "MESH_NODE"
+    PROVIDER = "PROVIDER"
+    DASHBOARD_ROUTE = "DASHBOARD_ROUTE"
+    API_ENDPOINT = "API_ENDPOINT"
+
+class AttackPathType(str, enum.Enum):
+    TENANT_ISOLATION_BYPASS = "TENANT_ISOLATION_BYPASS"
+    POLICY_BYPASS = "POLICY_BYPASS"
+    IDENTITY_IMPERSONATION = "IDENTITY_IMPERSONATION"
+    TOOL_ABUSE = "TOOL_ABUSE"
+    SECRET_EXFILTRATION = "SECRET_EXFILTRATION"
+    EVIDENCE_TAMPERING = "EVIDENCE_TAMPERING"
+    GOVERNANCE_BYPASS = "GOVERNANCE_BYPASS"
+    AUTO_APPLY_ABUSE = "AUTO_APPLY_ABUSE"
+    MCP_WRITE_ABUSE = "MCP_WRITE_ABUSE"
+    MESH_FAILOVER_ABUSE = "MESH_FAILOVER_ABUSE"
+    COGNITIVE_HALLUCINATION_EXPLOIT = "COGNITIVE_HALLUCINATION_EXPLOIT"
+    COST_EXHAUSTION_ATTACK = "COST_EXHAUSTION_ATTACK"
+
+class UIAttackSurfaceAsset(Base):
+    """Phase 23: Asset inventory for threat modeling."""
+    __tablename__ = "ui_attack_surface_assets"
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    asset_key: Mapped[str] = mapped_column(String(128), unique=True, index=True)
+    asset_type: Mapped[str] = mapped_column(String(64)) # From AssetType enum
+    
+    project_key: Mapped[Optional[str]] = mapped_column(String(64), index=True)
+    tenant_key: Mapped[Optional[str]] = mapped_column(String(64), index=True)
+    cluster_key: Mapped[Optional[str]] = mapped_column(String(64), index=True)
+    
+    exposure_level: Mapped[str] = mapped_column(String(32)) # LOW, MEDIUM, HIGH, CRITICAL
+    criticality: Mapped[str] = mapped_column(String(32)) # LOW, MEDIUM, HIGH, CRITICAL
+    owner_team: Mapped[Optional[str]] = mapped_column(String(128))
+    
+    metadata_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON(), default=dict)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+class UIThreatModel(Base):
+    """Phase 23: High-level threat model analysis."""
+    __tablename__ = "ui_threat_models"
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    model_name: Mapped[str] = mapped_column(String(256))
+    scope: Mapped[str] = mapped_column(String(64)) # SYSTEM, TENANT, PROJECT
+    
+    tenant_key: Mapped[Optional[str]] = mapped_column(String(64), index=True)
+    project_key: Mapped[Optional[str]] = mapped_column(String(64), index=True)
+    cluster_key: Mapped[Optional[str]] = mapped_column(String(64), index=True)
+    
+    status: Mapped[str] = mapped_column(String(32)) # GENERATING, ACTIVE, ARCHIVED
+    generated_by: Mapped[str] = mapped_column(String(128))
+    
+    summary_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON(), default=dict)
+    evidence_hash: Mapped[Optional[str]] = mapped_column(String(128))
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+class UIAttackPath(Base):
+    """Phase 23: Potential attack paths identified in the threat model."""
+    __tablename__ = "ui_attack_paths"
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    threat_model_id: Mapped[uuid.UUID] = mapped_column(GUID, index=True)
+    
+    path_name: Mapped[str] = mapped_column(String(256))
+    path_type: Mapped[str] = mapped_column(String(64)) # From AttackPathType enum
+    
+    source_asset_key: Mapped[str] = mapped_column(String(128))
+    target_asset_key: Mapped[str] = mapped_column(String(128))
+    
+    attack_steps_json: Mapped[List[Dict[str, Any]]] = mapped_column(SmartJSON(), default=list)
+    required_conditions_json: Mapped[List[str]] = mapped_column(SmartJSON(), default=list)
+    
+    risk_score: Mapped[float] = mapped_column(Float, default=0.0)
+    severity: Mapped[str] = mapped_column(String(32)) # LOW, MEDIUM, HIGH, CRITICAL
+    feasibility: Mapped[float] = mapped_column(Float, default=0.0) # 0.0 to 1.0
+    impact: Mapped[float] = mapped_column(Float, default=0.0) # 0.0 to 1.0
+    
+    mitigation_status: Mapped[str] = mapped_column(String(32), default="UNMITIGATED") # UNMITIGATED, MITIGATED, PARTIAL
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+class UIAttackSimulationRun(Base):
+    """Phase 23: Results of a controlled attack simulation."""
+    __tablename__ = "ui_attack_simulation_runs"
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    attack_path_id: Mapped[uuid.UUID] = mapped_column(GUID, index=True)
+    
+    status: Mapped[str] = mapped_column(String(32)) # RUNNING, COMPLETED, FAILED
+    simulation_mode: Mapped[str] = mapped_column(String(32)) # DRY_RUN, SHADOW, ACTIVE_TEST
+    
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    
+    detected_controls_json: Mapped[List[str]] = mapped_column(SmartJSON(), default=list)
+    bypassed_controls_json: Mapped[List[str]] = mapped_column(SmartJSON(), default=list)
+    blocked_by_json: Mapped[Optional[Dict[str, Any]]] = mapped_column(SmartJSON())
+    
+    result_summary_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON(), default=dict)
+    evidence_hash: Mapped[Optional[str]] = mapped_column(String(128))
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+class UIThreatMitigation(Base):
+    """Phase 23: Recommended and applied mitigations for threat paths."""
+    __tablename__ = "ui_threat_mitigations"
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    attack_path_id: Mapped[uuid.UUID] = mapped_column(GUID, index=True)
+    
+    mitigation_type: Mapped[str] = mapped_column(String(64))
+    recommendation: Mapped[str] = mapped_column(Text)
+    
+    related_policy_key: Mapped[Optional[str]] = mapped_column(String(128))
+    related_control_id: Mapped[Optional[str]] = mapped_column(String(128))
+    remediation_plan_id: Mapped[Optional[uuid.UUID]] = mapped_column(GUID, index=True)
+    
+    status: Mapped[str] = mapped_column(String(32)) # PENDING, LINKED, APPLIED
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+# --- Phase 24: Autonomous Red Teaming + Adversarial Drift Detection ---
+
+class UIRedTeamScenario(Base):
+    """Phase 24: Pre-defined or dynamically generated adversarial attack scenarios."""
+    __tablename__ = "ui_red_team_scenarios"
+    __table_args__ = {"extend_existing": True}
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    scenario_key: Mapped[str] = mapped_column(String(64), unique=True)
+    scenario_name: Mapped[str] = mapped_column(String(255))
+    description: Mapped[str] = mapped_column(Text)
+    
+    source_attack_path_id: Mapped[Optional[uuid.UUID]] = mapped_column(GUID, ForeignKey("ui_attack_simulation_runs.id"))
+    scenario_type: Mapped[RedTeamScenarioType] = mapped_column(SAEnum(RedTeamScenarioType))
+    target_domain: Mapped[RedTeamTargetDomain] = mapped_column(SAEnum(RedTeamTargetDomain))
+    target_asset_key: Mapped[Optional[str]] = mapped_column(String(128))
+    
+    tenant_key: Mapped[Optional[str]] = mapped_column(String(128))
+    project_key: Mapped[Optional[str]] = mapped_column(String(128))
+    cluster_key: Mapped[Optional[str]] = mapped_column(String(128))
+    
+    risk_level: Mapped[str] = mapped_column(String(32)) # LOW, MEDIUM, HIGH, CRITICAL
+    safety_mode: Mapped[RedTeamSafetyMode] = mapped_column(SAEnum(RedTeamSafetyMode), default=RedTeamSafetyMode.SIMULATION_ONLY)
+    
+    expected_control: Mapped[Optional[str]] = mapped_column(String(128))
+    expected_block_reason: Mapped[Optional[str]] = mapped_column(String(255))
+    
+    payload_template_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON(), default=dict)
+    
+    enabled: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    # Legacy Compatibility (Phase 10)
+    risk_type: Mapped[Optional[str]] = mapped_column(String(64))
+    expected_detection: Mapped[Optional[str]] = mapped_column(String(64))
+    expected_severity: Mapped[Optional[str]] = mapped_column(String(32))
+    expected_policy_decision: Mapped[Optional[str]] = mapped_column(String(64))
+    is_destructive: Mapped[bool] = mapped_column(Boolean, default=False)
+
+class UIRedTeamRun(Base):
+    """Phase 24: Execution record of an autonomous Red Team scenario."""
+    __tablename__ = "ui_red_team_runs"
+    __table_args__ = {"extend_existing": True}
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    scenario_id: Mapped[uuid.UUID] = mapped_column(GUID, ForeignKey("ui_red_team_scenarios.id"))
+    
+    status: Mapped[RedTeamRunStatus] = mapped_column(SAEnum(RedTeamRunStatus), default=RedTeamRunStatus.PENDING)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    
+    safety_mode: Mapped[RedTeamSafetyMode] = mapped_column(SAEnum(RedTeamSafetyMode))
+    
+    detected_by_control: Mapped[Optional[str]] = mapped_column(String(128))
+    blocked_by_control: Mapped[Optional[str]] = mapped_column(String(128))
+    
+    bypassed_controls_json: Mapped[List[str]] = mapped_column(SmartJSON(), default=list)
+    triggered_controls_json: Mapped[List[str]] = mapped_column(SmartJSON(), default=list)
+    result_summary_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON(), default=dict)
+    
+    evidence_hash: Mapped[Optional[str]] = mapped_column(String(128))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    # Legacy Compatibility (Phase 10)
+    actual_detection: Mapped[Optional[str]] = mapped_column(String(64))
+    actual_severity: Mapped[Optional[str]] = mapped_column(String(32))
+    actual_decision: Mapped[Optional[str]] = mapped_column(String(64))
+
+class UIAdversarialProbe(Base):
+    """Phase 24: Individual probe within a Red Team run."""
+    __tablename__ = "ui_adversarial_probes"
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    run_id: Mapped[uuid.UUID] = mapped_column(GUID, ForeignKey("ui_red_team_runs.id"))
+    
+    probe_type: Mapped[str] = mapped_column(String(64))
+    target_domain: Mapped[RedTeamTargetDomain] = mapped_column(SAEnum(RedTeamTargetDomain))
+    
+    input_payload_hash: Mapped[Optional[str]] = mapped_column(String(128))
+    expected_decision: Mapped[str] = mapped_column(String(32)) # ALLOW, DENY, APPROVE
+    actual_decision: Mapped[str] = mapped_column(String(32))
+    
+    passed: Mapped[bool] = mapped_column(default=False)
+    failure_reason: Mapped[Optional[str]] = mapped_column(Text)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+class UIAdversarialDriftEvent(Base):
+    """Phase 24: Records deviations in system security behavior during adversarial pressure."""
+    __tablename__ = "ui_adversarial_drift_events"
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    run_id: Mapped[Optional[uuid.UUID]] = mapped_column(GUID, ForeignKey("ui_red_team_runs.id"))
+    
+    domain: Mapped[RedTeamTargetDomain] = mapped_column(SAEnum(RedTeamTargetDomain))
+    drift_type: Mapped[AdversarialDriftType] = mapped_column(SAEnum(AdversarialDriftType))
+    
+    baseline_hash: Mapped[Optional[str]] = mapped_column(String(128))
+    observed_behavior_hash: Mapped[Optional[str]] = mapped_column(String(128))
+    
+    drift_score: Mapped[float] = mapped_column(Float)
+    severity: Mapped[str] = mapped_column(String(32)) # LOW, MEDIUM, HIGH, CRITICAL
+    description: Mapped[str] = mapped_column(Text)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+class UIRedTeamFinding(Base):
+    """Phase 24: Security findings generated from Red Team operations."""
+    __tablename__ = "ui_red_team_findings"
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    run_id: Mapped[uuid.UUID] = mapped_column(GUID, ForeignKey("ui_red_team_runs.id"))
+    scenario_id: Mapped[uuid.UUID] = mapped_column(GUID, ForeignKey("ui_red_team_scenarios.id"))
+    
+    finding_type: Mapped[str] = mapped_column(String(64))
+    severity: Mapped[str] = mapped_column(String(32))
+    description: Mapped[str] = mapped_column(Text)
+    
+    affected_control: Mapped[Optional[str]] = mapped_column(String(128))
+    affected_domain: Mapped[RedTeamTargetDomain] = mapped_column(SAEnum(RedTeamTargetDomain))
+    
+    feasible: Mapped[bool] = mapped_column(default=False)
+    remediation_plan_id: Mapped[Optional[uuid.UUID]] = mapped_column(GUID)
+    incident_id: Mapped[Optional[uuid.UUID]] = mapped_column(GUID)
+    
+    evidence_hash: Mapped[Optional[str]] = mapped_column(String(128))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+
+class UIRedTeamReport(Base):
+    """Phase 24: Executive summary report for Red Team operations."""
+    __tablename__ = "ui_red_team_reports"
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    report_name: Mapped[str] = mapped_column(String(255))
+    
+    period_start: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    period_end: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    
+    total_scenarios: Mapped[int] = mapped_column(Integer, default=0)
+    passed_scenarios: Mapped[int] = mapped_column(Integer, default=0)
+    failed_scenarios: Mapped[int] = mapped_column(Integer, default=0)
+    
+    critical_findings: Mapped[int] = mapped_column(Integer, default=0)
+    high_findings: Mapped[int] = mapped_column(Integer, default=0)
+    drift_events: Mapped[int] = mapped_column(Integer, default=0)
+    
+    executive_summary: Mapped[str] = mapped_column(Text)
+    report_path: Mapped[Optional[str]] = mapped_column(String(512))
+    evidence_hash: Mapped[Optional[str]] = mapped_column(String(128))
+    
+    generated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class UIGuardrailTuningProposal(Base):
+    """Phase 25: Proposal for tuning a security guardrail."""
+    __tablename__ = "ui_guardrail_tuning_proposals"
+    __table_args__ = {"extend_existing": True}
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    proposal_key: Mapped[str] = mapped_column(String(64), unique=True)
+    
+    source_type: Mapped[str] = mapped_column(String(64)) # RED_TEAM, POSTURE, DRIFT, COMPLIANCE
+    source_id: Mapped[Optional[uuid.UUID]] = mapped_column(GUID)
+    
+    affected_guardrail: Mapped[str] = mapped_column(String(128))
+    affected_policy_key: Mapped[str] = mapped_column(String(128))
+    
+    current_config_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON(), default=dict)
+    proposed_config_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON(), default=dict)
+    
+    reason: Mapped[str] = mapped_column(Text)
+    expected_security_gain: Mapped[float] = mapped_column(Float, default=0.0)
+    expected_false_positive_impact: Mapped[float] = mapped_column(Float, default=0.0)
+    expected_false_negative_impact: Mapped[float] = mapped_column(Float, default=0.0)
+    
+    risk_level: Mapped[UIRepairSeverity] = mapped_column(SAEnum(UIRepairSeverity))
+    status: Mapped[GuardrailTuningStatus] = mapped_column(SAEnum(GuardrailTuningStatus), default=GuardrailTuningStatus.DRAFT)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+class UIDefensivePattern(Base):
+    """Phase 25: Reusable defensive pattern synthesized from findings."""
+    __tablename__ = "ui_defensive_patterns"
+    __table_args__ = {"extend_existing": True}
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    pattern_key: Mapped[str] = mapped_column(String(64), unique=True)
+    source_finding_id: Mapped[Optional[uuid.UUID]] = mapped_column(GUID)
+    
+    pattern_type: Mapped[str] = mapped_column(String(64)) # DETECTION, DENY, APPROVAL, SANDBOX, MONITORING, COGNITIVE, ESCALATION
+    affected_domain: Mapped[GuardrailDomain] = mapped_column(SAEnum(GuardrailDomain))
+    
+    description: Mapped[str] = mapped_column(Text)
+    detection_rule_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON(), default=dict)
+    mitigation_rule_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON(), default=dict)
+    
+    confidence: Mapped[float] = mapped_column(Float, default=0.0)
+    status: Mapped[str] = mapped_column(String(32), default="DRAFT") # DRAFT, ACTIVE, DEPRECATED
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+class UIPolicyRegressionRun(Base):
+    """Phase 25: Verification run to check if a proposal causes regressions."""
+    __tablename__ = "ui_policy_regression_runs"
+    __table_args__ = {"extend_existing": True}
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    proposal_id: Mapped[uuid.UUID] = mapped_column(GUID, ForeignKey("ui_guardrail_tuning_proposals.id"))
+    
+    status: Mapped[str] = mapped_column(String(32)) # RUNNING, PASSED, FAILED
+    tested_events_count: Mapped[int] = mapped_column(Integer, default=0)
+    allowed_count: Mapped[int] = mapped_column(Integer, default=0)
+    denied_count: Mapped[int] = mapped_column(Integer, default=0)
+    false_allow_count: Mapped[int] = mapped_column(Integer, default=0)
+    false_block_count: Mapped[int] = mapped_column(Integer, default=0)
+    
+    regression_score: Mapped[float] = mapped_column(Float, default=1.0)
+    result_summary_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON(), default=dict)
+    
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+class UIGuardrailCanaryRun(Base):
+    """Phase 25: Real-world canary deployment of a tuning proposal."""
+    __tablename__ = "ui_guardrail_canary_runs"
+    __table_args__ = {"extend_existing": True}
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    proposal_id: Mapped[uuid.UUID] = mapped_column(GUID, ForeignKey("ui_guardrail_tuning_proposals.id"))
+    
+    status: Mapped[str] = mapped_column(String(32)) # RUNNING, PASSED, FAILED
+    canary_scope_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON(), default=dict)
+    
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    
+    observed_events: Mapped[int] = mapped_column(Integer, default=0)
+    blocked_events: Mapped[int] = mapped_column(Integer, default=0)
+    unexpected_allows: Mapped[int] = mapped_column(Integer, default=0)
+    unexpected_blocks: Mapped[int] = mapped_column(Integer, default=0)
+    
+    rollback_required: Mapped[bool] = mapped_column(Boolean, default=False)
+    result_summary_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON(), default=dict)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+class UIDefenseOptimizationReport(Base):
+    """Phase 25: Executive report on defense optimization performance."""
+    __tablename__ = "ui_defense_optimization_reports"
+    __table_args__ = {"extend_existing": True}
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    report_name: Mapped[str] = mapped_column(String(255))
+    
+    period_start: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    period_end: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    
+    total_proposals: Mapped[int] = mapped_column(Integer, default=0)
+    approved_proposals: Mapped[int] = mapped_column(Integer, default=0)
+    rejected_proposals: Mapped[int] = mapped_column(Integer, default=0)
+    
+    security_score_before: Mapped[float] = mapped_column(Float, default=0.0)
+    security_score_after: Mapped[float] = mapped_column(Float, default=0.0)
+    
+    false_allow_delta: Mapped[int] = mapped_column(Integer, default=0)
+    false_block_delta: Mapped[int] = mapped_column(Integer, default=0)
+    
+    executive_summary: Mapped[str] = mapped_column(Text)
+    evidence_hash: Mapped[Optional[str]] = mapped_column(String(128))
+    
+    generated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class UIIncidentWarRoom(Base):
+    """Phase 26: Central crisis management for critical incidents."""
+    __tablename__ = "ui_incident_war_rooms"
+    __table_args__ = {"extend_existing": True}
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    incident_key: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    title: Mapped[str] = mapped_column(String(255))
+    
+    severity: Mapped[IncidentSeverity] = mapped_column(SAEnum(IncidentSeverity), index=True)
+    status: Mapped[WarRoomStatus] = mapped_column(SAEnum(WarRoomStatus), default=WarRoomStatus.OPEN, index=True)
+    
+    source_type: Mapped[IncidentSource] = mapped_column(SAEnum(IncidentSource))
+    source_id: Mapped[Optional[uuid.UUID]] = mapped_column(GUID)
+    
+    tenant_key: Mapped[Optional[str]] = mapped_column(String(64), index=True)
+    project_key: Mapped[Optional[str]] = mapped_column(String(64), index=True)
+    cluster_key: Mapped[Optional[str]] = mapped_column(String(64), index=True)
+    
+    assigned_commander: Mapped[Optional[str]] = mapped_column(String(128))
+    owner_team: Mapped[Optional[str]] = mapped_column(String(128))
+    
+    blast_radius_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON(), default=dict)
+    business_impact_score: Mapped[float] = mapped_column(Float, default=0.0)
+    executive_risk_score: Mapped[float] = mapped_column(Float, default=0.0)
+    
+    opened_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    evidence_hash: Mapped[Optional[str]] = mapped_column(String(128))
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+class UIIncidentTimelineEvent(Base):
+    """Phase 26: Event timeline for an incident."""
+    __tablename__ = "ui_incident_timeline_events"
+    __table_args__ = {"extend_existing": True}
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    war_room_id: Mapped[uuid.UUID] = mapped_column(GUID, ForeignKey("ui_incident_war_rooms.id"))
+    
+    event_type: Mapped[str] = mapped_column(String(64))
+    actor: Mapped[str] = mapped_column(String(128))
+    message: Mapped[str] = mapped_column(Text)
+    
+    source_ref: Mapped[Optional[str]] = mapped_column(String(255))
+    payload_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON(), default=dict)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    evidence_hash: Mapped[Optional[str]] = mapped_column(String(128))
+
+class UIExecutiveRiskSnapshot(Base):
+    """Phase 26: Periodic snapshot of global executive risk."""
+    __tablename__ = "ui_executive_risk_snapshots"
+    __table_args__ = {"extend_existing": True}
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    snapshot_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    
+    global_risk_score: Mapped[float] = mapped_column(Float, default=0.0)
+    active_p0_count: Mapped[int] = mapped_column(Integer, default=0)
+    active_p1_count: Mapped[int] = mapped_column(Integer, default=0)
+    
+    affected_tenants: Mapped[int] = mapped_column(Integer, default=0)
+    affected_clusters: Mapped[int] = mapped_column(Integer, default=0)
+    
+    open_remediations: Mapped[int] = mapped_column(Integer, default=0)
+    governance_waiting: Mapped[int] = mapped_column(Integer, default=0)
+    
+    executive_summary: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+class UIIncidentActionItem(Base):
+    """Phase 26: Individual action items for incident response."""
+    __tablename__ = "ui_incident_action_items"
+    __table_args__ = {"extend_existing": True}
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    war_room_id: Mapped[uuid.UUID] = mapped_column(GUID, ForeignKey("ui_incident_war_rooms.id"))
+    
+    action_type: Mapped[str] = mapped_column(String(64))
+    title: Mapped[str] = mapped_column(String(255))
+    owner: Mapped[str] = mapped_column(String(128))
+    status: Mapped[str] = mapped_column(String(32), default="PENDING") # PENDING, IN_PROGRESS, COMPLETED, CANCELLED
+    
+    due_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    linked_remediation_id: Mapped[Optional[uuid.UUID]] = mapped_column(GUID)
+    linked_postmortem_id: Mapped[Optional[uuid.UUID]] = mapped_column(GUID)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+class UIExecutiveRiskReport(Base):
+    """Phase 26: Formal executive risk report."""
+    __tablename__ = "ui_executive_risk_reports"
+    __table_args__ = {"extend_existing": True}
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    report_name: Mapped[str] = mapped_column(String(255))
+    
+    period_start: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    period_end: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    
+    total_incidents: Mapped[int] = mapped_column(Integer, default=0)
+    p0_count: Mapped[int] = mapped_column(Integer, default=0)
+    p1_count: Mapped[int] = mapped_column(Integer, default=0)
+    mttr_s: Mapped[float] = mapped_column(Float, default=0.0) # Mean Time To Resolve in seconds
+    
+    unresolved_risks_json: Mapped[List[Dict[str, Any]]] = mapped_column(SmartJSON(), default=list)
+    top_risk_domains_json: Mapped[List[str]] = mapped_column(SmartJSON(), default=list)
+    
+    recommendation: Mapped[str] = mapped_column(Text)
+    report_path: Mapped[Optional[str]] = mapped_column(String(512))
+    evidence_hash: Mapped[Optional[str]] = mapped_column(String(128))
+    
+    generated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class AutoPatchExecutionStatus(str, enum.Enum):
+    PLANNED = "PLANNED"
+    PREFLIGHT_RUNNING = "PREFLIGHT_RUNNING"
+    PREFLIGHT_BLOCKED = "PREFLIGHT_BLOCKED"
+    PATCH_PLANNING = "PATCH_PLANNING"
+    PATCH_GENERATING = "PATCH_GENERATING"
+    PATCH_GENERATED = "PATCH_GENERATED"
+    PR_OPENED = "PR_OPENED"
+    REVIEW_RUNNING = "REVIEW_RUNNING"
+    VERIFICATION_RUNNING = "VERIFICATION_RUNNING"
+    GOVERNANCE_REQUESTED = "GOVERNANCE_REQUESTED"
+    WAITING_OPERATOR_APPROVAL = "WAITING_OPERATOR_APPROVAL"
+    APPLYING = "APPLYING"
+    APPLIED = "APPLIED"
+    POST_APPLY_VALIDATING = "POST_APPLY_VALIDATING"
+    VERIFIED = "VERIFIED"
+    ROLLBACK_REQUIRED = "ROLLBACK_REQUIRED"
+    ROLLING_BACK = "ROLLING_BACK"
+    ROLLED_BACK = "ROLLED_BACK"
+    FAILED = "FAILED"
+    MANUAL_REQUIRED = "MANUAL_REQUIRED"
+    CANCELLED = "CANCELLED"
+
+class AutoPatchSourceType(str, Enum):
+    WAR_ROOM_ACTION = "WAR_ROOM_ACTION"
+    SECURITY_FINDING = "SECURITY_FINDING"
+    SLO_BREACH = "SLO_BREACH"
+    MANUAL_TRIGGER = "MANUAL_TRIGGER"
+    DRIFT_DETECTION = "DRIFT_DETECTION"
+
+class PatchNegotiationStatus(str, Enum):
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    CONSENSUS_REACHED = "CONSENSUS_REACHED"
+    DISAGREEMENT = "DISAGREEMENT"
+    MANUAL_REVIEW_REQUIRED = "MANUAL_REVIEW_REQUIRED"
+    FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
+
+class PatchAgentOpinionType(str, Enum):
+    SUPPORT = "SUPPORT"
+    OPPOSE = "OPPOSE"
+    WARNING = "WARNING"
+    REQUEST_MORE_EVIDENCE = "REQUEST_MORE_EVIDENCE"
+    REQUIRE_MANUAL_REVIEW = "REQUIRE_MANUAL_REVIEW"
+
+class PatchDebateTurnType(str, Enum):
+    PROPOSAL = "PROPOSAL"
+    CRITIQUE = "CRITIQUE"
+    DEFENSE = "DEFENSE"
+    VERIFIER_FEEDBACK = "VERIFIER_FEEDBACK"
+    RISK_WARNING = "RISK_WARNING"
+    COST_WARNING = "COST_WARNING"
+    FINAL_VOTE = "FINAL_VOTE"
+
+class PatchSelectionDecisionType(str, Enum):
+    SELECTED_FOR_GOVERNANCE = "SELECTED_FOR_GOVERNANCE"
+    REQUIRE_MANUAL_REVIEW = "REQUIRE_MANUAL_REVIEW"
+    REJECT_ALL = "REJECT_ALL"
+    REQUEST_NEW_CANDIDATE = "REQUEST_NEW_CANDIDATE"
+    BLOCKED_BY_POLICY = "BLOCKED_BY_POLICY"
+    BLOCKED_BY_COGNITIVE_INTEGRITY = "BLOCKED_BY_COGNITIVE_INTEGRITY"
+
+class UIAutoPatchExecution(Base):
+    """Phase 27: Orchestrates a single autonomous remediation cycle."""
+    __tablename__ = "ui_autopatch_executions"
+    __table_args__ = {"extend_existing": True}
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    execution_key: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    
+    source_type: Mapped[AutoPatchSourceType] = mapped_column(SAEnum(AutoPatchSourceType))
+    source_id: Mapped[Optional[uuid.UUID]] = mapped_column(GUID)
+    
+    war_room_id: Mapped[Optional[uuid.UUID]] = mapped_column(GUID, ForeignKey("ui_incident_war_rooms.id"))
+    action_item_id: Mapped[Optional[uuid.UUID]] = mapped_column(GUID, ForeignKey("ui_incident_action_items.id"))
+    remediation_plan_id: Mapped[Optional[uuid.UUID]] = mapped_column(GUID)
+    
+    status: Mapped[AutoPatchExecutionStatus] = mapped_column(SAEnum(AutoPatchExecutionStatus), default=AutoPatchExecutionStatus.PLANNED)
+    risk_level: Mapped[UIRepairSeverity] = mapped_column(SAEnum(UIRepairSeverity), default=UIRepairSeverity.MEDIUM)
+    
+    patch_strategy: Mapped[Optional[str]] = mapped_column(String(64))
+    patch_path: Mapped[Optional[str]] = mapped_column(String(512))
+    pr_url: Mapped[Optional[str]] = mapped_column(String(512))
+    branch_name: Mapped[Optional[str]] = mapped_column(String(255))
+    
+    governance_approval_id: Mapped[Optional[uuid.UUID]] = mapped_column(GUID)
+    rollback_snapshot_path: Mapped[Optional[str]] = mapped_column(String(512))
+    
+    error_message: Mapped[Optional[str]] = mapped_column(Text)
+    evidence_hash: Mapped[Optional[str]] = mapped_column(String(128))
+    
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+class UIPatchCandidate(Base):
+    """Phase 27: A potential fix candidate generated during planning."""
+    __tablename__ = "ui_patch_candidates"
+    __table_args__ = {"extend_existing": True}
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    execution_id: Mapped[uuid.UUID] = mapped_column(GUID, ForeignKey("ui_autopatch_executions.id"))
+    
+    candidate_key: Mapped[str] = mapped_column(String(64))
+    strategy: Mapped[str] = mapped_column(String(64))
+    
+    affected_files_json: Mapped[List[str]] = mapped_column(SmartJSON(), default=list)
+    affected_routes_json: Mapped[List[str]] = mapped_column(SmartJSON(), default=list)
+    
+    summary: Mapped[str] = mapped_column(Text)
+    risk_level: Mapped[str] = mapped_column(String(32))
+    
+    cognitive_integrity_score: Mapped[float] = mapped_column(Float, default=1.0)
+    pr_agent_score: Mapped[float] = mapped_column(Float, default=1.0)
+    verifier_score: Mapped[float] = mapped_column(Float, default=0.0)
+    
+    selected: Mapped[bool] = mapped_column(Boolean, default=False)
+    rejected_reason: Mapped[Optional[str]] = mapped_column(Text)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+class UIVerificationRunV2(Base):
+    """Phase 27: Detailed verification metrics for an execution."""
+    __tablename__ = "ui_verification_runs_v2"
+    __table_args__ = {"extend_existing": True}
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    execution_id: Mapped[uuid.UUID] = mapped_column(GUID, ForeignKey("ui_autopatch_executions.id"))
+    
+    status: Mapped[str] = mapped_column(String(32)) # PASSED, FAILED, RUNNING
+    
+    lint_status: Mapped[str] = mapped_column(String(16))
+    typecheck_status: Mapped[str] = mapped_column(String(16))
+    unit_test_status: Mapped[str] = mapped_column(String(16))
+    build_status: Mapped[str] = mapped_column(String(16))
+    playwright_status: Mapped[str] = mapped_column(String(16))
+    affected_route_status: Mapped[str] = mapped_column(String(16))
+    security_posture_status: Mapped[str] = mapped_column(String(16))
+    cognitive_integrity_status: Mapped[str] = mapped_column(String(16))
+    
+    result_summary_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON(), default=dict)
+    logs_path: Mapped[Optional[str]] = mapped_column(String(512))
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+class UIPostApplyValidation(Base):
+    """Phase 27: Health and security validation after applying a patch."""
+    __tablename__ = "ui_post_apply_validations"
+    __table_args__ = {"extend_existing": True}
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    execution_id: Mapped[uuid.UUID] = mapped_column(GUID, ForeignKey("ui_autopatch_executions.id"))
+    
+    status: Mapped[str] = mapped_column(String(32)) # PASSED, FAILED
+    
+    route_health_after_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON(), default=dict)
+    posture_score_before: Mapped[float] = mapped_column(Float)
+    posture_score_after: Mapped[float] = mapped_column(Float)
+    
+    evidence_chain_valid: Mapped[bool] = mapped_column(Boolean, default=True)
+    regression_passed: Mapped[bool] = mapped_column(Boolean, default=True)
+    rollback_required: Mapped[bool] = mapped_column(Boolean, default=False)
+    
+    residual_risk: Mapped[Optional[str]] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+class UIRollbackExecution(Base):
+    """Phase 27: Records a rollback event if validation fails."""
+    __tablename__ = "ui_rollback_executions"
+    __table_args__ = {"extend_existing": True}
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    execution_id: Mapped[uuid.UUID] = mapped_column(GUID, ForeignKey("ui_autopatch_executions.id"))
+    
+    status: Mapped[str] = mapped_column(String(32)) # SUCCESS, FAILED
+    rollback_reason: Mapped[str] = mapped_column(Text)
+    rollback_snapshot_path: Mapped[str] = mapped_column(String(512))
+    
+    rollback_result_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON(), default=dict)
+    
+    evidence_hash: Mapped[Optional[str]] = mapped_column(String(128))
+    
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+class UIAutoPatchTrace(Base):
+    """Phase 28: Collects observability traces for Auto-Patch executions."""
+    __tablename__ = "ui_autopatch_traces"
+    __table_args__ = {"extend_existing": True}
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    execution_id: Mapped[uuid.UUID] = mapped_column(GUID, ForeignKey("ui_autopatch_executions.id"))
+    
+    step_name: Mapped[str] = mapped_column(String(128))
+    status: Mapped[str] = mapped_column(String(32))
+    
+    duration_ms: Mapped[Optional[int]] = mapped_column(Integer)
+    agent_name: Mapped[Optional[str]] = mapped_column(String(128))
+    
+    cost_usd: Mapped[float] = mapped_column(Float, default=0.0)
+    token_input: Mapped[int] = mapped_column(Integer, default=0)
+    token_output: Mapped[int] = mapped_column(Integer, default=0)
+    
+    error_message: Mapped[Optional[str]] = mapped_column(Text)
+    evidence_hash: Mapped[Optional[str]] = mapped_column(String(128))
+    
+    metadata_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON(), default=dict)
+    
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+class UIPatchAgentOpinion(Base):
+    """Phase 28: Stores opinions of different agents about a patch candidate."""
+    __tablename__ = "ui_patch_agent_opinions"
+    __table_args__ = {"extend_existing": True}
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    execution_id: Mapped[uuid.UUID] = mapped_column(GUID, ForeignKey("ui_autopatch_executions.id"))
+    candidate_id: Mapped[Optional[uuid.UUID]] = mapped_column(GUID, ForeignKey("ui_patch_candidates.id"))
+    
+    agent_name: Mapped[str] = mapped_column(String(128))
+    opinion_type: Mapped[PatchAgentOpinionType] = mapped_column(SAEnum(PatchAgentOpinionType))
+    
+    score: Mapped[float] = mapped_column(Float, default=0.0)
+    confidence: Mapped[float] = mapped_column(Float, default=1.0)
+    rationale: Mapped[Optional[str]] = mapped_column(Text)
+    
+    concerns_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON(), default=dict)
+    recommendation: Mapped[Optional[str]] = mapped_column(String(256))
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+class UIPatchNegotiationSession(Base):
+    """Phase 28: Orchestrates the multi-agent debate session."""
+    __tablename__ = "ui_patch_negotiation_sessions"
+    __table_args__ = {"extend_existing": True}
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    execution_id: Mapped[uuid.UUID] = mapped_column(GUID, ForeignKey("ui_autopatch_executions.id"))
+    
+    status: Mapped[PatchNegotiationStatus] = mapped_column(SAEnum(PatchNegotiationStatus), default=PatchNegotiationStatus.PENDING)
+    
+    participant_agents_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON(), default=dict)
+    candidate_count: Mapped[int] = mapped_column(Integer, default=0)
+    selected_candidate_id: Mapped[Optional[uuid.UUID]] = mapped_column(GUID, ForeignKey("ui_patch_candidates.id"))
+    
+    consensus_score: Mapped[float] = mapped_column(Float, default=0.0)
+    disagreement_score: Mapped[float] = mapped_column(Float, default=0.0)
+    
+    final_rationale: Mapped[Optional[str]] = mapped_column(Text)
+    evidence_hash: Mapped[Optional[str]] = mapped_column(String(128))
+    
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+class UIPatchDebateTurn(Base):
+    """Phase 28: Individual turns in the negotiation debate."""
+    __tablename__ = "ui_patch_debate_turns"
+    __table_args__ = {"extend_existing": True}
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    negotiation_session_id: Mapped[uuid.UUID] = mapped_column(GUID, ForeignKey("ui_patch_negotiation_sessions.id"))
+    
+    agent_name: Mapped[str] = mapped_column(String(128))
+    candidate_id: Mapped[Optional[uuid.UUID]] = mapped_column(GUID, ForeignKey("ui_patch_candidates.id"))
+    
+    turn_type: Mapped[PatchDebateTurnType] = mapped_column(SAEnum(PatchDebateTurnType))
+    message: Mapped[str] = mapped_column(Text)
+    
+    claims_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON(), default=dict)
+    evidence_refs_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON(), default=dict)
+    
+    confidence: Mapped[float] = mapped_column(Float, default=1.0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+class UIPatchCandidateScore(Base):
+    """Phase 28: Comprehensive scoring for patch candidates."""
+    __tablename__ = "ui_patch_candidate_scores"
+    __table_args__ = {"extend_existing": True}
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    candidate_id: Mapped[uuid.UUID] = mapped_column(GUID, ForeignKey("ui_patch_candidates.id"))
+    execution_id: Mapped[uuid.UUID] = mapped_column(GUID, ForeignKey("ui_autopatch_executions.id"))
+    
+    safety_score: Mapped[float] = mapped_column(Float, default=0.0)
+    quality_score: Mapped[float] = mapped_column(Float, default=0.0)
+    test_score: Mapped[float] = mapped_column(Float, default=0.0)
+    cognitive_integrity_score: Mapped[float] = mapped_column(Float, default=0.0)
+    policy_score: Mapped[float] = mapped_column(Float, default=0.0)
+    cost_score: Mapped[float] = mapped_column(Float, default=0.0)
+    maintainability_score: Mapped[float] = mapped_column(Float, default=0.0)
+    rollback_safety_score: Mapped[float] = mapped_column(Float, default=0.0)
+    
+    total_score: Mapped[float] = mapped_column(Float, default=0.0)
+    scoring_rationale: Mapped[Optional[str]] = mapped_column(Text)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+class UIPatchSelectionDecision(Base):
+    """Phase 28: Final decision on which candidate to select."""
+    __tablename__ = "ui_patch_selection_decisions"
+    __table_args__ = {"extend_existing": True}
+    
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    execution_id: Mapped[uuid.UUID] = mapped_column(GUID, ForeignKey("ui_autopatch_executions.id"))
+    negotiation_session_id: Mapped[uuid.UUID] = mapped_column(GUID, ForeignKey("ui_patch_negotiation_sessions.id"))
+    
+    selected_candidate_id: Mapped[Optional[uuid.UUID]] = mapped_column(GUID, ForeignKey("ui_patch_candidates.id"))
+    decision: Mapped[PatchSelectionDecisionType] = mapped_column(SAEnum(PatchSelectionDecisionType))
+    
+    reason: Mapped[Optional[str]] = mapped_column(Text)
+    rejected_candidates_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON(), default=dict)
+    operator_visible_explanation: Mapped[Optional[str]] = mapped_column(Text)
+    
+    evidence_hash: Mapped[Optional[str]] = mapped_column(String(128))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+# --- Phase 29: Knowledge Graph + Causal Memory + Long-Term System Learning ---
+
+class KnowledgeNodeType(str, enum.Enum):
+    INCIDENT = "INCIDENT"
+    WAR_ROOM = "WAR_ROOM"
+    SECURITY_FINDING = "SECURITY_FINDING"
+    RED_TEAM_FINDING = "RED_TEAM_FINDING"
+    THREAT_MODEL = "THREAT_MODEL"
+    ATTACK_PATH = "ATTACK_PATH"
+    REMEDIATION_PLAN = "REMEDIATION_PLAN"
+    AUTOPATCH_EXECUTION = "AUTOPATCH_EXECUTION"
+    PATCH_CANDIDATE = "PATCH_CANDIDATE"
+    POLICY_RULE = "POLICY_RULE"
+    POLICY_DECISION = "POLICY_DECISION"
+    IDENTITY = "IDENTITY"
+    TOOL_CALL = "TOOL_CALL"
+    MCP_SERVER = "MCP_SERVER"
+    TENANT = "TENANT"
+    CLUSTER = "CLUSTER"
+    EVIDENCE_RECORD = "EVIDENCE_RECORD"
+    SLO_BREACH = "SLO_BREACH"
+    COST_ANOMALY = "COST_ANOMALY"
+    COGNITIVE_FINDING = "COGNITIVE_FINDING"
+    MESH_FAILOVER = "MESH_FAILOVER"
+    GUARDRAIL_TUNING = "GUARDRAIL_TUNING"
+
+class KnowledgeEdgeType(str, enum.Enum):
+    CAUSED_BY = "CAUSED_BY"
+    TRIGGERED = "TRIGGERED"
+    MITIGATED_BY = "MITIGATED_BY"
+    FAILED_TO_FIX = "FAILED_TO_FIX"
+    RECURRED_AFTER = "RECURRED_AFTER"
+    SIMILAR_TO = "SIMILAR_TO"
+    DEPENDS_ON = "DEPENDS_ON"
+    VIOLATED_POLICY = "VIOLATED_POLICY"
+    USED_TOOL = "USED_TOOL"
+    AFFECTED_TENANT = "AFFECTED_TENANT"
+    AFFECTED_CLUSTER = "AFFECTED_CLUSTER"
+    PRODUCED_EVIDENCE = "PRODUCED_EVIDENCE"
+    SELECTED_CANDIDATE = "SELECTED_CANDIDATE"
+    REJECTED_CANDIDATE = "REJECTED_CANDIDATE"
+    IMPROVED_SCORE = "IMPROVED_SCORE"
+    DEGRADED_SCORE = "DEGRADED_SCORE"
+
+class IncidentPatternType(str, enum.Enum):
+    RECURRING_INCIDENT = "RECURRING_INCIDENT"
+    RECURRING_POLICY_DRIFT = "RECURRING_POLICY_DRIFT"
+    RECURRING_TOOL_FAILURE = "RECURRING_TOOL_FAILURE"
+    RECURRING_COGNITIVE_BLOCK = "RECURRING_COGNITIVE_BLOCK"
+    RECURRING_PATCH_FAILURE = "RECURRING_PATCH_FAILURE"
+    RECURRING_MESH_DEGRADATION = "RECURRING_MESH_DEGRADATION"
+    RECURRING_COST_SPIKE = "RECURRING_COST_SPIKE"
+    RECURRING_TENANT_ISOLATION_RISK = "RECURRING_TENANT_ISOLATION_RISK"
+    SUCCESSFUL_REMEDIATION_PATTERN = "SUCCESSFUL_REMEDIATION_PATTERN"
+    FAILED_REMEDIATION_PATTERN = "FAILED_REMEDIATION_PATTERN"
+
+class UIKnowledgeNode(Base):
+    """Phase 29: Unified knowledge graph node."""
+    __tablename__ = "ui_knowledge_nodes"
+
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    node_key: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    node_type: Mapped[str] = mapped_column(String(64), index=True)
+    
+    source_type: Mapped[str] = mapped_column(String(64), index=True)
+    source_id: Mapped[Optional[str]] = mapped_column(String(255), index=True)
+    
+    tenant_key: Mapped[Optional[str]] = mapped_column(String(64), index=True)
+    project_key: Mapped[Optional[str]] = mapped_column(String(64), index=True)
+    cluster_key: Mapped[Optional[str]] = mapped_column(String(64), index=True)
+    
+    title: Mapped[str] = mapped_column(String(255))
+    summary: Mapped[Optional[str]] = mapped_column(Text)
+    severity: Mapped[str] = mapped_column(String(32), default="INFO")
+    confidence: Mapped[float] = mapped_column(Float, default=1.0)
+    
+    metadata_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON(), default={})
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+class UIKnowledgeEdge(Base):
+    """Phase 29: Relationships between knowledge nodes."""
+    __tablename__ = "ui_knowledge_edges"
+
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    source_node_key: Mapped[str] = mapped_column(String(255), index=True)
+    target_node_key: Mapped[str] = mapped_column(String(255), index=True)
+    edge_type: Mapped[str] = mapped_column(String(64), index=True)
+    
+    confidence: Mapped[float] = mapped_column(Float, default=1.0)
+    evidence_refs_json: Mapped[List[str]] = mapped_column(SmartJSON(), default=[])
+    metadata_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON(), default={})
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+class UICausalMemory(Base):
+    """Phase 29: Long-term causal learning storage."""
+    __tablename__ = "ui_causal_memories"
+
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    memory_key: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    pattern_type: Mapped[str] = mapped_column(String(64), index=True)
+    
+    root_cause: Mapped[str] = mapped_column(Text)
+    trigger_conditions_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON())
+    action_taken_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON())
+    outcome_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON())
+    
+    success_score: Mapped[float] = mapped_column(Float)
+    recurrence_count: Mapped[int] = mapped_column(Integer, default=1)
+    confidence: Mapped[float] = mapped_column(Float, default=1.0)
+    
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+class UICausalChain(Base):
+    """Phase 29: Reconstructed causal chains for specific incidents."""
+    __tablename__ = "ui_causal_chains"
+
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    chain_key: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    incident_id: Mapped[Optional[uuid.UUID]] = mapped_column(GUID, index=True)
+    war_room_id: Mapped[Optional[uuid.UUID]] = mapped_column(GUID, index=True)
+    
+    root_node_key: Mapped[str] = mapped_column(String(255))
+    terminal_node_key: Mapped[str] = mapped_column(String(255))
+    
+    chain_json: Mapped[List[Dict[str, Any]]] = mapped_column(SmartJSON()) # List of edges/nodes
+    causal_confidence: Mapped[float] = mapped_column(Float, default=1.0)
+    summary: Mapped[Optional[str]] = mapped_column(Text)
+    
+    evidence_hash: Mapped[Optional[str]] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+class UIIncidentPattern(Base):
+    """Phase 29: Mined patterns of recurring incidents/failures."""
+    __tablename__ = "ui_incident_patterns"
+
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    pattern_key: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    pattern_type: Mapped[str] = mapped_column(String(64), index=True)
+    affected_domain: Mapped[str] = mapped_column(String(128))
+    
+    recurrence_count: Mapped[int] = mapped_column(Integer, default=1)
+    example_incidents_json: Mapped[List[str]] = mapped_column(SmartJSON(), default=[])
+    common_root_causes_json: Mapped[List[str]] = mapped_column(SmartJSON(), default=[])
+    
+    successful_remediations_json: Mapped[List[str]] = mapped_column(SmartJSON(), default=[])
+    failed_remediations_json: Mapped[List[str]] = mapped_column(SmartJSON(), default=[])
+    
+    recommended_action: Mapped[Optional[str]] = mapped_column(Text)
+    risk_level: Mapped[str] = mapped_column(String(32), default="MEDIUM")
+    confidence: Mapped[float] = mapped_column(Float, default=1.0)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+class UISimilarCaseMatch(Base):
+    """Phase 29: Similarity matches between current and historical cases."""
+    __tablename__ = "ui_similar_case_matches"
+
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    query_source_type: Mapped[str] = mapped_column(String(64), index=True)
+    query_source_id: Mapped[str] = mapped_column(String(255), index=True)
+    
+    matched_source_type: Mapped[str] = mapped_column(String(64))
+    matched_source_id: Mapped[str] = mapped_column(String(255))
+    
+    similarity_score: Mapped[float] = mapped_column(Float)
+    matched_features_json: Mapped[List[str]] = mapped_column(SmartJSON(), default=[])
+    recommended_action: Mapped[Optional[str]] = mapped_column(Text)
+    confidence: Mapped[float] = mapped_column(Float, default=1.0)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+class UIRiskPrediction(Base):
+    """Phase 29: AI-predicted future risks based on patterns."""
+    __tablename__ = "ui_risk_predictions"
+
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    prediction_key: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    
+    target_type: Mapped[str] = mapped_column(String(64), index=True) # tenant, project, cluster, tool, identity, route, policy
+    target_key: Mapped[str] = mapped_column(String(255), index=True)
+    
+    risk_type: Mapped[str] = mapped_column(String(64), index=True)
+    probability: Mapped[float] = mapped_column(Float)
+    severity: Mapped[str] = mapped_column(String(32), default="MEDIUM")
+    
+    predicted_window: Mapped[str] = mapped_column(String(64)) # e.g. "NEXT_24H", "NEXT_7D"
+    contributing_factors_json: Mapped[List[str]] = mapped_column(SmartJSON(), default=[])
+    recommended_prevention: Mapped[Optional[str]] = mapped_column(Text)
+    
+    status: Mapped[str] = mapped_column(String(32), default="ACTIVE")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+# --- Phase 30: Final Integration + Production Hardening + Release Lock ---
+
+class ReleaseStatus(str, enum.Enum):
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    PASSED = "PASSED"
+    WARNING = "WARNING"
+    FAILED = "FAILED"
+    BLOCKED = "BLOCKED"
+    SEALED = "SEALED"
+    RELEASE_CANDIDATE = "RELEASE_CANDIDATE"
+
+class UIFinalIntegrationAudit(Base):
+    """Phase 30: End-to-end integration audit for all modules."""
+    __tablename__ = "ui_final_integration_audits"
+
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    audit_key: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    status: Mapped[ReleaseStatus] = mapped_column(SAEnum(ReleaseStatus), default=ReleaseStatus.PENDING)
+    
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    
+    checked_modules_json: Mapped[Dict[str, str]] = mapped_column(SmartJSON(), default=dict)
+    failed_modules_json: Mapped[List[str]] = mapped_column(SmartJSON(), default=list)
+    warnings_json: Mapped[List[str]] = mapped_column(SmartJSON(), default=list)
+    summary_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON(), default=dict)
+    
+    evidence_hash: Mapped[Optional[str]] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+class UIReleaseReadinessCheck(Base):
+    """Phase 30: Readiness evaluation against production standards."""
+    __tablename__ = "ui_release_readiness_checks"
+
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    check_key: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    category: Mapped[str] = mapped_column(String(64), index=True) # API, DB, UI, Security, etc.
+    status: Mapped[ReleaseStatus] = mapped_column(SAEnum(ReleaseStatus), default=ReleaseStatus.PENDING)
+    
+    score: Mapped[float] = mapped_column(Float, default=0.0)
+    blockers_json: Mapped[List[str]] = mapped_column(SmartJSON(), default=list)
+    warnings_json: Mapped[List[str]] = mapped_column(SmartJSON(), default=list)
+    recommendation: Mapped[Optional[str]] = mapped_column(Text)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+class UIFinalAuditPack(Base):
+    """Phase 30: Comprehensive audit package for production release."""
+    __tablename__ = "ui_final_audit_packs"
+
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    pack_key: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    status: Mapped[ReleaseStatus] = mapped_column(SAEnum(ReleaseStatus), default=ReleaseStatus.PENDING)
+    
+    generated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    version: Mapped[str] = mapped_column(String(64))
+    
+    included_sections_json: Mapped[List[str]] = mapped_column(SmartJSON(), default=list)
+    residual_risks_json: Mapped[List[Dict[str, Any]]] = mapped_column(SmartJSON(), default=list)
+    known_limitations_json: Mapped[List[str]] = mapped_column(SmartJSON(), default=list)
+    summary_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON(), default=dict)
+    
+    evidence_hash: Mapped[Optional[str]] = mapped_column(String(255))
+    report_path: Mapped[Optional[str]] = mapped_column(String(512))
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+class UIReleaseLock(Base):
+    """Phase 30: Final immutable lock for a release candidate."""
+    __tablename__ = "ui_release_locks"
+
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    release_key: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    version: Mapped[str] = mapped_column(String(64))
+    status: Mapped[ReleaseStatus] = mapped_column(SAEnum(ReleaseStatus), default=ReleaseStatus.SEALED)
+    
+    locked_by: Mapped[str] = mapped_column(String(128))
+    locked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    commit_sha: Mapped[Optional[str]] = mapped_column(String(128))
+    
+    test_summary_json: Mapped[Dict[str, Any]] = mapped_column(SmartJSON(), default=dict)
+    audit_pack_id: Mapped[Optional[uuid.UUID]] = mapped_column(GUID, ForeignKey("ui_final_audit_packs.id"))
+    release_notes: Mapped[Optional[str]] = mapped_column(Text)
+    
+    evidence_hash: Mapped[Optional[str]] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+

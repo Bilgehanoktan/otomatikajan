@@ -26,6 +26,7 @@ async def test_budget_hard_limit_blocks(db_session: AsyncSession):
     expensive_event = UICostEvent(
         id=uuid.uuid4(),
         project_key=project_key,
+        source_type="REPAIR",
         operation_type="OPENSWE_REPAIR",
         estimated_cost_usd=15.0, # Exceeds $10 limit
         created_at=datetime.now(timezone.utc)
@@ -57,6 +58,7 @@ async def test_within_budget_allows(db_session: AsyncSession):
     cheap_event = UICostEvent(
         id=uuid.uuid4(),
         project_key=project_key,
+        source_type="MONITORING",
         operation_type="MONITORING_RUN",
         estimated_cost_usd=1.0,
         created_at=datetime.now(timezone.utc)

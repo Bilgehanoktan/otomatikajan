@@ -26,8 +26,10 @@ from libs.db.models.repair_models import (
     VerifierResult,
     RepairMemory,
     SelfTuningSuggestion,
-    UIRepairPRReview,
     UIRepairPRFinding,
+)
+from libs.db.models.ui_repair_models import (
+    UIRepairPRReview,
 )
 from libs.db.models.learning_models import StrategyMemory, NegativePatternMemory
 from services.orchestration.application.sovereign_cortex import get_sovereign_cortex

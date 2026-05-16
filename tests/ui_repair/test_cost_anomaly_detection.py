@@ -11,12 +11,16 @@ async def test_detect_cost_spike(db_session: AsyncSession):
     now = datetime.now(timezone.utc)
     
     # 1. Create baseline (avg $1/day for 7 days)
+    # Use i=2 to 8 to stay within [now-8d, now-1d)
     for i in range(2, 9):
         event = UICostEvent(
             id=uuid.uuid4(),
             project_key=project_key,
+            source_type="REPAIR",
+            operation_type="TEST",
             estimated_cost_usd=1.0,
-            created_at=now - timedelta(days=i)
+            # Subtract 1 hour to stay safe from boundary millisecond shifts
+            created_at=now - timedelta(days=i, hours=-1)
         )
         db_session.add(event)
     
@@ -24,6 +28,8 @@ async def test_detect_cost_spike(db_session: AsyncSession):
     spike = UICostEvent(
         id=uuid.uuid4(),
         project_key=project_key,
+        source_type="REPAIR",
+        operation_type="TEST_SPIKE",
         estimated_cost_usd=20.0,
         created_at=now - timedelta(hours=2)
     )
