@@ -4,36 +4,35 @@ services/workflow_api/repair_lab_router.py — Phase 28
 Exposes Laboratory, Tournament, and Tuning data to the Refine Dashboard.
 """
 from __future__ import annotations
+
 import asyncio
 import json
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, List, Dict, Optional
+from typing import Any
 
 # FastAPI imports
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Body
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from sqlalchemy import select, func, desc
+from sqlalchemy import desc, func, select
 
-from libs.db.session import AsyncSessionLocal
+from libs.db.models.learning_models import NegativePatternMemory, StrategyMemory
 from libs.db.models.repair_models import (
     RepairBenchmarkRun,
-    RepairTournament,
     RepairCandidate,
-    VerifierResult,
     RepairMemory,
+    RepairTournament,
     SelfTuningSuggestion,
     UIRepairPRFinding,
-)
-from libs.db.models.ui_repair_models import (
+    VerifierResult,
     UIRepairPRReview,
 )
-from libs.db.models.learning_models import StrategyMemory, NegativePatternMemory
-from services.orchestration.application.sovereign_cortex import get_sovereign_cortex
+from libs.db.session import AsyncSessionLocal
 from services.improve.repair_bench import RepairBenchService
+from services.orchestration.application.sovereign_cortex import get_sovereign_cortex
 
 router = APIRouter(tags=["Autonomous Repair Lab"])
 # Logger init
@@ -50,16 +49,16 @@ class CandidateSummary(BaseModel):
     score: float
     status: str
     type: str
-    score_breakdown: Optional[Dict[str, Any]] = None
+    score_breakdown: dict[str, Any] | None = None
 
 class TournamentOut(BaseModel):
     id: str
     incident_id: str
-    winner_id: Optional[str]
+    winner_id: str | None
     winner_score: float
     total_candidates: int
     created_at: datetime
-    candidates: List[CandidateSummary] = []
+    candidates: list[CandidateSummary] = []
 
 class SuggestionUpdate(BaseModel):
     status: str # approved | rejected
@@ -75,8 +74,8 @@ class TuningSuggestionOut(BaseModel):
     created_at: datetime
 
 class LabRunRequest(BaseModel):
-    diagnostic_id: Optional[str] = None
-    source: Optional[str] = "repair_lab"
+    diagnostic_id: str | None = None
+    source: str | None = "repair_lab"
 
 # ── PR-Agent Schemas (Phase 32) ─────────────────────────────────────────────
 
@@ -85,12 +84,12 @@ class PRAgentActionRequest(BaseModel):
 
 class PRAgentFindingOut(BaseModel):
     id: str
-    file_path: Optional[str] = None
-    line_number: Optional[int] = None
+    file_path: str | None = None
+    line_number: int | None = None
     severity: str
     category: str
     message: str
-    suggestion: Optional[str] = None
+    suggestion: str | None = None
 
 class PRAgentReviewOut(BaseModel):
     review_id: str
@@ -98,8 +97,8 @@ class PRAgentReviewOut(BaseModel):
     pr_url: str
     status: str
     summary: str
-    governance_decision: Optional[str] = None
-    findings: List[PRAgentFindingOut] = []
+    governance_decision: str | None = None
+    findings: list[PRAgentFindingOut] = []
     created_at: datetime
 
 
@@ -121,7 +120,7 @@ def _artifact_url(incident_id: str, path: Path) -> str:
     return f"/api/v1/repair-lab/artifacts/{incident_id}/{rel_path}"
 
 
-def _load_draft_pr(incident_dir: Path) -> Dict[str, Any]:
+def _load_draft_pr(incident_dir: Path) -> dict[str, Any]:
     draft_path = incident_dir / "draft_pr.json"
     if not draft_path.exists():
         return {}
@@ -135,8 +134,8 @@ def _load_draft_pr(incident_dir: Path) -> Dict[str, Any]:
     return {}
 
 
-def _load_evidence_assets(incident_id: str, incident_dir: Path) -> List[Dict[str, Any]]:
-    assets: List[Dict[str, Any]] = []
+def _load_evidence_assets(incident_id: str, incident_dir: Path) -> list[dict[str, Any]]:
+    assets: list[dict[str, Any]] = []
     for artifact in sorted(incident_dir.rglob("*")):
         if not artifact.is_file() or artifact.suffix.lower() not in REPAIR_IMAGE_EXTENSIONS:
             continue
@@ -156,11 +155,11 @@ def _load_evidence_assets(incident_id: str, incident_dir: Path) -> List[Dict[str
     return assets
 
 
-def _load_self_repair_reports(limit: int = 20) -> List[Dict[str, Any]]:
+def _load_self_repair_reports(limit: int = 20) -> list[dict[str, Any]]:
     if not REPAIR_OUTPUTS_DIR.exists():
         return []
 
-    reports: List[Dict[str, Any]] = []
+    reports: list[dict[str, Any]] = []
     for report_path in REPAIR_OUTPUTS_DIR.glob("*/repair_report.json"):
         try:
             raw = json.loads(report_path.read_text(encoding="utf-8"))
@@ -202,11 +201,11 @@ def _load_self_repair_reports(limit: int = 20) -> List[Dict[str, Any]]:
     return sorted(reports, key=lambda item: item["updated_at"], reverse=True)[:limit]
 
 
-def _load_taskflow_runs(limit: int = 20) -> List[Dict[str, Any]]:
+def _load_taskflow_runs(limit: int = 20) -> list[dict[str, Any]]:
     if not REPAIR_OUTPUTS_DIR.exists():
         return []
 
-    runs: List[Dict[str, Any]] = []
+    runs: list[dict[str, Any]] = []
     for trace_path in REPAIR_OUTPUTS_DIR.glob("*/taskflow_trace.json"):
         try:
             raw = json.loads(trace_path.read_text(encoding="utf-8"))
@@ -256,7 +255,7 @@ def _load_taskflow_runs(limit: int = 20) -> List[Dict[str, Any]]:
     return sorted(runs, key=lambda item: item["updated_at"], reverse=True)[:limit]
 
 
-def _normalize_improvement_status(meta: Dict[str, Any], outcome: Optional[str]) -> str:
+def _normalize_improvement_status(meta: dict[str, Any], outcome: str | None) -> str:
     payload = meta.get("payload") if isinstance(meta.get("payload"), dict) else {}
     raw = str(meta.get("status") or payload.get("status") or outcome or "").lower()
     if raw in {"repaired", "completed", "success", "repaired_success"}:
@@ -268,7 +267,7 @@ def _normalize_improvement_status(meta: Dict[str, Any], outcome: Optional[str]) 
     return "failed"
 
 
-def _lineage_to_improvement(item: Any) -> Dict[str, Any]:
+def _lineage_to_improvement(item: Any) -> dict[str, Any]:
     meta = item.meta_data if isinstance(item.meta_data, dict) else {}
     payload = meta.get("payload") if isinstance(meta.get("payload"), dict) else {}
     trigger_event = item.trigger_event if isinstance(item.trigger_event, dict) else {}
@@ -296,7 +295,7 @@ def _lineage_to_improvement(item: Any) -> Dict[str, Any]:
     }
 
 
-async def _fetch_improvements(db, limit: int = 20) -> List[Dict[str, Any]]:
+async def _fetch_improvements(db, limit: int = 20) -> list[dict[str, Any]]:
     from libs.db.models.lineage_models import DecisionLineage
 
     q = select(DecisionLineage).order_by(desc(DecisionLineage.created_at)).limit(limit)
@@ -360,7 +359,7 @@ async def list_benchmarks(limit: int = 10):
             logger.warning("Benchmarks list fallback: %s", exc)
             return []
 
-@router.get("/tournaments", response_model=List[TournamentOut])
+@router.get("/tournaments", response_model=list[TournamentOut])
 async def list_tournaments(limit: int = 20):
     """Gerçekleşen tamir turnuvalarını ve aday skorlarını listeler."""
     async with AsyncSessionLocal() as db:
@@ -438,7 +437,7 @@ async def get_learning_insights():
             return {"strategies": [], "penalized_patterns": []}
 
 @router.get("/verifiers/matrix")
-async def get_verifier_matrix(tournament_id: Optional[str] = None):
+async def get_verifier_matrix(tournament_id: str | None = None):
     """Verifier Mesh performans matrisini döner."""
     async with AsyncSessionLocal() as db:
         try:
@@ -478,7 +477,7 @@ async def get_verifier_matrix(tournament_id: Optional[str] = None):
             logger.warning("Verifier matrix fallback: %s", exc)
             return {"verifiers": [], "candidates": []}
 
-@router.get("/tuning/suggestions", response_model=List[TuningSuggestionOut])
+@router.get("/tuning/suggestions", response_model=list[TuningSuggestionOut])
 async def get_tuning_suggestions():
     """Önerilen sistem ayar kalibrasyonlarını listeler."""
     async with AsyncSessionLocal() as db:
@@ -617,7 +616,7 @@ async def get_repair_memory_details(subsystem: str = Query(...), limit: int = 50
 
 @router.post("/run")
 async def trigger_lab_run(
-    request: Optional[LabRunRequest] = Body(default=None),
+    request: LabRunRequest | None = Body(default=None),
     cortex=Depends(get_sovereign_cortex),
 ):
     """Otonom tamir benchmark turunu başlatır."""
@@ -799,10 +798,10 @@ async def pr_agent_full_review(case_id: str, data: PRAgentActionRequest):
                 suggestion=f.suggestion
             ) for f in result.findings
         ],
-        created_at=datetime.now(timezone.utc)
+        created_at=datetime.now(UTC)
     )
 
-@router.get("/cases/{case_id}/pr-agent/findings", response_model=List[PRAgentReviewOut])
+@router.get("/cases/{case_id}/pr-agent/findings", response_model=list[PRAgentReviewOut])
 async def get_pr_agent_findings(case_id: str):
     async with AsyncSessionLocal() as db:
         q = select(UIRepairPRReview).where(UIRepairPRReview.case_id == case_id).order_by(desc(UIRepairPRReview.created_at))
@@ -849,7 +848,7 @@ async def trigger_autonomous_repair(case_id: str, target_url: str):
         review_id = str(uuid.uuid4())
         review_obj = result.get("review")
         patch_obj = result.get("patch")
-        
+
         # 1. Create Review Record
         review = UIRepairPRReview(
             review_id=review_id,
@@ -886,7 +885,7 @@ async def trigger_autonomous_repair(case_id: str, target_url: str):
                 logger.info(f"Saved patch.diff for case {case_id}")
             except Exception as e:
                 logger.error(f"Failed to save patch.diff for {case_id}: {e}")
-        
+
         await db.commit()
 
     return {"status": "ok", "result": result, "review_id": review_id}
@@ -898,8 +897,9 @@ async def apply_patch(case_id: str):
     Applies the generated patch to the production source tree using 'git apply'.
     """
     import subprocess
+
     from libs.db.models.lineage_models import DecisionLineage
-    
+
     # 1. Locate the patch diff
     patch_path = REPAIR_OUTPUTS_DIR / case_id / "patch.diff"
     if not patch_path.exists():
@@ -913,10 +913,10 @@ async def apply_patch(case_id: str):
                  diff_text = None
         else:
              diff_text = None
-             
+
         if not diff_text:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, 
+                status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Patch diff for case {case_id} not found."
             )
     else:
@@ -934,7 +934,7 @@ async def apply_patch(case_id: str):
             text=True,
             encoding="utf-8"
         )
-        
+
         if process.returncode != 0:
             error_msg = process.stderr or "Unknown git apply error"
             logger.error(f"Patch application failed for {case_id}: {error_msg}")
@@ -943,7 +943,7 @@ async def apply_patch(case_id: str):
                 "error": error_msg,
                 "detail": "Git was unable to apply this patch. It might be stale or conflict with current code."
             }
-            
+
         # 3. Log the decision in Lineage
         async with AsyncSessionLocal() as db:
             decision = DecisionLineage(
@@ -953,10 +953,10 @@ async def apply_patch(case_id: str):
                 rationale="Human-in-the-loop approval granted via Control Plane Dashboard.",
                 outcome="SUCCESS",
                 trigger_event={"case_id": case_id},
-                meta_data={"case_id": case_id, "applied_at": datetime.now(timezone.utc).isoformat()}
+                meta_data={"case_id": case_id, "applied_at": datetime.now(UTC).isoformat()}
             )
             db.add(decision)
-            
+
             # Update the review status if found
             q = select(UIRepairPRReview).where(UIRepairPRReview.case_id == case_id).order_by(desc(UIRepairPRReview.created_at))
             res = await db.execute(q)
@@ -964,7 +964,7 @@ async def apply_patch(case_id: str):
             if review:
                 review.status = "APPLIED"
                 review.governance_decision = "APPROVED_BY_OPERATOR"
-                
+
             await db.commit()
 
         logger.info(f"Successfully applied patch for case {case_id}")
@@ -983,5 +983,5 @@ async def get_case_patch(case_id: str):
     patch_path = REPAIR_OUTPUTS_DIR / case_id / "patch.diff"
     if not patch_path.exists():
         raise HTTPException(status_code=404, detail="Patch not found")
-    
+
     return {"case_id": case_id, "diff": patch_path.read_text(encoding="utf-8")}

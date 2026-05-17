@@ -143,9 +143,27 @@
       "threshold": "EŞİK UYARISI",
       "title": "KAYNAK TÜKETİMİ VE MODELLER",
       "velocity": "Hız",
-      "volume": "Hacim"
+      "volume": "Hacim",
+      "period24h": "24S"
     },
     "engineVersion": "Motor Versiyonu",
+    "diagnostics": {
+      "title": "Çalışma Zamanı Tanıları",
+      "activeSignals": "{count} Aktif Sinyal",
+      "permissionLocked": "İzin Kilitli",
+      "repairBtn": "Onar",
+      "manualBtn": "Manuel",
+      "guardrailsActive": "SIF-01 Korumaları Aktif",
+      "fullIntel": "Tam İstihbarat",
+      "status": "Durum",
+      "critical": "Kritik",
+      "warning": "Uyarı",
+      "nominal": "Normal",
+      "repairSuccess": "Onarım Başarılı: {actions}",
+      "stabilized": "Sistem stabilize edildi.",
+      "operatorActionRequired": "Operatör müdahalesi gerekiyor.",
+      "repairError": "Onarım Hatası: {error}"
+    },
     "error": "Hata",
     "gate": "geçit",
     "governance": {
@@ -225,7 +243,10 @@
       "jsonSub": "Ham Sağlık Verisi",
       "refine": "Refine Paneli",
       "telemetry": "Sistem Telemetrisi",
-      "title": "HIZLI ERİŞİM MERKEZİ"
+      "title": "HIZLI ERİŞİM MERKEZİ",
+      "redocSub": "Redoc Spesifikasyonları",
+      "auditLedger": "Denetim Defteri",
+      "auditLedgerSub": "Blokzincir Bütünlüğü"
     },
     "repair": "Onar",
     "repairing": "Onarılıyor",
@@ -294,6 +315,102 @@
       "health": "Sistem Sağlığı",
       "overview": "Genel Bakış",
       "workflows": "İş Akışları"
+    },
+    "launchEvidence": {
+      "title": "Görev Hazırlık Protokolü",
+      "subtitle": "Geçit Kanıtları",
+      "compliant": "Mevzuata Uygun",
+      "ledgerLogged": "Otonom denetim zinciri Şecere V2'ye işlendi.",
+      "auditPack": "Tam Denetim Paketi",
+      "idVerified": "Kimlik Doğrulandı",
+      "clickForDetails": "Detaylar için tıkla →",
+      "gates": {
+        "budget": {
+          "title": "Finansal Bütünlük",
+          "desc": "Harcanan bütçe vs. Kesin bütçe kilidi",
+          "evidence": "Bütçe Devre Kesici: AKTİF. Mevcut kullanım: %92."
+        },
+        "gov": {
+          "title": "Anayasal Güvenlik",
+          "desc": "Çekirdek dosya kilit doğrulaması",
+          "evidence": "AnayasalMuhafız: KİLİT LİSTESİ DOĞRULANDI. 23/23 kritik yol mühürlendi."
+        },
+        "quorum": {
+          "title": "Operatör Quorumu",
+          "desc": "Stratejik onay durumu",
+          "evidence": "QuorumServisi: 2/3 imzalandı. Nihai mühür için 1 onay daha gerekiyor."
+        },
+        "quality": {
+          "title": "Evrim Kalitesi",
+          "desc": "Regresyon benchmark geçiş oranı",
+          "evidence": "TamirLaboratuvarı: 20 turnuva senaryosunun tamamı 0.90 puan üstü ile geçildi."
+        }
+      }
+    },
+    "evolutionTimeline": {
+      "title": "Evrimsel Şecere",
+      "subtitle": "Otonom Tamir & Gelişim Günlüğü",
+      "empty": "Evrimsel Veri Bulunamadı",
+      "types": {
+        "diagnosis": "TEŞHİS",
+        "tournament": "TURNUVA",
+        "promotion": "TERFİ"
+      }
+    },
+    "commandPalette": {
+      "searchPlaceholder": "Komut ara veya sor...",
+      "noResults": "Sonuç Bulunamadı",
+      "noResultsDesc": "\"{search}\" ile eşleşen bir komut bulunamadı.",
+      "footer": {
+        "navigate": "Git",
+        "select": "Seç",
+        "close": "Kapat"
+      },
+      "commands": {
+        "runWorkflow": {
+          "label": "Yeni İş Akışı Başlat",
+          "desc": "Otonom bir operasyon dizisini tetikle"
+        },
+        "sealAudit": {
+          "label": "Mevcut Denetimi Mühürle",
+          "desc": "Karar şeceresi hash bütünlüğünü güvenceye al"
+        },
+        "healthCheck": {
+          "label": "Tam Teşhis Çalıştır",
+          "desc": "Tüm mikroservisleri ve ajanları denetle"
+        },
+        "viewProposals": {
+          "label": "Politika Önerilerini Görüntüle",
+          "desc": "Sistem değişikliklerini incele ve imzala"
+        },
+        "goDashboard": {
+          "label": "Panele Git",
+          "desc": "Merkezi görev kontrol paneline geri dön"
+        }
+      }
+    },
+    "operatorAuthActive": "Operatör Yetkisi: Aktif",
+    "calibrations": {
+      "title": "Yönetici Kalibrasyonları",
+      "scanButton": "Tara ve Öner",
+      "description": "Burası, otonom ince ayar parametrelerinin korteks tarafından üretildiği, insan-denetim çerçevesi altında incelendiği ve çalışan ajanlara güvenle uygulandığı aktif kalibrasyon defteridir.",
+      "parameter": "Parametre Adı",
+      "change": "Değişim / Sapma",
+      "confidence": "Güven",
+      "status": "Durum",
+      "reason": "Değişim Gerekçesi",
+      "created": "Önerilen",
+      "actions": "Aksiyonlar",
+      "approve": "Onayla",
+      "reject": "Reddet",
+      "rollback": "Geri Al",
+      "confirmApprove": "Bu kalibrasyon parametresi sapmasını onaylayıp uygulamak istediğinize emin misiniz?",
+      "confirmReject": "Bu kalibrasyon parametresi önerisini reddetmek istediğinize emin misiniz?",
+      "confirmRollback": "Bu uygulanmış kalibrasyon parametresini geri almak istediğinize emin misiniz?",
+      "successApprove": "Kalibrasyon onaylandı ve ajan yapılandırmasına başarıyla uygulandı.",
+      "successReject": "Kalibrasyon önerisi başarıyla reddedildi.",
+      "successRollback": "Kalibrasyon başarıyla geri alındı.",
+      "successPropose": "Parametre taraması başarıyla tamamlandı. {count} adet kalibrasyon önerildi."
     }
   },
   "evolution": {
@@ -371,7 +488,8 @@
     "searchPlaceholder": "Modül, talimat veya duruma göre ara...",
     "streamTitle": "Otonom Gelişim Akışı",
     "subtitle": "Otonom Çok Parametreli Kalibrasyon ve Sinirsel Öz-Optimizasyon",
-    "title": "Gelişim Merkezi"
+    "title": "Gelişim Merkezi",
+    "telemetryOffline": "Evrimsel telemetri çevrimdışı"
   },
   "incidents": {
     "analysis": "Analiz",
@@ -409,7 +527,9 @@
     },
     "streamTitle": "Entegre Kaos Akışı",
     "subtitle": "Sistem Sapmaları ve Müdahale Kayıtları",
-    "title": "Operasyonel Olaylar"
+    "title": "Operasyonel Olaylar",
+    "suggestedFix": "Önerilen Çözüm",
+    "takeAction": "Aksiyon Al"
   },
   "lineage": {
     "ancestry": "Soy Ağacı",
@@ -920,6 +1040,7 @@
     }
   },
   "status": {
+    "waiting": "Bekliyor",
     "cancelled": "İptal Edildi",
     "completed": "Tamamlandı",
     "error": "Hata",
@@ -933,8 +1054,7 @@
     "queued": "Kuyrukta",
     "resuming": "Devam Ediyor",
     "running": "Çalışıyor",
-    "success": "Başarılı",
-    "waiting": "Bekliyor"
+    "success": "Başarılı"
   },
   "system_health": {
     "activeRuntimeCauses": "Düşük sağlık durumunun arkasındaki aktif çalışma zamanı nedenleri ve güvenli onarım sınırları.",
@@ -1027,6 +1147,8 @@
       "networkError": "Ağ Hatası",
       "networkErrorDesc": "Egemen Çekirdek ile iletişim kurulamadı.",
       "permissionDenied": "Bu iş akışı eylemi için yetkiniz yok.",
+      "reassigned": "Görev Tekrar Atandı",
+      "reassignedDesc": "İptal/hata durumundaki iş akışı tekrar kuyruğa alındı.",
       "workflowNotFound": "İş akışı bağlamı alınamadı."
     },
     "off": "Kapalı",
@@ -1037,6 +1159,10 @@
     "outputSummary": "Çıktı Özeti",
     "queueWaiting": "İş akışı kuyrukta. Adımlar hazırlanıyor...",
     "quorumRequests": "Korum Talepleri",
+    "reassignDesc": "Bu iş akışı terminal durumda. Tamamlanmamış adımlar PENDING durumuna alınıp görev yeniden kuyruğa atanabilir.",
+    "reassignReasonPlaceholder": "Yeniden atama gerekçesi...",
+    "reassignRequired": "Yeniden Atama Gerekli",
+    "reassignWorkflow": "Tekrar Görev Ata",
     "relatedIncidents": "İlgili Olaylar",
     "returnToList": "Listeye Dön",
     "severity": "Şiddet",
@@ -1065,5 +1191,8 @@
     "streamTitle": "Nöral İş Akışı Akışı",
     "subtitle": "Otonom Görev Yönetimi",
     "title": "İş Akışları"
+  },
+  "verifiers": {
+    "activeLayers": "Doğrulayıcı Katmanlarda Ara..."
   }
 }
