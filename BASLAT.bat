@@ -19,6 +19,9 @@ if not errorlevel 1 (
     )
 )
 
+set "mode=%~1"
+if not "%mode%"=="" goto normalize_mode
+
 echo.
 echo ==========================================
 echo    SOVEREIGN AGI - GUVENLI BASLATICI
@@ -31,6 +34,15 @@ echo [4] SELF-REPAIR DEMO / HEALTH CHECK
 echo.
 
 set /p mode="Seciminizi yapin (1, 2, 3 veya 4): "
+
+:normalize_mode
+if /I "%mode%"=="minimal" set "mode=1"
+if /I "%mode%"=="local" set "mode=1"
+if /I "%mode%"=="fullstack" set "mode=2"
+if /I "%mode%"=="docker" set "mode=2"
+if /I "%mode%"=="repair" set "mode=3"
+if /I "%mode%"=="self-repair" set "mode=4"
+if /I "%mode%"=="health" set "mode=4"
 
 if "%mode%"=="3" (
     call "%PROJECT_ROOT%DOCKER_TAMIR.bat"
@@ -54,7 +66,12 @@ if errorlevel 1 (
     exit /b 1
 )
 echo [OK] Self-Repair demo tamamlandi.
-echo [OK] Beklenen ciktilar: repair_outputs\INC-001\repair_case.json, repair_plan.json, patch.diff, sandbox.log, repair_report.json, taskflow_trace.json
+echo [OK] Beklenen ciktilar:
+echo   - repair_outputs\INC-001\repair_case.json
+echo   - repair_outputs\INC-001\taskflow\{run_id}\artifact_manifest.json
+echo   - repair_outputs\INC-001\taskflow\{run_id}\tournament_result.json
+echo   - repair_outputs\INC-001\taskflow\{run_id}\human_gate_decision.json
+echo   - repair_outputs\INC-001\taskflow\{run_id}\draft_pr_metadata.json
 pause
 exit
 
@@ -64,7 +81,7 @@ echo [*] Eski surecler temizleniyor...
 powershell -Command "$pids = netstat -ano | Select-String 'LISTENING' | ForEach-Object { $parts = $_.ToString().Split(' ', [System.StringSplitOptions]::RemoveEmptyEntries); $addr = $parts[1]; if ($addr -like '*:8000' -or $addr -like '*:3100') { $parts[-1] } } | Select-Object -Unique; if ($pids) { Stop-Process -Id $pids -Force -ErrorAction SilentlyContinue }"
 
 echo [*] Lokal mod baslatiliyor...
-start "Backend API" cmd /k "set RUNTIME_PROFILE=local-dev&& set REDIS_ENABLED=false&& set CELERY_ENABLED=false&& set QUEUE_BACKEND=inprocess&& %PY_CMD% -m uvicorn apps.public_api.main:app --host 0.0.0.0 --port 8000"
+start "Backend API" cmd /k "set SOVEREIGN_DOTENV_OVERRIDE=false&& set RUNTIME_PROFILE=local-dev&& set REDIS_ENABLED=false&& set CELERY_ENABLED=false&& set QUEUE_BACKEND=inprocess&& set INPROCESS_JOB_WORKERS_ENABLED=true&& %PY_CMD% -m uvicorn services.workflow_api.main:app --host 0.0.0.0 --port 8000"
 timeout /t 10 >nul
 start "Frontend UI" /d "apps\refine_control_plane" cmd /k "npm run dev -- -p 3100"
 timeout /t 5 >nul
