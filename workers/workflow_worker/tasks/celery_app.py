@@ -26,11 +26,20 @@ if ROOT_DIR not in sys.path:
 logger = get_task_logger(__name__)
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+QUEUE_BACKEND = os.getenv("QUEUE_BACKEND", "celery")
+CELERY_ENABLED = os.getenv("CELERY_ENABLED", "true").lower() == "true"
+
+broker_url = REDIS_URL
+backend_url = REDIS_URL
+
+if QUEUE_BACKEND == "inprocess" or not CELERY_ENABLED:
+    broker_url = "memory://"
+    backend_url = "cache+memory://"
 
 celery_app = Celery(
     "ai_company",
-    broker=REDIS_URL,
-    backend=REDIS_URL,
+    broker=broker_url,
+    backend=backend_url,
     include=[
         "workers.workflow_worker.tasks.project_tasks",
         "workers.workflow_worker.tasks.deerflow_tasks",

@@ -50,8 +50,8 @@ class CEOEngine:
 
         logger.info(f"👔 CEO Engine: Strategic Audit for Goal '{goal.title}' started.")
         # Bu hedefle ilişkili projeleri bul
-        from libs.db.models import Project
-        stmt = select(Project).where(Project.goal_id == goal.id, Project.status == 'active')
+        from libs.db.models import Project, ProjectStatus
+        stmt = select(Project).where(Project.goal_id == goal.id, Project.status.in_([ProjectStatus.RUNNING, ProjectStatus.QUEUED, ProjectStatus.PENDING]))
         res = await db.execute(stmt)
         projects = res.scalars().all()
 
@@ -104,7 +104,7 @@ class CEOEngine:
         # Eğer sapma kritiksse durdur!
         if "regression" in reason.lower():
             logger.warning(f"👔 CEO Engine: Critical regression in '{project.title}'. STALLING project.")
-            project.status = "error"  # type: ignore[assignment]
+            project.status = "ERROR"  # type: ignore[assignment]
             project.error_detail = f"CEO Realignment: {reason}"  # type: ignore[assignment]
 
     async def _check_goal_completion(self, db, goal: SovereignGoal) -> bool:
@@ -336,10 +336,10 @@ class CEOEngine:
 
                 # Eğer bu bir CEO göreviyse ve 'queued' ise, doğrudan yeniden kuyruğa sokmayı deneyebiliriz (opsiyonel)
                 # Şimdilik temizlik için status'u 'error' yapalım, engine zaten 'queue_stuck' fırsatı oluşturuyor.
-                if p.status == "queued":
-                    p.status = "error"  # type: ignore[assignment]
+                if p.status == "QUEUED":
+                    p.status = "ERROR"  # type: ignore[assignment]
                     p.error_detail = f"Kuyruk zaman aşımı ({int(elapsed)}s). Sistem tarafından otomatik hata durumuna çekildi."  # type: ignore[assignment]
-                    logger.info(f"👔 CEO Engine: Proje '{p.id}' otomatik olarak 'error' durumuna çekildi.")
+                    logger.info(f"👔 CEO Engine: Proje '{p.id}' otomatik olarak 'ERROR' durumuna çekildi.")
 
                 source_type = "queue_stuck"
                 source_ref = str(p.id)
@@ -885,7 +885,7 @@ class CEOEngine:
                 workflow_template="default",
                 quality_profile="production"
             )
-            new_project.status = "queued"  # type: ignore[assignment]
+            new_project.status = "QUEUED"  # type: ignore[assignment]
             new_project.job_id = job.id
 
             await TaskLogRepository.write(
@@ -897,7 +897,7 @@ class CEOEngine:
             return proj_id
         except Exception as e:
             logger.error(f"CEO Engine: Approval enqueuing failed for {suggestion.id}: {e}")
-            new_project.status = "error"  # type: ignore[assignment]
+            new_project.status = "ERROR"  # type: ignore[assignment]
             new_project.error_detail = str(e)  # type: ignore[assignment]
             return None
 
@@ -1117,7 +1117,7 @@ class CEOEngine:
             res = await db.execute(
                 select(Project)
                 .where(Project.ceo_managed == True)
-                .where(Project.status == "completed")
+                .where(Project.status == "COMPLETED")
             )
             completed_projects = res.scalars().all()
 
@@ -1191,7 +1191,7 @@ class CEOEngine:
             id=proj_id,
             title=f"[AUTO-CEO] {suggestion.title}",
             description=suggestion.description,
-            status="pending",
+            status="PENDING",
             priority_level=prev_project.priority_level,
             assigned_agent=suggestion.owner_agent_hint or "architect",
             suggestion_id=suggestion.id,
@@ -1204,20 +1204,24 @@ class CEOEngine:
         suggestion.status = "approved"  # type: ignore[assignment]
         suggestion.created_task_id = proj_id  # type: ignore[assignment]
 
-        # Enqueue Logic (Celery app globalden gelmeli)
+        # Enqueue Logic (Unified Job Queue abstraction)
         try:
-            from workers.workflow_worker.tasks.celery_app import celery_app
-            celery_task = celery_app.send_task(
-                "run_project_task",
-                args=[str(proj_id), new_project.title, new_project.description],
-                kwargs={"workflow_template": "default", "quality_profile": "production"}
+            from services.orchestration.application.job_queue import job_queue
+            job = await job_queue.enqueue(
+                "run_project",
+                db_project_id=str(proj_id),
+                title=new_project.title,
+                description=new_project.description,
+                user_id=suggestion.owner_agent_hint or "ceo_engine",
+                workflow_template="default",
+                quality_profile="production"
             )
-            new_project.status = "queued"  # type: ignore[assignment]
-            new_project.job_id = celery_task.id
-            logger.info(f"CEO Engine: Roadmap Next Step '{suggestion.title}' queued (Job: {celery_task.id})")
+            new_project.status = "QUEUED"  # type: ignore[assignment]
+            new_project.job_id = job.id
+            logger.info(f"CEO Engine: Roadmap Next Step '{suggestion.title}' queued (Job: {job.id})")
         except Exception as e:
             logger.error(f"CEO Engine: Next step queueing failed: {e}")
-            new_project.status = "error"  # type: ignore[assignment]
+            new_project.status = "ERROR"  # type: ignore[assignment]
             new_project.error_detail = str(e)  # type: ignore[assignment]
 
     async def _record_decision(self, db, decision_type: str, data: Dict[str, Any]):

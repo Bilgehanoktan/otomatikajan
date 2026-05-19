@@ -7,9 +7,9 @@ import sys
 # Add current directory to path for imports
 sys.path.append(os.getcwd())
 
-from packages.orchestration.ceo.engine import get_ceo_engine
-from packages.persistence.session import session_scope
-from packages.persistence.models import ImprovementOpportunity, CEOSuggestedTask, Project
+from services.orchestration.ceo.engine import get_ceo_engine
+from libs.db.session import session_scope
+from libs.db.models import ImprovementOpportunity, CEOSuggestedTask, Project
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("test_ceo")
@@ -25,14 +25,15 @@ async def test_ceo_flow():
         op_id = uuid.uuid4()
         op = ImprovementOpportunity(
             id=op_id,
+            source_type="security",
             title="Test Zafiyeti - " + str(op_id)[:8],
             description="Bu bir test analizidir.",
             category="security",
             severity="high",
             priority_score=85,
             status="open",
-            evidence_metadata={"file": "test.py", "issue": "mock_failure"},
-            reasoning="Güvenlik açığı tespit edildi."
+            evidence_detail="mock_failure",
+            affected_files=["test.py"]
         )
         db.add(op)
         

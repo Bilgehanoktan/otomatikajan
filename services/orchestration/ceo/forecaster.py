@@ -92,7 +92,7 @@ class CEOForecaster:
                 })
 
             # 2. İş Kuyruğu Şişme Analizi
-            queued_count = await db.execute(select(func.count(Project.id)).where(Project.status == "queued"))
+            queued_count = await db.execute(select(func.count(Project.id)).where(Project.status == "QUEUED"))
             q_size = queued_count.scalar() or 0
             if q_size > 15:
                 anomalies.append({
