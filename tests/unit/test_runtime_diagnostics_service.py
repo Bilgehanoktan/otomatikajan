@@ -136,3 +136,45 @@ def test_active_signoff_serialization_fingerprints_are_repairable():
     assert finding.severity == "error"
     assert finding.auto_repairable is True
     assert finding.requires_operator_action is False
+
+
+def test_api_redirect_noise_disappears_after_repair():
+    from services.workflow_api.runtime_diagnostics import (
+        _API_REDIRECT_NOISE_REPAIRED,
+        mark_api_redirect_noise_repaired,
+    )
+    
+    # 1. Initially it should be active
+    findings = _ids(
+        RuntimeDiagnosticsService(
+            config={
+                "RUNTIME_PROFILE": "local-dev",
+                "LOCAL_DEV_DB_STRATEGY": "sqlite-fallback",
+                "QUEUE_BACKEND": "inprocess",
+                "REDIS_ENABLED": False,
+                "CELERY_ENABLED": False,
+                "EPHEMERAL_WORKFLOWS_ENABLED": False,
+                "INPROCESS_JOB_WORKERS_ENABLED": True,
+            }
+        ).collect()
+    )
+    assert "api_redirect_noise" in findings
+    
+    # 2. Trigger repair
+    mark_api_redirect_noise_repaired()
+    
+    # 3. Now it should not be in active diagnostics
+    findings_after = _ids(
+        RuntimeDiagnosticsService(
+            config={
+                "RUNTIME_PROFILE": "local-dev",
+                "LOCAL_DEV_DB_STRATEGY": "sqlite-fallback",
+                "QUEUE_BACKEND": "inprocess",
+                "REDIS_ENABLED": False,
+                "CELERY_ENABLED": False,
+                "EPHEMERAL_WORKFLOWS_ENABLED": False,
+                "INPROCESS_JOB_WORKERS_ENABLED": True,
+            }
+        ).collect()
+    )
+    assert "api_redirect_noise" not in findings_after

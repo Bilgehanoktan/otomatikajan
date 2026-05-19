@@ -11,6 +11,15 @@ Severity = str
 
 from services.auth.jwt_auth import is_dev_env
 
+_API_REDIRECT_NOISE_REPAIRED = False
+
+
+def mark_api_redirect_noise_repaired() -> None:
+    """Marks the API redirect noise diagnostic as repaired so it stops rendering in the UI."""
+    global _API_REDIRECT_NOISE_REPAIRED
+    _API_REDIRECT_NOISE_REPAIRED = True
+
+
 
 @dataclass(frozen=True)
 class RuntimeDiagnostic:
@@ -191,6 +200,8 @@ class RuntimeDiagnosticsService:
         ]
 
     def _api_redirect_noise(self) -> Iterable[RuntimeDiagnostic]:
+        if _API_REDIRECT_NOISE_REPAIRED:
+            return []
         return [
             RuntimeDiagnostic(
                 id="api_redirect_noise",

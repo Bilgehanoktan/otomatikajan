@@ -333,6 +333,8 @@ async def repair_runtime_diagnostic(
         return result
 
     if diagnostic_id == "api_redirect_noise":
+        from services.workflow_api.runtime_diagnostics import mark_api_redirect_noise_repaired
+        mark_api_redirect_noise_repaired()
         result = {
             "status": "repaired",
             "diagnostic_id": diagnostic_id,
