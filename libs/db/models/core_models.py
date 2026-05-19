@@ -22,7 +22,7 @@ from sqlalchemy import (
 from sqlalchemy import (
     Enum as SAEnum,
 )
-from sqlalchemy.orm import backref, relationship
+from sqlalchemy.orm import backref, relationship, validates
 
 try:
     from pgvector.sqlalchemy import Vector
@@ -311,6 +311,20 @@ class Project(Base):
     workflow_events = relationship("WorkflowEvent", back_populates="project",
                                    lazy="select", cascade="all, delete-orphan")
 
+    @validates("status")
+    def validate_status(self, key, value):
+        """SRE-03: Hardened status validator that automatically normalizes string inputs to uppercase."""
+        if isinstance(value, str):
+            value = value.upper().strip()
+        if isinstance(value, ProjectStatus):
+            return value
+        elif isinstance(value, str):
+            try:
+                return ProjectStatus(value)
+            except ValueError:
+                raise ValueError(f"Invalid ProjectStatus value: {value}")
+        return value
+
 
 # ── Alt Görevler ─────────────────────────────────────────
 class SubTask(Base):
@@ -353,7 +367,8 @@ class SubTask(Base):
         """Truncated version of result for UI list views."""
         if not self.result:
             return ""
-        return self.result[:200] + ("..." if len(self.result) > 200 else "")
+        res_val = str(self.result or "")
+        return res_val[:200] + ("..." if len(res_val) > 200 else "")
 
 
 # ── LLM Maliyet Logu ─────────────────────────────────────
