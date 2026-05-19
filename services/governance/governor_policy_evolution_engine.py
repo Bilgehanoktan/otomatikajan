@@ -1,4 +1,5 @@
 import logging
+import inspect
 from typing import List, Dict, Any
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import select, func
@@ -17,6 +18,33 @@ from services.governance.governor_policy_config import GovernorPolicyConfig
 logger = logging.getLogger(__name__)
 
 class GovernorPolicyEvolutionEngine:
+    @staticmethod
+    async def _execute(db: AsyncSession, stmt):
+        result = db.execute(stmt)
+        if inspect.isawaitable(result):
+            return await result
+        return result
+
+    @staticmethod
+    def _make_sync_flush_awaitable(db: AsyncSession) -> None:
+        if isinstance(db, AsyncSession) or getattr(db, "_codex_awaitable_flush", False):
+            return
+
+        original_flush = db.flush
+
+        class _AwaitableNone:
+            def __await__(self):
+                if False:
+                    yield None
+                return None
+
+        def flush(*args, **kwargs):
+            original_flush(*args, **kwargs)
+            return _AwaitableNone()
+
+        db.flush = flush
+        db._codex_awaitable_flush = True
+
     @staticmethod
     async def scan_for_policy_candidates(db: AsyncSession, window_days: int = 14) -> List[Dict[str, Any]]:
         """Geçmiş verileri tarar ve politika iyileştirme adaylarını belirler."""
@@ -49,7 +77,7 @@ class GovernorPolicyEvolutionEngine:
             GovernorOutcomeRecord.decision.ilike("%archive%"),
             GovernorOutcomeRecord.quality == GovernorDecisionQuality.FALSE_POSITIVE
         )
-        res = await db.execute(stmt)
+        res = await GovernorPolicyEvolutionEngine._execute(db, stmt)
         fp_count = res.scalar() or 0
         
         if fp_count > 5: # Basit eşik
@@ -71,7 +99,7 @@ class GovernorPolicyEvolutionEngine:
             GovernorOutcomeRecord.created_at >= since,
             GovernorOutcomeRecord.operator_overrode == 1
         )
-        res = await db.execute(stmt)
+        res = await GovernorPolicyEvolutionEngine._execute(db, stmt)
         override_count = res.scalar() or 0
         
         if override_count > 10:
@@ -95,7 +123,7 @@ class GovernorPolicyEvolutionEngine:
             GovernorOutcomeRecord.decision.ilike("%replay%"),
             GovernorOutcomeRecord.final_outcome == GovernorOutcomeType.FAILED
         )
-        res = await db.execute(stmt)
+        res = await GovernorPolicyEvolutionEngine._execute(db, stmt)
         fail_count = res.scalar() or 0
         
         if fail_count > 8:
@@ -112,6 +140,7 @@ class GovernorPolicyEvolutionEngine:
     @classmethod
     async def run_suggestion_cycle(cls, db: AsyncSession) -> int:
         """Tarama yapar ve bulduğu adayları PROPOSED olarak kaydeder."""
+        cls._make_sync_flush_awaitable(db)
         candidates = await cls.scan_for_policy_candidates(db)
         count = 0
         for c in candidates:

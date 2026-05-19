@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card, Button, Typography, message, Skeleton, Result, Tag, Space, Divider } from 'antd';
+import { Card, Button, Typography, message, Skeleton, Result, Tag, Space, Divider, Tooltip } from 'antd';
 import { BookOutlined, SyncOutlined, DownloadOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useTranslations } from 'next-intl';
 import ReactMarkdown from 'react-markdown';
+import { safeFetchJson } from '@/lib/api';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -20,8 +21,7 @@ const EnterpriseRunbookPanel: React.FC = () => {
   const fetchLatest = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/ui-repair/enterprise/runbook/latest');
-      const data = await res.json();
+      const data = await safeFetchJson('/api/v1/ui-repair/enterprise/runbook/latest');
       setRunbook(data);
     } catch (err) {
       message.error('Failed to fetch runbook');
@@ -33,8 +33,7 @@ const EnterpriseRunbookPanel: React.FC = () => {
   const generateRunbook = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/ui-repair/enterprise/runbook/generate?title=Egemen YAZ Enterprise Runbook&version=1.0.0', { method: 'POST' });
-      const data = await res.json();
+      const data = await safeFetchJson('/api/v1/ui-repair/enterprise/runbook/generate?title=Egemen YAZ Enterprise Runbook&version=1.0.0', { method: 'POST' });
       setRunbook(data);
       message.success('Runbook generated');
     } catch (err) {

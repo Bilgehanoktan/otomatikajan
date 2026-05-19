@@ -1,0 +1,48 @@
+[browser] Error: MISSING_MESSAGE: Could not resolve `status.waiting` in messages for locale `tr`.
+    at WorkflowCard (src/app/workflows/page.tsx:280:18)
+    at <unknown> (src/app/workflows/page.tsx:210:19)
+    at Array.map (<anonymous>)
+    at WorkflowList (src/app/workflows/page.tsx:209:27)
+  278 |                 }`}
+  279 |               >
+> 280 |                 {tStatus(statusKey as any)}
+      |                  ^
+  281 |               </span>
+  282 |               <span className="rounded-lg border border-white/5 bg-white/[0.02] px-2 py-0...
+  283 |                 {workflow.workflow_type} (src/app/workflows/page.tsx:280:18)
+[browser] Error: MISSING_MESSAGE: Could not resolve `status.waiting` in messages for locale `tr`.
+    at WorkflowCard (src/app/workflows/page.tsx:280:18)
+    at <unknown> (src/app/workflows/page.tsx:210:19)
+    at Array.map (<anonymous>)
+    at WorkflowList (src/app/workflows/page.tsx:209:27)
+  278 |                 }`}
+  279 |               >
+> 280 |                 {tStatus(statusKey as any)}
+      |                  ^
+  281 |               </span>
+  282 |               <span className="rounded-lg border border-white/5 bg-white/[0.02] px-2 py-0...
+  283 |                 {workflow.workflow_type} (src/app/workflows/page.tsx:280:18)
+[browser] Error: MISSING_MESSAGE: Could not resolve `status.waiting` in messages for locale `tr`.
+    at WorkflowCard (src/app/workflows/page.tsx:280:18)
+    at <unknown> (src/app/workflows/page.tsx:210:19)
+    at Array.map (<anonymous>)
+    at WorkflowList (src/app/workflows/page.tsx:209:27)
+  278 |                 }`}
+  279 |               >
+> 280 |                 {tStatus(statusKey as any)}
+      |                  ^
+  281 |               </span>
+  282 |               <span className="rounded-lg border border-white/5 bg-white/[0.02] px-2 py-0...
+  283 |                 {workflow.workflow_type} (src/app/workflows/page.tsx:280:18)
+[browser] Error: MISSING_MESSAGE: Could not resolve `status.waiting` in messages for locale `tr`.
+    at WorkflowCard (src/app/workflows/page.tsx:280:18)
+    at <unknown> (src/app/workflows/page.tsx:210:19)
+    at Array.map (<anonymous>)
+    at WorkflowList (src/app/workflows/page.tsx:209:27)
+  278 |                 }`}
+  279 |               >
+> 280 |                 {tStatus(statusKey as any)}
+      |                  ^
+  281 |               </span>
+  282 |               <span className="rounded-lg border border-white/5 bg-white/[0.02] px-2 py-0...
+  283 |                 {workflow.workflow_type} (src/app/workflows/page.tsx:280:18)

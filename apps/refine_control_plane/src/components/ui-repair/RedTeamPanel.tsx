@@ -11,6 +11,7 @@ import {
   Zap,
   Target
 } from 'lucide-react';
+import { safeFetchJson } from '@/lib/api';
 
 interface Scenario {
   id: string;
@@ -44,13 +45,13 @@ export default function RedTeamPanel() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [overRes, scenRes] = await Promise.all([
-        fetch('/api/v1/ui-repair/security/red-team/overview'),
-        fetch('/api/v1/ui-repair/security/red-team/scenarios')
+      const [overviewData, scenariosData] = await Promise.all([
+        safeFetchJson<RedTeamOverview>('/api/v1/ui-repair/security/red-team/overview'),
+        safeFetchJson<Scenario[]>('/api/v1/ui-repair/security/red-team/scenarios')
       ]);
       
-      if (overRes.ok) setOverview(await overRes.json());
-      if (scenRes.ok) setScenarios(await scenRes.json());
+      setOverview(overviewData);
+      setScenarios(scenariosData);
     } catch (err) {
       console.error('Failed to fetch red team data', err);
     } finally {
@@ -61,18 +62,14 @@ export default function RedTeamPanel() {
   const handleRunOperation = async (scenarioId: string) => {
     setRunning(scenarioId);
     try {
-      const res = await fetch('/api/v1/ui-repair/security/red-team/operations', {
+      const op = await safeFetchJson<any>('/api/v1/ui-repair/security/red-team/operations', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scenario_id: scenarioId })
       });
       
-      if (res.ok) {
-        const op = await res.json();
-        // Trigger drift analysis
-        await fetch(`/api/v1/ui-repair/security/red-team/operations/${op.id}/analyze-drift`, { method: 'POST' });
-        fetchData();
-      }
+      // Trigger drift analysis
+      await safeFetchJson(`/api/v1/ui-repair/security/red-team/operations/${op.id}/analyze-drift`, { method: 'POST' });
+      fetchData();
     } catch (err) {
       console.error('Operation failed', err);
     } finally {

@@ -16,10 +16,11 @@ import {
   Globe,
   Shield
 } from 'lucide-react';
+import { safeFetchJson } from '@/lib/api';
 import ThreatModelingPanel from './ThreatModelingPanel';
 import RedTeamCenterPanel from './RedTeamCenterPanel';
 import AutonomousShieldCenterPanel from './AutonomousShieldCenterPanel';
-import { ShieldX, ShieldCheck as ShieldCheckIcon } from 'lucide-react';
+import { ShieldOff, ShieldCheck as ShieldCheckIcon } from 'lucide-react';
 
 interface PostureScore {
   overall_score: number;
@@ -79,17 +80,17 @@ export default function SecurityPostureCenterPanel() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [postRes, ctrlRes, findRes, certRes] = await Promise.all([
-        fetch('/api/v1/ui-repair/security/posture'),
-        fetch('/api/v1/ui-repair/security/controls'),
-        fetch('/api/v1/ui-repair/security/findings'),
-        fetch('/api/v1/ui-repair/security/certifications')
+      const [postureData, controlsData, findingsData, certsData] = await Promise.all([
+        safeFetchJson<PostureScore>('/api/v1/ui-repair/security/posture'),
+        safeFetchJson<Control[]>('/api/v1/ui-repair/security/controls'),
+        safeFetchJson<Finding[]>('/api/v1/ui-repair/security/findings'),
+        safeFetchJson<Certification[]>('/api/v1/ui-repair/security/certifications')
       ]);
       
-      if (postRes.ok) setPosture(await postRes.json());
-      if (ctrlRes.ok) setControls(await ctrlRes.json());
-      if (findRes.ok) setFindings(await findRes.json());
-      if (certRes.ok) setCerts(await certRes.json());
+      setPosture(postureData);
+      setControls(controlsData);
+      setFindings(findingsData);
+      setCerts(certsData);
       
       fetchRemediationData();
     } catch (err) {
@@ -102,13 +103,11 @@ export default function SecurityPostureCenterPanel() {
   const handleRunScan = async () => {
     setScanning(true);
     try {
-      const res = await fetch('/api/v1/ui-repair/security/scan', { method: 'POST' });
-      if (res.ok) {
-        setPosture(await res.json());
-        // Refresh findings
-        const findRes = await fetch('/api/v1/ui-repair/security/findings');
-        if (findRes.ok) setFindings(await findRes.json());
-      }
+      const data = await safeFetchJson<PostureScore>('/api/v1/ui-repair/security/scan', { method: 'POST' });
+      setPosture(data);
+      // Refresh findings
+      const findingsData = await safeFetchJson<Finding[]>('/api/v1/ui-repair/security/findings');
+      setFindings(findingsData);
     } catch (err) {
       console.error('Scan failed', err);
     } finally {
@@ -119,11 +118,9 @@ export default function SecurityPostureCenterPanel() {
   const handleCertify = async () => {
     setCertifying(true);
     try {
-      const res = await fetch('/api/v1/ui-repair/security/certify?operator_name=Admin', { method: 'POST' });
-      if (res.ok) {
-        const certRes = await fetch('/api/v1/ui-repair/security/certifications');
-        if (certRes.ok) setCerts(await certRes.json());
-      }
+      await safeFetchJson('/api/v1/ui-repair/security/certify?operator_name=Admin', { method: 'POST' });
+      const certsData = await safeFetchJson<Certification[]>('/api/v1/ui-repair/security/certifications');
+      setCerts(certsData);
     } catch (err) {
       console.error('Certification failed', err);
     } finally {
@@ -133,14 +130,14 @@ export default function SecurityPostureCenterPanel() {
 
   const fetchRemediationData = async () => {
     try {
-      const [plansRes, attemptsRes, summaryRes] = await Promise.all([
-        fetch('/api/v1/ui-repair/security/remediation/plans'),
-        fetch('/api/v1/ui-repair/security/remediation/attempts'),
-        fetch('/api/v1/ui-repair/security/remediation/summary')
+      const [plansData, attemptsData, summaryData] = await Promise.all([
+        safeFetchJson<any[]>('/api/v1/ui-repair/security/remediation/plans'),
+        safeFetchJson<any[]>('/api/v1/ui-repair/security/remediation/attempts'),
+        safeFetchJson<any>('/api/v1/ui-repair/security/remediation/summary')
       ]);
-      if (plansRes.ok) setRemediationPlans(await plansRes.json());
-      if (attemptsRes.ok) setFixAttempts(await attemptsRes.json());
-      if (summaryRes.ok) setRemediationSummary(await summaryRes.json());
+      setRemediationPlans(plansData);
+      setFixAttempts(attemptsData);
+      setRemediationSummary(summaryData);
     } catch (err) {
       console.error('Failed to fetch remediation data', err);
     }
@@ -149,10 +146,8 @@ export default function SecurityPostureCenterPanel() {
   const handleTriggerRemediation = async (findingId: string) => {
     setRemediating(prev => ({ ...prev, [findingId]: true }));
     try {
-      const res = await fetch(`/api/v1/ui-repair/security/remediation/plan/${findingId}`, { method: 'POST' });
-      if (res.ok) {
-        await fetchRemediationData();
-      }
+      await safeFetchJson(`/api/v1/ui-repair/security/remediation/plan/${findingId}`, { method: 'POST' });
+      await fetchRemediationData();
     } catch (err) {
       console.error('Remediation trigger failed', err);
     } finally {

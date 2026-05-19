@@ -14,13 +14,14 @@ if str(root) not in sys.path:
     sys.path.append(str(root))
 
 from datetime import datetime, timezone
-from libs.db.session import get_db, get_db_ctx
+from libs.db.session import get_db, get_db_ctx, init_db
 from libs.db.models.core_models import Project, OperationalIncident, SystemImprovement
 from libs.db.repositories.repository import ProjectRepository, OperationalIncidentRepository
 from workers.workflow_worker.tasks.project_tasks import auto_fix_incident_task, verify_canary_health_task
 
 async def test_self_correction_flow():
     print("\n[PHASE 16 E2E] Starting Self-Correction Loop Test...")
+    await init_db()
     
     async with get_db_ctx() as session:
         # 1. Pilot Proje Oluştur

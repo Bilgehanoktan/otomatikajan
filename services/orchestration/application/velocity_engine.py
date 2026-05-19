@@ -16,7 +16,7 @@ from services.observability.logging import get_logger
 from services.orchestration.domain.models import ActionRecord, RiskLevel, ExecutionPlan, PlanStep
 from libs.llm.model_orchestrator import ModelOrchestrator
 from services.orchestration.application.sandbox_runner import get_sandbox_runner
-from services.orchestration.application.agent_discovery import build_agents
+from services.orchestration.application.agent_discovery import build_agents, discover_and_build_specialists
 from libs.db.repositories.repository import SkillLogRepository
 from libs.db.session import session_scope
 from services.orchestration.domain.events import event_bus
@@ -61,6 +61,11 @@ class VelocityEngine:
     async def _ensure_agents(self):
         if not self.agents:
             self.agents = build_agents()
+            try:
+                specialists = discover_and_build_specialists()
+                self.agents.update(specialists)
+            except Exception as e:
+                _log.warning(f"[VELOCITY] Failed to discover specialist agents: {e}")
 
     async def simulate(self, action: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
         agent_id = action.get("agent_id", "architect")
@@ -104,9 +109,9 @@ class VelocityEngine:
     async def execute_swarm(self, actions: List[Dict[str, Any]], context: Dict[str, Any], task_id: str) -> List[EngineResult]:
         tasks = []
         for action in actions:
-            workers.workflow_worker.tasks.append(self.simulate_and_execute(action.get("agent_id", "architect"), action.get("prompt", ""), context, task_id))
+            tasks.append(self.simulate_and_execute(action.get("agent_id", "architect"), action.get("prompt", ""), context, task_id))
         results = await asyncio.gather(*tasks, return_exceptions=True)
-        return [r if not isinstance(r, Exception) else EngineResult(success=False, output_data=None, errors=[str(r)]) for r in results]
+        return [r if not isinstance(r, BaseException) else EngineResult(success=False, output_data=None, errors=[str(r)]) for r in results]
 
     async def _run_simulation(self, agent_id: str, prompt: str, context: Dict[str, Any]) -> Tuple[bool, str]:
         sim_res = await self.meta_audit.simulate_action_impact(agent_id, prompt, context)
@@ -124,6 +129,7 @@ class VelocityEngine:
         agent = self.agents.get(agent_id)
         if not agent: return EngineResult(success=False, output_data=None, errors=[f"Velocity unit {agent_id} not encountered."])
         try:
+            agent.llm = self.model_orch
             out = await agent.execute(task_id=task_id, subtask_id=str(uuid.uuid4()), prompt=prompt, context=context)
             final_output = out.raw_output
             
@@ -146,7 +152,7 @@ class VelocityEngine:
                     quality_score = 0.95 # High quality if passed critique first try
             
             # 2. Parse Structured Output & Execute Tools (Phase 12.2 Integration)
-            parsed: AgentOutput = output_parser.parse(str(final_output))
+            parsed: AgentOutput = output_parser.parse(agent_id, str(final_output))
             if parsed.tool_calls:
                 _log.info(f"[VELOCITY-REALIZATION] {len(parsed.tool_calls)} araç çağrısı saptandı. İcra ediliyor...")
                 tool_results = await tool_executor.execute_calls(task_id, agent_id, parsed.tool_calls, context)

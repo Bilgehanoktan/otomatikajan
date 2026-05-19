@@ -38,6 +38,18 @@ async def get_ceo_overview(
         logger.exception("Failed to get CEO overview")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/findings")
+async def get_ceo_findings(
+    identity: Dict[str, Any] = Depends(require_permission("governor.view"))
+):
+    """Returns detailed strategic findings/suggestions for the dashboard."""
+    ceo_engine = get_ceo_engine()
+    try:
+        return await ceo_engine.get_findings()
+    except Exception as e:
+        logger.exception("Failed to get CEO findings")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.post("/scan")
 async def trigger_ceo_scan(
     identity: Dict[str, Any] = Depends(require_permission("governor.scan"))

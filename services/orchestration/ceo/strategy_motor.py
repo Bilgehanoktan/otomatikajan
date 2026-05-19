@@ -19,6 +19,21 @@ class CEOStrategyMotor:
     def __init__(self, model_orch: ModelOrchestrator):
         self.model_orch = model_orch
 
+    @staticmethod
+    def _normalize_priority(value: Any) -> int:
+        if isinstance(value, (int, float)):
+            return max(0, min(100, int(value)))
+
+        text = str(value or "P1").strip().upper()
+        priority_map = {"P0": 100, "P1": 80, "P2": 50, "P3": 20}
+        if text in priority_map:
+            return priority_map[text]
+
+        try:
+            return max(0, min(100, int(float(text))))
+        except ValueError:
+            return priority_map["P1"]
+
     async def formulate_new_goals(self, audit_findings: List[Dict[str, Any]]) -> List[SovereignGoal]:
         """
         Denetim bulgularını analiz ederek sistemdeki 'bilişsel boşlukları' dolduracak 
@@ -49,10 +64,32 @@ class CEOStrategyMotor:
                 prompt=prompt,
                 system_prompt="Sen bir Sovereign AGI CEO'susun. Sistemin uzun vadeli vizyonunu ve hedeflerini belirlersin."
             )
-            
-            # TODO: JSON Parse and DB Save logic
-            logger.status(f"👔 CEO Strategy Motor: New Strategic Goal Synthesized: {response.content[:50]}...")
-            # Bu aşamada gerçek record oluşturma logic'i eklenecek
+
+            import json
+            import re
+
+            content = response.content if hasattr(response, 'content') else str(response)
+            json_match = re.search(r'\{.*\}', content, re.DOTALL)
+
+            if json_match:
+                data = json.loads(json_match.group())
+
+                async with session_scope() as db:
+                    new_goal = SovereignGoal(
+                        id=uuid.uuid4(),
+                        title=data.get("title", "Otonom Sentezlenen Hedef"),
+                        vision_statement=data.get("description", ""),
+                        priority=self._normalize_priority(data.get("priority", "P1")),
+                        kpis=data.get("kpis", {}),
+                        status="active"
+                    )
+                    db.add(new_goal)
+                    await db.commit()
+
+                logger.info(f"👔 CEO Strategy Motor: New Strategic Goal Synthesized & Saved: {new_goal.title}")
+                return [new_goal]
+
+            logger.warning(f"👔 CEO Strategy Motor: Failed to parse JSON from: {content[:50]}...")
             return []
         except Exception as e:
             logger.error(f"Strategy formulation failed: {e}")

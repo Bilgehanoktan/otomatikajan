@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { 
   Card, Typography, Row, Col, Statistic, 
   Button, List, Divider, Space, Spin, Alert,
-  Progress, Descriptions
+  Progress, Descriptions, Tag
 } from 'antd';
 import { 
   FileText, Download, TrendingUp, ShieldCheck, 
   Target, Zap, History, BarChart3, ChevronRight
 } from 'lucide-react';
+import { safeFetchJson } from '@/lib/api';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -18,8 +19,8 @@ const DefenseReportPanel: React.FC = () => {
   const fetchReport = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/ui-repair/defense/report/latest');
-      if (res.ok) setReport(await res.json());
+      const data = await safeFetchJson<any>('/api/v1/ui-repair/defense/report/latest');
+      setReport(data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -30,10 +31,8 @@ const DefenseReportPanel: React.FC = () => {
   const generateReport = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/ui-repair/defense/report/generate', { method: 'POST' });
-      if (res.ok) {
-        setReport(await res.json());
-      }
+      const data = await safeFetchJson<any>('/api/v1/ui-repair/defense/report/generate', { method: 'POST' });
+      setReport(data);
     } catch (err) {
       console.error(err);
     } finally {

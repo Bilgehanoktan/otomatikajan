@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Table, Tag, Button, Progress, List, Typography, Space, Divider, Alert, Badge, Spin, Row, Col, Statistic } from 'antd';
-import { RocketOutlined, AuditOutlined, ShieldOutlined, AppstoreOutlined, CheckCircleOutlined, WarningOutlined, LockOutlined, FileTextOutlined } from '@ant-design/icons';
+import { RocketOutlined, AuditOutlined, SafetyOutlined, AppstoreOutlined, CheckCircleOutlined, WarningOutlined, LockOutlined, FileTextOutlined } from '@ant-design/icons';
 import { ReleaseReadinessPanel } from './ReleaseReadinessPanel';
 import { FinalAuditPackPanel } from './FinalAuditPackPanel';
 import { SystemSmokeTestPanel } from './SystemSmokeTestPanel';
 import { ResidualRiskPanel } from './ResidualRiskPanel';
+import RedTeamPanel from './RedTeamPanel';
+import { safeFetchJson } from '@/lib/api';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -20,8 +22,7 @@ export const FinalReleaseCenterPanel: React.FC = () => {
     const fetchReadiness = async () => {
         setLoading(true);
         try {
-            const response = await fetch('/api/v1/ui-repair/final/readiness');
-            const data = await response.json();
+            const data = await safeFetchJson('/api/v1/ui-repair/final/readiness');
             setReadinessSummary(data);
         } catch (error) {
             console.error('Failed to fetch readiness:', error);
@@ -36,6 +37,7 @@ export const FinalReleaseCenterPanel: React.FC = () => {
         { key: 'smoke', tab: 'Smoke Tests' },
         { key: 'pack', tab: 'Audit Pack' },
         { key: 'risks', tab: 'Residual Risks' },
+        { key: 'redteam', tab: 'Red Team' },
         { key: 'lock', tab: 'Release Lock' },
     ];
 
@@ -46,6 +48,7 @@ export const FinalReleaseCenterPanel: React.FC = () => {
             case 'pack': return <FinalAuditPackPanel />;
             case 'smoke': return <SystemSmokeTestPanel />;
             case 'risks': return <ResidualRiskPanel />;
+            case 'redteam': return <RedTeamPanel />;
             case 'lock': return <ReleaseLockPanel />;
             default: return null;
         }
@@ -105,7 +108,7 @@ export const FinalReleaseCenterPanel: React.FC = () => {
                             title="Audit Status" 
                             value="SEALED" 
                             valueStyle={{ color: '#1890ff' }}
-                            prefix={<ShieldOutlined />}
+                            prefix={<SafetyOutlined />}
                         />
                     </Card>
                 </Col>
@@ -153,8 +156,7 @@ const AuditPanel: React.FC = () => {
     const runAudit = async () => {
         setLoading(true);
         try {
-            const response = await fetch('/api/v1/ui-repair/final/integration-audit/run', { method: 'POST' });
-            const data = await response.json();
+            const data = await safeFetchJson('/api/v1/ui-repair/final/integration-audit/run', { method: 'POST' });
             setAudits([data, ...audits]);
         } catch (error) {
             console.error('Audit failed:', error);
@@ -175,7 +177,7 @@ const AuditPanel: React.FC = () => {
                 renderItem={audit => (
                     <Card size="small" style={{ marginBottom: '12px' }}>
                         <List.Item
-                            actions={[<Button type="link">View Details</Button>]}
+                            actions={[<Button key="view-details" type="link">View Details</Button>]}
                         >
                             <List.Item.Meta
                                 avatar={<Badge status={audit.status === 'PASSED' ? 'success' : 'error'} />}

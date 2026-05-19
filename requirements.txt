@@ -50,4 +50,5 @@ google-generativeai==0.8.0
 PyGithub==2.3.0
 playwright==1.42.0
 pytest-playwright==0.7.2
+langgraph-checkpoint-sqlite==3.0.3
 aiofiles==23.2.1

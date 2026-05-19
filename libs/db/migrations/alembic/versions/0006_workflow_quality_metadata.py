@@ -3,9 +3,8 @@
 Revision ID: 0006_workflow_quality_metadata
 Revises: cce4d9bf9404
 """
-from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
+from alembic import op
 
 revision = "0006_workflow_quality_metadata"
 down_revision = "0005_fix_schema_hardening"
@@ -16,7 +15,7 @@ depends_on = None
 def upgrade():
     conn = op.get_bind()
     inspector = sa.inspect(conn)
-    
+
     # Projects table columns
     p_cols = [c['name'] for c in inspector.get_columns("projects")]
     if "workflow_template" not in p_cols:

@@ -4,14 +4,15 @@ Unified database session management with aggressive SQLite fallback & Auto-Seedi
 """
 from __future__ import annotations
 
-import os
-import logging
 import asyncio
+import logging
+import os
 import threading
-import uuid
-from urllib.parse import urlparse
-from typing import AsyncGenerator, Optional
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from datetime import UTC
+from urllib.parse import urlparse
+
 # SQLAlchemy imports moved to local scopes to prevent Phase 13.04 startup hangs in Python 3.14+
 # from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 # from sqlalchemy.orm import sessionmaker, Session
@@ -22,12 +23,12 @@ try:
     from libs.config import (
         APP_ENV,
         DATABASE_URL,
-        DB_POOL_SIZE,
         DB_MAX_OVERFLOW,
+        DB_POOL_SIZE,
         DB_POOL_TIMEOUT,
         LOCAL_DEV_DB_STRATEGY,
         QUEUE_BACKEND,
-        REDIS_URL
+        REDIS_URL,
     )
 except ImportError:
     APP_ENV = os.getenv("APP_ENV", "development")
@@ -41,14 +42,16 @@ except ImportError:
 
 logger = logging.getLogger("db.session")
 
-# ── Globals ───
-_engine = None
-_async_session_factory = None
-_sync_engine = None
-_sync_session_factory = None
+from typing import Any
 
-_DB_DEGRADED = False  
-_DB_CHECKED = False   
+# ── Globals ───
+_engine: Any = None
+_async_session_factory: Any = None
+_sync_engine: Any = None
+_sync_session_factory: Any = None
+
+_DB_DEGRADED = False
+_DB_CHECKED = False
 _DB_ERROR = ""
 _last_loop = None
 _lock = threading.Lock()
@@ -79,11 +82,11 @@ def _primary_db_target() -> tuple[str, int] | None:
 
 def check_connectivity(timeout=0.5):
     global _DB_DEGRADED, _DB_CHECKED, _DB_ERROR
-    
+
     # SIF-01 Enhancement: Quick exit if already checked to prevent blocking loops
     if _DB_CHECKED and _DB_DEGRADED:
         return False
-        
+
     import socket
     target = _primary_db_target()
     if target is None:
@@ -98,10 +101,10 @@ def check_connectivity(timeout=0.5):
         with socket.create_connection((host, port), timeout=timeout):
             _DB_DEGRADED = False
             _DB_ERROR = ""
-    except (socket.timeout, ConnectionRefusedError, OSError) as exc:
+    except (TimeoutError, ConnectionRefusedError, OSError) as exc:
         _DB_DEGRADED = True
         _DB_ERROR = f"Primary DB ({host}:{port}) unreachable: {exc}. SQLite fallback active."
-    
+
     _DB_CHECKED = True
     return not _DB_DEGRADED
 
@@ -132,8 +135,8 @@ async def is_db_available() -> bool:
         return False
 
 def get_engine():
+    from sqlalchemy import event
     from sqlalchemy.ext.asyncio import create_async_engine
-    from sqlalchemy import event, text
     global _engine, _last_loop, _DB_DEGRADED, _DB_CHECKED
     try:
         curr_active_loop = asyncio.get_running_loop()
@@ -143,15 +146,24 @@ def get_engine():
     # Force re-check if we are in fallback but engine was previously pointing elsewhere
     if _engine is not None and _DB_DEGRADED:
         if "sqlite" not in str(_engine.url):
-             _engine = None 
+             try:
+                 _engine.sync_engine.dispose()
+             except Exception:
+                 pass
+             _engine = None
 
     if _engine is None or (curr_active_loop is not None and _last_loop is not curr_active_loop):
         with _lock:
             # Double-check pattern
             if _engine is None or (curr_active_loop is not None and _last_loop is not curr_active_loop):
-                if not _DB_CHECKED: 
+                if _engine is not None:
+                    try:
+                        _engine.sync_engine.dispose()
+                    except Exception:
+                        pass
+                if not _DB_CHECKED:
                     check_connectivity()
-                
+
                 if _DB_DEGRADED:
                     _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
                     sqlite_path = os.path.join(_root, "runtime", "data", "cortex_local_v2.db")
@@ -159,12 +171,12 @@ def get_engine():
                     # Use a stable file path and ensure it's absolute
                     abs_path = os.path.abspath(sqlite_path).replace('\\', '/')
                     sqlite_url = f"sqlite+aiosqlite:///{abs_path}?timeout=60"
-                    
+
                     _engine = create_async_engine(
                         sqlite_url,
                         connect_args={"timeout": 60}
                     )
-                    
+
                     @event.listens_for(_engine.sync_engine, "connect")
                     def set_sqlite_pragma(dbapi_connection, connection_record):
                         cursor = dbapi_connection.cursor()
@@ -173,21 +185,31 @@ def get_engine():
                         cursor.execute("PRAGMA busy_timeout=60000")
                         cursor.execute("PRAGMA foreign_keys=ON")
                         cursor.close()
-                    
+
                     if not _DB_ERROR:
                         _DB_ERROR = "SQLite Fallback Active"
                 else:
                     # SRE Hardening: Ensure pool params are only passed for Postgres
-                    from typing import Dict, Any
-                    engine_kwargs: Dict[str, Any] = {
+                    from typing import Any
+                    engine_kwargs: dict[str, Any] = {
                         "pool_pre_ping": True,
                     }
-                    if not str(DATABASE_URL).startswith("sqlite"):
+                    if not DATABASE_URL.startswith("sqlite"):
                         engine_kwargs["pool_timeout"] = 30
                         engine_kwargs["pool_size"] = DB_POOL_SIZE
                         engine_kwargs["max_overflow"] = DB_MAX_OVERFLOW
-                        
+
                     _engine = create_async_engine(DATABASE_URL, **engine_kwargs)
+
+                    if DATABASE_URL.startswith("sqlite"):
+                        @event.listens_for(_engine.sync_engine, "connect")
+                        def set_sqlite_pragma_primary(dbapi_connection, connection_record):
+                            cursor = dbapi_connection.cursor()
+                            cursor.execute("PRAGMA journal_mode=WAL")
+                            cursor.execute("PRAGMA synchronous=NORMAL")
+                            cursor.execute("PRAGMA busy_timeout=60000")
+                            cursor.execute("PRAGMA foreign_keys=ON")
+                            cursor.close()
                 _last_loop = curr_active_loop
     return _engine
 
@@ -205,7 +227,6 @@ class _LazySessionLocal:
 AsyncSessionLocal = _LazySessionLocal()
 
 async def get_db() -> AsyncGenerator: # Type hint simplified to avoid import
-    from sqlalchemy.ext.asyncio import AsyncSession
     async with AsyncSessionLocal() as session: yield session
 
 @asynccontextmanager
@@ -226,35 +247,49 @@ async def session_scope():
 get_db_ctx = session_scope
 
 async def init_db():
-    from sqlalchemy import select, func, text
     import hashlib
     import json
-    from datetime import datetime, timezone
-    from libs.db.models.core_models import Base, Project, ProjectSource, ProjectStatus, SubTask, TaskPriority, ApprovalRequest
-    from libs.db.models.learning_models import Base as LearningBase
+    from datetime import datetime
+
+    from sqlalchemy import func, select
+
+    from libs.db.models.auth_models import Base as AuthBase
+    from libs.db.models.auth_models import Operator, SystemIdentity
+    from libs.db.models.compliance_models import Base as CompBase
+    from libs.db.models.core_models import (
+        ApprovalRequest,
+        Base,
+        Project,
+        ProjectSource,
+        ProjectStatus,
+        SubTask,
+        TaskPriority,
+    )
+    from libs.db.models.federation_models import Base as FederationBase
     from libs.db.models.governance_models import (
         Base as GovBase,
-        GovernorCaseRecord,
-        GovernorDomain,
-        GovernorOutcomeRecord,
-        GovernorOutcomeQuality,
-        GovernorOutcomeType,
+    )
+    from libs.db.models.governance_models import (
         GovernanceProofEventRecord,
         GovernanceProofSnapshotRecord,
+        GovernorCaseRecord,
+        GovernorDomain,
+        GovernorOutcomeQuality,
+        GovernorOutcomeRecord,
+        GovernorOutcomeType,
         PolicyProposal,
         ProofEventType,
         ProofSealStatus,
     )
-    from libs.db.models.lineage_models import Base as LineageBase, DecisionLineage
-    from libs.db.models.compliance_models import Base as CompBase
-    from libs.db.models.auth_models import Base as AuthBase, Operator, SystemIdentity
+    from libs.db.models.learning_models import Base as LearningBase
+    from libs.db.models.lineage_models import Base as LineageBase
+    from libs.db.models.lineage_models import DecisionLineage
     from libs.db.models.repair_models import Base as RepairBase
-    from libs.db.models.federation_models import Base as FederationBase
-    
+
     engine = get_engine()
-    
+
     async with engine.begin() as conn:
-        # All models share the same Base from libs.db.base, 
+        # All models share the same Base from libs.db.base,
         # so one create_all would be enough if all are imported.
         # We keep the explicit calls for clarity and modularity.
         await conn.run_sync(Base.metadata.create_all)
@@ -273,8 +308,14 @@ async def init_db():
         try:
             # 0. Seed Agent Nodes from Registry
             from agents.specialist_agents.agent_registry import build_agents
-            from libs.db.models.core_models import AgentNode, AgentRole, AgentStatus, FleetCluster, FleetStatus
-            
+            from libs.db.models.core_models import (
+                AgentNode,
+                AgentRole,
+                AgentStatus,
+                FleetCluster,
+                FleetStatus,
+            )
+
             registry_agents = build_agents()
             for agent_id, agent_obj in registry_agents.items():
                 res = await db.execute(select(AgentNode).where(AgentNode.name == agent_id))
@@ -305,8 +346,8 @@ async def init_db():
             # 1. Seed Admin Operator
             res = await db.execute(select(Operator).where(Operator.email == "admin@sovereign.agi"))
             if not res.scalar_one_or_none():
-                from bcrypt import hashpw, gensalt
-                hashed = hashpw("admin1234".encode(), gensalt()).decode()
+                from bcrypt import gensalt, hashpw
+                hashed = hashpw(b"admin1234", gensalt()).decode()
                 admin = Operator(
                     email="admin@sovereign.agi",
                     username="admin",
@@ -343,7 +384,7 @@ async def init_db():
             if is_db_degraded():
                 project_count = await db.scalar(select(func.count(Project.id))) or 0
                 if project_count == 0:
-                    now = datetime.now(timezone.utc)
+                    now = datetime.now(UTC)
 
                     running_project = Project(
                         title="Pilot Intel Ingestion",
@@ -660,7 +701,7 @@ async def init_db():
                             canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False)
                             payload_hash = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
                             event_hash = hashlib.sha256(
-                                f"{chain_index}|{event_type.value}|{entity_id}|{payload_hash}|{prev_hash or ''}".encode("utf-8")
+                                f"{chain_index}|{event_type.value}|{entity_id}|{payload_hash}|{prev_hash or ''}".encode()
                             ).hexdigest()
                             db.add(
                                 GovernanceProofEventRecord(
@@ -738,7 +779,7 @@ async def init_db():
                             payload_hash = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
                             chain_index = max_chain + offset
                             event_hash = hashlib.sha256(
-                                f"{chain_index}|{event_type.value}|{entity_id}|{payload_hash}|{prev_hash or ''}".encode("utf-8")
+                                f"{chain_index}|{event_type.value}|{entity_id}|{payload_hash}|{prev_hash or ''}".encode()
                             ).hexdigest()
                             db.add(
                                 GovernanceProofEventRecord(
@@ -766,7 +807,7 @@ async def init_db():
                             combined_hashes = "".join(event.event_hash for event in proof_events)
                             merkle_root = hashlib.sha256(combined_hashes.encode("utf-8")).hexdigest()
                             snapshot_hash = hashlib.sha256(
-                                f"proof-seed|{merkle_root}|{len(proof_events)}".encode("utf-8")
+                                f"proof-seed|{merkle_root}|{len(proof_events)}".encode()
                             ).hexdigest()
                             db.add(
                                 GovernanceProofSnapshotRecord(
@@ -831,7 +872,7 @@ def get_sync_engine():
             _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
             sqlite_path = os.path.join(_root, "runtime", "data", "cortex_local_v2.db")
             _sync_engine = create_engine(f"sqlite:///{sqlite_path.replace('\\', '/')}", connect_args={"check_same_thread": False, "timeout": 60})
-            
+
             @event.listens_for(_sync_engine, "connect")
             def set_sqlite_pragma_sync(dbapi_connection, connection_record):
                 cursor = dbapi_connection.cursor()
@@ -856,6 +897,7 @@ def get_sync_session():
     return _get_sync_session_factory()()
 
 from contextlib import contextmanager
+
 
 @contextmanager
 def get_sync_db_ctx():

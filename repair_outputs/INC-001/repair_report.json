@@ -14,6 +14,7 @@
       "services/",
       "tests/"
     ],
+    "context_data": {},
     "error_type": "AssertionError",
     "failed_command": "",
     "failed_test": "tests/repair/test_sample.py::test_sample",
@@ -32,7 +33,7 @@
     "repo_snapshot": {
       "branch": "AutoRepair/fix-verify-123",
       "dirty": true,
-      "head": "7644168",
+      "head": "b51d0cfe",
       "repo_root": "E:\\ai_company_faz12.1"
     },
     "summary": "Sample failed repair flow smoke case.",
@@ -70,7 +71,7 @@
     "status": "QUORUM_REQUIRED"
   },
   "sandbox_result": {
-    "duration_seconds": 0.0005,
+    "duration_seconds": 0.0006,
     "exit_code": 0,
     "failed_commands": [],
     "patch_applied": true,

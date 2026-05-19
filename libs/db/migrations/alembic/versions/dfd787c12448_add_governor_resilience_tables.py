@@ -4,16 +4,17 @@ Revision ID: dfd787c12448
 Revises: 54a09b9b7ba4
 Create Date: 2026-04-27 01:05:40.364488
 """
-from typing import Sequence, Union
-from alembic import op
+from collections.abc import Sequence
+
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
 
 revision: str = 'dfd787c12448'
-down_revision: Union[str, None] = '54a09b9b7ba4'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = '54a09b9b7ba4'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -34,10 +35,10 @@ def upgrade() -> None:
     # Actually, in PostgreSQL, if an ENUM exists, CREATE TYPE will fail.
     # However, op.create_table will try to create the enum type if it's new.
     # I'll use a safer approach: check if types exist or just use existing ones.
-    
+
     op.create_index(op.f('ix_governor_circuit_breakers_domain'), 'governor_circuit_breakers', ['domain'], unique=False)
     op.create_index(op.f('ix_governor_circuit_breakers_state'), 'governor_circuit_breakers', ['state'], unique=False)
-    
+
     op.create_table('governor_drills',
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('drill_type', sa.Enum('DOMAIN_TIMEOUT', 'META_TIMEOUT', 'CONFLICT_STORM', 'FALSE_ESCALATION_BURST', 'REPLAY_STORM', 'POLICY_VETO_FLOOD', 'LINEAGE_FAILURE', 'DB_DEGRADED', name='governordrilltype'), nullable=False),

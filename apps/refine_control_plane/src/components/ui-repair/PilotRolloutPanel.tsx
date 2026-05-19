@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Card, Space, Row, Col, Tabs } from "antd";
+import { safeFetchJson } from "@/lib/api";
 import { 
     RocketOutlined, 
     BarChartOutlined, 
@@ -25,8 +26,7 @@ export const PilotRolloutPanel: React.FC = () => {
 
     const fetchStatus = async () => {
         try {
-            const res = await fetch("/api/v1/ui-repair/pilot/status");
-            const data = await res.json();
+            const data = await safeFetchJson("/api/v1/ui-repair/pilot/status");
             setRollout(data);
         } catch (e) {}
     };

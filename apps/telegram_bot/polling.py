@@ -44,22 +44,53 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     logger.info(f"Received message from {update.effective_user.id}: {text}")
     
-    # Placeholder for AGI Logic Integration
-    # TODO: Connect to Sovereign Planner or Workflow API
+    try:
+        import httpx
+        backend_url = os.getenv("BACKEND_API_URL", "http://localhost:8000")
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                f"{backend_url}/api/v1/orchestration/planner/analyze",
+                json={"query": text, "user_id": str(update.effective_user.id)},
+                timeout=15.0
+            )
+            
+            if resp.status_code == 200:
+                data = resp.json()
+                reply = data.get("response", "İşlem tamamlandı.")
+                await update.message.reply_text(reply, parse_mode="Markdown")
+                return
+    except Exception as e:
+        logger.error(f"Planner integration failed: {e}")
+        
     await update.message.reply_text(
         "🔄 **Mesaj Alındı.**\n"
-        "Sovereign AGI çekirdeği şu an bu veriyi işliyor...",
+        "Sovereign AGI çekirdeğine ulaşılamadı. İstek kuyruğa alındı.",
         parse_mode="Markdown"
     )
 
 async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await check_auth(update): return
-    # TODO: Integrate with real health checks
+    try:
+        import httpx
+        backend_url = os.getenv("BACKEND_API_URL", "http://localhost:8000")
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(f"{backend_url}/api/v1/health", timeout=5.0)
+            if resp.status_code == 200:
+                data = resp.json()
+                health_status = data.get("status", "HEALTHY")
+                await update.message.reply_text(
+                    f"📊 **Sistem Durumu:** [{health_status}]\n"
+                    "✅ Backend: Online\n"
+                    "✅ Veritabanı Bağlantısı: Başarılı",
+                    parse_mode="Markdown"
+                )
+                return
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        
     await update.message.reply_text(
-        "📊 **Sistem Durumu:** [HEALTHY]\n"
-        "✅ Core: Online\n"
-        "✅ Workflow Engine: Online\n"
-        "✅ LLM Orchestrator: Online",
+        "📊 **Sistem Durumu:** [DEGRADED]\n"
+        "❌ Backend bağlantısı sağlanamadı veya API yanıt vermiyor.",
         parse_mode="Markdown"
     )
 

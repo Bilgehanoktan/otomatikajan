@@ -5,12 +5,14 @@ Created to break circular dependencies between models and session.
 """
 
 import uuid
-from datetime import datetime, timezone
-from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+from datetime import UTC, datetime
+
 from sqlalchemy import JSON as SA_JSON
 from sqlalchemy.dialects.postgresql import JSONB as PG_JSONB
-from sqlalchemy.types import TypeDecorator, CHAR
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.types import CHAR, TypeDecorator
+
 
 class Base(DeclarativeBase):
     """SQLAlchemy Declarative Base."""
@@ -18,7 +20,7 @@ class Base(DeclarativeBase):
 
 def utcnow():
     """Returns the current UTC time."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 def SmartJSON():
     """Returns JSONB for Postgres and JSON for other databases (SQLite)."""
@@ -45,7 +47,7 @@ class GUID(TypeDecorator):
                 value = uuid.UUID(value)
             except (ValueError, TypeError):
                 return value
-        
+
         if dialect.name == "postgresql":
             return value
         else:

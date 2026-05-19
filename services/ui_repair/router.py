@@ -3,12 +3,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from uuid import UUID
 from typing import List, Dict, Any, Optional, cast
+from datetime import datetime, timezone
 
 from libs.db.session import get_db
 from libs.db.models.ui_repair_models import (
     UIRepairCase, UIRouteHealth, UISmokeRun, UIRepairStatus,
     UIPolicyRule, UIPolicyEvaluation, UIPolicyConflict, UIPolicyProposal,
-    UIAutonomousOverride, UISecurityPostureFinding
+    UIAutonomousOverride, UISecurityPostureFinding, ReleaseStatus
 )
 from services.ui_repair.service import UIRepairService
 from services.ui_repair.schemas import (
@@ -66,6 +67,7 @@ from services.ui_repair.schemas import (
     PostApplyValidationSchema, RollbackExecutionSchema,
     AutoPatchStartRequest, AutoPatchActionRequest,
     AutoPatchTraceSchema, PatchNegotiationSessionSchema, PatchDebateTurnSchema, PatchCandidateScoreSchema,
+    NegotiationStartRequest,
     UIKnowledgeNodeSchema, UIKnowledgeEdgeSchema, UICausalMemorySchema, UICausalChainSchema,
     UIIncidentPatternSchema, UISimilarCaseMatchSchema, UIRiskPredictionSchema,
     UIKnowledgeGraphOverviewSchema, UIKnowledgeReportSchema, SimilarCaseRequest,
@@ -840,6 +842,19 @@ async def list_policy_evaluations(
     if project_key:
         stmt = stmt.where(UIPolicyEvaluation.project_key == project_key)
     stmt = stmt.order_by(UIPolicyEvaluation.evaluated_at.desc())
+    res = await db.execute(stmt)
+    return list(res.scalars().all())
+
+@router.get("/governance/overrides", response_model=List[UIAutonomousOverrideSchema])
+async def list_policy_overrides(
+    tenant_key: Optional[str] = None,
+    db: AsyncSession = Depends(get_db)
+):
+    """Audit log of manual autonomous governance overrides."""
+    stmt = select(UIAutonomousOverride)
+    if tenant_key:
+        stmt = stmt.where(UIAutonomousOverride.tenant_key == tenant_key)
+    stmt = stmt.order_by(UIAutonomousOverride.created_at.desc())
     res = await db.execute(stmt)
     return list(res.scalars().all())
 
@@ -1649,7 +1664,10 @@ async def get_residual_risks(db: AsyncSession = Depends(get_db)):
             mitigation="Manual review required for patches affecting > 10 files.",
             is_accepted=True,
             accepted_by="Egemen YAZ",
-            accepted_at=datetime.now(timezone.utc)
+            accepted_at=datetime.now(timezone.utc),
+            mitigation_strategy="Manual review required for patches affecting > 10 files.",
+            operator_rationale="Accepted for RC1 with manual governance gate coverage.",
+            status="ACCEPTED"
         ),
         UIResidualRiskSchema(
             risk_id="RR-002",
@@ -1657,7 +1675,10 @@ async def get_residual_risks(db: AsyncSession = Depends(get_db)):
             severity="LOW",
             description="Latency spike when processing > 5000 tokens.",
             mitigation="Timeout increased for large payloads.",
-            is_accepted=False
+            is_accepted=False,
+            mitigation_strategy="Monitor large-payload latency and keep timeout tuning under release freeze.",
+            operator_rationale=None,
+            status="MONITORING"
         )
     ]
 
@@ -1673,12 +1694,8 @@ async def sign_off_residual_risk(risk_id: str, operator: str = Body(..., embed=T
         mitigation="N/A",
         is_accepted=True,
         accepted_by=operator,
-        accepted_at=datetime.now(timezone.utc)
-            module="Auto-Patch",
-            severity="LOW",
-            description="Minor edge case in multi-file patch application.",
-            mitigation_strategy="Manual review required for patches affecting > 10 files.",
-            operator_rationale="Accepted based on low probability and existence of manual gate.",
-            status="ACCEPTED"
-        )
-    ]
+        accepted_at=datetime.now(timezone.utc),
+        mitigation_strategy="Operator accepted current mitigation under final release governance.",
+        operator_rationale=f"Signed off by {operator}.",
+        status="ACCEPTED"
+    )

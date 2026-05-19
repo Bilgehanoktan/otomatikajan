@@ -36,7 +36,19 @@ class UIEvidenceRunner:
             return self.get_mock_evidence(request.case_id)
 
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
+            try:
+                browser = await p.chromium.launch(headless=True)
+            except Exception as exc:
+                logger.warning("Playwright browser unavailable, returning degraded mock evidence: %s", exc)
+                evidence = self.get_mock_evidence(request.case_id)
+                evidence.page_url = request.target_url
+                evidence.metadata = {
+                    **(evidence.metadata or {}),
+                    "degraded": True,
+                    "fallback_reason": "playwright_browser_unavailable",
+                    "error": str(exc),
+                }
+                return evidence
             
             # Context settings for tracing
             context = await browser.new_context(

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, Row, Col, Statistic, Progress, Typography, Space, Tooltip } from "antd";
+import { safeFetchJson } from "@/lib/api";
 import { 
     DashboardOutlined, 
     BugOutlined, 
@@ -19,9 +20,9 @@ export const PilotMetricsPanel: React.FC<{ rolloutId?: string }> = ({ rolloutId 
 
     useEffect(() => {
         if (rolloutId) {
-            fetch(`/api/v1/ui-repair/pilot/metrics/${rolloutId}`)
-                .then(res => res.json())
-                .then(data => setMetrics(data));
+            safeFetchJson(`/api/v1/ui-repair/pilot/metrics/${rolloutId}`)
+                .then(data => setMetrics(data))
+                .catch(err => console.error("Failed to fetch pilot metrics", err));
         }
     }, [rolloutId]);
 

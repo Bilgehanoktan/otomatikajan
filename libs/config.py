@@ -27,6 +27,13 @@ def _env_bool(name: str, default: bool) -> bool:
     return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _dotenv_override_enabled(default: bool) -> bool:
+    raw = os.getenv("SOVEREIGN_DOTENV_OVERRIDE")
+    if raw is None or not raw.strip():
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
 def _default_runtime_profile(app_env: str) -> str:
     return "production" if app_env == "production" else "local-dev"
 
@@ -100,7 +107,7 @@ def validate_production_config():
 try:
     from dotenv import load_dotenv
     _base_dir = os.path.dirname(os.path.abspath(__file__))
-    _dotenv_override = not _is_container_runtime()
+    _dotenv_override = _dotenv_override_enabled(not _is_container_runtime())
     # Öncelik: .env -> .env.local (Host mode)
     if os.path.exists(".env"):
         load_dotenv(".env", override=_dotenv_override)

@@ -20,11 +20,29 @@ class ResourceGovernor:
         """
         Gecikme, hata oranları ve maliyet artış hızına göre 0-100 arası sağlık skoru üretir.
         """
-        # TODO: Implement complex calculation logic based on:
-        # 1. API Latency (from ApiMetric)
-        # 2. Worker Error Rate (from TaskLog)
-        # 3. Budget Burn Velocity (from CostRepository)
-        return 85.0 # Placeholder for initial version
+        try:
+            from libs.db.session import session_scope
+            from libs.db.repositories.repository import ApiMetricRepository
+
+            async with session_scope() as db:
+                metrics = await ApiMetricRepository.get_summary(db, since_hours=1)
+                avg_latency = metrics.get("avg_latency", 0)
+                error_rate = metrics.get("error_rate", 0)
+
+                health = 100.0
+                if avg_latency > 500:
+                    health -= 10
+                if avg_latency > 1500:
+                    health -= 20
+                if error_rate > 0.05:
+                    health -= 15
+                if error_rate > 0.15:
+                    health -= 30
+
+                return max(0.0, health)
+        except Exception as e:
+            logger.error(f"Health calculation failed: {e}")
+            return 85.0
 
     @staticmethod
     async def evaluate_emergency_status():
@@ -61,5 +79,16 @@ class ResourceGovernor:
         """
         Bir projenin bütçe kotasını aşıp aşmadığını denetler.
         """
-        # TODO: CostRepository entegrasyonu
-        return True
+        try:
+            from libs.db.session import session_scope
+            from libs.db.repositories.repository import CostRepository
+
+            async with session_scope() as db:
+                current_cost = await CostRepository.get_project_cost(db, project_id)
+                if current_cost >= quota_usd:
+                    logger.warning(f"Quota exceeded for project {project_id}: ${current_cost} >= ${quota_usd}")
+                    return False
+            return True
+        except Exception as e:
+            logger.error(f"Quota enforcement failed: {e}")
+            return False

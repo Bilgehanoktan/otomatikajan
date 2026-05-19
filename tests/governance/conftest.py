@@ -12,25 +12,29 @@ def setup_test_db():
     # Use a specific test DB file in the scratch/test directory or in memory
     test_db_url = "sqlite:///governance_test.db"
     
-    # Force this URL for the duration of the test session
-    # This affects get_sync_engine() and others that read from libs.config.DATABASE_URL
-    # if we import them AFTER setting this, but libs.config is already imported.
-    # So we might need to patch the config.
-    
     import libs.config
     old_url = libs.config.DATABASE_URL
-    libs.config.DATABASE_URL = test_db_url
+    libs.config.DATABASE_URL = "sqlite+aiosqlite:///governance_test.db"
     
-    engine = create_engine(test_db_url)
+    from sqlalchemy.pool import NullPool
+    from sqlalchemy import text
+    engine = create_engine(test_db_url, poolclass=NullPool)
+    
+    # Enable WAL mode synchronously on the database file
+    with engine.connect() as conn:
+        conn.execute(text("PRAGMA journal_mode=WAL"))
+        conn.execute(text("PRAGMA synchronous=NORMAL"))
     
     # Create all tables (including the new governance ones)
     from libs.db.models import governance_models, core_models, repair_models, learning_models
     Base.metadata.create_all(engine)
     
+    # Dispose immediately to release connection locks on the file
+    engine.dispose()
+    
     yield engine
     
     # Cleanup
-    # Ensure all connections are closed before removing the file
     engine.dispose()
     
     try:

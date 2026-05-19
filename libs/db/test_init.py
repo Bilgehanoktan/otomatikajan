@@ -1,13 +1,15 @@
 
 import asyncio
-import sys
 import os
+import sys
 
 # Add project root to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
-from libs.db.session import get_engine, init_db
 import logging
+
+from libs.db.session import get_engine
+
 
 async def test():
     logging.basicConfig(level=logging.INFO)
@@ -17,11 +19,11 @@ async def test():
         # but we want to see the error.
         engine = get_engine()
         print(f"[*] Testing Engine: {engine.url}")
-        
+
         from libs.db.session import run_init
         await run_init(engine)
         print("[+] INIT SUCCESSFUL!")
-        
+
     except Exception as e:
         print(f"[!] INIT FAILED: {e}")
         import traceback

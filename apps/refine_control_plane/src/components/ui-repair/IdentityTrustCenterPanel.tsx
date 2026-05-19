@@ -1,19 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  Table, Tag, Card, Row, Col, Statistic, List, Typography, 
-  Space, Progress, Button, message, Modal, Descriptions 
+import {
+  Table, Tag, Card, Row, Col, Statistic, List, Typography,
+  Space, Progress, Button, message, Modal, Descriptions
 } from 'antd';
-import { 
-  SafetyCertificateOutlined, 
-  ShieldOutlined, 
-  KeyOutlined, 
-  HistoryOutlined, 
+import {
+  SafetyCertificateOutlined,
+  SafetyOutlined,
+  KeyOutlined,
+  HistoryOutlined,
   UserOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
   LockOutlined
 } from '@ant-design/icons';
-import axios from 'axios';
+import { safeFetchJson } from '@/lib/api';
 
 const { Title, Text } = Typography;
 
@@ -27,14 +27,14 @@ export const IdentityTrustCenterPanel: React.FC = () => {
   const fetchIdentityData = async () => {
     setLoading(true);
     try {
-      const [resIdentities, resTrust, resAudit] = await Promise.all([
-        axios.get('/api/v1/ui-repair/identity/registry'),
-        axios.get('/api/v1/ui-repair/identity/trust-scores'),
-        axios.get('/api/v1/ui-repair/identity/audit-events')
+      const [identitiesData, trustData, auditData] = await Promise.all([
+        safeFetchJson<any[]>('/api/v1/ui-repair/identity/registry'),
+        safeFetchJson<any[]>('/api/v1/ui-repair/identity/trust-scores'),
+        safeFetchJson<any[]>('/api/v1/ui-repair/identity/audit-events')
       ]);
-      setIdentities(resIdentities.data);
-      setTrustScores(resTrust.data);
-      setAuditEvents(resAudit.data);
+      setIdentities(identitiesData);
+      setTrustScores(trustData);
+      setAuditEvents(auditData);
     } catch (error) {
       console.error("Failed to fetch identity data", error);
       message.error("Failed to load Identity Trust Center data");
@@ -150,7 +150,7 @@ export const IdentityTrustCenterPanel: React.FC = () => {
               title="Avg Trust Score" 
               value={trustScores.length > 0 ? (trustScores.reduce((a, b) => a + b.trust_score, 0) / trustScores.length * 100).toFixed(1) : 100} 
               suffix="%"
-              prefix={<ShieldOutlined />} 
+              prefix={<SafetyOutlined />}
               valueStyle={{ color: '#52c41a' }}
             />
           </Card>
@@ -188,7 +188,7 @@ export const IdentityTrustCenterPanel: React.FC = () => {
         </Col>
 
         <Col span={8}>
-          <Card title={<Space><ShieldOutlined /> Trust Anomalies</Space>} bordered={false} className="glass-card">
+          <Card title={<Space><SafetyOutlined /> Trust Anomalies</Space>} bordered={false} className="glass-card">
             <List
               dataSource={trustScores.filter(s => s.trust_score < 0.8)}
               renderItem={item => (
@@ -205,7 +205,7 @@ export const IdentityTrustCenterPanel: React.FC = () => {
         </Col>
 
         <Col span={24}>
-          <Card title={<Space><HistoryOutlined /> Identity Audit Ledger (SovereignEvidence)</Card>} bordered={false} className="glass-card">
+          <Card title={<Space><HistoryOutlined /> Identity Audit Ledger (SovereignEvidence)</Space>} bordered={false} className="glass-card">
             <Table 
               dataSource={auditEvents} 
               columns={auditColumns} 

@@ -15,13 +15,13 @@
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pytest tests/test_phase13_workflow.py tests/integration/test_mesh_api.py -q"
+        "command": "python -m pytest tests/test_phase13_workflow.py tests/integration/test_mesh_api.py -q"
       }
     },
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "ruff check services/workflow_api"
+        "command": "python -m ruff check services/workflow_api"
       }
     }
   }

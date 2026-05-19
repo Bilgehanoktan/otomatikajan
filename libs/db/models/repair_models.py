@@ -9,17 +9,24 @@ Tablolar:
 """
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import (
-    Boolean, Column, DateTime, Float, Integer,
-    String, Text, Index,
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    Index,
+    Integer,
+    String,
+    Text,
 )
-from libs.db.base import Base, SmartJSON, GUID
+
+from libs.db.base import GUID, Base, SmartJSON
 
 
 def _utcnow():
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 # ── Incident Kaydı ────────────────────────────────────────
@@ -261,21 +268,21 @@ class SelfTuningSuggestion(Base):
 
 # ── Phase 32: UI Repair & PR Governance ──────────────────
 
-# class UIRepairPRReview(Base):
-#     __tablename__ = "ui_repair_pr_reviews"
-# 
-#     id              = Column(GUID, primary_key=True, default=uuid.uuid4)
-#     review_id       = Column(String(64), unique=True, nullable=False, index=True)
-#     case_id         = Column(String(64), nullable=False, index=True) # Linked to RepairJobRecord.job_id
-#     pr_url          = Column(String(512), nullable=False)
-#     status          = Column(String(32), nullable=False, index=True)
-#     # PENDING | RUNNING | PASSED | CHANGES_REQUESTED | BLOCKED | FAILED | MANUAL_REVIEW_REQUIRED
-#     summary         = Column(Text, default="")
-#     confidence_score = Column(Float, default=0.0)
-#     verifier_mesh_pass = Column(Boolean, default=False)
-#     governance_decision = Column(String(32), default="PENDING")
-#     created_at      = Column(DateTime(timezone=True), default=_utcnow, nullable=False)
-#     updated_at      = Column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow)
+class UIRepairPRReview(Base):
+    __tablename__ = "repair_ui_pr_reviews"
+
+    id              = Column(GUID, primary_key=True, default=uuid.uuid4)
+    review_id       = Column(String(64), unique=True, nullable=False, index=True)
+    case_id         = Column(String(64), nullable=False, index=True) # Linked to RepairJobRecord.job_id
+    pr_url          = Column(String(512), nullable=False)
+    status          = Column(String(32), nullable=False, index=True)
+    # PENDING | RUNNING | PASSED | CHANGES_REQUESTED | BLOCKED | FAILED | MANUAL_REVIEW_REQUIRED
+    summary         = Column(Text, default="")
+    confidence_score = Column(Float, default=0.0)
+    verifier_mesh_pass = Column(Boolean, default=False)
+    governance_decision = Column(String(32), default="PENDING")
+    created_at      = Column(DateTime(timezone=True), default=_utcnow, nullable=False)
+    updated_at      = Column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow)
 
 
 class UIRepairPRFinding(Base):

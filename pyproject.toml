@@ -35,6 +35,7 @@ dependencies = [
     "google-generativeai==0.8.0",
     "PyGithub==2.3.0",
     "playwright==1.42.0",
+    "langgraph-checkpoint-sqlite==3.0.3",
     "python-frontmatter==1.1.0",
 ]
 

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Button, List, Tag, Typography, Progress, message, Space, Result } from 'antd';
 import { CheckCircleOutlined, WarningOutlined, CloseCircleOutlined, SyncOutlined } from '@ant-design/icons';
 import { useTranslations } from 'next-intl';
+import { safeFetchJson } from '@/lib/api';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -19,8 +20,7 @@ const GAReadinessPanel: React.FC = () => {
   const fetchLatest = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/ui-repair/enterprise/ga-readiness/latest');
-      const data = await res.json();
+      const data = await safeFetchJson('/api/v1/ui-repair/enterprise/ga-readiness/latest');
       setAssessment(data);
     } catch (err) {
       message.error('Failed to fetch GA readiness assessment');
@@ -32,8 +32,7 @@ const GAReadinessPanel: React.FC = () => {
   const triggerCheck = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/ui-repair/enterprise/ga-readiness/check?assessor=Admin', { method: 'POST' });
-      const data = await res.json();
+      const data = await safeFetchJson('/api/v1/ui-repair/enterprise/ga-readiness/check?assessor=Admin', { method: 'POST' });
       setAssessment(data);
       message.success('Assessment completed');
     } catch (err) {

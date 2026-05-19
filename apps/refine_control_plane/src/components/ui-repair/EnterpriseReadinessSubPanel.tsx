@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Card, Table, Typography, Space, Tag, Button, Progress, List, Alert } from "antd";
 import { CheckCircleOutlined, ExclamationCircleOutlined, CloseCircleOutlined, SafetyCertificateOutlined } from "@ant-design/icons";
+import { safeFetchJson } from "@/lib/api";
 
 const { Title, Text } = Typography;
 
@@ -15,8 +16,7 @@ export const EnterpriseReadinessSubPanel: React.FC = () => {
     const fetchReadiness = async () => {
         setLoading(true);
         try {
-            const response = await fetch("/api/v1/ui-repair/readiness/overview");
-            const result = await response.json();
+            const result = await safeFetchJson("/api/v1/ui-repair/readiness/overview");
             setData(result);
         } catch (error) {
             console.error("Failed to fetch readiness", error);
@@ -32,7 +32,7 @@ export const EnterpriseReadinessSubPanel: React.FC = () => {
     const runAssessment = async () => {
         setLoading(true);
         try {
-            await fetch("/api/v1/ui-repair/readiness/assess?assessor=Admin", { method: "POST" });
+            await safeFetchJson("/api/v1/ui-repair/readiness/assess?assessor=Admin", { method: "POST" });
             await fetchReadiness();
         } catch (error) {
             console.error("Assessment failed", error);

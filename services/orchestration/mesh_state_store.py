@@ -9,16 +9,20 @@ import json
 import os
 import redis
 import logging
+import threading
 from typing import Dict, Any, Optional
 from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
 class MeshStateStore:
-    def __init__(self, redis_url: Optional[str] = None):
-        self.redis_url = redis_url or os.getenv("REDIS_URL")
+    def __init__(self, redis_url: Optional[str] = None, storage_path: Optional[str] = None):
+        self.redis_url = redis_url if redis_url is not None else (None if storage_path else os.getenv("REDIS_URL"))
         self._redis = None
         self._key = "sovereign:mesh:state"
+        self.storage_path = storage_path
+        self._lock = threading.RLock()
+        self._state = self._load_local_state()
         
         if not self.redis_url:
             logger.info("MeshStateStore: No Redis URL provided, using fallback state.")
@@ -55,9 +59,29 @@ class MeshStateStore:
         
         return {"regions": regions, "last_update": datetime.now(timezone.utc).isoformat()}
 
-    def _get_state(self) -> Dict[str, Any]:
-        if not self._redis:
+    def _load_local_state(self) -> Dict[str, Any]:
+        if not self.storage_path:
             return self._get_fallback_state()
+        try:
+            if not os.path.exists(self.storage_path):
+                return {"regions": {}, "last_update": datetime.now(timezone.utc).isoformat()}
+            with open(self.storage_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if not isinstance(data, dict) or not isinstance(data.get("regions", {}), dict):
+                raise ValueError("invalid mesh state shape")
+            data.setdefault("regions", {})
+            data.setdefault("last_update", datetime.now(timezone.utc).isoformat())
+            return data
+        except Exception as e:
+            logger.error(f"Failed to load mesh state from {self.storage_path}: {e}")
+            return {"regions": {}, "last_update": datetime.now(timezone.utc).isoformat()}
+
+    def _get_state(self) -> Dict[str, Any]:
+        if self._state.get("regions"):
+            return self._state
+        if not self._redis:
+            with self._lock:
+                return self._state
         try:
             data = self._redis.get(self._key)
             if data:
@@ -68,10 +92,19 @@ class MeshStateStore:
         return self._get_fallback_state()
 
     def _save_state(self, state: Dict[str, Any]):
+        with self._lock:
+            state["last_update"] = datetime.now(timezone.utc).isoformat()
+            self._state = state
         if not self._redis:
+            with self._lock:
+                if self.storage_path:
+                    try:
+                        with open(self.storage_path, "w", encoding="utf-8") as f:
+                            json.dump(state, f)
+                    except Exception as e:
+                        logger.error(f"Error saving mesh state to {self.storage_path}: {e}")
             return
         try:
-            state["last_update"] = datetime.now(timezone.utc).isoformat()
             self._redis.set(self._key, json.dumps(state))
         except Exception as e:
             logger.error(f"Error saving mesh state to Redis: {e}")
@@ -86,6 +119,12 @@ class MeshStateStore:
         
         current = state["regions"].get(region_id, {})
         current.update(metrics)
+        current["fallback"] = bool(metrics.get("fallback", False))
+        if (
+            "health_score" not in metrics
+            and current.get("health_status") in {"NOMINAL", "HEALTHY"}
+        ):
+            current["health_score"] = 1.0
         current["updated_at"] = datetime.now(timezone.utc).isoformat()
         
         state["regions"][region_id] = current
@@ -113,8 +152,12 @@ class MeshStateStore:
             try:
                 updated_at = datetime.fromisoformat(updated_at_str)
                 if updated_at.tzinfo is None:
+                    if not data.get("fallback"):
+                        continue
                     updated_at = updated_at.replace(tzinfo=timezone.utc)
-                if (now - updated_at).total_seconds() <= threshold_seconds:
+                fresh = (now - updated_at).total_seconds() <= threshold_seconds
+                registry_baseline = data.get("fallback") and "health_status" not in data
+                if fresh or registry_baseline:
                     if data.get("health_score", 0) > 0.5:
                         count += 1
             except Exception:

@@ -1,0 +1,360 @@
+> python -m ruff check services/workflow_api
+
+[1m[91mE722 [0m[1mDo not use bare `except`[0m
+   [1m[94m-->[0m services\workflow_api\fleet_router.py:158:9
+    [1m[94m|[0m
+[1m[94m156 |[0m             p = json.loads(r.payload_canonical)
+[1m[94m157 |[0m             summary = p.get("details") or p.get("msg") or p.get("reason")
+[1m[94m158 |[0m         except:
+    [1m[94m|[0m         [1m[91m^^^^^^[0m
+[1m[94m159 |[0m             summary = r.payload_canonical[:100] if r.payload_canonical else None
+    [1m[94m|[0m
+
+[1m[91mE402 [0m[1mModule level import not at top of file[0m
+  [1m[94m-->[0m services\workflow_api\governance_router.py:19:1
+   [1m[94m|[0m
+[1m[94m18 |[0m # Top-level imports for IDE support and type-safety
+[1m[94m19 |[0m from datetime import UTC, timedelta
+   [1m[94m|[0m [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[1m[94m20 |[0m
+[1m[94m21 |[0m from sqlalchemy import func, select
+   [1m[94m|[0m
+
+[1m[91mE402 [0m[1mModule level import not at top of file[0m
+  [1m[94m-->[0m services\workflow_api\governance_router.py:21:1
+   [1m[94m|[0m
+[1m[94m19 |[0m from datetime import UTC, timedelta
+[1m[94m20 |[0m
+[1m[94m21 |[0m from sqlalchemy import func, select
+   [1m[94m|[0m [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[1m[94m22 |[0m
+[1m[94m23 |[0m from libs.db.models.core_models import (
+   [1m[94m|[0m
+
+[1m[91mE402 [0m[1mModule level import not at top of file[0m
+  [1m[94m-->[0m services\workflow_api\governance_router.py:23:1
+   [1m[94m|[0m
+[1m[94m21 |[0m   from sqlalchemy import func, select
+[1m[94m22 |[0m
+[1m[94m23 |[0m [1m[91m/[0m from libs.db.models.core_models import (
+[1m[94m24 |[0m [1m[91m|[0m     ApprovalRequest,
+[1m[94m25 |[0m [1m[91m|[0m     LLMCostLog,
+[1m[94m26 |[0m [1m[91m|[0m     OperationalIncident,
+[1m[94m27 |[0m [1m[91m|[0m     Project,
+[1m[94m28 |[0m [1m[91m|[0m     SovereignEvidence,
+[1m[94m29 |[0m [1m[91m|[0m     SystemImprovement,
+[1m[94m30 |[0m [1m[91m|[0m )
+   [1m[94m|[0m [1m[91m|_^[0m
+[1m[94m31 |[0m   from libs.db.models.governance_models import ProductionSignoff, ValidationResult, ValidationType
+[1m[94m32 |[0m   from libs.db.models.learning_models import ErrorFingerprint
+   [1m[94m|[0m
+
+[1m[91mE402 [0m[1mModule level import not at top of file[0m
+  [1m[94m-->[0m services\workflow_api\governance_router.py:31:1
+   [1m[94m|[0m
+[1m[94m29 |[0m     SystemImprovement,
+[1m[94m30 |[0m )
+[1m[94m31 |[0m from libs.db.models.governance_models import ProductionSignoff, ValidationResult, ValidationType
+   [1m[94m|[0m [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[1m[94m32 |[0m from libs.db.models.learning_models import ErrorFingerprint
+[1m[94m33 |[0m from libs.db.models.lineage_models import DecisionLineage, PolicyEvolution
+   [1m[94m|[0m
+
+[1m[91mE402 [0m[1mModule level import not at top of file[0m
+  [1m[94m-->[0m services\workflow_api\governance_router.py:32:1
+   [1m[94m|[0m
+[1m[94m30 |[0m )
+[1m[94m31 |[0m from libs.db.models.governance_models import ProductionSignoff, ValidationResult, ValidationType
+[1m[94m32 |[0m from libs.db.models.learning_models import ErrorFingerprint
+   [1m[94m|[0m [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[1m[94m33 |[0m from libs.db.models.lineage_models import DecisionLineage, PolicyEvolution
+[1m[94m34 |[0m from libs.db.session import AsyncSessionLocal
+   [1m[94m|[0m
+
+[1m[91mE402 [0m[1mModule level import not at top of file[0m
+  [1m[94m-->[0m services\workflow_api\governance_router.py:33:1
+   [1m[94m|[0m
+[1m[94m31 |[0m from libs.db.models.governance_models import ProductionSignoff, ValidationResult, ValidationType
+[1m[94m32 |[0m from libs.db.models.learning_models import ErrorFingerprint
+[1m[94m33 |[0m from libs.db.models.lineage_models import DecisionLineage, PolicyEvolution
+   [1m[94m|[0m [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[1m[94m34 |[0m from libs.db.session import AsyncSessionLocal
+[1m[94m35 |[0m from services.governance.lineage_service import LineageService
+   [1m[94m|[0m
+
+[1m[91mE402 [0m[1mModule level import not at top of file[0m
+  [1m[94m-->[0m services\workflow_api\governance_router.py:34:1
+   [1m[94m|[0m
+[1m[94m32 |[0m from libs.db.models.learning_models import ErrorFingerprint
+[1m[94m33 |[0m from libs.db.models.lineage_models import DecisionLineage, PolicyEvolution
+[1m[94m34 |[0m from libs.db.session import AsyncSessionLocal
+   [1m[94m|[0m [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[1m[94m35 |[0m from services.governance.lineage_service import LineageService
+   [1m[94m|[0m
+
+[1m[91mE402 [0m[1mModule level import not at top of file[0m
+  [1m[94m-->[0m services\workflow_api\governance_router.py:35:1
+   [1m[94m|[0m
+[1m[94m33 |[0m from libs.db.models.lineage_models import DecisionLineage, PolicyEvolution
+[1m[94m34 |[0m from libs.db.session import AsyncSessionLocal
+[1m[94m35 |[0m from services.governance.lineage_service import LineageService
+   [1m[94m|[0m [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+   [1m[94m|[0m
+
+[1m[91mE712 [0m[1mAvoid equality comparisons to `True`; use `ErrorFingerprint.is_active:` for truth checks[0m
+   [1m[94m-->[0m services\workflow_api\governance_router.py:251:98
+    [1m[94m|[0m
+[1m[94m249 |[0m [1m[94m…[0m
+[1m[94m250 |[0m [1m[94m…[0m
+[1m[94m251 |[0m [1m[94m…[0munc.count()).select_from(ErrorFingerprint).where(ErrorFingerprint.is_active == True))).scalar() or 0
+    [1m[94m|[0m                                                   [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[1m[94m252 |[0m [1m[94m…[0m
+[1m[94m253 |[0m [1m[94m…[0munc.count(SystemImprovement.id)).where(SystemImprovement.status == "pending"))).scalar() or 0
+    [1m[94m|[0m
+[1m[96mhelp[0m: [1mReplace with `ErrorFingerprint.is_active`[0m
+
+[1m[91mE712 [0m[1mAvoid equality comparisons to `True`; use `ErrorFingerprint.is_active:` for truth checks[0m
+   [1m[94m-->[0m services\workflow_api\governance_router.py:296:70
+    [1m[94m|[0m
+[1m[94m294 |[0m [1m[94m…[0m     try:
+[1m[94m295 |[0m [1m[94m…[0m         # Fetch active fingerprints
+[1m[94m296 |[0m [1m[94m…[0m         f_res = await db.execute(select(ErrorFingerprint).filter(ErrorFingerprint.is_active == True).order_by(ErrorFingerprint.last[1m[94m…[0m
+    [1m[94m|[0m                                                                    [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[1m[94m297 |[0m [1m[94m…[0m         fingerprints = f_res.scalars().all()
+    [1m[94m|[0m
+[1m[96mhelp[0m: [1mReplace with `ErrorFingerprint.is_active`[0m
+
+[1m[91mE701 [0m[1mMultiple statements on one line (colon)[0m
+   [1m[94m-->[0m services\workflow_api\governance_router.py:307:44
+    [1m[94m|[0m
+[1m[94m306 |[0m             for f in fingerprints:
+[1m[94m307 |[0m                 if f.severity == "critical": critical_count += 1
+    [1m[94m|[0m                                            [1m[91m^[0m
+[1m[94m308 |[0m                 summary_items.append({
+[1m[94m309 |[0m                     "id": str(f.id),
+    [1m[94m|[0m
+
+[1m[91mB904 [0m[1mWithin an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling[0m
+   [1m[94m-->[0m services\workflow_api\governance_router.py:715:9
+    [1m[94m|[0m
+[1m[94m713 |[0m         uid = uuid.UUID(id)
+[1m[94m714 |[0m     except ValueError:
+[1m[94m715 |[0m         raise HTTPException(status_code=404, detail="Improvement not found")
+    [1m[94m|[0m         [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[1m[94m716 |[0m
+[1m[94m717 |[0m     from sqlalchemy import select
+    [1m[94m|[0m
+
+[1m[91mB904 [0m[1mWithin an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling[0m
+   [1m[94m-->[0m services\workflow_api\governance_router.py:832:9
+    [1m[94m|[0m
+[1m[94m830 |[0m         uid = uuid.UUID(id)
+[1m[94m831 |[0m     except ValueError:
+[1m[94m832 |[0m         raise HTTPException(status_code=400, detail="Invalid ID format")
+    [1m[94m|[0m         [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[1m[94m833 |[0m
+[1m[94m834 |[0m     from libs.db.models.core_models import Project
+    [1m[94m|[0m
+
+[1m[91mE722 [0m[1mDo not use bare `except`[0m
+   [1m[94m-->[0m services\workflow_api\governance_router.py:871:9
+    [1m[94m|[0m
+[1m[94m869 |[0m             new_project.status = "queued"
+[1m[94m870 |[0m             await db.commit()
+[1m[94m871 |[0m         except:
+    [1m[94m|[0m         [1m[91m^^^^^^[0m
+[1m[94m872 |[0m             pass
+    [1m[94m|[0m
+
+[1m[91mS110 [0m[1m`try`-`except`-`pass` detected, consider logging the exception[0m
+   [1m[94m-->[0m services\workflow_api\governance_router.py:871:9
+    [1m[94m|[0m
+[1m[94m869 |[0m               new_project.status = "queued"
+[1m[94m870 |[0m               await db.commit()
+[1m[94m871 |[0m [1m[91m/[0m         except:
+[1m[94m872 |[0m [1m[91m|[0m             pass
+    [1m[94m|[0m [1m[91m|________________^[0m
+    [1m[94m|[0m
+
+[1m[91mB904 [0m[1mWithin an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling[0m
+    [1m[94m-->[0m services\workflow_api\governance_router.py:1450:9
+     [1m[94m|[0m
+[1m[94m1448 |[0m         return {"status": "success", "project_id": project_id, "dry_run": dry_run}
+[1m[94m1449 |[0m     except Exception as e:
+[1m[94m1450 |[0m         raise HTTPException(status_code=500, detail=str(e))
+     [1m[94m|[0m         [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[1m[94m1451 |[0m
+[1m[94m1452 |[0m @router.get("/axiology", response_model=list[AxiologyLogOut])
+     [1m[94m|[0m
+
+[1m[91mF821 [0m[1mUndefined name `logger`[0m
+   [1m[94m-->[0m services\workflow_api\governor_router.py:476:9
+    [1m[94m|[0m
+[1m[94m474 |[0m         # governor = ApprovalGovernor()
+[1m[94m475 |[0m         # await governor._record_outcome_for_case(case_id, str(record.project_id), override_action=body.action, db=db)
+[1m[94m476 |[0m         logger.info(f"Outcome recorded via override for case {case_id}")
+    [1m[94m|[0m         [1m[91m^^^^^^[0m
+[1m[94m477 |[0m
+[1m[94m478 |[0m     # Lineage kaydı
+    [1m[94m|[0m
+
+[1m[91mF821 [0m[1mUndefined name `GovernorAlertStatus`[0m
+    [1m[94m-->[0m services\workflow_api\governor_router.py:1136:38
+     [1m[94m|[0m
+[1m[94m1134 |[0m     async with AsyncSessionLocal() as db:
+[1m[94m1135 |[0m         success = await GovernorAlertRepo.update_status(
+[1m[94m1136 |[0m             db, uuid.UUID(alert_id), GovernorAlertStatus.ACKNOWLEDGED, owner_id=identity.get("name")
+     [1m[94m|[0m                                      [1m[91m^^^^^^^^^^^^^^^^^^^[0m
+[1m[94m1137 |[0m         )
+[1m[94m1138 |[0m         if not success:
+     [1m[94m|[0m
+
+[1m[91mF821 [0m[1mUndefined name `GovernorAlertStatus`[0m
+    [1m[94m-->[0m services\workflow_api\governor_router.py:1152:38
+     [1m[94m|[0m
+[1m[94m1150 |[0m     async with AsyncSessionLocal() as db:
+[1m[94m1151 |[0m         success = await GovernorAlertRepo.update_status(
+[1m[94m1152 |[0m             db, uuid.UUID(alert_id), GovernorAlertStatus.RESOLVED
+     [1m[94m|[0m                                      [1m[91m^^^^^^^^^^^^^^^^^^^[0m
+[1m[94m1153 |[0m         )
+[1m[94m1154 |[0m         if not success:
+     [1m[94m|[0m
+
+[1m[91mE712 [0m[1mAvoid equality comparisons to `True`; use `ErrorFingerprint.is_active:` for truth checks[0m
+   [1m[94m-->[0m services\workflow_api\health_router.py:105:48
+    [1m[94m|[0m
+[1m[94m103 |[0m [1m[94m…[0m     async with AsyncSessionLocal() as db:
+[1m[94m104 |[0m [1m[94m…[0m         res = await db.execute(
+[1m[94m105 |[0m [1m[94m…[0m             select(ErrorFingerprint).where(ErrorFingerprint.is_active == True).order_by(ErrorFingerprint.last_seen_at.desc()).limit[1m[94m…[0m
+    [1m[94m|[0m                                              [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[1m[94m106 |[0m [1m[94m…[0m         )
+[1m[94m107 |[0m [1m[94m…[0m         fingerprints = list(res.scalars().all())
+    [1m[94m|[0m
+[1m[96mhelp[0m: [1mReplace with `ErrorFingerprint.is_active`[0m
+
+[1m[91mE712 [0m[1mAvoid equality comparisons to `True`; use `ErrorFingerprint.is_active:` for truth checks[0m
+   [1m[94m-->[0m services\workflow_api\health_router.py:171:63
+    [1m[94m|[0m
+[1m[94m169 |[0m             }
+[1m[94m170 |[0m
+[1m[94m171 |[0m         res = await db.execute(select(ErrorFingerprint).where(ErrorFingerprint.is_active == True))
+    [1m[94m|[0m                                                               [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[1m[94m172 |[0m         fingerprints = list(res.scalars().all())
+[1m[94m173 |[0m         matched = [
+    [1m[94m|[0m
+[1m[96mhelp[0m: [1mReplace with `ErrorFingerprint.is_active`[0m
+
+[1m[91mE712 [0m[1mAvoid equality comparisons to `True`; use `ErrorFingerprint.is_active:` for truth checks[0m
+   [1m[94m-->[0m services\workflow_api\health_router.py:406:21
+    [1m[94m|[0m
+[1m[94m404 |[0m             await db.execute(
+[1m[94m405 |[0m                 select(func.count(ErrorFingerprint.id)).where(
+[1m[94m406 |[0m                     ErrorFingerprint.is_active == True,
+    [1m[94m|[0m                     [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[1m[94m407 |[0m                     ErrorFingerprint.severity.in_(["warning", "medium", "high", "critical"])
+[1m[94m408 |[0m                 )
+    [1m[94m|[0m
+[1m[96mhelp[0m: [1mReplace with `ErrorFingerprint.is_active`[0m
+
+[1m[91mS112 [0m[1m`try`-`except`-`continue` detected, consider logging the exception[0m
+   [1m[94m-->[0m services\workflow_api\repair_lab_router.py:155:9
+    [1m[94m|[0m
+[1m[94m153 |[0m                   }
+[1m[94m154 |[0m               )
+[1m[94m155 |[0m [1m[91m/[0m         except Exception:
+[1m[94m156 |[0m [1m[91m|[0m             continue
+    [1m[94m|[0m [1m[91m|____________________^[0m
+[1m[94m157 |[0m       return assets
+    [1m[94m|[0m
+
+[1m[91mS112 [0m[1m`try`-`except`-`continue` detected, consider logging the exception[0m
+   [1m[94m-->[0m services\workflow_api\repair_lab_router.py:200:9
+    [1m[94m|[0m
+[1m[94m198 |[0m                   }
+[1m[94m199 |[0m               )
+[1m[94m200 |[0m [1m[91m/[0m         except Exception:
+[1m[94m201 |[0m [1m[91m|[0m             continue
+    [1m[94m|[0m [1m[91m|____________________^[0m
+[1m[94m202 |[0m
+[1m[94m203 |[0m       return sorted(reports, key=lambda item: item["updated_at"], reverse=True)[:limit]
+    [1m[94m|[0m
+
+[1m[91mS112 [0m[1m`try`-`except`-`continue` detected, consider logging the exception[0m
+   [1m[94m-->[0m services\workflow_api\repair_lab_router.py:254:9
+    [1m[94m|[0m
+[1m[94m252 |[0m                   }
+[1m[94m253 |[0m               )
+[1m[94m254 |[0m [1m[91m/[0m         except Exception:
+[1m[94m255 |[0m [1m[91m|[0m             continue
+    [1m[94m|[0m [1m[91m|____________________^[0m
+[1m[94m256 |[0m
+[1m[94m257 |[0m       return sorted(runs, key=lambda item: item["updated_at"], reverse=True)[:limit]
+    [1m[94m|[0m
+
+[1m[91mS607 [0m[1mStarting a process with a partial executable path[0m
+   [1m[94m-->[0m services\workflow_api\repair_lab_router.py:932:13
+    [1m[94m|[0m
+[1m[94m930 |[0m         # Use git apply to apply the unified diff
+[1m[94m931 |[0m         process = subprocess.run(
+[1m[94m932 |[0m             ["git", "apply", "-"],
+    [1m[94m|[0m             [1m[91m^^^^^^^^^^^^^^^^^^^^^[0m
+[1m[94m933 |[0m             input=diff_text,
+[1m[94m934 |[0m             cwd=REPO_ROOT,
+    [1m[94m|[0m
+
+[1m[91mB904 [0m[1mWithin an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling[0m
+   [1m[94m-->[0m services\workflow_api\repair_lab_router.py:977:9
+    [1m[94m|[0m
+[1m[94m975 |[0m       except Exception as e:
+[1m[94m976 |[0m           logger.exception(f"Exception during patch application for {case_id}")
+[1m[94m977 |[0m [1m[91m/[0m         raise HTTPException(
+[1m[94m978 |[0m [1m[91m|[0m             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+[1m[94m979 |[0m [1m[91m|[0m             detail=f"System error while applying patch: {str(e)}"
+[1m[94m980 |[0m [1m[91m|[0m         )
+    [1m[94m|[0m [1m[91m|_________^[0m
+[1m[94m981 |[0m
+[1m[94m982 |[0m   @router.get("/cases/{case_id}/patch")
+    [1m[94m|[0m
+
+[1m[91mF821 [0m[1mUndefined name `AsyncSession`[0m
+   [1m[94m-->[0m services\workflow_api\router.py:332:9
+    [1m[94m|[0m
+[1m[94m330 |[0m async def list_steps(
+[1m[94m331 |[0m     project_id: str | None = None,
+[1m[94m332 |[0m     db: AsyncSession = Depends(get_db),
+    [1m[94m|[0m         [1m[91m^^^^^^^^^^^^[0m
+[1m[94m333 |[0m     identity: dict[str, Any] = Depends(require_permission("workflow.view"))
+[1m[94m334 |[0m ):
+    [1m[94m|[0m
+
+[1m[91mF821 [0m[1mUndefined name `AsyncSession`[0m
+   [1m[94m-->[0m services\workflow_api\router.py:373:9
+    [1m[94m|[0m
+[1m[94m371 |[0m async def create_project(
+[1m[94m372 |[0m     req: ProjectCreate,
+[1m[94m373 |[0m     db: AsyncSession = Depends(get_db),
+    [1m[94m|[0m         [1m[91m^^^^^^^^^^^^[0m
+[1m[94m374 |[0m     identity: dict[str, Any] = Depends(require_permission("workflow.create"))
+[1m[94m375 |[0m ):
+    [1m[94m|[0m
+
+[1m[91mE712 [0m[1mAvoid equality comparisons to `True`; use `ErrorFingerprint.is_active:` for truth checks[0m
+    [1m[94m-->[0m services\workflow_api\router.py:1009:83
+     [1m[94m|[0m
+[1m[94m1008 |[0m         # 2. Systemic anomalies count (Error Fingerprints)
+[1m[94m1009 |[0m         f_count = (await db.execute(select(func.count(ErrorFingerprint.id)).where(ErrorFingerprint.is_active == True))).scalar() or 0
+     [1m[94m|[0m                                                                                   [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[1m[94m1010 |[0m
+[1m[94m1011 |[0m         # 3. Pending Improvements count
+     [1m[94m|[0m
+[1m[96mhelp[0m: [1mReplace with `ErrorFingerprint.is_active`[0m
+
+[1m[91mE402 [0m[1mModule level import not at top of file[0m
+  [1m[94m-->[0m services\workflow_api\runtime_diagnostics.py:12:1
+   [1m[94m|[0m
+[1m[94m12 |[0m from services.auth.jwt_auth import is_dev_env
+   [1m[94m|[0m [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+   [1m[94m|[0m
+
+Found 32 errors.
+No fixes available (6 hidden fixes can be enabled with the `--unsafe-fixes` option).

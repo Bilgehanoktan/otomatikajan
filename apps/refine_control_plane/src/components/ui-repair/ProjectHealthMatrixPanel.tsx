@@ -3,10 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Tag, Progress, message, Tooltip } from 'antd';
 import { useTranslations } from 'next-intl';
+import { safeFetchJson } from '@/lib/api';
 
 const ProjectHealthMatrixPanel: React.FC = () => {
   const t = useTranslations('repair_lab.enterprise_rollout.health_matrix');
-  const [data, setData] = useState([]);
+  const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -17,8 +18,7 @@ const ProjectHealthMatrixPanel: React.FC = () => {
     setLoading(true);
     // In real implementation, this would fetch UIProjectHealthSnapshot or projects with health
     try {
-      const res = await fetch('/api/v1/ui-repair/projects');
-      const projects = await res.json();
+      const projects = await safeFetchJson('/api/v1/ui-repair/projects');
       
       const snapshots = projects.map((p: any) => ({
         ...p,

@@ -12,7 +12,7 @@ import {
 } from "@ant-design/icons";
 
 import { EnterpriseReadinessSubPanel } from "./EnterpriseReadinessSubPanel";
-import { RedTeamPanel } from "./RedTeamPanel";
+import RedTeamPanel from "./RedTeamPanel";
 import { ReleaseGatePanel } from "./ReleaseGatePanel";
 import { FinalAuditPackPanel } from "./FinalAuditPackPanel";
 import { HandoverPanel } from "./HandoverPanel";

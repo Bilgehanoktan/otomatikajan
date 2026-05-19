@@ -10,6 +10,7 @@ import {
     Badge, Button, Table
 } from "./CommonUI";
 import { useNotification } from "@refinedev/core";
+import { safeFetchJson } from "@/lib/api";
 
 export const AdvancedChaosPanel: React.FC = () => {
     const t = useTranslations("repair_lab");
@@ -19,12 +20,16 @@ export const AdvancedChaosPanel: React.FC = () => {
     const [loading, setLoading] = useState(false);
 
     const fetchData = async () => {
-        const [scenRes, runRes] = await Promise.all([
-            fetch("/api/v1/ui-repair/advanced-chaos/scenarios"),
-            fetch("/api/v1/ui-repair/advanced-chaos/runs")
-        ]);
-        if (scenRes.ok) setScenarios(await scenRes.json());
-        if (runRes.ok) setRuns(await runRes.json());
+        try {
+            const [scenariosData, runsData] = await Promise.all([
+                safeFetchJson<any[]>("/api/v1/ui-repair/advanced-chaos/scenarios"),
+                safeFetchJson<any[]>("/api/v1/ui-repair/advanced-chaos/runs")
+            ]);
+            setScenarios(scenariosData);
+            setRuns(runsData);
+        } catch (err) {
+            console.error("Failed to fetch advanced chaos data", err);
+        }
     };
 
     useEffect(() => {
@@ -36,17 +41,17 @@ export const AdvancedChaosPanel: React.FC = () => {
     const runDrill = async (id: string) => {
         setLoading(true);
         try {
-            const res = await fetch(`/api/v1/ui-repair/advanced-chaos/scenarios/${id}/run`, {
+            await safeFetchJson(`/api/v1/ui-repair/advanced-chaos/scenarios/${id}/run`, {
                 method: "POST"
             });
-            if (res.ok) {
-                open?.({
-                    type: "success",
-                    message: "Advanced drill initiated.",
-                    description: "Failure injection started in sandbox environment."
-                });
-                fetchData();
-            }
+            open?.({
+                type: "success",
+                message: "Advanced drill initiated.",
+                description: "Failure injection started in sandbox environment."
+            });
+            fetchData();
+        } catch (err) {
+            console.error("Failed to initiate advanced drill", err);
         } finally {
             setLoading(false);
         }

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useTranslations } from "next-intl";
 import { 
     Zap, 
     FlaskConical, 
@@ -21,6 +22,8 @@ interface EvolutionEvent {
 }
 
 export const EvolutionTimeline = ({ events }: { events: EvolutionEvent[] }) => {
+    const t = useTranslations("dashboard.evolutionTimeline");
+
     return (
         <section className="glass-panel p-10 rounded-[3rem] border-white/[0.04] bg-white/[0.015] shadow-2xl relative overflow-hidden group">
             <div className="flex items-center justify-between mb-10 pb-6 border-b border-white/[0.03]">
@@ -29,8 +32,8 @@ export const EvolutionTimeline = ({ events }: { events: EvolutionEvent[] }) => {
                         <History size={20} />
                     </div>
                     <div>
-                        <h3 className="text-xl font-black text-white uppercase italic tracking-tighter">Evrimsel Şecere</h3>
-                        <p className="text-[10px] text-gray-600 font-black uppercase tracking-widest mt-1">Otonom Tamir & Gelişim Günlüğü</p>
+                        <h3 className="text-xl font-black text-white uppercase italic tracking-tighter">{t("title")}</h3>
+                        <p className="text-[10px] text-gray-600 font-black uppercase tracking-widest mt-1">{t("subtitle")}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/40 border border-white/5 text-[9px] font-black text-gray-500 uppercase tracking-widest italic">
@@ -55,7 +58,7 @@ export const EvolutionTimeline = ({ events }: { events: EvolutionEvent[] }) => {
                                     ${event.type === 'promotion' ? 'text-green-500 border-green-500/20 bg-green-500/5' : 
                                       event.type === 'tournament' ? 'text-violet-500 border-violet-500/20 bg-violet-500/5' : 
                                       'text-amber-500 border-amber-500/20 bg-amber-500/5'}`}>
-                                    {event.type === 'diagnosis' ? 'TEŞHİS' : event.type === 'tournament' ? 'TURNUVA' : 'TERFİ'}
+                                    {t(`types.${event.type}`)}
                                 </span>
                                 <span className="text-[9px] font-mono text-gray-700 font-black italic">{new Date(event.time).toLocaleTimeString()}</span>
                             </div>
@@ -82,7 +85,7 @@ export const EvolutionTimeline = ({ events }: { events: EvolutionEvent[] }) => {
 
                 {events.length === 0 && (
                     <div className="py-20 text-center opacity-20 italic font-black text-gray-600 uppercase text-[10px] tracking-[0.4em]">
-                        Evrimsel Veri Bulunamadı
+                        {t("empty")}
                     </div>
                 )}
             </div>

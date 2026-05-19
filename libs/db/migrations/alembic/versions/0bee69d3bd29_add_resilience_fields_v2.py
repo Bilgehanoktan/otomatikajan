@@ -4,15 +4,15 @@ Revision ID: 0bee69d3bd29
 Revises: 61034897bc59
 Create Date: 2026-04-02 02:35:42.098925
 """
-from typing import Sequence, Union
-from alembic import op
+from collections.abc import Sequence
+
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
+from alembic import op
 
 revision: str = '0bee69d3bd29'
-down_revision: Union[str, None] = '61034897bc59'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = '61034897bc59'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

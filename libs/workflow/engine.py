@@ -7,22 +7,21 @@ Every step creates a child span with step metadata as attributes.
 Trace IDs propagate to logs via correlation_id().
 """
 import asyncio
-import logging
-from datetime import datetime
-from typing import Callable, Any, Dict, Awaitable, Optional
+from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
+from typing import Any
 
-from libs.workflow.models import WorkflowInstance, WorkflowStep, StepStatus, WorkflowStatus
-from libs.workflow.registry import WorkflowRegistry
+from libs.workflow.models import StepStatus, WorkflowInstance, WorkflowStatus, WorkflowStep
 from libs.workflow.persistence import WorkflowPersistence
 
 # Phase 14: Governance Imports
 from services.governance.autonomy_policy import autonomy_engine
 from services.governance.cost_guard import cost_guard
-from services.governance.approval_policy import approval_engine
-
 from services.observability.logging import get_logger
+
 try:
-    from libs.observability.tracer import span as _otel_span, set_span_attrs, add_span_event, correlation_id
+    from libs.observability.tracer import add_span_event, correlation_id, set_span_attrs
+    from libs.observability.tracer import span as _otel_span
     _HAS_OTEL = True
 except ImportError:
     _HAS_OTEL = False
@@ -88,7 +87,7 @@ def _condition_matches(condition: str | None, context: dict[str, Any]) -> bool:
 class WorkflowEngine:
     def __init__(self):
         self.persistence = WorkflowPersistence()
-        self._registry: Dict[str, Callable[..., Awaitable[Any]]] = {}
+        self._registry: dict[str, Callable[..., Awaitable[Any]]] = {}
 
     def register_action(self, name: str, func: Callable[..., Awaitable[Any]]):
         """Register an async action function by name."""
@@ -117,10 +116,9 @@ class WorkflowEngine:
 
         async def _run():
             nonlocal instance
-            from datetime import timezone
             instance.status = WorkflowStatus.RUNNING if instance.status != WorkflowStatus.REPLAYING else WorkflowStatus.REPLAYING
-            instance.started_at = instance.started_at or datetime.now(timezone.utc)
-            
+            instance.started_at = instance.started_at or datetime.now(UTC)
+
             # Hardening: Capture Trace ID for audit & continuity
             tid = correlation_id()
             if tid != "no-otel" and tid != "no-span":
@@ -130,12 +128,11 @@ class WorkflowEngine:
             await self.persistence.save_event(instance.id, "workflow_started", payload={"type": instance.workflow_type, "trace_id": tid})
 
             if _WS_AVAILABLE:
-                from datetime import timezone
                 await ws_manager.broadcast({
                     "type": "WORKFLOW_STARTED",
                     "project_id": instance.id,
                     "status": instance.status.value,
-                    "timestamp": datetime.now(timezone.utc).isoformat()
+                    "timestamp": datetime.now(UTC).isoformat()
                 })
 
             try:
@@ -180,9 +177,15 @@ class WorkflowEngine:
                             for s in instance.steps
                         )
                         has_failure = any(s.status == StepStatus.FAILED for s in instance.steps)
+                        semantic_final_status = str(instance.context.get("final_status", "")).upper()
+                        semantic_failure = "ERROR" in semantic_final_status or "FAILED" in semantic_final_status
 
                         if all_terminal:
-                            instance.status = WorkflowStatus.COMPLETED
+                            if semantic_failure:
+                                instance.status = WorkflowStatus.FAILED
+                                instance.error = f"Workflow semantic final status indicates failure: {instance.context.get('final_status')}"
+                            else:
+                                instance.status = WorkflowStatus.COMPLETED
                         elif has_failure:
                             instance.status = WorkflowStatus.FAILED
                             # Capture summary error from the first failed step found
@@ -225,13 +228,12 @@ class WorkflowEngine:
                             failed_step = next((s for s in instance.steps if s.status == StepStatus.FAILED), None)
                             if failed_step:
                                 instance.error = f"Step '{failed_step.name}' failed: {failed_step.error}"
-                        
+
                         await self.persistence.save_instance(instance)
                         await self.persistence.save_event(instance.id, "workflow_failed")
                         break
 
-                from datetime import timezone
-                instance.completed_at = datetime.now(timezone.utc)
+                instance.completed_at = datetime.now(UTC)
                 await self.persistence.save_instance(instance)
                 terminal_event = "workflow_completed" if instance.status == WorkflowStatus.COMPLETED else "workflow_failed"
                 await self.persistence.save_event(instance.id, terminal_event)
@@ -241,7 +243,7 @@ class WorkflowEngine:
                         "type": "WORKFLOW_COMPLETED",
                         "project_id": instance.id,
                         "status": instance.status.value,
-                        "timestamp": datetime.now(timezone.utc).isoformat()
+                        "timestamp": datetime.now(UTC).isoformat()
                     })
 
                 set_span_attrs(
@@ -267,7 +269,7 @@ class WorkflowEngine:
         with _otel_span("workflow.execute", attributes=span_attrs):
             await _run()
 
-    async def suggest_fix(self, instance: WorkflowInstance, step_id: str) -> Dict[str, Any]:
+    async def suggest_fix(self, instance: WorkflowInstance, step_id: str) -> dict[str, Any]:
         """
         [Phase 4: Metacognition] Analiz failed steps and suggest a fix (input override).
         """
@@ -276,11 +278,11 @@ class WorkflowEngine:
             return {"suggestion": "No diagnosis needed for active or successful steps."}
 
         logger.info(f"[Metacognition] Diagnosing failure in step {step.name}...")
-        
+
         # In a real system, we call ModelOrchestrator here.
         # We simulate a smart suggestion based on common failure clusters.
         error_msg = step.error or "Unknown error"
-        
+
         suggestion = {
             "reasoning": f"Analyzed error: '{error_msg}'. This appears to be a transient API failure or schema mismatch.",
             "recommended_override": {}
@@ -291,7 +293,7 @@ class WorkflowEngine:
             suggestion["reasoning"] += " Recommendation: Increased timeout to 60s."
         elif "authentication" in error_msg.lower():
             suggestion["reasoning"] += " Recommendation: Check API key validity in context."
-        
+
         return suggestion
 
     async def _execute_step(self, instance: WorkflowInstance, step: WorkflowStep):
@@ -336,10 +338,10 @@ class WorkflowEngine:
                 logger.warning(f"[Autonomy] Approval required: {autonomy_check['reason']}")
                 step.status = StepStatus.WAITING
                 instance.status = WorkflowStatus.WAITING_APPROVAL
-                
+
                 await self.persistence.save_event(
-                    instance.id, 
-                    "step_waiting_approval", 
+                    instance.id,
+                    "step_waiting_approval",
                     step_id=step.id,
                     payload={
                         "reason": autonomy_check["reason"],
@@ -347,7 +349,7 @@ class WorkflowEngine:
                         "input_preview": step.input_data
                     }
                 )
-                
+
                 await self.persistence.save_step(instance.id, step)
                 await self.persistence.save_instance(instance)
                 return
@@ -357,7 +359,7 @@ class WorkflowEngine:
                 # We check if the parent project has review_required=False (meaning it was approved)
                 # This matches the existing Project.review_required column in core_models.py
                 instance_reloaded = await self.persistence.load_instance(instance.id)
-                project_needs_review = getattr(instance_reloaded, "review_required", False) 
+                project_needs_review = getattr(instance_reloaded, "review_required", False)
                 # Note: persistence.load_instance currently loads into WorkflowInstance which might not have all fields.
                 # However, our engine loop reloads from persistence.
 
@@ -370,10 +372,9 @@ class WorkflowEngine:
                     await self.persistence.save_event(instance.id, "step_waiting_approval", step_id=step.id)
                     return # Pause this step (and since it's gathered, it stops the batch)
 
-            from datetime import timezone
             logger.info(f"[Step {step.name}] Starting action: {step.action}")
             step.status = StepStatus.RUNNING
-            step.started_at = datetime.now(timezone.utc)
+            step.started_at = datetime.now(UTC)
             await self.persistence.save_step(instance.id, step)
             await self.persistence.save_event(instance.id, "step_started", step_id=step.id)
 
@@ -383,7 +384,7 @@ class WorkflowEngine:
                     "project_id": instance.id,
                     "step_id": step.id,
                     "step_name": step.name,
-                    "timestamp": datetime.now(timezone.utc).isoformat()
+                    "timestamp": datetime.now(UTC).isoformat()
                 })
 
             try:
@@ -401,10 +402,9 @@ class WorkflowEngine:
                 # Actual execution wrapped in a potential cancellation listener
                 result = await action_func(instance.context, **step.input_data)
 
-                from datetime import timezone
                 step.output_data = result if isinstance(result, dict) else {"result": result}
                 step.status = StepStatus.COMPLETED
-                step.completed_at = datetime.now(timezone.utc)
+                step.completed_at = datetime.now(UTC)
                 await self.persistence.save_event(instance.id, "step_completed", step_id=step.id, payload=step.output_data)
 
                 if isinstance(step.output_data, dict) and "_context_update" in step.output_data:
@@ -436,14 +436,13 @@ class WorkflowEngine:
             await self.persistence.save_step(instance.id, step)
 
             if _WS_AVAILABLE:
-                from datetime import timezone
                 await ws_manager.broadcast({
                     "type": "STEP_COMPLETED" if step.status == StepStatus.COMPLETED else "STEP_FAILED",
                     "project_id": instance.id,
                     "step_id": step.id,
                     "status": step.status.value,
                     "error": step.error,
-                    "timestamp": datetime.now(timezone.utc).isoformat()
+                    "timestamp": datetime.now(UTC).isoformat()
                 })
 
         with _otel_span(f"step.{step.action}", attributes=step_attrs):
@@ -452,7 +451,7 @@ class WorkflowEngine:
 
     # ── Replay Operations (Phase 2.1) ──────────────────────────────────────────
 
-    async def replay(self, instance: WorkflowInstance, from_step_id: str, mode: str = "same_input", overrides: Optional[dict] = None, operator_id: str = "system", reason: str = "manual trigger"):
+    async def replay(self, instance: WorkflowInstance, from_step_id: str, mode: str = "same_input", overrides: dict | None = None, operator_id: str = "system", reason: str = "manual trigger"):
         """
         Force a workflow to re-execute from a specific point with full audit trail.
         - mode 'same_input': only reset the target step.
@@ -460,7 +459,7 @@ class WorkflowEngine:
         - overrides: update the context or step input before replaying.
         """
         logger.info(f"[Replay] Triggered by {operator_id} for workflow {instance.id} from step {from_step_id} (Mode: {mode}). Reason: {reason}")
-        
+
         target_found = False
         steps_to_reset = [from_step_id]
 
@@ -499,12 +498,12 @@ class WorkflowEngine:
                         for key, value in input_to_check.items():
                             if key not in s.input_data:
                                 logger.warning(f"[Replay] Unknown key: {key} (Step: {s.name})")
-                            
+
                             # Type Validation if schema exists
                             if s.input_schema and key in s.input_schema:
                                 expected_type = s.input_schema[key].get("type")
                                 actual_val = value
-                                
+
                                 # Robust validation for basic types
                                 type_map = {
                                     "integer": int,
@@ -514,7 +513,7 @@ class WorkflowEngine:
                                     "array": list,
                                     "object": dict
                                 }
-                                
+
                                 expected_py_type = type_map.get(expected_type)
                                 if expected_py_type and not isinstance(actual_val, expected_py_type):
                                     raise ValueError(
@@ -522,7 +521,7 @@ class WorkflowEngine:
                                         f"Field '{key}' expected type '{expected_type}', "
                                         f"but got '{type(actual_val).__name__}'."
                                     )
-                    
+
                     # Apply overrides to step input
                     s.input_data.update(overrides.get("input", {}))
                 target_found = True
@@ -536,15 +535,15 @@ class WorkflowEngine:
 
         instance.status = WorkflowStatus.REPLAYING
         await self.persistence.save_instance(instance)
-        
+
         # Comprehensive audit log entry
         original_tid = instance.metadata.get("original_trace_id", "unknown")
         await self.persistence.save_event(
-            instance.id, 
-            "workflow_replay_started", 
+            instance.id,
+            "workflow_replay_started",
             operator_id=operator_id,
             payload={
-                "from_step": from_step_id, 
+                "from_step": from_step_id,
                 "mode": mode,
                 "reason": reason,
                 "reset_steps": steps_to_reset,
@@ -553,6 +552,6 @@ class WorkflowEngine:
                 "correlation_trace_id": correlation_id().split(":")[0]
             }
         )
-        
+
         # Start execution loop
         await self.execute(instance)

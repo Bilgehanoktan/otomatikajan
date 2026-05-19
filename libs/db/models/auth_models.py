@@ -5,17 +5,11 @@ Supports RBAC + Granular Permissions + Scoping + System Identities.
 """
 
 import uuid
-from datetime import datetime
-from typing import Optional, List
 
-from sqlalchemy import (
-    Boolean, Column, DateTime, ForeignKey, Integer,
-    String, Text, Enum as SAEnum, Table
-)
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
-from libs.db.base import Base, utcnow, GUID
+from libs.db.base import GUID, Base, utcnow
 
 
 class Operator(Base):
@@ -30,14 +24,14 @@ class Operator(Base):
     email = Column(String(255), unique=True, nullable=False, index=True)
     username = Column(String(255), unique=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
-    
+
     # High-level profile
     role = Column(String(50), nullable=False, default="AUDIT_OBSERVER")
-    
+
     is_active = Column(Boolean, default=True)
     department = Column(String(100), nullable=True) # e.g., 'security', 'finance'
     region = Column(String(100), nullable=True)     # e.g., 'US-EAST', 'EU-CENTRAL'
-    
+
     created_at = Column(DateTime(timezone=True), default=utcnow)
     last_login = Column(DateTime(timezone=True), nullable=True)
 
@@ -56,16 +50,16 @@ class SystemIdentity(Base):
     id = Column(GUID, primary_key=True, default=uuid.uuid4)
     name = Column(String(255), unique=True, nullable=False)
     identity_type = Column(String(50), nullable=False) # 'agent', 'worker', 'service', 'cron'
-    
+
     # System roles define baseline capabilities for the agent
     role = Column(String(50), nullable=False, default="AUTONOMOUS_AGENT")
-    
+
     is_active = Column(Boolean, default=True)
     api_key_hash = Column(String(128), unique=True, nullable=True) # For secure service-to-service auth
     # SIF-03: Lifecycle Telemetry
     last_used_at = Column(DateTime(timezone=True), nullable=True)
     key_expires_at = Column(DateTime(timezone=True), nullable=True)
-    
+
     # SIF-04: Risk & Trust Metrics
     trust_score = Column(Integer, default=100) # 0-100
     risk_level = Column(String(20), default="LOW") # LOW, MEDIUM, HIGH, CRITICAL
@@ -87,23 +81,23 @@ class PermissionGrant(Base):
     __table_args__ = {"extend_existing": True}
 
     id = Column(GUID, primary_key=True, default=uuid.uuid4)
-    
+
     # Subject (Either Operator or SystemIdentity)
     operator_id = Column(GUID, ForeignKey("operators.id", ondelete="CASCADE"), nullable=True)
     system_id = Column(GUID, ForeignKey("system_identities.id", ondelete="CASCADE"), nullable=True)
-    
+
     # Action (e.g., 'workflow.execute', 'policy.approve')
     permission = Column(String(100), nullable=False, index=True)
-    
+
     # Scope (Where the permission applies)
     # Types: 'global', 'region', 'project', 'department'
     scope_type = Column(String(50), nullable=False, default="global")
     # Value: region name, project_id, etc. NULL means matches everything in type.
     scope_value = Column(String(255), nullable=True)
-    
+
     # Result
     effect = Column(String(10), nullable=False, default="allow") # 'allow' or 'deny'
-    
+
     created_at = Column(DateTime(timezone=True), default=utcnow)
     granted_by = Column(GUID, nullable=True) # ID of the Prime who granted this
 

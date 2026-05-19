@@ -1,7 +1,7 @@
 from enum import Enum
-from typing import List, Dict
 
-class Role(str, Enum):
+
+class Role(str, Enum):  # noqa: UP042
     AUDITOR = "auditor"     # Read-only access to logs
     OPERATOR = "operator"   # Can approve and retry, but not replay with deep overrides
     MANAGER = "manager"     # Can do everything including replay with overrides

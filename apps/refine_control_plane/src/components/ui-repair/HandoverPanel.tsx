@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Card, Typography, Space, Button, Empty, Descriptions, Divider, List, Tag } from "antd";
 import { ContactsOutlined, FileTextOutlined, RocketOutlined, AlertOutlined } from "@ant-design/icons";
+import { safeFetchJson } from "@/lib/api";
 // Using local icon names for now to avoid potential missing imports
 
 const { Title, Text, Paragraph } = Typography;
@@ -16,8 +17,7 @@ export const HandoverPanel: React.FC = () => {
     const generateHandover = async () => {
         setLoading(true);
         try {
-            const res = await fetch("/api/v1/ui-repair/handover/generate?title=Production_Handover_Alpha", { method: "POST" });
-            const data = await res.json();
+            const data = await safeFetchJson<any>("/api/v1/ui-repair/handover/generate?title=Production_Handover_Alpha", { method: "POST" });
             setReport(data);
         } catch (error) {
             console.error("Handover generation failed", error);

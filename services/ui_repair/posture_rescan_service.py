@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, Any
+from typing import Any, Dict, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from services.ui_repair.security_posture_manager import SecurityPostureManager
 

@@ -4,15 +4,15 @@ Revision ID: f002a05eadd5
 Revises: 0007_skill_execution_logs
 Create Date: 2026-03-29 08:17:51.382840
 """
-from typing import Sequence, Union
-from alembic import op
-import sqlalchemy as sa
+from collections.abc import Sequence
 
+import sqlalchemy as sa
+from alembic import op
 
 revision: str = 'f002a05eadd5'
-down_revision: Union[str, None] = '0007_skill_execution_logs'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = '0007_skill_execution_logs'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -22,7 +22,7 @@ def upgrade() -> None:
     cols = [c['name'] for c in inspector.get_columns("projects")]
     if "updated_at" not in cols:
         op.add_column("projects", sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False))
-    
+
     # 2. Subtasks: sync missing columns
     st_cols = [c['name'] for c in inspector.get_columns("subtasks")]
     if "updated_at" not in st_cols:

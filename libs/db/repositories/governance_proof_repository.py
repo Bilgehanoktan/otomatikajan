@@ -1,15 +1,16 @@
 
-from sqlalchemy.orm import Session
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import desc, select
-from libs.db.models.governance_models import (
-    GovernanceProofEventRecord, 
-    GovernanceProofSnapshotRecord,
-    GovernanceMerkleNodeRecord,
-    GovernanceProofVerificationRecord
-)
-from typing import List, Optional
 import uuid
+
+from sqlalchemy import desc, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
+
+from libs.db.models.governance_models import (
+    GovernanceProofEventRecord,
+    GovernanceProofSnapshotRecord,
+    GovernanceProofVerificationRecord,
+)
+
 
 class GovernanceProofEventRepo:
     def __init__(self, db: Session | AsyncSession):
@@ -30,18 +31,18 @@ class GovernanceProofEventRepo:
         await self.db.refresh(event)
         return event
 
-    def get_last_event(self) -> Optional[GovernanceProofEventRecord]:
+    def get_last_event(self) -> GovernanceProofEventRecord | None:
         if isinstance(self.db, AsyncSession):
             raise RuntimeError("Use get_last_event_async for AsyncSession")
         return self.db.query(GovernanceProofEventRecord).order_by(desc(GovernanceProofEventRecord.chain_index)).first()
 
-    async def get_last_event_async(self) -> Optional[GovernanceProofEventRecord]:
+    async def get_last_event_async(self) -> GovernanceProofEventRecord | None:
         result = await self.db.execute(
             select(GovernanceProofEventRecord).order_by(desc(GovernanceProofEventRecord.chain_index)).limit(1)
         )
         return result.scalar_one_or_none()
 
-    def list_events(self, start: int = 0, end: Optional[int] = None) -> List[GovernanceProofEventRecord]:
+    def list_events(self, start: int = 0, end: int | None = None) -> list[GovernanceProofEventRecord]:
         if isinstance(self.db, AsyncSession):
             raise RuntimeError("Use list_events_async for AsyncSession")
         query = self.db.query(GovernanceProofEventRecord).filter(GovernanceProofEventRecord.chain_index >= start)
@@ -49,7 +50,7 @@ class GovernanceProofEventRepo:
             query = query.filter(GovernanceProofEventRecord.chain_index <= end)
         return query.order_by(GovernanceProofEventRecord.chain_index).all()
 
-    async def list_events_async(self, start: int = 0, end: Optional[int] = None) -> List[GovernanceProofEventRecord]:
+    async def list_events_async(self, start: int = 0, end: int | None = None) -> list[GovernanceProofEventRecord]:
         query = select(GovernanceProofEventRecord).where(GovernanceProofEventRecord.chain_index >= start)
         if end is not None:
             query = query.where(GovernanceProofEventRecord.chain_index <= end)
@@ -75,13 +76,38 @@ class GovernanceProofSnapshotRepo:
         await self.db.refresh(snapshot)
         return snapshot
 
-    def get_snapshot(self, snapshot_id: uuid.UUID) -> Optional[GovernanceProofSnapshotRecord]:
+    def get_snapshot(self, snapshot_id: uuid.UUID) -> GovernanceProofSnapshotRecord | None:
         if isinstance(self.db, AsyncSession):
             raise RuntimeError("Use get_snapshot_async for AsyncSession")
         return self.db.query(GovernanceProofSnapshotRecord).filter(GovernanceProofSnapshotRecord.id == snapshot_id).first()
 
-    async def get_snapshot_async(self, snapshot_id: uuid.UUID) -> Optional[GovernanceProofSnapshotRecord]:
+    async def get_snapshot_async(self, snapshot_id: uuid.UUID) -> GovernanceProofSnapshotRecord | None:
         result = await self.db.execute(
             select(GovernanceProofSnapshotRecord).where(GovernanceProofSnapshotRecord.id == snapshot_id)
         )
         return result.scalar_one_or_none()
+
+
+class GovernanceVerificationRepo:
+    def __init__(self, db: Session | AsyncSession):
+        self.db = db
+
+    def save_verification(
+        self,
+        verification: GovernanceProofVerificationRecord,
+    ) -> GovernanceProofVerificationRecord:
+        if isinstance(self.db, AsyncSession):
+            raise RuntimeError("Use save_verification_async for AsyncSession")
+        self.db.add(verification)
+        self.db.commit()
+        self.db.refresh(verification)
+        return verification
+
+    async def save_verification_async(
+        self,
+        verification: GovernanceProofVerificationRecord,
+    ) -> GovernanceProofVerificationRecord:
+        self.db.add(verification)
+        await self.db.flush()
+        await self.db.refresh(verification)
+        return verification

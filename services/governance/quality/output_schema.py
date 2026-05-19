@@ -59,6 +59,7 @@ class AgentOutput:
     deliverables: list[Deliverable] = field(default_factory=list)
     next_actions: list[str]       = field(default_factory=list)
     quality_notes:list[str]       = field(default_factory=list)
+    tool_calls:   list[ToolCall]  = field(default_factory=list)
     raw_response: str             = ""
     parse_errors: list[str]       = field(default_factory=list)
 
@@ -78,6 +79,7 @@ class AgentOutput:
                                 "desc": d.description} for d in self.deliverables],
             "next_actions":  self.next_actions,
             "quality_notes": self.quality_notes,
+            "tool_calls":    [{"tool_name": tc.tool_name, "tool_input": tc.tool_input} for tc in self.tool_calls],
             "quality_score": self.quality_score,
             "quality_detail":self.quality_detail,
             "parse_errors":  self.parse_errors,
@@ -196,6 +198,15 @@ class AgentOutputParser:
                     content=str(d.get("content", "")),
                 ))
 
+        # Tool call'ları nesneye çevir
+        tool_calls = []
+        for tc in data.get("tool_calls", []):
+            if isinstance(tc, dict):
+                tool_calls.append(ToolCall(
+                    tool_name=str(tc.get("tool_name", "")),
+                    tool_input=dict(tc.get("tool_input", {}))
+                ))
+
         summary = data.get("summary", "")
         if not summary and raw:
             summary = raw[:200]
@@ -210,6 +221,7 @@ class AgentOutputParser:
             deliverables=deliverables,
             next_actions=list(data.get("next_actions", [])),
             quality_notes=list(data.get("quality_notes", [])),
+            tool_calls=tool_calls,
             raw_response=raw,
             parse_errors=errors,
         )

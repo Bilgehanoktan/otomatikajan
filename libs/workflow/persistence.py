@@ -1,10 +1,25 @@
+from datetime import UTC, datetime
 from uuid import UUID
-from datetime import datetime, timezone
-from typing import Optional, List
+
 from sqlalchemy import select, update
+
+from libs.db.models.core_models import Project, SubTask, WorkflowEvent
 from libs.db.session import AsyncSessionLocal
-from libs.db.models.core_models import Project, SubTask, ProjectStatus, WorkflowEvent
-from libs.workflow.models import WorkflowInstance, WorkflowStep, StepStatus, WorkflowStatus
+from libs.workflow.models import StepStatus, WorkflowInstance, WorkflowStatus, WorkflowStep
+
+
+def _is_workflow_control_subtask(subtask: SubTask) -> bool:
+    """Agent telemetry rows are stored in subtasks but are not engine steps."""
+    return str(getattr(subtask, "action", "") or "").lower() != "run_agent"
+
+
+def _step_status_from_db(status: str) -> StepStatus:
+    raw_value = status.value if hasattr(status, "value") else status
+    value = str(raw_value or "").lower()
+    if value == "error":
+        return StepStatus.FAILED
+    return StepStatus(value)
+
 
 class WorkflowPersistence:
     @staticmethod
@@ -14,18 +29,18 @@ class WorkflowPersistence:
             db_status = instance.status.value.upper()
             if db_status == "FAILED":
                 db_status = "ERROR"
-            
+
             values = {
                 "status": db_status,
                 "execution_context": instance.context,
                 "error_detail": instance.error or "",
                 "started_at": instance.started_at,
                 "completed_at": instance.completed_at,
-                "updated_at": datetime.now(timezone.utc)
+                "updated_at": datetime.now(UTC)
             }
             if "final_report" in instance.context:
                 values["report"] = instance.context["final_report"]
-            
+
             stmt = update(Project).where(Project.id == UUID(instance.id)).values(**values)
             await session.execute(stmt)
             await session.commit()
@@ -37,7 +52,7 @@ class WorkflowPersistence:
             # Check if exists
             res = await session.execute(select(SubTask).where(SubTask.id == UUID(step.id)))
             existing = res.scalar_one_or_none()
-            
+
             if existing:
                 db_step_status = step.status.value.upper()
                 if db_step_status == "FAILED":
@@ -48,14 +63,14 @@ class WorkflowPersistence:
                     existing.result = f"ERROR: {step.error}"
                 else:
                     existing.result = str(step.output_data) if step.output_data else ""
-                
+
                 existing.attempts = step.retries
                 existing.completed_at = step.completed_at
                 existing.action = step.action
                 existing.dependencies = step.dependencies
                 existing.input_data = step.input_data
                 existing.input_schema = step.input_schema
-                
+
                 # Faz 8 Integration: Capture reasoning and metrics
                 if step.output_data and isinstance(step.output_data, dict):
                     existing.internal_monologue = step.output_data.get("internal_monologue", existing.internal_monologue)
@@ -80,11 +95,11 @@ class WorkflowPersistence:
                     internal_monologue=step.output_data.get("internal_monologue", "") if step.output_data else ""
                 )
                 session.add(new_subtask)
-            
+
             await session.commit()
 
     @staticmethod
-    async def load_instance(project_id: str) -> Optional[WorkflowInstance]:
+    async def load_instance(project_id: str) -> WorkflowInstance | None:
         async with AsyncSessionLocal() as session:
             res = await session.execute(
                 select(Project).where(Project.id == UUID(project_id))
@@ -92,13 +107,16 @@ class WorkflowPersistence:
             project = res.scalar_one_or_none()
             if not project:
                 return None
-            
+
             # Load subtasks as steps
             res_steps = await session.execute(
                 select(SubTask).where(SubTask.project_id == project.id).order_by(SubTask.created_at)
             )
-            subtasks = res_steps.scalars().all()
-            
+            subtasks = [
+                st for st in res_steps.scalars().all()
+                if _is_workflow_control_subtask(st)
+            ]
+
             steps = []
             for st in subtasks:
                 steps.append(WorkflowStep(
@@ -108,11 +126,11 @@ class WorkflowPersistence:
                     input_data=st.input_data if st.input_data else {"prompt": st.prompt},
                     input_schema=st.input_schema or {},
                     output_data={"result": st.result} if st.result else None,
-                    status=StepStatus(st.status.lower()),
+                    status=_step_status_from_db(st.status),
                     retries=st.attempts,
                     dependencies=st.dependencies or []
                 ))
-            
+
             return WorkflowInstance(
                 id=str(project.id),
                 workflow_type=project.workflow_template,
@@ -125,10 +143,10 @@ class WorkflowPersistence:
 
     @staticmethod
     async def save_event(
-        project_id: Optional[str], 
-        event_type: str, 
-        step_id: Optional[str] = None, 
-        payload: Optional[dict] = None,
+        project_id: str | None,
+        event_type: str,
+        step_id: str | None = None,
+        payload: dict | None = None,
         operator_id: str = "system"
     ):
         """
@@ -138,6 +156,7 @@ class WorkflowPersistence:
         """
         import hashlib
         import json
+
         from sqlalchemy import desc
 
         async with AsyncSessionLocal() as session:
@@ -151,7 +170,7 @@ class WorkflowPersistence:
                 stmt = stmt.where(WorkflowEvent.project_id == UUID(project_id))
             else:
                 stmt = stmt.where(WorkflowEvent.project_id == None)
-                
+
             res = await session.execute(stmt)
             last_event = res.scalar_one_or_none()
             prev_hash = last_event.signature if last_event else "0" * 64
@@ -176,7 +195,7 @@ class WorkflowPersistence:
             await session.commit()
 
     @staticmethod
-    async def load_history(project_id: str) -> List[dict]:
+    async def load_history(project_id: str) -> list[dict]:
         """Load all events for a project, ordered by creation time."""
         try:
             project_uuid = UUID(project_id)

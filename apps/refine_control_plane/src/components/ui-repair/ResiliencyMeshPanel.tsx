@@ -17,9 +17,10 @@ import {
   ChevronRight,
   Target
 } from 'lucide-react';
+import { safeFetchJson } from '@/lib/api';
 
-const Card = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => (
-  <div className={`bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden backdrop-blur-md shadow-xl ${className}`}>
+const Card = ({ children, className = "", onClick }: { children: React.ReactNode, className?: string, onClick?: () => void }) => (
+  <div onClick={onClick} className={`bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden backdrop-blur-md shadow-xl ${className}`}>
     {children}
   </div>
 );
@@ -53,17 +54,17 @@ export const ResiliencyMeshPanel = () => {
 
   const fetchMeshData = async () => {
     try {
-      const [nodeRes, decRes, sloRes, pmRes] = await Promise.all([
-        fetch('/api/v1/ui-repair/mesh/health'),
-        fetch('/api/v1/ui-repair/mesh/steering/decisions'),
-        fetch('/api/v1/ui-repair/mesh/slo/snapshots'),
-        fetch('/api/v1/ui-repair/mesh/postmortems')
+      const [nodesData, decisionsData, slosData, postmortemsData] = await Promise.all([
+        safeFetchJson<any[]>('/api/v1/ui-repair/mesh/health'),
+        safeFetchJson<any[]>('/api/v1/ui-repair/mesh/steering/decisions'),
+        safeFetchJson<any[]>('/api/v1/ui-repair/mesh/slo/snapshots'),
+        safeFetchJson<any[]>('/api/v1/ui-repair/mesh/postmortems')
       ]);
 
-      if (nodeRes.ok) setNodes(await nodeRes.json());
-      if (decRes.ok) setDecisions(await decRes.json());
-      if (sloRes.ok) setSlos(await sloRes.json());
-      if (pmRes.ok) setPostmortems(await pmRes.json());
+      setNodes(nodesData);
+      setDecisions(decisionsData);
+      setSlos(slosData);
+      setPostmortems(postmortemsData);
     } catch (err) {
       console.error("Failed to fetch mesh data", err);
     } finally {

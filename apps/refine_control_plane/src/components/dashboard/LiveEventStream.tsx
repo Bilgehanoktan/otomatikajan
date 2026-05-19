@@ -5,6 +5,7 @@ import { Zap } from "lucide-react";
 import { Skeleton } from "./Skeleton";
 import { buildWebSocketCandidates } from "@/lib/runtime";
 import { useTranslations } from "next-intl";
+import { safeFetchJson } from "@/lib/api";
 
 interface SystemEvent {
   seq: number;
@@ -138,12 +139,10 @@ export function LiveEventStream({ apiUrl, height }: { apiUrl: string, height?: s
 
     const timer = setInterval(async () => {
       try {
-        const res = await fetch(
-          `${apiUrl}/health/events/stream?since_seq=${lastSeqRef.current}&limit=50`,
+        const data = await safeFetchJson(
+          `/health/events/stream?since_seq=${lastSeqRef.current}&limit=50`,
           { signal: AbortSignal.timeout(5000) }
         );
-        if (!res.ok) return;
-        const data = await res.json();
         (data.events || []).forEach((ev: SystemEvent) => pushEvent(ev));
       } catch { /* fail silently */ }
     }, 5000);

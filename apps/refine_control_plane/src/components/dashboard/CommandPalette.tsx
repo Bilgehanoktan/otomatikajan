@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { Search, Command, X, ArrowRight, Zap, Target, ShieldCheck, Bug } from "lucide-react";
 
 interface CommandItem {
@@ -11,18 +12,19 @@ interface CommandItem {
     category: "Operations" | "Governance" | "Navigation";
 }
 
-const COMMANDS: CommandItem[] = [
-    { id: "run-workflow", label: "Run New Workflow", description: "Trigger a sovereign operation sequence", icon: <Zap size={16}/>, category: "Operations" },
-    { id: "seal-audit", label: "Seal Current Audit", description: "Secure the decision lineage lineage hash", icon: <ShieldCheck size={16}/>, category: "Governance" },
-    { id: "health-check", label: "Run Full Diagnostics", description: "Audit all microservices and agents", icon: <Bug size={16}/>, category: "Operations" },
-    { id: "view-proposals", label: "View Policy Proposals", description: "Review and sign off on system changes", icon: <Target size={16}/>, category: "Governance" },
-    { id: "go-dashboard", label: "Go to Dashboard", description: "Return to central mission control", icon: <ArrowRight size={16}/>, category: "Navigation" },
-];
-
 export const CommandPalette = () => {
+    const t = useTranslations("dashboard.commandPalette");
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState("");
     const modalRef = useRef<HTMLDivElement>(null);
+
+    const COMMANDS: CommandItem[] = [
+        { id: "run-workflow", label: t("commands.runWorkflow.label"), description: t("commands.runWorkflow.desc"), icon: <Zap size={16}/>, category: "Operations" },
+        { id: "seal-audit", label: t("commands.sealAudit.label"), description: t("commands.sealAudit.desc"), icon: <ShieldCheck size={16}/>, category: "Governance" },
+        { id: "health-check", label: t("commands.healthCheck.label"), description: t("commands.healthCheck.desc"), icon: <Bug size={16}/>, category: "Operations" },
+        { id: "view-proposals", label: t("commands.viewProposals.label"), description: t("commands.viewProposals.desc"), icon: <Target size={16}/>, category: "Governance" },
+        { id: "go-dashboard", label: t("commands.goDashboard.label"), description: t("commands.goDashboard.desc"), icon: <ArrowRight size={16}/>, category: "Navigation" },
+    ];
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -63,7 +65,7 @@ export const CommandPalette = () => {
                         autoFocus
                         type="text" 
                         value={search}
-                        placeholder="Komut ara veya sor..."
+                        placeholder={t("searchPlaceholder")}
                         onChange={(e) => setSearch(e.target.value)}
                         className="flex-1 bg-transparent border-none outline-none text-lg text-white font-medium placeholder:text-gray-600"
                     />
@@ -104,8 +106,8 @@ export const CommandPalette = () => {
                         </div>
                     ) : (
                         <div className="py-20 text-center space-y-4">
-                            <div className="text-gray-700 text-[10px] font-black uppercase tracking-[0.5em]">Sonuç Bulunamadı</div>
-                            <p className="text-[11px] text-gray-500">"<b>{search}</b>" ile eşleşen bir komut bulunamadı.</p>
+                            <div className="text-gray-700 text-[10px] font-black uppercase tracking-[0.5em]">{t("noResults")}</div>
+                            <p className="text-[11px] text-gray-500">{t("noResultsDesc", { search })}</p>
                         </div>
                     )}
                 </div>
@@ -113,9 +115,9 @@ export const CommandPalette = () => {
                 {/* Footer */}
                 <div className="px-6 py-3 border-t border-white/5 bg-black/40 flex items-center justify-between">
                     <div className="flex items-center gap-4 text-[9px] font-bold text-gray-600 uppercase tracking-widest">
-                        <span className="flex items-center gap-1"><span className="px-1.5 py-0.5 rounded bg-white/5">↑↓</span> Git</span>
-                        <span className="flex items-center gap-1"><span className="px-1.5 py-0.5 rounded bg-white/5">Enter</span> Seç</span>
-                        <span className="flex items-center gap-1"><span className="px-1.5 py-0.5 rounded bg-white/5">Esc</span> Kapat</span>
+                        <span className="flex items-center gap-1"><span className="px-1.5 py-0.5 rounded bg-white/5">↑↓</span> {t("footer.navigate")}</span>
+                        <span className="flex items-center gap-1"><span className="px-1.5 py-0.5 rounded bg-white/5">Enter</span> {t("footer.select")}</span>
+                        <span className="flex items-center gap-1"><span className="px-1.5 py-0.5 rounded bg-white/5">Esc</span> {t("footer.close")}</span>
                     </div>
                     <div className="text-[9px] font-black text-[var(--primary)]/50 uppercase tracking-[0.2em]">Sovereign Operator Shell</div>
                 </div>

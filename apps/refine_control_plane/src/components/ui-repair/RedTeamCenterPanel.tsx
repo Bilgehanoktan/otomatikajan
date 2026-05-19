@@ -9,6 +9,7 @@ import {
   Shield, PlayCircle, Activity, Bug, BarChart3, 
   Settings, AlertCircle, CheckCircle2, RefreshCw
 } from 'lucide-react';
+import { safeFetchJson } from '@/lib/api';
 import RedTeamScenarioPanel from './RedTeamScenarioPanel';
 import GuardrailValidationPanel from './GuardrailValidationPanel';
 import AdversarialDriftPanel from './AdversarialDriftPanel';
@@ -35,9 +36,7 @@ const RedTeamCenterPanel: React.FC = () => {
   const fetchOverview = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/v1/ui-repair/security/red-team/overview');
-      if (!response.ok) throw new Error('Failed to fetch Red Team overview');
-      const data = await response.json();
+      const data = await safeFetchJson<RedTeamOverview>('/api/v1/ui-repair/security/red-team/overview');
       setOverview(data);
     } catch (err: any) {
       setError(err.message);
@@ -53,7 +52,7 @@ const RedTeamCenterPanel: React.FC = () => {
   const triggerFullSuite = async () => {
     setLoading(true);
     try {
-      await fetch('/api/v1/ui-repair/security/red-team/run-suite', { method: 'POST' });
+      await safeFetchJson('/api/v1/ui-repair/security/red-team/run-suite', { method: 'POST' });
       await fetchOverview();
     } catch (err: any) {
       setError(err.message);
@@ -124,7 +123,7 @@ const RedTeamCenterPanel: React.FC = () => {
       {error && <Alert message={error} type="error" showIcon closable className="mb-6" />}
 
       <Row gutter={[16, 16]} className="mb-6">
-        <Col xs={24} sm={12} md={4.8}>
+        <Col xs={24} sm={12} md={4}>
           <Card bordered={false} className="bg-slate-900/50 border border-slate-800">
             <Statistic 
               title={<Text type="secondary">Total Scenarios</Text>} 
@@ -133,7 +132,7 @@ const RedTeamCenterPanel: React.FC = () => {
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={4.8}>
+        <Col xs={24} sm={12} md={4}>
           <Card bordered={false} className="bg-slate-900/50 border border-slate-800">
             <Statistic 
               title={<Text type="secondary">Guardrail Pass Rate</Text>} 
@@ -143,7 +142,7 @@ const RedTeamCenterPanel: React.FC = () => {
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={4.8}>
+        <Col xs={24} sm={12} md={4}>
           <Card bordered={false} className="bg-slate-900/50 border border-slate-800">
             <Statistic 
               title={<Text type="secondary">Avg Detection Latency</Text>} 
@@ -153,7 +152,7 @@ const RedTeamCenterPanel: React.FC = () => {
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={4.8}>
+        <Col xs={24} sm={12} md={4}>
           <Card bordered={false} className="bg-slate-900/50 border border-slate-800">
             <Statistic 
               title={<Text type="secondary">Critical Drifts</Text>} 
@@ -162,7 +161,7 @@ const RedTeamCenterPanel: React.FC = () => {
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={4.8}>
+        <Col xs={24} sm={12} md={4}>
           <Card bordered={false} className="bg-slate-900/50 border border-slate-800">
             <Statistic 
               title={<Text type="secondary">Active Operations</Text>} 

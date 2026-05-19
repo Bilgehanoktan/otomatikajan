@@ -12,6 +12,7 @@ import {
   ProjectOutlined
 } from '@ant-design/icons';
 import { useTranslations } from 'next-intl';
+import { safeFetchJson } from '@/lib/api';
 import ProjectProfilePanel from './ProjectProfilePanel';
 import RolloutWavePanel from './RolloutWavePanel';
 import ProjectHealthMatrixPanel from './ProjectHealthMatrixPanel';
@@ -32,8 +33,7 @@ const EnterpriseRolloutPanel: React.FC = () => {
 
   const fetchOverview = async () => {
     try {
-      const res = await fetch('/api/v1/ui-repair/enterprise/overview');
-      const data = await res.json();
+      const data = await safeFetchJson('/api/v1/ui-repair/enterprise/overview');
       setOverview(data);
     } catch (err) {
       message.error('Failed to fetch enterprise overview');

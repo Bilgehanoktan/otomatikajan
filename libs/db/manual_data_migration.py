@@ -1,5 +1,4 @@
 import sqlite3
-import os
 
 db_path = "e:/ai_company_faz12.1/runtime/data/cortex_local.db"
 conn = sqlite3.connect(db_path)

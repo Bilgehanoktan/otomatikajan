@@ -43,6 +43,12 @@ interface HealthData {
   }[];
 }
 
+const LOAD_PROFILE_HEIGHTS = Array.from({ length: 40 }, (_, index) => {
+  const wave = Math.sin(index * 1.7) * 28;
+  const pulse = ((index * 17) % 31);
+  return Math.max(20, Math.min(98, 56 + wave + pulse));
+});
+
 export default function SystemHealthPage() {
   const t = useTranslations("system_health");
   const tDash = useTranslations("dashboard");
@@ -339,11 +345,11 @@ export default function SystemHealthPage() {
             </div>
             
             <div className="h-64 w-full flex items-end gap-1 px-4 mb-4">
-               {Array(40).fill(0).map((_, i) => (
+               {LOAD_PROFILE_HEIGHTS.map((height, i) => (
                   <div 
                     key={i} 
                     className="flex-1 bg-[var(--primary)] opacity-20 hover:opacity-100 transition-opacity rounded-t-sm" 
-                    style={{ height: `${Math.random() * 80 + 20}%` }}
+                    style={{ height: `${height}%` }}
                   />
                ))}
             </div>

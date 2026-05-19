@@ -4,15 +4,16 @@ Performance tracking and scorecard data provider.
 """
 
 import uuid
-from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
-import sqlalchemy as sa
-from sqlalchemy import select, func, and_, desc, case
+from sqlalchemy import and_, case, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from libs.db.models.governance_models import (
-    GovernorOutcomeRecord, GovernorOutcomeType, GovernorOutcomeQuality
+    GovernorOutcomeQuality,
+    GovernorOutcomeRecord,
+    GovernorOutcomeType,
 )
 from services.observability.logging import get_logger
 
@@ -21,21 +22,23 @@ logger = get_logger("db.governor_outcome_repo")
 class GovernorOutcomeRepo:
 
     @staticmethod
-    async def create_outcome(db: AsyncSession, data: Dict[str, Any]) -> GovernorOutcomeRecord:
+    async def create_outcome(db: AsyncSession, data: dict[str, Any]) -> GovernorOutcomeRecord:
+        valid_keys = set(GovernorOutcomeRecord.__mapper__.attrs.keys())
+        data = {key: value for key, value in data.items() if key in valid_keys}
         record = GovernorOutcomeRecord(**data)
         db.add(record)
         await db.flush()
         return record
 
     @staticmethod
-    async def get_by_case(db: AsyncSession, case_id: uuid.UUID) -> Optional[GovernorOutcomeRecord]:
+    async def get_by_case(db: AsyncSession, case_id: uuid.UUID) -> GovernorOutcomeRecord | None:
         res = await db.execute(
             select(GovernorOutcomeRecord).where(GovernorOutcomeRecord.case_id == case_id)
         )
         return res.scalar_one_or_none()
 
     @staticmethod
-    async def list_recent(db: AsyncSession, limit: int = 50, offset: int = 0) -> List[GovernorOutcomeRecord]:
+    async def list_recent(db: AsyncSession, limit: int = 50, offset: int = 0) -> list[GovernorOutcomeRecord]:
         res = await db.execute(
             select(GovernorOutcomeRecord)
             .order_by(desc(GovernorOutcomeRecord.created_at))
@@ -45,7 +48,7 @@ class GovernorOutcomeRepo:
         return list(res.scalars().all())
 
     @staticmethod
-    async def list_by_project(db: AsyncSession, project_id: uuid.UUID) -> List[GovernorOutcomeRecord]:
+    async def list_by_project(db: AsyncSession, project_id: uuid.UUID) -> list[GovernorOutcomeRecord]:
         res = await db.execute(
             select(GovernorOutcomeRecord)
             .where(GovernorOutcomeRecord.project_id == project_id)
@@ -54,16 +57,16 @@ class GovernorOutcomeRepo:
         return list(res.scalars().all())
 
     @staticmethod
-    async def aggregate_metrics(db: AsyncSession, window_days: int = 7) -> Dict[str, Any]:
-        since = datetime.now(timezone.utc) - timedelta(days=window_days)
-        
+    async def aggregate_metrics(db: AsyncSession, window_days: int = 7) -> dict[str, Any]:
+        since = datetime.now(UTC) - timedelta(days=window_days)
+
         # Total counts
         total_res = await db.execute(
             select(func.count(GovernorOutcomeRecord.id))
             .where(GovernorOutcomeRecord.created_at >= since)
         )
         total = total_res.scalar() or 0
-        
+
         # Accuracy
         correct_res = await db.execute(
             select(func.count(GovernorOutcomeRecord.id))
@@ -73,7 +76,7 @@ class GovernorOutcomeRepo:
             ))
         )
         correct = correct_res.scalar() or 0
-        
+
         # Replay success rate
         replay_total_res = await db.execute(
             select(func.count(GovernorOutcomeRecord.id))
@@ -83,7 +86,7 @@ class GovernorOutcomeRepo:
             ))
         )
         replay_total = replay_total_res.scalar() or 0
-        
+
         replay_success_res = await db.execute(
             select(func.count(GovernorOutcomeRecord.id))
             .where(and_(
@@ -93,7 +96,7 @@ class GovernorOutcomeRepo:
             ))
         )
         replay_success = replay_success_res.scalar() or 0
-        
+
         # Latency
         latency_res = await db.execute(
             select(func.avg(GovernorOutcomeRecord.resolution_latency_seconds))
@@ -122,8 +125,8 @@ class GovernorOutcomeRepo:
         }
 
     @staticmethod
-    async def aggregate_by_decision(db: AsyncSession, window_days: int = 7) -> List[Dict[str, Any]]:
-        since = datetime.now(timezone.utc) - timedelta(days=window_days)
+    async def aggregate_by_decision(db: AsyncSession, window_days: int = 7) -> list[dict[str, Any]]:
+        since = datetime.now(UTC) - timedelta(days=window_days)
         res = await db.execute(
             select(
                 GovernorOutcomeRecord.decision,
@@ -133,7 +136,7 @@ class GovernorOutcomeRepo:
             .where(GovernorOutcomeRecord.created_at >= since)
             .group_by(GovernorOutcomeRecord.decision)
         )
-        
+
         results = []
         for row in res:
             results.append({

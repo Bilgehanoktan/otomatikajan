@@ -1,5 +1,5 @@
-import sqlite3
 import os
+import sqlite3
 
 db_path = "e:/ai_company_faz12.1/runtime/data/cortex_local.db"
 if not os.path.exists(db_path):

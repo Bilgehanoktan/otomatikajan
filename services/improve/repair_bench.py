@@ -28,8 +28,8 @@ class BenchResult(BaseModel):
     learning_delta: Dict[str, Any]
 
 class RepairBenchService:
-    def __init__(self, model_orch: ModelOrchestrator, loader: Optional[RepairBenchLoader] = None):
-        self.model_orch = model_orch
+    def __init__(self, model_orch: Optional[ModelOrchestrator] = None, loader: Optional[RepairBenchLoader] = None):
+        self.model_orch = model_orch or ModelOrchestrator()
         self.loader = loader or RepairBenchLoader()
         self.results_history: List[BenchResult] = []
 
@@ -39,6 +39,7 @@ class RepairBenchService:
         run_id: Optional[str] = None,
         project_id: str = "sovereign-agi",
         cluster_id: str = "local-lab",
+        persist: bool = True,
     ) -> Optional[BenchResult]:
         """Runs a single repair benchmark and evaluates the candidate tournament."""
         case = self.loader.load_case(case_id)
@@ -67,7 +68,7 @@ class RepairBenchService:
                 score=cand_eval.scores.total_score,
                 verifier_rejections=[k for k,v in cand_eval.scores.breakdown.items() if v < 0.5]
             )
-            memory.record_outcome(memory_entry)
+            memory.record_outcome(memory_entry, persist=persist)
 
         result = BenchResult(
             case_id=case_id,
@@ -86,34 +87,35 @@ class RepairBenchService:
             }
         )
         
-        # --- PERSISTENCE ---
-        from libs.db.models.repair_models import RepairTournament, RepairCandidate
-        async with session_scope() as session:
-            db_tourney = RepairTournament(
-                tournament_id=tournament_res.tournament_id,
-                run_id=run_id,
-                incident_id=case.incident_id,
-                project_id=project_id,
-                cluster_id=cluster_id,
-                winner_candidate_id=tournament_res.winner_id,
-                winner_score=score,
-                verifier_score_breakdown=winner_eval.scores.breakdown if winner_eval else {},
-                total_candidates=len(tournament_res.candidates)
-            )
-            session.add(db_tourney)
-            
-            for cand in tournament_res.candidates:
-                db_cand = RepairCandidate(
-                    candidate_id=cand.id,
+        if persist:
+            # --- PERSISTENCE ---
+            from libs.db.models.repair_models import RepairTournament, RepairCandidate
+            async with session_scope() as session:
+                db_tourney = RepairTournament(
                     tournament_id=tournament_res.tournament_id,
-                    candidate_type=cand.type,
-                    strategy=cand.strategy,
-                    patch_diff=cand.content,
-                    patch_signature=f"{case.module}:{cand.strategy}",
-                    risk_score=0.0, # Will be filled by ranker in real flow
-                    status="evaluated"
+                    run_id=run_id,
+                    incident_id=case.incident_id,
+                    project_id=project_id,
+                    cluster_id=cluster_id,
+                    winner_candidate_id=tournament_res.winner_id,
+                    winner_score=score,
+                    verifier_score_breakdown=winner_eval.scores.breakdown if winner_eval else {},
+                    total_candidates=len(tournament_res.candidates)
                 )
-                session.add(db_cand)
+                session.add(db_tourney)
+
+                for cand in tournament_res.candidates:
+                    db_cand = RepairCandidate(
+                        candidate_id=cand.id,
+                        tournament_id=tournament_res.tournament_id,
+                        candidate_type=cand.type,
+                        strategy=cand.strategy,
+                        patch_diff=cand.content,
+                        patch_signature=f"{case.module}:{cand.strategy}",
+                        risk_score=0.0, # Will be filled by ranker in real flow
+                        status="evaluated"
+                    )
+                    session.add(db_cand)
             
         self.results_history.append(result)
         return result
@@ -154,6 +156,16 @@ class RepairBenchService:
         await tuner.generate_and_persist_recommendations()
             
         return run_id
+
+    async def run_all_benchmarks(self) -> List[BenchResult]:
+        """Compatibility helper for E2E callers that need in-memory results."""
+        cases = self.loader.list_all_cases()
+        results: List[BenchResult] = []
+        for case in cases:
+            result = await self.run_benchmark_case(case.id, persist=False)
+            if result:
+                results.append(result)
+        return results
 
     async def get_lab_stats(self) -> Dict[str, Any]:
         """Aggregated stats for the Phase 28 UI / report."""

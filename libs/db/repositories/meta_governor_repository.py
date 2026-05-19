@@ -1,15 +1,19 @@
 import uuid
-from typing import List, Dict, Any, Optional
-from sqlalchemy import select, and_, update
+from datetime import UTC
+from typing import Any
+
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from libs.db.models.governance_models import (
-    GovernorConflictRecord, MetaGovernorDecisionRecord, 
-    GovernorDomain, GovernorConflictType
+    GovernorConflictRecord,
+    MetaGovernorDecisionRecord,
 )
+
 
 class GovernorConflictRepo:
     @staticmethod
-    async def save_conflict(db: AsyncSession, project_id: uuid.UUID, conflict_data: Dict[str, Any]) -> GovernorConflictRecord:
+    async def save_conflict(db: AsyncSession, project_id: uuid.UUID, conflict_data: dict[str, Any]) -> GovernorConflictRecord:
         record = GovernorConflictRecord(
             project_id=project_id,
             domain_a=conflict_data["domain_a"],
@@ -24,7 +28,7 @@ class GovernorConflictRepo:
         return record
 
     @staticmethod
-    async def list_conflicts(db: AsyncSession, project_id: Optional[uuid.UUID] = None, status: str = "open") -> List[GovernorConflictRecord]:
+    async def list_conflicts(db: AsyncSession, project_id: uuid.UUID | None = None, status: str = "open") -> list[GovernorConflictRecord]:
         stmt = select(GovernorConflictRecord).where(GovernorConflictRecord.status == status)
         if project_id:
             stmt = stmt.where(GovernorConflictRecord.project_id == project_id)
@@ -33,21 +37,21 @@ class GovernorConflictRepo:
 
     @staticmethod
     async def resolve_conflict(db: AsyncSession, conflict_id: uuid.UUID) -> bool:
-        from datetime import datetime, timezone
+        from datetime import datetime
         stmt = (
             update(GovernorConflictRecord)
             .where(GovernorConflictRecord.id == conflict_id)
-            .values(status="resolved", resolved_at=datetime.now(timezone.utc))
+            .values(status="resolved", resolved_at=datetime.now(UTC))
         )
         await db.execute(stmt)
         return True
 
 class MetaGovernorRepo:
     @staticmethod
-    async def save_meta_decision(db: AsyncSession, 
-                                project_id: uuid.UUID, 
-                                final_decision: Dict[str, Any],
-                                constraints: List[str]) -> MetaGovernorDecisionRecord:
+    async def save_meta_decision(db: AsyncSession,
+                                project_id: uuid.UUID,
+                                final_decision: dict[str, Any],
+                                constraints: list[str]) -> MetaGovernorDecisionRecord:
         record = MetaGovernorDecisionRecord(
             project_id=project_id,
             winning_domain=final_decision.get("domain"),
@@ -67,7 +71,7 @@ class MetaGovernorRepo:
         return "LOW"
 
     @staticmethod
-    async def list_meta_decisions(db: AsyncSession, project_id: Optional[uuid.UUID] = None, limit: int = 20) -> List[MetaGovernorDecisionRecord]:
+    async def list_meta_decisions(db: AsyncSession, project_id: uuid.UUID | None = None, limit: int = 20) -> list[MetaGovernorDecisionRecord]:
         stmt = select(MetaGovernorDecisionRecord).order_by(MetaGovernorDecisionRecord.created_at.desc()).limit(limit)
         if project_id:
             stmt = stmt.where(MetaGovernorDecisionRecord.project_id == project_id)

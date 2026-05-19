@@ -28,11 +28,26 @@ def test_baslat_routes_menu_options_to_their_declared_modes() -> None:
     assert launcher.index('if "%mode%"=="1" goto local_mode') < launcher.index(":self_repair_demo")
 
 
+def test_baslat_accepts_documented_noninteractive_mode_aliases() -> None:
+    launcher = Path("BASLAT.bat").read_text(encoding="utf-8", errors="ignore")
+
+    assert 'set "mode=%~1"' in launcher
+    assert 'if not "%mode%"=="" goto normalize_mode' in launcher
+    assert ":normalize_mode" in launcher
+    assert 'if /I "%mode%"=="minimal" set "mode=1"' in launcher
+    assert 'if /I "%mode%"=="local" set "mode=1"' in launcher
+    assert 'if /I "%mode%"=="fullstack" set "mode=2"' in launcher
+    assert 'if /I "%mode%"=="docker" set "mode=2"' in launcher
+    assert 'if /I "%mode%"=="self-repair" set "mode=4"' in launcher
+
+
 def test_local_mode_uses_inprocess_queue_without_requiring_redis() -> None:
     launcher = Path("BASLAT.bat").read_text(encoding="utf-8", errors="ignore")
 
     local_mode = launcher.split(":local_mode", 1)[1].split(":docker_mode", 1)[0]
+    assert "SOVEREIGN_DOTENV_OVERRIDE=false" in local_mode
     assert "QUEUE_BACKEND=inprocess" in local_mode
+    assert "INPROCESS_JOB_WORKERS_ENABLED=true" in local_mode
     assert "CELERY_ENABLED=false" in local_mode
     assert "REDIS_ENABLED=false" in local_mode
     assert "celery -A workers.workflow_worker.tasks.celery_app worker" not in local_mode
@@ -53,3 +68,14 @@ def test_docker_mode_starts_infrastructure_before_app_layer() -> None:
     assert infra_start in launcher
     assert app_start in launcher
     assert launcher.index(infra_start) < launcher.index(app_start)
+
+
+def test_durdur_uses_scoped_shutdown_without_global_process_kill() -> None:
+    stopper = Path("DURDUR.bat").read_text(encoding="utf-8", errors="ignore")
+
+    assert "docker compose -f docker-compose.yml --profile full-stack down --remove-orphans" in stopper
+    assert "Get-Process -Name python,node,uvicorn" not in stopper
+    assert "*:8000" in stopper
+    assert "*:3100" in stopper
+    assert "*:6379" not in stopper
+    assert "Stop-Process -Id" in stopper

@@ -179,4 +179,3 @@ class SelfCorrectionService:
                     severity=incident.severity if hasattr(incident, 'severity') else "medium"
                 )
                 return f"Önerilen İyileştirme ({improvement.id}) oluşturuldu. Risk nedeniyle manuel onay bekleniyor."
-id}) oluşturuldu. Manuel onay bekleniyor."

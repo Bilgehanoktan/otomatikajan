@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ExternalLink, ArrowRight, Activity, Globe, Zap, Database, GitBranch } from "lucide-react";
+import { ArrowRight, Globe, Zap, Database, GitBranch } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 interface QuickLinkProps {
@@ -40,9 +40,9 @@ export function ApiHub({ apiBase }: { apiBase: string }) {
   const t = useTranslations("dashboard");
   const adminLinks = [
     { label: t("quickAccess.refine"), sub: t("quickAccess.apiSub"), icon: <Zap size={20} />, href: "/docs", color: "text-[var(--primary)]", bg: "bg-[var(--primary)]/10" },
-    { label: t("quickAccess.docs"), sub: "Redoc Spécs", icon: <GitBranch size={20} />, href: "/redoc", color: "text-violet-400", bg: "bg-violet-400/10" },
+    { label: t("quickAccess.docs"), sub: t("quickAccess.redocSub"), icon: <GitBranch size={20} />, href: "/redoc", color: "text-violet-400", bg: "bg-violet-400/10" },
     { label: t("quickAccess.telemetry"), sub: t("quickAccess.jsonSub"), icon: <Globe size={20} />, href: `${apiBase}/health`, color: "text-blue-400", bg: "bg-blue-400/10" },
-    { label: "Audit Ledger", sub: "Blockchain Integrity", icon: <Database size={20} />, href: `${apiBase}/health/dashboard`, color: "text-amber-400", bg: "bg-amber-400/10" },
+    { label: t("quickAccess.auditLedger"), sub: t("quickAccess.auditLedgerSub"), icon: <Database size={20} />, href: `${apiBase}/health/dashboard`, color: "text-amber-400", bg: "bg-amber-400/10" },
   ];
 
   return (
@@ -52,6 +52,7 @@ export function ApiHub({ apiBase }: { apiBase: string }) {
               key={link.label} 
               href={link.href} 
               target="_blank" 
+              rel="noreferrer"
               className="glass-panel p-6 rounded-[2rem] border-white/[0.04] bg-white/[0.012] hover:bg-white/[0.03] hover:border-[var(--primary)]/30 transition-all duration-500 group relative overflow-hidden"
             >
                 <div className="flex items-center gap-5 relative z-10">

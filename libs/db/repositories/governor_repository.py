@@ -4,16 +4,17 @@ Case, Action, Escalation persistence for the Approval Governor.
 """
 
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
-from sqlalchemy import select, func, and_, update
+from sqlalchemy import and_, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from libs.db.models.governance_models import (
-    GovernorCaseRecord, GovernorActionRecord, GovernorEscalationRecord,
+    GovernorActionRecord,
+    GovernorCaseRecord,
+    GovernorEscalationRecord,
 )
-from libs.db.session import get_db_ctx
 from services.observability.logging import get_logger
 
 logger = get_logger("db.governor_repo")
@@ -22,7 +23,7 @@ logger = get_logger("db.governor_repo")
 class GovernorCaseRepo:
 
     @staticmethod
-    async def upsert_case(db: AsyncSession, data: Dict[str, Any]) -> GovernorCaseRecord:
+    async def upsert_case(db: AsyncSession, data: dict[str, Any]) -> GovernorCaseRecord:
         """Aynı project_id için varsa güncelle, yoksa oluştur."""
         project_id = data["project_id"]
         try:
@@ -39,7 +40,7 @@ class GovernorCaseRepo:
             for key, val in data.items():
                 if key != "id" and hasattr(existing, key):
                     setattr(existing, key, val)
-            existing.updated_at = datetime.now(timezone.utc)
+            existing.updated_at = datetime.now(UTC)
             await db.flush()
             return existing
 
@@ -51,14 +52,14 @@ class GovernorCaseRepo:
         return record
 
     @staticmethod
-    async def get_case(db: AsyncSession, case_id: str) -> Optional[GovernorCaseRecord]:
+    async def get_case(db: AsyncSession, case_id: str) -> GovernorCaseRecord | None:
         res = await db.execute(
             select(GovernorCaseRecord).where(GovernorCaseRecord.id == uuid.UUID(case_id))
         )
         return res.scalar_one_or_none()
 
     @staticmethod
-    async def get_case_by_project(db: AsyncSession, project_id: str) -> Optional[GovernorCaseRecord]:
+    async def get_case_by_project(db: AsyncSession, project_id: str) -> GovernorCaseRecord | None:
         res = await db.execute(
             select(GovernorCaseRecord).where(GovernorCaseRecord.project_id == uuid.UUID(project_id))
         )
@@ -69,11 +70,11 @@ class GovernorCaseRepo:
         db: AsyncSession,
         limit: int = 50,
         offset: int = 0,
-        risk_class: Optional[str] = None,
-        recommended_decision: Optional[str] = None,
-        pending_reason: Optional[str] = None,
-        project_status: Optional[str] = None,
-    ) -> tuple[List[GovernorCaseRecord], int]:
+        risk_class: str | None = None,
+        recommended_decision: str | None = None,
+        pending_reason: str | None = None,
+        project_status: str | None = None,
+    ) -> tuple[list[GovernorCaseRecord], int]:
         """Filtrelenmiş case listesi + toplam sayı."""
         q = select(GovernorCaseRecord)
         count_q = select(func.count(GovernorCaseRecord.id))
@@ -104,17 +105,17 @@ class GovernorActionRepo:
     @staticmethod
     async def save_action(
         db: AsyncSession,
-        case_id: Optional[str],
+        case_id: str | None,
         project_id: str,
         action_type: str,
         status: str = "executed",
         executed_by: str = "SOFT_CEO",
-        result_payload: Optional[Dict] = None,
-        justification: Optional[str] = None,
-        operator_role: Optional[str] = None,
+        result_payload: dict | None = None,
+        justification: str | None = None,
+        operator_role: str | None = None,
         override_flag: int = 0,
         guardrail_bypassed: int = 0,
-        approval_snapshot: Optional[Dict] = None,
+        approval_snapshot: dict | None = None,
     ) -> GovernorActionRecord:
         record = GovernorActionRecord(
             case_id=uuid.UUID(case_id) if case_id else None,
@@ -139,8 +140,8 @@ class GovernorActionRepo:
         project_id: str,
         within_minutes: int = 30
     ) -> int:
-        from datetime import datetime, timedelta, timezone
-        cutoff = datetime.now(timezone.utc) - timedelta(minutes=within_minutes)
+        from datetime import datetime, timedelta
+        cutoff = datetime.now(UTC) - timedelta(minutes=within_minutes)
         q = select(func.count(GovernorActionRecord.id)).where(
             and_(
                 GovernorActionRecord.project_id == uuid.UUID(project_id),
@@ -153,9 +154,9 @@ class GovernorActionRepo:
     @staticmethod
     async def list_actions(
         db: AsyncSession,
-        project_id: Optional[str] = None,
+        project_id: str | None = None,
         limit: int = 20,
-    ) -> List[GovernorActionRecord]:
+    ) -> list[GovernorActionRecord]:
         q = select(GovernorActionRecord).order_by(GovernorActionRecord.created_at.desc()).limit(limit)
         if project_id:
             q = q.where(GovernorActionRecord.project_id == uuid.UUID(project_id))
@@ -167,7 +168,7 @@ class GovernorEscalationRepo:
     @staticmethod
     async def save_escalation(
         db: AsyncSession,
-        case_id: Optional[str],
+        case_id: str | None,
         project_id: str,
         escalation_type: str,
         target_role: str = "SOVEREIGN_PRIME",
@@ -185,23 +186,23 @@ class GovernorEscalationRepo:
         return record
 
     @staticmethod
-    async def get_escalation(db: AsyncSession, escalation_id: str) -> Optional[GovernorEscalationRecord]:
+    async def get_escalation(db: AsyncSession, escalation_id: str) -> GovernorEscalationRecord | None:
         res = await db.execute(select(GovernorEscalationRecord).where(GovernorEscalationRecord.id == uuid.UUID(escalation_id)))
         return res.scalar_one_or_none()
 
     @staticmethod
     async def update_status(
-        db: AsyncSession, 
-        escalation_id: str, 
+        db: AsyncSession,
+        escalation_id: str,
         status: str,
-        resolution_type: Optional[str] = None,
-        resolution_notes: Optional[str] = None,
-        resolved_by: Optional[str] = None,
-        final_action: Optional[str] = None
+        resolution_type: str | None = None,
+        resolution_notes: str | None = None,
+        resolved_by: str | None = None,
+        final_action: str | None = None
     ) -> bool:
         values = {"status": status}
         if status in ["resolved", "cancelled"]:
-            values["resolved_at"] = datetime.now(timezone.utc)
+            values["resolved_at"] = datetime.now(UTC)
             if resolution_type: values["resolution_type"] = resolution_type
             if resolution_notes: values["resolution_notes"] = resolution_notes
             if resolved_by: values["resolved_by"] = resolved_by
@@ -216,7 +217,7 @@ class GovernorEscalationRepo:
         return True
 
     @staticmethod
-    async def list_active(db: AsyncSession, limit: int = 50) -> List[GovernorEscalationRecord]:
+    async def list_active(db: AsyncSession, limit: int = 50) -> list[GovernorEscalationRecord]:
         q = (
             select(GovernorEscalationRecord)
             .where(GovernorEscalationRecord.status.in_(["open", "acknowledged", "in_review"]))

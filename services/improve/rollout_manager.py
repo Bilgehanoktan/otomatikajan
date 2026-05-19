@@ -139,15 +139,24 @@ class RolloutManager:
         result = await self.db.execute(stmt)
         blockers = result.scalars().all()
 
-            # R-05 Calibration Loop: Record Canary Success (Promotion)
-            calibration_engine.record_correction(
-                incident_id="canary_promotion",
-                action="canary_success",
-                risk_score=patch.risk_score,
-                is_success=True
-            )
-            
-            await self.db.commit()
+        if blockers:
+            await self.rollback(improvement_id, reason=f"Canary blockers detected: {len(blockers)}")
+            return
+
+        patch.status = "applied"
+        rollout_meta = patch.test_results or {}
+        rollout_meta["rollout_meta"] = {**meta, "status": "promoted"}
+        patch.test_results = rollout_meta
+
+        # R-05 Calibration Loop: Record Canary Success (Promotion)
+        calibration_engine.record_correction(
+            incident_id="canary_promotion",
+            action="canary_success",
+            risk_score=patch.risk_score,
+            is_success=True
+        )
+
+        await self.db.commit()
 
     async def rollback(self, improvement_id: UUID, reason: str = "Manual/System rollback"):
         """

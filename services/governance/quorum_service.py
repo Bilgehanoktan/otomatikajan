@@ -1,11 +1,41 @@
 import uuid
 from typing import List, Dict, Any, Optional
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, text
 from libs.db.session import get_db, get_db_ctx
 from libs.db.models.governance_models import QuorumRequirement, MultiPartySignoff, ProductionSignoff, PolicyProposal, SignoffStatus
 from services.governance.policy_vcs_service import PolicyVCSService
 
 class QuorumService:
+    @staticmethod
+    async def _ensure_policy_sync_schema(session) -> None:
+        bind = session.get_bind()
+        dialect_name = getattr(getattr(bind, "dialect", None), "name", "")
+        if dialect_name != "sqlite":
+            return
+
+        policy_columns = {
+            row[1]
+            for row in (await session.execute(text("PRAGMA table_info(policy_proposals)"))).all()
+        }
+        policy_alters = {
+            "scope": "ALTER TABLE policy_proposals ADD COLUMN scope VARCHAR(100) DEFAULT 'GLOBAL' NOT NULL",
+            "proposed_changes": "ALTER TABLE policy_proposals ADD COLUMN proposed_changes JSON",
+            "author_id": "ALTER TABLE policy_proposals ADD COLUMN author_id VARCHAR(100)",
+            "git_commit_sha": "ALTER TABLE policy_proposals ADD COLUMN git_commit_sha VARCHAR(64)",
+        }
+        for column_name, ddl in policy_alters.items():
+            if column_name not in policy_columns:
+                await session.execute(text(ddl))
+
+        signoff_columns = {
+            row[1]
+            for row in (await session.execute(text("PRAGMA table_info(multi_party_signoffs)"))).all()
+        }
+        if "proposal_id" not in signoff_columns:
+            await session.execute(text("ALTER TABLE multi_party_signoffs ADD COLUMN proposal_id CHAR(32)"))
+
+        await session.commit()
+
     @staticmethod
     async def get_requirement(component_type: str, risk_level: str = "LOW") -> Optional[QuorumRequirement]:
         async with get_db_ctx() as session:
@@ -22,6 +52,7 @@ class QuorumService:
     @staticmethod
     async def register_quorum_requirement(component: str, risk: str, count: int, desc: str = None) -> QuorumRequirement:
         async with get_db_ctx() as session:
+            await QuorumService._ensure_policy_sync_schema(session)
             result = await session.execute(
                 select(QuorumRequirement).where(
                     and_(
@@ -58,6 +89,7 @@ class QuorumService:
     async def add_signoff(target_id: str, approver_id: str, note: str = None) -> MultiPartySignoff:
         """Adds an approval to a specific signoff or proposal record."""
         async with get_db_ctx() as session:
+            await QuorumService._ensure_policy_sync_schema(session)
             # Determine if it's a signoff or proposal
             is_proposal = False
             res = await session.execute(select(PolicyProposal).where(PolicyProposal.id == target_id))
@@ -131,6 +163,7 @@ class QuorumService:
             return
 
         async with get_db_ctx() as session:
+            await QuorumService._ensure_policy_sync_schema(session)
             # Get proposal
             result = await session.execute(select(PolicyProposal).where(PolicyProposal.id == proposal_id))
             proposal = result.scalar_one_or_none()

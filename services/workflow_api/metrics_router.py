@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends
-from typing import Dict, Any
+from fastapi import APIRouter
+
 from libs.db.session import AsyncSessionLocal
 from services.improve.metrics_service import ImprovementMetricsService
 
@@ -15,7 +15,7 @@ async def get_phase17_summary():
         canary = await service.get_canary_stats()
         risk = await service.get_risk_calibration_data()
         pilot = await service.get_pilot_performance()
-        
+
         # Flattened structure for Phase 13.04/17 Dashboard compatibility
         return {
             "canary_success_rate": canary["success_rate"],

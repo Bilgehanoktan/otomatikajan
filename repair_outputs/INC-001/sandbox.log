@@ -1,0 +1,11 @@
+patch_applied=True
+tests_passed=True
+exit_code=0
+duration_seconds=0.0006
+failed_commands=
+
+STDOUT:
+No patch content and no failed_command supplied; sandbox applicability check passed without touching the source tree.
+
+
+STDERR:

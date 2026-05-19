@@ -188,7 +188,11 @@ class SystemIndexer:
         entries: List[Dict[str, Any]] = []
 
         for file_path in self.project_root.rglob("*"):
-            if not file_path.is_file():
+            try:
+                if not file_path.is_file():
+                    continue
+            except OSError as exc:
+                logger.warning("Skipping inaccessible path during indexing: %s | %s", file_path, exc)
                 continue
 
             try:

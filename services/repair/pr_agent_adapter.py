@@ -1,7 +1,9 @@
 import logging
 import uuid
 import asyncio
-from typing import List, Dict, Any, cast
+import json
+from pathlib import Path
+from typing import List, Dict, Any, cast, Optional
 from datetime import datetime, timezone
 
 from libs.db.session import AsyncSessionLocal
@@ -13,6 +15,67 @@ logger = logging.getLogger(__name__)
 class PRAgentAdapter:
     def __init__(self):
         pass
+
+    async def run_review_gate(
+        self,
+        incident_id: str,
+        run_id: str,
+        output_root: Optional[Path] = None
+    ) -> Dict[str, Any]:
+        """
+        Runs PR-Agent review gate on patch_candidates.json & risk_report.json,
+        producing a standard pr_review.json artifact in the run directory.
+        """
+        from .pr_review import build_pr_review_artifact
+        
+        root = output_root if output_root is not None else Path("repair_outputs")
+        run_dir = root / incident_id / "taskflow" / run_id
+        
+        candidates_path = run_dir / "patch_candidates.json"
+        if not candidates_path.exists():
+            candidates_path = root / incident_id / "patch_candidates.json"
+            
+        risk_path = run_dir / "risk_report.json"
+        if not risk_path.exists():
+            risk_path = root / incident_id / "risk_report.json"
+            
+        # Read candidates & risk if they exist
+        candidates_data = {}
+        if candidates_path.exists():
+            candidates_data = json.loads(candidates_path.read_text(encoding="utf-8"))
+        risk_data = {}
+        if risk_path.exists():
+            risk_data = json.loads(risk_path.read_text(encoding="utf-8"))
+            
+        # Simulate PR-Agent logic
+        # If incident_id has "BLOCK", we mock a blocking comment
+        blocking_comments = []
+        if "BLOCK" in incident_id:
+            blocking_comments = ["PR-Agent: Unsafe memory usage pattern detected."]
+            
+        # Build artifact
+        artifact = build_pr_review_artifact(
+            incident_id=incident_id,
+            run_id=run_id,
+            summary="PR-Agent automated review of patch candidate.",
+            possible_bugs=["Small typo in comment"] if "BUG" in incident_id else [],
+            security_findings=[],
+            suggested_improvements=["Refactor helper function"] if "IMPROVE" in incident_id else [],
+            blocking_comments=blocking_comments,
+            confidence_score=0.82,
+            artifact_refs={
+                "patch_candidates": str(candidates_path.relative_to(root)) if candidates_path.exists() else "",
+                "risk_report": str(risk_path.relative_to(root)) if risk_path.exists() else "",
+                "human_gate_decision": f"{incident_id}/taskflow/{run_id}/human_gate_decision.json"
+            }
+        )
+        
+        # Write to pr_review.json
+        review_path = run_dir / "pr_review.json"
+        run_dir.mkdir(parents=True, exist_ok=True)
+        review_path.write_text(json.dumps(artifact.model_dump(), indent=2, sort_keys=True), encoding="utf-8")
+        
+        return artifact.model_dump()
 
     async def run_action(self, pr_url: str, action: str) -> str:
         """

@@ -64,17 +64,39 @@ def _normalize_status(status) -> str:
 
 
 def run_async(coro):
-    """Celery worker içinde asenkron kod çalıştırmak için yardımcı (Hardened for loop-reuse)."""
+    """Celery worker içinde asenkron kod çalıştırmak için yardımcı (Hardened for loop-reuse and thread-isolated execution)."""
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:
         loop = None
 
     if loop and loop.is_running():
-        # Eğer zaten bir loop varsa ve çalışıyorsa, Celery sync worker'da bu beklenmez.
-        import nest_asyncio  # type: ignore
-        nest_asyncio.apply()
-        return asyncio.get_event_loop().run_until_complete(coro)
+        # Eğer zaten bir loop varsa ve çalışıyorsa, nest_asyncio yerine thread-isolated runner kullanıyoruz.
+        # Bu sayede Python 3.14+ ve anyio/pytest entegrasyonlarındaki 'NoneType' set_name çakışmalarını tamamen önlüyoruz.
+        import concurrent.futures
+        
+        def _run_in_thread():
+            new_loop = asyncio.new_event_loop()
+            try:
+                asyncio.set_event_loop(new_loop)
+                return new_loop.run_until_complete(coro)
+            finally:
+                try:
+                    import libs.db.session as db_session
+                    if db_session._engine is not None:
+                        db_session._engine.sync_engine.dispose()
+                        db_session._engine = None
+                except Exception:
+                    pass
+                try:
+                    new_loop.close()
+                except Exception:
+                    pass
+                asyncio.set_event_loop(None)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_run_in_thread)
+            return future.result()
 
     # Yeni loop oluştur ve çalıştır
     new_loop = asyncio.new_event_loop()

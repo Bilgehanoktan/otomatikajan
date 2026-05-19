@@ -1,5 +1,5 @@
-import sqlite3
 import os
+import sqlite3
 
 DB_PATH = "runtime/data/cortex_local_v2.db"
 
@@ -35,7 +35,7 @@ def patch():
                 cursor.execute(f"ALTER TABLE agent_nodes ADD COLUMN {col[0]} {col[1]}")
                 print(f"Added {col[0]} to agent_nodes")
             except sqlite3.OperationalError: pass
-            
+
         # Decision Lineage Table Patches
         print("Checking decision_lineage table for missing columns...")
         try:

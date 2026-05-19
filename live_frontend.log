@@ -1,0 +1,61 @@
+
+> refine_control_plane@0.1.0 dev
+> next dev -p 3100
+
+▲ Next.js 16.2.3 (Turbopack)
+- Local:         http://localhost:3100
+- Network:       http://192.168.1.61:3100
+- Environments: .env.local
+✓ Ready in 608ms
+
+Failed to proxy http://127.0.0.1:8000/api/v1/health/dashboard Error: connect ECONNREFUSED 127.0.0.1:8000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 8000
+}
+Error: connect ECONNREFUSED 127.0.0.1:8000
+    at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8000) {
+  errno: -4078,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 8000
+}
+ GET / 200 in 2.6s (next.js: 1900ms, application-code: 740ms)
+[browser] [Auth] Yenileme başarısız: 401 (src/lib/api.ts:84:25)
+[browser] [Auth] fetchCurrentOperator hatası: ApiResponseError: API ERROR [401]: Oturum suresi doldu veya kimlik dogrulama eksik. Lutfen tekrar giris yapin.
+    at safeFetchJson (src/lib/api.ts:177:23)
+    at async fetchCurrentOperator (src/lib/auth.ts:56:21)
+    at async Object.check (src/app/providers.tsx:46:25)
+  175 |                     detail = raw ? raw.slice(0, 200) : `HTTP ${res.status}`; 
+  176 |                 }
+> 177 |                 throw new ApiResponseError(res.status, normalizeApiErrorDetail(res.status...
+      |                       ^
+  178 |             }
+  179 |
+  180 |             if (!contentType.includes("application/json")) { (src/lib/auth.ts:69:13)
+[browser] [Auth] Yenileme başarısız: 401 (src/lib/api.ts:84:25)
+[browser] [Auth] fetchCurrentOperator hatası: ApiResponseError: API ERROR [401]: Oturum suresi doldu veya kimlik dogrulama eksik. Lutfen tekrar giris yapin.
+    at safeFetchJson (src/lib/api.ts:177:23)
+    at async fetchCurrentOperator (src/lib/auth.ts:56:21)
+    at async getIdentity (src/app/providers.tsx:63:25)
+  175 |                     detail = raw ? raw.slice(0, 200) : `HTTP ${res.status}`; 
+  176 |                 }
+> 177 |                 throw new ApiResponseError(res.status, normalizeApiErrorDetail(res.status...
+      |                       ^
+  178 |             }
+  179 |
+  180 |             if (!contentType.includes("application/json")) { (src/lib/auth.ts:69:13)
+[?25h
+npm error Lifecycle script `dev` failed with error:
+npm error code 4294967295
+npm error path E:\ai_company_faz12.1\apps\refine_control_plane
+npm error workspace refine_control_plane@0.1.0
+npm error location E:\ai_company_faz12.1\apps\refine_control_plane
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c next dev -p 3100
+
+E:\ai_company_faz12.1\apps\refine_control_plane>

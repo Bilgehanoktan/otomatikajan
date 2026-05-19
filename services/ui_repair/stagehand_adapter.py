@@ -3,6 +3,7 @@ import os
 from typing import Dict, Any, Optional
 from services.observability.logging import get_logger
 from .repair_prompts import STAGEHAND_DIAGNOSTIC_PROMPT
+from services.repair.ui_diagnosis_models import UIDiagnosisRequest, UIDiagnosisResult, UIElementInfo
 
 _log = get_logger("stagehand_adapter")
 
@@ -15,11 +16,33 @@ class StagehandAdapter:
     def __init__(self):
         self.enabled = os.getenv("STAGEHAND_ENABLED", "true").lower() == "true"
 
-    async def diagnose(self, case_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def diagnose(self, case_data: Dict[str, Any] | UIDiagnosisRequest) -> Dict[str, Any] | UIDiagnosisResult:
         """
         Executes a diagnostic run using Stagehand.
         In Phase 4, we simulate the LLM call but perform actual DOM inspection if configured.
         """
+        if isinstance(case_data, UIDiagnosisRequest):
+            route = case_data.evidence_pack_path or "/"
+            _log.info(f"Stagehand: Starting diagnostic for case {case_data.case_id}")
+            return UIDiagnosisResult(
+                case_id=case_data.case_id,
+                root_cause_summary=f"Detected UI inconsistency from evidence pack {route}.",
+                suspected_elements=[
+                    UIElementInfo(
+                        selector="apps/refine_control_plane/src/app/repair-lab/page.tsx",
+                        role="source_file",
+                        text="Repair Lab trigger surface",
+                    )
+                ],
+                suggested_fix_strategy="Use report-only repair flow with degraded evidence when browser automation is unavailable.",
+                confidence_score=0.62,
+                analysis_details=case_data.symptom_description,
+                technical_brief={
+                    "evidence_pack_path": case_data.evidence_pack_path,
+                    "stagehand_mode": "model_request_compat",
+                },
+            )
+
         route = case_data.get("route", "/")
         _log.info(f"Stagehand: Starting diagnostic for route {route}")
         

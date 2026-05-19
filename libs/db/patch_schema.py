@@ -1,13 +1,15 @@
 
 import asyncio
-import sys
 import os
+import sys
 
 # Add project root to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
-from libs.db.session import AsyncSessionLocal
 from sqlalchemy import text
+
+from libs.db.session import AsyncSessionLocal
+
 
 async def patch():
     print("[*] Starting Schema Patch: decision_lineage.outcome...")

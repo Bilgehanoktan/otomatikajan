@@ -15,9 +15,10 @@ class FinalAuditPackGenerator:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def generate_pack(self, version: str) -> UIFinalAuditPack:
+    async def generate_pack(self, version: str, name: Optional[str] = None) -> UIFinalAuditPack:
         """Collects all audit data and packages it into a release candidate."""
-        pack_key = f"AUDIT-PACK-{version.replace('.', '-')}-{uuid.uuid4().hex[:4].upper()}"
+        prefix = name.upper().replace(" ", "-") if name else "AUDIT-PACK"
+        pack_key = f"{prefix}-{version.replace('.', '-')}-{uuid.uuid4().hex[:4].upper()}"
         logger.info(f"Generating Final Audit Pack: {pack_key}")
         
         sections = [

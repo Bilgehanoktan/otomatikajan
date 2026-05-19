@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  ShieldCheck, 
-  AlertTriangle, 
-  NoSymbol, 
+import {
+  ShieldCheck,
+  AlertTriangle,
+  Ban,
   Beaker,
   Search,
   CheckCircle2,
@@ -14,6 +14,7 @@ import {
   Check,
   X
 } from 'lucide-react';
+import { safeFetchJson } from '@/lib/api';
 
 interface CognitiveCheck {
   id: string;
@@ -112,8 +113,7 @@ export default function CognitiveIntegrityCenterPanel() {
   const fetchChecks = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/v1/ui-repair/cognitive/checks');
-      const data = await response.json();
+      const data = await safeFetchJson<CognitiveCheck[]>('/api/v1/ui-repair/cognitive/checks');
       setChecks(data);
     } catch (error) {
       console.error('Error fetching cognitive checks:', error);
@@ -124,8 +124,7 @@ export default function CognitiveIntegrityCenterPanel() {
 
   const fetchFindings = async (checkId: string) => {
     try {
-      const response = await fetch(`/api/v1/ui-repair/cognitive/findings/${checkId}`);
-      const data = await response.json();
+      const data = await safeFetchJson<Finding[]>(`/api/v1/ui-repair/cognitive/findings/${checkId}`);
       setFindings(data);
     } catch (error) {
       console.error('Error fetching findings:', error);
@@ -134,8 +133,7 @@ export default function CognitiveIntegrityCenterPanel() {
 
   const fetchClaims = async (checkId: string) => {
     try {
-      const response = await fetch(`/api/v1/ui-repair/cognitive/claims/${checkId}`);
-      const data = await response.json();
+      const data = await safeFetchJson<Claim[]>(`/api/v1/ui-repair/cognitive/claims/${checkId}`);
       setClaims(data);
     } catch (error) {
       console.error('Error fetching claims:', error);
@@ -149,17 +147,15 @@ export default function CognitiveIntegrityCenterPanel() {
     }
     setActing(true);
     try {
-      const response = await fetch(`/api/v1/ui-repair/cognitive/manual-review/${checkId}/${action}?rationale=${encodeURIComponent(reviewRationale)}`, {
+      await safeFetchJson(`/api/v1/ui-repair/cognitive/manual-review/${checkId}/${action}?rationale=${encodeURIComponent(reviewRationale)}`, {
         method: 'POST'
       });
-      if (response.ok) {
-        setReviewRationale('');
-        fetchChecks();
-        // Refresh selected check
-        if (selectedCheck?.id === checkId) {
-          const updatedCheck = { ...selectedCheck, status: action === 'approve' ? 'PASSED' : 'BLOCKED', decision: action === 'approve' ? 'ALLOW' : 'BLOCK_ACTION' };
-          setSelectedCheck(updatedCheck as any);
-        }
+      setReviewRationale('');
+      fetchChecks();
+      // Refresh selected check
+      if (selectedCheck?.id === checkId) {
+        const updatedCheck = { ...selectedCheck, status: action === 'approve' ? 'PASSED' : 'BLOCKED', decision: action === 'approve' ? 'ALLOW' : 'BLOCK_ACTION' };
+        setSelectedCheck(updatedCheck as any);
       }
     } catch (error) {
       console.error('Error processing manual review:', error);
@@ -309,7 +305,7 @@ export default function CognitiveIntegrityCenterPanel() {
               {/* Decision Section */}
               <div className={`p-4 rounded-xl border ${getStatusColor(selectedCheck.status)} flex items-start gap-4`}>
                 {selectedCheck.decision === 'BLOCK_ACTION' ? (
-                  <NoSymbol className="w-6 h-6 shrink-0" />
+                  <Ban className="w-4 h-4 mr-2" />
                 ) : selectedCheck.status === 'PASSED' ? (
                   <CheckCircle2 className="w-6 h-6 shrink-0" />
                 ) : (

@@ -9,14 +9,19 @@ import {
     Card, CardHeader, CardTitle, CardDescription, CardContent,
     Badge, Table
 } from "./CommonUI";
+import { safeFetchJson } from "@/lib/api";
 
 export const NotificationDeliveryPanel: React.FC = () => {
     const t = useTranslations("repair_lab");
     const [deliveries, setDeliveries] = useState<any[]>([]);
 
     const fetchData = async () => {
-        const res = await fetch("/api/v1/ui-repair/notifications/deliveries");
-        if (res.ok) setDeliveries(await res.json());
+        try {
+            const data = await safeFetchJson<any[]>("/api/v1/ui-repair/notifications/deliveries");
+            setDeliveries(data);
+        } catch (err) {
+            console.error("Failed to fetch notification deliveries", err);
+        }
     };
 
     useEffect(() => {

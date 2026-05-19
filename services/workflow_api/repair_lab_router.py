@@ -11,10 +11,10 @@ import logging
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 # FastAPI imports
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy import desc, func, select
@@ -985,3 +985,463 @@ async def get_case_patch(case_id: str):
         raise HTTPException(status_code=404, detail="Patch not found")
 
     return {"case_id": case_id, "diff": patch_path.read_text(encoding="utf-8")}
+
+
+@router.get("/runs/{run_id}/artifacts")
+async def get_run_artifacts(run_id: str):
+    """
+    Returns the artifact manifest (from artifact_manifest.json) or a list of artifact files
+    for the specific TaskFlow run.
+    """
+    if not REPAIR_OUTPUTS_DIR.exists():
+        raise HTTPException(status_code=404, detail="No repair outputs directory exists.")
+
+    run_dir = None
+    for incident_dir in REPAIR_OUTPUTS_DIR.iterdir():
+        if incident_dir.is_dir():
+            candidate = incident_dir / "taskflow" / run_id
+            if candidate.exists() and candidate.is_dir():
+                run_dir = candidate
+                break
+
+    if not run_dir:
+        raise HTTPException(status_code=404, detail=f"Taskflow run {run_id} not found.")
+
+    manifest_path = run_dir / "artifact_manifest.json"
+    if not manifest_path.exists():
+        raise HTTPException(status_code=404, detail="Artifact manifest for this run not found.")
+
+    try:
+        manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
+        return manifest_data
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to read artifact manifest: {exc}")
+
+
+class HumanGateDecisionBody(BaseModel):
+    operator_id: str
+    decision: str
+    rationale: str
+    selected_candidate_id: str
+    risk_acknowledgement: bool
+    rollback_required: bool
+    rollback_plan_ref: Optional[str] = None
+
+
+@router.get("/runs/{run_id}/human-gate")
+async def get_human_gate_status(run_id: str):
+    """
+    Returns the current status of the Human Gate decision for the specific run.
+    """
+    if not REPAIR_OUTPUTS_DIR.exists():
+        raise HTTPException(status_code=404, detail="No repair outputs directory exists.")
+
+    run_dir = None
+    incident_id = None
+    for incident_dir in REPAIR_OUTPUTS_DIR.iterdir():
+        if incident_dir.is_dir():
+            candidate = incident_dir / "taskflow" / run_id
+            if candidate.exists() and candidate.is_dir():
+                run_dir = candidate
+                incident_id = incident_dir.name
+                break
+
+    if not run_dir or not incident_id:
+        raise HTTPException(status_code=404, detail=f"Taskflow run {run_id} not found.")
+
+    gate_path = run_dir / "human_gate_decision.json"
+    if not gate_path.exists():
+        raise HTTPException(status_code=404, detail="Human gate decision artifact not found.")
+
+    try:
+        gate_data = json.loads(gate_path.read_text(encoding="utf-8"))
+        blocking_reasons = []
+        risk_score = gate_data.get("risk_score") or 0.0
+        risk_threshold = gate_data.get("risk_threshold") or 0.30
+        status = gate_data.get("status")
+
+        if risk_score > risk_threshold and status == "WAITING_FOR_OPERATOR":
+            blocking_reasons.append("HIGH_RISK_GATED")
+
+        return {
+            "run_id": run_id,
+            "incident_id": incident_id,
+            "human_gate": gate_data,
+            "blocking_reasons": blocking_reasons,
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to read human gate status: {exc}")
+
+
+@router.post("/runs/{run_id}/human-gate/decision")
+async def post_human_gate_decision(run_id: str, body: HumanGateDecisionBody):
+    """
+    Records the operator decision for the Human Gate.
+    """
+    if not REPAIR_OUTPUTS_DIR.exists():
+        raise HTTPException(status_code=404, detail="No repair outputs directory exists.")
+
+    run_dir = None
+    incident_id = None
+    for incident_dir in REPAIR_OUTPUTS_DIR.iterdir():
+        if incident_dir.is_dir():
+            candidate = incident_dir / "taskflow" / run_id
+            if candidate.exists() and candidate.is_dir():
+                run_dir = candidate
+                incident_id = incident_dir.name
+                break
+
+    if not run_dir or not incident_id:
+        raise HTTPException(status_code=404, detail=f"Taskflow run {run_id} not found.")
+
+    from services.repair.human_gate import (
+        HumanGateDecisionRequest,
+        HumanGateDecisionType,
+        record_human_gate_decision
+    )
+
+    try:
+        decision_enum = HumanGateDecisionType(body.decision)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid operator decision: {body.decision}")
+
+    req = HumanGateDecisionRequest(
+        operator_id=body.operator_id,
+        decision=decision_enum,
+        rationale=body.rationale,
+        selected_candidate_id=body.selected_candidate_id,
+        risk_acknowledgement=body.risk_acknowledgement,
+        rollback_required=body.rollback_required,
+        rollback_plan_ref=body.rollback_plan_ref
+    )
+
+    try:
+        result = record_human_gate_decision(
+            incident_id=incident_id,
+            run_id=run_id,
+            req=req
+        )
+        return {
+            "status": "ok",
+            "result": result
+        }
+    except ValueError as val_err:
+        raise HTTPException(status_code=400, detail=str(val_err))
+    except FileNotFoundError as fnf_err:
+        raise HTTPException(status_code=404, detail=str(fnf_err))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Internal error processing decision: {exc}")
+
+
+@router.get("/runs/{run_id}/pr-review")
+async def get_pr_review(run_id: str):
+    """
+    Returns the current PR review artifact for the specific TaskFlow run.
+    """
+    if not REPAIR_OUTPUTS_DIR.exists():
+        raise HTTPException(status_code=404, detail="No repair outputs directory exists.")
+
+    run_dir = None
+    for incident_dir in REPAIR_OUTPUTS_DIR.iterdir():
+        if incident_dir.is_dir():
+            candidate = incident_dir / "taskflow" / run_id
+            if candidate.exists() and candidate.is_dir():
+                run_dir = candidate
+                break
+
+    if not run_dir:
+        raise HTTPException(status_code=404, detail=f"Taskflow run {run_id} not found.")
+
+    pr_review_path = run_dir / "pr_review.json"
+    if not pr_review_path.exists():
+        raise HTTPException(status_code=404, detail="PR review artifact not found.")
+
+    try:
+        return json.loads(pr_review_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to read PR review: {exc}")
+
+
+@router.get("/runs/{run_id}/draft-pr")
+async def get_draft_pr_endpoint(run_id: str):
+    """
+    Returns the current draft PR metadata artifact for the specific TaskFlow run.
+    """
+    if not REPAIR_OUTPUTS_DIR.exists():
+        raise HTTPException(status_code=404, detail="No repair outputs directory exists.")
+
+    run_dir = None
+    for incident_dir in REPAIR_OUTPUTS_DIR.iterdir():
+        if incident_dir.is_dir():
+            candidate = incident_dir / "taskflow" / run_id
+            if candidate.exists() and candidate.is_dir():
+                run_dir = candidate
+                break
+
+    if not run_dir:
+        raise HTTPException(status_code=404, detail=f"Taskflow run {run_id} not found.")
+
+    draft_pr_path = run_dir / "draft_pr_metadata.json"
+    if not draft_pr_path.exists():
+        raise HTTPException(status_code=404, detail="Draft PR metadata artifact not found.")
+
+    try:
+        return json.loads(draft_pr_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to read Draft PR metadata: {exc}")
+
+
+class PrepareDraftPRBody(BaseModel):
+    operator_acknowledged_blocking_comments: bool = False
+
+
+@router.post("/runs/{run_id}/draft-pr/prepare")
+async def post_prepare_draft_pr(run_id: str, body: PrepareDraftPRBody = Body(...)):
+    """
+    Manually triggers the prepare_draft_pr handler to generate the draft PR metadata artifact.
+    """
+    if not REPAIR_OUTPUTS_DIR.exists():
+        raise HTTPException(status_code=404, detail="No repair outputs directory exists.")
+
+    run_dir = None
+    incident_id = None
+    for incident_dir in REPAIR_OUTPUTS_DIR.iterdir():
+        if incident_dir.is_dir():
+            candidate = incident_dir / "taskflow" / run_id
+            if candidate.exists() and candidate.is_dir():
+                run_dir = candidate
+                incident_id = incident_dir.name
+                break
+
+    if not run_dir or not incident_id:
+        raise HTTPException(status_code=404, detail=f"Taskflow run {run_id} not found.")
+
+    from services.repair.github_pr_adapter import prepare_draft_pr
+
+    context = {
+        "incident_id": incident_id,
+        "run_id": run_id,
+        "output_root": str(REPAIR_OUTPUTS_DIR.parent / "repair_outputs"),
+        "operator_acknowledged_blocking_comments": body.operator_acknowledged_blocking_comments
+    }
+
+    try:
+        result = prepare_draft_pr(context)
+        return {
+            "status": "ok",
+            "result": result
+        }
+    except ValueError as val_err:
+        raise HTTPException(status_code=400, detail=str(val_err))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Internal error preparing draft PR: {exc}")
+
+
+@router.get("/diagnostics/{diagnostic_id}")
+async def get_diagnostic_report(diagnostic_id: str):
+    """
+    Returns the diagnostic_report.json artifact for the specific diagnostic_id.
+    """
+    # Enforce path traversal defense
+    if ".." in diagnostic_id or "\\" in diagnostic_id or "/" in diagnostic_id:
+        raise HTTPException(status_code=400, detail="Path traversal detected in diagnostic_id")
+
+    # Resolve report path
+    report_path = REPAIR_OUTPUTS_DIR / "diagnostics" / diagnostic_id / "diagnostic_report.json"
+    if not report_path.exists():
+        raise HTTPException(status_code=404, detail=f"Diagnostic report for {diagnostic_id} not found.")
+
+    try:
+        return json.loads(report_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to read diagnostic report: {exc}")
+
+
+@router.get("/runs/{run_id}/memory-score")
+async def get_run_memory_score(run_id: str):
+    """
+    Returns the candidate memory score artifact for the specific TaskFlow run.
+    """
+    if ".." in run_id or "\\" in run_id or "/" in run_id:
+        raise HTTPException(status_code=400, detail="Path traversal detected in run_id")
+
+    if not REPAIR_OUTPUTS_DIR.exists():
+        raise HTTPException(status_code=404, detail="No repair outputs directory exists.")
+
+    run_dir = None
+    for incident_dir in REPAIR_OUTPUTS_DIR.iterdir():
+        if incident_dir.is_dir():
+            candidate = incident_dir / "taskflow" / run_id
+            if candidate.exists() and candidate.is_dir():
+                run_dir = candidate
+                break
+
+    if not run_dir:
+        raise HTTPException(status_code=404, detail=f"Taskflow run {run_id} not found.")
+
+    score_path = run_dir / "candidate_memory_score.json"
+    if not score_path.exists():
+        raise HTTPException(status_code=404, detail="Candidate memory score artifact not found.")
+
+    try:
+        return json.loads(score_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to read memory score: {exc}")
+
+
+@router.get("/learning-memory/profiles/{agent_key}/{strategy}")
+async def get_learning_memory_profile(agent_key: str, strategy: str):
+    """
+    Returns the strategy success profile for the given agent and strategy.
+    """
+    if ".." in agent_key or "\\" in agent_key or "/" in agent_key:
+        raise HTTPException(status_code=400, detail="Path traversal detected in agent_key")
+    if ".." in strategy or "\\" in strategy or "/" in strategy:
+        raise HTTPException(status_code=400, detail="Path traversal detected in strategy")
+
+    profile_dir = REPAIR_OUTPUTS_DIR / "learning_memory" / "profiles"
+    profile_path = profile_dir / f"{agent_key}_{strategy}.json"
+
+    if not profile_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Success profile for agent '{agent_key}' and strategy '{strategy}' not found."
+        )
+
+    try:
+        return json.loads(profile_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to read success profile: {exc}")
+
+
+@router.get("/runs/{run_id}/tournament")
+async def get_run_tournament(run_id: str):
+    """
+    Returns the tournament result artifact for the specific TaskFlow run.
+    """
+    if ".." in run_id or "\\" in run_id or "/" in run_id:
+        raise HTTPException(status_code=400, detail="Path traversal detected in run_id")
+
+    if not REPAIR_OUTPUTS_DIR.exists():
+        raise HTTPException(status_code=404, detail="No repair outputs directory exists.")
+
+    run_dir = None
+    for incident_dir in REPAIR_OUTPUTS_DIR.iterdir():
+        if incident_dir.is_dir():
+            candidate = incident_dir / "taskflow" / run_id
+            if candidate.exists() and candidate.is_dir():
+                run_dir = candidate
+                break
+
+    if not run_dir:
+        raise HTTPException(status_code=404, detail=f"Taskflow run {run_id} not found.")
+
+    tournament_path = run_dir / "tournament_result.json"
+    if not tournament_path.exists():
+        raise HTTPException(status_code=404, detail="Tournament result artifact not found.")
+
+    try:
+        return json.loads(tournament_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to read tournament result: {exc}")
+
+
+@router.post("/runs/{run_id}/tournament/recompute")
+async def post_recompute_run_tournament(run_id: str):
+    """
+    Manually triggers the patch tournament recomputation for a specific run.
+    """
+    if ".." in run_id or "\\" in run_id or "/" in run_id:
+        raise HTTPException(status_code=400, detail="Path traversal detected in run_id")
+
+    if not REPAIR_OUTPUTS_DIR.exists():
+        raise HTTPException(status_code=404, detail="No repair outputs directory exists.")
+
+    run_dir = None
+    incident_id = None
+    for incident_dir in REPAIR_OUTPUTS_DIR.iterdir():
+        if incident_dir.is_dir():
+            candidate = incident_dir / "taskflow" / run_id
+            if candidate.exists() and candidate.is_dir():
+                run_dir = candidate
+                incident_id = incident_dir.name
+                break
+
+    if not run_dir or not incident_id:
+        raise HTTPException(status_code=404, detail=f"Taskflow run {run_id} not found.")
+
+    from services.repair.patch_tournament import run_patch_tournament
+
+    try:
+        result = run_patch_tournament(incident_id, run_id, output_root=REPAIR_OUTPUTS_DIR.parent / "repair_outputs")
+        return result.model_dump()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to recompute tournament: {exc}")
+
+
+class ReleaseCheckBody(BaseModel):
+    run_id: Optional[str] = None
+
+
+@router.get("/release-readiness")
+async def get_release_readiness(request: Request, run_id: Optional[str] = None):
+    """
+    Returns the current release readiness report.
+    """
+    run_dir = None
+    if run_id:
+        if ".." in run_id or "\\" in run_id or "/" in run_id:
+            raise HTTPException(status_code=400, detail="Path traversal detected in run_id")
+        
+        for incident_dir in REPAIR_OUTPUTS_DIR.iterdir():
+            if incident_dir.is_dir():
+                candidate = incident_dir / "taskflow" / run_id
+                if candidate.exists() and candidate.is_dir():
+                    run_dir = candidate
+                    break
+    
+    from services.repair.release_readiness import build_release_readiness_report
+    try:
+        return build_release_readiness_report(run_dir=run_dir, app=request.app)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to generate release readiness report: {exc}")
+
+
+@router.get("/release-readiness/contracts")
+async def get_release_readiness_contracts():
+    """
+    Returns the raw Release Contract Matrix definitions.
+    """
+    from services.repair.release_readiness import load_matrix_config
+    try:
+        return load_matrix_config()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to load contract matrix: {exc}")
+
+
+@router.post("/release-readiness/check")
+async def post_release_readiness_check(request: Request, body: ReleaseCheckBody = Body(...)):
+    """
+    Triggers a release readiness verification check and persists the report.
+    """
+    run_id = body.run_id
+    run_dir = None
+    if run_id:
+        if ".." in run_id or "\\" in run_id or "/" in run_id:
+            raise HTTPException(status_code=400, detail="Path traversal detected in run_id")
+        
+        for incident_dir in REPAIR_OUTPUTS_DIR.iterdir():
+            if incident_dir.is_dir():
+                candidate = incident_dir / "taskflow" / run_id
+                if candidate.exists() and candidate.is_dir():
+                    run_dir = candidate
+                    break
+
+    from services.repair.release_readiness import build_release_readiness_report
+    try:
+        return build_release_readiness_report(run_dir=run_dir, app=request.app)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to execute release readiness check: {exc}")
+
+
+

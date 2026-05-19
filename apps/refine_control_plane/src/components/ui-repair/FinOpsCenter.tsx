@@ -35,6 +35,7 @@ import {
   SafetyCertificateOutlined
 } from '@ant-design/icons';
 import { useTranslations } from 'next-intl';
+import { safeFetchJson } from '@/lib/api';
 
 const { Title, Text } = Typography;
 
@@ -62,15 +63,15 @@ export const FinOpsCenter: React.FC = () => {
   const fetchFinOpsData = async () => {
     setLoading(true);
     try {
-      const [ovRes, anomRes, recRes] = await Promise.all([
-        fetch('/api/v1/ui-repair/finops/overview'),
-        fetch('/api/v1/ui-repair/finops/anomalies'),
-        fetch('/api/v1/ui-repair/finops/recommendations')
+      const [overviewData, anomaliesData, recsData] = await Promise.all([
+        safeFetchJson<FinOpsOverview>('/api/v1/ui-repair/finops/overview'),
+        safeFetchJson<any[]>('/api/v1/ui-repair/finops/anomalies'),
+        safeFetchJson<any[]>('/api/v1/ui-repair/finops/recommendations')
       ]);
       
-      if (ovRes.ok) setOverview(await ovRes.json());
-      if (anomRes.ok) setAnomalies(await anomRes.json());
-      if (recRes.ok) setRecs(await recRes.json());
+      setOverview(overviewData);
+      setAnomalies(anomaliesData);
+      setRecs(recsData);
     } catch (err) {
       console.error("Failed to fetch FinOps data", err);
     } finally {
@@ -86,11 +87,9 @@ export const FinOpsCenter: React.FC = () => {
 
   const handleResolveAnomaly = async (id: string) => {
     try {
-      const res = await fetch(`/api/v1/ui-repair/finops/anomalies/${id}/resolve`, { method: 'POST' });
-      if (res.ok) {
-        notification.success({ message: "Anomaly Resolved" });
-        fetchFinOpsData();
-      }
+      await safeFetchJson(`/api/v1/ui-repair/finops/anomalies/${id}/resolve`, { method: 'POST' });
+      notification.success({ message: "Anomaly Resolved" });
+      fetchFinOpsData();
     } catch (err) {
       notification.error({ message: "Failed to resolve anomaly" });
     }
@@ -98,11 +97,9 @@ export const FinOpsCenter: React.FC = () => {
 
   const handleUpdateRec = async (id: string, status: string) => {
     try {
-      const res = await fetch(`/api/v1/ui-repair/finops/recommendations/${id}/status?status=${status}`, { method: 'POST' });
-      if (res.ok) {
-        notification.success({ message: `Recommendation ${status}` });
-        fetchFinOpsData();
-      }
+      await safeFetchJson(`/api/v1/ui-repair/finops/recommendations/${id}/status?status=${status}`, { method: 'POST' });
+      notification.success({ message: `Recommendation ${status}` });
+      fetchFinOpsData();
     } catch (err) {
       notification.error({ message: "Failed to update recommendation" });
     }
@@ -196,8 +193,8 @@ export const FinOpsCenter: React.FC = () => {
               renderItem={(item) => (
                 <List.Item
                   actions={[
-                    <Button type="primary" size="small" onClick={() => handleUpdateRec(item.id, 'APPLIED')}>Apply</Button>,
-                    <Button size="small" onClick={() => handleUpdateRec(item.id, 'DISMISSED')}>Dismiss</Button>
+                    <Button key="apply" type="primary" size="small" onClick={() => handleUpdateRec(item.id, 'APPLIED')}>Apply</Button>,
+                    <Button key="dismiss" size="small" onClick={() => handleUpdateRec(item.id, 'DISMISSED')}>Dismiss</Button>
                   ]}
                 >
                   <List.Item.Meta

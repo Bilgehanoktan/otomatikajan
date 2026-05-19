@@ -1,0 +1,6 @@
+> python -m pytest services/mcp_server/tests
+
+[31mERROR: file or directory not found: services/mcp_server/tests
+[0m
+
+[33m[33mno tests ran[0m[33m in 0.00s[0m[0m

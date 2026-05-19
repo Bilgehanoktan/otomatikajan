@@ -1,18 +1,21 @@
 import uuid
-from typing import List, Optional, Dict, Any
-from datetime import datetime, timezone
-from sqlalchemy import select, update, insert, desc, func
+from datetime import UTC, datetime
+from typing import Any
+
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from libs.db.models.governance_models import (
-    GovernorRuntimeRecord,
-    GovernorDrillRecord,
-    GovernorSloSampleRecord,
     GovernorCircuitBreakerRecord,
     GovernorDomain,
-    GovernorRuntimeStatus,
+    GovernorDrillRecord,
     GovernorDrillStatus,
-    GovernorDrillType
+    GovernorDrillType,
+    GovernorRuntimeRecord,
+    GovernorRuntimeStatus,
+    GovernorSloSampleRecord,
 )
+
 
 class GovernorResilienceRepo:
     @staticmethod
@@ -20,7 +23,7 @@ class GovernorResilienceRepo:
         db: AsyncSession,
         domain: GovernorDomain,
         status: GovernorRuntimeStatus,
-        reason: Optional[str] = None,
+        reason: str | None = None,
         freeze_mode: int = 0,
         advisory_only: int = 0
     ) -> GovernorRuntimeRecord:
@@ -29,8 +32,8 @@ class GovernorResilienceRepo:
         result = await db.execute(stmt)
         record = result.scalar_one_or_none()
 
-        now = datetime.now(timezone.utc)
-        
+        now = datetime.now(UTC)
+
         if record:
             record.runtime_status = status
             record.reason = reason
@@ -55,13 +58,13 @@ class GovernorResilienceRepo:
                 failure_count=1 if status != GovernorRuntimeStatus.HEALTHY else 0
             )
             db.add(record)
-        
+
         await db.commit()
         await db.refresh(record)
         return record
 
     @staticmethod
-    async def get_runtime_status(db: AsyncSession, domain: GovernorDomain) -> Optional[GovernorRuntimeRecord]:
+    async def get_runtime_status(db: AsyncSession, domain: GovernorDomain) -> GovernorRuntimeRecord | None:
         stmt = select(GovernorRuntimeRecord).where(GovernorRuntimeRecord.domain == domain)
         result = await db.execute(stmt)
         return result.scalar_one_or_none()
@@ -71,8 +74,8 @@ class GovernorDrillRepo:
     async def record_drill(
         db: AsyncSession,
         drill_type: GovernorDrillType,
-        target_domain: Optional[GovernorDomain] = None,
-        scenario_payload: Optional[Dict[str, Any]] = None,
+        target_domain: GovernorDomain | None = None,
+        scenario_payload: dict[str, Any] | None = None,
         created_by: str = "SYSTEM"
     ) -> GovernorDrillRecord:
         record = GovernorDrillRecord(
@@ -92,20 +95,20 @@ class GovernorDrillRepo:
         db: AsyncSession,
         drill_id: uuid.UUID,
         status: GovernorDrillStatus,
-        result_payload: Optional[Dict[str, Any]] = None
-    ) -> Optional[GovernorDrillRecord]:
+        result_payload: dict[str, Any] | None = None
+    ) -> GovernorDrillRecord | None:
         stmt = select(GovernorDrillRecord).where(GovernorDrillRecord.id == drill_id)
         result = await db.execute(stmt)
         record = result.scalar_one_or_none()
-        
+
         if record:
             record.status = status
             record.result_payload = result_payload
             if status == GovernorDrillStatus.RUNNING:
-                record.started_at = datetime.now(timezone.utc)
+                record.started_at = datetime.now(UTC)
             elif status in [GovernorDrillStatus.PASSED, GovernorDrillStatus.FAILED, GovernorDrillStatus.ABORTED]:
-                record.completed_at = datetime.now(timezone.utc)
-            
+                record.completed_at = datetime.now(UTC)
+
             await db.commit()
             await db.refresh(record)
         return record
@@ -130,7 +133,7 @@ class GovernorSloRepo:
         return record
 
     @staticmethod
-    async def list_recent_slo(db: AsyncSession, domain: GovernorDomain, limit: int = 100) -> List[GovernorSloSampleRecord]:
+    async def list_recent_slo(db: AsyncSession, domain: GovernorDomain, limit: int = 100) -> list[GovernorSloSampleRecord]:
         stmt = select(GovernorSloSampleRecord).where(
             GovernorSloSampleRecord.domain == domain
         ).order_by(desc(GovernorSloSampleRecord.created_at)).limit(limit)
@@ -143,13 +146,13 @@ class GovernorCircuitBreakerRepo:
         db: AsyncSession,
         domain: GovernorDomain,
         state: str,
-        reason: Optional[str] = None
+        reason: str | None = None
     ) -> GovernorCircuitBreakerRecord:
         stmt = select(GovernorCircuitBreakerRecord).where(GovernorCircuitBreakerRecord.domain == domain)
         result = await db.execute(stmt)
         record = result.scalar_one_or_none()
-        
-        now = datetime.now(timezone.utc)
+
+        now = datetime.now(UTC)
         if record:
             record.state = state
             record.trigger_reason = reason
@@ -166,13 +169,13 @@ class GovernorCircuitBreakerRepo:
                 closed_at=now if state == "CLOSED" else None
             )
             db.add(record)
-        
+
         await db.commit()
         await db.refresh(record)
         return record
 
     @staticmethod
-    async def get_circuit_state(db: AsyncSession, domain: GovernorDomain) -> Optional[GovernorCircuitBreakerRecord]:
+    async def get_circuit_state(db: AsyncSession, domain: GovernorDomain) -> GovernorCircuitBreakerRecord | None:
         stmt = select(GovernorCircuitBreakerRecord).where(GovernorCircuitBreakerRecord.domain == domain)
         result = await db.execute(stmt)
         return result.scalar_one_or_none()

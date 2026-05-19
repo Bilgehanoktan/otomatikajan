@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Statistic, Table, Progress, message, List, Typography } from 'antd';
 import { useTranslations } from 'next-intl';
+import { safeFetchJson } from '@/lib/api';
 
 const { Title, Text } = Typography;
 
@@ -18,8 +19,7 @@ const SLASLOTrackerPanel: React.FC = () => {
   const fetchMetrics = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/ui-repair/enterprise/sla-slo');
-      const data = await res.json();
+      const data = await safeFetchJson('/api/v1/ui-repair/enterprise/sla-slo');
       setMetrics(data);
     } catch (err) {
       message.error('Failed to fetch SLA/SLO metrics');

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Card, Table, Typography, Tag, Space, Tooltip } from "antd";
 import { AuditOutlined, InfoCircleOutlined } from "@ant-design/icons";
+import { safeFetchJson } from "@/lib/api";
 
 const { Text } = Typography;
 
@@ -13,8 +14,7 @@ export const OperatorActionLedgerPanel: React.FC<{ rolloutId?: string }> = ({ ro
     useEffect(() => {
         if (rolloutId) {
             setLoading(true);
-            fetch(`/api/v1/ui-repair/pilot/operator-actions?rollout_id=${rolloutId}`)
-                .then(res => res.json())
+            safeFetchJson(`/api/v1/ui-repair/pilot/operator-actions?rollout_id=${rolloutId}`)
                 .then(items => {
                     setData(items);
                     setLoading(false);

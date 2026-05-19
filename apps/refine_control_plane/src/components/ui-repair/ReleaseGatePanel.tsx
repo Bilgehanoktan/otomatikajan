@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Card, Result, Button, List, Typography, Space, Tag, Divider } from "antd";
 import { CheckCircleTwoTone, StopTwoTone, WarningTwoTone, RocketTwoTone } from "@ant-design/icons";
+import { safeFetchJson } from "@/lib/api";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -15,8 +16,7 @@ export const ReleaseGatePanel: React.FC = () => {
     const fetchOverview = async () => {
         setLoading(true);
         try {
-            const response = await fetch("/api/v1/ui-repair/readiness/overview");
-            const result = await response.json();
+            const result = await safeFetchJson<any>("/api/v1/ui-repair/readiness/overview");
             setData(result);
         } catch (error) {
             console.error("Failed to fetch overview", error);
@@ -33,7 +33,7 @@ export const ReleaseGatePanel: React.FC = () => {
         if (!data?.assessment?.id) return;
         setLoading(true);
         try {
-            await fetch(`/api/v1/ui-repair/release-gate/evaluate?assessment_id=${data.assessment.id}&approver=Admin`, { method: "POST" });
+            await safeFetchJson(`/api/v1/ui-repair/release-gate/evaluate?assessment_id=${data.assessment.id}&approver=Admin`, { method: "POST" });
             fetchOverview();
         } catch (error) {
             console.error("Gate evaluation failed", error);

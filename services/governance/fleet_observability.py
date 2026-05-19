@@ -37,12 +37,20 @@ class FleetObservability:
             "cluster_count": cluster_count
         }
 
-    def detect_fleet_drift(self):
+    async def detect_fleet_drift(self) -> list:
         """Analyzes metric trends to detect deviations from desired state."""
-        # TODO: Implement drift detection logic
-        pass
+        metrics = await self.aggregate_fleet_metrics()
+        drifts = []
+        if metrics["busy_ratio"] > 85.0:
+            drifts.append({"type": "high_load", "message": "Fleet busy ratio is critically high.", "severity": "high"})
+        if metrics["quarantined_agents"] > (metrics["active_agents"] * 0.2):
+            drifts.append({"type": "quarantine_spike", "message": "Too many agents quarantined.", "severity": "critical"})
+        return drifts
 
-    def emit_fleet_alerts(self):
+    async def emit_fleet_alerts(self):
         """Generates alerts based on critical thresholds."""
-        # TODO: Integration with Alerting Service
-        pass
+        from services.observability.logging import get_logger
+        logger = get_logger("fleet_alerts")
+        drifts = await self.detect_fleet_drift()
+        for drift in drifts:
+            logger.warning(f"ALERT [{drift['severity']}]: {drift['message']}")

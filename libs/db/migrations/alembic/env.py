@@ -8,6 +8,7 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
+
 try:
     from dotenv import load_dotenv
     if os.path.exists(".env.local"):
@@ -18,7 +19,6 @@ except ImportError:
     pass
 
 from libs.db.models.core_models import Base
-import libs.db.models.repair_models as _repair_models # Ensure all models are registered
 
 config = context.config
 
@@ -53,7 +53,7 @@ def do_run_migrations(connection):
             pass
 
     context.configure(
-        connection=connection, 
+        connection=connection,
         target_metadata=target_metadata,
         # Phase 12.1: JSONB and UUID mapping for SQLite
         render_as_batch=True if connection.dialect.name == "sqlite" else False,

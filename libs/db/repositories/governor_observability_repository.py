@@ -1,18 +1,20 @@
 import uuid
-from typing import List, Optional, Dict, Any
-from datetime import datetime, timezone
-from sqlalchemy import select, desc, update
+from datetime import UTC, datetime
+
+from sqlalchemy import desc, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from libs.db.models.governance_models import (
-    GovernorAlertRecord, 
-    GovernorMetricAggregateRecord, 
-    GovernorDriftRecord,
-    GovernorAlertStatus,
+    GovernorAlertRecord,
     GovernorAlertSeverity,
+    GovernorAlertStatus,
     GovernorAlertType,
     GovernorDomain,
-    GovernorDriftType
+    GovernorDriftRecord,
+    GovernorDriftType,
+    GovernorMetricAggregateRecord,
 )
+
 
 class GovernorAlertRepo:
     @staticmethod
@@ -21,11 +23,11 @@ class GovernorAlertRepo:
         alert_type: GovernorAlertType,
         severity: GovernorAlertSeverity,
         title: str,
-        summary: Optional[str] = None,
-        domain: Optional[GovernorDomain] = None,
-        metric_value: Optional[float] = None,
-        threshold_value: Optional[float] = None,
-        evidence_payload: Optional[Dict] = None
+        summary: str | None = None,
+        domain: GovernorDomain | None = None,
+        metric_value: float | None = None,
+        threshold_value: float | None = None,
+        evidence_payload: dict | None = None
     ) -> GovernorAlertRecord:
         record = GovernorAlertRecord(
             alert_type=alert_type,
@@ -42,20 +44,20 @@ class GovernorAlertRepo:
         return record
 
     @staticmethod
-    async def list_open_alerts(db: AsyncSession, limit: int = 50) -> List[GovernorAlertRecord]:
+    async def list_open_alerts(db: AsyncSession, limit: int = 50) -> list[GovernorAlertRecord]:
         stmt = select(GovernorAlertRecord).where(GovernorAlertRecord.status == GovernorAlertStatus.OPEN).order_by(desc(GovernorAlertRecord.opened_at))
         res = await db.execute(stmt.limit(limit))
         return list(res.scalars().all())
 
     @staticmethod
-    async def update_status(db: AsyncSession, alert_id: uuid.UUID, status: GovernorAlertStatus, owner_id: Optional[str] = None) -> bool:
+    async def update_status(db: AsyncSession, alert_id: uuid.UUID, status: GovernorAlertStatus, owner_id: str | None = None) -> bool:
         values = {"status": status}
         if status == GovernorAlertStatus.ACKNOWLEDGED:
-            values["acknowledged_at"] = datetime.now(timezone.utc)
+            values["acknowledged_at"] = datetime.now(UTC)
             if owner_id: values["owner_id"] = owner_id
         elif status == GovernorAlertStatus.RESOLVED:
-            values["resolved_at"] = datetime.now(timezone.utc)
-            
+            values["resolved_at"] = datetime.now(UTC)
+
         stmt = update(GovernorAlertRecord).where(GovernorAlertRecord.id == alert_id).values(**values)
         await db.execute(stmt)
         return True
@@ -67,15 +69,15 @@ class GovernorMetricAggregateRepo:
         db: AsyncSession,
         metric_key: str,
         value: float,
-        domain: Optional[GovernorDomain] = None,
+        domain: GovernorDomain | None = None,
         window_minutes: int = 60,
         sample_size: int = 0,
-        baseline_value: Optional[float] = None
+        baseline_value: float | None = None
     ) -> GovernorMetricAggregateRecord:
         delta = None
         if baseline_value is not None:
             delta = value - baseline_value
-            
+
         record = GovernorMetricAggregateRecord(
             metric_key=metric_key,
             domain=domain,
@@ -89,7 +91,7 @@ class GovernorMetricAggregateRepo:
         return record
 
     @staticmethod
-    async def get_latest_metrics(db: AsyncSession, limit: int = 20) -> List[GovernorMetricAggregateRecord]:
+    async def get_latest_metrics(db: AsyncSession, limit: int = 20) -> list[GovernorMetricAggregateRecord]:
         res = await db.execute(select(GovernorMetricAggregateRecord).order_by(desc(GovernorMetricAggregateRecord.created_at)).limit(limit))
         return list(res.scalars().all())
 
@@ -99,10 +101,10 @@ class GovernorDriftRepo:
     async def save_drift_record(
         db: AsyncSession,
         drift_type: GovernorDriftType,
-        domain: Optional[GovernorDomain],
+        domain: GovernorDomain | None,
         drift_score: float,
         summary: str,
-        evidence_payload: Optional[Dict] = None
+        evidence_payload: dict | None = None
     ) -> GovernorDriftRecord:
         record = GovernorDriftRecord(
             drift_type=drift_type,
@@ -115,6 +117,6 @@ class GovernorDriftRepo:
         return record
 
     @staticmethod
-    async def list_recent_drifts(db: AsyncSession, limit: int = 50) -> List[GovernorDriftRecord]:
+    async def list_recent_drifts(db: AsyncSession, limit: int = 50) -> list[GovernorDriftRecord]:
         res = await db.execute(select(GovernorDriftRecord).order_by(desc(GovernorDriftRecord.created_at)).limit(limit))
         return list(res.scalars().all())

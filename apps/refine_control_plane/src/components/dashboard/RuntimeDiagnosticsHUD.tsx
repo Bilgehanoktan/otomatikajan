@@ -17,6 +17,7 @@ import {
   Loader2
 } from "lucide-react";
 import { App, Tooltip } from "antd";
+import { useTranslations } from "next-intl";
 import { safeFetchJson } from "@/lib/api";
 import {
   RuntimeDiagnostic,
@@ -26,6 +27,7 @@ import {
 
 export function RuntimeDiagnosticsHUD() {
   const { message } = App.useApp();
+  const t = useTranslations("dashboard");
   const apiUrl = useApiUrl();
   const [isOpen, setIsOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -62,19 +64,21 @@ export function RuntimeDiagnosticsHUD() {
 
       if (result.status === "repaired" || result.status === "noop") {
         message.success({
-          content: `Onarım Başarılı: ${result.actions?.join(", ") || "Sistem stabilize edildi."}`,
+          content: result.actions && result.actions.length > 0
+            ? t("diagnostics.repairSuccess", { actions: result.actions.join(", ") })
+            : t("diagnostics.stabilized"),
           style: { marginTop: '10vh' }
         });
       } else {
         message.warning({
-          content: result.recommended_action || "Operatör müdahalesi gerekiyor.",
+          content: result.recommended_action || t("diagnostics.operatorActionRequired"),
           style: { marginTop: '10vh' }
         });
       }
       refetch();
     } catch (err: any) {
       message.error({
-        content: `Onarım Hatası: ${err.message}`,
+        content: t("diagnostics.repairError", { error: err.message }),
         style: { marginTop: '10vh' }
       });
     } finally {
@@ -96,8 +100,8 @@ export function RuntimeDiagnosticsHUD() {
                 <Activity size={16} className="text-[var(--primary)] animate-pulse" />
               </div>
               <div>
-                <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em] italic leading-none">Runtime Diagnostics</h3>
-                <p className="text-[9px] text-gray-500 font-bold uppercase mt-1 tracking-widest">{diagnostics.length} Active Signals</p>
+                <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em] italic leading-none">{t("diagnostics.title")}</h3>
+                <p className="text-[9px] text-gray-500 font-bold uppercase mt-1 tracking-widest">{t("diagnostics.activeSignals", { count: diagnostics.length })}</p>
               </div>
             </div>
             <button
@@ -132,7 +136,7 @@ export function RuntimeDiagnosticsHUD() {
                       </span>
                     </div>
                     {item.id === "observer_write_denied" && (
-                      <Tooltip title="Permission Locked">
+                      <Tooltip title={t("diagnostics.permissionLocked")}>
                         <Lock size={12} className="text-red-500/50" />
                       </Tooltip>
                     )}
@@ -154,12 +158,12 @@ export function RuntimeDiagnosticsHUD() {
                         className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--primary)]/10 border border-[var(--primary)]/20 text-[var(--primary)] text-[9px] font-black uppercase tracking-widest hover:bg-[var(--primary)]/20 transition-all disabled:opacity-50"
                       >
                         {repairingId === item.id ? <Loader2 size={10} className="animate-spin" /> : <Wrench size={10} />}
-                        Repair
+                        {t("diagnostics.repairBtn")}
                       </button>
                     ) : item.requires_operator_action ? (
                       <div className="flex items-center gap-1 text-[9px] font-black text-amber-500/60 uppercase italic">
                         <ShieldAlert size={10} />
-                        Manual
+                        {t("diagnostics.manualBtn")}
                       </div>
                     ) : null}
                   </div>
@@ -170,12 +174,12 @@ export function RuntimeDiagnosticsHUD() {
 
           {/* Footer */}
           <div className="px-6 py-4 border-t border-white/5 bg-black/40 flex items-center justify-between">
-            <span className="text-[8px] font-mono text-gray-600 uppercase">SIF-01 Guardrails Active</span>
+            <span className="text-[8px] font-mono text-gray-600 uppercase">{t("diagnostics.guardrailsActive")}</span>
             <button
               onClick={() => window.location.href = '/system-health'}
               className="flex items-center gap-2 text-[9px] font-black text-[var(--primary)] uppercase tracking-widest hover:translate-x-1 transition-all"
             >
-              Full Intel <ArrowRight size={10} />
+              {t("diagnostics.fullIntel")} <ArrowRight size={10} />
             </button>
           </div>
         </div>
@@ -203,11 +207,11 @@ export function RuntimeDiagnosticsHUD() {
 
         {!isOpen && (
           <div className="flex flex-col items-start pr-2 relative z-10">
-            <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest leading-none mb-1">Status</span>
+            <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest leading-none mb-1">{t("diagnostics.status")}</span>
             <span className={`text-[10px] font-black uppercase italic ${
               errorCount > 0 ? "text-red-400" : warningCount > 0 ? "text-amber-400" : "text-[var(--primary)]"
             }`}>
-              {errorCount > 0 ? "Critical" : warningCount > 0 ? "Warning" : "Nominal"}
+              {errorCount > 0 ? t("diagnostics.critical") : warningCount > 0 ? t("diagnostics.warning") : t("diagnostics.nominal")}
             </span>
           </div>
         )}

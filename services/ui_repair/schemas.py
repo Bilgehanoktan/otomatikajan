@@ -4,6 +4,10 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 import uuid
 from uuid import UUID
+from libs.db.models.ui_repair_models import (
+    PatchAgentOpinionType, PatchNegotiationStatus,
+    PatchDebateTurnType, PatchSelectionDecisionType
+)
 
 class BaseSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)

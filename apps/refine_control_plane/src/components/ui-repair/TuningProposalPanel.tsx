@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Table, Tag, Button, Space, Modal, Typography, 
-  Descriptions, Badge, Timeline, Card, message, Tooltip
+  Descriptions, Badge, Timeline, Card, message, Tooltip, Row, Col
 } from 'antd';
+import { safeFetchJson } from '@/lib/api';
 import { 
   Eye, CheckCircle, XCircle, PlayCircle, Shield, 
-  Zap, Activity, Clock, Filter, AlertTriangle
+  Zap, Activity, Clock, Filter, AlertTriangle, Settings
 } from 'lucide-react';
 
 const { Text, Title, Paragraph } = Typography;
@@ -19,8 +20,8 @@ const TuningProposalPanel: React.FC = () => {
   const fetchProposals = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/ui-repair/defense/proposals');
-      if (res.ok) setProposals(await res.json());
+      const data = await safeFetchJson('/api/v1/ui-repair/defense/proposals');
+      setProposals(data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -34,11 +35,9 @@ const TuningProposalPanel: React.FC = () => {
 
   const promoteProposal = async (id: string) => {
     try {
-      const res = await fetch(`/api/v1/ui-repair/defense/proposals/${id}/promote`, { method: 'POST' });
-      if (res.ok) {
-        message.success('Proposal promoted to next verification stage.');
-        fetchProposals();
-      }
+      await safeFetchJson(`/api/v1/ui-repair/defense/proposals/${id}/promote`, { method: 'POST' });
+      message.success('Proposal promoted to next verification stage.');
+      fetchProposals();
     } catch (err) {
       message.error('Failed to promote proposal.');
     }
@@ -46,11 +45,9 @@ const TuningProposalPanel: React.FC = () => {
 
   const approveProposal = async (id: string) => {
     try {
-      const res = await fetch(`/api/v1/ui-repair/defense/proposals/${id}/approve`, { method: 'POST' });
-      if (res.ok) {
-        message.success('Proposal approved by operator.');
-        fetchProposals();
-      }
+      await safeFetchJson(`/api/v1/ui-repair/defense/proposals/${id}/approve`, { method: 'POST' });
+      message.success('Proposal approved by operator.');
+      fetchProposals();
     } catch (err) {
       message.error('Failed to approve proposal.');
     }
@@ -58,11 +55,9 @@ const TuningProposalPanel: React.FC = () => {
 
   const applyProposal = async (id: string) => {
     try {
-      const res = await fetch(`/api/v1/ui-repair/defense/proposals/${id}/apply`, { method: 'POST' });
-      if (res.ok) {
-        message.success('Optimization applied to live guardrails.');
-        fetchProposals();
-      }
+      await safeFetchJson(`/api/v1/ui-repair/defense/proposals/${id}/apply`, { method: 'POST' });
+      message.success('Optimization applied to live guardrails.');
+      fetchProposals();
     } catch (err) {
       message.error('Failed to apply proposal.');
     }

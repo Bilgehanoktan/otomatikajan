@@ -6,7 +6,7 @@ Exposes emergency controls (Freeze, Recalibrate, Quarantine) to the Operator Act
 from __future__ import annotations
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, timezone
 
 from services.orchestration.mesh_state_store import mesh_state_store
 from services.observability.logging import get_logger
@@ -30,7 +30,7 @@ async def recalibrate_mesh(req: ActionRequest):
     return {
         "status": "SUCCESS",
         "message": "Global recalibration pulse broadcasted.",
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
 @router.post("/freeze")
@@ -42,7 +42,7 @@ async def freeze_mesh(req: ActionRequest):
     return {
         "status": "FROZEN",
         "message": "Sovereign Mesh locked in ADVISORY MODE.",
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
 @router.post("/quarantine/{region_id}")
@@ -54,5 +54,5 @@ async def quarantine_region(region_id: str, req: ActionRequest):
         "status": "ISOLATED",
         "region_id": region_id,
         "message": f"Region {region_id} has been disconnected from global sync.",
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }

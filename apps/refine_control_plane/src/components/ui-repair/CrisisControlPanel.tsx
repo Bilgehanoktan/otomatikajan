@@ -10,6 +10,7 @@ import {
     Badge, Button
 } from "./CommonUI";
 import { useNotification } from "@refinedev/core";
+import { safeFetchJson } from "@/lib/api";
 
 export const CrisisControlPanel: React.FC = () => {
     const t = useTranslations("repair_lab");
@@ -18,8 +19,12 @@ export const CrisisControlPanel: React.FC = () => {
     const [loading, setLoading] = useState(false);
 
     const fetchData = async () => {
-        const res = await fetch("/api/v1/ui-repair/crisis/state");
-        if (res.ok) setState(await res.json());
+        try {
+            const data = await safeFetchJson<any>("/api/v1/ui-repair/crisis/state");
+            setState(data);
+        } catch (err) {
+            console.error("Failed to fetch crisis state", err);
+        }
     };
 
     useEffect(() => {
@@ -29,17 +34,21 @@ export const CrisisControlPanel: React.FC = () => {
     const updateMode = async (mode: string) => {
         setLoading(true);
         try {
-            const res = await fetch(`/api/v1/ui-repair/crisis/update?mode=${mode}&reason=Manual+intervention+via+Dashboard&operator_id=EgemenYAZ`, {
+            await safeFetchJson(`/api/v1/ui-repair/crisis/update?mode=${mode}&reason=Manual+intervention+via+Dashboard&operator_id=EgemenYAZ`, {
                 method: "POST"
             });
-            if (res.ok) {
-                open?.({ 
-                    type: "success", 
-                    message: "Operational mode updated.",
-                    description: `System transitioned to ${mode} mode.`
-                });
-                fetchData();
-            }
+            open?.({
+                type: "success",
+                message: "Operational mode updated.",
+                description: `System transitioned to ${mode} mode.`
+            });
+            fetchData();
+        } catch (err: any) {
+            open?.({
+                type: "error",
+                message: "Update failed",
+                description: err.message || "Unknown error"
+            });
         } finally {
             setLoading(false);
         }

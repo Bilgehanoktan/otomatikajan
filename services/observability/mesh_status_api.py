@@ -6,7 +6,7 @@ Exposes real-time mesh health, quorum, and drift metrics to the Control Plane.
 from __future__ import annotations
 from fastapi import APIRouter, Depends
 from typing import Dict, Any, List
-from datetime import datetime
+from datetime import datetime, timezone
 
 from services.orchestration.mesh_state_store import mesh_state_store
 from services.governance.policy_sync import PolicySync
@@ -26,7 +26,7 @@ async def get_mesh_status() -> Dict[str, Any]:
     is_quorum = mesh_state_store.is_quorum_maintained()
     
     return {
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "mesh_id": "SOVEREIGN-GLOBAL-01",
         "global_status": "HEALTHY" if is_quorum and healthy_regions == total_regions else "DEGRADED",
         "quorum_maintained": is_quorum,
@@ -48,7 +48,7 @@ async def get_policy_drift() -> Dict[str, Any]:
     return {
         "status": "SECURE",
         "baseline_version": "v2.1.0-chaos",
-        "last_checked": datetime.utcnow().isoformat(),
+        "last_checked": datetime.now(timezone.utc).isoformat(),
         "drifts": [] # Empty list = No drift detected
     }
 

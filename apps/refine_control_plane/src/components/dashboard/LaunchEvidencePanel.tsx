@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useTranslations } from "next-intl";
 import { 
     Shield, 
     FileCheck, 
@@ -24,37 +25,39 @@ interface GateEvidence {
 }
 
 export const LaunchEvidencePanel = ({ governance }: { governance: any }) => {
+    const t = useTranslations("dashboard.launchEvidence");
+
     const gates: GateEvidence[] = [
         { 
             id: "budget", 
-            title: "Finansal Bütünlük", 
-            description: "Harcanan bütçe vs. Kesin bütçe kilidi", 
+            title: t("gates.budget.title"), 
+            description: t("gates.budget.desc"), 
             status: governance?.rollout_ready ? "PASS" : "FAIL",
-            evidence: "Bütçe Devre Kesici: AKTİF. Mevcut kullanım: %92.",
+            evidence: t("gates.budget.evidence"),
             details: { total: "$46.00", limit: "$50.00" }
         },
         { 
             id: "gov", 
-            title: "Anayasal Güvenlik", 
-            description: "Çekirdek dosya kilit doğrulaması", 
+            title: t("gates.gov.title"), 
+            description: t("gates.gov.desc"), 
             status: governance?.constitutional_locks ? "PASS" : "FAIL",
-            evidence: "AnayasalMuhafız: KİLİT LİSTESİ DOĞRULANDI. 23/23 kritik yol mühürlendi.",
+            evidence: t("gates.gov.evidence"),
             details: { locked: 23, detected: 23 }
         },
         { 
             id: "quorum", 
-            title: "Operatör Quorumu", 
-            description: "Stratejik onay durumu", 
+            title: t("gates.quorum.title"), 
+            description: t("gates.quorum.desc"), 
             status: governance?.rollout_ready ? "PASS" : "PENDING",
-            evidence: "QuorumServisi: 2/3 imzalandı. Nihai mühür için 1 onay daha gerekiyor.",
+            evidence: t("gates.quorum.evidence"),
             details: { approved: 2, required: 3 }
         },
         { 
             id: "quality", 
-            title: "Evrim Kalitesi", 
-            description: "Regresyon benchmark geçiş oranı", 
+            title: t("gates.quality.title"), 
+            description: t("gates.quality.desc"), 
             status: "PASS",
-            evidence: "TamirLaboratuvarı: 20 turnuva senaryosunun tamamı 0.90 puan üstü ile geçildi.",
+            evidence: t("gates.quality.evidence"),
             details: { score: 0.94, mean: 0.92 }
         }
     ];
@@ -67,15 +70,15 @@ export const LaunchEvidencePanel = ({ governance }: { governance: any }) => {
 
             <div className="flex items-center justify-between mb-12 relative z-10">
                 <div className="flex flex-col gap-1">
-                    <h3 className="text-[11px] font-black text-gray-500 uppercase tracking-[0.4em] italic mb-1">Görev Hazırlık Protokolü</h3>
+                    <h3 className="text-[11px] font-black text-gray-500 uppercase tracking-[0.4em] italic mb-1">{t("title")}</h3>
                     <div className="flex items-center gap-3">
-                       <h2 className="text-2xl font-black text-white uppercase tracking-tight italic">Geçit <span className="text-[var(--primary)]">Kanıtları</span></h2>
+                       <h2 className="text-2xl font-black text-white uppercase tracking-tight italic">{t("subtitle").split(' ')[0]} <span className="text-[var(--primary)]">{t("subtitle").split(' ').slice(1).join(' ')}</span></h2>
                        <div className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] animate-pulse" />
                     </div>
                 </div>
                 <div className="flex items-center gap-4 bg-black/40 px-6 py-3 rounded-2xl border border-white/5 shadow-xl">
                     <Shield size={18} className="text-[var(--primary)]" />
-                    <span className="text-[10px] font-black text-[var(--primary)] uppercase tracking-[0.3em] font-mono italic">Mevzuata Uygun</span>
+                    <span className="text-[10px] font-black text-[var(--primary)] uppercase tracking-[0.3em] font-mono italic">{t("compliant")}</span>
                 </div>
             </div>
 
@@ -88,10 +91,10 @@ export const LaunchEvidencePanel = ({ governance }: { governance: any }) => {
             <div className="mt-12 pt-8 border-t border-white/[0.03] flex items-center justify-between relative z-10">
                 <div className="flex items-center gap-4 text-gray-600">
                    <Brain size={14} />
-                   <span className="text-[9px] font-black uppercase tracking-widest italic leading-none">Otonom denetim zinciri Şecere V2'ye işlendi.</span>
+                   <span className="text-[9px] font-black uppercase tracking-widest italic leading-none">{t("ledgerLogged")}</span>
                 </div>
                 <button className="flex items-center gap-3 text-[10px] font-black text-[var(--primary)] uppercase tracking-[0.3em] hover:text-white transition-colors group/btn">
-                   Tam Denetim Paketi <ChevronRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+                   {t("auditPack")} <ChevronRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
                 </button>
             </div>
         </section>
@@ -99,6 +102,7 @@ export const LaunchEvidencePanel = ({ governance }: { governance: any }) => {
 };
 
 function EliteGateCard({ gate }: { gate: GateEvidence }) {
+  const t = useTranslations("dashboard.launchEvidence");
   const isPass = gate.status === "PASS";
   const isFail = gate.status === "FAIL";
   const colorClass = isPass ? "text-green-500" : isFail ? "text-red-500" : "text-amber-500";
@@ -139,9 +143,9 @@ function EliteGateCard({ gate }: { gate: GateEvidence }) {
             <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-gray-700 opacity-60 group-hover/gate:opacity-100 transition-all">
                 <span className="flex items-center gap-2">
                    <FileCheck size={12} />
-                   Kimlik Doğrulandı
+                   {t("idVerified")}
                 </span>
-                <span className="italic">Detaylar için tıkla →</span>
+                <span className="italic">{t("clickForDetails")}</span>
             </div>
         </div>
 

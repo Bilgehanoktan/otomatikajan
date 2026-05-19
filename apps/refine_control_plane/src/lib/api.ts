@@ -39,6 +39,7 @@ const normalizeApiErrorDetail = (status: number, rawDetail: string): string => {
     }
 
     if (status === 404) {
+        if (detail && detail.toLowerCase() !== "not found") return detail;
         return "Istenen endpoint bu ortamda kullanilamiyor veya bulunamadi.";
     }
 
@@ -108,7 +109,7 @@ async function tryRefreshSession(): Promise<boolean> {
     return refreshInFlight;
 }
 
-export async function safeFetchJson<T = unknown>(url: string, options: SafeFetchOptions = {}): Promise<T> {
+export async function safeFetchJson<T = any>(url: string, options: SafeFetchOptions = {}): Promise<T> {
     const { retries = 2, useOfflineFallback = true, skipAuthRefresh = false, ...init } = options;
     const cache_key = `sqv_cache_${btoa(url).replace(/=/g, "").slice(0, 32)}`;
     let lastError: Error | null = null;

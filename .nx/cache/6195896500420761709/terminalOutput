@@ -1,0 +1,4 @@
+> python -m pytest services/mcp_server/tests
+
+[32m.[0m[32m.[0m[32m                                                                       [100%][0m
+[32m[32m[1m2 passed[0m[32m in 1.36s[0m[0m

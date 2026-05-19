@@ -3,7 +3,7 @@
     {
       "changed_file_count": 0,
       "cost_usd": 0.0,
-      "duration_seconds": 0.1208,
+      "duration_seconds": 0.2006,
       "incident_id": "INC-001",
       "risk_score": 0.0,
       "sandbox_exit_code": null,
@@ -15,7 +15,7 @@
     {
       "changed_file_count": 0,
       "cost_usd": 0.0,
-      "duration_seconds": 0.0488,
+      "duration_seconds": 0.1166,
       "incident_id": "INC-001",
       "risk_score": 0.0,
       "sandbox_exit_code": null,
@@ -27,7 +27,7 @@
     {
       "changed_file_count": 0,
       "cost_usd": 0.0,
-      "duration_seconds": 0.0005,
+      "duration_seconds": 0.0008,
       "incident_id": "INC-001",
       "risk_score": 0.0,
       "sandbox_exit_code": null,
@@ -39,7 +39,7 @@
     {
       "changed_file_count": 0,
       "cost_usd": 0.0,
-      "duration_seconds": 0.0048,
+      "duration_seconds": 0.0262,
       "incident_id": "INC-001",
       "risk_score": 0.0,
       "sandbox_exit_code": null,
@@ -51,7 +51,7 @@
     {
       "changed_file_count": 0,
       "cost_usd": 0.0,
-      "duration_seconds": 0.0005,
+      "duration_seconds": 0.0013,
       "incident_id": "INC-001",
       "risk_score": 0.0,
       "sandbox_exit_code": 0,
@@ -63,7 +63,7 @@
     {
       "changed_file_count": 0,
       "cost_usd": 0.0,
-      "duration_seconds": 0.0001,
+      "duration_seconds": 0.0002,
       "incident_id": "INC-001",
       "risk_score": 0.0,
       "sandbox_exit_code": 0,
@@ -75,7 +75,7 @@
     {
       "changed_file_count": 0,
       "cost_usd": 0.0,
-      "duration_seconds": 0.0019,
+      "duration_seconds": 0.0027,
       "incident_id": "INC-001",
       "risk_score": 0.61,
       "sandbox_exit_code": 0,
@@ -87,7 +87,7 @@
     {
       "changed_file_count": 0,
       "cost_usd": 0.0,
-      "duration_seconds": 0.0003,
+      "duration_seconds": 0.0007,
       "incident_id": "INC-001",
       "risk_score": 0.61,
       "sandbox_exit_code": 0,
@@ -114,15 +114,15 @@
       {
         "artifact_id": "build_repair_case:repair_case.json",
         "artifact_type": "json",
-        "created_at": "2026-05-11T20:58:55.913262+00:00",
+        "created_at": "2026-05-18T03:43:57.860903+00:00",
         "path": "E:\\ai_company_faz12.1\\repair_outputs\\INC-001\\repair_case.json",
-        "sha256": "2e3b5da5fcd18ad16244c1e75c27097e3811744a00990bcfe8625de02ed18969",
+        "sha256": "31156f76f0f79ba2caf22961c28eb90b827f05f986f0106a2ac8ada146868cce",
         "step_id": "build_repair_case"
       },
       {
         "artifact_id": "create_repair_plan:repair_plan.json",
         "artifact_type": "json",
-        "created_at": "2026-05-11T20:58:55.971127+00:00",
+        "created_at": "2026-05-18T03:43:57.979991+00:00",
         "path": "E:\\ai_company_faz12.1\\repair_outputs\\INC-001\\repair_plan.json",
         "sha256": "549ccd378371acc740d38b947f81b47df40938ae4c7c15c9ae68ee8260051e70",
         "step_id": "create_repair_plan"
@@ -130,7 +130,7 @@
       {
         "artifact_id": "generate_patch_candidate:patch.diff",
         "artifact_type": "diff",
-        "created_at": "2026-05-11T20:58:55.976074+00:00",
+        "created_at": "2026-05-18T03:43:58.006630+00:00",
         "path": "E:\\ai_company_faz12.1\\repair_outputs\\INC-001\\patch.diff",
         "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "step_id": "generate_patch_candidate"
@@ -138,24 +138,24 @@
       {
         "artifact_id": "run_sandbox_verification:sandbox.log",
         "artifact_type": "log",
-        "created_at": "2026-05-11T20:58:55.984926+00:00",
+        "created_at": "2026-05-18T03:43:58.018349+00:00",
         "path": "E:\\ai_company_faz12.1\\repair_outputs\\INC-001\\sandbox.log",
-        "sha256": "6a311806ca9cf9d4acaead6870d969a97ca17dd1fcb6fb573c87b9afea37baa5",
+        "sha256": "ce2684df2b8469acf930a7097be52348e207dc25b2e420f70cc721556b533965",
         "step_id": "run_sandbox_verification"
       },
       {
         "artifact_id": "score_risk:repair_report.json",
         "artifact_type": "json",
-        "created_at": "2026-05-11T20:58:55.996982+00:00",
+        "created_at": "2026-05-18T03:43:58.037843+00:00",
         "path": "E:\\ai_company_faz12.1\\repair_outputs\\INC-001\\repair_report.json",
-        "sha256": "6bb4fb3756d760c03bfcfe9cc9af2e13929b6f6486860c0295e32c94b1080021",
+        "sha256": "17fd9acd9da15980ff564708c4bef7b4890074e139251eaca15bd37dd8a27da6",
         "step_id": "score_risk"
       }
     ],
     "current_step": "update_learning_memory",
     "events": [
       {
-        "created_at": "2026-05-11T20:58:55.791079+00:00",
+        "created_at": "2026-05-18T03:43:57.638551+00:00",
         "event_name": "taskflow.workflow.started",
         "incident_id": "INC-001",
         "payload": {},
@@ -164,7 +164,7 @@
         "workflow_id": "self_repair_v1"
       },
       {
-        "created_at": "2026-05-11T20:58:55.791091+00:00",
+        "created_at": "2026-05-18T03:43:57.638564+00:00",
         "event_name": "taskflow.step.started",
         "incident_id": "INC-001",
         "payload": {},
@@ -173,7 +173,7 @@
         "workflow_id": "self_repair_v1"
       },
       {
-        "created_at": "2026-05-11T20:58:55.911929+00:00",
+        "created_at": "2026-05-18T03:43:57.839192+00:00",
         "event_name": "taskflow.step.succeeded",
         "incident_id": "INC-001",
         "payload": {},
@@ -182,7 +182,7 @@
         "workflow_id": "self_repair_v1"
       },
       {
-        "created_at": "2026-05-11T20:58:55.913302+00:00",
+        "created_at": "2026-05-18T03:43:57.861004+00:00",
         "event_name": "taskflow.step.started",
         "incident_id": "INC-001",
         "payload": {},
@@ -191,7 +191,7 @@
         "workflow_id": "self_repair_v1"
       },
       {
-        "created_at": "2026-05-11T20:58:55.962073+00:00",
+        "created_at": "2026-05-18T03:43:57.977612+00:00",
         "event_name": "taskflow.step.succeeded",
         "incident_id": "INC-001",
         "payload": {},
@@ -200,7 +200,7 @@
         "workflow_id": "self_repair_v1"
       },
       {
-        "created_at": "2026-05-11T20:58:55.962101+00:00",
+        "created_at": "2026-05-18T03:43:57.977632+00:00",
         "event_name": "taskflow.step.started",
         "incident_id": "INC-001",
         "payload": {},
@@ -209,7 +209,7 @@
         "workflow_id": "self_repair_v1"
       },
       {
-        "created_at": "2026-05-11T20:58:55.962562+00:00",
+        "created_at": "2026-05-18T03:43:57.978432+00:00",
         "event_name": "taskflow.step.succeeded",
         "incident_id": "INC-001",
         "payload": {},
@@ -218,7 +218,7 @@
         "workflow_id": "self_repair_v1"
       },
       {
-        "created_at": "2026-05-11T20:58:55.971164+00:00",
+        "created_at": "2026-05-18T03:43:57.980037+00:00",
         "event_name": "taskflow.step.started",
         "incident_id": "INC-001",
         "payload": {},
@@ -227,7 +227,7 @@
         "workflow_id": "self_repair_v1"
       },
       {
-        "created_at": "2026-05-11T20:58:55.975940+00:00",
+        "created_at": "2026-05-18T03:43:58.006237+00:00",
         "event_name": "taskflow.step.succeeded",
         "incident_id": "INC-001",
         "payload": {},
@@ -236,7 +236,7 @@
         "workflow_id": "self_repair_v1"
       },
       {
-        "created_at": "2026-05-11T20:58:55.976104+00:00",
+        "created_at": "2026-05-18T03:43:58.006669+00:00",
         "event_name": "taskflow.step.started",
         "incident_id": "INC-001",
         "payload": {},
@@ -245,7 +245,7 @@
         "workflow_id": "self_repair_v1"
       },
       {
-        "created_at": "2026-05-11T20:58:55.976563+00:00",
+        "created_at": "2026-05-18T03:43:58.007932+00:00",
         "event_name": "taskflow.step.succeeded",
         "incident_id": "INC-001",
         "payload": {},
@@ -254,7 +254,7 @@
         "workflow_id": "self_repair_v1"
       },
       {
-        "created_at": "2026-05-11T20:58:55.984966+00:00",
+        "created_at": "2026-05-18T03:43:58.018407+00:00",
         "event_name": "taskflow.step.started",
         "incident_id": "INC-001",
         "payload": {},
@@ -263,7 +263,7 @@
         "workflow_id": "self_repair_v1"
       },
       {
-        "created_at": "2026-05-11T20:58:55.985113+00:00",
+        "created_at": "2026-05-18T03:43:58.018614+00:00",
         "event_name": "taskflow.step.succeeded",
         "incident_id": "INC-001",
         "payload": {},
@@ -272,7 +272,7 @@
         "workflow_id": "self_repair_v1"
       },
       {
-        "created_at": "2026-05-11T20:58:55.985124+00:00",
+        "created_at": "2026-05-18T03:43:58.018625+00:00",
         "event_name": "taskflow.step.started",
         "incident_id": "INC-001",
         "payload": {},
@@ -281,7 +281,7 @@
         "workflow_id": "self_repair_v1"
       },
       {
-        "created_at": "2026-05-11T20:58:55.987064+00:00",
+        "created_at": "2026-05-18T03:43:58.021337+00:00",
         "event_name": "taskflow.step.succeeded",
         "incident_id": "INC-001",
         "payload": {},
@@ -290,7 +290,7 @@
         "workflow_id": "self_repair_v1"
       },
       {
-        "created_at": "2026-05-11T20:58:55.997082+00:00",
+        "created_at": "2026-05-18T03:43:58.037921+00:00",
         "event_name": "taskflow.step.started",
         "incident_id": "INC-001",
         "payload": {},
@@ -299,7 +299,7 @@
         "workflow_id": "self_repair_v1"
       },
       {
-        "created_at": "2026-05-11T20:58:55.997405+00:00",
+        "created_at": "2026-05-18T03:43:58.038614+00:00",
         "event_name": "taskflow.step.succeeded",
         "incident_id": "INC-001",
         "payload": {},
@@ -308,7 +308,7 @@
         "workflow_id": "self_repair_v1"
       },
       {
-        "created_at": "2026-05-11T20:58:55.997413+00:00",
+        "created_at": "2026-05-18T03:43:58.038631+00:00",
         "event_name": "taskflow.gate.waiting",
         "incident_id": "INC-001",
         "payload": {},
@@ -317,7 +317,7 @@
         "workflow_id": "self_repair_v1"
       },
       {
-        "created_at": "2026-05-11T20:58:55.997426+00:00",
+        "created_at": "2026-05-18T03:43:58.038647+00:00",
         "event_name": "taskflow.step.started",
         "incident_id": "INC-001",
         "payload": {},
@@ -326,7 +326,7 @@
         "workflow_id": "self_repair_v1"
       },
       {
-        "created_at": "2026-05-11T20:58:55.997435+00:00",
+        "created_at": "2026-05-18T03:43:58.038656+00:00",
         "event_name": "taskflow.step.succeeded",
         "incident_id": "INC-001",
         "payload": {},
@@ -335,7 +335,7 @@
         "workflow_id": "self_repair_v1"
       },
       {
-        "created_at": "2026-05-11T20:58:55.997444+00:00",
+        "created_at": "2026-05-18T03:43:58.038665+00:00",
         "event_name": "taskflow.workflow.completed",
         "incident_id": "INC-001",
         "payload": {},
@@ -345,10 +345,10 @@
       }
     ],
     "final_decision": "QUORUM_REQUIRED",
-    "finished_at": "2026-05-11T20:58:55.997441+00:00",
+    "finished_at": "2026-05-18T03:43:58.038663+00:00",
     "incident_id": "INC-001",
     "risk_score": 0.61,
-    "started_at": "2026-05-11T20:58:55.791061+00:00",
+    "started_at": "2026-05-18T03:43:57.638528+00:00",
     "status": "WAITING_HUMAN",
     "steps": [
       {
@@ -357,19 +357,19 @@
           {
             "artifact_id": "build_repair_case:repair_case.json",
             "artifact_type": "json",
-            "created_at": "2026-05-11T20:58:55.913262+00:00",
+            "created_at": "2026-05-18T03:43:57.860903+00:00",
             "path": "E:\\ai_company_faz12.1\\repair_outputs\\INC-001\\repair_case.json",
-            "sha256": "2e3b5da5fcd18ad16244c1e75c27097e3811744a00990bcfe8625de02ed18969",
+            "sha256": "31156f76f0f79ba2caf22961c28eb90b827f05f986f0106a2ac8ada146868cce",
             "step_id": "build_repair_case"
           }
         ],
         "attempts": 1,
         "condition": null,
         "error": null,
-        "finished_at": "2026-05-11T20:58:55.911914+00:00",
+        "finished_at": "2026-05-18T03:43:57.839174+00:00",
         "handler": "services.repair.repair_orchestrator.build_repair_case_step",
         "retry": 1,
-        "started_at": "2026-05-11T20:58:55.791087+00:00",
+        "started_at": "2026-05-18T03:43:57.638560+00:00",
         "status": "SUCCEEDED",
         "step_id": "build_repair_case",
         "step_type": "deterministic",
@@ -381,10 +381,10 @@
         "attempts": 1,
         "condition": null,
         "error": null,
-        "finished_at": "2026-05-11T20:58:55.962061+00:00",
+        "finished_at": "2026-05-18T03:43:57.977591+00:00",
         "handler": "services.repair.repair_orchestrator.localize_code_step",
         "retry": 1,
-        "started_at": "2026-05-11T20:58:55.913297+00:00",
+        "started_at": "2026-05-18T03:43:57.860984+00:00",
         "status": "SUCCEEDED",
         "step_id": "localize_code",
         "step_type": "deterministic",
@@ -396,7 +396,7 @@
           {
             "artifact_id": "create_repair_plan:repair_plan.json",
             "artifact_type": "json",
-            "created_at": "2026-05-11T20:58:55.971127+00:00",
+            "created_at": "2026-05-18T03:43:57.979991+00:00",
             "path": "E:\\ai_company_faz12.1\\repair_outputs\\INC-001\\repair_plan.json",
             "sha256": "549ccd378371acc740d38b947f81b47df40938ae4c7c15c9ae68ee8260051e70",
             "step_id": "create_repair_plan"
@@ -405,10 +405,10 @@
         "attempts": 1,
         "condition": null,
         "error": null,
-        "finished_at": "2026-05-11T20:58:55.962554+00:00",
+        "finished_at": "2026-05-18T03:43:57.978408+00:00",
         "handler": "services.repair.repair_orchestrator.create_repair_plan_step",
         "retry": 1,
-        "started_at": "2026-05-11T20:58:55.962098+00:00",
+        "started_at": "2026-05-18T03:43:57.977629+00:00",
         "status": "SUCCEEDED",
         "step_id": "create_repair_plan",
         "step_type": "planning",
@@ -420,7 +420,7 @@
           {
             "artifact_id": "generate_patch_candidate:patch.diff",
             "artifact_type": "diff",
-            "created_at": "2026-05-11T20:58:55.976074+00:00",
+            "created_at": "2026-05-18T03:43:58.006630+00:00",
             "path": "E:\\ai_company_faz12.1\\repair_outputs\\INC-001\\patch.diff",
             "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
             "step_id": "generate_patch_candidate"
@@ -429,10 +429,10 @@
         "attempts": 1,
         "condition": null,
         "error": null,
-        "finished_at": "2026-05-11T20:58:55.975926+00:00",
+        "finished_at": "2026-05-18T03:43:58.006224+00:00",
         "handler": "services.repair.repair_orchestrator.generate_patch_candidate_step",
         "retry": 2,
-        "started_at": "2026-05-11T20:58:55.971158+00:00",
+        "started_at": "2026-05-18T03:43:57.980030+00:00",
         "status": "SUCCEEDED",
         "step_id": "generate_patch_candidate",
         "step_type": "agent",
@@ -444,19 +444,19 @@
           {
             "artifact_id": "run_sandbox_verification:sandbox.log",
             "artifact_type": "log",
-            "created_at": "2026-05-11T20:58:55.984926+00:00",
+            "created_at": "2026-05-18T03:43:58.018349+00:00",
             "path": "E:\\ai_company_faz12.1\\repair_outputs\\INC-001\\sandbox.log",
-            "sha256": "6a311806ca9cf9d4acaead6870d969a97ca17dd1fcb6fb573c87b9afea37baa5",
+            "sha256": "ce2684df2b8469acf930a7097be52348e207dc25b2e420f70cc721556b533965",
             "step_id": "run_sandbox_verification"
           }
         ],
         "attempts": 1,
         "condition": null,
         "error": null,
-        "finished_at": "2026-05-11T20:58:55.976555+00:00",
+        "finished_at": "2026-05-18T03:43:58.007921+00:00",
         "handler": "services.repair.repair_orchestrator.run_sandbox_verification_step",
         "retry": 1,
-        "started_at": "2026-05-11T20:58:55.976098+00:00",
+        "started_at": "2026-05-18T03:43:58.006663+00:00",
         "status": "SUCCEEDED",
         "step_id": "run_sandbox_verification",
         "step_type": "sandbox",
@@ -468,10 +468,10 @@
         "attempts": 1,
         "condition": null,
         "error": null,
-        "finished_at": "2026-05-11T20:58:55.985109+00:00",
+        "finished_at": "2026-05-18T03:43:58.018596+00:00",
         "handler": "services.repair.repair_orchestrator.run_verifier_mesh_step",
         "retry": 1,
-        "started_at": "2026-05-11T20:58:55.984959+00:00",
+        "started_at": "2026-05-18T03:43:58.018400+00:00",
         "status": "SUCCEEDED",
         "step_id": "run_verifier_mesh",
         "step_type": "verifier",
@@ -483,19 +483,19 @@
           {
             "artifact_id": "score_risk:repair_report.json",
             "artifact_type": "json",
-            "created_at": "2026-05-11T20:58:55.996982+00:00",
+            "created_at": "2026-05-18T03:43:58.037843+00:00",
             "path": "E:\\ai_company_faz12.1\\repair_outputs\\INC-001\\repair_report.json",
-            "sha256": "6bb4fb3756d760c03bfcfe9cc9af2e13929b6f6486860c0295e32c94b1080021",
+            "sha256": "17fd9acd9da15980ff564708c4bef7b4890074e139251eaca15bd37dd8a27da6",
             "step_id": "score_risk"
           }
         ],
         "attempts": 1,
         "condition": null,
         "error": null,
-        "finished_at": "2026-05-11T20:58:55.987056+00:00",
+        "finished_at": "2026-05-18T03:43:58.021322+00:00",
         "handler": "services.repair.repair_orchestrator.score_risk_step",
         "retry": 0,
-        "started_at": "2026-05-11T20:58:55.985122+00:00",
+        "started_at": "2026-05-18T03:43:58.018623+00:00",
         "status": "SUCCEEDED",
         "step_id": "score_risk",
         "step_type": "governance",
@@ -507,10 +507,10 @@
         "attempts": 1,
         "condition": "risk_score > 0.30",
         "error": null,
-        "finished_at": "2026-05-11T20:58:55.997399+00:00",
+        "finished_at": "2026-05-18T03:43:58.038604+00:00",
         "handler": "services.taskflow.taskflow_gates.evaluate_gate",
         "retry": 0,
-        "started_at": "2026-05-11T20:58:55.997067+00:00",
+        "started_at": "2026-05-18T03:43:58.037911+00:00",
         "status": "SUCCEEDED",
         "step_id": "approval_gate",
         "step_type": "human_gate",
@@ -537,10 +537,10 @@
         "attempts": 1,
         "condition": null,
         "error": null,
-        "finished_at": "2026-05-11T20:58:55.997433+00:00",
+        "finished_at": "2026-05-18T03:43:58.038654+00:00",
         "handler": "services.repair.repair_orchestrator.update_learning_memory_step",
         "retry": 0,
-        "started_at": "2026-05-11T20:58:55.997424+00:00",
+        "started_at": "2026-05-18T03:43:58.038644+00:00",
         "status": "SUCCEEDED",
         "step_id": "update_learning_memory",
         "step_type": "learning",

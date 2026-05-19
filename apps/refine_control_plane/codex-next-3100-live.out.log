@@ -1,0 +1,11 @@
+
+> refine_control_plane@0.1.0 dev
+> next dev -p 3100
+
+▲ Next.js 16.2.3 (Turbopack)
+- Local:         http://localhost:3100
+- Network:       http://192.168.1.61:3100
+- Environments: .env.local
+✓ Ready in 356ms
+
+ GET / 200 in 595ms (next.js: 152ms, application-code: 443ms)

@@ -1,0 +1,6 @@
+> python -m pytest libs/auth/tests
+
+[31mERROR: file or directory not found: libs/auth/tests
+[0m
+
+[33m[33mno tests ran[0m[33m in 0.00s[0m[0m

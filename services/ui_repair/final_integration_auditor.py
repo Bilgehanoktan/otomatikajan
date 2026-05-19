@@ -1,6 +1,6 @@
 import logging
 import uuid
-from typing import Dict, List, Any
+from typing import Any, Dict, List, Optional
 from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select

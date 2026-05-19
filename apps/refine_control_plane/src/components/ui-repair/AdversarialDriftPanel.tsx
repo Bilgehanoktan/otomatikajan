@@ -5,6 +5,7 @@ import {
   Table, Tag, Typography, Button, Space, message, Timeline, Card 
 } from 'antd';
 import { Activity, AlertTriangle, Clock } from 'lucide-react';
+import { safeFetchJson } from '@/lib/api';
 
 const { Text, Title } = Typography;
 
@@ -25,8 +26,7 @@ const AdversarialDriftPanel: React.FC = () => {
   const fetchDrifts = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/ui-repair/security/red-team/drifts');
-      const data = await res.json();
+      const data = await safeFetchJson<DriftEvent[]>('/api/v1/ui-repair/security/red-team/drifts');
       setDrifts(data);
     } catch (err) {
       message.error('Failed to fetch drift data');
@@ -109,7 +109,7 @@ const AdversarialDriftPanel: React.FC = () => {
             color: d.is_anomalous ? 'red' : 'green',
             children: (
               <div>
-                <Text size="small" type="secondary">{new Date(d.created_at).toLocaleTimeString()}</Text>
+                <Text type="secondary" className="text-xs">{new Date(d.created_at).toLocaleTimeString()}</Text>
                 <br />
                 <Text>{d.metric_name} drift: {(d.drift_score * 100).toFixed(0)}%</Text>
               </div>

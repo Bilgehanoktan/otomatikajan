@@ -2,28 +2,29 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, Iterable, List, Optional
-
+from typing import Any
 
 Severity = str
 
 
 from services.auth.jwt_auth import is_dev_env
 
+
 @dataclass(frozen=True)
 class RuntimeDiagnostic:
     id: str
     severity: Severity
     title: str
-    evidence: Dict[str, Any]
+    evidence: dict[str, Any]
     impact: str
     recommended_action: str
     auto_repairable: bool = False
     requires_operator_action: bool = False
-    tags: List[str] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
@@ -33,12 +34,12 @@ class RuntimeDiagnosticsService:
     def __init__(
         self,
         *,
-        config: Optional[Dict[str, Any]] = None,
-        queue_stats: Optional[Dict[str, Any]] = None,
+        config: dict[str, Any] | None = None,
+        queue_stats: dict[str, Any] | None = None,
         db_is_fallback: bool = False,
-        redis_available: Optional[bool] = None,
-        identity_role: Optional[str] = None,
-        active_error_fingerprints: Optional[Dict[str, Any]] = None,
+        redis_available: bool | None = None,
+        identity_role: str | None = None,
+        active_error_fingerprints: dict[str, Any] | None = None,
     ) -> None:
         self.config = config or self._load_config()
         self.queue_stats = queue_stats or {}
@@ -48,16 +49,16 @@ class RuntimeDiagnosticsService:
         self.active_error_fingerprints = active_error_fingerprints or {}
 
     @staticmethod
-    def _load_config() -> Dict[str, Any]:
+    def _load_config() -> dict[str, Any]:
         from libs.config import (
             APP_ENV,
-            RUNTIME_PROFILE,
-            LOCAL_DEV_DB_STRATEGY,
-            QUEUE_BACKEND,
-            REDIS_ENABLED,
             CELERY_ENABLED,
             EPHEMERAL_WORKFLOWS_ENABLED,
             INPROCESS_JOB_WORKERS_ENABLED,
+            LOCAL_DEV_DB_STRATEGY,
+            QUEUE_BACKEND,
+            REDIS_ENABLED,
+            RUNTIME_PROFILE,
         )
 
         return {
@@ -72,8 +73,8 @@ class RuntimeDiagnosticsService:
             "SIF_REGISTER_DEFAULT_ROLE": os.getenv("SIF_REGISTER_DEFAULT_ROLE", ""),
         }
 
-    def collect(self) -> List[RuntimeDiagnostic]:
-        findings: List[RuntimeDiagnostic] = []
+    def collect(self) -> list[RuntimeDiagnostic]:
+        findings: list[RuntimeDiagnostic] = []
         findings.extend(self._profile_mismatch())
         findings.extend(self._db_fallback())
         findings.extend(self._queue_workers_disabled())
@@ -205,8 +206,8 @@ class RuntimeDiagnosticsService:
 
     def _observer_write_denied(self) -> Iterable[RuntimeDiagnostic]:
         from services.auth.jwt_auth import is_dev_env
-        
-        if self.identity_role != "AUDIT_OBSERVER" or is_dev_env():
+
+        if self.identity_role != "AUDIT_OBSERVER":
             return []
         return [
             RuntimeDiagnostic(
@@ -263,5 +264,5 @@ class RuntimeDiagnosticsService:
         ]
 
 
-def diagnostics_to_dict(findings: Iterable[RuntimeDiagnostic]) -> List[Dict[str, Any]]:
+def diagnostics_to_dict(findings: Iterable[RuntimeDiagnostic]) -> list[dict[str, Any]]:
     return [finding.to_dict() for finding in findings]

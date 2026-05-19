@@ -8,7 +8,7 @@ import yaml
 import os
 import asyncio
 from typing import List, Dict, Any, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel
 
 class AuditEntry(BaseModel):
@@ -44,7 +44,7 @@ class GlobalAuditAggregator:
                 region_id=region_id,
                 cluster_id="sec-overwatch-v1",
                 action="GOAL_ROUTED",
-                timestamp=datetime.utcnow() - timedelta(minutes=5),
+                timestamp=datetime.now(timezone.utc) - timedelta(minutes=5),
                 details={"status": "SUCCESS", "priority": 10}
             )
         ]

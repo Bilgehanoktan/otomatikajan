@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Table, Tag, Button, Typography, Space, List, Divider, Badge, Empty, Result } from 'antd';
-import { FilePdfOutlined, DownloadOutlined, SafetyCertificateOutlined, HistoryOutlined, FileSearchOutlined } from '@ant-design/icons';
+import { FilePdfOutlined, DownloadOutlined, SafetyCertificateOutlined, HistoryOutlined, FileSearchOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { safeFetchJson } from '@/lib/api';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -15,8 +16,7 @@ export const FinalAuditPackPanel: React.FC = () => {
     const fetchLatestPack = async () => {
         setLoading(true);
         try {
-            const response = await fetch('/api/v1/ui-repair/final/audit-pack/latest');
-            const data = await response.json();
+            const data = await safeFetchJson<any>('/api/v1/ui-repair/final/audit-pack/latest');
             setLatestPack(data);
         } catch (error) {
             console.error('Failed to fetch latest audit pack:', error);
@@ -28,8 +28,7 @@ export const FinalAuditPackPanel: React.FC = () => {
     const generatePack = async () => {
         setLoading(true);
         try {
-            const response = await fetch('/api/v1/ui-repair/final/audit-pack/generate?version=1.0.0-RC1', { method: 'POST' });
-            const data = await response.json();
+            const data = await safeFetchJson<any>('/api/v1/ui-repair/final/audit-pack/generate?version=1.0.0-RC1', { method: 'POST' });
             setLatestPack(data);
         } catch (error) {
             console.error('Failed to generate audit pack:', error);

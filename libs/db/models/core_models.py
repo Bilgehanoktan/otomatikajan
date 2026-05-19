@@ -5,16 +5,24 @@ ajan sağlık geçmişi, webhook abonelikleri.
 pgvector bağımlılığı opsiyonel — yoksa Memory modeli devre dışı.
 """
 
+import enum
 import uuid
-from datetime import datetime, timezone
 
 from sqlalchemy import (
-    Boolean, Column, DateTime, Float, ForeignKey,
-    Integer, String, Text, Index, Enum as SAEnum,
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
 )
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import DeclarativeBase, relationship, backref
-import enum
+from sqlalchemy import (
+    Enum as SAEnum,
+)
+from sqlalchemy.orm import backref, relationship
 
 try:
     from pgvector.sqlalchemy import Vector
@@ -23,9 +31,7 @@ except ImportError:
     Vector = None
     _VECTOR_AVAILABLE = False
 
-from libs.db.base import Base, utcnow, SmartJSON, GUID
-
-
+from libs.db.base import GUID, Base, SmartJSON, utcnow
 
 
 class ProjectStatus(str, enum.Enum):
@@ -64,6 +70,7 @@ class ProjectSource(str, enum.Enum):
     QUEUE_STUCK = "QUEUE_STUCK"
     APPROVAL_TIMEOUT = "APPROVAL_TIMEOUT"
     CONTROL_PLANE = "CONTROL_PLANE"
+    CEO = "CEO"
 
     @classmethod
     def _missing_(cls, value):
@@ -94,10 +101,10 @@ class TaskPriority(str, enum.Enum):
         """
         if not isinstance(value, str):
             return None
-            
+
         # Normalize: Upper and mapping
         val = value.upper().strip()
-        
+
         # Explicit Mapping Table
         mapping = {
             # Turkish variants
@@ -113,9 +120,9 @@ class TaskPriority(str, enum.Enum):
             "NORMAL": "MEDIUM",
             "URGENT": "CRITICAL",
         }
-        
+
         target = mapping.get(val, val)
-        
+
         # Check by member value
         for member in cls:
             if member.value == target:
@@ -265,9 +272,9 @@ class Project(Base):
     checkpoint_data     = Column(SmartJSON(), default=dict)  # AGI Dayanıklılık: Son güvenli durum verisi
     goal_id             = Column(GUID, ForeignKey("sovereign_goals.id", ondelete="SET NULL"), nullable=True)
     ceo_managed         = Column(Boolean, default=False, index=True)
-    
+
     # ── Faz 23: Multi-Project Fleet & Isolation ──
-    isolation_tier      = Column(Integer, default=2, nullable=False, index=True) 
+    isolation_tier      = Column(Integer, default=2, nullable=False, index=True)
     # 0: Mission Critical, 1: Production, 2: Standard, 3: Sandbox/Trial
     autonomy_envelope   = Column(SmartJSON(), default={
         "mode": "advisory",           # advisory, autonomous, human_in_loop
@@ -284,7 +291,7 @@ class Project(Base):
         "min_budget_threshold": 10.0,       # Alert threshold in USD
         "auto_scale_concurrency": True      # Adaptive Quota Balancing trigger
     })
-    
+
     metadata_           = Column(SmartJSON(), default=dict)
     # ──────────────────────────────────────────────────────
     is_pilot     = Column(Boolean, default=False, nullable=False, index=True)
@@ -340,7 +347,7 @@ class SubTask(Base):
     completed_at  = Column(DateTime(timezone=True), nullable=True)
 
     project = relationship("Project", back_populates="subtasks")
-    
+
     @property
     def result_summary(self) -> str:
         """Truncated version of result for UI list views."""
@@ -417,7 +424,7 @@ class SovereignGoal(Base):
     achieved_at      = Column(DateTime(timezone=True), nullable=True)
     completed_at     = Column(DateTime(timezone=True), nullable=True) # Alias/Field for CEO Engine
 
-    projects    = relationship("Project", back_populates="goal", 
+    projects    = relationship("Project", back_populates="goal",
                              primaryjoin="SovereignGoal.id == Project.goal_id",
                              foreign_keys="[Project.goal_id]")
     suggestions = relationship("CEOSuggestedTask", back_populates="goal_ref")
@@ -510,19 +517,19 @@ class WorkflowEvent(Base):
     id           = Column(GUID, primary_key=True, default=uuid.uuid4)
     project_id   = Column(GUID, ForeignKey("projects.id", ondelete="CASCADE"), nullable=True, index=True) # Changed to support system-wide events
     event_type   = Column(String(64), nullable=False, index=True)
-    # event_type: "workflow_started", "step_scheduled", "step_started", 
+    # event_type: "workflow_started", "step_scheduled", "step_started",
     #             "step_completed", "step_failed", "context_updated", "workflow_completed",
     #             "manual_approval", "workflow_replayed", "workflow_cancelled"
-    
+
     step_id      = Column(String(128), nullable=True, index=True)
     operator_id  = Column(String(128), nullable=True, index=True) # "system" veya User.email
-    
+
     payload      = Column(SmartJSON(), default=dict)
-    
+
     # ── Tamper-Evidence (Audit Chain) ──
     previous_hash = Column(String(64), nullable=True)             # Bir önceki event'in imzası
     signature     = Column(String(64), nullable=True, index=True) # Bu kaydın özgün özeti (SHA256)
-    
+
     created_at   = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
 
     project = relationship("Project", back_populates="workflow_events")
@@ -830,12 +837,12 @@ class ApprovalRequest(Base):
     request_type  = Column(String(64), nullable=False) # budget, autonomy, risk_score
     reason        = Column(Text, nullable=False)
     input_data    = Column(SmartJSON(), default=dict) # Neye onay veriliyor?
-    
+
     status        = Column(String(32), default="pending", index=True) # pending, approved, rejected
     approver_id   = Column(String(128), nullable=True)
     decision_at   = Column(DateTime(timezone=True), nullable=True)
     comment       = Column(Text, default="")
-    
+
     created_at    = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
 
     project = relationship("Project")
@@ -851,10 +858,10 @@ class OperationalIncident(Base):
     incident_type = Column(String(64), nullable=False, index=True) # stuck_workflow, budget_breach, safety_violation
     severity      = Column(String(16), default="medium")
     message       = Column(Text, nullable=False)
-    
+
     status        = Column(String(32), default="open", index=True) # open, investigating, resolved, archived
     project_id    = Column(GUID, ForeignKey("projects.id", ondelete="SET NULL"), nullable=True)
-    
+
     payload       = Column(SmartJSON(), default=dict)
     resolved_at   = Column(DateTime(timezone=True), nullable=True)
     created_at    = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
@@ -872,14 +879,14 @@ class SovereignEvidence(Base):
     id               = Column(GUID, primary_key=True, default=uuid.uuid4)
     evidence_type    = Column(String(64), nullable=False, index=True) # self_healing, economic_drift, failover, rollback
     severity         = Column(String(16), default="info")
-    
+
     project_id       = Column(GUID, ForeignKey("projects.id", ondelete="SET NULL"), nullable=True)
     incident_id      = Column(GUID, ForeignKey("operational_incidents.id", ondelete="SET NULL"), nullable=True)
     improvement_id   = Column(GUID, ForeignKey("system_improvements.id", ondelete="SET NULL"), nullable=True)
-    
+
     # Derinlemesine Kanıt Verisi: decision_logic, risk_delta, cost_delta, validation_tokens
     payload          = Column(SmartJSON(), default=dict)
-    
+
     provenance_hash  = Column(String(64), nullable=True) # Değişmezlik doğrulaması
     created_at       = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
 
@@ -897,18 +904,18 @@ class FederationTrust(Base):
 
     cluster_id       = Column(String(64), primary_key=True) # e.g., sec-overwatch-v1
     trust_score      = Column(Float, default=1.0)           # 0.0 - 1.0
-    
+
     # Başarı/Başarısızlık Metrikleri
     success_count    = Column(Integer, default=0)
     failure_count    = Column(Integer, default=0)
     arbitration_wins = Column(Integer, default=0)           # Çelişki çözümleme başarısı
-    
+
     # Decay Modeli için
     last_activity_at = Column(DateTime(timezone=True), default=utcnow)
-    
+
     # Metadata: cluster_version, preferred_models, isolation_stats
     cluster_metadata = Column(SmartJSON(), default=dict)
-    
+
     updated_at       = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
 
@@ -922,7 +929,7 @@ class FederationTrustHistory(Base):
     cluster_id       = Column(String(64), nullable=False, index=True)
     trust_score      = Column(Float, nullable=False)
     change_reason    = Column(String(256)) # success, failure, decay, arbitration_win
-    
+
     payload          = Column(SmartJSON(), default=dict) # O anki metrikler
     created_at       = Column(DateTime(timezone=True), default=utcnow, index=True)
 
@@ -937,11 +944,11 @@ class FleetCluster(Base):
     name            = Column(String(128), nullable=False)
     status          = Column(SAEnum(FleetStatus, native_enum=False, length=32), default=FleetStatus.ACTIVE, index=True)
     region          = Column(String(64), default="global")
-    
+
     budget_limit    = Column(Float, default=0.0)
     current_budget_usage = Column(Float, default=0.0)
     max_parallel_projects = Column(Integer, default=5)
-    
+
     created_at      = Column(DateTime(timezone=True), default=utcnow)
     updated_at      = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
@@ -955,19 +962,19 @@ class AgentNode(Base):
     name            = Column(String(128), nullable=False)
     role            = Column(SAEnum(AgentRole, native_enum=False, length=32), nullable=False, index=True)
     status          = Column(SAEnum(AgentStatus, native_enum=False, length=32), default=AgentStatus.IDLE, index=True)
-    
+
     trust_score     = Column(Float, default=1.0)
     success_count   = Column(Integer, default=0)
     failure_count   = Column(Integer, default=0)
     current_load    = Column(Integer, default=0)
     max_concurrency = Column(Integer, default=1)
-    
+
     last_heartbeat  = Column(DateTime(timezone=True), default=utcnow)
     project_scope   = Column(String(256)) # comma separated or pattern
     cost_rate       = Column(Float, default=0.0) # USD per task or hour
-    
+
     capabilities    = Column(SmartJSON(), default=dict)
-    
+
     created_at      = Column(DateTime(timezone=True), default=utcnow)
     updated_at      = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
@@ -981,10 +988,10 @@ class FleetAssignment(Base):
     id              = Column(GUID, primary_key=True, default=uuid.uuid4)
     project_id      = Column(GUID, ForeignKey("projects.id", ondelete="CASCADE"), index=True)
     agent_id        = Column(GUID, ForeignKey("agent_nodes.id", ondelete="CASCADE"), index=True)
-    
+
     assignment_type = Column(String(64), default="primary") # primary, peer, auditor
     status          = Column(String(32), default="active") # active, completed, released
-    
+
     started_at      = Column(DateTime(timezone=True), default=utcnow)
     ended_at        = Column(DateTime(timezone=True), nullable=True)
 
@@ -998,12 +1005,12 @@ class ProjectExecutionPlan(Base):
 
     id              = Column(GUID, primary_key=True, default=uuid.uuid4)
     project_id      = Column(GUID, ForeignKey("projects.id", ondelete="CASCADE"), index=True)
-    
+
     orchestration_mode = Column(String(32), default="standard") # standard, high_risk, fast_track
     required_roles     = Column(SmartJSON(), default=list)      # ["PLANNER", "EXECUTOR", "REVIEWER"]
     estimated_cost     = Column(Float, default=0.0)
     priority_override  = Column(Integer, nullable=True)
-    
+
     status             = Column(String(32), default="draft")    # draft, allocated, running, completed
     created_at         = Column(DateTime(timezone=True), default=utcnow)
 
@@ -1016,6 +1023,6 @@ class ProjectAgentAllocation(Base):
     project_id      = Column(GUID, ForeignKey("projects.id", ondelete="CASCADE"), index=True)
     role            = Column(SAEnum(AgentRole, native_enum=False, length=32), nullable=False)
     count           = Column(Integer, default=1)
-    
+
     allocated_count = Column(Integer, default=0)
     is_satisfied    = Column(Boolean, default=False)

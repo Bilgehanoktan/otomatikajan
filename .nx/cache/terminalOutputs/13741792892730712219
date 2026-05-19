@@ -1,0 +1,14 @@
+> python -m ruff check libs/auth
+
+[1m[91mI001 [0m[[1m[96m*[0m] [1mImport block is un-sorted or un-formatted[0m
+ [1m[94m-->[0m libs\auth\rbac.py:1:1
+  [1m[94m|[0m
+[1m[94m1 |[0m from enum import Enum
+  [1m[94m|[0m [1m[91m^^^^^^^^^^^^^^^^^^^^^[0m
+[1m[94m2 |[0m
+[1m[94m3 |[0m class Role(str, Enum):  # noqa: UP042
+  [1m[94m|[0m
+[1m[96mhelp[0m: [1mOrganize imports[0m
+
+Found 1 error.
+[[36m*[0m] 1 fixable with the `--fix` option.

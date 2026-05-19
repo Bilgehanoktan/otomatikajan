@@ -1,0 +1,23 @@
+> python -m pytest tests/test_phase13_workflow.py tests/integration/test_mesh_api.py -q
+
+[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[33m                                                              [100%][0m
+[33m============================== warnings summary ===============================[0m
+services\workflow_api\main.py:65
+  E:\ai_company_faz12.1\services\workflow_api\main.py:65: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+C:\Users\B�LGEHAN\AppData\Roaming\Python\Python314\site-packages\fastapi\applications.py:4599
+  C:\Users\B�LGEHAN\AppData\Roaming\Python\Python314\site-packages\fastapi\applications.py:4599: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html

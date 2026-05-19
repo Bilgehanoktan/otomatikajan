@@ -4,15 +4,16 @@ Revision ID: 54a09b9b7ba4
 Revises: c2e573c6206b
 Create Date: 2026-04-27 00:48:54.364488
 """
-from typing import Sequence, Union
-from alembic import op
+from collections.abc import Sequence
+
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision: str = '54a09b9b7ba4'
-down_revision: Union[str, None] = 'c2e573c6206b'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = 'c2e573c6206b'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

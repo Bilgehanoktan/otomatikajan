@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Table, Tag, Button, Progress, List, Typography, Space, Divider, Alert, Badge, Spin, Row, Col, Statistic, Tooltip } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined, WarningOutlined, InfoCircleOutlined, RocketOutlined } from '@ant-design/icons';
+import { safeFetchJson } from '@/lib/api';
 
 const { Title, Text } = Typography;
 
@@ -15,8 +16,7 @@ export const ReleaseReadinessPanel: React.FC = () => {
     const fetchChecks = async () => {
         setLoading(true);
         try {
-            const response = await fetch('/api/v1/ui-repair/final/readiness/check', { method: 'POST' });
-            const data = await response.json();
+            const data = await safeFetchJson('/api/v1/ui-repair/final/readiness/check', { method: 'POST' });
             setChecks(data);
         } catch (error) {
             console.error('Failed to fetch readiness checks:', error);

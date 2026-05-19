@@ -1,4 +1,5 @@
 import logging
+import inspect
 import uuid
 import json
 from typing import Dict, Any, List
@@ -18,6 +19,13 @@ logger = logging.getLogger(__name__)
 
 class GovernorPolicySimulator:
     @staticmethod
+    async def _execute(db: AsyncSession, stmt):
+        result = db.execute(stmt)
+        if inspect.isawaitable(result):
+            return await result
+        return result
+
+    @staticmethod
     async def simulate_evolution(db: AsyncSession, evolution_id: uuid.UUID, window_days: int = 14) -> Dict[str, Any]:
         """Önerilen politikayı geçmiş veriler üzerinde simüle eder."""
         evo = await GovernorPolicyEvolutionRepo.get_evolution(db, evolution_id)
@@ -29,7 +37,7 @@ class GovernorPolicySimulator:
         # 1. Veri Hazırlığı: Geçmiş case'leri ve outcome'ları çek
         since = datetime.now(timezone.utc) - timedelta(days=window_days)
         stmt = select(GovernorCaseRecord).where(GovernorCaseRecord.created_at >= since)
-        res = await db.execute(stmt)
+        res = await GovernorPolicySimulator._execute(db, stmt)
         cases = res.scalars().all()
         
         sample_size = len(cases)

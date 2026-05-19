@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useList, useCustom, useApiUrl } from "@refinedev/core";
-import { useTranslations, useFormatter } from "next-intl";
+import { useTranslations, useFormatter, useLocale } from "next-intl";
 import {
   Activity,
   ShieldCheck,
@@ -104,6 +104,7 @@ export default function ControlPlaneDashboard() {
   const t = useTranslations("dashboard");
   const tStatus = useTranslations("status");
   const format = useFormatter();
+  const locale = useLocale();
   const [isClient, setIsClient] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "workflows" | "events" | "health" | "economy">("overview");
   const apiUrl = useApiUrl();
@@ -292,7 +293,9 @@ export default function ControlPlaneDashboard() {
 
                     <div className="mt-10">
                         <div className={`text-9xl font-black tracking-tighter ${healthColor} italic drop-shadow-[0_0_30px_rgba(255,255,255,0.05)]`}>
-                            {healthScore}<span className="text-4xl ml-2">%</span>
+                            {locale === "tr" ? <span className="text-4xl mr-2">%</span> : null}
+                            {healthScore}
+                            {locale !== "tr" ? <span className="text-4xl ml-2">%</span> : null}
                         </div>
                         <div className="w-full h-2 bg-black/40 rounded-full mt-6 overflow-hidden border border-white/[0.03]">
                            <div className={`h-full transition-all duration-1000 ${healthColor.replace('text', 'bg')}`} style={{ width: `${healthScore}%` }} />
@@ -306,7 +309,7 @@ export default function ControlPlaneDashboard() {
                         </div>
                         <div className="flex flex-col items-end gap-1 text-right">
                             <span className="text-[9px] font-black text-gray-700 uppercase tracking-widest">{t("uptime")}</span>
-                            <span className="text-lg font-black text-[var(--primary)] font-mono tracking-tighter italic">99.98% {t("nominal")}</span>
+                            <span className="text-lg font-black text-[var(--primary)] font-mono tracking-tighter italic">{locale === "tr" ? "%99.98" : "99.98%"} {t("nominal")}</span>
                         </div>
                     </div>
                 </div>
@@ -798,7 +801,7 @@ export default function ControlPlaneDashboard() {
                           <div className="space-y-10">
                                <div className="glass-panel p-10 rounded-[3rem] border border-[var(--primary)]/20 bg-[var(--primary)]/[0.03] shadow-2xl">
                                     <h4 className="text-[11px] font-black text-[var(--primary)] uppercase tracking-[0.3em] mb-6 italic">{t("economy.velocity")}</h4>
-                                    <div className="text-6xl font-black text-white italic tracking-tighter">$4.92<span className="text-2xl ml-2 opacity-40">/24H</span></div>
+                                    <div className="text-6xl font-black text-white italic tracking-tighter">$4.92<span className="text-2xl ml-2 opacity-40">/{t("economy.period24h")}</span></div>
                                     <p className="text-[12px] text-gray-500 mt-6 leading-relaxed font-bold italic">
                                        <Activity size={14} className="inline mr-2 text-[var(--primary)]" />
                                        {t("economy.driftDetected")}
@@ -874,6 +877,7 @@ function EliteMetricItem({ label, value, subLabel, color, icon, loading, accent,
 function EliteWorkflowRow({ wf, tStatus, tOrch }: { wf: any, tStatus: any, tOrch: any }) {
   const isComp = wf.status === 'completed';
   const color = isComp ? 'text-green-500' : 'text-[var(--primary)]';
+  const locale = useLocale();
 
   return (
     <div className="group flex items-center justify-between p-10 rounded-[2.5rem] border border-white/5 bg-white/[0.012] hover:bg-white/[0.03] hover:border-[var(--primary)]/20 transition-all duration-500 shadow-xl cursor-help relative overflow-hidden">
@@ -900,7 +904,7 @@ function EliteWorkflowRow({ wf, tStatus, tOrch }: { wf: any, tStatus: any, tOrch
              </div>
              <div className="flex justify-between w-full mt-3 px-1">
                 <span className="text-[9px] font-black text-gray-700 uppercase tracking-widest">{tOrch("orchestration.progress")}</span>
-                <span className="text-[10px] font-mono font-black text-gray-500 italic">%{wf.progress_pct || (isComp ? 100 : 40)}</span>
+                <span className="text-[10px] font-mono font-black text-gray-500 italic">{locale === "tr" ? `%${wf.progress_pct || (isComp ? 100 : 40)}` : `${wf.progress_pct || (isComp ? 100 : 40)}%`}</span>
              </div>
         </div>
 

@@ -93,6 +93,7 @@ def _build_steps(contract: dict[str, Any]) -> list[TaskStep]:
                 timeout_seconds=item.get("timeout_seconds"),
                 condition=item.get("condition"),
                 always_run=bool(item.get("always_run", False)),
+                artifact=item.get("artifact"),
             )
         )
     return steps
@@ -120,6 +121,7 @@ def run_workflow(
         "incident_id": incident_id,
         "trace_id": trace_id,
         "workflow_id": workflow_id,
+        "run_id": run.run_id,
         "output_root": str(output_root) if output_root is not None else None,
     }
     metrics = []
@@ -157,6 +159,15 @@ def run_workflow(
                 if step.timeout_seconds is not None and elapsed > float(step.timeout_seconds):
                     raise TimeoutError(f"Step {step.step_id} exceeded timeout_seconds={step.timeout_seconds}")
                 context.update(result)
+
+                # Validate step artifact contract
+                if step.artifact:
+                    from services.repair.taskflow_artifacts import artifact_dir_for_run
+                    expected_dir = artifact_dir_for_run(incident_id, run.run_id, output_root)
+                    expected_path = expected_dir / step.artifact
+                    if not expected_path.exists():
+                        raise ValueError(f"Required artifact '{step.artifact}' missing for step '{step.step_id}'")
+
                 step.status = transition_step(step.status, "SUCCEEDED")
                 step.finished_at = utc_now_iso()
                 run.events.append(
@@ -229,4 +240,23 @@ def run_workflow(
     trace_payload = {"workflow_run": to_plain_data(run), "metrics": to_plain_data(metrics)}
     artifact = write_json_artifact(incident_id, "taskflow_trace", "taskflow_trace.json", trace_payload, output_root=output_root)
     run.artifacts.append(artifact)
+
+    # Build and write the artifact manifest for Phase 4 auditability
+    from services.repair.taskflow_artifacts import build_artifact_manifest, artifact_dir_for_run, get_sha256
+    from services.taskflow.taskflow_models import TaskArtifact
+    manifest = build_artifact_manifest(incident_id, run.run_id, workflow_id, contract.get("steps", []), output_root=output_root)
+    manifest_file = artifact_dir_for_run(incident_id, run.run_id, output_root) / "artifact_manifest.json"
+    try:
+        manifest_path_str = str(manifest_file.relative_to(Path.cwd()))
+    except ValueError:
+        manifest_path_str = str(manifest_file)
+    manifest_artifact = TaskArtifact(
+        artifact_id="taskflow:artifact_manifest",
+        step_id="taskflow",
+        path=manifest_path_str,
+        artifact_type="json",
+        sha256=get_sha256(manifest_file),
+    )
+    run.artifacts.append(manifest_artifact)
+
     return run

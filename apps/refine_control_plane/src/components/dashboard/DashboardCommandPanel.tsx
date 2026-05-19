@@ -40,9 +40,10 @@ function CommandButton({ label, sub, icon, color, onClick, loading }: CommandBut
 
 export function DashboardCommandPanel({ apiBase }: { apiBase: string }) {
   const t = useTranslations("commands");
+  const tDash = useTranslations("dashboard");
   const { notification } = App.useApp();
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
-
+ 
   const handleAction = async (action: string, endpoint: string, method: string = "POST", body: any = null) => {
     setLoadingAction(action);
     try {
@@ -68,7 +69,7 @@ export function DashboardCommandPanel({ apiBase }: { apiBase: string }) {
       setLoadingAction(null);
     }
   };
-
+ 
   return (
     <div className="glass-panel rounded-2xl p-6 h-full flex flex-col">
       <div className="flex items-center justify-between mb-6">
@@ -76,7 +77,7 @@ export function DashboardCommandPanel({ apiBase }: { apiBase: string }) {
           <div className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] animate-pulse shadow-[0_0_8px_var(--primary)]" />
           <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.25em]">{t("quickAccess")}</h3>
         </div>
-        <span className="text-[8px] font-mono text-gray-600 uppercase">Operator Auth: Active</span>
+        <span className="text-[8px] font-mono text-gray-600 uppercase">{tDash("operatorAuthActive")}</span>
       </div>
 
       <div className="grid grid-cols-1 gap-3 flex-1 overflow-y-auto pr-1">

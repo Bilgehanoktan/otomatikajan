@@ -1,0 +1,36 @@
+import os
+import re
+
+dir_path = r"e:\ai_company_faz12.1\services\orchestration\fleet"
+
+for filename in os.listdir(dir_path):
+    if filename.endswith(".py"):
+        file_path = os.path.join(dir_path, filename)
+        print(f"Fixing {filename}...")
+        
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # 1. Comment out top-level sqlalchemy and models imports
+        # Be careful with multi-line imports and try-except blocks
+        
+        # Simple regex for single line imports
+        content = re.sub(r'^(from sqlalchemy.*)$', r'# \1', content, flags=re.MULTILINE)
+        content = re.sub(r'^(from libs\.db\.models.*)$', r'# \1', content, flags=re.MULTILINE)
+        content = re.sub(r'^(from libs\.db\.repositories.*)$', r'# \1', content, flags=re.MULTILINE)
+
+        # 2. Add 'from typing import Any' if not present
+        if 'from typing import Any' not in content:
+            if 'from typing import' in content:
+                content = content.replace('from typing import', 'from typing import Any,')
+            else:
+                content = "from typing import Any\n" + content
+
+        # 3. Fix Session type hint in __init__
+        content = content.replace(': Session)', ': Any)')
+        content = content.replace(': Session):', ': Any):')
+
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+
+print("Done fixing fleet directory")

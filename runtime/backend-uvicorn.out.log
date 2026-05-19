@@ -1,0 +1,939 @@
+21:51:32  INFO      [libs.llm.model_orchestrator] [no-trace] [LLM] Hazýr saðlayýcýlar: openai, anthropic, gemini, groq, openrouter
+21:51:32  DEBUG     [libs.llm.model_orchestrator] [no-trace] [LLM] Aktif rotalarda anahtarý eksik: nvidia
+21:51:32  DEBUG     [libs.llm.model_orchestrator] [no-trace] [LLM] Opsiyonel saðlayýcýlar (yapýlandýrýlmamýþ): moonshot, deepseek
+21:51:32  INFO      [agi_synaptic_cortex] [no-trace] [UGC] Baþlatýldý. Hot Cache boyutu: 100
+21:51:33  INFO      [infra.events] [no-trace] Global event listeners registered.
+21:51:33  INFO      [main] [no-trace] [OTEL] Tracing middleware registered
+21:51:33  INFO      [main] [no-trace] [INCIDENT] Sovereign Incident Middleware registered
+21:51:33  INFO      [main] [no-trace] [DASHBOARD] UI mode=api-only. Static dashboard serving disabled; use port 3100 for the control plane.
+21:51:33  INFO      [infra.lifespan] [no-trace] Initializing Sovereign AGI Platform [Phase 13.04]...
+21:51:34  INFO      [infra.lifespan] [no-trace] [STARTUP] Database connection established and tables verified.
+21:51:34  INFO      [infra.lifespan] [no-trace] [STARTUP] SovereignCortex cognitive loops initiated in background.
+21:51:34  DEBUG     [libs.workflow.engine] [no-trace] Action registered: plan_subtasks
+21:51:34  DEBUG     [libs.workflow.engine] [no-trace] Action registered: execute_subtasks
+21:51:34  DEBUG     [libs.workflow.engine] [no-trace] Action registered: synthesize_report
+21:51:34  DEBUG     [libs.workflow.engine] [no-trace] Action registered: prepare_digest
+21:51:34  DEBUG     [libs.workflow.engine] [no-trace] Action registered: validate_payloads
+21:51:34  DEBUG     [libs.workflow.engine] [no-trace] Action registered: review_patch_bundle
+21:51:34  DEBUG     [libs.workflow.engine] [no-trace] Action registered: await_operator_signoff
+21:51:34  INFO      [libs.workflow.runner] [no-trace] [WorkflowRunner] WorkflowEngine initialized and actions registered.
+21:51:34  INFO      [infra.lifespan] [no-trace] [STARTUP] WorkflowEngine initialized and default actions registered.
+21:51:34  INFO      [infra.lifespan] [no-trace] [STARTUP] Queue backend resolved to celery under runtime profile full-stack-local. In local development this should only happen when Celery is explicitly forced.
+21:51:34  INFO      [infra.lifespan] [no-trace] [SELF-CHECK] Runtime profile=full-stack-local ui=http://127.0.0.1:3100 api_ws=http://127.0.0.1:8000 ui_mode=api-only db_strategy=primary queue_backend=celery (requested=celery)
+21:51:34  INFO      [infra.lifespan] [no-trace] [SELF-CHECK] Integrations enabled: redis=True celery=True deerflow=True scheduler=False telegram=False
+21:51:34  INFO      [infra.lifespan] [no-trace] [SELF-CHECK] job_queue_hydrate_on_startup=True
+21:51:34  INFO      [infra.lifespan] [no-trace] [STANDBY] System is in STANDBY MODE. Awaiting trigger: 'Hazýr, PRMR-01 Faz 1’i yeniden baþlat.'
+21:51:34  INFO      [self_improvement] [no-trace] Self-Improvement Coordinator baslatildi.
+21:51:34  INFO      [agi_governance_watchdog] [no-trace] Governance Watchdog AKTÝF (Interv: 60s)
+21:51:34  INFO      [agi_sovereign_cortex] [no-trace] [SOVEREIGN] Biliþsel yönetim merkezi aktif. 12 ajan hazýr.
+21:51:34  INFO      [infra.lifespan] [no-trace] [STANDBY] PRMR Readiness Audit loop started (Interval: 15m).
+21:51:34  INFO      [infra.lifespan] [no-trace] [STANDBY] TRIGGER DETECTED. Exiting Standby Audit Loop. Primary Initiation authorized.
+21:51:34  INFO      [improvement.observer] [no-trace] ImprovementObserver: Sistem taraniyor...
+21:51:34  INFO      [improvement.observer] [no-trace] Agent hatalari taraniyor...
+21:51:34  INFO      [heal_engine] [no-trace] [INFO] [18:51:34][monitor][system      ] Oz-Iyileshirme Motoru v2 bashladi.
+21:51:34  INFO      [agi_sovereign_cortex] [no-trace] [SOVEREIGN-AUTOCHECK] Bilissel saglik denetimi baslatiliyor...
+21:51:34  INFO      [world_service_graph] [no-trace] [SERVICE-GRAPH] 10 çekirdek servis kayýt edildi.
+21:51:34  INFO      [improvement.observer] [no-trace] Endpoint hatalari taraniyor (401/404/429)...
+21:51:34  INFO      [improvement.observer] [no-trace] Workflow queue sagligi taraniyor...
+21:51:34  INFO      [improvement.observer] [no-trace] Approval bottleneck taramasi yapiliyor...
+21:51:34  INFO      [improvement.observer] [no-trace] Incident backlog taramasi yapiliyor...
+21:51:34  INFO      [improvement.observer] [no-trace] Improvement pipeline sagligi taraniyor...
+21:51:34  INFO      [improvement.observer] [no-trace] LLM provider pressure taramasi yapiliyor...
+21:51:34  INFO      [self_improvement] [no-trace] Self-Improvement: 2 aday bulundu, dedupe sonrasý 2 benzersiz fýrsat iþlenecek.
+21:51:34  DEBUG     [system_indexer] [no-trace] [INDEXER-CACHE] Ýndeks diskten yüklendi: code_index.json
+21:51:34  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+21:51:35  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on gemini. Applying progressive penalty.
+21:51:35  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): gemini. Ceza: 1.2100000000000002x
+21:51:35  INFO      [infra.events] [no-trace] [EVENT] heal.info: None
+21:51:36  WARNING   [libs.llm.model_orchestrator] [no-trace] Saðlayýcý Hatasý (anthropic): Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401. Fallback modele geçiliyor.
+21:51:37  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on openai. Applying progressive penalty.
+21:51:37  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): openai. Ceza: 1.2100000000000002x
+21:51:38  INFO      [agi_sovereign_cortex] [no-trace] [SOVEREIGN-AUTOCHECK] Bilissel saglik stabil: 1.00
+21:51:40  INFO      [shadow_runner] [no-trace] Shadow ortam hazýrlanýyor: E:\ai_company_faz12.1\runtime\shadow_fix_v2\run_efb94411
+21:51:46  INFO      [shadow_runner] [no-trace] Syntax doðrulama baþarýlý: E:\ai_company_faz12.1\runtime\shadow_fix_v2\run_efb94411\apps\refine_control_plane\src\app\workflows\_components\WorkflowDetailClient.tsx
+21:51:46  WARNING   [shadow_runner] [no-trace] Pytest atlandý: pytest yok veya test suite bulunamadý.
+21:51:46  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'jwt'
+21:51:47  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on groq. Applying progressive penalty.
+21:51:47  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): groq. Ceza: 1.2100000000000002x
+21:51:48  WARNING   [libs.llm.model_orchestrator] [no-trace] PROVIDER BILLING (402): openrouter requires payment. Quarantining for 24h.
+21:51:48  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): openai test ediliyor.
+21:51:48  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): openai. Ceza: 1.4641000000000006x
+21:51:48  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): gemini test ediliyor.
+21:51:49  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): gemini. Ceza: 1.4641000000000006x
+21:51:49  WARNING   [libs.llm.model_orchestrator] [no-trace] Saðlayýcý Hatasý (anthropic): Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401. Fallback modele geçiliyor.
+21:51:49  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/workflow_api/router.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: groq (429 Rate Limit), openrouter (402 Payment Required), openai (429 Rate Limit), gemini (429 Rate Limit), anthropic (Hata: Client error '401 Unauthorized' for url 'https://a...)] Son hata: Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+21:51:49  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 13925 karakter
+21:51:50  WARNING   [libs.llm.model_orchestrator] [no-trace] Saðlayýcý Hatasý (anthropic): Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401. Fallback modele geçiliyor.
+21:51:50  ERROR     [self_improvement] [no-trace] Improvement proposal failed for libs/workflow/runner.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Hata: Client error '401 Unauthorized' for url 'https://a...)] Son hata: Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+21:51:50  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+21:51:51  WARNING   [libs.llm.model_orchestrator] [no-trace] Saðlayýcý Hatasý (anthropic): Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401. Fallback modele geçiliyor.
+21:51:51  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Hata: Client error '401 Unauthorized' for url 'https://a...)] Son hata: Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+21:53:51  INFO      [improvement.observer] [no-trace] ImprovementObserver: Sistem taraniyor...
+21:53:51  INFO      [improvement.observer] [no-trace] Agent hatalari taraniyor...
+21:53:51  INFO      [improvement.observer] [no-trace] Endpoint hatalari taraniyor (401/404/429)...
+21:53:51  INFO      [improvement.observer] [no-trace] Workflow queue sagligi taraniyor...
+21:53:51  INFO      [improvement.observer] [no-trace] Approval bottleneck taramasi yapiliyor...
+21:53:51  INFO      [improvement.observer] [no-trace] Incident backlog taramasi yapiliyor...
+21:53:51  INFO      [improvement.observer] [no-trace] Improvement pipeline sagligi taraniyor...
+21:53:51  INFO      [improvement.observer] [no-trace] LLM provider pressure taramasi yapiliyor...
+21:53:51  INFO      [self_improvement] [no-trace] Self-Improvement: 2 aday bulundu, dedupe sonrasý 2 benzersiz fýrsat iþlenecek.
+21:53:51  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+21:53:51  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): openai test ediliyor.
+21:53:53  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): openai. Ceza: 1.6105100000000008x
+21:53:53  WARNING   [libs.llm.model_orchestrator] [no-trace] [THROTTLE] provider_429/openai suppressed 2 repeated events in last 60s.
+21:53:53  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on openai. Applying progressive penalty.
+21:53:53  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): openai. Ceza: 1.771561000000001x
+21:53:53  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): gemini test ediliyor.
+21:53:53  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): gemini. Ceza: 1.6105100000000008x
+21:53:53  WARNING   [libs.llm.model_orchestrator] [no-trace] [THROTTLE] provider_429/gemini suppressed 2 repeated events in last 60s.
+21:53:53  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on gemini. Applying progressive penalty.
+21:53:53  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): gemini. Ceza: 1.771561000000001x
+21:53:53  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): groq test ediliyor.
+21:53:57  INFO      [shadow_runner] [no-trace] Shadow ortam hazýrlanýyor: E:\ai_company_faz12.1\runtime\shadow_fix_v2\run_e8197b00
+21:54:12  INFO      [shadow_runner] [no-trace] Syntax doðrulama baþarýlý: E:\ai_company_faz12.1\runtime\shadow_fix_v2\run_e8197b00\apps\refine_control_plane\src\app\workflows\_components\WorkflowDetailClient.tsx
+21:54:12  WARNING   [shadow_runner] [no-trace] Pytest atlandý: pytest yok veya test suite bulunamadý.
+21:54:12  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'jwt'
+21:54:16  INFO      [shadow_runner] [no-trace] Shadow ortam hazýrlanýyor: E:\ai_company_faz12.1\runtime\shadow_fix_v2\run_0b5f41d4
+21:54:29  INFO      [shadow_runner] [no-trace] Syntax doðrulama baþarýlý: E:\ai_company_faz12.1\runtime\shadow_fix_v2\run_0b5f41d4\services\workflow_api\router.py
+21:54:29  WARNING   [shadow_runner] [no-trace] Pytest atlandý: pytest yok veya test suite bulunamadý.
+21:54:29  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 13925 karakter
+21:54:30  WARNING   [libs.llm.model_orchestrator] [no-trace] [THROTTLE] provider_429/groq suppressed 1 repeated events in last 60s.
+21:54:30  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on groq. Applying progressive penalty.
+21:54:30  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): groq. Ceza: 1.2100000000000002x
+21:54:30  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): openai test ediliyor.
+21:54:31  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): openai. Ceza: 1.9487171000000014x
+21:54:31  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on openai. Applying progressive penalty.
+21:54:31  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): openai. Ceza: 2.1435888100000016x
+21:54:31  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): gemini test ediliyor.
+21:54:31  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): gemini. Ceza: 1.9487171000000014x
+21:54:31  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on gemini. Applying progressive penalty.
+21:54:31  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): gemini. Ceza: 2.1435888100000016x
+21:54:32  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): anthropic. Ceza: 1.6105100000000008x
+21:54:32  WARNING   [libs.llm.model_orchestrator] [no-trace] Saðlayýcý Hatasý (anthropic): Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401. Fallback modele geçiliyor.
+21:54:32  ERROR     [self_improvement] [no-trace] Improvement proposal failed for libs/workflow/runner.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: groq (429 Rate Limit), openai (429 Rate Limit), gemini (429 Rate Limit), openrouter (Circuit Open), anthropic (Hata: Client error '401 Unauthorized' for url 'https://a...)] Son hata: Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+21:54:32  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+21:54:32  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+21:56:32  INFO      [improvement.observer] [no-trace] ImprovementObserver: Sistem taraniyor...
+21:56:32  INFO      [improvement.observer] [no-trace] Agent hatalari taraniyor...
+21:56:32  INFO      [improvement.observer] [no-trace] Endpoint hatalari taraniyor (401/404/429)...
+21:56:32  INFO      [improvement.observer] [no-trace] Workflow queue sagligi taraniyor...
+21:56:32  INFO      [improvement.observer] [no-trace] Approval bottleneck taramasi yapiliyor...
+21:56:32  INFO      [improvement.observer] [no-trace] Incident backlog taramasi yapiliyor...
+21:56:32  INFO      [improvement.observer] [no-trace] Improvement pipeline sagligi taraniyor...
+21:56:32  INFO      [improvement.observer] [no-trace] LLM provider pressure taramasi yapiliyor...
+21:56:32  INFO      [self_improvement] [no-trace] Self-Improvement: 2 aday bulundu, dedupe sonrasý 2 benzersiz fýrsat iþlenecek.
+21:56:32  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+21:56:32  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): openai test ediliyor.
+21:56:33  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): openai. Ceza: 2.357947691000002x
+21:56:33  WARNING   [libs.llm.model_orchestrator] [no-trace] [THROTTLE] provider_429/openai suppressed 1 repeated events in last 60s.
+21:56:33  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on openai. Applying progressive penalty.
+21:56:33  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): openai. Ceza: 2.5937424601000023x
+21:56:33  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): gemini test ediliyor.
+21:56:34  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): gemini. Ceza: 2.357947691000002x
+21:56:34  WARNING   [libs.llm.model_orchestrator] [no-trace] [THROTTLE] provider_429/gemini suppressed 1 repeated events in last 60s.
+21:56:34  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on gemini. Applying progressive penalty.
+21:56:34  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): gemini. Ceza: 2.5937424601000023x
+21:56:34  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): groq test ediliyor.
+21:56:38  INFO      [shadow_runner] [no-trace] Shadow ortam hazýrlanýyor: E:\ai_company_faz12.1\runtime\shadow_fix_v2\run_be2ffd6d
+21:56:50  INFO      [shadow_runner] [no-trace] Syntax doðrulama baþarýlý: E:\ai_company_faz12.1\runtime\shadow_fix_v2\run_be2ffd6d\apps\refine_control_plane\src\app\workflows\_components\WorkflowDetailClient.tsx
+21:56:50  WARNING   [shadow_runner] [no-trace] Pytest atlandý: pytest yok veya test suite bulunamadý.
+21:56:50  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'jwt'
+21:56:57  INFO      [shadow_runner] [no-trace] Shadow ortam hazýrlanýyor: E:\ai_company_faz12.1\runtime\shadow_fix_v2\run_c10727e4
+21:57:08  ERROR     [shadow_runner] [no-trace] Syntax validation failed: invalid syntax (router.py, line 1)
+21:57:08  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 13925 karakter
+21:57:09  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): groq. Ceza: 1.1x
+21:57:09  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on groq. Applying progressive penalty.
+21:57:09  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): groq. Ceza: 1.2100000000000002x
+21:57:09  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): openai test ediliyor.
+21:57:11  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): openai. Ceza: 2.853116706110003x
+21:57:11  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on openai. Applying progressive penalty.
+21:57:11  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): openai. Ceza: 3.1384283767210035x
+21:57:11  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): gemini test ediliyor.
+21:57:11  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): gemini. Ceza: 2.853116706110003x
+21:57:11  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on gemini. Applying progressive penalty.
+21:57:11  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): gemini. Ceza: 3.1384283767210035x
+21:57:11  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): anthropic test ediliyor.
+21:57:12  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): anthropic. Ceza: 1.771561000000001x
+21:57:12  WARNING   [libs.llm.model_orchestrator] [no-trace] Saðlayýcý Hatasý (anthropic): Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401. Fallback modele geçiliyor.
+21:57:12  ERROR     [self_improvement] [no-trace] Improvement proposal failed for libs/workflow/runner.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: groq (429 Rate Limit), openai (429 Rate Limit), gemini (429 Rate Limit), openrouter (Circuit Open), anthropic (Hata: Client error '401 Unauthorized' for url 'https://a...)] Son hata: Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+21:57:12  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+21:57:12  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+21:59:12  INFO      [improvement.observer] [no-trace] ImprovementObserver: Sistem taraniyor...
+21:59:12  INFO      [improvement.observer] [no-trace] Agent hatalari taraniyor...
+21:59:12  INFO      [improvement.observer] [no-trace] Endpoint hatalari taraniyor (401/404/429)...
+21:59:12  INFO      [improvement.observer] [no-trace] Workflow queue sagligi taraniyor...
+21:59:12  INFO      [improvement.observer] [no-trace] Approval bottleneck taramasi yapiliyor...
+21:59:12  INFO      [improvement.observer] [no-trace] Incident backlog taramasi yapiliyor...
+21:59:12  INFO      [improvement.observer] [no-trace] Improvement pipeline sagligi taraniyor...
+21:59:12  INFO      [improvement.observer] [no-trace] LLM provider pressure taramasi yapiliyor...
+21:59:12  INFO      [self_improvement] [no-trace] Self-Improvement: 3 aday bulundu, dedupe sonrasý 3 benzersiz fýrsat iþlenecek.
+21:59:12  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+21:59:12  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): openai test ediliyor.
+21:59:13  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): openai. Ceza: 3.4522712143931042x
+21:59:13  WARNING   [libs.llm.model_orchestrator] [no-trace] [THROTTLE] provider_429/openai suppressed 1 repeated events in last 60s.
+21:59:13  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on openai. Applying progressive penalty.
+21:59:13  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): openai. Ceza: 3.797498335832415x
+21:59:13  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): gemini test ediliyor.
+21:59:14  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): gemini. Ceza: 3.4522712143931042x
+21:59:14  WARNING   [libs.llm.model_orchestrator] [no-trace] [THROTTLE] provider_429/gemini suppressed 1 repeated events in last 60s.
+21:59:14  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on gemini. Applying progressive penalty.
+21:59:14  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): gemini. Ceza: 3.797498335832415x
+21:59:14  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): groq test ediliyor.
+21:59:16  INFO      [shadow_runner] [no-trace] Shadow ortam hazýrlanýyor: E:\ai_company_faz12.1\runtime\shadow_fix_v2\run_600c6089
+21:59:23  INFO      [shadow_runner] [no-trace] Syntax doðrulama baþarýlý: E:\ai_company_faz12.1\runtime\shadow_fix_v2\run_600c6089\apps\refine_control_plane\src\app\workflows\_components\WorkflowDetailClient.tsx
+21:59:23  WARNING   [shadow_runner] [no-trace] Pytest atlandý: pytest yok veya test suite bulunamadý.
+21:59:23  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'jwt'
+21:59:24  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): groq. Ceza: 1.1x
+21:59:24  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on groq. Applying progressive penalty.
+21:59:24  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): groq. Ceza: 1.2100000000000002x
+21:59:24  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): anthropic test ediliyor.
+21:59:25  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): anthropic. Ceza: 1.9487171000000014x
+21:59:25  WARNING   [libs.llm.model_orchestrator] [no-trace] Saðlayýcý Hatasý (anthropic): Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401. Fallback modele geçiliyor.
+21:59:25  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: openai zorlanýyor (Tüm modeller kapalý!)
+21:59:25  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): openai. Ceza: 4.177248169415656x
+21:59:25  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: gemini zorlanýyor (Tüm modeller kapalý!)
+21:59:26  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): gemini. Ceza: 4.177248169415656x
+21:59:26  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/workflow_api/router.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: groq (429 Rate Limit), openai (Circuit Open), gemini (Circuit Open), openrouter (Circuit Open), anthropic (Hata: Client error '401 Unauthorized' for url 'https://a...)] Son hata: Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+21:59:26  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 13925 karakter
+21:59:26  ERROR     [self_improvement] [no-trace] Improvement proposal failed for libs/workflow/runner.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+21:59:26  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+21:59:26  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+21:59:26  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'self-improvement'
+21:59:26  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/repair/application/self_improvement_coordinator.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+21:59:26  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 15151 karakter
+21:59:26  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/improvements/page.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:01:26  INFO      [improvement.observer] [no-trace] ImprovementObserver: Sistem taraniyor...
+22:01:26  INFO      [improvement.observer] [no-trace] Agent hatalari taraniyor...
+22:01:27  INFO      [improvement.observer] [no-trace] Endpoint hatalari taraniyor (401/404/429)...
+22:01:27  INFO      [improvement.observer] [no-trace] Workflow queue sagligi taraniyor...
+22:01:27  INFO      [improvement.observer] [no-trace] Approval bottleneck taramasi yapiliyor...
+22:01:27  INFO      [improvement.observer] [no-trace] Incident backlog taramasi yapiliyor...
+22:01:27  INFO      [improvement.observer] [no-trace] Improvement pipeline sagligi taraniyor...
+22:01:27  INFO      [improvement.observer] [no-trace] LLM provider pressure taramasi yapiliyor...
+22:01:27  INFO      [self_improvement] [no-trace] Self-Improvement: 3 aday bulundu, dedupe sonrasý 3 benzersiz fýrsat iþlenecek.
+22:01:27  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:01:27  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): openai test ediliyor.
+22:01:30  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): openai. Ceza: 4.594972986357222x
+22:01:30  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on openai. Applying progressive penalty.
+22:01:30  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): openai. Ceza: 5.054470284992944x
+22:01:30  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): gemini test ediliyor.
+22:01:31  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): gemini. Ceza: 4.594972986357222x
+22:01:31  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on gemini. Applying progressive penalty.
+22:01:31  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): gemini. Ceza: 5.054470284992944x
+22:01:31  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): groq test ediliyor.
+22:01:36  INFO      [shadow_runner] [no-trace] Shadow ortam hazýrlanýyor: E:\ai_company_faz12.1\runtime\shadow_fix_v2\run_30a6cdd5
+22:01:52  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: [('E:\\ai_company_faz12.1\\apps\\refine_control_plane\\.next\\lock', 'E:\\ai_company_faz12.1\\runtime\\shadow_fix_v2\\run_30a6cdd5\\apps\\refine_control_plane\\.next\\lock', '[WinError 2] Sistem belirtilen dosyayý bulamýyor')]
+22:01:52  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'jwt'
+22:01:53  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): groq. Ceza: 1.1x
+22:01:53  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on groq. Applying progressive penalty.
+22:01:53  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): groq. Ceza: 1.2100000000000002x
+22:01:53  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): anthropic test ediliyor.
+22:01:54  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): anthropic. Ceza: 2.1435888100000016x
+22:01:54  WARNING   [libs.llm.model_orchestrator] [no-trace] Saðlayýcý Hatasý (anthropic): Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401. Fallback modele geçiliyor.
+22:01:54  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: openai zorlanýyor (Tüm modeller kapalý!)
+22:01:55  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): openai. Ceza: 5.559917313492239x
+22:01:55  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: gemini zorlanýyor (Tüm modeller kapalý!)
+22:01:56  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): gemini. Ceza: 5.559917313492239x
+22:01:56  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/workflow_api/router.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: groq (429 Rate Limit), openai (Circuit Open), gemini (Circuit Open), openrouter (Circuit Open), anthropic (Hata: Client error '401 Unauthorized' for url 'https://a...)] Son hata: Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+22:01:56  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 13925 karakter
+22:01:56  ERROR     [self_improvement] [no-trace] Improvement proposal failed for libs/workflow/runner.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:01:56  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:01:56  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:01:56  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'self-improvement'
+22:01:56  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/repair/application/self_improvement_coordinator.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:01:56  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 15151 karakter
+22:01:56  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/improvements/page.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:03:56  INFO      [improvement.observer] [no-trace] ImprovementObserver: Sistem taraniyor...
+22:03:56  INFO      [improvement.observer] [no-trace] Agent hatalari taraniyor...
+22:03:56  INFO      [improvement.observer] [no-trace] Endpoint hatalari taraniyor (401/404/429)...
+22:03:56  INFO      [improvement.observer] [no-trace] Workflow queue sagligi taraniyor...
+22:03:56  INFO      [improvement.observer] [no-trace] Approval bottleneck taramasi yapiliyor...
+22:03:56  INFO      [improvement.observer] [no-trace] Incident backlog taramasi yapiliyor...
+22:03:56  INFO      [improvement.observer] [no-trace] Improvement pipeline sagligi taraniyor...
+22:03:56  INFO      [improvement.observer] [no-trace] LLM provider pressure taramasi yapiliyor...
+22:03:56  INFO      [self_improvement] [no-trace] Self-Improvement: 3 aday bulundu, dedupe sonrasý 3 benzersiz fýrsat iþlenecek.
+22:03:56  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:03:56  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): openai test ediliyor.
+22:03:57  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): openai. Ceza: 6.115909044841463x
+22:03:57  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on openai. Applying progressive penalty.
+22:03:57  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): openai. Ceza: 6.72749994932561x
+22:03:57  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): gemini test ediliyor.
+22:03:58  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): gemini. Ceza: 6.115909044841463x
+22:03:58  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on gemini. Applying progressive penalty.
+22:03:58  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): gemini. Ceza: 6.72749994932561x
+22:03:58  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): groq test ediliyor.
+22:04:02  INFO      [shadow_runner] [no-trace] Shadow ortam hazýrlanýyor: E:\ai_company_faz12.1\runtime\shadow_fix_v2\run_198c2d35
+22:04:19  INFO      [shadow_runner] [no-trace] Syntax doðrulama baþarýlý: E:\ai_company_faz12.1\runtime\shadow_fix_v2\run_198c2d35\apps\refine_control_plane\src\app\workflows\_components\WorkflowDetailClient.tsx
+22:04:19  WARNING   [shadow_runner] [no-trace] Pytest atlandý: pytest yok veya test suite bulunamadý.
+22:04:19  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'jwt'
+22:04:20  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): groq. Ceza: 1.1x
+22:04:20  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on groq. Applying progressive penalty.
+22:04:20  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): groq. Ceza: 1.2100000000000002x
+22:04:20  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): anthropic test ediliyor.
+22:04:22  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): anthropic. Ceza: 2.357947691000002x
+22:04:22  WARNING   [libs.llm.model_orchestrator] [no-trace] Saðlayýcý Hatasý (anthropic): Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401. Fallback modele geçiliyor.
+22:04:22  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: openai zorlanýyor (Tüm modeller kapalý!)
+22:04:23  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): openai. Ceza: 7.400249944258172x
+22:04:23  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: gemini zorlanýyor (Tüm modeller kapalý!)
+22:04:23  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): gemini. Ceza: 7.400249944258172x
+22:04:23  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/workflow_api/router.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: groq (429 Rate Limit), openai (Circuit Open), gemini (Circuit Open), openrouter (Circuit Open), anthropic (Hata: Client error '401 Unauthorized' for url 'https://a...)] Son hata: Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+22:04:23  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 13925 karakter
+22:04:23  ERROR     [self_improvement] [no-trace] Improvement proposal failed for libs/workflow/runner.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:04:23  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:04:23  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:04:23  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'self-improvement'
+22:04:23  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/repair/application/self_improvement_coordinator.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:04:23  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 15151 karakter
+22:04:23  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/improvements/page.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:06:23  INFO      [improvement.observer] [no-trace] ImprovementObserver: Sistem taraniyor...
+22:06:23  INFO      [improvement.observer] [no-trace] Agent hatalari taraniyor...
+22:06:23  INFO      [improvement.observer] [no-trace] Endpoint hatalari taraniyor (401/404/429)...
+22:06:23  INFO      [improvement.observer] [no-trace] Workflow queue sagligi taraniyor...
+22:06:23  INFO      [improvement.observer] [no-trace] Approval bottleneck taramasi yapiliyor...
+22:06:23  INFO      [improvement.observer] [no-trace] Incident backlog taramasi yapiliyor...
+22:06:23  INFO      [improvement.observer] [no-trace] Improvement pipeline sagligi taraniyor...
+22:06:23  INFO      [improvement.observer] [no-trace] LLM provider pressure taramasi yapiliyor...
+22:06:23  INFO      [self_improvement] [no-trace] Self-Improvement: 3 aday bulundu, dedupe sonrasý 3 benzersiz fýrsat iþlenecek.
+22:06:23  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:06:23  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): openai test ediliyor.
+22:06:24  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): openai. Ceza: 8.140274938683989x
+22:06:24  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on openai. Applying progressive penalty.
+22:06:24  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): openai. Ceza: 8.954302432552389x
+22:06:24  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): gemini test ediliyor.
+22:06:25  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): gemini. Ceza: 8.140274938683989x
+22:06:25  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on gemini. Applying progressive penalty.
+22:06:25  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): gemini. Ceza: 8.954302432552389x
+22:06:25  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): groq test ediliyor.
+22:06:29  INFO      [shadow_runner] [no-trace] Shadow ortam hazýrlanýyor: E:\ai_company_faz12.1\runtime\shadow_fix_v2\run_ca0c3a7b
+22:06:42  INFO      [shadow_runner] [no-trace] Syntax doðrulama baþarýlý: E:\ai_company_faz12.1\runtime\shadow_fix_v2\run_ca0c3a7b\apps\refine_control_plane\src\app\workflows\_components\WorkflowDetailClient.tsx
+22:06:42  WARNING   [shadow_runner] [no-trace] Pytest atlandý: pytest yok veya test suite bulunamadý.
+22:06:42  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'jwt'
+22:06:44  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): groq. Ceza: 1.1x
+22:06:44  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on groq. Applying progressive penalty.
+22:06:44  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): groq. Ceza: 1.2100000000000002x
+22:06:44  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): anthropic test ediliyor.
+22:06:45  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): anthropic. Ceza: 2.5937424601000023x
+22:06:45  WARNING   [libs.llm.model_orchestrator] [no-trace] Saðlayýcý Hatasý (anthropic): Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401. Fallback modele geçiliyor.
+22:06:45  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: openai zorlanýyor (Tüm modeller kapalý!)
+22:06:46  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): openai. Ceza: 9.849732675807628x
+22:06:46  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: gemini zorlanýyor (Tüm modeller kapalý!)
+22:06:46  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): gemini. Ceza: 9.849732675807628x
+22:06:46  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/workflow_api/router.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: groq (429 Rate Limit), openai (Circuit Open), gemini (Circuit Open), openrouter (Circuit Open), anthropic (Hata: Client error '401 Unauthorized' for url 'https://a...)] Son hata: Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+22:06:46  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 13925 karakter
+22:06:46  ERROR     [self_improvement] [no-trace] Improvement proposal failed for libs/workflow/runner.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:06:46  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:06:46  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:06:46  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'self-improvement'
+22:06:46  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/repair/application/self_improvement_coordinator.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:06:46  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 15151 karakter
+22:06:46  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/improvements/page.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:08:46  INFO      [improvement.observer] [no-trace] ImprovementObserver: Sistem taraniyor...
+22:08:46  INFO      [improvement.observer] [no-trace] Agent hatalari taraniyor...
+22:08:46  INFO      [improvement.observer] [no-trace] Endpoint hatalari taraniyor (401/404/429)...
+22:08:46  INFO      [improvement.observer] [no-trace] Workflow queue sagligi taraniyor...
+22:08:46  INFO      [improvement.observer] [no-trace] Approval bottleneck taramasi yapiliyor...
+22:08:46  INFO      [improvement.observer] [no-trace] Incident backlog taramasi yapiliyor...
+22:08:46  INFO      [improvement.observer] [no-trace] Improvement pipeline sagligi taraniyor...
+22:08:46  INFO      [improvement.observer] [no-trace] LLM provider pressure taramasi yapiliyor...
+22:08:46  INFO      [self_improvement] [no-trace] Self-Improvement: 3 aday bulundu, dedupe sonrasý 3 benzersiz fýrsat iþlenecek.
+22:08:46  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:08:46  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): openai test ediliyor.
+22:08:48  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): openai. Ceza: 10.834705943388391x
+22:08:48  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on openai. Applying progressive penalty.
+22:08:48  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): openai. Ceza: 11.91817653772723x
+22:08:48  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): gemini test ediliyor.
+22:08:49  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): gemini. Ceza: 10.834705943388391x
+22:08:49  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on gemini. Applying progressive penalty.
+22:08:49  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): gemini. Ceza: 11.91817653772723x
+22:08:49  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): groq test ediliyor.
+22:08:53  INFO      [shadow_runner] [no-trace] Shadow ortam hazýrlanýyor: E:\ai_company_faz12.1\runtime\shadow_fix_v2\run_f5834350
+22:09:04  INFO      [shadow_runner] [no-trace] Syntax doðrulama baþarýlý: E:\ai_company_faz12.1\runtime\shadow_fix_v2\run_f5834350\apps\refine_control_plane\src\app\workflows\_components\WorkflowDetailClient.tsx
+22:09:04  WARNING   [shadow_runner] [no-trace] Pytest atlandý: pytest yok veya test suite bulunamadý.
+22:09:04  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'jwt'
+22:09:04  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): groq. Ceza: 1.1x
+22:09:04  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on groq. Applying progressive penalty.
+22:09:04  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): groq. Ceza: 1.2100000000000002x
+22:09:04  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): anthropic test ediliyor.
+22:09:05  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): anthropic. Ceza: 2.853116706110003x
+22:09:05  WARNING   [libs.llm.model_orchestrator] [no-trace] Saðlayýcý Hatasý (anthropic): Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401. Fallback modele geçiliyor.
+22:09:05  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: openai zorlanýyor (Tüm modeller kapalý!)
+22:09:07  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): openai. Ceza: 13.109994191499954x
+22:09:07  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: gemini zorlanýyor (Tüm modeller kapalý!)
+22:09:08  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): gemini. Ceza: 13.109994191499954x
+22:09:08  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/workflow_api/router.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: groq (429 Rate Limit), openai (Circuit Open), gemini (Circuit Open), openrouter (Circuit Open), anthropic (Hata: Client error '401 Unauthorized' for url 'https://a...)] Son hata: Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+22:09:08  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 13925 karakter
+22:09:08  ERROR     [self_improvement] [no-trace] Improvement proposal failed for libs/workflow/runner.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:09:08  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:09:08  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:09:08  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'self-improvement'
+22:09:08  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/repair/application/self_improvement_coordinator.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:09:08  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 15153 karakter
+22:09:08  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/improvements/page.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:11:08  INFO      [improvement.observer] [no-trace] ImprovementObserver: Sistem taraniyor...
+22:11:08  INFO      [improvement.observer] [no-trace] Agent hatalari taraniyor...
+22:11:08  INFO      [improvement.observer] [no-trace] Endpoint hatalari taraniyor (401/404/429)...
+22:11:08  INFO      [improvement.observer] [no-trace] Workflow queue sagligi taraniyor...
+22:11:08  INFO      [improvement.observer] [no-trace] Approval bottleneck taramasi yapiliyor...
+22:11:08  INFO      [improvement.observer] [no-trace] Incident backlog taramasi yapiliyor...
+22:11:08  INFO      [improvement.observer] [no-trace] Improvement pipeline sagligi taraniyor...
+22:11:08  INFO      [improvement.observer] [no-trace] LLM provider pressure taramasi yapiliyor...
+22:11:08  INFO      [self_improvement] [no-trace] Self-Improvement: 3 aday bulundu, dedupe sonrasý 3 benzersiz fýrsat iþlenecek.
+22:11:08  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:11:08  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): openai test ediliyor.
+22:11:09  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): openai. Ceza: 14.420993610649951x
+22:11:09  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on openai. Applying progressive penalty.
+22:11:09  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): openai. Ceza: 15.863092971714948x
+22:11:09  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): gemini test ediliyor.
+22:11:10  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): gemini. Ceza: 14.420993610649951x
+22:11:10  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on gemini. Applying progressive penalty.
+22:11:10  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): gemini. Ceza: 15.863092971714948x
+22:11:10  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): groq test ediliyor.
+22:11:10  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): groq. Ceza: 1.3310000000000004x
+22:11:10  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on groq. Applying progressive penalty.
+22:11:10  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): groq. Ceza: 1.4641000000000006x
+22:11:10  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): anthropic test ediliyor.
+22:11:11  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): anthropic. Ceza: 3.1384283767210035x
+22:11:11  WARNING   [libs.llm.model_orchestrator] [no-trace] Saðlayýcý Hatasý (anthropic): Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401. Fallback modele geçiliyor.
+22:11:11  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (429 Rate Limit), gemini (429 Rate Limit), groq (429 Rate Limit), openrouter (Circuit Open), anthropic (Hata: Client error '401 Unauthorized' for url 'https://a...)] Son hata: Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+22:11:11  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'jwt'
+22:11:11  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/workflow_api/router.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:11:11  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 13925 karakter
+22:11:11  ERROR     [self_improvement] [no-trace] Improvement proposal failed for libs/workflow/runner.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:11:11  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:11:11  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:11:11  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'self-improvement'
+22:11:11  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/repair/application/self_improvement_coordinator.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:11:11  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 15153 karakter
+22:11:11  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/improvements/page.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:13:11  INFO      [improvement.observer] [no-trace] ImprovementObserver: Sistem taraniyor...
+22:13:12  INFO      [improvement.observer] [no-trace] Agent hatalari taraniyor...
+22:13:12  INFO      [improvement.observer] [no-trace] Endpoint hatalari taraniyor (401/404/429)...
+22:13:12  INFO      [improvement.observer] [no-trace] Workflow queue sagligi taraniyor...
+22:13:12  INFO      [improvement.observer] [no-trace] Approval bottleneck taramasi yapiliyor...
+22:13:12  INFO      [improvement.observer] [no-trace] Incident backlog taramasi yapiliyor...
+22:13:12  INFO      [improvement.observer] [no-trace] Improvement pipeline sagligi taraniyor...
+22:13:12  INFO      [improvement.observer] [no-trace] LLM provider pressure taramasi yapiliyor...
+22:13:12  INFO      [self_improvement] [no-trace] Self-Improvement: 3 aday bulundu, dedupe sonrasý 3 benzersiz fýrsat iþlenecek.
+22:13:12  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:13:12  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): openai test ediliyor.
+22:13:12  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): openai. Ceza: 17.449402268886445x
+22:13:12  CRITICAL  [libs.llm.model_orchestrator] [no-trace] OTONOM KARANTÝNA (BAN): openai kronik hata nedeniyle 1 saat yasaklandý.
+22:13:12  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on openai. Applying progressive penalty.
+22:13:12  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): openai. Ceza: 19.19434249577509x
+22:13:12  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): gemini test ediliyor.
+22:13:13  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): gemini. Ceza: 17.449402268886445x
+22:13:13  CRITICAL  [libs.llm.model_orchestrator] [no-trace] OTONOM KARANTÝNA (BAN): gemini kronik hata nedeniyle 1 saat yasaklandý.
+22:13:13  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on gemini. Applying progressive penalty.
+22:13:13  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): gemini. Ceza: 19.19434249577509x
+22:13:13  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): groq test ediliyor.
+22:13:14  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): groq. Ceza: 1.6105100000000008x
+22:13:14  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on groq. Applying progressive penalty.
+22:13:14  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): groq. Ceza: 1.771561000000001x
+22:13:14  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): anthropic test ediliyor.
+22:13:15  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): anthropic. Ceza: 3.4522712143931042x
+22:13:15  WARNING   [libs.llm.model_orchestrator] [no-trace] Saðlayýcý Hatasý (anthropic): Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401. Fallback modele geçiliyor.
+22:13:15  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (429 Rate Limit), gemini (429 Rate Limit), groq (429 Rate Limit), openrouter (Circuit Open), anthropic (Hata: Client error '401 Unauthorized' for url 'https://a...)] Son hata: Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+22:13:15  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'jwt'
+22:13:15  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/workflow_api/router.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:13:15  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 13925 karakter
+22:13:15  ERROR     [self_improvement] [no-trace] Improvement proposal failed for libs/workflow/runner.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:13:15  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:13:15  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:13:15  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'self-improvement'
+22:13:15  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/repair/application/self_improvement_coordinator.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:13:15  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 15153 karakter
+22:13:15  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/improvements/page.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:15:15  INFO      [improvement.observer] [no-trace] ImprovementObserver: Sistem taraniyor...
+22:15:15  INFO      [improvement.observer] [no-trace] Agent hatalari taraniyor...
+22:15:15  INFO      [improvement.observer] [no-trace] Endpoint hatalari taraniyor (401/404/429)...
+22:15:15  INFO      [improvement.observer] [no-trace] Workflow queue sagligi taraniyor...
+22:15:15  INFO      [improvement.observer] [no-trace] Approval bottleneck taramasi yapiliyor...
+22:15:15  INFO      [improvement.observer] [no-trace] Incident backlog taramasi yapiliyor...
+22:15:15  INFO      [improvement.observer] [no-trace] Improvement pipeline sagligi taraniyor...
+22:15:15  INFO      [improvement.observer] [no-trace] LLM provider pressure taramasi yapiliyor...
+22:15:15  INFO      [self_improvement] [no-trace] Self-Improvement: 3 aday bulundu, dedupe sonrasý 3 benzersiz fýrsat iþlenecek.
+22:15:15  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:15:15  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): groq test ediliyor.
+22:15:16  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): groq. Ceza: 1.9487171000000014x
+22:15:16  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on groq. Applying progressive penalty.
+22:15:16  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): groq. Ceza: 2.1435888100000016x
+22:15:16  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): anthropic test ediliyor.
+22:15:16  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): anthropic. Ceza: 3.797498335832415x
+22:15:16  WARNING   [libs.llm.model_orchestrator] [no-trace] Saðlayýcý Hatasý (anthropic): Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401. Fallback modele geçiliyor.
+22:15:16  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: openai zorlanýyor (Tüm modeller kapalý!)
+22:15:17  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): openai. Ceza: 21.1137767453526x
+22:15:17  CRITICAL  [libs.llm.model_orchestrator] [no-trace] OTONOM KARANTÝNA (BAN): openai kronik hata nedeniyle 1 saat yasaklandý.
+22:15:17  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: gemini zorlanýyor (Tüm modeller kapalý!)
+22:15:18  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): gemini. Ceza: 21.1137767453526x
+22:15:18  CRITICAL  [libs.llm.model_orchestrator] [no-trace] OTONOM KARANTÝNA (BAN): gemini kronik hata nedeniyle 1 saat yasaklandý.
+22:15:18  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (429 Rate Limit), openrouter (Circuit Open), anthropic (Hata: Client error '401 Unauthorized' for url 'https://a...)] Son hata: Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+22:15:18  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'jwt'
+22:15:18  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/workflow_api/router.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:15:18  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 13925 karakter
+22:15:18  ERROR     [self_improvement] [no-trace] Improvement proposal failed for libs/workflow/runner.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:15:18  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:15:18  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:15:18  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'self-improvement'
+22:15:18  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/repair/application/self_improvement_coordinator.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:15:18  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 15153 karakter
+22:15:18  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/improvements/page.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:17:18  INFO      [improvement.observer] [no-trace] ImprovementObserver: Sistem taraniyor...
+22:17:18  INFO      [improvement.observer] [no-trace] Agent hatalari taraniyor...
+22:17:18  INFO      [improvement.observer] [no-trace] Endpoint hatalari taraniyor (401/404/429)...
+22:17:18  INFO      [improvement.observer] [no-trace] Workflow queue sagligi taraniyor...
+22:17:18  INFO      [improvement.observer] [no-trace] Approval bottleneck taramasi yapiliyor...
+22:17:18  INFO      [improvement.observer] [no-trace] Incident backlog taramasi yapiliyor...
+22:17:18  INFO      [improvement.observer] [no-trace] Improvement pipeline sagligi taraniyor...
+22:17:18  INFO      [improvement.observer] [no-trace] LLM provider pressure taramasi yapiliyor...
+22:17:18  INFO      [self_improvement] [no-trace] Self-Improvement: 3 aday bulundu, dedupe sonrasý 3 benzersiz fýrsat iþlenecek.
+22:17:18  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:17:18  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): groq test ediliyor.
+22:17:19  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): groq. Ceza: 2.357947691000002x
+22:17:19  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on groq. Applying progressive penalty.
+22:17:19  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): groq. Ceza: 2.5937424601000023x
+22:17:19  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): anthropic test ediliyor.
+22:17:20  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): anthropic. Ceza: 4.177248169415656x
+22:17:20  WARNING   [libs.llm.model_orchestrator] [no-trace] Saðlayýcý Hatasý (anthropic): Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401. Fallback modele geçiliyor.
+22:17:20  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: openai zorlanýyor (Tüm modeller kapalý!)
+22:17:21  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): openai. Ceza: 23.22515441988786x
+22:17:21  CRITICAL  [libs.llm.model_orchestrator] [no-trace] OTONOM KARANTÝNA (BAN): openai kronik hata nedeniyle 1 saat yasaklandý.
+22:17:21  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: gemini zorlanýyor (Tüm modeller kapalý!)
+22:17:21  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): gemini. Ceza: 23.22515441988786x
+22:17:21  CRITICAL  [libs.llm.model_orchestrator] [no-trace] OTONOM KARANTÝNA (BAN): gemini kronik hata nedeniyle 1 saat yasaklandý.
+22:17:21  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (429 Rate Limit), openrouter (Circuit Open), anthropic (Hata: Client error '401 Unauthorized' for url 'https://a...)] Son hata: Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+22:17:21  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'jwt'
+22:17:21  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/workflow_api/router.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:17:21  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 13925 karakter
+22:17:21  ERROR     [self_improvement] [no-trace] Improvement proposal failed for libs/workflow/runner.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:17:21  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:17:21  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:17:21  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'self-improvement'
+22:17:21  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/repair/application/self_improvement_coordinator.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:17:21  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 15153 karakter
+22:17:21  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/improvements/page.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:19:21  INFO      [improvement.observer] [no-trace] ImprovementObserver: Sistem taraniyor...
+22:19:21  INFO      [improvement.observer] [no-trace] Agent hatalari taraniyor...
+22:19:21  INFO      [improvement.observer] [no-trace] Endpoint hatalari taraniyor (401/404/429)...
+22:19:21  INFO      [improvement.observer] [no-trace] Workflow queue sagligi taraniyor...
+22:19:21  INFO      [improvement.observer] [no-trace] Approval bottleneck taramasi yapiliyor...
+22:19:21  INFO      [improvement.observer] [no-trace] Incident backlog taramasi yapiliyor...
+22:19:21  INFO      [improvement.observer] [no-trace] Improvement pipeline sagligi taraniyor...
+22:19:21  INFO      [improvement.observer] [no-trace] LLM provider pressure taramasi yapiliyor...
+22:19:21  INFO      [self_improvement] [no-trace] Self-Improvement: 3 aday bulundu, dedupe sonrasý 3 benzersiz fýrsat iþlenecek.
+22:19:21  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:19:21  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): groq test ediliyor.
+22:19:22  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): groq. Ceza: 2.853116706110003x
+22:19:22  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on groq. Applying progressive penalty.
+22:19:22  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): groq. Ceza: 3.1384283767210035x
+22:19:22  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): anthropic test ediliyor.
+22:19:23  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): anthropic. Ceza: 4.594972986357222x
+22:19:23  WARNING   [libs.llm.model_orchestrator] [no-trace] Saðlayýcý Hatasý (anthropic): Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401. Fallback modele geçiliyor.
+22:19:23  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: openai zorlanýyor (Tüm modeller kapalý!)
+22:19:24  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): openai. Ceza: 25.54766986187665x
+22:19:24  CRITICAL  [libs.llm.model_orchestrator] [no-trace] OTONOM KARANTÝNA (BAN): openai kronik hata nedeniyle 1 saat yasaklandý.
+22:19:24  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: gemini zorlanýyor (Tüm modeller kapalý!)
+22:19:25  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): gemini. Ceza: 25.54766986187665x
+22:19:25  CRITICAL  [libs.llm.model_orchestrator] [no-trace] OTONOM KARANTÝNA (BAN): gemini kronik hata nedeniyle 1 saat yasaklandý.
+22:19:25  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (429 Rate Limit), openrouter (Circuit Open), anthropic (Hata: Client error '401 Unauthorized' for url 'https://a...)] Son hata: Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+22:19:25  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'jwt'
+22:19:25  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/workflow_api/router.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:19:25  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 13925 karakter
+22:19:25  ERROR     [self_improvement] [no-trace] Improvement proposal failed for libs/workflow/runner.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:19:25  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:19:25  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:19:25  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'self-improvement'
+22:19:25  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/repair/application/self_improvement_coordinator.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:19:25  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 15153 karakter
+22:19:25  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/improvements/page.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:21:25  INFO      [improvement.observer] [no-trace] ImprovementObserver: Sistem taraniyor...
+22:21:25  INFO      [improvement.observer] [no-trace] Agent hatalari taraniyor...
+22:21:25  INFO      [improvement.observer] [no-trace] Endpoint hatalari taraniyor (401/404/429)...
+22:21:25  INFO      [improvement.observer] [no-trace] Workflow queue sagligi taraniyor...
+22:21:25  INFO      [improvement.observer] [no-trace] Approval bottleneck taramasi yapiliyor...
+22:21:25  INFO      [improvement.observer] [no-trace] Incident backlog taramasi yapiliyor...
+22:21:25  INFO      [improvement.observer] [no-trace] Improvement pipeline sagligi taraniyor...
+22:21:25  INFO      [improvement.observer] [no-trace] LLM provider pressure taramasi yapiliyor...
+22:21:25  INFO      [self_improvement] [no-trace] Self-Improvement: 3 aday bulundu, dedupe sonrasý 3 benzersiz fýrsat iþlenecek.
+22:21:25  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:21:25  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): groq test ediliyor.
+22:21:26  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): groq. Ceza: 3.4522712143931042x
+22:21:26  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on groq. Applying progressive penalty.
+22:21:26  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): groq. Ceza: 3.797498335832415x
+22:21:26  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): anthropic test ediliyor.
+22:21:27  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): anthropic. Ceza: 5.054470284992944x
+22:21:27  WARNING   [libs.llm.model_orchestrator] [no-trace] Saðlayýcý Hatasý (anthropic): Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401. Fallback modele geçiliyor.
+22:21:27  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: openai zorlanýyor (Tüm modeller kapalý!)
+22:21:27  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): openai. Ceza: 28.102436848064315x
+22:21:27  CRITICAL  [libs.llm.model_orchestrator] [no-trace] OTONOM KARANTÝNA (BAN): openai kronik hata nedeniyle 1 saat yasaklandý.
+22:21:27  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: gemini zorlanýyor (Tüm modeller kapalý!)
+22:21:28  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): gemini. Ceza: 28.102436848064315x
+22:21:28  CRITICAL  [libs.llm.model_orchestrator] [no-trace] OTONOM KARANTÝNA (BAN): gemini kronik hata nedeniyle 1 saat yasaklandý.
+22:21:28  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (429 Rate Limit), openrouter (Circuit Open), anthropic (Hata: Client error '401 Unauthorized' for url 'https://a...)] Son hata: Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+22:21:28  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'jwt'
+22:21:28  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/workflow_api/router.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:21:28  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 13925 karakter
+22:21:28  ERROR     [self_improvement] [no-trace] Improvement proposal failed for libs/workflow/runner.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:21:28  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:21:28  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:21:28  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'self-improvement'
+22:21:28  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/repair/application/self_improvement_coordinator.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:21:28  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 15153 karakter
+22:21:28  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/improvements/page.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:23:28  INFO      [improvement.observer] [no-trace] ImprovementObserver: Sistem taraniyor...
+22:23:28  INFO      [improvement.observer] [no-trace] Agent hatalari taraniyor...
+22:23:28  INFO      [improvement.observer] [no-trace] Endpoint hatalari taraniyor (401/404/429)...
+22:23:28  INFO      [improvement.observer] [no-trace] Workflow queue sagligi taraniyor...
+22:23:28  INFO      [improvement.observer] [no-trace] Approval bottleneck taramasi yapiliyor...
+22:23:28  INFO      [improvement.observer] [no-trace] Incident backlog taramasi yapiliyor...
+22:23:28  INFO      [improvement.observer] [no-trace] Improvement pipeline sagligi taraniyor...
+22:23:28  INFO      [improvement.observer] [no-trace] LLM provider pressure taramasi yapiliyor...
+22:23:28  INFO      [self_improvement] [no-trace] Self-Improvement: 3 aday bulundu, dedupe sonrasý 3 benzersiz fýrsat iþlenecek.
+22:23:28  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:23:28  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): groq test ediliyor.
+22:23:29  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): groq. Ceza: 4.177248169415656x
+22:23:29  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on groq. Applying progressive penalty.
+22:23:29  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): groq. Ceza: 4.594972986357222x
+22:23:29  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): anthropic test ediliyor.
+22:23:30  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): anthropic. Ceza: 5.559917313492239x
+22:23:30  WARNING   [libs.llm.model_orchestrator] [no-trace] Saðlayýcý Hatasý (anthropic): Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401. Fallback modele geçiliyor.
+22:23:30  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: openai zorlanýyor (Tüm modeller kapalý!)
+22:23:31  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): openai. Ceza: 30.91268053287075x
+22:23:31  CRITICAL  [libs.llm.model_orchestrator] [no-trace] OTONOM KARANTÝNA (BAN): openai kronik hata nedeniyle 1 saat yasaklandý.
+22:23:31  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: gemini zorlanýyor (Tüm modeller kapalý!)
+22:23:31  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): gemini. Ceza: 30.91268053287075x
+22:23:31  CRITICAL  [libs.llm.model_orchestrator] [no-trace] OTONOM KARANTÝNA (BAN): gemini kronik hata nedeniyle 1 saat yasaklandý.
+22:23:31  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (429 Rate Limit), openrouter (Circuit Open), anthropic (Hata: Client error '401 Unauthorized' for url 'https://a...)] Son hata: Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+22:23:31  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'jwt'
+22:23:31  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/workflow_api/router.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:23:31  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 13925 karakter
+22:23:31  ERROR     [self_improvement] [no-trace] Improvement proposal failed for libs/workflow/runner.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:23:31  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:23:31  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:23:31  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'self-improvement'
+22:23:31  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/repair/application/self_improvement_coordinator.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:23:31  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 15153 karakter
+22:23:31  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/improvements/page.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:25:31  INFO      [improvement.observer] [no-trace] ImprovementObserver: Sistem taraniyor...
+22:25:32  INFO      [improvement.observer] [no-trace] Agent hatalari taraniyor...
+22:25:32  INFO      [improvement.observer] [no-trace] Endpoint hatalari taraniyor (401/404/429)...
+22:25:32  INFO      [improvement.observer] [no-trace] Workflow queue sagligi taraniyor...
+22:25:32  INFO      [improvement.observer] [no-trace] Approval bottleneck taramasi yapiliyor...
+22:25:32  INFO      [improvement.observer] [no-trace] Incident backlog taramasi yapiliyor...
+22:25:32  INFO      [improvement.observer] [no-trace] Improvement pipeline sagligi taraniyor...
+22:25:32  INFO      [improvement.observer] [no-trace] LLM provider pressure taramasi yapiliyor...
+22:25:32  INFO      [self_improvement] [no-trace] Self-Improvement: 3 aday bulundu, dedupe sonrasý 3 benzersiz fýrsat iþlenecek.
+22:25:32  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:25:32  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): groq test ediliyor.
+22:25:32  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): groq. Ceza: 5.054470284992944x
+22:25:32  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on groq. Applying progressive penalty.
+22:25:32  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): groq. Ceza: 5.559917313492239x
+22:25:32  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): anthropic test ediliyor.
+22:25:33  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): anthropic. Ceza: 6.115909044841463x
+22:25:33  WARNING   [libs.llm.model_orchestrator] [no-trace] Saðlayýcý Hatasý (anthropic): Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401. Fallback modele geçiliyor.
+22:25:33  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: openai zorlanýyor (Tüm modeller kapalý!)
+22:25:34  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): openai. Ceza: 34.003948586157826x
+22:25:34  CRITICAL  [libs.llm.model_orchestrator] [no-trace] OTONOM KARANTÝNA (BAN): openai kronik hata nedeniyle 1 saat yasaklandý.
+22:25:34  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: gemini zorlanýyor (Tüm modeller kapalý!)
+22:25:35  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): gemini. Ceza: 34.003948586157826x
+22:25:35  CRITICAL  [libs.llm.model_orchestrator] [no-trace] OTONOM KARANTÝNA (BAN): gemini kronik hata nedeniyle 1 saat yasaklandý.
+22:25:35  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (429 Rate Limit), openrouter (Circuit Open), anthropic (Hata: Client error '401 Unauthorized' for url 'https://a...)] Son hata: Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+22:25:35  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'jwt'
+22:25:35  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/workflow_api/router.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:25:35  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 13925 karakter
+22:25:35  ERROR     [self_improvement] [no-trace] Improvement proposal failed for libs/workflow/runner.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:25:35  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:25:35  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:25:35  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'self-improvement'
+22:25:35  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/repair/application/self_improvement_coordinator.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:25:35  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 15153 karakter
+22:25:35  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/improvements/page.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:27:35  INFO      [improvement.observer] [no-trace] ImprovementObserver: Sistem taraniyor...
+22:27:35  INFO      [improvement.observer] [no-trace] Agent hatalari taraniyor...
+22:27:35  INFO      [improvement.observer] [no-trace] Endpoint hatalari taraniyor (401/404/429)...
+22:27:35  INFO      [improvement.observer] [no-trace] Workflow queue sagligi taraniyor...
+22:27:35  INFO      [improvement.observer] [no-trace] Approval bottleneck taramasi yapiliyor...
+22:27:35  INFO      [improvement.observer] [no-trace] Incident backlog taramasi yapiliyor...
+22:27:35  INFO      [improvement.observer] [no-trace] Improvement pipeline sagligi taraniyor...
+22:27:35  INFO      [improvement.observer] [no-trace] LLM provider pressure taramasi yapiliyor...
+22:27:35  INFO      [self_improvement] [no-trace] Self-Improvement: 3 aday bulundu, dedupe sonrasý 3 benzersiz fýrsat iþlenecek.
+22:27:35  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:27:35  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): groq test ediliyor.
+22:27:36  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): groq. Ceza: 6.115909044841463x
+22:27:36  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on groq. Applying progressive penalty.
+22:27:36  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): groq. Ceza: 6.72749994932561x
+22:27:36  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): anthropic test ediliyor.
+22:27:36  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): anthropic. Ceza: 6.72749994932561x
+22:27:36  WARNING   [libs.llm.model_orchestrator] [no-trace] Saðlayýcý Hatasý (anthropic): Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401. Fallback modele geçiliyor.
+22:27:36  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: openai zorlanýyor (Tüm modeller kapalý!)
+22:27:37  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): openai. Ceza: 37.40434344477361x
+22:27:37  CRITICAL  [libs.llm.model_orchestrator] [no-trace] OTONOM KARANTÝNA (BAN): openai kronik hata nedeniyle 1 saat yasaklandý.
+22:27:37  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: gemini zorlanýyor (Tüm modeller kapalý!)
+22:27:38  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): gemini. Ceza: 37.40434344477361x
+22:27:38  CRITICAL  [libs.llm.model_orchestrator] [no-trace] OTONOM KARANTÝNA (BAN): gemini kronik hata nedeniyle 1 saat yasaklandý.
+22:27:38  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (429 Rate Limit), openrouter (Circuit Open), anthropic (Hata: Client error '401 Unauthorized' for url 'https://a...)] Son hata: Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+22:27:38  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'jwt'
+22:27:38  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/workflow_api/router.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:27:38  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 13925 karakter
+22:27:38  ERROR     [self_improvement] [no-trace] Improvement proposal failed for libs/workflow/runner.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:27:38  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:27:38  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:27:38  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'self-improvement'
+22:27:38  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/repair/application/self_improvement_coordinator.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:27:38  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 15153 karakter
+22:27:38  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/improvements/page.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:29:38  INFO      [improvement.observer] [no-trace] ImprovementObserver: Sistem taraniyor...
+22:29:38  INFO      [improvement.observer] [no-trace] Agent hatalari taraniyor...
+22:29:38  INFO      [improvement.observer] [no-trace] Endpoint hatalari taraniyor (401/404/429)...
+22:29:38  INFO      [improvement.observer] [no-trace] Workflow queue sagligi taraniyor...
+22:29:38  INFO      [improvement.observer] [no-trace] Approval bottleneck taramasi yapiliyor...
+22:29:38  INFO      [improvement.observer] [no-trace] Incident backlog taramasi yapiliyor...
+22:29:38  INFO      [improvement.observer] [no-trace] Improvement pipeline sagligi taraniyor...
+22:29:38  INFO      [improvement.observer] [no-trace] LLM provider pressure taramasi yapiliyor...
+22:29:38  INFO      [self_improvement] [no-trace] Self-Improvement: 3 aday bulundu, dedupe sonrasý 3 benzersiz fýrsat iþlenecek.
+22:29:38  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:29:38  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): groq test ediliyor.
+22:29:39  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): groq. Ceza: 7.400249944258172x
+22:29:39  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on groq. Applying progressive penalty.
+22:29:39  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): groq. Ceza: 8.140274938683989x
+22:29:39  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): anthropic test ediliyor.
+22:29:40  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): anthropic. Ceza: 7.400249944258172x
+22:29:40  WARNING   [libs.llm.model_orchestrator] [no-trace] Saðlayýcý Hatasý (anthropic): Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401. Fallback modele geçiliyor.
+22:29:40  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: openai zorlanýyor (Tüm modeller kapalý!)
+22:29:40  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): openai. Ceza: 41.14477778925097x
+22:29:40  CRITICAL  [libs.llm.model_orchestrator] [no-trace] OTONOM KARANTÝNA (BAN): openai kronik hata nedeniyle 1 saat yasaklandý.
+22:29:40  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: gemini zorlanýyor (Tüm modeller kapalý!)
+22:29:41  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): gemini. Ceza: 41.14477778925097x
+22:29:41  CRITICAL  [libs.llm.model_orchestrator] [no-trace] OTONOM KARANTÝNA (BAN): gemini kronik hata nedeniyle 1 saat yasaklandý.
+22:29:41  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (429 Rate Limit), openrouter (Circuit Open), anthropic (Hata: Client error '401 Unauthorized' for url 'https://a...)] Son hata: Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+22:29:41  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'jwt'
+22:29:41  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/workflow_api/router.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:29:41  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 13925 karakter
+22:29:41  ERROR     [self_improvement] [no-trace] Improvement proposal failed for libs/workflow/runner.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:29:41  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:29:41  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:29:41  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'self-improvement'
+22:29:41  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/repair/application/self_improvement_coordinator.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:29:41  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 15153 karakter
+22:29:41  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/improvements/page.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:31:41  INFO      [improvement.observer] [no-trace] ImprovementObserver: Sistem taraniyor...
+22:31:41  INFO      [improvement.observer] [no-trace] Agent hatalari taraniyor...
+22:31:41  INFO      [improvement.observer] [no-trace] Endpoint hatalari taraniyor (401/404/429)...
+22:31:41  INFO      [improvement.observer] [no-trace] Workflow queue sagligi taraniyor...
+22:31:41  INFO      [improvement.observer] [no-trace] Approval bottleneck taramasi yapiliyor...
+22:31:41  INFO      [improvement.observer] [no-trace] Incident backlog taramasi yapiliyor...
+22:31:41  INFO      [improvement.observer] [no-trace] Improvement pipeline sagligi taraniyor...
+22:31:41  INFO      [improvement.observer] [no-trace] LLM provider pressure taramasi yapiliyor...
+22:31:41  INFO      [self_improvement] [no-trace] Self-Improvement: 3 aday bulundu, dedupe sonrasý 3 benzersiz fýrsat iþlenecek.
+22:31:41  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:31:41  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): groq test ediliyor.
+22:31:42  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): groq. Ceza: 8.954302432552389x
+22:31:42  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on groq. Applying progressive penalty.
+22:31:42  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): groq. Ceza: 9.849732675807628x
+22:31:42  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): anthropic test ediliyor.
+22:31:43  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): anthropic. Ceza: 8.140274938683989x
+22:31:43  WARNING   [libs.llm.model_orchestrator] [no-trace] Saðlayýcý Hatasý (anthropic): Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401. Fallback modele geçiliyor.
+22:31:43  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: openai zorlanýyor (Tüm modeller kapalý!)
+22:31:45  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): openai. Ceza: 45.25925556817607x
+22:31:45  CRITICAL  [libs.llm.model_orchestrator] [no-trace] OTONOM KARANTÝNA (BAN): openai kronik hata nedeniyle 1 saat yasaklandý.
+22:31:45  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: gemini zorlanýyor (Tüm modeller kapalý!)
+22:31:45  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): gemini. Ceza: 45.25925556817607x
+22:31:45  CRITICAL  [libs.llm.model_orchestrator] [no-trace] OTONOM KARANTÝNA (BAN): gemini kronik hata nedeniyle 1 saat yasaklandý.
+22:31:45  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (429 Rate Limit), openrouter (Circuit Open), anthropic (Hata: Client error '401 Unauthorized' for url 'https://a...)] Son hata: Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+22:31:45  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'jwt'
+22:31:45  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/workflow_api/router.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:31:45  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 13925 karakter
+22:31:45  ERROR     [self_improvement] [no-trace] Improvement proposal failed for libs/workflow/runner.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:31:45  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:31:45  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:31:45  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'self-improvement'
+22:31:45  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/repair/application/self_improvement_coordinator.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:31:45  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 15153 karakter
+22:31:45  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/improvements/page.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:33:45  INFO      [improvement.observer] [no-trace] ImprovementObserver: Sistem taraniyor...
+22:33:45  INFO      [improvement.observer] [no-trace] Agent hatalari taraniyor...
+22:33:45  INFO      [improvement.observer] [no-trace] Endpoint hatalari taraniyor (401/404/429)...
+22:33:45  INFO      [improvement.observer] [no-trace] Workflow queue sagligi taraniyor...
+22:33:46  INFO      [improvement.observer] [no-trace] Approval bottleneck taramasi yapiliyor...
+22:33:46  INFO      [improvement.observer] [no-trace] Incident backlog taramasi yapiliyor...
+22:33:46  INFO      [improvement.observer] [no-trace] Improvement pipeline sagligi taraniyor...
+22:33:46  INFO      [improvement.observer] [no-trace] LLM provider pressure taramasi yapiliyor...
+22:33:46  INFO      [self_improvement] [no-trace] Self-Improvement: 3 aday bulundu, dedupe sonrasý 3 benzersiz fýrsat iþlenecek.
+22:33:46  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:33:46  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): groq test ediliyor.
+22:33:46  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): groq. Ceza: 10.834705943388391x
+22:33:46  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on groq. Applying progressive penalty.
+22:33:46  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): groq. Ceza: 11.91817653772723x
+22:33:46  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): anthropic test ediliyor.
+22:33:47  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): anthropic. Ceza: 8.954302432552389x
+22:33:47  WARNING   [libs.llm.model_orchestrator] [no-trace] Saðlayýcý Hatasý (anthropic): Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401. Fallback modele geçiliyor.
+22:33:47  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: openai zorlanýyor (Tüm modeller kapalý!)
+22:33:48  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): openai. Ceza: 49.785181124993684x
+22:33:48  CRITICAL  [libs.llm.model_orchestrator] [no-trace] OTONOM KARANTÝNA (BAN): openai kronik hata nedeniyle 1 saat yasaklandý.
+22:33:48  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: gemini zorlanýyor (Tüm modeller kapalý!)
+22:33:49  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): gemini. Ceza: 49.785181124993684x
+22:33:49  CRITICAL  [libs.llm.model_orchestrator] [no-trace] OTONOM KARANTÝNA (BAN): gemini kronik hata nedeniyle 1 saat yasaklandý.
+22:33:49  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (429 Rate Limit), openrouter (Circuit Open), anthropic (Hata: Client error '401 Unauthorized' for url 'https://a...)] Son hata: Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+22:33:49  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'jwt'
+22:33:49  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/workflow_api/router.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:33:49  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 13925 karakter
+22:33:49  ERROR     [self_improvement] [no-trace] Improvement proposal failed for libs/workflow/runner.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:33:49  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:33:49  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:33:49  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'self-improvement'
+22:33:49  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/repair/application/self_improvement_coordinator.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:33:49  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 15153 karakter
+22:33:49  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/improvements/page.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:35:49  INFO      [improvement.observer] [no-trace] ImprovementObserver: Sistem taraniyor...
+22:35:49  INFO      [improvement.observer] [no-trace] Agent hatalari taraniyor...
+22:35:49  INFO      [improvement.observer] [no-trace] Endpoint hatalari taraniyor (401/404/429)...
+22:35:49  INFO      [improvement.observer] [no-trace] Workflow queue sagligi taraniyor...
+22:35:49  INFO      [improvement.observer] [no-trace] Approval bottleneck taramasi yapiliyor...
+22:35:49  INFO      [improvement.observer] [no-trace] Incident backlog taramasi yapiliyor...
+22:35:49  INFO      [improvement.observer] [no-trace] Improvement pipeline sagligi taraniyor...
+22:35:49  INFO      [improvement.observer] [no-trace] LLM provider pressure taramasi yapiliyor...
+22:35:49  INFO      [self_improvement] [no-trace] Self-Improvement: 3 aday bulundu, dedupe sonrasý 3 benzersiz fýrsat iþlenecek.
+22:35:49  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:35:49  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): groq test ediliyor.
+22:35:50  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): groq. Ceza: 13.109994191499954x
+22:35:50  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on groq. Applying progressive penalty.
+22:35:50  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): groq. Ceza: 14.420993610649951x
+22:35:50  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): anthropic test ediliyor.
+22:35:51  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): anthropic. Ceza: 9.849732675807628x
+22:35:51  WARNING   [libs.llm.model_orchestrator] [no-trace] Saðlayýcý Hatasý (anthropic): Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401. Fallback modele geçiliyor.
+22:35:51  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: openai zorlanýyor (Tüm modeller kapalý!)
+22:35:52  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): openai. Ceza: 54.76369923749306x
+22:35:52  CRITICAL  [libs.llm.model_orchestrator] [no-trace] OTONOM KARANTÝNA (BAN): openai kronik hata nedeniyle 1 saat yasaklandý.
+22:35:52  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: gemini zorlanýyor (Tüm modeller kapalý!)
+22:35:53  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): gemini. Ceza: 54.76369923749306x
+22:35:53  CRITICAL  [libs.llm.model_orchestrator] [no-trace] OTONOM KARANTÝNA (BAN): gemini kronik hata nedeniyle 1 saat yasaklandý.
+22:35:53  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (429 Rate Limit), openrouter (Circuit Open), anthropic (Hata: Client error '401 Unauthorized' for url 'https://a...)] Son hata: Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+22:35:53  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'jwt'
+22:35:53  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/workflow_api/router.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:35:53  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 13925 karakter
+22:35:53  ERROR     [self_improvement] [no-trace] Improvement proposal failed for libs/workflow/runner.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:35:53  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:35:53  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:35:53  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'self-improvement'
+22:35:53  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/repair/application/self_improvement_coordinator.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:35:53  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 15153 karakter
+22:35:53  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/improvements/page.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:37:53  INFO      [improvement.observer] [no-trace] ImprovementObserver: Sistem taraniyor...
+22:37:53  INFO      [improvement.observer] [no-trace] Agent hatalari taraniyor...
+22:37:53  INFO      [improvement.observer] [no-trace] Endpoint hatalari taraniyor (401/404/429)...
+22:37:53  INFO      [improvement.observer] [no-trace] Workflow queue sagligi taraniyor...
+22:37:53  INFO      [improvement.observer] [no-trace] Approval bottleneck taramasi yapiliyor...
+22:37:53  INFO      [improvement.observer] [no-trace] Incident backlog taramasi yapiliyor...
+22:37:53  INFO      [improvement.observer] [no-trace] Improvement pipeline sagligi taraniyor...
+22:37:53  INFO      [improvement.observer] [no-trace] LLM provider pressure taramasi yapiliyor...
+22:37:53  INFO      [self_improvement] [no-trace] Self-Improvement: 3 aday bulundu, dedupe sonrasý 3 benzersiz fýrsat iþlenecek.
+22:37:53  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:37:53  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): groq test ediliyor.
+22:37:54  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): groq. Ceza: 15.863092971714948x
+22:37:54  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on groq. Applying progressive penalty.
+22:37:54  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): groq. Ceza: 17.449402268886445x
+22:37:54  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): anthropic test ediliyor.
+22:37:55  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): anthropic. Ceza: 10.834705943388391x
+22:37:55  WARNING   [libs.llm.model_orchestrator] [no-trace] Saðlayýcý Hatasý (anthropic): Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401. Fallback modele geçiliyor.
+22:37:55  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: openai zorlanýyor (Tüm modeller kapalý!)
+22:37:56  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): openai. Ceza: 60.24006916124237x
+22:37:56  CRITICAL  [libs.llm.model_orchestrator] [no-trace] OTONOM KARANTÝNA (BAN): openai kronik hata nedeniyle 1 saat yasaklandý.
+22:37:56  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: gemini zorlanýyor (Tüm modeller kapalý!)
+22:37:57  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): gemini. Ceza: 60.24006916124237x
+22:37:57  CRITICAL  [libs.llm.model_orchestrator] [no-trace] OTONOM KARANTÝNA (BAN): gemini kronik hata nedeniyle 1 saat yasaklandý.
+22:37:57  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (429 Rate Limit), openrouter (Circuit Open), anthropic (Hata: Client error '401 Unauthorized' for url 'https://a...)] Son hata: Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+22:37:57  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'jwt'
+22:37:57  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/workflow_api/router.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:37:57  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 13925 karakter
+22:37:57  ERROR     [self_improvement] [no-trace] Improvement proposal failed for libs/workflow/runner.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:37:57  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:37:57  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:37:57  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'self-improvement'
+22:37:57  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/repair/application/self_improvement_coordinator.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:37:57  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 15153 karakter
+22:37:57  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/improvements/page.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:39:57  INFO      [improvement.observer] [no-trace] ImprovementObserver: Sistem taraniyor...
+22:39:57  INFO      [improvement.observer] [no-trace] Agent hatalari taraniyor...
+22:39:57  INFO      [improvement.observer] [no-trace] Endpoint hatalari taraniyor (401/404/429)...
+22:39:57  INFO      [improvement.observer] [no-trace] Workflow queue sagligi taraniyor...
+22:39:57  INFO      [improvement.observer] [no-trace] Approval bottleneck taramasi yapiliyor...
+22:39:57  INFO      [improvement.observer] [no-trace] Incident backlog taramasi yapiliyor...
+22:39:57  INFO      [improvement.observer] [no-trace] Improvement pipeline sagligi taraniyor...
+22:39:57  INFO      [improvement.observer] [no-trace] LLM provider pressure taramasi yapiliyor...
+22:39:57  INFO      [self_improvement] [no-trace] Self-Improvement: 3 aday bulundu, dedupe sonrasý 3 benzersiz fýrsat iþlenecek.
+22:39:57  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:39:57  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): groq test ediliyor.
+22:39:58  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): groq. Ceza: 19.19434249577509x
+22:39:58  CRITICAL  [libs.llm.model_orchestrator] [no-trace] OTONOM KARANTÝNA (BAN): groq kronik hata nedeniyle 1 saat yasaklandý.
+22:39:58  WARNING   [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on groq. Applying progressive penalty.
+22:39:58  WARNING   [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (429): groq. Ceza: 21.1137767453526x
+22:39:58  INFO      [libs.llm.model_orchestrator] [no-trace] Devre Kesici YARI-AÇIK (HALF-OPEN): anthropic test ediliyor.
+22:39:59  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): anthropic. Ceza: 11.91817653772723x
+22:39:59  WARNING   [libs.llm.model_orchestrator] [no-trace] Saðlayýcý Hatasý (anthropic): Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401. Fallback modele geçiliyor.
+22:39:59  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: openai zorlanýyor (Tüm modeller kapalý!)
+22:40:00  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): openai. Ceza: 64x
+22:40:00  CRITICAL  [libs.llm.model_orchestrator] [no-trace] OTONOM KARANTÝNA (BAN): openai kronik hata nedeniyle 1 saat yasaklandý.
+22:40:00  WARNING   [libs.llm.model_orchestrator] [no-trace] EMERGENCY FALLBACK: gemini zorlanýyor (Tüm modeller kapalý!)
+22:40:00  ERROR     [libs.llm.model_orchestrator] [no-trace] Devre Kesici AÇILDI (OPEN): gemini. Ceza: 64x
+22:40:00  CRITICAL  [libs.llm.model_orchestrator] [no-trace] OTONOM KARANTÝNA (BAN): gemini kronik hata nedeniyle 1 saat yasaklandý.
+22:40:00  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (429 Rate Limit), openrouter (Circuit Open), anthropic (Hata: Client error '401 Unauthorized' for url 'https://a...)] Son hata: Client error '401 Unauthorized' for url 'https://api.anthropic.com/v1/messages'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+22:40:01  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'jwt'
+22:40:01  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/workflow_api/router.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:40:01  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 13925 karakter
+22:40:01  ERROR     [self_improvement] [no-trace] Improvement proposal failed for libs/workflow/runner.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:40:01  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | yüksek karmaþýklýk: 'debug'
+22:40:01  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/workflows/_components/WorkflowDetailClient.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:40:01  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [critical] | kritik anahtar kelime: 'self-improvement'
+22:40:01  ERROR     [self_improvement] [no-trace] Improvement proposal failed for services/repair/application/self_improvement_coordinator.py: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.
+22:40:01  DEBUG     [llm.model_router] [no-trace] Routing kararý: engineering-system-architect -> nvidia/qwen/qwen3.5-397b-a17b [high] | uzun prompt: 15153 karakter
+22:40:01  ERROR     [self_improvement] [no-trace] Improvement proposal failed for apps/refine_control_plane/src/app/improvements/page.tsx: Task unknown için tüm modeller baþarýsýz oldu (Rol: engineering-system-architect). [Detaylar: openai (Circuit Open), gemini (Circuit Open), groq (Circuit Open), openrouter (Circuit Open), anthropic (Circuit Open)] Hiçbir geçerli saðlayýcý konfigüre edilmemiþ veya eriþilebilir deðil.

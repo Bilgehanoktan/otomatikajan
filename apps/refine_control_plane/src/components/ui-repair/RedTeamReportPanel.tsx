@@ -5,6 +5,7 @@ import {
   Table, Typography, Button, Space, message, Card, List, Tag, Empty 
 } from 'antd';
 import { FileText, Download, Eye, Send, FileBarChart } from 'lucide-react';
+import { safeFetchJson } from '@/lib/api';
 
 const { Text, Title, Paragraph } = Typography;
 
@@ -27,8 +28,7 @@ const RedTeamReportPanel: React.FC = () => {
   const fetchReports = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/ui-repair/security/red-team/reports');
-      const data = await res.json();
+      const data = await safeFetchJson<Report[]>('/api/v1/ui-repair/security/red-team/reports');
       setReports(data);
     } catch (err) {
       message.error('Failed to fetch reports');
@@ -40,7 +40,7 @@ const RedTeamReportPanel: React.FC = () => {
   const generateReport = async () => {
     setLoading(true);
     try {
-      await fetch('/api/v1/ui-repair/security/red-team/reports/generate', { method: 'POST' });
+      await safeFetchJson('/api/v1/ui-repair/security/red-team/reports/generate', { method: 'POST' });
       message.success('Executive report generated');
       await fetchReports();
     } catch (err) {
@@ -127,7 +127,7 @@ const RedTeamReportPanel: React.FC = () => {
 // Internal Statistic helper for cleaner code
 const Statistic: React.FC<{title: string, value: any, valueStyle?: React.CSSProperties, suffix?: string}> = ({title, value, valueStyle, suffix}) => (
   <div>
-    <Text type="secondary" size="small">{title}</Text>
+    <Text type="secondary" className="text-xs">{title}</Text>
     <div style={{ fontSize: '18px', fontWeight: 'bold', ...valueStyle }}>
       {value}{suffix}
     </div>

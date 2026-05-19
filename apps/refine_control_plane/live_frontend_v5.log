@@ -1,0 +1,23 @@
+
+> refine_control_plane@0.1.0 dev
+> next dev -p 3100
+
+⚠ You are using a non-standard "NODE_ENV" value in your environment. This creates inconsistencies in the project and is strongly advised against. Read more: https://nextjs.org/docs/messages/non-standard-node-env
+⨯ Failed to start server
+Error: listen EADDRINUSE: address already in use :::3100
+    at <unknown> (Error: listen EADDRINUSE: address already in use :::3100)
+    at new Promise (<anonymous>) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 3100
+}
+[?25h
+npm error Lifecycle script `dev` failed with error:
+npm error code 1
+npm error path E:\ai_company_faz12.1\apps\refine_control_plane
+npm error workspace refine_control_plane@0.1.0
+npm error location E:\ai_company_faz12.1\apps\refine_control_plane
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c next dev -p 3100

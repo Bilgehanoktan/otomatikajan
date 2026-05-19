@@ -6,19 +6,21 @@ import sys
 # Add project root to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
-from libs.db.session import AsyncSessionLocal
 from sqlalchemy import bindparam, text
+
+from libs.db.session import AsyncSessionLocal
+
 
 async def remediate_enums():
     print("[*] Starting Database Enum Remediation...")
-    
+
     mapping = {
         'MEDIUM':   ['orta', 'medium', 'NORMAL', 'MEDIUM'],
         'HIGH':     ['yüksek', 'high', 'YÜKSEK', 'YUKSEK', 'HIGH'],
         'LOW':      ['düşük', 'low', 'DÜŞÜK', 'DUSUK', 'LOW'],
         'CRITICAL': ['kritik', 'critical', 'KRİTİK', 'KRITIK', 'CRITICAL']
     }
-    
+
     update_stmt = text(
         "UPDATE projects SET priority = :target WHERE priority IN :source_values"
     ).bindparams(bindparam("source_values", expanding=True))
@@ -34,10 +36,10 @@ async def remediate_enums():
                 rows = res.rowcount or 0
                 print(f"  [+] Updated {rows} records to '{target_val}'")
                 total_updated += rows
-            
+
             await db.commit()
             print(f"[*] Remediation Complete. Total records standardized: {total_updated}")
-            
+
         except Exception as e:
             await db.rollback()
             print(f"[!] Remediation FAILED: {e}")

@@ -1,0 +1,29 @@
+=== SKILL EXECUTION LOGS (7 found) ===
+[2026-05-18 03:43:55.503600] Agent: qa_engineer, Skill: qa_engineer, Success: False
+  Summary: Velocity Action realized via qa_engineer
+  Data: {"output": null, "errors": ["AgentOutputParser.parse() missing 1 required positional argument: 'raw'"]}
+----------------------------------------
+[2026-05-18 03:43:56.175358] Agent: architect, Skill: architect, Success: False
+  Summary: Velocity Action realized via architect
+  Data: {"output": null, "errors": ["AgentOutputParser.parse() missing 1 required positional argument: 'raw'"]}
+----------------------------------------
+[2026-05-18 03:43:56.348291] Agent: security, Skill: security, Success: False
+  Summary: Velocity Action realized via security
+  Data: {"output": null, "errors": ["AgentOutputParser.parse() missing 1 required positional argument: 'raw'"]}
+----------------------------------------
+[2026-05-18 03:44:02.853963] Agent: test_specialist, Skill: test_specialist, Success: False
+  Summary: Velocity Action realized via test_specialist
+  Data: {"output": null, "errors": ["Velocity unit test_specialist not encountered."]}
+----------------------------------------
+[2026-05-18 03:44:02.885244] Agent: backend_dev, Skill: backend_dev, Success: False
+  Summary: Velocity Action realized via backend_dev
+  Data: {"output": null, "errors": ["AgentOutputParser.parse() missing 1 required positional argument: 'raw'"]}
+----------------------------------------
+[2026-05-18 03:44:02.892513] Agent: frontend_dev, Skill: frontend_dev, Success: False
+  Summary: Velocity Action realized via frontend_dev
+  Data: {"output": null, "errors": ["AgentOutputParser.parse() missing 1 required positional argument: 'raw'"]}
+----------------------------------------
+[2026-05-18 03:44:03.969293] Agent: devops, Skill: devops, Success: False
+  Summary: Velocity Action realized via devops
+  Data: {"output": null, "errors": ["AgentOutputParser.parse() missing 1 required positional argument: 'raw'"]}
+----------------------------------------

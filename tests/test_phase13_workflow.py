@@ -262,6 +262,7 @@ def test_api_router_import():
         assert any("stats" in p for p in paths), "Missing stats route"
         assert any("replay" in p for p in paths), "Missing replay route"
         assert any("cancel" in p for p in paths), "Missing cancel route"
+        assert any("reassign" in p for p in paths), "Missing reassign route"
         assert any("approve" in p for p in paths), "Missing approve route"
         ok(f"Workflow API Router: {len(routes)} routes validated")
     except Exception as e:

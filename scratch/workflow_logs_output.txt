@@ -1,0 +1,77 @@
+=== PROJECT: Self-Correction Pilot ===
+Status: ProjectStatus.ERROR
+Error Detail: Workflow semantic final status indicates failure: TaskStatus.ERROR
+
+=== SUBTASKS ===
+- ID: 0a9982da-b1a2-4f3c-b86c-5477719bbb4a
+  Agent ID: plan
+  Status: ProjectStatus.COMPLETED
+  Quality Score: None
+  Causal Anchor: 
+  Result snippet: {'_context_update': {'subtasks': [{'id': '396ecd28-b1da-43f0-885c-719e36e30eca', 'agent_id': 'architect', 'title': "Sistem bileşenlerini tanımla ve Self-Correction Pilot'un entegrasyonunu planla.", 'prompt': "Sistem bileşenlerini tanımla ve Self-Correction Pilot'un entegrasyonunu planla.\n\n### 🛡️ ÖNGÖRÜ UYARISI:\n- Backend API'lerinde doğrulama hataları (medium)\n- Frontend arayüzünde kullanıcı deneyimi sorunları (low)\n- CI/CD pipeline'daki hatalar (high)", 'status': 'PENDING', 'dependencies':
+----------------------------------------
+- ID: d134f37a-7e86-4375-a39f-69110b67c59e
+  Agent ID: execute
+  Status: ProjectStatus.COMPLETED
+  Quality Score: None
+  Causal Anchor: 
+  Result snippet: {'_context_update': {'execution_results': {'architect': {'status': 'TaskStatus.ERROR', 'result': 'Agent architect reported failure in output.', 'internal_monologue': '', 'llm_provider': '', 'input_tokens': 0, 'output_tokens': 0, 'cost_usd': 0.0, 'latency_s': None, 'quality_score': None}, 'backend_dev': {'status': 'TaskStatus.ERROR', 'result': 'Agent backend_dev reported failure in output.', 'internal_monologue': '', 'llm_provider': '', 'input_tokens': 0, 'output_tokens': 0, 'cost_usd': 0.0, 'lat
+----------------------------------------
+- ID: 8f49cb64-d351-4699-881d-ff616c7ac0e0
+  Agent ID: report
+  Status: ProjectStatus.COMPLETED
+  Quality Score: None
+  Causal Anchor: 
+  Result snippet: {'_context_update': {'final_report': '{\n  "title": "Self-Correction Pilot",\n  "executive_summary": "Görev 0 ajan tarafından başarıyla icra edildi. Ortalama kalite: 0.00",\n  "scope": "Full System",\n  "analysis_type": "RESEARCH",\n  "agent_count": 0,\n  "average_quality": 0.0,\n  "findings": [],\n  "risks": [\n    "Ajan architect adımı başarısız oldu (Hata: Agent architect reported failure in output.)",\n    "Ajan backend_dev adımı başarısız oldu (Hata: Agent backend_dev reported failure in ou
+----------------------------------------
+- ID: 396ecd28-b1da-43f0-885c-719e36e30eca
+  Agent ID: architect
+  Status: ProjectStatus.PENDING
+  Quality Score: None
+  Causal Anchor: 
+  Result snippet: 
+----------------------------------------
+- ID: 78a48163-01b3-44be-ba5b-799a8f1c81f1
+  Agent ID: backend_dev
+  Status: ProjectStatus.PENDING
+  Quality Score: None
+  Causal Anchor: 
+  Result snippet: 
+----------------------------------------
+- ID: a1a78d18-b60c-4a68-84a4-ab84bdfdc54b
+  Agent ID: frontend_dev
+  Status: ProjectStatus.PENDING
+  Quality Score: None
+  Causal Anchor: 
+  Result snippet: 
+----------------------------------------
+- ID: ea3b5645-9a7f-43d9-a977-a5402d3be0e7
+  Agent ID: qa_engineer
+  Status: ProjectStatus.PENDING
+  Quality Score: None
+  Causal Anchor: 
+  Result snippet: 
+----------------------------------------
+- ID: d5acc800-2089-48d6-9b14-c9d345b31b80
+  Agent ID: devops
+  Status: ProjectStatus.PENDING
+  Quality Score: None
+  Causal Anchor: 
+  Result snippet: 
+----------------------------------------
+- ID: e8fdf85d-4f22-45b9-a0e9-435142c69b02
+  Agent ID: security
+  Status: ProjectStatus.PENDING
+  Quality Score: None
+  Causal Anchor: 
+  Result snippet: 
+----------------------------------------
+- ID: b856cb5c-4ae6-4134-8778-89611f9c6c6d
+  Agent ID: test_specialist
+  Status: ProjectStatus.PENDING
+  Quality Score: None
+  Causal Anchor: 
+  Result snippet: 
+----------------------------------------
+
+=== TASK LOGS ===

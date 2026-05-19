@@ -8,7 +8,6 @@ Bu migration, 'projects' ve 'subtasks' tablolarındaki 'done' ve 'failed'
 değerlerini yeni canonical isimler olan 'completed' ve 'error' ile günceller.
 """
 from alembic import op
-import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = "0003_standardize_status_names"
@@ -24,7 +23,7 @@ def upgrade() -> None:
     op.execute(
         "UPDATE projects SET status = 'error' WHERE status = 'failed'"
     )
-    
+
     # ── subtasks tablosu ─────────────────────────────────
     op.execute(
         "UPDATE subtasks SET status = 'completed' WHERE status = 'done'"

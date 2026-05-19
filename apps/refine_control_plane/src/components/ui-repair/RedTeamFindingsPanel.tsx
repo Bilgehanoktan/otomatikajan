@@ -5,6 +5,7 @@ import {
   Table, Tag, Typography, Button, Space, message, Badge 
 } from 'antd';
 import { ShieldAlert, ExternalLink, Hammer, CheckCircle } from 'lucide-react';
+import { safeFetchJson } from '@/lib/api';
 
 const { Text } = Typography;
 
@@ -25,8 +26,7 @@ const RedTeamFindingsPanel: React.FC = () => {
   const fetchFindings = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/ui-repair/security/red-team/findings');
-      const data = await res.json();
+      const data = await safeFetchJson<Finding[]>('/api/v1/ui-repair/security/red-team/findings');
       setFindings(data);
     } catch (err) {
       message.error('Failed to fetch findings');
@@ -41,7 +41,7 @@ const RedTeamFindingsPanel: React.FC = () => {
 
   const triggerRemediation = async (id: string) => {
     try {
-      await fetch(`/api/v1/ui-repair/security/red-team/findings/${id}/remediate`, { method: 'POST' });
+      await safeFetchJson(`/api/v1/ui-repair/security/red-team/findings/${id}/remediate`, { method: 'POST' });
       message.success('Remediation workflow triggered');
       await fetchFindings();
     } catch (err) {

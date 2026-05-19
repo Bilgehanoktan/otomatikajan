@@ -3,15 +3,22 @@ Repair Repository — DB erişim katmanı.
 Tüm repair CRUD işlemleri burada toplanır.
 """
 
-from typing import Optional
-from sqlalchemy import select, update, desc
+
+from datetime import UTC
+
+from sqlalchemy import desc, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from libs.db.models.repair_models import RepairIncident, RepairJobRecord, RepairProposal, RepairPatchLog
+from libs.db.models.repair_models import (
+    RepairIncident,
+    RepairJobRecord,
+    RepairPatchLog,
+    RepairProposal,
+)
+from services.repair.memory.patch_memory import PatchRecord
+from services.repair.release.pr_creator import PRProposal
 from services.repair.schemas.incident import IncidentRecord
 from services.repair.schemas.repair_job import RepairJob
-from services.repair.release.pr_creator import PRProposal
-from services.repair.memory.patch_memory import PatchRecord
 
 
 class RepairIncidentRepo:
@@ -128,7 +135,7 @@ class RepairJobRepo:
         return list(result.scalars().all())
 
     @staticmethod
-    async def get(db: AsyncSession, job_id: str) -> Optional[RepairJobRecord]:
+    async def get(db: AsyncSession, job_id: str) -> RepairJobRecord | None:
         stmt = select(RepairJobRecord).where(RepairJobRecord.job_id == job_id)
         result = await db.execute(stmt)
         return result.scalar_one_or_none()
@@ -136,8 +143,8 @@ class RepairJobRepo:
     @staticmethod
     async def find_zombies(db: AsyncSession, threshold_hours: int = 1) -> list[RepairJobRecord]:
         """Kilitlenmiş (zombi) işleri (Running/Pending) bul."""
-        from datetime import datetime, timezone, timedelta
-        limit = datetime.now(timezone.utc) - timedelta(hours=threshold_hours)
+        from datetime import datetime, timedelta
+        limit = datetime.now(UTC) - timedelta(hours=threshold_hours)
         stmt = (
             select(RepairJobRecord)
             .where(RepairJobRecord.status.in_(["running", "pending"]))
@@ -150,14 +157,14 @@ class RepairJobRepo:
     async def bulk_fail(db: AsyncSession, job_ids: list[str], reason: str) -> int:
         """Birden fazla işi toplu olarak FAILED durumuna çek."""
         if not job_ids: return 0
-        from datetime import datetime, timezone
+        from datetime import datetime
         stmt = (
             update(RepairJobRecord)
             .where(RepairJobRecord.job_id.in_(job_ids))
             .values(
                 status="failed",
                 error_detail=reason[:2000],
-                updated_at=datetime.now(timezone.utc)
+                updated_at=datetime.now(UTC)
             )
         )
         result = await db.execute(stmt)
@@ -195,14 +202,14 @@ class RepairProposalRepo:
 
     @staticmethod
     async def decide(db: AsyncSession, pr_id: str, decision: str, decided_by: str = "human") -> bool:
-        from datetime import datetime, timezone
+        from datetime import datetime
         stmt = (
             update(RepairProposal)
             .where(RepairProposal.pr_id == pr_id)
             .values(
                 decision=decision,
                 decided_by=decided_by,
-                decided_at=datetime.now(timezone.utc),
+                decided_at=datetime.now(UTC),
             )
         )
         result = await db.execute(stmt)

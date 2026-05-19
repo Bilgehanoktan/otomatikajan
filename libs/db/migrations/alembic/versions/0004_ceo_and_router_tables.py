@@ -5,8 +5,8 @@ Revises: 0003_standardize_status_names
 Create Date: 2026-03-22 14:30:00.000000
 
 """
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.

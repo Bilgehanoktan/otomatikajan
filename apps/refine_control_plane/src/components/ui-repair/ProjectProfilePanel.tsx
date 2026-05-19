@@ -4,10 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { Table, Tag, Button, Space, Modal, Form, Input, Select, Switch, message } from 'antd';
 import { PlusOutlined, EditOutlined, PauseCircleOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import { useTranslations } from 'next-intl';
+import { safeFetchJson } from '@/lib/api';
 
 const ProjectProfilePanel: React.FC = () => {
   const t = useTranslations('repair_lab.enterprise_rollout.projects');
-  const [projects, setProjects] = useState([]);
+  const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
@@ -19,8 +20,7 @@ const ProjectProfilePanel: React.FC = () => {
   const fetchProjects = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/ui-repair/projects');
-      const data = await res.json();
+      const data = await safeFetchJson('/api/v1/ui-repair/projects');
       setProjects(data);
     } catch (err) {
       message.error('Failed to fetch projects');
@@ -31,17 +31,15 @@ const ProjectProfilePanel: React.FC = () => {
 
   const handleCreate = async (values: any) => {
     try {
-      const res = await fetch('/api/v1/ui-repair/projects', {
+      await safeFetchJson('/api/v1/ui-repair/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(values),
       });
-      if (res.ok) {
-        message.success('Project created successfully');
-        setIsModalVisible(false);
-        form.resetFields();
-        fetchProjects();
-      }
+      message.success('Project created successfully');
+      setIsModalVisible(false);
+      form.resetFields();
+      fetchProjects();
     } catch (err) {
       message.error('Failed to create project');
     }
@@ -50,11 +48,9 @@ const ProjectProfilePanel: React.FC = () => {
   const toggleStatus = async (key: string, currentStatus: string) => {
     const action = currentStatus === 'ACTIVE' ? 'pause' : 'activate';
     try {
-      const res = await fetch(`/api/v1/ui-repair/projects/${key}/${action}`, { method: 'POST' });
-      if (res.ok) {
-        message.success(`Project ${action}d`);
-        fetchProjects();
-      }
+      await safeFetchJson(`/api/v1/ui-repair/projects/${key}/${action}`, { method: 'POST' });
+      message.success(`Project ${action}d`);
+      fetchProjects();
     } catch (err) {
       message.error(`Failed to ${action} project`);
     }

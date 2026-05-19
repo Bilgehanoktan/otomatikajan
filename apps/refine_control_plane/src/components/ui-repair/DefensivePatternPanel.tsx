@@ -7,6 +7,7 @@ import {
   Binary, Shield, Target, Activity, 
   Layers, Lock, Database, Globe, Zap, Fingerprint
 } from 'lucide-react';
+import { safeFetchJson } from '@/lib/api';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -17,8 +18,8 @@ const DefensivePatternPanel: React.FC = () => {
   const fetchPatterns = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/ui-repair/defense/patterns');
-      if (res.ok) setPatterns(await res.json());
+      const data = await safeFetchJson<any[]>('/api/v1/ui-repair/defense/patterns');
+      setPatterns(data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -71,13 +72,13 @@ const DefensivePatternPanel: React.FC = () => {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-slate-950 p-3 rounded border border-slate-800">
-                    <Text size="small" type="secondary" className="block mb-2">Detection Strategy</Text>
+                    <Text type="secondary" className="block mb-2 text-xs">Detection Strategy</Text>
                     <code className="text-xs text-blue-300">
                       {JSON.stringify(pattern.detection_rule, null, 2)}
                     </code>
                   </div>
                   <div className="bg-slate-950 p-3 rounded border border-slate-800">
-                    <Text size="small" type="secondary" className="block mb-2">Mitigation Action</Text>
+                    <Text type="secondary" className="block mb-2 text-xs">Mitigation Action</Text>
                     <code className="text-xs text-emerald-300">
                       {JSON.stringify(pattern.mitigation_rule, null, 2)}
                     </code>

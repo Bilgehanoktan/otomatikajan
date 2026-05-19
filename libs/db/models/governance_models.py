@@ -4,14 +4,14 @@ Sovereign AGI Yönetişim ve Anayasal Uyum Modelleri — Faz 29
 ve Sorumluluk Devri (Handover) süreçlerinin kalıcı kaydı.
 """
 
-import uuid
 import enum
-from datetime import datetime, timezone
-from sqlalchemy import (
-    Column, DateTime, String, Text, ForeignKey, Integer, Float, Enum as SAEnum, BigInteger
-)
-from sqlalchemy.orm import relationship
-from libs.db.base import Base, SmartJSON, utcnow, GUID
+import uuid
+
+from sqlalchemy import BigInteger, Column, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Enum as SAEnum
+
+from libs.db.base import GUID, Base, SmartJSON, utcnow
+
 
 class SignoffStatus(str, enum.Enum):
     PENDING = "PENDING"
@@ -83,6 +83,7 @@ class MultiPartySignoff(Base):
     __table_args__ = {"extend_existing": True}
     id = Column(GUID, primary_key=True, default=uuid.uuid4)
     signoff_id = Column(GUID, ForeignKey("production_signoffs.id"), nullable=True)
+    proposal_id = Column(GUID, ForeignKey("policy_proposals.id"), nullable=True)
     operator_id = Column(GUID, nullable=False)
     decision = Column(String(20), nullable=False)
     justification = Column(Text, nullable=True)
@@ -94,7 +95,11 @@ class PolicyProposal(Base):
     id = Column(GUID, primary_key=True, default=uuid.uuid4)
     title = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
-    policy_code = Column(Text, nullable=False)
+    policy_code = Column(Text, default="", nullable=False)
+    scope = Column(String(100), default="GLOBAL", nullable=False)
+    proposed_changes = Column(SmartJSON(), default=dict)
+    author_id = Column(String(100), nullable=True)
+    git_commit_sha = Column(String(64), nullable=True)
     status = Column(String(20), default="PROPOSED")
     created_at = Column(DateTime(timezone=True), default=utcnow)
 
@@ -171,11 +176,14 @@ class GovernorDecisionQuality(str, enum.Enum):
     STALE = "STALE"
 
 class GovernorOutcomeType(str, enum.Enum):
+    NO_SIGNAL = "NO_SIGNAL"
     SUCCESS = "SUCCESS"
     FAILURE = "FAILURE"
+    FAILED = "FAILED"
     PARTIAL = "PARTIAL"
     REGRESSION = "REGRESSION"
     IMPROVEMENT = "IMPROVEMENT"
+    REVERSED = "REVERSED"
 
 class GovernorOutcomeQuality(str, enum.Enum):
     OPTIMAL = "OPTIMAL"
@@ -193,7 +201,7 @@ class GovernorOutcomeRecord(Base):
     action_id             = Column(GUID, nullable=True, index=True)
     decision              = Column(String(50))
     final_outcome         = Column(SAEnum(GovernorOutcomeType, native_enum=False), nullable=False)
-    quality               = Column(SAEnum(GovernorOutcomeQuality, native_enum=False), nullable=False)
+    quality               = Column(SAEnum(GovernorDecisionQuality, native_enum=False), nullable=False)
     was_successful        = Column(Integer, default=1)
     operator_overrode     = Column(Integer, default=0)
     operator_agreed       = Column(Integer, default=1)

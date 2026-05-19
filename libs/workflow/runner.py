@@ -6,13 +6,15 @@ and executes it through the `WorkflowEngine`.
 This is the single entry-point called by Celery workers instead of
 directly talking to SovereignCortex.
 """
-import uuid
 import json
-from datetime import datetime, timezone
-from services.observability.logging import get_logger
-from libs.observability.tracer import traced, span
+import uuid
+from datetime import UTC, datetime
+from typing import Any
+
+from libs.observability.tracer import traced
 from libs.workflow.engine import WorkflowEngine
-from libs.workflow.models import WorkflowInstance, WorkflowStep, WorkflowStatus
+from libs.workflow.models import WorkflowInstance, WorkflowStatus, WorkflowStep
+from services.observability.logging import get_logger
 
 logger = get_logger("libs.workflow.runner")
 
@@ -31,6 +33,35 @@ def get_engine() -> WorkflowEngine:
     return _engine
 
 
+def _planned_subtask_title(task: Any) -> str:
+    """Return a stable display title for planner outputs across domain models."""
+    explicit_title = getattr(task, "title", None)
+    if explicit_title:
+        return str(explicit_title)
+
+    complexity_reasoning = getattr(task, "complexity_reasoning", None)
+    if complexity_reasoning:
+        return str(complexity_reasoning)
+
+    prompt = getattr(task, "prompt", "") or ""
+    first_line = str(prompt).splitlines()[0].strip() if prompt else ""
+    if first_line.startswith("STRATEJIK ALT-GOREV:"):
+        return first_line.split(":", 1)[1].strip()
+    if first_line.startswith("STRATEJİK ALT-GÖREV:"):
+        return first_line.split(":", 1)[1].strip()
+    return first_line or "Planned subtask"
+
+
+def _planned_subtask_spec(task: Any) -> dict:
+    """Normalize planner task variants before writing DB subtasks."""
+    return {
+        "agent_id": getattr(task, "agent_id", "agent"),
+        "prompt": getattr(task, "prompt", ""),
+        "title": _planned_subtask_title(task),
+        "dependencies": list(getattr(task, "dependencies", []) or []),
+    }
+
+
 def _register_default_actions(engine: WorkflowEngine):
     """
     Register the standard action set used by sovereign workflow steps.
@@ -46,9 +77,10 @@ def _register_default_actions(engine: WorkflowEngine):
             await cortex.start()
 
         from dataclasses import asdict
-        from services.orchestration.domain.models import ProblemFrame, TaskType, RiskLevel
-        from services.orchestration.agi.world import service_graph, task_state_graph
+
         from libs.memory.retrieval import context_builder
+        from services.orchestration.agi.world import service_graph, task_state_graph
+        from services.orchestration.domain.models import ProblemFrame, RiskLevel, TaskType
 
         strategic_ctx = await context_builder.build_context(agent_id="sovereign_planner", task_text=f"{title} {description}")
         mood = cortex.affective.get_current_mood()
@@ -68,19 +100,12 @@ def _register_default_actions(engine: WorkflowEngine):
             project_id, title, full_context, description, asdict(aff_state)
         )
         # Faz 13.04: Persist planned subtasks to DB so UI can see them (Agents: 0 fix)
-        from libs.db.session import AsyncSessionLocal
         from libs.db.repositories.repository import SubTaskRepository
-        
+        from libs.db.session import AsyncSessionLocal
+
         db_subtasks = []
         async with AsyncSessionLocal() as db:
-            subtask_specs = [
-                {
-                    "agent_id": st.agent_id,
-                    "prompt": st.prompt,
-                    "title": st.title,
-                }
-                for st in subtasks
-            ]
+            subtask_specs = [_planned_subtask_spec(st) for st in subtasks]
             db_subtasks = await SubTaskRepository.bulk_create(db, uuid.UUID(project_id), subtask_specs)
             await db.commit()
 
@@ -89,14 +114,14 @@ def _register_default_actions(engine: WorkflowEngine):
             "_context_update": {
                 "subtasks": [
                     {
-                        "id": str(st.id), 
+                        "id": str(st.id),
                         "agent_id": st.agent_id,
-                        "title": getattr(st, "title", ""),
+                        "title": spec.get("title", ""),
                         "prompt": getattr(st, "prompt", ""),
                         "status": str(st.status),
                         "dependencies": getattr(st, "dependencies", []),
                     }
-                    for st in db_subtasks
+                    for st, spec in zip(db_subtasks, subtask_specs)
                 ]
             }
         }
@@ -194,7 +219,7 @@ def _register_default_actions(engine: WorkflowEngine):
                 "risks": [f"Synthesis Error: {exc}", f"Completed Agents: {completed_count}/{len(task.subtasks)}"]
             }
             report = json.dumps(report_data, ensure_ascii=False)
-        
+
         # Faz 13.04: Ensure report visibility even for empty/mock tasks
         if not report or len(report.strip()) < 10:
             report = f"### Workflow Completion Report\n\nProject: **{task.title}**\nStatus: {task.status}\n\nAll planned steps were verified via the resilient execution engine."
@@ -219,12 +244,12 @@ def _register_default_actions(engine: WorkflowEngine):
                 total_q += st.quality_score
                 q_count += 1
                 q_detail[st.agent_id] = st.quality_score
-        
+
         avg_quality = total_q / q_count if q_count > 0 else 0.0
 
         return {
             "_context_update": {
-                "final_report": report, 
+                "final_report": report,
                 "final_status": str(task.status),
                 "quality_score": avg_quality,
                 "quality_detail": q_detail
@@ -238,7 +263,7 @@ def _register_default_actions(engine: WorkflowEngine):
     engine.register_action("plan_subtasks", _plan_subtasks)
     engine.register_action("execute_subtasks", _execute_subtasks)
     engine.register_action("synthesize_report", _synthesize_report)
-    
+
     # ── Seed/Demo Data Actions ──────────────────────────────────
     engine.register_action("prepare_digest", _dummy_action)
     engine.register_action("validate_payloads", _dummy_action)
@@ -284,6 +309,11 @@ def _register_repair_actions(engine: WorkflowEngine):
         from services.repair.repair_orchestrator import score_risk_step
         return score_risk_step(context) or {}
 
+    @traced("repair.tournament")
+    async def _repair_tournament(context: dict, **kw) -> dict:
+        from services.repair.repair_orchestrator import run_patch_tournament_step
+        return run_patch_tournament_step(context) or {}
+
     @traced("repair.learn")
     async def _repair_learn(context: dict, **kw) -> dict:
         from services.repair.repair_orchestrator import update_learning_memory_step
@@ -306,6 +336,7 @@ def _register_repair_actions(engine: WorkflowEngine):
     engine.register_action("repair.sandbox", _repair_sandbox)
     engine.register_action("repair.verify", _repair_verify)
     engine.register_action("repair.score", _repair_score)
+    engine.register_action("repair.tournament", _repair_tournament)
     engine.register_action("repair.learn", _repair_learn)
     engine.register_action("repair.prepare_pr", _repair_prepare_pr)
     engine.register_action("taskflow.evaluate_gate", _taskflow_evaluate_gate)
@@ -326,7 +357,7 @@ def build_project_workflow(
     """
     from libs.workflow.registry import WorkflowRegistry
     definition = WorkflowRegistry.get_definition(workflow_template)
-    
+
     ctx = {
         "project_id": project_id,
         "title": title,
@@ -350,7 +381,7 @@ def build_project_workflow(
                 dependencies=t.depends_on, # Note: Needs ID mapping if dependencies refer to template IDs
             )
         )
-    
+
     # Step ID Mapping (Fixing template ID references to instance IDs)
     template_to_instance_id = {definition.steps[i].id: steps[i].id for i in range(len(steps))}
     for step in steps:
@@ -366,7 +397,7 @@ def build_project_workflow(
         status=status,
         steps=steps,
         context=ctx,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
 
 
@@ -402,7 +433,7 @@ async def run_project_workflow(
             logger.warning(f"[WorkflowRunner] Project {project_id} is {existing.status} but has 0 steps. Building fresh steps.")
         else:
             logger.info(f"[WorkflowRunner] Building fresh workflow for project {project_id}")
-        
+
         instance = build_project_workflow(
             project_id=project_id,
             title=title,
@@ -435,9 +466,9 @@ class WorkflowRunner:
         if not isinstance(task, ProjectTask):
             logger.warning(f"[WorkflowRunner] Compatibility run() called with non-ProjectTask: {type(task)}")
             return task
-            
+
         instance = await run_project_workflow(
-            project_id=str(task.id),
+            project_id=task.id,
             title=task.title,
             description=task.description or "",
             workflow_template=getattr(task, "workflow_template", "default"),
@@ -447,7 +478,7 @@ class WorkflowRunner:
         # Update task object with results for compatibility
         task.status = instance.status
         task.report = instance.context.get("final_report", "")
-        # We don't fully sync subtasks here as they are in DB, 
+        # We don't fully sync subtasks here as they are in DB,
         # but SovereignCortex expects them for final reflection.
         return task
 

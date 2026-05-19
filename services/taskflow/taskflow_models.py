@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from dataclasses import asdict, dataclass, field, is_dataclass
 from datetime import UTC, datetime
 from typing import Any
@@ -53,6 +54,7 @@ class TaskStep:
     started_at: str | None = None
     finished_at: str | None = None
     error: str | None = None
+    artifact: str | None = None
     artifacts: list[TaskArtifact] = field(default_factory=list)
 
 
@@ -62,6 +64,7 @@ class WorkflowRun:
     workflow_name: str
     incident_id: str
     trace_id: str
+    run_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     status: str = "CREATED"
     current_step: str | None = None
     started_at: str = field(default_factory=utc_now_iso)

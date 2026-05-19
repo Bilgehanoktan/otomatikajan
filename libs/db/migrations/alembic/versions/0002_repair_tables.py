@@ -11,8 +11,8 @@ Yeni tablolar:
 - repair_patch_logs   : geçmiş patch sonuçları (hafıza)
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.

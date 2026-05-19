@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Table, Tag, Typography, Space, Button, Modal, Form, Input, Select, Divider } from 'antd';
 import { WarningOutlined, SafetyOutlined, MessageOutlined, ExceptionOutlined } from '@ant-design/icons';
+import { safeFetchJson } from '@/lib/api';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -15,8 +16,7 @@ export const ResidualRiskPanel: React.FC = () => {
     const fetchRisks = async () => {
         setLoading(true);
         try {
-            const response = await fetch('/api/v1/ui-repair/final/residual-risks');
-            const data = await response.json();
+            const data = await safeFetchJson<any[]>('/api/v1/ui-repair/final/residual-risks');
             setRisks(data);
         } catch (error) {
             console.error('Failed to fetch residual risks:', error);
@@ -85,9 +85,8 @@ export const ResidualRiskPanel: React.FC = () => {
 
     const handleSignOff = async (riskId: string) => {
         try {
-            await fetch(`/api/v1/ui-repair/final/residual-risks/${riskId}/sign-off`, {
+            await safeFetchJson(`/api/v1/ui-repair/final/residual-risks/${riskId}/sign-off`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ operator: 'Egemen YAZ' })
             });
             fetchRisks();

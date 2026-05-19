@@ -32,9 +32,13 @@ class OutcomeAnalyzer:
             for i, memory in enumerate(memories):
                 if memory.outcome != "success":
                     continue
+                if not memory.subsystem or not memory.incident_id:
+                    continue
                 
                 # Check subsequent memories for same subsystem
                 for later in memories[i+1:]:
+                    if not later.subsystem or not later.incident_id:
+                        continue
                     time_diff = later.recorded_at - memory.recorded_at
                     if time_diff > self.recurrence_window:
                         break # Out of window
@@ -61,6 +65,8 @@ class OutcomeAnalyzer:
             
             stats = {}
             for m in memories:
+                if not m.subsystem:
+                    continue
                 if m.subsystem not in stats:
                     stats[m.subsystem] = {"success": 0, "total": 0, "recurrences": 0}
                 stats[m.subsystem]["total"] += 1

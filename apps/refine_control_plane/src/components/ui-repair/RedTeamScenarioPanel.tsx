@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Box, Typography, Table, Tag, Button, Space, Tooltip, message 
+import {
+  Typography, Table, Tag, Button, Space, Tooltip, message
 } from 'antd';
 import { Play, Eye, RefreshCw, Wand2 } from 'lucide-react';
+import { safeFetchJson } from '@/lib/api';
 
 const { Text } = Typography;
 
@@ -26,8 +27,7 @@ const RedTeamScenarioPanel: React.FC = () => {
   const fetchScenarios = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/ui-repair/security/red-team/scenarios');
-      const data = await res.json();
+      const data = await safeFetchJson<Scenario[]>('/api/v1/ui-repair/security/red-team/scenarios');
       setScenarios(data);
     } catch (err) {
       message.error('Failed to fetch scenarios');
@@ -39,7 +39,7 @@ const RedTeamScenarioPanel: React.FC = () => {
   const generateScenarios = async () => {
     setLoading(true);
     try {
-      await fetch('/api/v1/ui-repair/security/red-team/scenarios/generate', { method: 'POST' });
+      await safeFetchJson('/api/v1/ui-repair/security/red-team/scenarios/generate', { method: 'POST' });
       message.success('Generated scenarios from attack paths');
       await fetchScenarios();
     } catch (err) {
@@ -51,7 +51,7 @@ const RedTeamScenarioPanel: React.FC = () => {
 
   const runScenario = async (id: string) => {
     try {
-      await fetch(`/api/v1/ui-repair/security/red-team/scenarios/${id}/run`, { method: 'POST' });
+      await safeFetchJson(`/api/v1/ui-repair/security/red-team/scenarios/${id}/run`, { method: 'POST' });
       message.success('Scenario operation triggered');
     } catch (err) {
       message.error('Trigger failed');
@@ -101,7 +101,7 @@ const RedTeamScenarioPanel: React.FC = () => {
       title: 'Safety',
       dataIndex: 'safety_mode',
       key: 'safety_mode',
-      render: (mode: string) => <Text type="secondary" size="small">{mode}</Text>,
+      render: (mode: string) => <Text type="secondary" className="text-xs">{mode}</Text>,
     },
     {
       title: 'Actions',

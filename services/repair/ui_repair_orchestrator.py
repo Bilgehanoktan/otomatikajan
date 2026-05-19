@@ -5,7 +5,8 @@ from typing import Any, Optional
 
 from libs.db.models.repair_models import UIRepairPRReview, UIRepairPRFinding
 from .ui_evidence_runner import UIEvidenceRunner, UIEvidenceRequest
-from .stagehand_adapter import StagehandAdapter, UIDiagnosisRequest
+from services.ui_repair.stagehand_adapter import StagehandAdapter
+from .ui_diagnosis_models import UIDiagnosisRequest
 from .agent_backends.registry import get_backend
 from .pr_agent_adapter import PRAgentAdapter
 from .repair_models import RepairCase

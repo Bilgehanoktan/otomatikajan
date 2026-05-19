@@ -177,7 +177,7 @@ const FederationOverview: React.FC<{ stats: any }> = ({ stats }) => {
 };
 
 const TenantRegistryPanel: React.FC = () => {
-    const { data, isLoading } = useList({ resource: "ui-repair/federation/tenants" });
+    const { query: { data, isLoading } } = useList({ resource: "ui-repair/federation/tenants" });
     
     const columns = [
         { title: "Tenant Key", dataIndex: "tenant_key", key: "tenant_key" },
@@ -205,7 +205,7 @@ const TenantRegistryPanel: React.FC = () => {
 };
 
 const ClusterRegistryPanel: React.FC = () => {
-    const { data, isLoading } = useList({ resource: "ui-repair/federation/clusters" });
+    const { query: { data, isLoading } } = useList({ resource: "ui-repair/federation/clusters" });
     
     const columns = [
         { title: "Cluster Key", dataIndex: "cluster_key", key: "cluster_key" },
@@ -256,7 +256,7 @@ const FederatedPolicyPanel: React.FC = () => {
 };
 
 const PolicyDriftPanel: React.FC = () => {
-    const { data, isLoading } = useList({ resource: "ui-repair/federation/policy-drift" });
+    const { query: { data, isLoading } } = useList({ resource: "ui-repair/federation/policy-drift" });
     
     return (
         <Card title="Policy Drift Detection" extra={<Button icon={<SyncOutlined />}>Scan Now</Button>}>

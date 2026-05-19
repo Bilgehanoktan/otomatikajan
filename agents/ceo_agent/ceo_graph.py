@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import os
 from typing import Dict, TypedDict, Annotated, List, Any
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
@@ -38,18 +39,25 @@ async def node_analyze_opportunity(state: AgentState):
 
 async def node_delegate_expert(state: AgentState):
     """Delegates the specific task to a specialized agent using intelligent orchestrator."""
-    from libs.llm.model_orchestrator import ModelOrchestrator
 
     with span("ceo.delegate_expert"):
         logger.info("[CEO Graph] Node: Delegating Expert via Orchestrator")
         plan = state.get("plan", "")
 
         # In production, we query the Agent Registry. Here we map known needs.
-        prompt = f"Based on this plan, choose the best agent from [agency-software-architect, agency-devops-automator, agency-security-engineer]:\n{plan}"
+        selection = plan.lower()
 
-        # We use a central orchestrator to pick the agent based on capability
-        orch = ModelOrchestrator()
-        selection = await orch.complete(messages=[{"role": "user", "content": prompt}])
+        if os.getenv("CEO_GRAPH_LLM_DELEGATION", "false").lower() == "true":
+            prompt = f"Based on this plan, choose the best agent from [agency-software-architect, agency-devops-automator, agency-security-engineer]:\n{plan}"
+
+            try:
+                from libs.llm.model_orchestrator import ModelOrchestrator
+
+                # We use a central orchestrator to pick the agent based on capability
+                orch = ModelOrchestrator()
+                selection = await orch.complete(messages=[{"role": "user", "content": prompt}])
+            except Exception as exc:
+                logger.warning("[CEO Graph] LLM delegation failed; using deterministic fallback: %s", exc)
 
         delegated_agent = "agency-software-architect" # Default fallback
         for agent in ["architect", "devops", "security"]:

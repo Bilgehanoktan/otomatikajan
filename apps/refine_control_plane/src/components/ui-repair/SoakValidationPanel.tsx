@@ -10,6 +10,7 @@ import {
     Badge, Button
 } from "./CommonUI";
 import { useNotification } from "@refinedev/core";
+import { safeFetchJson } from "@/lib/api";
 
 export const SoakValidationPanel: React.FC = () => {
     const t = useTranslations("repair_lab");
@@ -18,8 +19,12 @@ export const SoakValidationPanel: React.FC = () => {
     const [loading, setLoading] = useState(false);
 
     const fetchRecentSoaks = async () => {
-        const res = await fetch("/api/v1/ui-repair/soak/runs");
-        if (res.ok) setRecentSoaks(await res.json());
+        try {
+            const data = await safeFetchJson("/api/v1/ui-repair/soak/runs");
+            setRecentSoaks(data);
+        } catch (e) {
+            console.error("Failed to fetch soaks", e);
+        }
     };
 
     useEffect(() => {
@@ -29,17 +34,15 @@ export const SoakValidationPanel: React.FC = () => {
     const startSoak = async () => {
         setLoading(true);
         try {
-            const res = await fetch("/api/v1/ui-repair/soak/start", {
+            await safeFetchJson("/api/v1/ui-repair/soak/start", {
                 method: "POST"
             });
-            if (res.ok) {
-                open?.({
-                    type: "success",
-                    message: "Soak validation started.",
-                    description: "Autonomous monitoring stability is being tracked."
-                });
-                fetchRecentSoaks();
-            }
+            open?.({
+                type: "success",
+                message: "Soak validation started.",
+                description: "Autonomous monitoring stability is being tracked."
+            });
+            fetchRecentSoaks();
         } finally {
             setLoading(false);
         }

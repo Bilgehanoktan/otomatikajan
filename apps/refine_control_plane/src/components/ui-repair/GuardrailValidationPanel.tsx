@@ -5,6 +5,7 @@ import {
   Table, Tag, Typography, Button, Space, Progress, message, Tooltip 
 } from 'antd';
 import { Play, RotateCcw, AlertTriangle, CheckCircle } from 'lucide-react';
+import { safeFetchJson } from '@/lib/api';
 
 const { Text } = Typography;
 
@@ -25,8 +26,7 @@ const GuardrailValidationPanel: React.FC = () => {
   const fetchRuns = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/ui-repair/security/red-team/runs');
-      const data = await res.json();
+      const data = await safeFetchJson<Run[]>('/api/v1/ui-repair/security/red-team/runs');
       setRuns(data);
     } catch (err) {
       message.error('Failed to fetch runs');
@@ -82,7 +82,7 @@ const GuardrailValidationPanel: React.FC = () => {
             showInfo={false} 
             strokeColor={score > 0.7 ? '#f5222d' : '#1890ff'} 
           />
-          <Text type="secondary" size="small">{score.toFixed(2)}</Text>
+          <Text type="secondary" className="text-xs">{score.toFixed(2)}</Text>
         </Space>
       ),
     },

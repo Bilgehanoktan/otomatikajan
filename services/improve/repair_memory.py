@@ -54,9 +54,12 @@ class RepairMemory:
         except Exception as e:
             logger.error(f"Failed to initialize deep memory: {e}")
 
-    def record_outcome(self, entry: RepairMemoryEntry):
+    def record_outcome(self, entry: RepairMemoryEntry, persist: bool = False):
         self.entries.append(entry)
         logger.info(f"[MEMORY] Recorded {entry.outcome} for {entry.patch_strategy} in {entry.subsystem}")
+
+        if not persist:
+            return
 
         # Fire-and-forget DB persist
         import asyncio
@@ -65,6 +68,16 @@ class RepairMemory:
             loop.create_task(self._persist_entry(entry))
         except RuntimeError:
             pass
+
+    @property
+    def history(self) -> List[RepairMemoryEntry]:
+        """Backward-compatible alias for older E2E checks."""
+        return self.entries
+
+    @history.setter
+    def history(self, entries: List[RepairMemoryEntry]) -> None:
+        """Allow legacy tests/tools to reset the in-memory repair history."""
+        self.entries = entries
 
     def _classify_failure(self, entry: RepairMemoryEntry) -> str:
         """Classifies the failure using a predefined Phase 28 taxonomy."""

@@ -4,15 +4,16 @@ Revision ID: 7cc9f44bc8d0
 Revises: 33bbc921964e
 Create Date: 2026-04-04 22:32:03.846350
 """
-from typing import Sequence, Union
-from alembic import op
+from collections.abc import Sequence
+
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision: str = '7cc9f44bc8d0'
-down_revision: Union[str, None] = '33bbc921964e'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = '33bbc921964e'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -45,12 +46,12 @@ def upgrade() -> None:
     conn = op.get_bind()
     inspector = sa.inspect(conn)
     llm_cols = [c['name'] for c in inspector.get_columns('llm_cost_logs')]
-    
+
     if 'agent_role' not in llm_cols:
         op.add_column('llm_cost_logs', sa.Column('agent_role', sa.String(length=50), nullable=True))
-    
+
     op.execute('DROP INDEX IF EXISTS idx_llm_cost_logs_role')
-    
+
     # Check if index already exists to prevent duplication error
     llm_indexes = [idx['name'] for idx in inspector.get_indexes('llm_cost_logs')]
     if 'ix_llm_cost_logs_agent_role' not in llm_indexes:
@@ -62,13 +63,13 @@ def upgrade() -> None:
         op.add_column('memories', sa.Column('parent_id', sa.UUID(), nullable=True))
     if 'cause_id' not in mem_cols:
         op.add_column('memories', sa.Column('cause_id', sa.UUID(), nullable=True))
-    
+
     mem_indexes = [idx['name'] for idx in inspector.get_indexes('memories')]
     if 'ix_memories_cause_id' not in mem_indexes:
         op.create_index(op.f('ix_memories_cause_id'), 'memories', ['cause_id'], unique=False)
     if 'ix_memories_parent_id' not in mem_indexes:
         op.create_index(op.f('ix_memories_parent_id'), 'memories', ['parent_id'], unique=False)
-    
+
     # Check FK before adding
     mem_fks = inspector.get_foreign_keys('memories')
     if not any('parent_id' in fk['constrained_columns'] for fk in mem_fks):
@@ -78,7 +79,7 @@ def upgrade() -> None:
     proj_cols = [c['name'] for c in inspector.get_columns('projects')]
     if 'goal_id' not in proj_cols:
         op.add_column('projects', sa.Column('goal_id', sa.UUID(), nullable=True))
-    
+
     proj_fks = inspector.get_foreign_keys('projects')
     if not any('goal_id' in fk['constrained_columns'] for fk in proj_fks):
         op.create_foreign_key(None, 'projects', 'sovereign_goals', ['goal_id'], ['id'], ondelete='SET NULL')
@@ -89,13 +90,13 @@ def upgrade() -> None:
                existing_type=postgresql.JSON(),
                type_=sa.JSON().with_variant(sa.JSON(), 'sqlite'),
                existing_nullable=True)
-    
+
     subtask_cols = [c['name'] for c in inspector.get_columns('subtasks')]
     if 'parent_id' not in subtask_cols:
         op.add_column('subtasks', sa.Column('parent_id', sa.UUID(), nullable=True))
-    
+
     op.execute('ALTER TABLE subtasks DROP CONSTRAINT IF EXISTS subtasks_parent_id_fkey')
-    
+
     # Check FK before adding
     subtask_fks = inspector.get_foreign_keys('subtasks')
     if not any('parent_id' in fk['constrained_columns'] for fk in subtask_fks):

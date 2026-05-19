@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Table, Tag, Button, Typography, Space, Progress, Badge, List, Row, Col } from 'antd';
+import { Card, Table, Tag, Button, Typography, Space, Progress, Badge, List, Row, Col, Divider } from 'antd';
 import { PlayCircleOutlined, ReloadOutlined, BugOutlined, DashboardOutlined, SafetyOutlined, DatabaseOutlined } from '@ant-design/icons';
+import { safeFetchJson } from '@/lib/api';
 
 const { Title, Text } = Typography;
 
@@ -11,8 +12,7 @@ export const SystemSmokeTestPanel: React.FC = () => {
     const runTests = async () => {
         setLoading(true);
         try {
-            const response = await fetch('/api/v1/ui-repair/final/smoke-test/run', { method: 'POST' });
-            const data = await response.json();
+            const data = await safeFetchJson('/api/v1/ui-repair/final/smoke-test/run', { method: 'POST' });
             setResults(data);
         } catch (error) {
             console.error('Smoke tests failed:', error);

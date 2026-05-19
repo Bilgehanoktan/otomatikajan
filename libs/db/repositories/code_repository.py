@@ -1,15 +1,15 @@
 import uuid
-from datetime import datetime, timezone
-from typing import Optional, List
+from datetime import UTC, datetime
 
-from sqlalchemy import select, update, desc
+from sqlalchemy import desc, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from libs.db.models import SovereignCodeResult, SovereignCodeFile, Project
+from libs.db.models import SovereignCodeFile, SovereignCodeResult
+
 
 def _utcnow():
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 class CodeRepository:
     """
@@ -23,7 +23,7 @@ class CodeRepository:
         project_id: uuid.UUID,
         title: str,
         language: str = "mixed",
-        technologies: List[str] = None,
+        technologies: list[str] = None,
         summary: str = "",
         provenance_hash: str = None
     ) -> SovereignCodeResult:
@@ -44,8 +44,8 @@ class CodeRepository:
     async def add_files(
         db: AsyncSession,
         result_id: uuid.UUID,
-        files_data: List[dict]
-    ) -> List[SovereignCodeFile]:
+        files_data: list[dict]
+    ) -> list[SovereignCodeFile]:
         files = []
         for f in files_data:
             code_file = SovereignCodeFile(
@@ -58,7 +58,7 @@ class CodeRepository:
                 provenance_id=f.get("provenance_id")
             )
             files.append(code_file)
-        
+
         db.add_all(files)
         # Update total_files count
         await db.execute(
@@ -70,19 +70,19 @@ class CodeRepository:
         return files
 
     @staticmethod
-    async def get_result(db: AsyncSession, result_id: uuid.UUID) -> Optional[SovereignCodeResult]:
+    async def get_result(db: AsyncSession, result_id: uuid.UUID) -> SovereignCodeResult | None:
         query = select(SovereignCodeResult).where(SovereignCodeResult.id == result_id).options(selectinload(SovereignCodeResult.files))
         result = await db.execute(query)
         return result.scalar_one_or_none()
 
     @staticmethod
-    async def get_by_project(db: AsyncSession, project_id: uuid.UUID) -> Optional[SovereignCodeResult]:
+    async def get_by_project(db: AsyncSession, project_id: uuid.UUID) -> SovereignCodeResult | None:
         query = select(SovereignCodeResult).where(SovereignCodeResult.project_id == project_id).options(selectinload(SovereignCodeResult.files))
         result = await db.execute(query)
         return result.scalar_one_or_none()
 
     @staticmethod
-    async def list_recent(db: AsyncSession, limit: int = 20) -> List[SovereignCodeResult]:
+    async def list_recent(db: AsyncSession, limit: int = 20) -> list[SovereignCodeResult]:
         query = select(SovereignCodeResult).order_by(desc(SovereignCodeResult.created_at)).limit(limit)
         result = await db.execute(query)
         return list(result.scalars().all())
@@ -92,7 +92,7 @@ class CodeRepository:
         values = {"status": status, "updated_at": _utcnow()}
         if summary:
             values["summary"] = summary
-            
+
         await db.execute(
             update(SovereignCodeResult)
             .where(SovereignCodeResult.id == result_id)

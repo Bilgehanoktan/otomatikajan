@@ -1,0 +1,69 @@
+> python -m ruff check libs/auth
+
+[1m[91mI001 [0m[[1m[96m*[0m] [1mImport block is un-sorted or un-formatted[0m
+ [1m[94m-->[0m libs\auth\rbac.py:1:1
+  [1m[94m|[0m
+[1m[94m1 |[0m [1m[91m/[0m from enum import Enum
+[1m[94m2 |[0m [1m[91m|[0m from typing import List, Dict
+  [1m[94m|[0m [1m[91m|_____________________________^[0m
+[1m[94m3 |[0m
+[1m[94m4 |[0m   class Role(str, Enum):
+  [1m[94m|[0m
+[1m[96mhelp[0m: [1mOrganize imports[0m
+
+[1m[91mUP035 [0m[1m`typing.List` is deprecated, use `list` instead[0m
+ [1m[94m-->[0m libs\auth\rbac.py:2:1
+  [1m[94m|[0m
+[1m[94m1 |[0m from enum import Enum
+[1m[94m2 |[0m from typing import List, Dict
+  [1m[94m|[0m [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[1m[94m3 |[0m
+[1m[94m4 |[0m class Role(str, Enum):
+  [1m[94m|[0m
+
+[1m[91mUP035 [0m[1m`typing.Dict` is deprecated, use `dict` instead[0m
+ [1m[94m-->[0m libs\auth\rbac.py:2:1
+  [1m[94m|[0m
+[1m[94m1 |[0m from enum import Enum
+[1m[94m2 |[0m from typing import List, Dict
+  [1m[94m|[0m [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[1m[94m3 |[0m
+[1m[94m4 |[0m class Role(str, Enum):
+  [1m[94m|[0m
+
+[1m[91mF401 [0m[[1m[96m*[0m] [1m`typing.List` imported but unused[0m
+ [1m[94m-->[0m libs\auth\rbac.py:2:20
+  [1m[94m|[0m
+[1m[94m1 |[0m from enum import Enum
+[1m[94m2 |[0m from typing import List, Dict
+  [1m[94m|[0m                    [1m[91m^^^^[0m
+[1m[94m3 |[0m
+[1m[94m4 |[0m class Role(str, Enum):
+  [1m[94m|[0m
+[1m[96mhelp[0m: [1mRemove unused import[0m
+
+[1m[91mF401 [0m[[1m[96m*[0m] [1m`typing.Dict` imported but unused[0m
+ [1m[94m-->[0m libs\auth\rbac.py:2:26
+  [1m[94m|[0m
+[1m[94m1 |[0m from enum import Enum
+[1m[94m2 |[0m from typing import List, Dict
+  [1m[94m|[0m                          [1m[91m^^^^[0m
+[1m[94m3 |[0m
+[1m[94m4 |[0m class Role(str, Enum):
+  [1m[94m|[0m
+[1m[96mhelp[0m: [1mRemove unused import[0m
+
+[1m[91mUP042 [0m[1mClass Role inherits from both `str` and `enum.Enum`[0m
+ [1m[94m-->[0m libs\auth\rbac.py:4:7
+  [1m[94m|[0m
+[1m[94m2 |[0m from typing import List, Dict
+[1m[94m3 |[0m
+[1m[94m4 |[0m class Role(str, Enum):
+  [1m[94m|[0m       [1m[91m^^^^[0m
+[1m[94m5 |[0m     AUDITOR = "auditor"     # Read-only access to logs
+[1m[94m6 |[0m     OPERATOR = "operator"   # Can approve and retry, but not replay with deep overrides
+  [1m[94m|[0m
+[1m[96mhelp[0m: [1mInherit from `enum.StrEnum`[0m
+
+Found 6 errors.
+[[36m*[0m] 3 fixable with the `--fix` option (1 hidden fix can be enabled with the `--unsafe-fixes` option).

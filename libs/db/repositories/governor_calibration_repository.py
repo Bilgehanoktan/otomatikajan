@@ -4,16 +4,13 @@ Adaptive threshold persistence and management.
 """
 
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
-import sqlalchemy as sa
-from sqlalchemy import select, desc, and_
+from sqlalchemy import and_, desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from libs.db.models.governance_models import (
-    GovernorCalibrationRecord, CalibrationStatus
-)
+from libs.db.models.governance_models import CalibrationStatus, GovernorCalibrationRecord
 from services.observability.logging import get_logger
 
 logger = get_logger("db.governor_calibration_repo")
@@ -21,7 +18,7 @@ logger = get_logger("db.governor_calibration_repo")
 class GovernorCalibrationRepo:
 
     @staticmethod
-    async def create_proposal(db: AsyncSession, data: Dict[str, Any]) -> GovernorCalibrationRecord:
+    async def create_proposal(db: AsyncSession, data: dict[str, Any]) -> GovernorCalibrationRecord:
         record = GovernorCalibrationRecord(**data)
         record.status = CalibrationStatus.PROPOSED
         db.add(record)
@@ -29,7 +26,7 @@ class GovernorCalibrationRepo:
         return record
 
     @staticmethod
-    async def list_recent(db: AsyncSession, limit: int = 50) -> List[GovernorCalibrationRecord]:
+    async def list_recent(db: AsyncSession, limit: int = 50) -> list[GovernorCalibrationRecord]:
         res = await db.execute(
             select(GovernorCalibrationRecord)
             .order_by(desc(GovernorCalibrationRecord.created_at))
@@ -38,7 +35,7 @@ class GovernorCalibrationRepo:
         return list(res.scalars().all())
 
     @staticmethod
-    async def get_active_value(db: AsyncSession, parameter_name: str) -> Optional[float]:
+    async def get_active_value(db: AsyncSession, parameter_name: str) -> float | None:
         """En son APPLIED olan değeri döner."""
         res = await db.execute(
             select(GovernorCalibrationRecord.applied_value)
@@ -52,7 +49,7 @@ class GovernorCalibrationRepo:
         return res.scalar()
 
     @staticmethod
-    async def get_by_id(db: AsyncSession, calibration_id: uuid.UUID) -> Optional[GovernorCalibrationRecord]:
+    async def get_by_id(db: AsyncSession, calibration_id: uuid.UUID) -> GovernorCalibrationRecord | None:
         res = await db.execute(
             select(GovernorCalibrationRecord).where(GovernorCalibrationRecord.id == calibration_id)
         )
@@ -63,12 +60,12 @@ class GovernorCalibrationRepo:
         record = await GovernorCalibrationRepo.get_by_id(db, calibration_id)
         if not record or record.status != CalibrationStatus.PROPOSED:
             return False
-            
+
         record.status = CalibrationStatus.APPLIED
         record.approved_by = approved_by
         record.applied_value = record.proposed_value
-        record.applied_at = datetime.now(timezone.utc)
-        
+        record.applied_at = datetime.now(UTC)
+
         await db.flush()
         return True
 
@@ -77,11 +74,11 @@ class GovernorCalibrationRepo:
         record = await GovernorCalibrationRepo.get_by_id(db, calibration_id)
         if not record or record.status != CalibrationStatus.PROPOSED:
             return False
-            
+
         record.status = CalibrationStatus.REJECTED
         record.approved_by = approved_by
         record.change_reason = f"{record.change_reason or ''} | REJECTED: {reason}"
-        
+
         await db.flush()
         return True
 
@@ -90,10 +87,10 @@ class GovernorCalibrationRepo:
         record = await GovernorCalibrationRepo.get_by_id(db, calibration_id)
         if not record or record.status != CalibrationStatus.APPLIED:
             return False
-            
+
         record.status = CalibrationStatus.ROLLED_BACK
         record.approved_by = approved_by
         record.change_reason = f"{record.change_reason or ''} | ROLLED_BACK: {reason}"
-        
+
         await db.flush()
         return True

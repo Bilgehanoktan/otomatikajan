@@ -1,19 +1,22 @@
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+import json
+import uuid
+from datetime import datetime
+
 # from sqlalchemy.ext.asyncio import AsyncSession
 # from sqlalchemy import select, func
-from typing import Any, List, Dict, Any, Optional
-import uuid
-import json
+from typing import Any
 
-from libs.db.session import get_db
+from fastapi import APIRouter, Depends
+
 # from libs.db.models.core_models import AgentStatus, AgentRole, FleetStatus, AgentNode, FleetCluster
 # from libs.db.models.governance_models import ProofEventType, GovernanceProofEventRecord
 # from services.orchestration.fleet.fleet_scheduler import FleetScheduler
 # from services.orchestration.fleet.multi_project_controller import MultiProjectController
 # from services.governance.fleet_observability import FleetObservability
+from pydantic import BaseModel, ConfigDict, Field
 
-from pydantic import BaseModel, Field, ConfigDict
-from datetime import datetime
+from libs.db.session import get_db
+
 
 # --- Response Schemas ---
 class FleetMetricsOut(BaseModel):
@@ -41,30 +44,31 @@ class FleetAgentOut(BaseModel):
     status: Any # AgentStatus
     trust_score: float = Field(..., ge=0, le=1)
     current_load: int
-    last_heartbeat: Optional[datetime] = None
-    cluster_id: Optional[str] = None
+    last_heartbeat: datetime | None = None
+    cluster_id: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
 class FleetEventOut(BaseModel):
     id: str
     event_type: Any # ProofEventType
-    entity_id: Optional[str] = None
-    payload_summary: Optional[str] = None
+    entity_id: str | None = None
+    payload_summary: str | None = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
 router = APIRouter(tags=["Orchestration"])
 
-@router.get("/agents", response_model=List[FleetAgentOut])
+@router.get("/agents", response_model=list[FleetAgentOut])
 async def list_agents(
-    role: Optional[Any] = None, 
-    status: Optional[Any] = None, 
-    cluster_id: Optional[uuid.UUID] = None, 
+    role: Any | None = None,
+    status: Any | None = None,
+    cluster_id: uuid.UUID | None = None,
     db: Any = Depends(get_db)
 ):
     from sqlalchemy import select
+
     from libs.db.models.core_models import AgentNode
     query = select(AgentNode)
     if role:
@@ -73,10 +77,10 @@ async def list_agents(
         query = query.where(AgentNode.status == status)
     if cluster_id:
         query = query.where(AgentNode.cluster_id == cluster_id)
-    
+
     result = await db.execute(query)
     agents = result.scalars().all()
-    
+
     return [
         FleetAgentOut(
             id=str(a.id),
@@ -90,14 +94,15 @@ async def list_agents(
         ) for a in agents
     ]
 
-@router.get("/clusters", response_model=List[FleetClusterOut])
+@router.get("/clusters", response_model=list[FleetClusterOut])
 async def list_clusters(db: Any = Depends(get_db)):
-    from sqlalchemy import select, func
-    from libs.db.models.core_models import FleetCluster, AgentNode
+    from sqlalchemy import func, select
+
+    from libs.db.models.core_models import AgentNode, FleetCluster
     query = select(FleetCluster)
     result = await db.execute(query)
     clusters = result.scalars().all()
-    
+
     out = []
     for c in clusters:
         usage = c.current_budget_usage / c.budget_limit * 100 if c.budget_limit > 0 else 0
@@ -120,29 +125,30 @@ async def get_fleet_metrics(db: Any = Depends(get_db)):
     obs = FleetObservability(db)
     return await obs.aggregate_fleet_metrics()
 
-@router.get("/events", response_model=List[FleetEventOut])
+@router.get("/events", response_model=list[FleetEventOut])
 async def list_fleet_events(limit: int = 10, db: Any = Depends(get_db)):
     from sqlalchemy import select
-    from libs.db.models.governance_models import ProofEventType, GovernanceProofEventRecord
+
+    from libs.db.models.governance_models import GovernanceProofEventRecord, ProofEventType
     fleet_event_types = [
-        ProofEventType.AGENT_ASSIGNED, 
-        ProofEventType.AGENT_QUARANTINED, 
-        ProofEventType.BUDGET_BLOCK, 
-        ProofEventType.CLUSTER_FROZEN, 
+        ProofEventType.AGENT_ASSIGNED,
+        ProofEventType.AGENT_QUARANTINED,
+        ProofEventType.BUDGET_BLOCK,
+        ProofEventType.CLUSTER_FROZEN,
         ProofEventType.FLEET_REBALANCED,
         ProofEventType.AGENT_RELEASED
     ]
-    
+
     query = (
         select(GovernanceProofEventRecord)
         .where(GovernanceProofEventRecord.event_type.in_(fleet_event_types))
         .order_by(GovernanceProofEventRecord.chain_index.desc())
         .limit(limit)
     )
-    
+
     result = await db.execute(query)
     records = result.scalars().all()
-    
+
     events = []
     for r in records:
         summary = None
@@ -169,7 +175,7 @@ async def schedule_project(project_id: uuid.UUID, db: Any = Depends(get_db)):
     def _sync_op(sync_db):
         scheduler = FleetScheduler(sync_db)
         return scheduler.schedule_project(project_id)
-    
+
     success = await db.run_sync(_sync_op)
     if not success:
         return {"status": "deferred", "reason": "Resources or budget unavailable"}
@@ -181,7 +187,7 @@ async def pause_project(project_id: uuid.UUID, db: Any = Depends(get_db)):
     def _sync_op(sync_db):
         controller = MultiProjectController(sync_db)
         controller.pause_project(project_id)
-    
+
     await db.run_sync(_sync_op)
     return {"status": "paused"}
 
@@ -191,7 +197,7 @@ async def quarantine_agent(agent_id: uuid.UUID, reason: str, db: Any = Depends(g
     def _sync_op(sync_db):
         registry = AgentRegistry(sync_db)
         registry.mark_agent_quarantined(agent_id, reason)
-    
+
     await db.run_sync(_sync_op)
     return {"status": "quarantined"}
 
@@ -201,6 +207,6 @@ async def trigger_rebalance(db: Any = Depends(get_db)):
     def _sync_op(sync_db):
         scheduler = FleetScheduler(sync_db)
         scheduler.rebalance_fleet()
-    
+
     await db.run_sync(_sync_op)
     return {"status": "rebalance_triggered"}

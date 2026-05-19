@@ -1,16 +1,16 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { 
-  Shield, 
-  Tool, 
-  Activity, 
-  Lock, 
-  Server, 
-  AlertTriangle, 
-  CheckCircle, 
-  XCircle, 
-  Eye, 
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Shield,
+  Wrench,
+  Activity,
+  Lock,
+  Server,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  Eye,
   ShieldAlert,
   Globe,
   Database,
@@ -22,43 +22,44 @@ import {
   RefreshCw,
   Search
 } from 'lucide-react';
+import { safeFetchJson } from '@/lib/api';
 
 export default function ExternalToolGovernancePanel() {
   const [activeTab, setActiveTab] = useState('registry');
-  const [tools, setTools] = useState([]);
-  const [mcpServers, setMcpServers] = useState([]);
-  const [auditLogs, setAuditLogs] = useState([]);
-  const [health, setHealth] = useState([]);
+  const [tools, setTools] = useState<any[]>([]);
+  const [mcpServers, setMcpServers] = useState<any[]>([]);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [health, setHealth] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchData();
-  }, [activeTab]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       if (activeTab === 'registry') {
-        const res = await fetch('/api/v1/ui-repair/tools/registry');
-        setTools(await res.json());
+        const data = await safeFetchJson<any[]>('/api/v1/ui-repair/tools/registry');
+        setTools(data);
       } else if (activeTab === 'mcp') {
-        const res = await fetch('/api/v1/ui-repair/tools/mcp/servers');
-        setMcpServers(await res.json());
+        const data = await safeFetchJson<any[]>('/api/v1/ui-repair/tools/mcp/servers');
+        setMcpServers(data);
       } else if (activeTab === 'audit') {
-        const res = await fetch('/api/v1/ui-repair/tools/audit');
-        setAuditLogs(await res.json());
+        const data = await safeFetchJson<any[]>('/api/v1/ui-repair/tools/audit');
+        setAuditLogs(data);
       } else if (activeTab === 'health') {
-        const res = await fetch('/api/v1/ui-repair/tools/provider-health');
-        setHealth(await res.json());
+        const data = await safeFetchJson<any[]>('/api/v1/ui-repair/tools/provider-health');
+        setHealth(data);
       }
     } catch (e) {
       console.error('Fetch error:', e);
     }
     setLoading(false);
-  };
+  }, [activeTab]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const tabs = [
-    { id: 'registry', name: 'Tool Registry', icon: Tool },
+    { id: 'registry', name: 'Tool Registry', icon: Wrench },
     { id: 'mcp', name: 'MCP Servers', icon: Cpu },
     { id: 'audit', name: 'Audit Ledger', icon: Lock },
     { id: 'health', name: 'Provider Health', icon: Activity },
@@ -138,7 +139,7 @@ export default function ExternalToolGovernancePanel() {
   );
 }
 
-function ToolRegistryTable({ tools }) {
+function ToolRegistryTable({ tools }: { tools: any[] }) {
   return (
     <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden">
       <table className="w-full text-left border-collapse">
@@ -152,7 +153,7 @@ function ToolRegistryTable({ tools }) {
           </tr>
         </thead>
         <tbody className="divide-y divide-white/5">
-          {tools.map(tool => (
+          {tools.map((tool: any) => (
             <tr key={tool.id} className="hover:bg-white/[0.02] transition-colors group">
               <td className="px-6 py-4">
                 <div className="flex items-center gap-3">
@@ -204,7 +205,7 @@ function ToolRegistryTable({ tools }) {
   );
 }
 
-function MCPServersTable({ servers }) {
+function MCPServersTable({ servers }: { servers: any[] }) {
   if (servers.length === 0) {
     return (
       <div className="p-12 border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center gap-4 text-slate-500">
@@ -216,7 +217,7 @@ function MCPServersTable({ servers }) {
   }
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {servers.map(server => (
+      {servers.map((server: any) => (
         <div key={server.id} className="bg-white/5 border border-white/10 p-6 rounded-2xl hover:border-white/20 transition-all">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -256,10 +257,10 @@ function MCPServersTable({ servers }) {
   );
 }
 
-function AuditLedgerList({ logs }) {
+function AuditLedgerList({ logs }: { logs: any[] }) {
   return (
     <div className="space-y-4">
-      {logs.map(log => (
+      {logs.map((log: any) => (
         <div key={log.id} className="bg-[#111112] border border-white/5 p-4 rounded-xl flex items-center justify-between group hover:border-white/10 transition-all">
           <div className="flex items-center gap-4">
             <div className={`p-2 rounded-lg ${
@@ -298,10 +299,10 @@ function AuditLedgerList({ logs }) {
   );
 }
 
-function ProviderHealthGrid({ health }) {
+function ProviderHealthGrid({ health }: { health: any[] }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      {health.map(p => (
+      {health.map((p: any) => (
         <div key={p.id} className="bg-white/5 border border-white/10 p-6 rounded-2xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-4 opacity-10">
             <Activity className="w-12 h-12" />
@@ -360,6 +361,6 @@ function RiskAssessmentPlaceholder() {
   );
 }
 
-function User(props) {
+function User(props: React.SVGProps<SVGSVGElement>) {
   return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
 }

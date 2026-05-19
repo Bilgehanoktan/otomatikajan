@@ -1,0 +1,62 @@
+14:26:24  INFO      [libs.llm.model_orchestrator] [no-trace] [LLM] Hazýr saðlayýcýlar: openai, gemini, groq, openrouter
+14:26:24  WARNING   [libs.llm.model_orchestrator] [no-trace] [LLM] Placeholder anahtar tespit edildi (atlanacak): anthropic
+14:26:28  INFO      [agi_synaptic_cortex] [no-trace] [UGC] Baþlatýldý. Hot Cache boyutu: 100
+14:26:28  INFO      [libs.llm.model_orchestrator] [no-trace] [LLM] Hazýr saðlayýcýlar: openai, gemini, groq, openrouter
+14:26:28  WARNING   [libs.llm.model_orchestrator] [no-trace] [LLM] Placeholder anahtar tespit edildi (atlanacak): anthropic
+14:26:28  INFO      [infra.events] [no-trace] Global event listeners registered.
+14:26:29  INFO      [main] [no-trace] [OTEL] Tracing middleware registered
+14:26:29  INFO      [main] [no-trace] [INCIDENT] Sovereign Incident Middleware registered
+14:26:29  INFO      [main] [no-trace] [DASHBOARD] Next.js assets mounted from E:\ai_company_faz12.1\apps\refine_control_plane\out\_next
+14:26:29  INFO      [main] [no-trace] [DASHBOARD] Active Dashboard (Modern) served from E:\ai_company_faz12.1\apps\refine_control_plane\out
+14:26:29  INFO      [infra.lifespan] [no-trace] Initializing Sovereign AGI Platform [Phase 13.04]...
+14:26:29  INFO      [db.session] [no-trace] SQLAlchemy: Creating engine for loop 2380554588176 (URL: postgresql+asyncpg://postgres:postgres@localhost:5433/ai_company)
+14:26:29  INFO      [db.session] [no-trace] SQLAlchemy: Yeni event loop algýlandý, engine yenilendi.
+14:26:33  WARNING   [db.session] [no-trace] Postgres baðlantýsý baþlatma sýrasýnda baþarýsýz oldu: [WinError 1225] Uzaktaki bilgisayar að baðlantýsýný reddetti. SQLite'a zorlanýyor...
+14:26:33  INFO      [db.session] [no-trace] OK: Veritabaný tablolarý hazýr (development - SQLite Fallback Hazýr).
+14:26:33  INFO      [infra.lifespan] [no-trace] [STARTUP] Database connection established and tables verified.
+14:26:33  INFO      [infra.lifespan] [no-trace] [STARTUP] SovereignCortex cognitive loops initiated in background.
+14:26:33  INFO      [libs.workflow.runner] [no-trace] [WorkflowRunner] WorkflowEngine initialized and actions registered.
+14:26:33  INFO      [infra.lifespan] [no-trace] [STARTUP] WorkflowEngine initialized and default actions registered.
+14:26:33  INFO      [infra.lifespan] [no-trace] [STARTUP] In-process JobQueue workers initiated in background (Resilient Mode).
+14:26:33  INFO      [infra.lifespan] [no-trace] [STANDBY] System is in STANDBY MODE. Awaiting trigger: 'Hazýr, PRMR-01 Faz 1’i yeniden baþlat.'
+14:26:33  INFO      [libs.llm.model_orchestrator] [no-trace] [LLM] Hazýr saðlayýcýlar: openai, gemini, groq, openrouter
+14:26:33  WARNING   [libs.llm.model_orchestrator] [no-trace] [LLM] Placeholder anahtar tespit edildi (atlanacak): anthropic
+14:26:33  INFO      [self_improvement] [no-trace] Self-Improvement Coordinator baÅŸlatÄ±ldÄ±.
+14:26:33  INFO      [agi_governance_watchdog] [no-trace] Governance Watchdog AKTÝF (Interv: 60s)
+14:26:33  INFO      [agi_sovereign_cortex] [no-trace] [SOVEREIGN] Biliþsel yönetim merkezi aktif. 12 ajan hazýr.
+14:26:33  INFO      [libs.queue_abstractions.job_queue] [no-trace] Hydrating standard tasks from libs.db...
+14:26:33  INFO      [infra.lifespan] [no-trace] [STANDBY] PRMR Readiness Audit loop started (Interval: 15m).
+14:26:33  INFO      [infra.lifespan] [no-trace] [STANDBY] TRIGGER DETECTED. Exiting Standby Audit Loop. Primary Initiation authorized.
+14:26:33  INFO      [improvement.observer] [no-trace] ImprovementObserver: Sistem taranÄ±yor...
+14:26:33  INFO      [improvement.observer] [no-trace] Agent hatalarÄ± taranÄ±yor...
+14:26:33  INFO      [heal_engine] [no-trace] [INFO] [11:26:33][monitor][system      ] Oz-Iyileshirme Motoru v2 bashladi.
+14:26:33  INFO      [agi_sovereign_cortex] [no-trace] [SOVEREIGN-AUTOCHECK] Biliþsel saðlýk denetimi baþlatýlýyor...
+14:26:33  INFO      [world_service_graph] [no-trace] [SERVICE-GRAPH] 10 çekirdek servis kayýt edildi.
+14:26:33  INFO      [libs.queue_abstractions.job_queue] [no-trace] Successfully hydrated 3 tasks into JobQueue.
+14:26:33  INFO      [libs.queue_abstractions.job_queue] [no-trace] Worker worker-0 picked up job: d16ad875-7ba8-437e-9c91-44b900ce7024
+14:26:33  INFO      [libs.queue_abstractions.job_queue] [no-trace] Worker worker-1 picked up job: ff605b42-79d4-4e0d-a97a-4c6b8932e849
+14:26:33  INFO      [infra.lifespan] [no-trace] [JOB-QUEUE] EXEC: d16ad875-7ba8-437e-9c91-44b900ce7024 (Self-Correction Pilot)
+14:26:33  INFO      [infra.lifespan] [no-trace] [JOB-QUEUE] EXEC: ff605b42-79d4-4e0d-a97a-4c6b8932e849 (Self-Correction Pilot)
+14:26:33  WARNING   [libs.workflow.runner] [no-trace] [WorkflowRunner] Project d16ad875-7ba8-437e-9c91-44b900ce7024 is WorkflowStatus.PENDING but has 0 steps. Building fresh steps.
+14:26:33  WARNING   [libs.workflow.runner] [no-trace] [WorkflowRunner] Project ff605b42-79d4-4e0d-a97a-4c6b8932e849 is WorkflowStatus.PENDING but has 0 steps. Building fresh steps.
+14:26:33  INFO      [libs.workflow.engine] [no-trace] [Workflow ff605b42-79d4-4e0d-a97a-4c6b8932e849] Running 1 steps in parallel: ['plan_subtasks']
+14:26:33  INFO      [libs.workflow.engine] [no-trace] [Step plan_subtasks] Starting action: plan_subtasks
+14:26:33  INFO      [libs.workflow.engine] [no-trace] [Workflow d16ad875-7ba8-437e-9c91-44b900ce7024] Running 1 steps in parallel: ['plan_subtasks']
+14:26:33  INFO      [agi_motivation_engine] [no-trace] [MOTIVATION] Duygusal durum yeniden kalibre ediliyor...
+14:26:33  INFO      [agi_motivation_engine] [no-trace] [MOTIVATION] Yeni Durum: Policy=aggressive, Stress=0.20, Energy=1.00
+14:26:33  INFO      [libs.llm.model_orchestrator] [no-trace] [LLM] Hazýr saðlayýcýlar: openai, gemini, groq, openrouter
+14:26:33  WARNING   [libs.llm.model_orchestrator] [no-trace] [LLM] Placeholder anahtar tespit edildi (atlanacak): anthropic
+14:26:33  WARNING   [skill_discovery] [no-trace] No active skills found in any known directory. Defaulting to: E:\ai_company_faz12.1\.agent\skills
+14:26:33  INFO      [skill_discovery] [no-trace] Executing discovery in E:\ai_company_faz12.1\.agent\skills
+14:26:33  INFO      [skill_discovery] [no-trace] Discovered 0 skills.
+14:26:33  INFO      [libs.workflow.engine] [no-trace] [Step plan_subtasks] Starting action: plan_subtasks
+[WARN] EventBus Redis publish hatasi: Timeout connecting to server
+14:26:34  INFO      [infra.events] [no-trace] [EVENT] heal.info: None
+14:26:34  INFO      [agi_motivation_engine] [no-trace] [MOTIVATION] Duygusal durum yeniden kalibre ediliyor...
+14:26:34  INFO      [agi_motivation_engine] [no-trace] [MOTIVATION] Yeni Durum: Policy=aggressive, Stress=0.15, Energy=1.00
+14:26:34  INFO      [skill_discovery] [no-trace] Executing discovery in E:\ai_company_faz12.1\.agent\skills
+14:26:34  INFO      [skill_discovery] [no-trace] Discovered 0 skills.
+INFO:     127.0.0.1:63832 - "GET /api/v1/workflows?limit=5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63832 - "GET /api/v1/governance/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63832 - "GET /api/v1/health/dashboard HTTP/1.1" 200 OK
+14:26:34  ERROR     [libs.llm.model_orchestrator] [no-trace] RATE LIMIT (429) hit on gemini. Applying extra penalty.

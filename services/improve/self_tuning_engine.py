@@ -4,6 +4,7 @@ services/improve/self_tuning_engine.py — Phase 28
 Analyzes Lab results and proposes optimized repair thresholds and weights.
 """
 import uuid
+import asyncio
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 from pydantic import BaseModel
@@ -35,9 +36,9 @@ class SelfTuningEngine:
         if not recs:
             return []
 
-        async with session_scope() as session:
-            for r in recs:
-                suggestion = SelfTuningSuggestion(
+        for attempt in range(3):
+            db_suggestions = [
+                SelfTuningSuggestion(
                     suggestion_id=f"SUG-{uuid.uuid4().hex[:8].upper()}",
                     parameter_name=r.parameter_name,
                     current_value=r.current_value,
@@ -47,13 +48,31 @@ class SelfTuningEngine:
                     status="pending",
                     created_at=datetime.now(timezone.utc)
                 )
-                session.add(suggestion)
-                db_suggestions.append(suggestion)
-            
-            # Commit is handled by session_scope
-            
+                for r in recs
+            ]
+
+            try:
+                async with session_scope() as session:
+                    for suggestion in db_suggestions:
+                        session.add(suggestion)
+                    # Commit is handled by session_scope
+                break
+            except Exception as exc:
+                if "database is locked" not in str(exc).lower() or attempt == 2:
+                    logger.warning(
+                        "Self-tuning persistence degraded; returning generated suggestions without durable write: %s",
+                        exc,
+                    )
+                    return db_suggestions
+                await asyncio.sleep(0.5 * (attempt + 1))
+
         logger.info(f"Persisted {len(db_suggestions)} self-tuning suggestions to database.")
         return db_suggestions
+
+    async def generate_recommendations(self) -> List[TuningRecommendation]:
+        """Backward-compatible non-persistent recommendation API for lab/E2E checks."""
+        stats = await self.bench.get_lab_stats()
+        return await self._calculate_recommendations(stats)
 
     async def _calculate_recommendations(self, stats: Dict[str, Any]) -> List[TuningRecommendation]:
         """Internal logic for suggestion calculation, now including recurrence analysis."""
@@ -83,6 +102,8 @@ class SelfTuningEngine:
         sub_recs = {}
         for r in recurrences:
             sub = r["subsystem"]
+            if not sub:
+                continue
             sub_recs[sub] = sub_recs.get(sub, 0) + 1
             
         for sub, count in sub_recs.items():

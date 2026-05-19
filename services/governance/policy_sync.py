@@ -9,7 +9,7 @@ import os
 import shutil
 import time
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from libs.vcs.git_ops import GitOps
 
 class PolicySync:
@@ -28,7 +28,7 @@ class PolicySync:
         Replicates policies and commits them to the mesh co-repo (GitOps).
         """
         results = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "status": "SUCCESS",
             "regions_synced": [],
             "commits": []

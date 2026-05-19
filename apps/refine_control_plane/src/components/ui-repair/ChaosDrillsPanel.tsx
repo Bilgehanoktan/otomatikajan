@@ -22,6 +22,7 @@ import {
     Table, TableHeader, TableRow, TableHead, TableBody, TableCell
 } from "./CommonUI";
 import { useNotification } from "@refinedev/core";
+import { safeFetchJson } from "@/lib/api";
 
 export const ChaosDrillsPanel: React.FC = () => {
     const t = useTranslations("repair_lab");
@@ -30,42 +31,41 @@ export const ChaosDrillsPanel: React.FC = () => {
     const [recentRuns, setRecentRuns] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
-    const fetchScenarios = async () => {
-        const res = await fetch("/api/v1/ui-repair/chaos/scenarios");
-        if (res.ok) setScenarios(await res.json());
-    };
-
-    const fetchRecentRuns = async () => {
-        const res = await fetch("/api/v1/ui-repair/chaos/runs");
-        if (res.ok) setRecentRuns(await res.json());
+    const fetchData = async () => {
+        try {
+            const [scenariosData, runsData] = await Promise.all([
+                safeFetchJson<any[]>("/api/v1/ui-repair/chaos/scenarios"),
+                safeFetchJson<any[]>("/api/v1/ui-repair/chaos/runs")
+            ]);
+            setScenarios(scenariosData);
+            setRecentRuns(runsData);
+        } catch (err) {
+            console.error("Failed to fetch chaos data", err);
+        }
     };
 
     useEffect(() => {
-        fetchScenarios();
-        fetchRecentRuns();
+        fetchData();
     }, []);
 
     const runDrill = async (scenarioId: string) => {
         setLoading(scenarioId as any);
         try {
-            const res = await fetch(`/api/v1/ui-repair/chaos/scenarios/${scenarioId}/run`, {
+            const data = await safeFetchJson<any>(`/api/v1/ui-repair/chaos/scenarios/${scenarioId}/run`, {
                 method: "POST"
             });
-            const data = await res.json();
-            if (res.ok) {
-                open?.({
-                    type: "success",
-                    message: "Chaos drill completed.",
-                    description: `Result: ${data.status}`
-                });
-                fetchRecentRuns();
-            } else {
-                open?.({
-                    type: "error",
-                    message: "Drill failed",
-                    description: data.message || "Unknown error"
-                });
-            }
+            open?.({
+                type: "success",
+                message: "Chaos drill completed.",
+                description: `Result: ${data.status}`
+            });
+            fetchData();
+        } catch (err: any) {
+            open?.({
+                type: "error",
+                message: "Drill failed",
+                description: err.message || "Unknown error"
+            });
         } finally {
             setLoading(false);
         }

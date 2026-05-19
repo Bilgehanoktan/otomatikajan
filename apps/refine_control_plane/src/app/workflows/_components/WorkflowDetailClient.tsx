@@ -25,6 +25,7 @@ import BranchesOutlined from "@ant-design/icons/lib/icons/BranchesOutlined";
 import CheckCircleOutlined from "@ant-design/icons/lib/icons/CheckCircleOutlined";
 import ClockCircleOutlined from "@ant-design/icons/lib/icons/ClockCircleOutlined";
 import ExclamationCircleOutlined from "@ant-design/icons/lib/icons/ExclamationCircleOutlined";
+import RedoOutlined from "@ant-design/icons/lib/icons/RedoOutlined";
 import RocketOutlined from "@ant-design/icons/lib/icons/RocketOutlined";
 import SafetyOutlined from "@ant-design/icons/lib/icons/SafetyOutlined";
 import SyncOutlined from "@ant-design/icons/lib/icons/SyncOutlined";
@@ -271,6 +272,57 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
         }
     }, [apiBase, loadWorkflow, notification, workflow, t]);
 
+    const handleReassign = React.useCallback(async () => {
+        const reason = (document.getElementById("reassign-reason") as HTMLTextAreaElement | null)?.value || "";
+        if (!workflow?.id) {
+            notification.error({ message: t("notifications.networkError"), description: t("notifications.workflowNotFound") });
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const authHeaders = await getAuthHeaders();
+            const response: any = await safeFetchJson(`${apiBase}/workflows/${workflow.id}/reassign`, {
+                method: "POST",
+                headers: authHeaders,
+                body: JSON.stringify({
+                    operator_id: "admin_human",
+                    reason: reason || `Workflow ${workflow.id} reassigned from terminal state ${workflow.status}.`,
+                    reset_steps: true,
+                    preserve_completed_steps: true,
+                }),
+            });
+
+            if ((response as { status?: string }).status === "success" || (response as { message?: string }).message) {
+                notification.success({
+                    message: t("notifications.reassigned"),
+                    description: t("notifications.reassignedDesc"),
+                    placement: "topRight",
+                });
+                await loadWorkflow();
+            } else {
+                notification.error({
+                    message: t("notifications.failed"),
+                    description: t("notifications.failedDesc"),
+                });
+            }
+        } catch (err) {
+            if (err instanceof ApiResponseError && err.status === 403) {
+                notification.error({
+                    message: t("notifications.networkError"),
+                    description: t("notifications.permissionDenied"),
+                });
+                return;
+            }
+            notification.error({
+                message: t("notifications.networkError"),
+                description: err instanceof Error ? err.message : t("notifications.networkErrorDesc"),
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
+    }, [apiBase, loadWorkflow, notification, workflow, t]);
+
     if (!isClient) return <div className="min-h-screen bg-[#060a12]" />;
     if (isLoading) return <Card loading />;
     if (isError || !workflow) {
@@ -319,6 +371,14 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                         {label.toUpperCase()}
                     </Tag>
                 );
+            case "cancelled":
+            case "canceled":
+            case "interrupted":
+                return (
+                    <Tag icon={<ExclamationCircleOutlined />} color="default">
+                        {label.toUpperCase()}
+                    </Tag>
+                );
             case "waiting_approval":
             case "pending_approval":
             case "pending":
@@ -333,6 +393,8 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
     };
 
     const steps = workflow.steps || [];
+    const normalizedWorkflowStatus = String(workflow.status || "").toLowerCase();
+    const canReassign = ["cancelled", "canceled", "failed", "error", "interrupted", "paused"].includes(normalizedWorkflowStatus);
     const currentStepIndex = steps.findIndex((step) =>
         ["running", "processing", "pending", "queued"].includes(String(step.status || "").toLowerCase()),
     );
@@ -846,6 +908,38 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
                                     loading={isSubmitting}
                                 >
                                     {t("approveAndContinue")}
+                                </Button>
+                            </Space>
+                        </Card>
+                    ) : null}
+
+                    {canReassign ? (
+                        <Card
+                            variant="borderless"
+                            style={{ background: "rgba(250, 173, 20, 0.08)", border: "1px dashed #faad14", borderRadius: "16px" }}
+                        >
+                            <Title level={5} style={{ color: "#faad14" }}>
+                                {t("reassignRequired")}
+                            </Title>
+                            <Text style={{ color: "#c5c6c7", fontSize: "13px" }}>
+                                {t("reassignDesc")}
+                            </Text>
+                            <Space direction="vertical" style={{ width: "100%", marginTop: "16px" }}>
+                                <Input.TextArea
+                                    id="reassign-reason"
+                                    placeholder={t("reassignReasonPlaceholder")}
+                                    rows={3}
+                                    style={{ background: "rgba(0,0,0,0.2)", color: "#fff", border: "1px solid rgba(250,173,20,0.3)" }}
+                                />
+                                <Button
+                                    type="primary"
+                                    icon={<RedoOutlined />}
+                                    block
+                                    style={{ background: "#faad14", color: "#060a12", fontWeight: "bold", border: "none" }}
+                                    onClick={() => void handleReassign()}
+                                    loading={isSubmitting}
+                                >
+                                    {t("reassignWorkflow")}
                                 </Button>
                             </Space>
                         </Card>

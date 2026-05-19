@@ -4,15 +4,15 @@ Revision ID: cce4d9bf9404
 Revises: 0004_ceo_and_router
 Create Date: 2026-03-25 23:22:52.058306
 """
-from typing import Sequence, Union
-from alembic import op
-import sqlalchemy as sa
+from collections.abc import Sequence
 
+import sqlalchemy as sa
+from alembic import op
 
 revision: str = 'cce4d9bf9404'
-down_revision: Union[str, None] = '0004_ceo_and_router'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = '0004_ceo_and_router'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

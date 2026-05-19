@@ -20,6 +20,7 @@ import {
   Plus
 } from "lucide-react";
 import { Button, Input, List, Card, Badge, Empty, Skeleton, message, Popconfirm, Tooltip, Tag } from "antd";
+import { safeFetchJson } from "@/lib/api";
 
 interface Agent {
   name: string;
@@ -62,21 +63,14 @@ export default function PromptStudioPage() {
     if (!selectedAgentName) return;
     setIsSaving(true);
     try {
-      const response = await fetch(`/api/v1/harness/agents/${selectedAgentName}`, {
+      await safeFetchJson(`/api/v1/harness/agents/${selectedAgentName}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
           soul: soulContent,
         }),
       });
 
-      if (response.ok) {
-        message.success(translate("notifications.success", "Başarıyla kaydedildi"));
-      } else {
-        message.error(translate("notifications.error", "Hata oluştu"));
-      }
+      message.success(translate("notifications.success", "Başarıyla kaydedildi"));
     } catch (error) {
       message.error("Bağlantı hatası");
     } finally {

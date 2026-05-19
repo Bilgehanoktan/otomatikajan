@@ -14,6 +14,7 @@ import {
 import TuningProposalPanel from './TuningProposalPanel';
 import DefensivePatternPanel from './DefensivePatternPanel';
 import DefenseReportPanel from './DefenseReportPanel';
+import { safeFetchJson } from '@/lib/api';
 
 const { Title, Text } = Typography;
 
@@ -57,15 +58,11 @@ const AutonomousShieldCenterPanel: React.FC = () => {
   const triggerTuningCycle = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/ui-repair/defense/optimization/cycle', { method: 'POST' });
-      if (res.ok) {
-        message.success('Autonomous tuning cycle triggered successfully.');
-        fetchOverview();
-      } else {
-        throw new Error('Failed to trigger tuning cycle');
-      }
+      await safeFetchJson('/api/v1/ui-repair/defense/optimization/cycle', { method: 'POST' });
+      message.success('Autonomous tuning cycle triggered successfully.');
+      fetchOverview();
     } catch (err: any) {
-      message.error(err.message);
+      message.error(err.message || 'Failed to trigger tuning cycle');
     } finally {
       setLoading(false);
     }
@@ -133,7 +130,7 @@ const AutonomousShieldCenterPanel: React.FC = () => {
       {error && <Alert message={error} type="error" showIcon closable className="mb-6 rounded-xl border-rose-500/20 bg-rose-500/5" />}
 
       <Row gutter={[20, 20]} className="mb-8">
-        <Col xs={24} sm={12} md={4.8}>
+        <Col xs={24} sm={12} md={4}>
           <Card bordered={false} className="bg-slate-900/40 backdrop-blur-md border border-slate-800/50 rounded-2xl hover:border-blue-500/30 transition-all duration-300 shadow-xl group">
             <Statistic 
               title={<Text className="text-slate-500 text-xs font-black uppercase tracking-widest">Tuning Proposals</Text>} 
@@ -144,7 +141,7 @@ const AutonomousShieldCenterPanel: React.FC = () => {
             <div className="mt-2 text-[10px] text-blue-400 font-bold">+2 from last cycle</div>
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={4.8}>
+        <Col xs={24} sm={12} md={4}>
           <Card bordered={false} className="bg-slate-900/40 backdrop-blur-md border border-slate-800/50 rounded-2xl hover:border-amber-500/30 transition-all duration-300 shadow-xl group">
             <Statistic 
               title={<Text className="text-slate-500 text-xs font-black uppercase tracking-widest">Active Canaries</Text>} 
@@ -155,7 +152,7 @@ const AutonomousShieldCenterPanel: React.FC = () => {
             <div className="mt-2 text-[10px] text-amber-400 font-bold">In progress</div>
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={4.8}>
+        <Col xs={24} sm={12} md={4}>
           <Card bordered={false} className="bg-slate-900/40 backdrop-blur-md border border-slate-800/50 rounded-2xl hover:border-emerald-500/30 transition-all duration-300 shadow-xl group">
             <Statistic 
               title={<Text className="text-slate-500 text-xs font-black uppercase tracking-widest">Security Lift</Text>} 
@@ -167,7 +164,7 @@ const AutonomousShieldCenterPanel: React.FC = () => {
             <div className="mt-2 text-[10px] text-emerald-400 font-bold">Target reached</div>
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={4.8}>
+        <Col xs={24} sm={12} md={4}>
           <Card bordered={false} className="bg-slate-900/40 backdrop-blur-md border border-slate-800/50 rounded-2xl hover:border-purple-500/30 transition-all duration-300 shadow-xl group">
             <Statistic 
               title={<Text className="text-slate-500 text-xs font-black uppercase tracking-widest">Patterns Synthesized</Text>} 
@@ -178,7 +175,7 @@ const AutonomousShieldCenterPanel: React.FC = () => {
             <div className="mt-2 text-[10px] text-purple-400 font-bold">Reusable rules</div>
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={4.8}>
+        <Col xs={24} sm={12} md={4}>
           <Card bordered={false} className="bg-slate-900/40 backdrop-blur-md border border-slate-800/50 rounded-2xl hover:border-emerald-500/30 transition-all duration-300 shadow-xl group">
             <Statistic 
               title={<Text className="text-slate-500 text-xs font-black uppercase tracking-widest">System Compliance</Text>} 

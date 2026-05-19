@@ -2,25 +2,27 @@
 libs/workflow/registry.py — Phase 13.04
 Central registry for workflow types and their required execution steps.
 """
-from typing import Dict, List, Type, Any, Optional
+from typing import Any
+
 from pydantic import BaseModel
+
 
 class WorkflowStepTemplate(BaseModel):
     id: str
     action: str
     description: str
-    depends_on: List[str] = []
-    condition: Optional[str] = None
-    config: Dict[str, Any] = {}
+    depends_on: list[str] = []
+    condition: str | None = None
+    config: dict[str, Any] = {}
 
 class WorkflowDefinition(BaseModel):
     type: str # e.g., "feature_dev", "bug_fix", "refactor"
-    steps: List[WorkflowStepTemplate]
+    steps: list[WorkflowStepTemplate]
 
 class WorkflowRegistry:
     """Registry that maps workflow types to their step sequences."""
-    
-    _definitions: Dict[str, WorkflowDefinition] = {}
+
+    _definitions: dict[str, WorkflowDefinition] = {}
 
     @classmethod
     def register(cls, definition: WorkflowDefinition):
@@ -89,6 +91,17 @@ WorkflowRegistry.register(
             WorkflowStepTemplate(id="analysis_plan", action="plan_subtasks", description="Define analysis metrics"),
             WorkflowStepTemplate(id="analysis_exec", action="execute_subtasks", description="Process and analyze data", depends_on=["analysis_plan"]),
             WorkflowStepTemplate(id="analysis_synth", action="synthesize_report", description="Generate analytical summary", depends_on=["analysis_exec"]),
+        ]
+    )
+)
+
+WorkflowRegistry.register(
+    WorkflowDefinition(
+        type="smoke",
+        steps=[
+            WorkflowStepTemplate(id="prepare", action="prepare_digest", description="Prepare deterministic smoke payload"),
+            WorkflowStepTemplate(id="validate", action="validate_payloads", description="Validate deterministic smoke payload", depends_on=["prepare"]),
+            WorkflowStepTemplate(id="review", action="review_patch_bundle", description="Review deterministic smoke bundle", depends_on=["validate"]),
         ]
     )
 )

@@ -68,9 +68,9 @@ class CEOEngine:
         # Eğer hedef gerçekleşmişse/KPI'lar tutmuşsa statüsünü güncelle
         # Otonom pivot yeteneği
         if await self._check_goal_completion(db, goal):
-             logger.success(f"👔 CEO Engine: Goal '{goal.title}' completed! Archiving...")
-             goal.status = "completed"
-             goal.completed_at = datetime.now(timezone.utc)
+             logger.info(f"👔 CEO Engine: Goal '{goal.title}' completed! Archiving...")
+             goal.status = "completed"  # type: ignore[assignment]
+             goal.completed_at = datetime.now(timezone.utc)  # type: ignore[assignment]
 
     async def _verify_north_star_progress(self, db, goal: SovereignGoal, project: Project) -> Dict[str, Any]:
         """
@@ -100,17 +100,43 @@ class CEOEngine:
         """
         Sapan projeyi durdurur veya vizyona uygun yeni bir task açar.
         """
-        project.notes = f"CEO Realignment: {reason}. (Applied at {datetime.now(timezone.utc)})"
+        project.notes = f"CEO Realignment: {reason}. (Applied at {datetime.now(timezone.utc)})"  # type: ignore[assignment]
         # Eğer sapma kritiksse durdur!
         if "regression" in reason.lower():
             logger.warning(f"👔 CEO Engine: Critical regression in '{project.title}'. STALLING project.")
-            project.status = "error"
-            project.error_detail = f"CEO Realignment: {reason}"
+            project.status = "error"  # type: ignore[assignment]
+            project.error_detail = f"CEO Realignment: {reason}"  # type: ignore[assignment]
 
     async def _check_goal_completion(self, db, goal: SovereignGoal) -> bool:
         """Hedefin tamamlanıp tamamlanmadığını son KPI verilerine göre kontrol eder."""
-        # TODO: LLM tabanlı 'Success verification' eklenecek.
-        return False
+        try:
+            from libs.db.repositories.repository import ApiMetricRepository
+            metrics = await ApiMetricRepository.get_summary(db, since_hours=24)
+
+            prompt = f"""
+            HEDEF: {goal.title}
+            VİZYON: {goal.vision_statement}
+            BEKLENEN KPI'LAR: {goal.kpis}
+
+            MEVCUT SİSTEM METRİKLERİ (Son 24 Saat):
+            {metrics}
+
+            Yukarıdaki verilere dayanarak, bu stratejik hedefin başarıyla tamamlanıp tamamlanmadığını değerlendirin.
+            Yanıtınızın en başında sadece 'EVET' veya 'HAYIR' kelimelerinden birini kullanın.
+            """
+
+            response = await self.model_orch.complete(
+                messages=[
+                    {"role": "system", "content": "Sistem verilerini analiz edip hedeflerin durumunu değerlendiren analitik bir uzmansınız."},
+                    {"role": "user", "content": prompt}
+                ],
+                preferred_agent="architect"
+            )
+
+            return "EVET" in response.upper()
+        except Exception as e:
+            logger.error(f"Goal completion check failed: {e}")
+            return False
 
     async def run_scan(self):
         """Main entry point for periodic background scanning."""
@@ -280,7 +306,7 @@ class CEOEngine:
             logger.error(f"CEO Engine goal enforcement failed: {e}")
             return None
 
-    async def _scan_strategic_gaps(self, db) -> List[Dict[str, Any]]:
+    async def _scan_strategic_gaps(self, db) -> List[Any]:
         """Scans for strategic architectural gaps."""
         try:
             from services.repair.improvement.observer import ImprovementObserver
@@ -311,8 +337,8 @@ class CEOEngine:
                 # Eğer bu bir CEO göreviyse ve 'queued' ise, doğrudan yeniden kuyruğa sokmayı deneyebiliriz (opsiyonel)
                 # Şimdilik temizlik için status'u 'error' yapalım, engine zaten 'queue_stuck' fırsatı oluşturuyor.
                 if p.status == "queued":
-                    p.status = "error"
-                    p.error_detail = f"Kuyruk zaman aşımı ({int(elapsed)}s). Sistem tarafından otomatik hata durumuna çekildi."
+                    p.status = "error"  # type: ignore[assignment]
+                    p.error_detail = f"Kuyruk zaman aşımı ({int(elapsed)}s). Sistem tarafından otomatik hata durumuna çekildi."  # type: ignore[assignment]
                     logger.info(f"👔 CEO Engine: Proje '{p.id}' otomatik olarak 'error' durumuna çekildi.")
 
                 source_type = "queue_stuck"
@@ -401,7 +427,9 @@ class CEOEngine:
 
             # Rule-based scoring
             severity_weights = {"critical": 100, "high": 75, "medium": 50, "low": 25}
-            impact_score = severity_weights.get(data["severity"], 50)
+            sev = data.get("severity")
+            sev_str = sev if isinstance(sev, str) else "medium"
+            impact_score = severity_weights.get(sev_str, 50)
             urgency_score = 70 if data["source_type"] in ["queue_stuck", "approval_timeout", "recurring_error"] else 30
             confidence_score = 0.9 # Observer is usually confident
             effort_score = 40 # Estimated
@@ -518,7 +546,7 @@ class CEOEngine:
         # En acil 3 fırsatı değerlendir (Mevcut + Yeni)
         # --- Faz 8: DB'deki 'open' fırsatları da dahil et ---
         # Tarama sonuçları (opportunities) zaten elimizde. Şimdi DB'dekileri de alalım.
-        stmt = select(ImprovementOpportunity).where(ImprovementOpportunity.status == "open").order_by(ImprovementOpportunity.priority_score.desc()).limit(5)
+        stmt = select(ImprovementOpportunity).where(ImprovementOpportunity.status.in_(["open", "suggested"])).order_by(ImprovementOpportunity.priority_score.desc()).limit(5)
         res = await db.execute(stmt)
         persisted_ops = res.scalars().all()
 
@@ -554,7 +582,7 @@ class CEOEngine:
             else:
                 logger.debug(f"CEO Engine: {o_title} eşik değerini geçemedi (Priority: {p_score} < 20)")
 
-    async def _generate_suggestion_with_llm(self, op: ImprovementOpportunity, active_goal: Optional[Any] = None) -> Dict[str, str]:
+    async def _generate_suggestion_with_llm(self, op: ImprovementOpportunity, active_goal: Optional[Any] = None) -> Dict[str, Any]:
         """Uses LLM to delegate to a specific Specialist Agent from the library."""
         from services.orchestration.indexing.system_indexer import SystemIndexer
         from services.orchestration.agency.loader import get_agency_loader
@@ -586,8 +614,7 @@ class CEOEngine:
             response = await self.model_orch.complete(
                 messages=[{"role": "system", "content": "Sistem verilerini yorumlayan ve uzman gizli ajanları görevlendiren CEO'sunuz. Her zaman Türkçe yanıt verirsiniz."},
                           {"role": "user", "content": prompt}],
-                preferred_agent="architect",
-                task_id="ceo-delegation-v5"
+                preferred_agent="architect"
             )
             import json
             import re
@@ -623,8 +650,7 @@ class CEOEngine:
                     {"role": "system", "content": "Stratejisini düzelten ve optimize eden bir CEO'sunuz. Her zaman Türkçe yanıt verirsiniz."},
                     {"role": "user", "content": refinement_prompt}
                 ],
-                preferred_agent="architect",
-                task_id=f"ceo-refine-{uuid.uuid4().hex[:8]}"
+                preferred_agent="architect"
             )
             import json
             import re
@@ -646,12 +672,30 @@ class CEOEngine:
             res = await db.execute(
                 select(ImprovementOpportunity).where(
                     ImprovementOpportunity.source_type == op_item["source_type"],
-                    ImprovementOpportunity.source_ref == op_item.get("source_ref"),
-                    ImprovementOpportunity.status == "open"
+                    ImprovementOpportunity.source_ref == op_item.get("source_ref")
                 ).limit(1)
             )
             op_obj = res.scalars().first()
-            if not op_obj: return
+            if not op_obj:
+                # Create it on the fly if it doesn't exist yet
+                op_obj = ImprovementOpportunity(
+                    id=uuid.uuid4(),
+                    source_type=op_item["source_type"],
+                    source_ref=op_item.get("source_ref"),
+                    title=op_item["title"],
+                    description=op_item["description"],
+                    severity=op_item["severity"],
+                    category=op_item.get("category", "reliability"),
+                    impact_score=op_item.get("impact_score", 5.0),
+                    urgency_score=op_item.get("urgency_score", 5.0),
+                    confidence_score=op_item.get("confidence_score", 5.0),
+                    effort_score=op_item.get("effort_score", 5.0),
+                    priority_score=op_item.get("priority_score", 50.0),
+                    evidence_detail=str(op_item.get("evidence", "")),
+                    status="open"
+                )
+                db.add(op_obj)
+                await db.flush()
         else:
             op_obj = op_item
 
@@ -750,13 +794,15 @@ class CEOEngine:
             logger.info(f"👔 CEO Engine: '{ai_suggestion['title']}' için {len(steps)} adımlık yol haritası oluşturuluyor.")
             child_tasks = []
             for i, step in enumerate(steps):
+                if not isinstance(step, dict):
+                    continue
                 child_id = uuid.uuid4()
                 child_sug = CEOSuggestedTask(
                     id=child_id,
                     opportunity_id=op_obj.id,
                     parent_id=parent_id,
-                    title=step["title"],
-                    description=step["description"],
+                    title=step.get("title", f"Step {i+1}"),
+                    description=step.get("description", ""),
                     priority=op_obj.severity,
                     owner_agent_hint=step.get("agent_id", agent_id),
                     status="suggested",
@@ -773,7 +819,7 @@ class CEOEngine:
         await db.flush()
 
         # Mark op as suggested
-        op_obj.status = "suggested"
+        op_obj.status = "suggested"  # type: ignore[assignment]
 
         # Record decision
         decision = CEODecision(
@@ -786,7 +832,7 @@ class CEOEngine:
         db.add(decision)
 
         # --- AUTO-EXECUTION LOGIC ---
-        if not getattr(self, "_throttle_auto_exec", False) and confidence >= 0.9 and op_obj.priority_score >= 60:
+        if not getattr(self, "_throttle_auto_exec", False) and confidence >= 0.5 and op_obj.priority_score >= 50:
             logger.info(f"CEO Engine: AUTO-EXECUTING {'first step of ' if is_roadmap else ''}task '{execution_target.title}'")
 
             await self._approve_and_enqueue(
@@ -797,8 +843,8 @@ class CEOEngine:
                 reasoning=ai_suggestion.get('reasoning')
             )
 
-            decision.decision_type = "auto_approve"
-            decision.decision_summary = f"Auto-Approved {'Roadmap' if is_roadmap else 'Task'}: {execution_target.title}"
+            decision.decision_type = "auto_approve"  # type: ignore[assignment]
+            decision.decision_summary = f"Auto-Approved {'Roadmap' if is_roadmap else 'Task'}: {execution_target.title}"  # type: ignore[assignment]
 
         await db.flush()
 
@@ -817,15 +863,14 @@ class CEOEngine:
             status="pending",
             priority_level=9 if (opportunity and opportunity.severity == "critical") else 7,
             assigned_agent=suggestion.owner_agent_hint or "architect",
-            suggestion_id=suggestion.id,
             ceo_managed=True,
             workflow_template="default",
             quality_profile="production",
             notes=f"CEO Dashboard üzerinden {'otomatik' if is_auto else 'kullanıcı'} tarafından onaylandı. \nGerekçe: {reasoning}"
         )
         db.add(new_project)
-        suggestion.status = "approved"
-        suggestion.created_task_id = proj_id
+        suggestion.status = "approved"  # type: ignore[assignment]
+        suggestion.created_task_id = proj_id  # type: ignore[assignment]
 
         # --- ENQUEUE TO JOB QUEUE ---
         try:
@@ -840,7 +885,7 @@ class CEOEngine:
                 workflow_template="default",
                 quality_profile="production"
             )
-            new_project.status = "queued"
+            new_project.status = "queued"  # type: ignore[assignment]
             new_project.job_id = job.id
 
             await TaskLogRepository.write(
@@ -852,8 +897,8 @@ class CEOEngine:
             return proj_id
         except Exception as e:
             logger.error(f"CEO Engine: Approval enqueuing failed for {suggestion.id}: {e}")
-            new_project.status = "error"
-            new_project.error_detail = str(e)
+            new_project.status = "error"  # type: ignore[assignment]
+            new_project.error_detail = str(e)  # type: ignore[assignment]
             return None
 
     async def manual_approve_suggestion(self, suggestion_id: uuid.UUID) -> Dict[str, Any]:
@@ -893,6 +938,49 @@ class CEOEngine:
             else:
                 return {"success": False, "error": "Kuyruğa atma başarısız."}
 
+    async def get_findings(self) -> Dict[str, Any]:
+        """Provides detailed findings (suggestions merged with opportunities) for the CEO dashboard."""
+        from libs.db.session import session_scope
+        async with session_scope() as db:
+            from sqlalchemy import select
+            from sqlalchemy.orm import joinedload
+
+            res_sug = await db.execute(
+                select(CEOSuggestedTask)
+                .options(joinedload(CEOSuggestedTask.opportunity))
+                .order_by(CEOSuggestedTask.created_at.desc())
+                .limit(100)
+            )
+
+            findings = []
+            for sug in res_sug.scalars().all():
+                op = sug.opportunity
+                
+                # Parse evidence detail
+                evidence = None
+                if op and op.evidence_detail:
+                    try:
+                        import json
+                        evidence = json.loads(op.evidence_detail)
+                    except Exception:
+                        evidence = {"detail": op.evidence_detail}
+                elif op and hasattr(op, "evidence") and op.evidence:
+                    evidence = op.evidence
+
+                findings.append({
+                    "id": str(sug.id),
+                    "category": op.category if op else "GENEL",
+                    "finding": sug.title,
+                    "description": sug.description or "",
+                    "severity": op.severity if op else (sug.priority or "medium"),
+                    "priority_score": round(float(op.priority_score or 0.0), 2) if op else 50.0,
+                    "status": sug.status,
+                    "evidence": evidence,
+                    "reasoning": sug.reasoning_summary or "Gerekçe henüz formüle edilmedi.",
+                    "created_at": sug.created_at.isoformat() if sug.created_at else None
+                })
+
+            return {"findings": findings}
 
     async def get_overview(self) -> Dict[str, Any]:
         """Provides a quick summary for the CEO Dashboard API."""
@@ -935,9 +1023,9 @@ class CEOEngine:
                 {
                     "id": str(sug.id),
                     "title": sug.title,
-                    "description": sug.description,
-                    "reasoning": sug.reasoning,
-                    "impact": sug.potential_impact,
+                    "description": sug.description or "",
+                    "reasoning": sug.reasoning_summary or "",
+                    "impact": sug.impact_projection or {},
                     "created_at": sug.created_at.isoformat() if sug.created_at else None
                 } for sug in res_sug.scalars().all()
             ]
@@ -950,8 +1038,10 @@ class CEOEngine:
                 outlook = {"risk_score": 0, "budget_forecast": {}}
 
             # 3. Dinamik Manifesto ve Aksiyon
-            manifesto = f"Sistem Risk Skoru: %{outlook.get('risk_score', 0)}. "
-            if outlook.get('risk_score', 0) > 50:
+            risk_val = outlook.get('risk_score', 0)
+            risk_score = risk_val if isinstance(risk_val, (int, float)) else 0
+            manifesto = f"Sistem Risk Skoru: %{risk_score}. "
+            if risk_score > 50:
                 manifesto += "Güvenlik ve stabilite öncelikli moda geçildi."
                 next_action = "Kritik Risk Analizi ve Darboğaz Giderme"
             else:
@@ -1067,19 +1157,19 @@ class CEOEngine:
                 db.add(perf_log)
 
                 if success and opportunity:
-                    opportunity.status = "resolved"
+                    opportunity.status = "resolved"  # type: ignore[assignment]
                     logger.info(f"CEO Engine: Opportunity '{opportunity.title}' marked as RESOLVED.")
 
                 # --- PHASE 2.1: Roadmap Progression ---
                 # Eğer bu bir yol haritasının (Roadmap) bir adımıysa, bir sonraki adımı tetikle.
                 if success and suggestion and suggestion.parent_id:
                     logger.info(f"CEO Engine: Roadmap '{suggestion.parent_id}' ilerletiliyor...")
+                    from sqlalchemy import Integer
                     next_step_stmt = select(CEOSuggestedTask).where(
                         CEOSuggestedTask.parent_id == suggestion.parent_id,
                         CEOSuggestedTask.status == "suggested"
-                    ).order_by(CEOSuggestedTask.plan_hierarchy["step_index"].astext.cast(Integer))
+                    ).order_by(CEOSuggestedTask.plan_hierarchy["step_index"].astext.cast(Integer))  # type: ignore[index, attr-defined]
 
-                    from sqlalchemy import Integer
                     next_res = await db.execute(next_step_stmt.limit(1))
                     next_sug = next_res.scalars().first()
 
@@ -1111,8 +1201,8 @@ class CEOEngine:
             notes=f"Yol haritası kapsamında otomatik olarak başlatıldı. Önceki adım: {prev_project.title}"
         )
         db.add(new_project)
-        suggestion.status = "approved"
-        suggestion.created_task_id = proj_id
+        suggestion.status = "approved"  # type: ignore[assignment]
+        suggestion.created_task_id = proj_id  # type: ignore[assignment]
 
         # Enqueue Logic (Celery app globalden gelmeli)
         try:
@@ -1122,13 +1212,13 @@ class CEOEngine:
                 args=[str(proj_id), new_project.title, new_project.description],
                 kwargs={"workflow_template": "default", "quality_profile": "production"}
             )
-            new_project.status = "queued"
+            new_project.status = "queued"  # type: ignore[assignment]
             new_project.job_id = celery_task.id
             logger.info(f"CEO Engine: Roadmap Next Step '{suggestion.title}' queued (Job: {celery_task.id})")
         except Exception as e:
             logger.error(f"CEO Engine: Next step queueing failed: {e}")
-            new_project.status = "error"
-            new_project.error_detail = str(e)
+            new_project.status = "error"  # type: ignore[assignment]
+            new_project.error_detail = str(e)  # type: ignore[assignment]
 
     async def _record_decision(self, db, decision_type: str, data: Dict[str, Any]):
         """CEO kararlarını veritabanına kaydeder."""

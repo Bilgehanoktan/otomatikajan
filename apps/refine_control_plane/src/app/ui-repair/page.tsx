@@ -23,6 +23,7 @@ import {
   GitPullRequest,
   Brain
 } from 'lucide-react';
+import { safeFetchJson } from '@/lib/api';
 import GAOperationsDashboard from './GAOperationsDashboard';
 import { ChaosDrillsPanel } from "@/components/ui-repair/ChaosDrillsPanel";
 import { SoakValidationPanel } from "@/components/ui-repair/SoakValidationPanel";
@@ -102,12 +103,12 @@ export default function UIRepairPage() {
 
   const fetchMonitoringData = async () => {
     try {
-      const [cfgRes, runsRes] = await Promise.all([
-        fetch('/api/v1/ui-repair/monitoring/config'),
-        fetch('/api/v1/ui-repair/monitoring/runs')
+      const [cfg, runs] = await Promise.all([
+        safeFetchJson('/api/v1/ui-repair/monitoring/config'),
+        safeFetchJson('/api/v1/ui-repair/monitoring/runs')
       ]);
-      if (cfgRes.ok) setMonitoringConfig(await cfgRes.json());
-      if (runsRes.ok) setMonitoringRuns(await runsRes.json());
+      setMonitoringConfig(cfg);
+      setMonitoringRuns(runs);
     } catch (err) {
       console.error("Failed to fetch monitoring data", err);
     }
@@ -115,12 +116,12 @@ export default function UIRepairPage() {
 
   const handleUpdateConfig = async (data: any) => {
     try {
-      const res = await fetch('/api/v1/ui-repair/monitoring/config', {
+      const res = await safeFetchJson('/api/v1/ui-repair/monitoring/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
-      if (res.ok) setMonitoringConfig(await res.json());
+      setMonitoringConfig(res);
     } catch (err) {
       console.error("Failed to update monitoring config", err);
     }
@@ -129,7 +130,7 @@ export default function UIRepairPage() {
   const handleTriggerMonitoring = async () => {
     setTriggeringMonitoring(true);
     try {
-      await fetch('/api/v1/ui-repair/monitoring/trigger', { method: 'POST' });
+      await safeFetchJson('/api/v1/ui-repair/monitoring/trigger', { method: 'POST' });
       setTimeout(fetchMonitoringData, 2000);
     } catch (err) {
       console.error("Failed to trigger monitoring", err);
@@ -140,15 +141,15 @@ export default function UIRepairPage() {
 
   const fetchData = async () => {
     try {
-      const [overRes, routeRes, caseRes] = await Promise.all([
-        fetch('/api/v1/ui-repair/overview'),
-        fetch('/api/v1/ui-repair/routes'),
-        fetch('/api/v1/ui-repair/cases')
+      const [over, route, caseList] = await Promise.all([
+        safeFetchJson('/api/v1/ui-repair/overview'),
+        safeFetchJson('/api/v1/ui-repair/routes'),
+        safeFetchJson('/api/v1/ui-repair/cases')
       ]);
       
-      if (overRes.ok) setOverview(await overRes.json());
-      if (routeRes.ok) setRoutes(await routeRes.json());
-      if (caseRes.ok) setCases(await caseRes.json());
+      setOverview(over);
+      setRoutes(route);
+      setCases(caseList);
     } catch (err) {
       console.error("Failed to fetch UI repair data", err);
     } finally {
@@ -159,7 +160,7 @@ export default function UIRepairPage() {
   const handleRunSmoke = async () => {
     setRunning(true);
     try {
-      await fetch('/api/v1/ui-repair/smoke/run', { method: 'POST' });
+      await safeFetchJson('/api/v1/ui-repair/smoke/run', { method: 'POST' });
       await fetchData();
     } catch (err) {
       console.error("Failed to run smoke tests", err);
@@ -170,7 +171,7 @@ export default function UIRepairPage() {
 
   const handleTriggerRepair = async (caseId: string) => {
     try {
-      await fetch(`/api/v1/ui-repair/cases/${caseId}/repair`, { method: 'POST' });
+      await safeFetchJson(`/api/v1/ui-repair/cases/${caseId}/repair`, { method: 'POST' });
       await fetchData();
       if (selectedCase && selectedCase.id === caseId) {
         fetchCaseDetails(caseId);
@@ -182,18 +183,15 @@ export default function UIRepairPage() {
 
   const fetchCaseDetails = async (caseId: string) => {
     try {
-      const [attRes, evtRes] = await Promise.all([
-        fetch(`/api/v1/ui-repair/cases/${caseId}/attempts`),
-        fetch(`/api/v1/ui-repair/cases/${caseId}/events`)
+      const [atts, evts] = await Promise.all([
+        safeFetchJson(`/api/v1/ui-repair/cases/${caseId}/attempts`),
+        safeFetchJson(`/api/v1/ui-repair/cases/${caseId}/events`)
       ]);
-      if (attRes.ok) {
-        const atts = await attRes.json();
-        setAttempts(atts);
-        if (atts.length > 0) {
-          fetchAttemptDetail(atts[0].id);
-        }
+      setAttempts(atts);
+      if (atts.length > 0) {
+        fetchAttemptDetail(atts[0].id);
       }
-      if (evtRes.ok) setEvents(await evtRes.json());
+      setEvents(evts);
     } catch (err) {
       console.error("Failed to fetch case details", err);
     }
@@ -201,8 +199,8 @@ export default function UIRepairPage() {
 
   const fetchAttemptDetail = async (attemptId: string) => {
     try {
-      const res = await fetch(`/api/v1/ui-repair/attempts/${attemptId}/detail`);
-      if (res.ok) setRepairDetail(await res.json());
+      const res = await safeFetchJson(`/api/v1/ui-repair/attempts/${attemptId}/detail`);
+      setRepairDetail(res);
     } catch (err) {
       console.error("Failed to fetch attempt detail", err);
     }
@@ -211,19 +209,16 @@ export default function UIRepairPage() {
   const handleApplyPatch = async (caseId: string, attemptId: string) => {
     setApplying(true);
     try {
-      const res = await fetch(`/api/v1/ui-repair/cases/${caseId}/attempts/${attemptId}/apply?operator=admin`, { method: 'POST' });
-      const data = await res.json();
-      
-      if (res.ok) {
-        await fetchData();
-        setSelectedCase(null);
-      } else if (res.status === 403) {
-        alert(`REPAIR BLOCKED: ${data.reason}\n\nIntegrity Score: ${(data.score * 100).toFixed(1)}%`);
-      } else {
-        alert(`Error: ${data.detail || 'Failed to apply patch'}`);
-      }
-    } catch (err) {
+      const data = await safeFetchJson(`/api/v1/ui-repair/cases/${caseId}/attempts/${attemptId}/apply?operator=admin`, { method: 'POST' });
+      await fetchData();
+      setSelectedCase(null);
+    } catch (err: any) {
       console.error("Failed to apply patch", err);
+      if (err.status === 403) {
+        alert(`REPAIR BLOCKED: ${err.detail?.reason || 'Integrity check failed'}`);
+      } else {
+        alert(`Error: ${err.message || 'Failed to apply patch'}`);
+      }
     } finally {
       setApplying(false);
     }

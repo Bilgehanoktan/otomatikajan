@@ -4,16 +4,18 @@ Revision ID: e4a7b5d12345
 Revises: 4bd5655fe01b
 Create Date: 2026-04-27 01:25:00.000000
 """
-from typing import Sequence, Union
-from alembic import op
+from collections.abc import Sequence
+
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
+
 import libs.db.base
 
 revision: str = 'e4a7b5d12345'
-down_revision: Union[str, None] = '4bd5655fe01b'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = '4bd5655fe01b'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -106,7 +108,7 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_governance_proof_events_created_at'), table_name='governance_proof_events')
     op.drop_index(op.f('ix_governance_proof_events_chain_index'), table_name='governance_proof_events')
     op.drop_table('governance_proof_events')
-    
+
     # op.execute("DROP TYPE proofsealstatus")
     # op.execute("DROP TYPE proofeventtype")
     pass

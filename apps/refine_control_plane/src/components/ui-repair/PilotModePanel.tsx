@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Card, Button, Space, Typography, Tag, Select, InputNumber, Alert, Modal, Input } from "antd";
 import { RocketOutlined, PauseCircleOutlined, PlayCircleOutlined, StopOutlined, SafetyCertificateOutlined } from "@ant-design/icons";
+import { safeFetchJson } from "@/lib/api";
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -17,8 +18,7 @@ export const PilotModePanel: React.FC = () => {
 
     const fetchStatus = async () => {
         try {
-            const res = await fetch("/api/v1/ui-repair/pilot/status");
-            const data = await res.json();
+            const data = await safeFetchJson("/api/v1/ui-repair/pilot/status");
             setStatus(data);
         } catch (e) {
             console.error("Failed to fetch pilot status", e);
@@ -32,7 +32,7 @@ export const PilotModePanel: React.FC = () => {
     const handleStart = async () => {
         setLoading(true);
         try {
-            await fetch(`/api/v1/ui-repair/pilot/start?name=${startForm.name}&mode=${startForm.mode}&duration=${startForm.duration}`, { method: "POST" });
+            await safeFetchJson(`/api/v1/ui-repair/pilot/start?name=${startForm.name}&mode=${startForm.mode}&duration=${startForm.duration}`, { method: "POST" });
             await fetchStatus();
             setIsStartModalVisible(false);
         } finally {
@@ -44,7 +44,7 @@ export const PilotModePanel: React.FC = () => {
         if (!status) return;
         setLoading(true);
         try {
-            await fetch(`/api/v1/ui-repair/pilot/pause?rollout_id=${status.id}&rationale=Manual_Operator_Pause`, { method: "POST" });
+            await safeFetchJson(`/api/v1/ui-repair/pilot/pause?rollout_id=${status.id}&rationale=Manual_Operator_Pause`, { method: "POST" });
             await fetchStatus();
         } finally {
             setLoading(false);

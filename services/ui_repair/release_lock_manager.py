@@ -32,7 +32,7 @@ class ReleaseLockManager:
         lock = UIReleaseLock(
             release_key=release_key,
             version=version,
-            status=ReleaseStatus.RELEASE_CANDIDATE,
+            status=ReleaseStatus.SEALED,
             locked_by=locked_by,
             locked_at=datetime.now(timezone.utc),
             commit_sha=f"HEAD-{uuid.uuid4().hex[:8]}", # Simulate current commit

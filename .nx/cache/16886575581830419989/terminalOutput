@@ -1,0 +1,39 @@
+> python -m pytest tests/test_phase13_workflow.py tests/integration/test_mesh_api.py -q
+
+[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[33m                                                              [100%][0m
+[33m============================== warnings summary ===============================[0m
+services\workflow_api\main.py:65
+  E:\ai_company_faz12.1\services\workflow_api\main.py:65: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+C:\Users\B�LGEHAN\AppData\Roaming\Python\Python314\site-packages\fastapi\applications.py:4599
+  C:\Users\B�LGEHAN\AppData\Roaming\Python\Python314\site-packages\fastapi\applications.py:4599: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+tests/integration/test_mesh_api.py::test_get_mesh_status
+  E:\ai_company_faz12.1\services\observability\mesh_status_api.py:29: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "timestamp": datetime.utcnow().isoformat(),
+
+tests/integration/test_mesh_api.py::test_get_mesh_drift
+  E:\ai_company_faz12.1\services\observability\mesh_status_api.py:51: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "last_checked": datetime.utcnow().isoformat(),
+
+tests/integration/test_mesh_api.py::test_mesh_recalibrate_action
+  E:\ai_company_faz12.1\services\governance\mesh_actions_api.py:33: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "timestamp": datetime.utcnow().isoformat()
+
+tests/integration/test_mesh_api.py::test_mesh_freeze_action
+  E:\ai_company_faz12.1\services\governance\mesh_actions_api.py:45: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "timestamp": datetime.utcnow().isoformat()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html

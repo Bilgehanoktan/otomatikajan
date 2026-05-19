@@ -4,8 +4,8 @@ Revision ID: 0018_update_system_identity
 Revises: 0017_core_resync
 Create Date: 2026-05-05 04:00:00.000000
 """
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 revision = '0018_update_system_identity'
 down_revision = '0017_core_resync'
@@ -16,7 +16,7 @@ def upgrade():
     conn = op.get_bind()
     inspector = sa.inspect(conn)
     cols = [c['name'] for c in inspector.get_columns('system_identities')]
-    
+
     if 'last_used_at' not in cols:
         op.add_column('system_identities', sa.Column('last_used_at', sa.DateTime(timezone=True), nullable=True))
     if 'key_expires_at' not in cols:

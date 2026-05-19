@@ -17,11 +17,21 @@ def test_sample_failed_test_payload_runs_end_to_end(tmp_path):
 
     run = run_workflow("self_repair_v1", payload, output_root=tmp_path)
 
+    print("GENERATED FILES:", [str(p.relative_to(tmp_path)) for p in tmp_path.glob("**/*") if p.is_file()])
     assert run.incident_id == "INC-E2E"
-    assert (tmp_path / "INC-E2E" / "repair_case.json").exists()
-    assert (tmp_path / "INC-E2E" / "repair_plan.json").exists()
+    
+    # Faz 4/5/6: Verify artifact directory and specific run artifacts
+    run_dir = tmp_path / "INC-E2E" / "taskflow" / run.run_id
+    assert run_dir.exists()
+    assert (run_dir / "failure_context.json").exists()
+    assert (run_dir / "repair_case.json").exists()
+    assert (run_dir / "repair_plan.json").exists()
+    assert (run_dir / "patch_candidates.json").exists()
+    assert (run_dir / "sandbox_result.json").exists()
+    assert (run_dir / "verifier_mesh_result.json").exists()
+    assert (run_dir / "human_gate_decision.json").exists()
+    assert (run_dir / "pr_review.json").exists()
+    assert (run_dir / "risk_report.json").exists()
     assert (tmp_path / "INC-E2E" / "patch.diff").exists()
-    assert (tmp_path / "INC-E2E" / "sandbox.log").exists()
-    assert (tmp_path / "INC-E2E" / "repair_report.json").exists()
     assert (tmp_path / "INC-E2E" / "taskflow_trace.json").exists()
 

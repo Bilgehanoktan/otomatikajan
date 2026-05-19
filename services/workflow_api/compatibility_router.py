@@ -1,7 +1,10 @@
+from typing import Any
+
 from fastapi import APIRouter, Depends, Response
-from typing import List, Dict, Any
+
 # from pydantic import BaseModel # Not used directly in this file
 from services.auth.jwt_auth import require_permission
+
 # Moved to local scope to prevent circular/hang issues
 # from services.workflow_api.governance_router import AuditBundleCreate
 
@@ -48,9 +51,11 @@ async def list_audit_bundles_compat(response: Response):
 @router.post("/compliance/audit-bundles/")
 async def create_audit_bundle_compat(
     req: Any, # Use Any instead of AuditBundleCreate
-    identity: Dict[str, Any] = Depends(require_permission("audit.create"))
+    identity: dict[str, Any] = Depends(require_permission("audit.create"))
 ):
-    from services.workflow_api.governance_router import create_audit_bundle_endpoint, AuditBundleCreate
+    from services.workflow_api.governance_router import (
+        create_audit_bundle_endpoint,
+    )
     # Cast to AuditBundleCreate if needed or just pass through
     return await create_audit_bundle_endpoint(req, identity)
 
@@ -62,7 +67,7 @@ async def list_mesh_stub(): return []
 async def handover_compat(
     project_id: str,
     dry_run: bool = True,
-    identity: Dict[str, Any] = Depends(require_permission("ops.handover"))
+    identity: dict[str, Any] = Depends(require_permission("ops.handover"))
 ):
     from services.workflow_api.governance_router import trigger_handover
     return await trigger_handover(project_id, dry_run, identity)

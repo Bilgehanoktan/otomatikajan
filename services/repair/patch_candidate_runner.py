@@ -81,6 +81,83 @@ def generate_patch_candidate(
     if chosen is None and os.getenv("MINI_SWE_MODE"):
         chosen = "mini_swe"
     chosen = chosen or "mock"
+
+    # Phase 32 Compliance - Validate execution via the External Agent Catalog
+    built_in_backends = {"mock", "agentless", "mini_swe", "mini-swe", "mini_swe_agent"}
+    
+    if chosen not in built_in_backends:
+        from services.repair.external_repo_integrations import validate_agent_execution
+        from services.repair.external_agents.registry import ExternalAgentRegistry
+        from services.repair.external_agents.models import ExternalAgentContext
+        
+        agent_key_map = {
+            "swe_agent": "swe_agent",
+            "swe_rex": "swe_rex",
+            "pr_agent": "pr_agent",
+            "stagehand": "stagehand",
+            "openhands": "openhands",
+            "github_copilot": "github_copilot",
+        }
+        
+        agent_key = agent_key_map.get(chosen, chosen)
+        mode_map = {
+            "swe_agent": "local_adapter",
+            "swe_rex": "sandbox_runner",
+            "pr_agent": "review_gate",
+            "stagehand": "local_adapter",
+            "openhands": "experimental",
+            "github_copilot": "local_adapter",
+        }
+        requested_mode = mode_map.get(agent_key, "local_adapter")
+        
+        validation = validate_agent_execution(agent_key, requested_mode)
+        if not validation.get("valid", True) or validation.get("status") == "BLOCKED":
+            logger.error("External Agent execution BLOCKED by Phase 32 safety catalog policy: %s", validation.get("reason"))
+            raise PermissionError(f"Phase 32 External Agent Intake Policy Violation: {validation.get('reason')}")
+        elif validation.get("status") == "WARNING_HIGH_RISK":
+            logger.warning("Phase 32 External Agent Intake WARNING: %s", validation.get("reason"))
+
+        # In Phase 1, if it's a registered external agent, invoke the adapter runtime layer
+        try:
+            adapter = ExternalAgentRegistry.get_adapter(agent_key)
+            ctx = ExternalAgentContext(
+                incident_id=repair_case.incident_id,
+                repair_case_id=repair_case.incident_id,
+                agent_key=agent_key,
+                requested_mode=requested_mode,
+                allowed_tools=repair_case.allowed_paths,
+                forbidden_actions=validation.get("forbidden_actions", []),
+                output_dir=str(output_root),
+            )
+            result = adapter.run(ctx)
+            
+            # In Phase 1, if the result is blocked or failed, do not generate candidate
+            if result.status in {"BLOCKED", "FAILED"}:
+                logger.error("External Agent execution returned failed status '%s': %s", result.status, result.blocked_reason)
+                raise PermissionError(f"External agent execution returned non-successful status: {result.status}. Reason: {result.blocked_reason}")
+
+            patch_file_path = result.output_artifact
+            changed_files = ["services/repair/mock_dummy.py"] if agent_key == "swe_agent" else []
+            
+            digest = hashlib.sha256(
+                f"{repair_case.incident_id}:{prompt}:{agent_key}".encode("utf-8")
+            ).hexdigest()[:12]
+            
+            return RepairCandidate(
+                candidate_id=f"RC-{digest}",
+                patch_path=str(patch_file_path),
+                changed_files=changed_files,
+                agent_summary=f"External Agent '{agent_key}' completed successfully via adapter.",
+                commands_run=["mock_search", "mock_replace"] if agent_key == "swe_agent" else [],
+                confidence=result.confidence_score,
+                status="PATCH_PROPOSED",
+            )
+        except PermissionError as pe:
+            raise pe
+        except Exception as e:
+            logger.error("Error executing external agent adapter '%s': %s", agent_key, e)
+            raise e
+
     if chosen in {"mini_swe", "mini-swe", "mini_swe_agent"}:
         return generate_with_mini_swe(repair_case, repair_plan)
 

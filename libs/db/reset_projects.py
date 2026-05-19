@@ -1,14 +1,16 @@
 
 import asyncio
-import sys
 import os
+import sys
 
 # Add project root to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
-from libs.db.session import AsyncSessionLocal
+from sqlalchemy import update
+
 from libs.db.models.core_models import Project
-from sqlalchemy import update, select
+from libs.db.session import AsyncSessionLocal
+
 
 async def reset():
     print("[*] Starting Project Status Reset...")

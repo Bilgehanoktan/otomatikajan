@@ -19,7 +19,7 @@ import {
   BarChartOutlined,
   EyeOutlined
 } from '@ant-design/icons';
-import axios from 'axios';
+import { safeFetchJson } from '@/lib/api';
 
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
@@ -39,16 +39,16 @@ const GovernanceCenter: React.FC = () => {
   const fetchGovernanceData = async () => {
     setLoading(true);
     try {
-      const [policiesRes, evaluationsRes, findingsRes, overridesRes] = await Promise.all([
-        axios.get('/api/v1/ui-repair/governance/policies'),
-        axios.get('/api/v1/ui-repair/governance/evaluations'),
-        axios.get('/api/v1/ui-repair/governance/compliance-findings'),
-        axios.get('/api/v1/ui-repair/governance/overrides').catch(() => ({ data: [] }))
+      const [policiesData, evaluationsData, findingsData, overridesData] = await Promise.all([
+        safeFetchJson<any[]>('/api/v1/ui-repair/governance/policies'),
+        safeFetchJson<any[]>('/api/v1/ui-repair/governance/evaluations'),
+        safeFetchJson<any[]>('/api/v1/ui-repair/governance/compliance-findings'),
+        safeFetchJson<any[]>('/api/v1/ui-repair/governance/overrides').catch(() => [])
       ]);
-      setPolicies(policiesRes.data);
-      setEvaluations(evaluationsRes.data);
-      setFindings(findingsRes.data);
-      setOverrides(overridesRes.data);
+      setPolicies(policiesData);
+      setEvaluations(evaluationsData);
+      setFindings(findingsData);
+      setOverrides(overridesData);
     } catch (error) {
       console.error('Failed to fetch governance data', error);
     } finally {
@@ -62,9 +62,12 @@ const GovernanceCenter: React.FC = () => {
 
   const handleCreatePolicy = async (values: any) => {
     try {
-      await axios.post('/api/v1/ui-repair/governance/policies', {
-        ...values,
-        rule_definition_json: JSON.parse(values.rule_definition_json || '{}')
+      await safeFetchJson('/api/v1/ui-repair/governance/policies', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...values,
+          rule_definition_json: JSON.parse(values.rule_definition_json || '{}')
+        })
       });
       setIsPolicyModalVisible(false);
       form.resetFields();
@@ -76,14 +79,17 @@ const GovernanceCenter: React.FC = () => {
 
   const handleCreateOverride = async (values: any) => {
     try {
-      await axios.post('/api/v1/ui-repair/governance/overrides', {
-        action_type: selectedEvaluation.action_type,
-        target_type: selectedEvaluation.target_type || 'UNKNOWN',
-        target_id: selectedEvaluation.target_id || 'UNKNOWN',
-        blocked_policy_key: selectedEvaluation.policy_key || 'UNKNOWN',
-        override_reason: values.rationale,
-        operator: 'CURRENT_OPERATOR', // Should come from auth context
-        risk_level: 'HIGH'
+      await safeFetchJson('/api/v1/ui-repair/governance/overrides', {
+        method: 'POST',
+        body: JSON.stringify({
+          action_type: selectedEvaluation.action_type,
+          target_type: selectedEvaluation.target_type || 'UNKNOWN',
+          target_id: selectedEvaluation.target_id || 'UNKNOWN',
+          blocked_policy_key: selectedEvaluation.policy_key || 'UNKNOWN',
+          override_reason: values.rationale,
+          operator: 'CURRENT_OPERATOR', // Should come from auth context
+          risk_level: 'HIGH'
+        })
       });
       setIsOverrideModalVisible(false);
       fetchGovernanceData();

@@ -754,7 +754,7 @@ class UIRepairService:
 
     async def generate_final_audit_pack(self, name: str, version: str) -> UIFinalAuditPack:
         generator = FinalAuditPackGenerator(self.db)
-        return await generator.generate_pack(name, version)
+        return await generator.generate_pack(version, name)
 
     async def generate_handover_report(self, title: str) -> UIOperatorHandoverReport:
         generator = HandoverReportGenerator(self.db)
@@ -1081,6 +1081,9 @@ class UIRepairService:
 
     async def create_autonomous_override(self, override_data: UIAutonomousOverrideCreate) -> UIAutonomousOverride:
         """Records a manual override of a blocked action."""
+        if not override_data.override_reason.strip():
+            raise ValueError("Override rationale is required")
+
         override = UIAutonomousOverride(
             action_type=override_data.action_type,
             target_type=override_data.target_type,
@@ -1110,18 +1113,25 @@ class UIRepairService:
             payload=evidence_payload,
             provenance_hash=prov_hash
         )
-        self.db.add(evidence)
+        supplemental_records = [evidence]
         
         # Trigger OperationalIncident for high risk overrides
         if override.risk_level in ["HIGH", "CRITICAL"]:
             incident = OperationalIncident(
-                title=f"Governance Policy Override: {override.blocked_policy_key}",
+                incident_type="governance_policy_override",
                 severity=override.risk_level,
-                component="UI_REPAIR_GOVERNANCE",
-                description=f"Operator {override.operator} bypassed governance policy. Rationale: {override.override_reason}",
-                status="OPEN"
+                message=f"Operator {override.operator} bypassed governance policy {override.blocked_policy_key}. Rationale: {override.override_reason}",
+                status="open",
+                payload={
+                    "component": "UI_REPAIR_GOVERNANCE",
+                    "override_id": str(override.id),
+                    "target_type": override.target_type,
+                    "target_id": override.target_id,
+                }
             )
-            self.db.add(incident)
+            supplemental_records.append(incident)
+
+        self.db.add_all(supplemental_records)
 
         await self.db.commit()
         await self.db.refresh(override)

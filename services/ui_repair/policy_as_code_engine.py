@@ -1,7 +1,7 @@
 import json
 import logging
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from services.ui_repair.schemas import PolicyDecision, PolicyScope, PolicyRuleType
@@ -50,18 +50,23 @@ class PolicyAsCodeEngine:
                 rule_def = rule.rule_definition_json
                 then_part = rule_def.get("then", {})
                 rule_decision = then_part.get("decision")
-                rule_reason = then_part.get("reason", "Policy match.")
+                detail = then_part.get("reason")
+                rule_reason = f"Rule {rule.policy_key}: {rule_decision}"
+                if detail:
+                    rule_reason = f"{rule_reason} - {detail}"
 
                 # Conflict resolution: Most restrictive wins (DENY > REQUIRE_APPROVAL > ALLOW)
                 if self._is_more_restrictive(rule_decision, final_decision):
                     final_decision = rule_decision
+                    final_reason = rule_reason
+                elif final_decision == PolicyDecision.ALLOW and rule_decision == PolicyDecision.ALLOW:
                     final_reason = rule_reason
 
         return {
             "decision": final_decision,
             "reason": final_reason,
             "matched_rules": matched_rules,
-            "evaluated_at": datetime.utcnow().isoformat()
+            "evaluated_at": datetime.now(timezone.utc).isoformat()
         }
 
     def _matches(self, rule: UIPolicyRule, action_type: str, context: Dict[str, Any]) -> bool:
@@ -70,7 +75,7 @@ class PolicyAsCodeEngine:
         if_part = rule_def.get("if", {})
 
         # Check action_type
-        target_action = if_part.get("action_type")
+        target_action = if_part.get("action_type") or if_part.get("action")
         if target_action:
             if isinstance(target_action, list):
                 if action_type not in target_action:
@@ -80,7 +85,7 @@ class PolicyAsCodeEngine:
 
         # Check other conditions in context
         for key, value in if_part.items():
-            if key == "action_type":
+            if key in {"action_type", "action"}:
                 continue
             
             context_val = context.get(key)

@@ -113,7 +113,16 @@ class LaunchGatekeeper:
             res = await db.execute(stmt)
             last_val = res.scalar_one_or_none()
             
-            score = last_val.score if last_val else 0.94
+            if last_val:
+                metrics = last_val.metrics or {}
+                score = (
+                    metrics.get("score")
+                    or metrics.get("accuracy")
+                    or metrics.get("quality_score")
+                    or (1.0 if str(last_val.status) in {"ValidationStatus.PASS", "PASS"} else 0.0)
+                )
+            else:
+                score = 0.94
             threshold = 0.90
             
             is_ok = score >= threshold

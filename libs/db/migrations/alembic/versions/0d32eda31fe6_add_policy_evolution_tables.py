@@ -4,16 +4,18 @@ Revision ID: 0d32eda31fe6
 Revises: dfd787c12448
 Create Date: 2026-04-27 01:08:53.626039
 """
-from typing import Sequence, Union
-from alembic import op
+from collections.abc import Sequence
+
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
+
 import libs.db.base
 
 revision: str = '0d32eda31fe6'
-down_revision: Union[str, None] = 'dfd787c12448'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = 'dfd787c12448'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -79,7 +81,7 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_governor_policy_evolutions_evolution_type'), table_name='governor_policy_evolutions')
     op.drop_index(op.f('ix_governor_policy_evolutions_created_at'), table_name='governor_policy_evolutions')
     op.drop_table('governor_policy_evolutions')
-    
+
     # Drop types if needed (usually handled by Alembic if they are only in these tables)
     # op.execute("DROP TYPE policyevolutiontype")
     # op.execute("DROP TYPE policyevolutionstatus")

@@ -2,9 +2,21 @@
 
 import React from "react";
 import {
-  Zap, ShieldCheck, TrendingUp, Trophy, AlertTriangle, Fingerprint, Activity, Binary, Cpu, FlaskConical,
-  GitPullRequest, FileSearch, Bug, CheckCircle2, Clock, Image, ExternalLink, ChevronRight, Search
+  Activity,
+  Binary,
+  CheckCircle2,
+  Clock,
+  ExternalLink,
+  FileSearch,
+  FlaskConical,
+  GitPullRequest,
+  Image,
+  Search,
+  ShieldCheck,
+  Trophy,
+  Zap,
 } from "lucide-react";
+import { safeFetchJson } from "@/lib/api";
 
 export const PatchTournamentBoard = ({ data }: { data: any }) => {
   if (!data) return (
@@ -216,9 +228,7 @@ export const PRAgentGovernancePanel = ({ caseId, prUrl, onAction }: { caseId: st
     }
     setLoading(true);
     try {
-      const baseUrl = window.location.origin.replace(':3100', ':8000');
-      const res = await fetch(`${baseUrl}/repair-lab/cases/${caseId}/patch`);
-      const data = await res.json();
+      const data = await safeFetchJson(`/repair-lab/cases/${caseId}/patch`);
       setDiffContent(data.diff);
       setShowDiff(true);
     } catch (err) {

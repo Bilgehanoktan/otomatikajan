@@ -1,0 +1,54 @@
+{
+  "run": {
+    "command": "nx run-many --target=test --all",
+    "startTime": "2026-05-17T21:55:47.193Z",
+    "endTime": "2026-05-17T21:55:52.270Z",
+    "inner": false
+  },
+  "tasks": [
+    {
+      "taskId": "lib-auth:test",
+      "target": "test",
+      "projectName": "lib-auth",
+      "hash": "3524828410086526264",
+      "startTime": "2026-05-17T21:55:47.206Z",
+      "endTime": "2026-05-17T21:55:47.265Z",
+      "params": "",
+      "cacheStatus": "local-cache-hit",
+      "status": 0
+    },
+    {
+      "taskId": "lib-workflow:test",
+      "target": "test",
+      "projectName": "lib-workflow",
+      "hash": "11253859013729149346",
+      "startTime": "2026-05-17T21:55:47.206Z",
+      "endTime": "2026-05-17T21:55:47.266Z",
+      "params": "",
+      "cacheStatus": "local-cache-hit",
+      "status": 0
+    },
+    {
+      "taskId": "workflow-api:test",
+      "target": "test",
+      "projectName": "workflow-api",
+      "hash": "17648973853066835038",
+      "startTime": "2026-05-17T21:55:47.207Z",
+      "endTime": "2026-05-17T21:55:47.286Z",
+      "params": "",
+      "cacheStatus": "local-cache-hit",
+      "status": 0
+    },
+    {
+      "taskId": "service-mcp:test",
+      "target": "test",
+      "projectName": "service-mcp",
+      "hash": "12789445037198523747",
+      "startTime": "2026-05-17T21:55:47.270Z",
+      "endTime": "2026-05-17T21:55:52.269Z",
+      "params": "",
+      "cacheStatus": "cache-miss",
+      "status": 0
+    }
+  ]
+}

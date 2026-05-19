@@ -1,0 +1,313 @@
+{
+  "status": "BLOCKED",
+  "blocking_count": 27,
+  "warning_count": 0,
+  "checked_at": "2026-05-18T22:38:56.204231+00:00",
+  "api_contracts": [
+    {
+      "surface": "CEO",
+      "route_or_artifact": "/api/v1/ceo/overview",
+      "method": "GET",
+      "owner_module": "services.workflow_api.ceo_router",
+      "required_auth": true,
+      "expected_status": "missing",
+      "required_fields": [],
+      "current_status": "missing",
+      "last_checked_at": "2026-05-18T22:38:56.182801+00:00",
+      "blocking": true,
+      "notes": "FastAPI route not found in active router"
+    },
+    {
+      "surface": "CEO",
+      "route_or_artifact": "/api/v1/ceo/findings",
+      "method": "GET",
+      "owner_module": "services.workflow_api.ceo_router",
+      "required_auth": true,
+      "expected_status": "missing",
+      "required_fields": [],
+      "current_status": "missing",
+      "last_checked_at": "2026-05-18T22:38:56.182817+00:00",
+      "blocking": true,
+      "notes": "FastAPI route not found in active router"
+    },
+    {
+      "surface": "CEO",
+      "route_or_artifact": "/api/v1/ceo/findings/{finding_id}/repair-case",
+      "method": "POST",
+      "owner_module": "services.workflow_api.ceo_router",
+      "required_auth": true,
+      "expected_status": "missing",
+      "required_fields": [],
+      "current_status": "missing",
+      "last_checked_at": "2026-05-18T22:38:56.182822+00:00",
+      "blocking": true,
+      "notes": "FastAPI route not found in active router"
+    },
+    {
+      "surface": "CEO",
+      "route_or_artifact": "/api/v1/ceo/diagnostics/stagehand",
+      "method": "POST",
+      "owner_module": "services.workflow_api.ceo_router",
+      "required_auth": true,
+      "expected_status": "missing",
+      "required_fields": [],
+      "current_status": "missing",
+      "last_checked_at": "2026-05-18T22:38:56.182826+00:00",
+      "blocking": true,
+      "notes": "FastAPI route not found in active router"
+    },
+    {
+      "surface": "Repair Lab",
+      "route_or_artifact": "/api/v1/repair-lab/runs/{run_id}/artifacts",
+      "method": "GET",
+      "owner_module": "services.workflow_api.repair_lab_router",
+      "required_auth": true,
+      "expected_status": "missing",
+      "required_fields": [],
+      "current_status": "missing",
+      "last_checked_at": "2026-05-18T22:38:56.182830+00:00",
+      "blocking": true,
+      "notes": "FastAPI route not found in active router"
+    },
+    {
+      "surface": "Repair Lab",
+      "route_or_artifact": "/api/v1/repair-lab/runs/{run_id}/human-gate",
+      "method": "GET",
+      "owner_module": "services.workflow_api.repair_lab_router",
+      "required_auth": true,
+      "expected_status": "missing",
+      "required_fields": [],
+      "current_status": "missing",
+      "last_checked_at": "2026-05-18T22:38:56.182833+00:00",
+      "blocking": true,
+      "notes": "FastAPI route not found in active router"
+    },
+    {
+      "surface": "Repair Lab",
+      "route_or_artifact": "/api/v1/repair-lab/runs/{run_id}/human-gate/decision",
+      "method": "POST",
+      "owner_module": "services.workflow_api.repair_lab_router",
+      "required_auth": true,
+      "expected_status": "missing",
+      "required_fields": [],
+      "current_status": "missing",
+      "last_checked_at": "2026-05-18T22:38:56.182836+00:00",
+      "blocking": true,
+      "notes": "FastAPI route not found in active router"
+    },
+    {
+      "surface": "Repair Lab",
+      "route_or_artifact": "/api/v1/repair-lab/runs/{run_id}/pr-review",
+      "method": "GET",
+      "owner_module": "services.workflow_api.repair_lab_router",
+      "required_auth": true,
+      "expected_status": "missing",
+      "required_fields": [],
+      "current_status": "missing",
+      "last_checked_at": "2026-05-18T22:38:56.182840+00:00",
+      "blocking": true,
+      "notes": "FastAPI route not found in active router"
+    },
+    {
+      "surface": "Repair Lab",
+      "route_or_artifact": "/api/v1/repair-lab/runs/{run_id}/draft-pr",
+      "method": "GET",
+      "owner_module": "services.workflow_api.repair_lab_router",
+      "required_auth": true,
+      "expected_status": "missing",
+      "required_fields": [],
+      "current_status": "missing",
+      "last_checked_at": "2026-05-18T22:38:56.182843+00:00",
+      "blocking": true,
+      "notes": "FastAPI route not found in active router"
+    },
+    {
+      "surface": "Repair Lab",
+      "route_or_artifact": "/api/v1/repair-lab/runs/{run_id}/draft-pr/prepare",
+      "method": "POST",
+      "owner_module": "services.workflow_api.repair_lab_router",
+      "required_auth": true,
+      "expected_status": "missing",
+      "required_fields": [],
+      "current_status": "missing",
+      "last_checked_at": "2026-05-18T22:38:56.182847+00:00",
+      "blocking": true,
+      "notes": "FastAPI route not found in active router"
+    },
+    {
+      "surface": "Repair Lab",
+      "route_or_artifact": "/api/v1/repair-lab/diagnostics/{diagnostic_id}",
+      "method": "GET",
+      "owner_module": "services.workflow_api.repair_lab_router",
+      "required_auth": true,
+      "expected_status": "missing",
+      "required_fields": [],
+      "current_status": "missing",
+      "last_checked_at": "2026-05-18T22:38:56.182850+00:00",
+      "blocking": true,
+      "notes": "FastAPI route not found in active router"
+    },
+    {
+      "surface": "Repair Lab",
+      "route_or_artifact": "/api/v1/repair-lab/runs/{run_id}/memory-score",
+      "method": "GET",
+      "owner_module": "services.workflow_api.repair_lab_router",
+      "required_auth": true,
+      "expected_status": "missing",
+      "required_fields": [],
+      "current_status": "missing",
+      "last_checked_at": "2026-05-18T22:38:56.182853+00:00",
+      "blocking": true,
+      "notes": "FastAPI route not found in active router"
+    },
+    {
+      "surface": "Repair Lab",
+      "route_or_artifact": "/api/v1/repair-lab/learning-memory/profiles/{agent_key}/{strategy}",
+      "method": "GET",
+      "owner_module": "services.workflow_api.repair_lab_router",
+      "required_auth": true,
+      "expected_status": "missing",
+      "required_fields": [],
+      "current_status": "missing",
+      "last_checked_at": "2026-05-18T22:38:56.182857+00:00",
+      "blocking": true,
+      "notes": "FastAPI route not found in active router"
+    },
+    {
+      "surface": "Repair Lab",
+      "route_or_artifact": "/api/v1/repair-lab/runs/{run_id}/tournament",
+      "method": "GET",
+      "owner_module": "services.workflow_api.repair_lab_router",
+      "required_auth": true,
+      "expected_status": "missing",
+      "required_fields": [],
+      "current_status": "missing",
+      "last_checked_at": "2026-05-18T22:38:56.182861+00:00",
+      "blocking": true,
+      "notes": "FastAPI route not found in active router"
+    },
+    {
+      "surface": "Repair Lab",
+      "route_or_artifact": "/api/v1/repair-lab/runs/{run_id}/tournament/recompute",
+      "method": "POST",
+      "owner_module": "services.workflow_api.repair_lab_router",
+      "required_auth": true,
+      "expected_status": "missing",
+      "required_fields": [],
+      "current_status": "missing",
+      "last_checked_at": "2026-05-18T22:38:56.182864+00:00",
+      "blocking": true,
+      "notes": "FastAPI route not found in active router"
+    }
+  ],
+  "artifact_contracts": [
+    {
+      "artifact_name": "repair_case.json",
+      "status": "missing",
+      "blocking": true,
+      "notes": "Required artifact repair_case.json is missing from run directory."
+    },
+    {
+      "artifact_name": "taskflow_run.json",
+      "status": "missing",
+      "blocking": true,
+      "notes": "Required artifact taskflow_run.json is missing from run directory."
+    },
+    {
+      "artifact_name": "failure_context.json",
+      "status": "missing",
+      "blocking": true,
+      "notes": "Required artifact failure_context.json is missing from run directory."
+    },
+    {
+      "artifact_name": "localization_report.json",
+      "status": "optional_missing",
+      "blocking": false,
+      "notes": "Optional artifact localization_report.json is not present."
+    },
+    {
+      "artifact_name": "repair_plan.json",
+      "status": "optional_missing",
+      "blocking": false,
+      "notes": "Optional artifact repair_plan.json is not present."
+    },
+    {
+      "artifact_name": "patch_candidates.json",
+      "status": "missing",
+      "blocking": true,
+      "notes": "Required artifact patch_candidates.json is missing from run directory."
+    },
+    {
+      "artifact_name": "candidate_memory_score.json",
+      "status": "optional_missing",
+      "blocking": false,
+      "notes": "Optional artifact candidate_memory_score.json is not present."
+    },
+    {
+      "artifact_name": "sandbox_result.json",
+      "status": "missing",
+      "blocking": true,
+      "notes": "Required artifact sandbox_result.json is missing from run directory."
+    },
+    {
+      "artifact_name": "verifier_mesh_result.json",
+      "status": "missing",
+      "blocking": true,
+      "notes": "Required artifact verifier_mesh_result.json is missing from run directory."
+    },
+    {
+      "artifact_name": "risk_report.json",
+      "status": "missing",
+      "blocking": true,
+      "notes": "Required artifact risk_report.json is missing from run directory."
+    },
+    {
+      "artifact_name": "tournament_result.json",
+      "status": "missing",
+      "blocking": true,
+      "notes": "Required artifact tournament_result.json is missing from run directory."
+    },
+    {
+      "artifact_name": "human_gate_decision.json",
+      "status": "missing",
+      "blocking": true,
+      "notes": "Required artifact human_gate_decision.json is missing from run directory."
+    },
+    {
+      "artifact_name": "pr_review.json",
+      "status": "missing",
+      "blocking": true,
+      "notes": "Required artifact pr_review.json is missing from run directory."
+    },
+    {
+      "artifact_name": "draft_pr_metadata.json",
+      "status": "missing",
+      "blocking": true,
+      "notes": "Required artifact draft_pr_metadata.json is missing from run directory."
+    },
+    {
+      "artifact_name": "learning_memory_update.json",
+      "status": "optional_missing",
+      "blocking": false,
+      "notes": "Optional artifact learning_memory_update.json is not present."
+    },
+    {
+      "artifact_name": "artifact_manifest.json",
+      "status": "missing",
+      "blocking": true,
+      "notes": "Required artifact artifact_manifest.json is missing from run directory."
+    },
+    {
+      "artifact_name": "diagnostic_report.json",
+      "status": "optional_missing",
+      "blocking": false,
+      "notes": "Optional artifact diagnostic_report.json is not present."
+    }
+  ],
+  "frontend_backend_parity": [],
+  "recommendations": [
+    "Fix missing/invalid contract routes or mismatching hashes before release.",
+    "Enable required API endpoints in the FastAPI router structure.",
+    "Recompute and realign taskflow manifest signatures, or collect operator sign-offs."
+  ]
+}

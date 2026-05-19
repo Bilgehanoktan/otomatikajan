@@ -8,17 +8,19 @@ import asyncio
 import logging
 import os
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel
-from libs.db.session import get_db
+
+from libs.db.session import AsyncSessionLocal, get_db
+from sqlalchemy.ext.asyncio import AsyncSession
 from services.auth.jwt_auth import require_permission
 
 router = APIRouter(tags=["Workflow Control Plane"])
 logger = logging.getLogger("services.workflow_api.router")
-_EPHEMERAL_WORKFLOWS: Dict[str, Dict[str, Any]] = {}
+_EPHEMERAL_WORKFLOWS: dict[str, dict[str, Any]] = {}
 
 
 def _workflow_template_step_count(workflow_template: str | None) -> int:
@@ -28,7 +30,7 @@ def _workflow_template_step_count(workflow_template: str | None) -> int:
     return len(definition.steps)
 
 
-def _planned_steps_for_template(workflow_template: str | None) -> List["StepOut"]:
+def _planned_steps_for_template(workflow_template: str | None) -> list[StepOut]:
     from libs.workflow.registry import WorkflowRegistry
 
     definition = WorkflowRegistry.get_definition(workflow_template or "default")
@@ -59,6 +61,17 @@ def _is_active_workflow_status(status_value: str | None) -> bool:
     }
 
 
+def _is_reassignable_workflow_status(status_value: str | None) -> bool:
+    return str(status_value or "").lower() in {
+        "cancelled",
+        "canceled",
+        "failed",
+        "error",
+        "interrupted",
+        "paused",
+    }
+
+
 # ── Response Schemas ──────────────────────────────────────────────────────────
 
 class StepOut(BaseModel):
@@ -66,13 +79,13 @@ class StepOut(BaseModel):
     name: str
     action: str
     status: str
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
     retries: int = 0
     max_retries: int = 3
-    error: Optional[str] = None
-    dependencies: List[str] = []
-    output_summary: Optional[str] = None
+    error: str | None = None
+    dependencies: list[str] = []
+    output_summary: str | None = None
 
 
 class WorkflowOut(BaseModel):
@@ -81,16 +94,16 @@ class WorkflowOut(BaseModel):
     workflow_type: str
     status: str
     source: str
-    steps: List[StepOut]
-    context_keys: List[str]
-    payload: Dict[str, Any] = {}
-    created_at: Optional[datetime] = None
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
-    final_report: Optional[str] = None
-    history: List[Dict[str, Any]] = []
-    related_approvals: List[Dict[str, Any]] = []
-    related_incidents: List[Dict[str, Any]] = []
+    steps: list[StepOut]
+    context_keys: list[str]
+    payload: dict[str, Any] = {}
+    created_at: datetime | None = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    final_report: str | None = None
+    history: list[dict[str, Any]] = []
+    related_approvals: list[dict[str, Any]] = []
+    related_incidents: list[dict[str, Any]] = []
 
 
 class ProjectListItem(BaseModel):
@@ -99,9 +112,9 @@ class ProjectListItem(BaseModel):
     status: str
     workflow_type: str
     progress_pct: int
-    created_at: Optional[datetime]
-    started_at: Optional[datetime]
-    completed_at: Optional[datetime]
+    created_at: datetime | None
+    started_at: datetime | None
+    completed_at: datetime | None
     total_steps: int
     completed_steps: int
     failed_steps: int
@@ -116,13 +129,21 @@ class RetryResponse(BaseModel):
 class ReplayRequest(BaseModel):
     from_step: str
     mode: str = "same_input"  # same_input, from_step, with_override
-    overrides: Optional[Dict[str, Any]] = None
+    overrides: dict[str, Any] | None = None
     reason: str               # Audit requirement: why is this being replayed?
     operator_id: str          # Audit requirement: who is replaying?
 
 class ApprovalRequest(BaseModel):
     operator_id: str
     notes: str = ""
+
+
+class ReassignRequest(BaseModel):
+    operator_id: str = "admin_human"
+    reason: str = "Operator requested reassign after terminal workflow state."
+    reset_steps: bool = True
+    preserve_completed_steps: bool = True
+    assigned_agent: str | None = None
 
 
 class ProjectCreate(BaseModel):
@@ -141,7 +162,7 @@ class ImprovementOut(BaseModel):
     proposed_patch: str
     status: str
     created_at: datetime
-    test_results: Optional[Dict[str, Any]] = None
+    test_results: dict[str, Any] | None = None
 
 
 
@@ -154,9 +175,10 @@ async def _resolve_project_id(db, project_id: str):
     """
     Resolves a full UUID or short-ID prefix to a validated Project.id (uuid.UUID).
     """
+    from sqlalchemy import String, cast, func, select
+
     from libs.db.models.core_models import Project
-    from sqlalchemy import select, cast, String, func
-    
+
     uid = None
     try:
         uid = uuid.UUID(project_id)
@@ -173,7 +195,7 @@ async def _resolve_project_id(db, project_id: str):
         clean_id = project_id.replace("-", "").lower()
         if len(clean_id) < 8:
             raise HTTPException(status_code=400, detail="ID prefix too short. Min 8 hex chars required.")
-        
+
         res = await db.execute(
             select(Project).where(
                 func.lower(func.replace(cast(Project.id, String), "-", "")).like(f"{clean_id}%")
@@ -188,16 +210,17 @@ async def _resolve_project_id(db, project_id: str):
 
 async def _get_project_with_subtasks(project_id: str):
     """Load project + subtasks from DB with Flexible ID Resolution."""
-    from libs.db.session import AsyncSessionLocal
-    from libs.db.models.core_models import Project, SubTask
     from sqlalchemy import select
+
+    from libs.db.models.core_models import Project, SubTask
+    from libs.db.session import AsyncSessionLocal
 
     async with AsyncSessionLocal() as db:
         resolved_uid = await _resolve_project_id(db, project_id)
-        
+
         res = await db.execute(select(Project).where(Project.id == resolved_uid))
         project = res.scalar_one_or_none()
-        
+
         res_st = await db.execute(
             select(SubTask).where(SubTask.project_id == resolved_uid).order_by(SubTask.created_at)
         )
@@ -205,7 +228,7 @@ async def _get_project_with_subtasks(project_id: str):
         return project, subtasks
 
 
-async def _dispatch_project_job(payload: Dict[str, Any]) -> None:
+async def _dispatch_project_job(payload: dict[str, Any]) -> None:
     """Dispatch queue work outside the request/response critical path."""
     from services.orchestration.application.job_queue import job_queue
 
@@ -220,8 +243,8 @@ def _build_ephemeral_workflow(
     req: ProjectCreate,
     *,
     status: str = "queued",
-) -> Dict[str, Any]:
-    now = datetime.now(timezone.utc)
+) -> dict[str, Any]:
+    now = datetime.now(UTC)
     planned_steps = _planned_steps_for_template(req.workflow_template or "default")
     return {
         "id": workflow_id,
@@ -304,15 +327,16 @@ def _map_workflow(project, subtasks) -> WorkflowOut:
     )
 
 
-@router.get("/steps", response_model=List[StepOut])
+@router.get("/steps", response_model=list[StepOut])
 async def list_steps(
-    project_id: Optional[str] = None,
+    project_id: str | None = None,
     db: AsyncSession = Depends(get_db),
-    identity: Dict[str, Any] = Depends(require_permission("workflow.view"))
+    identity: dict[str, Any] = Depends(require_permission("workflow.view"))
 ):
     """List sub-tasks (steps) for a specific project or all projects."""
-    from libs.db.models.core_models import SubTask
     from sqlalchemy import select
+
+    from libs.db.models.core_models import SubTask
 
     query = select(SubTask)
     if project_id:
@@ -324,7 +348,7 @@ async def list_steps(
 
     res = await db.execute(query)
     subtasks = res.scalars().all()
-    
+
     items = []
     for st in subtasks:
         status_val = st.status.value if hasattr(st.status, "value") else str(st.status)
@@ -348,13 +372,13 @@ async def list_steps(
 async def create_project(
     req: ProjectCreate,
     db: AsyncSession = Depends(get_db),
-    identity: Dict[str, Any] = Depends(require_permission("workflow.create"))
+    identity: dict[str, Any] = Depends(require_permission("workflow.create"))
 ):
     """
     Manually create a new project/workflow and trigger its execution using the unified runner.
     """
-    from libs.db.repositories.repository import ProjectRepository
     from libs.db.models.core_models import ProjectSource, TaskPriority
+    from libs.db.repositories.repository import ProjectRepository
 
     # Normalization Guard
     p_val = (req.priority or "MEDIUM").upper().strip()
@@ -404,23 +428,26 @@ async def create_project(
 
     return {
         "id": str(project.id),
-        "status": project.status.value.lower() if hasattr(project.status, "value") else str(project.status).lower(),
+        "status": "queued" if dispatch_state == "enqueued" else (
+            project.status.value.lower() if hasattr(project.status, "value") else str(project.status).lower()
+        ),
         "dispatch_state": dispatch_state,
         "workflow_template": project.workflow_template or "default"
     }
 
 
-@router.get("", response_model=List[ProjectListItem])
+@router.get("", response_model=list[ProjectListItem])
 async def list_projects(
     response: Response,
-    status_filter: Optional[str] = None,
+    status_filter: str | None = None,
     limit: int = 50,
     offset: int = 0,
 ):
     """List all projects/workflows with step summary."""
+    from sqlalchemy import func, select
+
+    from libs.db.models.core_models import Project, ProjectStatus, SubTask
     from libs.db.session import AsyncSessionLocal
-    from libs.db.models.core_models import Project, SubTask, ProjectStatus
-    from sqlalchemy import select, func
 
     if _prefer_ephemeral_workflows() and _EPHEMERAL_WORKFLOWS:
         response.headers["x-total-count"] = str(len(_EPHEMERAL_WORKFLOWS))
@@ -516,10 +543,11 @@ async def list_projects(
 @router.get("/{project_id}", response_model=WorkflowOut)
 async def get_workflow(project_id: str):
     """Get full workflow detail with step trace and event history."""
-    from libs.workflow.persistence import WorkflowPersistence
-    from libs.db.session import AsyncSessionLocal
-    from libs.db.models.core_models import ApprovalRequest, OperationalIncident
     from sqlalchemy import select
+
+    from libs.db.models.core_models import ApprovalRequest, OperationalIncident
+    from libs.db.session import AsyncSessionLocal
+    from libs.workflow.persistence import WorkflowPersistence
 
     if project_id in _EPHEMERAL_WORKFLOWS:
         workflow = _EPHEMERAL_WORKFLOWS[project_id]
@@ -547,7 +575,7 @@ async def get_workflow(project_id: str):
     project, subtasks = await _get_project_with_subtasks(project_id)
 
     out = _map_workflow(project, subtasks)
-    
+
     # Map history to UI format (step, msg, timestamp)
     raw_history = await WorkflowPersistence.load_history(str(resolved_uid))
     out.history = [
@@ -558,7 +586,7 @@ async def get_workflow(project_id: str):
         }
         for h in raw_history
     ]
-    
+
     # Load related governance data (Approvals & Incidents)
     async with AsyncSessionLocal() as db:
         # Fetch Approvals
@@ -595,37 +623,37 @@ async def diagnose_workflow_step(project_id: str, step_id: str):
     [Phase 4: Metacognition] Returns AI-suggested fix for a failed step.
     """
     from libs.db.session import AsyncSessionLocal
-    from libs.workflow.persistence import WorkflowPersistence
     from libs.workflow.engine import WorkflowEngine
+    from libs.workflow.persistence import WorkflowPersistence
 
     async with AsyncSessionLocal() as db:
         resolved_uid = await _resolve_project_id(db, project_id)
-        
+
     persistence = WorkflowPersistence()
     instance = await persistence.load_instance(str(resolved_uid))
     if not instance:
         raise HTTPException(status_code=404, detail="Workflow instance not found")
-        
+
     engine = WorkflowEngine()
     suggestion = await engine.suggest_fix(instance, step_id)
     return suggestion
 
-@router.post("/{project_id}/replay", response_model=Dict[str, Any])
+@router.post("/{project_id}/replay", response_model=dict[str, Any])
 async def replay_workflow(
-    project_id: str, 
+    project_id: str,
     req: ReplayRequest,
-    identity: Dict[str, Any] = Depends(require_permission("workflow.replay"))
+    identity: dict[str, Any] = Depends(require_permission("workflow.replay"))
 ):
     """Trigger a durable replay of a workflow with hardening & audit trail."""
     from libs.db.session import AsyncSessionLocal
-    from libs.workflow.persistence import WorkflowPersistence
     from libs.workflow.engine import WorkflowEngine
-    
+    from libs.workflow.persistence import WorkflowPersistence
+
     persistence = WorkflowPersistence()
-    
+
     async with AsyncSessionLocal() as db:
         resolved_uid = await _resolve_project_id(db, project_id)
-        
+
     # 1. Load instance and check concurrency
     instance = await persistence.load_instance(str(resolved_uid))
     if not instance:
@@ -634,7 +662,7 @@ async def replay_workflow(
     status_str = instance.status.value if hasattr(instance.status, "value") else str(instance.status)
     if status_str.lower() in ["running", "replaying"]:
         raise HTTPException(
-            status_code=409, 
+            status_code=409,
             detail=f"Workflow is currently {status_str}. Stop or wait for completion before replay."
         )
 
@@ -644,8 +672,8 @@ async def replay_workflow(
 
     # 3. Log Audit Event before starting
     await persistence.save_event(
-        project_id, 
-        "replay_initiated", 
+        project_id,
+        "replay_initiated",
         step_id=req.from_step,
         payload={
             "mode": req.mode,
@@ -659,9 +687,9 @@ async def replay_workflow(
     # 4. Trigger Engine
     engine = WorkflowEngine()
     await engine.replay(
-        instance, 
-        from_step_id=req.from_step, 
-        mode=req.mode, 
+        instance,
+        from_step_id=req.from_step,
+        mode=req.mode,
         overrides=req.overrides,
         operator_id=req.operator_id,
         reason=req.reason
@@ -678,11 +706,12 @@ async def replay_workflow(
 @router.post("/{project_id}/cancel")
 async def cancel_workflow(project_id: str):
     """Cancel a running or pending workflow by updating status and notifying the queue."""
-    from libs.db.session import AsyncSessionLocal
+    from sqlalchemy import select
+
     from libs.db.models.core_models import Project, ProjectStatus
     from libs.db.repositories.repository import ProjectRepository
+    from libs.db.session import AsyncSessionLocal
     from services.orchestration.application.job_queue import job_queue
-    from sqlalchemy import select
 
     if project_id in _EPHEMERAL_WORKFLOWS:
         _EPHEMERAL_WORKFLOWS[project_id]["status"] = "cancelled"
@@ -698,7 +727,7 @@ async def cancel_workflow(project_id: str):
         await ProjectRepository.update_fields(
             db, project.id,
             status=ProjectStatus.CANCELLED,
-            cancelled_at=datetime.now(timezone.utc),
+            cancelled_at=datetime.now(UTC),
             cancelled_by="control_plane",
         )
         await db.commit()
@@ -713,18 +742,158 @@ async def cancel_workflow(project_id: str):
     return {"message": "Workflow cancelled and queue notified.", "project_id": project_id}
 
 
+@router.post("/{project_id}/reassign")
+async def reassign_workflow(
+    project_id: str,
+    req: ReassignRequest,
+    identity: dict[str, Any] = Depends(require_permission("workflow.approve"))
+):
+    """Re-queue a cancelled/failed workflow so operators can assign it again."""
+    from sqlalchemy import select, update
+
+    from libs.db.models.core_models import Project, ProjectStatus, SubTask
+    from libs.db.session import AsyncSessionLocal
+    from libs.workflow.persistence import WorkflowPersistence
+    from services.orchestration.application.job_queue import job_queue
+
+    if project_id in _EPHEMERAL_WORKFLOWS:
+        workflow = _EPHEMERAL_WORKFLOWS[project_id]
+        current_status = workflow.get("status")
+        if _is_active_workflow_status(current_status):
+            raise HTTPException(status_code=409, detail=f"Workflow is already active (status: {current_status})")
+        if not _is_reassignable_workflow_status(current_status):
+            raise HTTPException(status_code=409, detail=f"Workflow status is not reassignable (status: {current_status})")
+        workflow["status"] = "queued"
+        workflow["progress_pct"] = 0
+        workflow["has_active_workflow"] = True
+        return {
+            "status": "success",
+            "message": "Ephemeral workflow re-queued.",
+            "project_id": project_id,
+            "dispatch_state": "enqueued",
+            "previous_status": current_status,
+            "reset_steps": False,
+        }
+
+    persistence = WorkflowPersistence()
+    dispatch_state = "enqueued"
+    reset_step_count = 0
+    previous_status = ""
+
+    async with AsyncSessionLocal() as db:
+        uid = await _resolve_project_id(db, project_id)
+        res = await db.execute(select(Project).where(Project.id == uid))
+        project = res.scalar_one_or_none()
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        previous_status = project.status.value if hasattr(project.status, "value") else str(project.status)
+        if _is_active_workflow_status(previous_status):
+            raise HTTPException(status_code=409, detail=f"Workflow is already active (status: {previous_status})")
+        if not _is_reassignable_workflow_status(previous_status):
+            raise HTTPException(status_code=409, detail=f"Workflow status is not reassignable (status: {previous_status})")
+
+        now = datetime.now(UTC)
+        project_title = project.title
+        project_description = project.description or ""
+        project_template = project.workflow_template or "default"
+        project_quality = project.quality_profile or "standard"
+        notes = f"[REASSIGNED BY {identity.get('name', req.operator_id)}] {req.reason}"
+        update_values = {
+            "status": ProjectStatus.QUEUED,
+            "progress_pct": 0,
+            "error_detail": "",
+            "cancelled_at": None,
+            "cancelled_by": None,
+            "completed_at": None,
+            "retry_count": Project.retry_count + 1,
+            "notes": notes,
+            "updated_at": now,
+        }
+        if req.assigned_agent:
+            update_values["assigned_agent"] = req.assigned_agent
+
+        await db.execute(update(Project).where(Project.id == uid).values(**update_values))
+
+        if req.reset_steps:
+            reset_stmt = update(SubTask).where(SubTask.project_id == uid)
+            if req.preserve_completed_steps:
+                reset_stmt = reset_stmt.where(SubTask.status != ProjectStatus.COMPLETED)
+            result = await db.execute(
+                reset_stmt.values(
+                    status=ProjectStatus.PENDING,
+                    attempts=0,
+                    result="",
+                    completed_at=None,
+                    causal_anchor="",
+                    updated_at=now,
+                )
+            )
+            reset_step_count = result.rowcount or 0
+
+        await db.commit()
+
+        await persistence.save_event(
+            str(uid),
+            "workflow_reassigned",
+            payload={
+                "operator_id": req.operator_id,
+                "operator_name": identity.get("name", "Unknown"),
+                "previous_status": previous_status,
+                "reason": req.reason,
+                "reset_steps": req.reset_steps,
+                "preserve_completed_steps": req.preserve_completed_steps,
+                "reset_step_count": reset_step_count,
+                "assigned_agent": req.assigned_agent,
+                "timestamp": now.isoformat(),
+            },
+        )
+
+        try:
+            job = await asyncio.wait_for(
+                job_queue.enqueue(
+                    "run_project",
+                    project_id=str(uid),
+                    title=project_title,
+                    description=project_description,
+                    workflow_template=project_template,
+                    quality_profile=project_quality,
+                ),
+                timeout=5,
+            )
+            await db.execute(update(Project).where(Project.id == uid).values(job_id=job.id))
+            await db.commit()
+        except TimeoutError:
+            dispatch_state = "deferred"
+            logger.warning("[WorkflowReassign] enqueue timeout for project=%s; workflow remains queued.", project_id)
+        except Exception as e:
+            dispatch_state = "deferred"
+            logger.error("[WorkflowReassign] enqueue failed for project=%s: %s", project_id, e)
+
+    return {
+        "status": "success",
+        "message": "Workflow re-assigned and re-queued.",
+        "project_id": project_id,
+        "dispatch_state": dispatch_state,
+        "previous_status": previous_status,
+        "reset_steps": req.reset_steps,
+        "reset_step_count": reset_step_count,
+    }
+
+
 @router.post("/{project_id}/approve")
 async def approve_workflow(
-    project_id: str, 
+    project_id: str,
     req: ApprovalRequest,
-    identity: Dict[str, Any] = Depends(require_permission("workflow.approve"))
+    identity: dict[str, Any] = Depends(require_permission("workflow.approve"))
 ):
     """Approve a workflow pending manual review with audit trail."""
-    from libs.db.session import AsyncSessionLocal
+    from sqlalchemy import select
+
     from libs.db.models.core_models import Project, ProjectStatus
     from libs.db.repositories.repository import ProjectRepository
+    from libs.db.session import AsyncSessionLocal
     from libs.workflow.persistence import WorkflowPersistence
-    from sqlalchemy import select
 
     persistence = WorkflowPersistence()
 
@@ -741,13 +910,13 @@ async def approve_workflow(
 
         # Hardening: Save to Workflow Audit Trail
         await persistence.save_event(
-            project_id, 
-            "workflow_approved", 
+            project_id,
+            "workflow_approved",
             payload={
                 "operator_id": str(identity["id"]),
                 "operator_name": identity["name"],
                 "notes": req.notes,
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(UTC).isoformat()
             }
         )
 
@@ -758,8 +927,9 @@ async def approve_workflow(
             review_required=False,
         )
         # Faz 13.04: Reset waiting steps to PENDING to break deadlock on resumption
-        from libs.db.models.core_models import SubTask, ProjectStatus
         from sqlalchemy import update
+
+        from libs.db.models.core_models import ProjectStatus, SubTask
         await db.execute(
             update(SubTask)
             .where(SubTask.project_id == uid, SubTask.status == "WAITING")
@@ -783,7 +953,7 @@ async def approve_workflow(
             ),
             timeout=5,
         )
-    except asyncio.TimeoutError:
+    except TimeoutError:
         dispatch_state = "deferred"
         logger.warning("[WorkflowApprove] enqueue timeout for project=%s; workflow remains queued.", project_id)
     except Exception as e:
@@ -793,7 +963,7 @@ async def approve_workflow(
     return {
         "status": "success",
         "msg": "Workflow approved and re-queued",
-        "message": "Workflow approved and re-queued", 
+        "message": "Workflow approved and re-queued",
         "project_id": project_id,
         "dispatch_state": dispatch_state,
     }
@@ -805,10 +975,11 @@ async def approve_workflow(
 @router.get("/stats/summary")
 async def workflow_stats():
     """Aggregate stats for control plane header metrics including systemic anomalies."""
-    from libs.db.session import AsyncSessionLocal
-    from libs.db.models.core_models import Project, ProjectStatus
+    from sqlalchemy import func, select
+
+    from libs.db.models.core_models import Project
     from libs.db.models.learning_models import ErrorFingerprint
-    from sqlalchemy import select, func
+    from libs.db.session import AsyncSessionLocal
 
     if _prefer_ephemeral_workflows() and _EPHEMERAL_WORKFLOWS:
         ephemeral_total = len(_EPHEMERAL_WORKFLOWS)
@@ -834,15 +1005,15 @@ async def workflow_stats():
             ).group_by(Project.status)
         )
         rows = result.all()
-        
+
         # 2. Systemic anomalies count (Error Fingerprints)
         f_count = (await db.execute(select(func.count(ErrorFingerprint.id)).where(ErrorFingerprint.is_active == True))).scalar() or 0
-        
+
         # 3. Pending Improvements count
         from libs.db.models.core_models import SystemImprovement
         i_count = (await db.execute(select(func.count(SystemImprovement.id)).where(SystemImprovement.status == "pending"))).scalar() or 0
 
-    counts: Dict[str, int] = {}
+    counts: dict[str, int] = {}
     for row in rows:
         s = row.status.value if hasattr(row.status, "value") else str(row.status)
         counts[s.lower()] = row.cnt
@@ -883,11 +1054,13 @@ async def workflow_stats():
 @router.get("/analytics/failure-clusters", tags=["Analytics"])
 async def get_failure_clusters():
     """Group recent workflow failures by error pattern."""
-    from libs.db.session import AsyncSessionLocal
-    from libs.db.models.core_models import WorkflowEvent
-    from sqlalchemy import select
     import re
     from collections import Counter
+
+    from sqlalchemy import select
+
+    from libs.db.models.core_models import WorkflowEvent
+    from libs.db.session import AsyncSessionLocal
 
     async with AsyncSessionLocal() as db:
         # Get last 100 step_failed events
@@ -897,7 +1070,7 @@ async def get_failure_clusters():
 
     clusters = []
     error_messages = []
-    
+
     for e in events:
         msg = e.payload.get("error", "Unknown error")
         # Sanitize message: remove IDs and paths to group similar errors
@@ -906,7 +1079,7 @@ async def get_failure_clusters():
         error_messages.append(msg)
 
     counts = Counter(error_messages)
-    
+
     for msg, count in counts.items():
         clusters.append({
             "pattern": msg,

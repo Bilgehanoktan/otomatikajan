@@ -15,6 +15,7 @@ import {
   Lock,
   ArrowRight
 } from 'lucide-react';
+import { safeFetchJson } from '@/lib/api';
 
 interface Asset {
   id: string;
@@ -37,12 +38,12 @@ interface AttackPath {
 }
 
 interface ThreatSummary {
-  total_assets: int;
-  critical_assets: int;
-  attack_path_count: int;
-  high_risk_paths: int;
-  simulation_success_rate: float;
-  mitigation_coverage: float;
+  total_assets: number;
+  critical_assets: number;
+  attack_path_count: number;
+  high_risk_paths: number;
+  simulation_success_rate: number;
+  mitigation_coverage: number;
 }
 
 export default function ThreatModelingPanel() {
@@ -55,15 +56,15 @@ export default function ThreatModelingPanel() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [sumRes, assetRes, pathRes] = await Promise.all([
-        fetch('/api/v1/ui-repair/security/threat/summary'),
-        fetch('/api/v1/ui-repair/security/threat/assets'),
-        fetch('/api/v1/ui-repair/security/threat/attack-paths')
+      const [sum, assetList, pathList] = await Promise.all([
+        safeFetchJson('/api/v1/ui-repair/security/threat/summary'),
+        safeFetchJson('/api/v1/ui-repair/security/threat/assets'),
+        safeFetchJson('/api/v1/ui-repair/security/threat/attack-paths')
       ]);
       
-      setSummary(await sumRes.json());
-      setAssets(await assetRes.json());
-      setPaths(await pathRes.json());
+      setSummary(sum);
+      setAssets(assetList);
+      setPaths(pathList);
     } catch (error) {
       console.error("Failed to fetch threat modeling data", error);
     } finally {
@@ -78,8 +79,8 @@ export default function ThreatModelingPanel() {
   const handleScan = async () => {
     setScanning(true);
     try {
-      await fetch('/api/v1/ui-repair/security/threat/inventory/scan', { method: 'POST' });
-      await fetch('/api/v1/ui-repair/security/threat/models/generate', { method: 'POST' });
+      await safeFetchJson('/api/v1/ui-repair/security/threat/inventory/scan', { method: 'POST' });
+      await safeFetchJson('/api/v1/ui-repair/security/threat/models/generate', { method: 'POST' });
       await fetchData();
     } finally {
       setScanning(false);

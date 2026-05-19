@@ -48,11 +48,15 @@ class MeshRouter:
         Logic: Quorum Integrity > Region Health > Cluster Expertise > Latency.
         """
         # Phase 21: Quorum Safety Check
-        if not mesh_state_store.is_quorum_maintained():
+        known_regions = mesh_state_store.get_all_regions()
+        healthy_count = mesh_state_store.get_healthy_region_count()
+        risk_level = str(task.context.get("risk", "")).upper()
+        requires_write_quorum = risk_level in {"HIGH", "CRITICAL"}
+        if known_regions and requires_write_quorum and not mesh_state_store.is_quorum_maintained():
             # If we lost quorum, we cannot safely commit changes across regions.
             # We raise an exception to trigger 'Advisory Mode' in the calling worker.
             raise QuorumLossException(
-                f"Mesh integrity compromised. Quorum lost (Healthy: {mesh_state_store.get_healthy_region_count()}). "
+                f"Mesh integrity compromised. Quorum lost (Healthy: {healthy_count}). "
                 "Switching to Advisory-Only mode."
             )
 

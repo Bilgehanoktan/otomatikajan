@@ -1,5 +1,6 @@
 import hashlib
-from typing import Dict, Optional, Tuple
+import uuid
+from typing import Any, Dict, Optional, Set, Tuple
 from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -60,9 +61,6 @@ class ZeroTrustHandshake:
         await self.db_session.commit()
         
         return True, "PASSED", handshake
-
-import uuid
-from typing import Set
 
 class ReplayAttackGuard:
     """Simple in-memory cache for nonces to prevent immediate replay."""

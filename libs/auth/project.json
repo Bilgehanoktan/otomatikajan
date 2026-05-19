@@ -7,13 +7,13 @@
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "ruff check libs/auth"
+        "command": "python -m ruff check libs/auth"
       }
     },
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pytest libs/auth/tests"
+        "command": "python -m pytest libs/auth/tests"
       }
     }
   },

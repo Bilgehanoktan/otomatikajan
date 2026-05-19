@@ -1,0 +1,1 @@
+def main(p): return {'ok': True}

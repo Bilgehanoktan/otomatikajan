@@ -92,3 +92,30 @@ class ProofChainService:
         )
         
         return await self.repo.save_event_async(event)
+
+    def verify_chain_integrity(self, start_idx: int = 0, end_idx: Optional[int] = None) -> bool:
+        events = self.repo.list_events(0, end_idx)
+        if not events:
+            return True
+
+        previous_hash = "0" * 64
+        for event in events:
+            expected_payload_hash = self.compute_payload_hash(event.payload_canonical)
+            if event.payload_hash != expected_payload_hash:
+                return False
+
+            event_type = event.event_type.value if hasattr(event.event_type, "value") else str(event.event_type)
+            domain = event.domain.value if hasattr(event.domain, "value") else (str(event.domain) if event.domain else "NONE")
+            metadata_str = f"{event_type}:{domain}:{event.chain_index}"
+            expected_event_hash = hashlib.sha256(
+                f"{previous_hash}{event.payload_hash}{metadata_str}".encode("utf-8")
+            ).hexdigest()
+
+            if event.prev_event_hash != previous_hash or event.event_hash != expected_event_hash:
+                return False
+
+            previous_hash = event.event_hash
+            if end_idx is not None and event.chain_index >= end_idx:
+                break
+
+        return True

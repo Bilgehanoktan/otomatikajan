@@ -1,0 +1,195 @@
+{
+  "graph": {
+    "nodes": {
+      "refine_control_plane": {
+        "name": "refine_control_plane",
+        "type": "app",
+        "data": {
+          "root": "apps/refine_control_plane",
+          "targets": {
+            "lint": {
+              "executor": "nx:run-script",
+              "cache": true,
+              "inputs": [
+                "default"
+              ],
+              "options": {
+                "script": "lint"
+              },
+              "configurations": {}
+            },
+            "build": {
+              "executor": "nx:run-script",
+              "cache": true,
+              "dependsOn": [
+                "^build"
+              ],
+              "inputs": [
+                "production",
+                "^production"
+              ],
+              "options": {
+                "script": "build"
+              },
+              "configurations": {}
+            },
+            "dev": {
+              "executor": "nx:run-script",
+              "options": {
+                "script": "dev"
+              },
+              "configurations": {}
+            },
+            "start": {
+              "executor": "nx:run-script",
+              "options": {
+                "script": "start"
+              },
+              "configurations": {}
+            }
+          },
+          "sourceRoot": "apps/refine_control_plane",
+          "name": "refine_control_plane",
+          "projectType": "application",
+          "implicitDependencies": [],
+          "tags": []
+        }
+      },
+      "workflow-api": {
+        "name": "workflow-api",
+        "type": "app",
+        "data": {
+          "root": "services/workflow_api",
+          "targets": {
+            "test": {
+              "executor": "nx:run-commands",
+              "cache": true,
+              "inputs": [
+                "default",
+                "^default"
+              ],
+              "options": {
+                "command": "pytest services/workflow_api/tests"
+              },
+              "configurations": {}
+            },
+            "lint": {
+              "executor": "nx:run-commands",
+              "cache": true,
+              "inputs": [
+                "default"
+              ],
+              "options": {
+                "command": "flake8 services/workflow_api"
+              },
+              "configurations": {}
+            },
+            "start": {
+              "executor": "nx:run-commands",
+              "options": {
+                "command": "python -m uvicorn services.workflow_api.router:router --host 0.0.0.0 --port 8000 --reload"
+              },
+              "configurations": {}
+            }
+          },
+          "name": "workflow-api",
+          "$schema": "../../node_modules/nx/schemas/project-schema.json",
+          "projectType": "application",
+          "sourceRoot": "services/workflow_api",
+          "tags": [
+            "type:service",
+            "platform:python"
+          ],
+          "implicitDependencies": []
+        }
+      },
+      "service-mcp": {
+        "name": "service-mcp",
+        "type": "app",
+        "data": {
+          "root": "services/mcp_server",
+          "targets": {
+            "test": {
+              "executor": "nx:run-commands",
+              "cache": true,
+              "inputs": [
+                "default",
+                "^default"
+              ],
+              "options": {
+                "command": "pytest services/mcp_server/tests"
+              },
+              "configurations": {}
+            },
+            "start": {
+              "executor": "nx:run-commands",
+              "options": {
+                "command": "python services/mcp_server/main.py"
+              },
+              "configurations": {}
+            }
+          },
+          "name": "service-mcp",
+          "$schema": "../../node_modules/nx/schemas/project-schema.json",
+          "projectType": "application",
+          "sourceRoot": "services/mcp_server",
+          "tags": [
+            "type:service",
+            "platform:python",
+            "protocol:mcp"
+          ],
+          "implicitDependencies": []
+        }
+      },
+      "lib-workflow": {
+        "name": "lib-workflow",
+        "type": "lib",
+        "data": {
+          "root": "libs/workflow",
+          "targets": {
+            "test": {
+              "executor": "nx:run-commands",
+              "cache": true,
+              "inputs": [
+                "default",
+                "^default"
+              ],
+              "options": {
+                "command": "pytest libs/workflow/tests"
+              },
+              "configurations": {}
+            },
+            "lint": {
+              "executor": "nx:run-commands",
+              "cache": true,
+              "inputs": [
+                "default"
+              ],
+              "options": {
+                "command": "flake8 libs/workflow"
+              },
+              "configurations": {}
+            }
+          },
+          "name": "lib-workflow",
+          "$schema": "../../node_modules/nx/schemas/project-schema.json",
+          "projectType": "library",
+          "sourceRoot": "libs/workflow",
+          "tags": [
+            "type:lib",
+            "platform:python"
+          ],
+          "implicitDependencies": []
+        }
+      }
+    },
+    "dependencies": {
+      "refine_control_plane": [],
+      "workflow-api": [],
+      "service-mcp": [],
+      "lib-workflow": []
+    }
+  },
+  "affectedProjects": [],
+  "criticalPath": []
+}

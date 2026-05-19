@@ -1,16 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket, WebSocketDisconnect, Query
-from typing import Dict, Any, List, Optional
-from datetime import datetime, timezone
-import json
 import asyncio
+import json
 import logging
+from datetime import UTC, datetime
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket, WebSocketDisconnect
 
 # SQLAlchemy and Model imports moved to local scopes to prevent Phase 13.04 startup hangs in Python 3.14+
 # from sqlalchemy import select, func, desc
 # from libs.db.models.core_models import Project, ProjectStatus, SystemImprovement
 # from libs.db.models.learning_models import ErrorFingerprint
 # from libs.db.models.lineage_models import DecisionLineage
-
 from libs.db.session import AsyncSessionLocal
 from services.auth.jwt_auth import require_permission
 from services.workflow_api.runtime_diagnostics import RuntimeDiagnosticsService, diagnostics_to_dict
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 # WebSocket Connection Manager
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: List[WebSocket] = []
+        self.active_connections: list[WebSocket] = []
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
@@ -38,10 +38,10 @@ class ConnectionManager:
             except Exception:
                 self.disconnect(connection)
 
-    async def broadcast_event(self, event_type: str, component: str, rationale: str, severity: str = "info", summary: Optional[str] = None):
+    async def broadcast_event(self, event_type: str, component: str, rationale: str, severity: str = "info", summary: str | None = None):
         ev = {
-            "seq": int(datetime.now(timezone.utc).timestamp() * 1000),
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "seq": int(datetime.now(UTC).timestamp() * 1000),
+            "timestamp": datetime.now(UTC).isoformat(),
             "type": event_type,
             "severity": severity,
             "category": "workflow",
@@ -53,7 +53,7 @@ manager = ConnectionManager()
 
 
 
-async def _runtime_redis_available() -> Optional[bool]:
+async def _runtime_redis_available() -> bool | None:
     try:
         from libs.config import REDIS_ENABLED
         from libs.db.session import get_redis_client
@@ -70,7 +70,7 @@ async def _runtime_redis_available() -> Optional[bool]:
         return False
 
 
-async def _optional_identity_role(request: Request) -> Optional[str]:
+async def _optional_identity_role(request: Request) -> str | None:
     token = request.cookies.get("access_token") or request.headers.get("Authorization", "").replace("Bearer ", "")
     if not token:
         return None
@@ -85,10 +85,11 @@ async def _optional_identity_role(request: Request) -> Optional[str]:
         return None
 
 
-async def _collect_runtime_diagnostics(identity_role: Optional[str] = None):
+async def _collect_runtime_diagnostics(identity_role: str | None = None):
     from sqlalchemy import select
-    from libs.db.session import is_db_degraded
+
     from libs.db.models.learning_models import ErrorFingerprint
+    from libs.db.session import is_db_degraded
     from services.orchestration.application.job_queue import job_queue
 
     try:
@@ -97,7 +98,7 @@ async def _collect_runtime_diagnostics(identity_role: Optional[str] = None):
         logger.warning("Runtime diagnostics queue stats failed: %s", exc)
         queue_stats = {"error": str(exc)}
 
-    active_error_fingerprints: Dict[str, Any] = {"count": 0, "recurrence_total": 0, "top": []}
+    active_error_fingerprints: dict[str, Any] = {"count": 0, "recurrence_total": 0, "top": []}
     try:
         async with AsyncSessionLocal() as db:
             res = await db.execute(
@@ -138,8 +139,9 @@ async def _collect_runtime_diagnostics(identity_role: Optional[str] = None):
     return service.collect()
 
 
-async def _repair_signoff_serialization_fingerprints() -> Dict[str, Any]:
+async def _repair_signoff_serialization_fingerprints() -> dict[str, Any]:
     from sqlalchemy import select
+
     from libs.db.models.governance_models import ProductionSignoff
     from libs.db.models.learning_models import ErrorFingerprint
 
@@ -180,7 +182,7 @@ async def _repair_signoff_serialization_fingerprints() -> Dict[str, Any]:
             meta.update({
                 "resolved_by": "runtime_diagnostics",
                 "resolved_reason": "Verified signoff UUID serialization fix.",
-                "resolved_at": datetime.now(timezone.utc).isoformat(),
+                "resolved_at": datetime.now(UTC).isoformat(),
             })
             fp.meta_data = meta
 
@@ -215,8 +217,8 @@ async def _audit_runtime_repair(
     *,
     diagnostic_id: str,
     outcome: str,
-    identity: Dict[str, Any],
-    payload: Dict[str, Any],
+    identity: dict[str, Any],
+    payload: dict[str, Any],
 ) -> None:
     from libs.db.models.lineage_models import DecisionLineage
     raw_status = str(payload.get("status") or outcome or "").lower()
@@ -275,18 +277,18 @@ async def get_runtime_diagnostics(request: Request):
     return {
         "diagnostics": diagnostics_to_dict(findings),
         "count": len(findings),
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
 
 @router.post("/runtime-diagnostics/{diagnostic_id}/repair")
 async def repair_runtime_diagnostic(
     diagnostic_id: str,
-    identity: Dict[str, Any] = Depends(require_permission("repair_lab.repair")),
+    identity: dict[str, Any] = Depends(require_permission("repair_lab.repair")),
 ):
     findings = await _collect_runtime_diagnostics(identity_role=str(identity.get("role", "")).upper())
     active_ids = {finding.id for finding in findings}
-    actions: List[str] = []
+    actions: list[str] = []
 
     if diagnostic_id == "queue_workers_disabled":
         if diagnostic_id not in active_ids:
@@ -380,7 +382,8 @@ async def repair_runtime_diagnostic(
 
 @router.get("/dashboard")
 async def get_health_dashboard():
-    from sqlalchemy import select, func
+    from sqlalchemy import func, select
+
     from libs.db.models.core_models import Project, SystemImprovement
     from libs.db.models.learning_models import ErrorFingerprint
 
@@ -391,11 +394,11 @@ async def get_health_dashboard():
         )
         wf_rows = res_wf.all()
         wf_counts = {str(row.status.value).lower() if hasattr(row.status, "value") else str(row.status).lower(): row.cnt for row in wf_rows}
-        
+
         total_wf = sum(wf_counts.values())
         completed = wf_counts.get("completed", 0) + wf_counts.get("partial_complete", 0)
         failed = wf_counts.get("error", 0) + wf_counts.get("failed", 0)
-        
+
         # 2. Anomaly & Improvement Counts
         f_count = (
             await db.execute(
@@ -406,10 +409,10 @@ async def get_health_dashboard():
             )
         ).scalar() or 0
         i_count = (await db.execute(select(func.count(SystemImprovement.id)).where(SystemImprovement.status == "pending"))).scalar() or 0
-        
+
         # 3. Health Score Calculation
         health_score = max(0, 100 - (failed * 5) - (f_count * 10))
-        
+
         return {
             "status": "online",
             "health_score": health_score,
@@ -446,7 +449,8 @@ async def get_health_dashboard():
 
 @router.get("/evolution")
 async def get_evolution_history(limit: int = 15):
-    from sqlalchemy import select, desc
+    from sqlalchemy import desc, select
+
     from libs.db.models.lineage_models import DecisionLineage
     async with AsyncSessionLocal() as db:
         try:
@@ -461,7 +465,7 @@ async def get_evolution_history(limit: int = 15):
             {
                 "title": f"[{i.component_name}] {i.decision_type}",
                 "desc": i.rationale,
-                "time": i.created_at.isoformat() if i.created_at else datetime.now(timezone.utc).isoformat(),
+                "time": i.created_at.isoformat() if i.created_at else datetime.now(UTC).isoformat(),
                 "type": "promotion" if "PROMOTION" in (i.decision_type or "").upper() else "tournament" if "TOUR" in (i.decision_type or "").upper() else "diagnosis",
                 "evidence": getattr(i, "outcome", None) or "N/A"
             }
@@ -484,12 +488,13 @@ async def test_broadcast_event(message: str = "Test broadcast message", severity
 
 async def get_events_stream(since_seq: int = 0, limit: int = 50):
     from sqlalchemy import select
+
     from libs.db.models.lineage_models import DecisionLineage
     async with AsyncSessionLocal() as db:
         try:
             q = select(DecisionLineage).order_by(DecisionLineage.created_at.desc()).limit(limit)
             if since_seq > 0:
-                since_dt = datetime.fromtimestamp(since_seq / 1000, tz=timezone.utc)
+                since_dt = datetime.fromtimestamp(since_seq / 1000, tz=UTC)
                 q = q.where(DecisionLineage.created_at > since_dt)
             res = await db.execute(q)
             items = res.scalars().all()
@@ -508,8 +513,8 @@ async def get_events_stream(since_seq: int = 0, limit: int = 50):
                 severity = "warning"
 
             events.append({
-                "seq": int(i.created_at.timestamp() * 1000) if i.created_at else int(datetime.now(timezone.utc).timestamp() * 1000),
-                "timestamp": i.created_at.isoformat() if i.created_at else datetime.now(timezone.utc).isoformat(),
+                "seq": int(i.created_at.timestamp() * 1000) if i.created_at else int(datetime.now(UTC).timestamp() * 1000),
+                "timestamp": i.created_at.isoformat() if i.created_at else datetime.now(UTC).isoformat(),
                 "type": i.decision_type,
                 "severity": severity,
                 "category": "governance" if "GOV" in (i.decision_type or "").upper() else "workflow",
@@ -519,7 +524,8 @@ async def get_events_stream(since_seq: int = 0, limit: int = 50):
         return {"events": events}
 
 async def websocket_endpoint(websocket: WebSocket):
-    from sqlalchemy import select, desc
+    from sqlalchemy import desc, select
+
     from libs.db.models.lineage_models import DecisionLineage
     await manager.connect(websocket)
     try:
@@ -532,21 +538,21 @@ async def websocket_endpoint(websocket: WebSocket):
             except Exception as exc:
                 logger.warning("Websocket lineage initial fetch failed: %s", exc)
                 items = []
-            
+
             for i in reversed(items):
                 severity = "info"
                 outcome = getattr(i, "outcome", None) or ""
                 rationale = getattr(i, "rationale", "") or ""
                 summary = getattr(i, "summary", None)
-                
+
                 if "FAIL" in outcome.upper() or "ERROR" in rationale.upper():
                     severity = "critical"
                 elif "WARN" in rationale.upper():
                     severity = "warning"
-                
+
                 ev = {
-                    "seq": int(i.created_at.timestamp() * 1000) if i.created_at else int(datetime.now(timezone.utc).timestamp() * 1000),
-                    "timestamp": i.created_at.isoformat() if i.created_at else datetime.now(timezone.utc).isoformat(),
+                    "seq": int(i.created_at.timestamp() * 1000) if i.created_at else int(datetime.now(UTC).timestamp() * 1000),
+                    "timestamp": i.created_at.isoformat() if i.created_at else datetime.now(UTC).isoformat(),
                     "type": i.decision_type,
                     "severity": severity,
                     "category": "workflow",
@@ -562,9 +568,9 @@ async def websocket_endpoint(websocket: WebSocket):
                 data = await asyncio.wait_for(websocket.receive_text(), timeout=30.0)
                 if data == "ping":
                     await websocket.send_text("pong")
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 # Sessizce devam et, bağlantı hala aktif mi kontrol etmek için boş mesaj gönderilebilir
-                await websocket.send_text(json.dumps({"type": "heartbeat", "timestamp": datetime.now(timezone.utc).isoformat()}))
+                await websocket.send_text(json.dumps({"type": "heartbeat", "timestamp": datetime.now(UTC).isoformat()}))
             except Exception:
                 break
     except WebSocketDisconnect:

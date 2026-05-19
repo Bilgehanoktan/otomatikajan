@@ -7,21 +7,28 @@ Kalıcı Görev Deposu (Repository Pattern)
 """
 
 import uuid
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
-from sqlalchemy import select, update, func, desc, Integer
+from sqlalchemy import Integer, desc, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from libs.db.models import (
-    Project, SubTask, LLMCostLog, DomainEventLog,
-    TaskLog, ApiMetric, TelegramUser, TelegramCommandLog,
-    ProjectStatus, SkillExecutionLog, Memory,
+    ApiMetric,
+    DomainEventLog,
+    LLMCostLog,
+    Memory,
+    Project,
+    ProjectStatus,
+    SkillExecutionLog,
+    SubTask,
+    TaskLog,
+    TelegramCommandLog,
+    TelegramUser,
 )
 
 
 def _utcnow():
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 # ════════════════════════════════════════════════════════
@@ -52,8 +59,8 @@ class ProjectRepository:
         status: str = ProjectStatus.PENDING.value,
     ) -> Project:
         # Defense-in-depth: Normalize priority string to valid TaskPriority
-        from libs.db.models.core_models import TaskPriority, ProjectSource
-        
+        from libs.db.models.core_models import ProjectSource, TaskPriority
+
         p_val = str(priority or "MEDIUM").upper().strip()
         mapping = {
             "YÜKSEK": "HIGH", "YUKSEK": "HIGH",
@@ -61,7 +68,7 @@ class ProjectRepository:
             "KRİTİK": "CRITICAL", "KRITIK": "CRITICAL"
         }
         normalized_priority = mapping.get(p_val, p_val)
-        
+
         # Fallback to MEDIUM if still invalid
         if normalized_priority not in [m.name for m in TaskPriority]:
             normalized_priority = "MEDIUM"
@@ -103,14 +110,14 @@ class ProjectRepository:
         return project
 
     @staticmethod
-    async def get(db: AsyncSession, project_id) -> Optional[Project]:
+    async def get(db: AsyncSession, project_id) -> Project | None:
         result = await db.execute(
             select(Project).where(Project.id == project_id)
         )
         return result.scalar_one_or_none()
 
     @staticmethod
-    async def get_by_job_id(db: AsyncSession, job_id: str) -> Optional[Project]:
+    async def get_by_job_id(db: AsyncSession, job_id: str) -> Project | None:
         if not job_id:
             return None
         result = await db.execute(
@@ -187,9 +194,9 @@ class ProjectRepository:
         Geriye işlemin başarılı olup olmadığını döner (status guard).
         """
         cancellable = [
-            ProjectStatus.PENDING.value, 
-            ProjectStatus.RUNNING.value, 
-            ProjectStatus.QUEUED.value, 
+            ProjectStatus.PENDING.value,
+            ProjectStatus.RUNNING.value,
+            ProjectStatus.QUEUED.value,
             ProjectStatus.RETRYING.value,
             ProjectStatus.PAUSED.value
         ]
@@ -231,10 +238,10 @@ class ProjectRepository:
         # Mevcut context'i al
         p = await ProjectRepository.get(db, project_id)
         if not p: return
-        
+
         current = p.execution_context or {}
         current.update(context)
-        
+
         await db.execute(
             update(Project)
             .where(Project.id == project_id)
@@ -290,7 +297,7 @@ class ProjectRepository:
         for row in result.all():
             status_val = row[0]
             if status_val is None: continue
-            
+
             # Handle both enum values and raw strings
             key = str(status_val.value if hasattr(status_val, 'value') else status_val).upper()
             counts[key] = counts.get(key, 0) + row[1]
@@ -304,7 +311,7 @@ class ProjectRepository:
 
 
     @staticmethod
-    async def get_by_job_id(db: AsyncSession, job_id: str) -> Optional[Project]:
+    async def get_by_job_id(db: AsyncSession, job_id: str) -> Project | None:
         if not job_id:
             return None
         result = await db.execute(
@@ -381,9 +388,9 @@ class ProjectRepository:
         Geriye işlemin başarılı olup olmadığını döner (status guard).
         """
         cancellable = [
-            ProjectStatus.PENDING.value, 
-            ProjectStatus.RUNNING.value, 
-            ProjectStatus.QUEUED.value, 
+            ProjectStatus.PENDING.value,
+            ProjectStatus.RUNNING.value,
+            ProjectStatus.QUEUED.value,
             ProjectStatus.RETRYING.value,
             ProjectStatus.PAUSED.value
         ]
@@ -425,10 +432,10 @@ class ProjectRepository:
         # Mevcut context'i al
         p = await ProjectRepository.get(db, project_id)
         if not p: return
-        
+
         current = p.execution_context or {}
         current.update(context)
-        
+
         await db.execute(
             update(Project)
             .where(Project.id == project_id)
@@ -484,7 +491,7 @@ class ProjectRepository:
         for row in result.all():
             status_val = row[0]
             if status_val is None: continue
-            
+
             # Handle both enum values and raw strings
             key = str(status_val.value if hasattr(status_val, 'value') else status_val).upper()
             counts[key] = counts.get(key, 0) + row[1]
@@ -696,6 +703,14 @@ class CostRepository:
         return float(result.scalar() or 0.0)
 
     @staticmethod
+    async def get_project_cost(db: AsyncSession, project_id) -> float:
+        result = await db.execute(
+            select(func.coalesce(func.sum(LLMCostLog.cost_usd), 0.0))
+            .where(LLMCostLog.project_id == project_id)
+        )
+        return float(result.scalar() or 0.0)
+
+    @staticmethod
     async def by_provider(db: AsyncSession) -> dict[str, float]:
         result = await db.execute(
             select(LLMCostLog.provider, func.sum(LLMCostLog.cost_usd))
@@ -850,6 +865,29 @@ class ApiMetricRepository:
         ]
 
     @staticmethod
+    async def get_summary(db: AsyncSession, since_hours: int = 24) -> dict:
+        """Compact aggregate used by CEO governance checks."""
+        from datetime import timedelta
+
+        cutoff = _utcnow() - timedelta(hours=since_hours)
+        result = await db.execute(
+            select(
+                func.count(ApiMetric.id),
+                func.avg(ApiMetric.response_ms),
+                func.sum(func.cast(ApiMetric.status_code >= 400, Integer)),
+            ).where(ApiMetric.created_at >= cutoff)
+        )
+        total, avg_latency, errors = result.one()
+        total = int(total or 0)
+        errors = int(errors or 0)
+        return {
+            "total_requests": total,
+            "avg_latency": round(float(avg_latency or 0.0), 1),
+            "error_count": errors,
+            "error_rate": round(errors / total, 4) if total else 0.0,
+        }
+
+    @staticmethod
     async def time_series(
         db: AsyncSession,
         hours: int = 6,
@@ -857,6 +895,7 @@ class ApiMetricRepository:
     ) -> list[dict]:
         """Zaman bazlı trafik serisi (bucket başına istek sayısı)."""
         from datetime import timedelta
+
         from sqlalchemy import text
         cutoff = _utcnow() - timedelta(hours=hours)
         sql = text("""
@@ -887,6 +926,7 @@ class ApiMetricRepository:
     async def cleanup_old(db: AsyncSession, days: int = 7) -> int:
         """Eski kayıtları temizle."""
         from datetime import timedelta
+
         from sqlalchemy import delete
         cutoff = _utcnow() - timedelta(days=days)
         result = await db.execute(
@@ -901,7 +941,7 @@ class ApiMetricRepository:
 class TelegramRepository:
 
     @staticmethod
-    async def get_user(db: AsyncSession, telegram_id: str) -> Optional[TelegramUser]:
+    async def get_user(db: AsyncSession, telegram_id: str) -> TelegramUser | None:
         result = await db.execute(
             select(TelegramUser).where(TelegramUser.telegram_id == telegram_id)
         )
@@ -976,7 +1016,8 @@ class TelegramRepository:
 # ════════════════════════════════════════════════════════
 # CEO / İyileştirme Repository (Faz 8)
 # ════════════════════════════════════════════════════════
-from libs.db.models import ImprovementOpportunity, CEOSuggestedTask
+from libs.db.models import ImprovementOpportunity
+
 
 class ImprovementRepository:
 
@@ -993,7 +1034,7 @@ class ImprovementRepository:
     ) -> ImprovementOpportunity:
         # Tekrar önlemek için hash oluştur
         pattern_hash = ImprovementOpportunity.generate_hash(source_type, title[:50])
-        
+
         opp = ImprovementOpportunity(
             id=uuid.uuid4(),
             title=title,
@@ -1122,8 +1163,8 @@ class MemoryRepository:
         [FAZ 73] Son N saatteki benzer hata/başarısızlık desenlerini gruplar.
         """
         from datetime import timedelta
-        cutoff = datetime.now(timezone.utc) - timedelta(hours=limit_hours)
-        
+        cutoff = datetime.now(UTC) - timedelta(hours=limit_hours)
+
         # Basit bir SQL gruplama (İleride vector similarity eklenebilir)
         # body'nin ilk 50 karakterine göre grupla
         result = await db.execute(
@@ -1138,7 +1179,7 @@ class MemoryRepository:
             .having(func.count(Memory.id) >= min_count)
             .order_by(desc("freq"))
         )
-        
+
         return [{"agent_id": r[0], "pattern": r[1], "frequency": r[2]} for r in result.all()]
 
 
@@ -1146,6 +1187,7 @@ class MemoryRepository:
 # Operasyonel Olay Repository (Faz 14/15)
 # ════════════════════════════════════════════════════════
 from libs.db.models import OperationalIncident
+
 
 class OperationalIncidentRepository:
 

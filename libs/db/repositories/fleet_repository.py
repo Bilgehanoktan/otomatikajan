@@ -1,30 +1,35 @@
-from sqlalchemy.orm import Session
-from sqlalchemy import select, update, and_, func
-from typing import List, Optional
 import uuid
-from datetime import datetime, timezone
-from libs.db.models.core_models import (
-    AgentNode, FleetCluster, FleetAssignment, 
-    ProjectExecutionPlan, ProjectAgentAllocation,
-    AgentStatus, AgentRole, FleetStatus
-)
+
+from sqlalchemy import select, update
+from sqlalchemy.orm import Session
+
 from libs.db.base import utcnow
+from libs.db.models.core_models import (
+    AgentNode,
+    AgentRole,
+    AgentStatus,
+    FleetAssignment,
+    FleetCluster,
+    FleetStatus,
+    ProjectExecutionPlan,
+)
+
 
 class FleetRepository:
     def __init__(self, db: Session):
         self.db = db
 
     # --- Agent Methods ---
-    def get_agent(self, agent_id: uuid.UUID) -> Optional[AgentNode]:
+    def get_agent(self, agent_id: uuid.UUID) -> AgentNode | None:
         return self.db.get(AgentNode, agent_id)
 
-    def list_agents(self, role: Optional[str] = None) -> List[AgentNode]:
+    def list_agents(self, role: str | None = None) -> list[AgentNode]:
         query = select(AgentNode)
         if role:
             query = query.where(AgentNode.role == role)
         return list(self.db.scalars(query).all())
 
-    def list_available_agents(self, role: Optional[AgentRole] = None) -> List[AgentNode]:
+    def list_available_agents(self, role: AgentRole | None = None) -> list[AgentNode]:
         # Filter by IDLE status specifically
         query = select(AgentNode).where(AgentNode.status == AgentStatus.IDLE)
         if role:
@@ -46,10 +51,10 @@ class FleetRepository:
         self.db.commit()
 
     # --- Cluster Methods ---
-    def get_cluster(self, cluster_id: uuid.UUID) -> Optional[FleetCluster]:
+    def get_cluster(self, cluster_id: uuid.UUID) -> FleetCluster | None:
         return self.db.get(FleetCluster, cluster_id)
 
-    def list_clusters(self, status: Optional[FleetStatus] = None) -> List[FleetCluster]:
+    def list_clusters(self, status: FleetStatus | None = None) -> list[FleetCluster]:
         query = select(FleetCluster)
         if status:
             query = query.where(FleetCluster.status == status)
@@ -65,13 +70,13 @@ class FleetRepository:
             started_at=utcnow()
         )
         self.db.add(assignment)
-        
+
         self.db.execute(
             update(AgentNode)
             .where(AgentNode.id == agent_id)
             .values(status=AgentStatus.ASSIGNED)
         )
-        
+
         self.db.commit()
         self.db.refresh(assignment)
         return assignment
@@ -83,7 +88,7 @@ class FleetRepository:
         self.db.refresh(plan)
         return plan
 
-    def get_plan_by_project(self, project_id: uuid.UUID) -> Optional[ProjectExecutionPlan]:
+    def get_plan_by_project(self, project_id: uuid.UUID) -> ProjectExecutionPlan | None:
         return self.db.scalar(
             select(ProjectExecutionPlan).where(ProjectExecutionPlan.project_id == project_id)
         )

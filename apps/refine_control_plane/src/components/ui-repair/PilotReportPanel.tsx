@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Card, Button, Typography, Space, Empty, Divider, List, Tag, Descriptions } from "antd";
 import { FileSearchOutlined, CheckSquareOutlined, WarningOutlined, FilePdfOutlined } from "@ant-design/icons";
+import { safeFetchJson } from "@/lib/api";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -14,8 +15,7 @@ export const PilotReportPanel: React.FC<{ rolloutId?: string }> = ({ rolloutId }
         if (!rolloutId) return;
         setLoading(true);
         try {
-            const res = await fetch(`/api/v1/ui-repair/pilot/report/generate?rollout_id=${rolloutId}`, { method: "POST" });
-            const data = await res.json();
+            const data = await safeFetchJson(`/api/v1/ui-repair/pilot/report/generate?rollout_id=${rolloutId}`, { method: "POST" });
             setReport(data);
         } finally {
             setLoading(false);

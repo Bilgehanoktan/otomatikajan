@@ -33,7 +33,12 @@ try:
         "yes",
         "on",
     }
-    _dotenv_override = not _in_container
+    _raw_dotenv_override = os.getenv("SOVEREIGN_DOTENV_OVERRIDE", "").strip().lower()
+    _dotenv_override = (
+        _raw_dotenv_override in {"1", "true", "yes", "on"}
+        if _raw_dotenv_override
+        else not _in_container
+    )
     if os.path.exists(".env"):
         _load_dotenv(".env", override=_dotenv_override)
     if os.path.exists(".env.local"):

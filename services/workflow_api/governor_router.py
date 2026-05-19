@@ -4,22 +4,24 @@ Operatör inbox'u, case sorgulaması, scan tetikleme, override.
 """
 
 from __future__ import annotations
+
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
-import uuid
+from datetime import UTC, datetime
+from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel
-# from sqlalchemy.ext.asyncio import AsyncSession
 
-from libs.db.session import get_db, AsyncSessionLocal
-# from libs.db.models.governance_models import (
-#     GovernorAlertStatus, 
-#     GovernorAlertType, 
-#     GovernorDriftType,
-#     GovernorDomain
-# )
+# from sqlalchemy.ext.asyncio import AsyncSession
+from libs.db.session import AsyncSessionLocal
+
+from libs.db.models.governance_models import (
+    GovernorAlertStatus,
+)
 from services.auth.jwt_auth import require_permission
+from services.observability.logging import get_logger
+
+logger = get_logger("governor_router")
 
 router = APIRouter(tags=["Governor Inbox"])
 
@@ -35,7 +37,7 @@ class GovernorCaseOut(BaseModel):
     risk_class: str
     risk_score: int
     recommended_decision: str
-    decision_reason_codes: List[str] = []
+    decision_reason_codes: list[str] = []
     has_open_incident: bool = False
     has_safety_lock: bool = False
     has_active_fingerprint: bool = False
@@ -43,9 +45,9 @@ class GovernorCaseOut(BaseModel):
     requires_quorum: bool = False
     missing_context: bool = False
     stale_seconds: int = 0
-    snapshot_payload: Dict[str, Any] = {}
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    snapshot_payload: dict[str, Any] = {}
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
 
 class GovernorStatusOut(BaseModel):
@@ -60,31 +62,31 @@ class GovernorStatusOut(BaseModel):
 
 class GovernorActionOut(BaseModel):
     id: str
-    case_id: Optional[str] = None
+    case_id: str | None = None
     project_id: str
     action_type: str
     status: str
     executed_by: str
-    result_payload: Dict[str, Any] = {}
-    created_at: Optional[datetime] = None
+    result_payload: dict[str, Any] = {}
+    created_at: datetime | None = None
 
 
 class GovernorEscalationOut(BaseModel):
     id: str
-    case_id: Optional[str]
+    case_id: str | None
     project_id: str
     escalation_type: str
     target_role: str
     reason: str
     status: str
     created_at: datetime
-    resolved_at: Optional[datetime]
+    resolved_at: datetime | None
 
 class GovernorOutcomeOut(BaseModel):
     id: str
-    case_id: Optional[str]
+    case_id: str | None
     project_id: str
-    action_id: Optional[str]
+    action_id: str | None
     decision: str
     final_outcome: str
     quality: str
@@ -92,7 +94,7 @@ class GovernorOutcomeOut(BaseModel):
     operator_overrode: int
     operator_agreed: int
     resolution_latency_seconds: int
-    reason_codes: List[str]
+    reason_codes: list[str]
     created_at: datetime
 
 class GovernorScorecardOut(BaseModel):
@@ -108,15 +110,15 @@ class GovernorCalibrationOut(BaseModel):
     parameter_name: str
     old_value: float
     proposed_value: float
-    applied_value: Optional[float] = None
-    change_reason: Optional[str] = None
+    applied_value: float | None = None
+    change_reason: str | None = None
     confidence_score: float
     window_days: int
     sample_size: int
     status: str
-    approved_by: Optional[str] = None
+    approved_by: str | None = None
     created_at: datetime
-    applied_at: Optional[datetime] = None
+    applied_at: datetime | None = None
 
 
 class CalibrationActionIn(BaseModel):
@@ -137,11 +139,11 @@ class EscalationResolveIn(BaseModel):
 class MetaGovernorDecisionOut(BaseModel):
     id: str
     project_id: str
-    winning_domain: Optional[str]
+    winning_domain: str | None
     final_decision: str
     final_risk_class: str
-    reason_codes: List[str]
-    applied_constraints: List[str]
+    reason_codes: list[str]
+    applied_constraints: list[str]
     created_at: datetime
 
 
@@ -153,16 +155,16 @@ class GovernorConflictOut(BaseModel):
     decision_a: str
     decision_b: str
     conflict_type: str
-    conflict_summary: Optional[str]
+    conflict_summary: str | None
     status: str
     created_at: datetime
-    resolved_at: Optional[datetime]
+    resolved_at: datetime | None
 
 
 class GovernorRuntimeOut(BaseModel):
     domain: str
     runtime_status: str
-    reason: Optional[str]
+    reason: str | None
     failure_count: int
     advisory_only: bool
     updated_at: datetime
@@ -172,28 +174,28 @@ class GovernorAlertOut(BaseModel):
     alert_type: str
     severity: str
     status: str
-    domain: Optional[str] = None
+    domain: str | None = None
     title: str
     summary: str
-    metric_value: Optional[float] = None
-    threshold_value: Optional[float] = None
+    metric_value: float | None = None
+    threshold_value: float | None = None
     opened_at: datetime
-    acknowledged_at: Optional[datetime] = None
-    resolved_at: Optional[datetime] = None
+    acknowledged_at: datetime | None = None
+    resolved_at: datetime | None = None
 
 class GovernorMetricOut(BaseModel):
     id: str
     metric_key: str
-    domain: Optional[str] = None
+    domain: str | None = None
     value: float
-    baseline_value: Optional[float] = None
-    delta_value: Optional[float] = None
+    baseline_value: float | None = None
+    delta_value: float | None = None
     created_at: datetime
 
 class GovernorDriftOut(BaseModel):
     id: str
     drift_type: str
-    domain: Optional[str] = None
+    domain: str | None = None
     drift_score: float
     summary: str
     created_at: datetime
@@ -202,18 +204,18 @@ class GovernorDriftOut(BaseModel):
 class GovernorDrillOut(BaseModel):
     id: str
     drill_type: str
-    target_domain: Optional[str]
+    target_domain: str | None
     status: str
-    scenario_payload: Dict[str, Any]
-    result_payload: Dict[str, Any]
+    scenario_payload: dict[str, Any]
+    result_payload: dict[str, Any]
     created_at: datetime
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
 
 
 class GovernorDrillIn(BaseModel):
     drill_type: str
-    target_domain: Optional[str] = None
+    target_domain: str | None = None
 
 
 class GovernorPolicyEvolutionOut(BaseModel):
@@ -222,14 +224,14 @@ class GovernorPolicyEvolutionOut(BaseModel):
     evolution_type: str
     old_value: Any
     proposed_value: Any
-    applied_value: Optional[Any] = None
-    change_reason: Optional[str] = None
+    applied_value: Any | None = None
+    change_reason: str | None = None
     confidence_score: float
     status: str
     proposed_by: str
-    approved_by: Optional[str] = None
+    approved_by: str | None = None
     created_at: datetime
-    applied_at: Optional[datetime] = None
+    applied_at: datetime | None = None
 
 
 class GovernorPolicySimulationOut(BaseModel):
@@ -273,14 +275,15 @@ def _case_to_out(r) -> GovernorCaseOut:
 
 @router.get("/status", response_model=GovernorStatusOut)
 async def governor_status(
-    identity: Dict[str, Any] = Depends(require_permission("governor.view")),
+    identity: dict[str, Any] = Depends(require_permission("governor.view")),
 ):
     """Governor sisteminin genel durumu."""
+    from sqlalchemy import func, select
+
+    from libs.db.models.governance_models import GovernorActionRecord, GovernorCaseRecord
     from libs.db.repositories.governor_repository import (
-        GovernorCaseRepo, GovernorEscalationRepo, GovernorActionRepo,
+        GovernorEscalationRepo,
     )
-    from libs.db.models.governance_models import GovernorCaseRecord, GovernorActionRecord
-    from sqlalchemy import select, func
 
     async with AsyncSessionLocal() as db:
         total = (await db.execute(
@@ -290,7 +293,7 @@ async def governor_status(
         open_esc = await GovernorEscalationRepo.count_open(db)
 
         # Today's auto actions
-        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        today_start = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
         auto_today = (await db.execute(
             select(func.count(GovernorActionRecord.id)).where(
                 GovernorActionRecord.created_at >= today_start,
@@ -310,7 +313,7 @@ async def governor_status(
             select(func.count(GovernorCaseRecord.id)).where(GovernorCaseRecord.stale_seconds > 86400)
         )).scalar() or 0
 
-        from libs.db.models.governance_models import GovernorCalibrationRecord, CalibrationStatus
+        from libs.db.models.governance_models import CalibrationStatus, GovernorCalibrationRecord
         pending_cal = (await db.execute(
             select(func.count(GovernorCalibrationRecord.id)).where(GovernorCalibrationRecord.status == CalibrationStatus.PROPOSED)
         )).scalar() or 0
@@ -326,16 +329,16 @@ async def governor_status(
     )
 
 
-@router.get("/cases", response_model=List[GovernorCaseOut])
+@router.get("/cases", response_model=list[GovernorCaseOut])
 async def list_governor_cases(
     response: Response,
-    risk_class: Optional[str] = None,
-    recommended_decision: Optional[str] = None,
-    pending_reason: Optional[str] = None,
-    project_status: Optional[str] = None,
+    risk_class: str | None = None,
+    recommended_decision: str | None = None,
+    pending_reason: str | None = None,
+    project_status: str | None = None,
     _start: int = Query(0, alias="_start"),
     _end: int = Query(50, alias="_end"),
-    identity: Dict[str, Any] = Depends(require_permission("governor.view")),
+    identity: dict[str, Any] = Depends(require_permission("governor.view")),
 ):
     """Filtrelenmiş governor case listesi."""
     from libs.db.repositories.governor_repository import GovernorCaseRepo
@@ -358,7 +361,7 @@ async def list_governor_cases(
 @router.get("/cases/{case_id}", response_model=GovernorCaseOut)
 async def get_governor_case(
     case_id: str,
-    identity: Dict[str, Any] = Depends(require_permission("governor.view")),
+    identity: dict[str, Any] = Depends(require_permission("governor.view")),
 ):
     """Tek bir governor case detayı."""
     from libs.db.repositories.governor_repository import GovernorCaseRepo
@@ -372,7 +375,7 @@ async def get_governor_case(
 
 @router.post("/scan")
 async def trigger_governor_scan(
-    identity: Dict[str, Any] = Depends(require_permission("governor.scan")),
+    identity: dict[str, Any] = Depends(require_permission("governor.scan")),
 ):
     """Elle tetiklenen governor taraması."""
     from services.governance.approval_governor import approval_governor
@@ -383,11 +386,11 @@ async def trigger_governor_scan(
 @router.post("/cases/{case_id}/execute")
 async def execute_governor_case(
     case_id: str,
-    identity: Dict[str, Any] = Depends(require_permission("governor.execute")),
+    identity: dict[str, Any] = Depends(require_permission("governor.execute")),
 ):
     """LOW/MEDIUM risk case'lerini uygular."""
     from libs.db.repositories.governor_repository import GovernorCaseRepo
-    from services.governance.approval_governor import approval_governor, GovernorCase
+    from services.governance.approval_governor import GovernorCase, approval_governor
 
     async with AsyncSessionLocal() as db:
         record = await GovernorCaseRepo.get_case(db, case_id)
@@ -422,12 +425,12 @@ async def execute_governor_case(
 async def override_governor_case(
     case_id: str,
     body: GovernorOverrideIn,
-    identity: Dict[str, Any] = Depends(require_permission("governor.override")),
+    identity: dict[str, Any] = Depends(require_permission("governor.override")),
 ):
     """Operatör manuel karar girer."""
-    from libs.db.repositories.governor_repository import GovernorCaseRepo, GovernorActionRepo
-    from services.governance.lineage_service import LineageService
+    from libs.db.repositories.governor_repository import GovernorActionRepo, GovernorCaseRepo
     from services.governance.approval_governor_execution_policy import execution_policy
+    from services.governance.lineage_service import LineageService
 
     if len((body.reason or "").strip()) < 20:
         raise HTTPException(status_code=400, detail="INVALID_JUSTIFICATION: Override işlemi için en az 20 karakterlik gerekçe zorunludur.")
@@ -490,16 +493,17 @@ async def override_governor_case(
 @router.post("/cases/{case_id}/restore")
 async def restore_governor_case(
     case_id: str,
-    identity: Dict[str, Any] = Depends(require_permission("governor.override")),
+    identity: dict[str, Any] = Depends(require_permission("governor.override")),
 ):
     """Arşivlenmiş bir case'i geri alır."""
-    from libs.db.repositories.governor_repository import GovernorCaseRepo, GovernorActionRepo
-    from libs.db.repositories.repository import ProjectRepository
-    from services.governance.approval_governor_execution_policy import execution_policy
     from sqlalchemy import select
 
+    from libs.db.repositories.governor_repository import GovernorActionRepo, GovernorCaseRepo
+    from libs.db.repositories.repository import ProjectRepository
+    from services.governance.approval_governor_execution_policy import execution_policy
+
     operator_role = identity.get("role", "HUMAN_OPERATOR")
-    
+
     async with AsyncSessionLocal() as db:
         record = await GovernorCaseRepo.get_case(db, case_id)
         if not record:
@@ -521,9 +525,9 @@ async def restore_governor_case(
         archived_at_str = action.result_payload.get("archived_at")
         if not archived_at_str:
             raise HTTPException(status_code=400, detail="Arşiv tarihi bulunamadı.")
-            
+
         archived_at = datetime.fromisoformat(archived_at_str)
-        
+
         case_mock = type('obj', (object,), {
             'has_safety_lock': record.has_safety_lock
         })
@@ -533,7 +537,7 @@ async def restore_governor_case(
 
         prev_status = action.result_payload["previous_status"]
         await ProjectRepository.update_fields(db, record.project_id, status=prev_status)
-        
+
         await GovernorActionRepo.save_action(
             db,
             case_id=case_id,
@@ -548,12 +552,12 @@ async def restore_governor_case(
     return {"status": "restored", "new_project_status": prev_status}
 
 
-@router.get("/escalations", response_model=List[GovernorEscalationOut])
+@router.get("/escalations", response_model=list[GovernorEscalationOut])
 async def list_escalations(
     response: Response,
     _start: int = Query(0, alias="_start"),
     _end: int = Query(50, alias="_end"),
-    identity: Dict[str, Any] = Depends(require_permission("governor.view")),
+    identity: dict[str, Any] = Depends(require_permission("governor.view")),
 ):
     """Açık ve değerlendirme aşamasındaki eskalasyonları listeler."""
     from libs.db.repositories.governor_repository import GovernorEscalationRepo
@@ -581,7 +585,7 @@ async def list_escalations(
 @router.post("/escalations/{escalation_id}/ack")
 async def ack_escalation(
     escalation_id: str,
-    identity: Dict[str, Any] = Depends(require_permission("governor.override")),
+    identity: dict[str, Any] = Depends(require_permission("governor.override")),
 ):
     from libs.db.repositories.governor_repository import GovernorEscalationRepo
     async with AsyncSessionLocal() as db:
@@ -594,7 +598,7 @@ async def ack_escalation(
 async def resolve_escalation(
     escalation_id: str,
     body: EscalationResolveIn,
-    identity: Dict[str, Any] = Depends(require_permission("governor.override")),
+    identity: dict[str, Any] = Depends(require_permission("governor.override")),
 ):
     from libs.db.repositories.governor_repository import GovernorEscalationRepo
     async with AsyncSessionLocal() as db:
@@ -605,12 +609,13 @@ async def resolve_escalation(
             resolved_by=identity.get("name", "unknown"),
             final_action=body.final_action
         )
-        
+
         # Outcome kaydet
-        from services.governance.approval_governor import ApprovalGovernor
-        from libs.db.models.governance_models import GovernorEscalationRecord
         from sqlalchemy import select
-        
+
+        from libs.db.models.governance_models import GovernorEscalationRecord
+        from services.governance.approval_governor import ApprovalGovernor
+
         governor = ApprovalGovernor()
         # Find the case_id first
         esc = await db.execute(select(GovernorEscalationRecord).where(GovernorEscalationRecord.id == uuid.UUID(escalation_id)))
@@ -625,7 +630,7 @@ async def resolve_escalation(
 @router.post("/escalations/{escalation_id}/cancel")
 async def cancel_escalation(
     escalation_id: str,
-    identity: Dict[str, Any] = Depends(require_permission("governor.override")),
+    identity: dict[str, Any] = Depends(require_permission("governor.override")),
 ):
     from libs.db.repositories.governor_repository import GovernorEscalationRepo
     async with AsyncSessionLocal() as db:
@@ -637,17 +642,18 @@ async def cancel_escalation(
     return {"status": "cancelled"}
 
 
-@router.get("/outcomes", response_model=List[GovernorOutcomeOut])
+@router.get("/outcomes", response_model=list[GovernorOutcomeOut])
 async def list_outcomes(
     response: Response,
     _start: int = Query(0, alias="_start"),
     _end: int = Query(50, alias="_end"),
-    identity: Dict[str, Any] = Depends(require_permission("governor.view")),
+    identity: dict[str, Any] = Depends(require_permission("governor.view")),
 ):
-    from libs.db.repositories.governor_outcome_repository import GovernorOutcomeRepo
+    from sqlalchemy import func, select
+
     from libs.db.models.governance_models import GovernorOutcomeRecord
-    from sqlalchemy import select, func
-    
+    from libs.db.repositories.governor_outcome_repository import GovernorOutcomeRepo
+
     async with AsyncSessionLocal() as db:
         items = await GovernorOutcomeRepo.list_recent(db, limit=_end - _start, offset=_start)
         # Total count needs another query or count
@@ -655,7 +661,7 @@ async def list_outcomes(
 
     response.headers["x-total-count"] = str(total)
     response.headers["Access-Control-Expose-Headers"] = "x-total-count"
-    
+
     return [
         GovernorOutcomeOut(
             id=str(o.id),
@@ -675,15 +681,15 @@ async def list_outcomes(
     ]
 
 
-@router.get("/calibrations", response_model=List[GovernorCalibrationOut])
+@router.get("/calibrations", response_model=list[GovernorCalibrationOut])
 async def list_calibrations(
     limit: int = Query(50),
-    identity: Dict[str, Any] = Depends(require_permission("governor.view")),
+    identity: dict[str, Any] = Depends(require_permission("governor.view")),
 ):
     from libs.db.repositories.governor_calibration_repository import GovernorCalibrationRepo
     async with AsyncSessionLocal() as db:
         items = await GovernorCalibrationRepo.list_recent(db, limit=limit)
-    
+
     return [
         GovernorCalibrationOut(
             id=str(c.id),
@@ -706,7 +712,7 @@ async def list_calibrations(
 @router.post("/calibrations/propose")
 async def propose_calibrations(
     window_days: int = Query(14),
-    identity: Dict[str, Any] = Depends(require_permission("governor.scan")),
+    identity: dict[str, Any] = Depends(require_permission("governor.scan")),
 ):
     """Calibriton engine'i tetikler ve yeni öneriler oluşturur."""
     from services.governance.approval_governor_calibration import ApprovalGovernorCalibration
@@ -714,24 +720,24 @@ async def propose_calibrations(
         engine = ApprovalGovernorCalibration(db)
         proposals = await engine.generate_calibration_proposals(window_days=window_days)
         await db.commit()
-    
+
     return {"status": "ok", "proposals_count": len(proposals), "ids": [str(p) for p in proposals]}
 
 
 @router.post("/calibrations/{cal_id}/approve")
 async def approve_calibration(
     cal_id: str,
-    identity: Dict[str, Any] = Depends(require_permission("governor.override")),
+    identity: dict[str, Any] = Depends(require_permission("governor.override")),
 ):
     from libs.db.repositories.governor_calibration_repository import GovernorCalibrationRepo
     operator_name = identity.get("name", "unknown")
-    
+
     async with AsyncSessionLocal() as db:
         success = await GovernorCalibrationRepo.apply_calibration(db, uuid.UUID(cal_id), operator_name)
         if not success:
             raise HTTPException(status_code=400, detail="Calibration not found or not in PROPOSED status.")
         await db.commit()
-        
+
     return {"status": "applied"}
 
 
@@ -739,17 +745,17 @@ async def approve_calibration(
 async def reject_calibration(
     cal_id: str,
     body: CalibrationActionIn,
-    identity: Dict[str, Any] = Depends(require_permission("governor.override")),
+    identity: dict[str, Any] = Depends(require_permission("governor.override")),
 ):
     from libs.db.repositories.governor_calibration_repository import GovernorCalibrationRepo
     operator_name = identity.get("name", "unknown")
-    
+
     async with AsyncSessionLocal() as db:
         success = await GovernorCalibrationRepo.reject_calibration(db, uuid.UUID(cal_id), operator_name, body.reason)
         if not success:
             raise HTTPException(status_code=400, detail="Calibration not found or not in PROPOSED status.")
         await db.commit()
-        
+
     return {"status": "rejected"}
 
 
@@ -757,29 +763,29 @@ async def reject_calibration(
 async def rollback_calibration(
     cal_id: str,
     body: CalibrationActionIn,
-    identity: Dict[str, Any] = Depends(require_permission("governor.override")),
+    identity: dict[str, Any] = Depends(require_permission("governor.override")),
 ):
     from libs.db.repositories.governor_calibration_repository import GovernorCalibrationRepo
     operator_name = identity.get("name", "unknown")
-    
+
     async with AsyncSessionLocal() as db:
         success = await GovernorCalibrationRepo.rollback_calibration(db, uuid.UUID(cal_id), operator_name, body.reason)
         if not success:
             raise HTTPException(status_code=400, detail="Calibration not found or not in APPLIED status.")
         await db.commit()
-        
+
     return {"status": "rolled_back"}
 
 
 @router.get("/scorecard", response_model=GovernorScorecardOut)
 async def get_scorecard(
     window_days: int = Query(7),
-    identity: Dict[str, Any] = Depends(require_permission("governor.view")),
+    identity: dict[str, Any] = Depends(require_permission("governor.view")),
 ):
     from libs.db.repositories.governor_outcome_repository import GovernorOutcomeRepo
     async with AsyncSessionLocal() as db:
         metrics = await GovernorOutcomeRepo.aggregate_metrics(db, window_days=window_days)
-    
+
     return GovernorScorecardOut(**metrics)
 
 
@@ -788,7 +794,7 @@ async def get_scorecard(
 @router.post("/meta/scan/{project_id}")
 async def meta_scan_project(
     project_id: str,
-    identity: Dict[str, Any] = Depends(require_permission("governor.scan")),
+    identity: dict[str, Any] = Depends(require_permission("governor.scan")),
 ):
     """Federated Governor taramasını tek bir proje için tetikler."""
     from services.governance.meta_governor import MetaGovernor
@@ -797,11 +803,11 @@ async def meta_scan_project(
     return result
 
 
-@router.get("/meta/decisions", response_model=List[MetaGovernorDecisionOut])
+@router.get("/meta/decisions", response_model=list[MetaGovernorDecisionOut])
 async def list_meta_decisions(
-    project_id: Optional[str] = None,
+    project_id: str | None = None,
     limit: int = Query(20),
-    identity: Dict[str, Any] = Depends(require_permission("governor.view")),
+    identity: dict[str, Any] = Depends(require_permission("governor.view")),
 ):
     """Federated meta kararları listeler."""
     from libs.db.repositories.meta_governor_repository import MetaGovernorRepo
@@ -809,7 +815,7 @@ async def list_meta_decisions(
         items = await MetaGovernorRepo.list_meta_decisions(
             db, project_id=uuid.UUID(project_id) if project_id else None, limit=limit
         )
-    
+
     return [
         MetaGovernorDecisionOut(
             id=str(r.id),
@@ -824,11 +830,11 @@ async def list_meta_decisions(
     ]
 
 
-@router.get("/meta/conflicts", response_model=List[GovernorConflictOut])
+@router.get("/meta/conflicts", response_model=list[GovernorConflictOut])
 async def list_governor_conflicts(
-    project_id: Optional[str] = None,
+    project_id: str | None = None,
     status: str = Query("open"),
-    identity: Dict[str, Any] = Depends(require_permission("governor.view")),
+    identity: dict[str, Any] = Depends(require_permission("governor.view")),
 ):
     """Domain governor'lar arasındaki çakışmaları listeler."""
     from libs.db.repositories.meta_governor_repository import GovernorConflictRepo
@@ -836,7 +842,7 @@ async def list_governor_conflicts(
         items = await GovernorConflictRepo.list_conflicts(
             db, project_id=uuid.UUID(project_id) if project_id else None, status=status
         )
-    
+
     return [
         GovernorConflictOut(
             id=str(r.id),
@@ -857,7 +863,7 @@ async def list_governor_conflicts(
 @router.post("/meta/conflicts/{conflict_id}/resolve")
 async def resolve_governor_conflict(
     conflict_id: str,
-    identity: Dict[str, Any] = Depends(require_permission("governor.override")),
+    identity: dict[str, Any] = Depends(require_permission("governor.override")),
 ):
     """Bir çakışmayı manuel olarak çözüldü işaretler."""
     from libs.db.repositories.meta_governor_repository import GovernorConflictRepo
@@ -871,18 +877,18 @@ async def resolve_governor_conflict(
 
 # ── Resilience & Chaos Endpoints ──────────────────────────────
 
-@router.get("/resilience/status", response_model=List[GovernorRuntimeOut])
+@router.get("/resilience/status", response_model=list[GovernorRuntimeOut])
 async def get_resilience_status(
-    identity: Dict[str, Any] = Depends(require_permission("governor.view")),
+    identity: dict[str, Any] = Depends(require_permission("governor.view")),
 ):
     """Tüm domain'lerin çalışma (resilience) durumunu listeler."""
     from services.governance.governor_resilience_manager import GovernorResilienceManager
     async with AsyncSessionLocal() as db:
         status_list = await GovernorResilienceManager.get_all_runtime_status(db)
         # We need to fetch real records for updated_at or refine the manager method
-        from libs.db.repositories.governor_resilience_repository import GovernorResilienceRepo
         from libs.db.models.governance_models import GovernorDomain
-        
+        from libs.db.repositories.governor_resilience_repository import GovernorResilienceRepo
+
         results = []
         for s in status_list:
             record = await GovernorResilienceRepo.get_runtime_status(db, GovernorDomain(s["domain"]))
@@ -898,24 +904,22 @@ async def get_resilience_status(
         return results
 
 
-@router.post("/resilience/drills", response_model=Dict[str, Any])
+@router.post("/resilience/drills", response_model=dict[str, Any])
 async def start_chaos_drill(
     body: GovernorDrillIn,
-    identity: Dict[str, Any] = Depends(require_permission("governor.override")),
+    identity: dict[str, Any] = Depends(require_permission("governor.override")),
 ):
     """Yeni bir kaos tatbikatı (drill) başlatır."""
-    from services.governance.governor_chaos_lab import GovernorChaosLab
     from libs.db.models.governance_models import (
-        GovernorAlertStatus, 
-        GovernorAlertType, 
+        GovernorDomain,
         GovernorDrillType,
-        GovernorDomain
     )
-    
+    from services.governance.governor_chaos_lab import GovernorChaosLab
+
     async with AsyncSessionLocal() as db:
         drill_type = GovernorDrillType(body.drill_type)
         target = GovernorDomain(body.target_domain) if body.target_domain else None
-        
+
         result = await GovernorChaosLab.run_drill(
             db, drill_type, target, created_by=identity.get("name", "unknown")
         )
@@ -923,18 +927,19 @@ async def start_chaos_drill(
         return result
 
 
-@router.get("/resilience/drills", response_model=List[GovernorDrillOut])
+@router.get("/resilience/drills", response_model=list[GovernorDrillOut])
 async def list_chaos_drills(
     limit: int = Query(20),
-    identity: Dict[str, Any] = Depends(require_permission("governor.view")),
+    identity: dict[str, Any] = Depends(require_permission("governor.view")),
 ):
     """Geçmiş ve aktif tatbikatları listeler."""
-    from sqlalchemy import select, desc
+    from sqlalchemy import desc, select
+
     from libs.db.models.governance_models import GovernorDrillRecord
     async with AsyncSessionLocal() as db:
         res = await db.execute(select(GovernorDrillRecord).order_by(desc(GovernorDrillRecord.created_at)).limit(limit))
         items = res.scalars().all()
-        
+
     return [
         GovernorDrillOut(
             id=str(r.id),
@@ -954,8 +959,8 @@ async def list_chaos_drills(
 class ProofEventOut(BaseModel):
     id: str
     event_type: str
-    domain: Optional[str]
-    entity_id: Optional[str]
+    domain: str | None
+    entity_id: str | None
     event_hash: str
     chain_index: int
     created_at: datetime
@@ -969,13 +974,14 @@ class ProofSnapshotOut(BaseModel):
     seal_status: str
     created_at: datetime
 
-@router.get("/proof/events", response_model=List[ProofEventOut])
+@router.get("/proof/events", response_model=list[ProofEventOut])
 async def list_proof_events(
     limit: int = Query(50),
-    identity: Dict[str, Any] = Depends(require_permission("governance.proof.view")),
+    identity: dict[str, Any] = Depends(require_permission("governance.proof.view")),
 ):
+    from sqlalchemy import desc, select
+
     from libs.db.models.governance_models import GovernanceProofEventRecord
-    from sqlalchemy import select, desc
     async with AsyncSessionLocal() as db:
         res = await db.execute(select(GovernanceProofEventRecord).order_by(desc(GovernanceProofEventRecord.chain_index)).limit(limit))
         items = res.scalars().all()
@@ -991,17 +997,19 @@ async def list_proof_events(
         ) for r in items
     ]
 
-@router.get("/proof/snapshots", response_model=List[ProofSnapshotOut])
+@router.get("/proof/snapshots", response_model=list[ProofSnapshotOut])
 async def list_proof_snapshots(
-    identity: Dict[str, Any] = Depends(require_permission("governance.proof.view")),
+    identity: dict[str, Any] = Depends(require_permission("governance.proof.view")),
 ):
     import hashlib
+
+    from sqlalchemy import desc, select
+
     from libs.db.models.governance_models import (
         GovernanceProofEventRecord,
         GovernanceProofSnapshotRecord,
         ProofSealStatus,
     )
-    from sqlalchemy import select, desc
     async with AsyncSessionLocal() as db:
         res = await db.execute(select(GovernanceProofSnapshotRecord).order_by(desc(GovernanceProofSnapshotRecord.created_at)))
         items = res.scalars().all()
@@ -1014,7 +1022,7 @@ async def list_proof_snapshots(
                 combined_hashes = "".join(event.event_hash for event in proof_events)
                 merkle_root = hashlib.sha256(combined_hashes.encode("utf-8")).hexdigest()
                 snapshot_hash = hashlib.sha256(
-                    f"derived-proof|{merkle_root}|{len(proof_events)}".encode("utf-8")
+                    f"derived-proof|{merkle_root}|{len(proof_events)}".encode()
                 ).hexdigest()
                 return [
                     ProofSnapshotOut(
@@ -1042,32 +1050,35 @@ async def list_proof_snapshots(
 @router.post("/proof/snapshots/seal")
 async def seal_manual_snapshot(
     name: str = Query(...),
-    identity: Dict[str, Any] = Depends(require_permission("governance.proof.seal")),
+    identity: dict[str, Any] = Depends(require_permission("governance.proof.seal")),
 ):
-    from services.governance.proof_fabric import ProofFabric
     from libs.db.session import SessionLocal
+    from services.governance.proof_fabric import ProofFabric
     with SessionLocal() as db:
         fabric = ProofFabric(db)
         # Find start idx
-        from libs.db.models.governance_models import GovernanceProofSnapshotRecord, GovernanceProofEventRecord
-        from sqlalchemy import select, func
+
+        from libs.db.models.governance_models import (
+            GovernanceProofEventRecord,
+            GovernanceProofSnapshotRecord,
+        )
         last_snap = db.query(GovernanceProofSnapshotRecord).order_by(GovernanceProofSnapshotRecord.end_chain_index.desc()).first()
         start_idx = (last_snap.end_chain_index + 1) if last_snap else 0
-        
+
         last_event = db.query(GovernanceProofEventRecord).order_by(GovernanceProofEventRecord.chain_index.desc()).first()
         if not last_event:
             raise HTTPException(status_code=400, detail="No events to seal")
-            
+
         snap = fabric.seal_snapshot(name, start_idx, last_event.chain_index, actor=identity.get("name"))
         return {"status": "sealed", "snapshot_id": str(snap.id)}
 
 @router.get("/proof/verify/snapshot/{snapshot_id}")
 async def verify_snapshot_api(
     snapshot_id: str,
-    identity: Dict[str, Any] = Depends(require_permission("governance.proof.verify")),
+    identity: dict[str, Any] = Depends(require_permission("governance.proof.verify")),
 ):
-    from services.governance.proof_verifier import ProofVerifier
     from libs.db.session import SessionLocal
+    from services.governance.proof_verifier import ProofVerifier
     with SessionLocal() as db:
         verifier = ProofVerifier(db)
         result = verifier.verify_snapshot(uuid.UUID(snapshot_id))
@@ -1076,26 +1087,26 @@ async def verify_snapshot_api(
 @router.post("/proof/export/{snapshot_id}")
 async def export_audit_bundle_api(
     snapshot_id: str,
-    identity: Dict[str, Any] = Depends(require_permission("governance.proof.export")),
+    identity: dict[str, Any] = Depends(require_permission("governance.proof.export")),
 ):
-    from services.governance.proof_bundle_exporter import AuditBundleExporter
     from libs.db.session import SessionLocal
+    from services.governance.proof_bundle_exporter import AuditBundleExporter
     with SessionLocal() as db:
         exporter = AuditBundleExporter(db)
         path = exporter.export_bundle(snapshot_id, "exports/audit")
         return {"status": "exported", "path": path}
 # ── Observability Endpoints ───────────────────────────────────
 
-@router.get("/alerts", response_model=List[GovernorAlertOut])
+@router.get("/alerts", response_model=list[GovernorAlertOut])
 async def list_governor_alerts(
     limit: int = Query(50),
-    identity: Dict[str, Any] = Depends(require_permission("governor.view")),
+    identity: dict[str, Any] = Depends(require_permission("governor.view")),
 ):
     """Açık yönetişim uyarılarını listeler."""
     from libs.db.repositories.governor_observability_repository import GovernorAlertRepo
     async with AsyncSessionLocal() as db:
         items = await GovernorAlertRepo.list_open_alerts(db, limit=limit)
-    
+
     return [
         GovernorAlertOut(
             id=str(r.id),
@@ -1116,7 +1127,7 @@ async def list_governor_alerts(
 @router.post("/alerts/{alert_id}/ack")
 async def ack_governor_alert(
     alert_id: str,
-    identity: Dict[str, Any] = Depends(require_permission("governor.override")),
+    identity: dict[str, Any] = Depends(require_permission("governor.override")),
 ):
     """Bir uyarıyı onaylar (Acknowledge)."""
     from libs.db.repositories.governor_observability_repository import GovernorAlertRepo
@@ -1132,7 +1143,7 @@ async def ack_governor_alert(
 @router.post("/alerts/{alert_id}/resolve")
 async def resolve_governor_alert(
     alert_id: str,
-    identity: Dict[str, Any] = Depends(require_permission("governor.override")),
+    identity: dict[str, Any] = Depends(require_permission("governor.override")),
 ):
     """Bir uyarıyı çözüldü olarak işaretler."""
     from libs.db.repositories.governor_observability_repository import GovernorAlertRepo
@@ -1145,16 +1156,16 @@ async def resolve_governor_alert(
         await db.commit()
     return {"status": "resolved"}
 
-@router.get("/metrics", response_model=List[GovernorMetricOut])
+@router.get("/metrics", response_model=list[GovernorMetricOut])
 async def list_governor_metrics(
     limit: int = Query(20),
-    identity: Dict[str, Any] = Depends(require_permission("governor.view")),
+    identity: dict[str, Any] = Depends(require_permission("governor.view")),
 ):
     """Yönetişim metriklerini listeler."""
     from libs.db.repositories.governor_observability_repository import GovernorMetricAggregateRepo
     async with AsyncSessionLocal() as db:
         items = await GovernorMetricAggregateRepo.get_latest_metrics(db, limit=limit)
-    
+
     return [
         GovernorMetricOut(
             id=str(r.id),
@@ -1167,16 +1178,16 @@ async def list_governor_metrics(
         ) for r in items
     ]
 
-@router.get("/drifts", response_model=List[GovernorDriftOut])
+@router.get("/drifts", response_model=list[GovernorDriftOut])
 async def list_governor_drifts(
     limit: int = Query(50),
-    identity: Dict[str, Any] = Depends(require_permission("governor.view")),
+    identity: dict[str, Any] = Depends(require_permission("governor.view")),
 ):
     """Yönetişim sapmalarını (drift) listeler."""
     from libs.db.repositories.governor_observability_repository import GovernorDriftRepo
     async with AsyncSessionLocal() as db:
         items = await GovernorDriftRepo.list_recent_drifts(db, limit=limit)
-    
+
     return [
         GovernorDriftOut(
             id=str(r.id),

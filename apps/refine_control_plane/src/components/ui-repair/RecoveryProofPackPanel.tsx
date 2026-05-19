@@ -10,6 +10,7 @@ import {
     Badge, Button
 } from "./CommonUI";
 import { useNotification } from "@refinedev/core";
+import { safeFetchJson } from "@/lib/api";
 
 export const RecoveryProofPackPanel: React.FC = () => {
     const t = useTranslations("repair_lab");
@@ -18,8 +19,12 @@ export const RecoveryProofPackPanel: React.FC = () => {
     const [loading, setLoading] = useState(false);
 
     const fetchPacks = async () => {
-        const res = await fetch("/api/v1/ui-repair/proof-pack");
-        if (res.ok) setPacks(await res.json());
+        try {
+            const data = await safeFetchJson<any[]>("/api/v1/ui-repair/proof-pack");
+            setPacks(data);
+        } catch (err) {
+            console.error("Failed to fetch proof packs", err);
+        }
     };
 
     useEffect(() => {
@@ -29,17 +34,17 @@ export const RecoveryProofPackPanel: React.FC = () => {
     const generatePack = async () => {
         setLoading(true);
         try {
-            const res = await fetch("/api/v1/ui-repair/proof-pack/generate?name=Weekly Resilience Proof", {
+            await safeFetchJson("/api/v1/ui-repair/proof-pack/generate?name=Weekly Resilience Proof", {
                 method: "POST"
             });
-            if (res.ok) {
-                open?.({
-                    type: "success",
-                    message: "Proof pack generated.",
-                    description: "Resilience evidence has been consolidated and signed."
-                });
-                fetchPacks();
-            }
+            open?.({
+                type: "success",
+                message: "Proof pack generated.",
+                description: "Resilience evidence has been consolidated and signed."
+            });
+            fetchPacks();
+        } catch (err) {
+            console.error("Failed to generate proof pack", err);
         } finally {
             setLoading(false);
         }

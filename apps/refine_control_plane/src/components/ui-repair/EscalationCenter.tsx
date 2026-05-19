@@ -10,6 +10,7 @@ import {
     Badge, Button, Table
 } from "./CommonUI";
 import { useNotification } from "@refinedev/core";
+import { safeFetchJson } from "@/lib/api";
 
 export const EscalationCenter: React.FC = () => {
     const t = useTranslations("repair_lab");
@@ -17,8 +18,12 @@ export const EscalationCenter: React.FC = () => {
     const [escalations, setEscalations] = useState<any[]>([]);
 
     const fetchData = async () => {
-        const res = await fetch("/api/v1/ui-repair/escalations");
-        if (res.ok) setEscalations(await res.json());
+        try {
+            const data = await safeFetchJson<any[]>("/api/v1/ui-repair/escalations");
+            setEscalations(data);
+        } catch (error) {
+            console.error("Failed to fetch escalations", error);
+        }
     };
 
     useEffect(() => {
@@ -28,22 +33,26 @@ export const EscalationCenter: React.FC = () => {
     }, []);
 
     const ackEscalation = async (id: string) => {
-        const res = await fetch(`/api/v1/ui-repair/escalations/${id}/ack?operator_id=EgemenYAZ`, {
-            method: "POST"
-        });
-        if (res.ok) {
+        try {
+            await safeFetchJson(`/api/v1/ui-repair/escalations/${id}/ack?operator_id=EgemenYAZ`, {
+                method: "POST"
+            });
             open?.({ type: "success", message: "Escalation acknowledged." });
             fetchData();
+        } catch (error) {
+            console.error("Ack failed", error);
         }
     };
 
     const resolveEscalation = async (id: string) => {
-        const res = await fetch(`/api/v1/ui-repair/escalations/${id}/resolve?operator_id=EgemenYAZ`, {
-            method: "POST"
-        });
-        if (res.ok) {
+        try {
+            await safeFetchJson(`/api/v1/ui-repair/escalations/${id}/resolve?operator_id=EgemenYAZ`, {
+                method: "POST"
+            });
             open?.({ type: "success", message: "Escalation marked as resolved." });
             fetchData();
+        } catch (error) {
+            console.error("Resolve failed", error);
         }
     };
 

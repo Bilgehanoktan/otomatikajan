@@ -35,7 +35,8 @@ def register_routers(app: FastAPI):
     print("[DEBUG] Loading fleet_orchestra_router...")
     from services.workflow_api.fleet_router import router as fleet_orchestra_router
     print("[DEBUG] Loading ceo_router...")
-    from services.orchestration.ceo.router import router as ceo_router
+    from services.orchestration.ceo.router import router as ceo_engine_router
+    from services.workflow_api.ceo_router import router as ceo_bridge_router
     from services.ui_repair.router import router as ui_repair_router
     
     api_v1 = APIRouter(prefix="/api/v1")
@@ -67,6 +68,12 @@ def register_routers(app: FastAPI):
     # 7. Repair Lab & Self-Tuning
     api_v1.include_router(repair_lab_router, prefix="/repair-lab")
 
+    @api_v1.get("/improvements", tags=["Compatibility"])
+    async def list_improvements_alias(limit: int = 20):
+        from services.workflow_api.repair_lab_router import list_improvements
+
+        return await list_improvements(limit=limit)
+
     # 8. Phase 31: Autonomous Learning & Governance Harness
     print("[DEBUG] Loading learning_router...")
     from services.governance.learning_api import router as learning_router
@@ -79,7 +86,9 @@ def register_routers(app: FastAPI):
     
     api_v1.include_router(learning_router)
     api_v1.include_router(governor_router, prefix="/governance/governor")
-    api_v1.include_router(ceo_router, prefix="/ceo")
+    api_v1.include_router(governor_router, prefix="/governance/inbox/governor", tags=["Compatibility"])
+    api_v1.include_router(ceo_engine_router, prefix="/ceo")
+    api_v1.include_router(ceo_bridge_router, prefix="/ceo")
     api_v1.include_router(harness_router, prefix="/harness", tags=["Harness API"])
     api_v1.include_router(mcp_router, prefix="/mcp")
     api_v1.include_router(ui_repair_router, prefix="/ui-repair")

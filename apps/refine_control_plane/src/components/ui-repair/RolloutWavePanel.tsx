@@ -4,12 +4,13 @@ import React, { useState, useEffect } from 'react';
 import { Table, Tag, Button, Space, message, Timeline, Typography, Card, Progress } from 'antd';
 import { RocketOutlined, CheckCircleOutlined, SyncOutlined, PauseCircleOutlined } from '@ant-design/icons';
 import { useTranslations } from 'next-intl';
+import { safeFetchJson } from '@/lib/api';
 
 const { Text } = Typography;
 
 const RolloutWavePanel: React.FC = () => {
   const t = useTranslations('repair_lab.enterprise_rollout.waves');
-  const [waves, setWaves] = useState([]);
+  const [waves, setWaves] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -19,8 +20,7 @@ const RolloutWavePanel: React.FC = () => {
   const fetchWaves = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/ui-repair/rollout-waves');
-      const data = await res.json();
+      const data = await safeFetchJson('/api/v1/ui-repair/rollout-waves');
       setWaves(data);
     } catch (err) {
       message.error('Failed to fetch rollout waves');
@@ -31,11 +31,9 @@ const RolloutWavePanel: React.FC = () => {
 
   const startWave = async (id: string) => {
     try {
-      const res = await fetch(`/api/v1/ui-repair/rollout-waves/${id}/start`, { method: 'POST' });
-      if (res.ok) {
-        message.success('Rollout wave started');
-        fetchWaves();
-      }
+      await safeFetchJson(`/api/v1/ui-repair/rollout-waves/${id}/start`, { method: 'POST' });
+      message.success('Rollout wave started');
+      fetchWaves();
     } catch (err) {
       message.error('Failed to start wave');
     }
@@ -43,11 +41,9 @@ const RolloutWavePanel: React.FC = () => {
 
   const completeWave = async (id: string) => {
     try {
-      const res = await fetch(`/api/v1/ui-repair/rollout-waves/${id}/complete`, { method: 'POST' });
-      if (res.ok) {
-        message.success('Rollout wave completed');
-        fetchWaves();
-      }
+      await safeFetchJson(`/api/v1/ui-repair/rollout-waves/${id}/complete`, { method: 'POST' });
+      message.success('Rollout wave completed');
+      fetchWaves();
     } catch (err) {
       message.error('Failed to complete wave');
     }
