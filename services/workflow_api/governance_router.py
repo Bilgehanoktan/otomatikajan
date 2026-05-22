@@ -287,7 +287,7 @@ async def get_systemic_summary():
     """Unified view of fingerprints and pending improvements for the Mission Control dashboard."""
     from sqlalchemy import select
 
-    from libs.db.models.governance_models import SystemImprovement
+    from libs.db.models.core_models import SystemImprovement
     from libs.db.models.learning_models import ErrorFingerprint
 
     async with AsyncSessionLocal() as db:
@@ -682,7 +682,7 @@ async def list_improvements(
 ):
     from sqlalchemy import func, select
 
-    from libs.db.models.governance_models import SystemImprovement
+    from libs.db.models.core_models import SystemImprovement
 
     async with AsyncSessionLocal() as db:
         count_q = select(func.count(SystemImprovement.id))
@@ -716,7 +716,7 @@ async def update_improvement(id: str, patch_data: ImprovementUpdate):
 
     from sqlalchemy import select
 
-    from libs.db.models.governance_models import SystemImprovement
+    from libs.db.models.core_models import SystemImprovement
 
     async with AsyncSessionLocal() as db:
         res = await db.execute(select(SystemImprovement).where(SystemImprovement.id == uid))

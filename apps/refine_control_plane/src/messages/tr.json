@@ -411,6 +411,25 @@
       "successReject": "Kalibrasyon önerisi başarıyla reddedildi.",
       "successRollback": "Kalibrasyon başarıyla geri alındı.",
       "successPropose": "Parametre taraması başarıyla tamamlandı. {count} adet kalibrasyon önerildi."
+    },
+    "suggestions": {
+      "title": "CEO Öneri ve Sistem Denetimi",
+      "subtitle": "Sözleşmelerin, güvenliğin, testlerin ve bileşenlerin otonom analizi",
+      "scanButton": "Denetim Taramasını Tetikle",
+      "scanning": "Çekirdek Taranıyor...",
+      "latestAudit": "Son Denetim Yürütmesi",
+      "noSuggestions": "Bulgu tespit edilmedi. Sistem optimum parametrelerle çalışıyor.",
+      "priority": "Öncelik",
+      "category": "Kategori",
+      "recommendedAction": "Önerilen Eylem",
+      "impact": "Etki",
+      "affectedFiles": "Etkilenen Dosyalar",
+      "finding": "Bulgu",
+      "critical": "Kritik",
+      "high": "Yüksek",
+      "medium": "Orta",
+      "low": "Düşük",
+      "info": "Bilgi"
     }
   },
   "evolution": {
@@ -1169,7 +1188,11 @@
     "source": "Kaynak",
     "type": "Tür",
     "untitledSequence": "İsimsiz Dizi",
-    "workflowHistory": "İş Akışı Geçmişi"
+    "workflowHistory": "İş Akışı Geçmişi",
+    "executiveSummary": "Yönetici Özeti",
+    "keyFindings": "Önemli Bulgular",
+    "risks": "Riskler",
+    "nextActions": "Sonraki Adımlar"
   },
   "workflows": {
     "active": "Aktif",
@@ -1194,5 +1217,8 @@
   },
   "verifiers": {
     "activeLayers": "Doğrulayıcı Katmanlarda Ara..."
+  },
+  "workflow": {
+    "create": "Yeni İş Akışı Oluştur"
   }
 }

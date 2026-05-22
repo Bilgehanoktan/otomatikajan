@@ -38,6 +38,7 @@ def register_routers(app: FastAPI):
     from services.orchestration.ceo.router import router as ceo_engine_router
     from services.workflow_api.ceo_router import router as ceo_bridge_router
     from services.ui_repair.router import router as ui_repair_router
+    from services.workflow_api.project_factory_router import router as project_factory_router
     
     api_v1 = APIRouter(prefix="/api/v1")
 
@@ -92,6 +93,7 @@ def register_routers(app: FastAPI):
     api_v1.include_router(harness_router, prefix="/harness", tags=["Harness API"])
     api_v1.include_router(mcp_router, prefix="/mcp")
     api_v1.include_router(ui_repair_router, prefix="/ui-repair")
+    api_v1.include_router(project_factory_router, prefix="/project-factory")
     
     # 8.1 Aliases for Refine Compatibility
     api_v1.include_router(governance_router, prefix="/axiology", tags=["Compatibility"]) # Alias for /axiology
@@ -100,3 +102,35 @@ def register_routers(app: FastAPI):
     # Register the unified API router
     app.include_router(api_v1)
     print("[DEBUG] All routers registered successfully.")
+
+
+class RouterRegistry:
+    """
+    Registry for UI and API routes.
+    """
+    @staticmethod
+    def get_all_routes():
+        # Returns the UI routes to be monitored
+        return [
+            {"path": "/"},
+            {"path": "/dashboard"},
+            {"path": "/project-factory"},
+            {"path": "/workflows"},
+            {"path": "/repair-lab"},
+            {"path": "/system-health"},
+            {"path": "/runtime-diagnostics"},
+            {"path": "/governance"},
+            {"path": "/audit"},
+            {"path": "/approvals"},
+            {"path": "/incidents"},
+            {"path": "/costs"},
+            {"path": "/learning"},
+            {"path": "/compliance"},
+            {"path": "/fleet"},
+            {"path": "/mesh"},
+            {"path": "/federation"},
+            {"path": "/evolution"}
+        ]
+
+router_registry = RouterRegistry()
+

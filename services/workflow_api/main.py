@@ -25,6 +25,7 @@ from services.workflow_api.repair_lab_router import router as repair_lab_router
 from services.workflow_api.router import router as workflow_router
 from services.orchestration.ceo.router import router as ceo_engine_router
 from services.workflow_api.ceo_router import router as ceo_bridge_router
+from services.workflow_api.project_factory_router import router as project_factory_router
 
 from contextlib import asynccontextmanager
 
@@ -79,6 +80,12 @@ async def lifespan(app: FastAPI):
 
     # Shutdown actions
     try:
+        await job_queue.stop()
+        print("Job Queue Worker loop stopped.")
+    except Exception as e:
+        print(f"Failed to stop Job Queue Workers: {e}")
+
+    try:
         import libs.db.session as db_session
         if db_session._engine is not None:
             await db_session._engine.dispose()
@@ -120,6 +127,7 @@ app.include_router(harness_router, prefix="/api/v1/harness")
 app.include_router(ui_repair_router, prefix="/api/v1/ui-repair")
 app.include_router(ceo_engine_router, prefix="/api/v1/ceo")
 app.include_router(ceo_bridge_router, prefix="/api/v1/ceo")
+app.include_router(project_factory_router, prefix="/api/v1/project-factory")
 
 @app.websocket("/ws/events")
 async def websocket_route(websocket: WebSocket):

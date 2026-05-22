@@ -411,6 +411,25 @@
       "successReject": "Calibration proposal rejected successfully.",
       "successRollback": "Calibration rolled back successfully.",
       "successPropose": "Parameter scan completed successfully. Proposed {count} calibrations."
+    },
+    "suggestions": {
+      "title": "CEO Suggestions & System Audit",
+      "subtitle": "Autonomous analysis of contracts, security, testing, and components",
+      "scanButton": "Trigger Audit Scan",
+      "scanning": "Scanning Core...",
+      "latestAudit": "Latest Audit Run",
+      "noSuggestions": "No findings detected. System is running at optimum parameters.",
+      "priority": "Priority",
+      "category": "Category",
+      "recommendedAction": "Recommended Action",
+      "impact": "Impact",
+      "affectedFiles": "Affected Files",
+      "finding": "Finding",
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low",
+      "info": "Info"
     }
   },
   "evolution": {
@@ -1169,7 +1188,11 @@
     "source": "Source",
     "type": "Type",
     "untitledSequence": "Untitled Sequence",
-    "workflowHistory": "Workflow History"
+    "workflowHistory": "Workflow History",
+    "executiveSummary": "Executive Summary",
+    "keyFindings": "Key Findings",
+    "risks": "Risks",
+    "nextActions": "Next Actions"
   },
   "workflows": {
     "active": "Active",
@@ -1194,5 +1217,8 @@
   },
   "verifiers": {
     "activeLayers": "Search Active Layers..."
+  },
+  "workflow": {
+    "create": "Create New Workflow"
   }
 }
