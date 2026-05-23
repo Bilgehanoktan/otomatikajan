@@ -524,15 +524,15 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
 
   const handleApproveScope = async () => {
     if (!operatorId.trim()) {
-      notification.warning({ message: "Validation Warning", description: "Operator ID is required." });
+      notification.warning({ message: "Doğrulama uyarısı", description: "Operator ID zorunludur." });
       return;
     }
     if (rationale.trim().length < 5) {
-      notification.warning({ message: "Validation Warning", description: "Rationale must be at least 5 characters long." });
+      notification.warning({ message: "Doğrulama uyarısı", description: "Gerekçe en az 5 karakter olmalıdır." });
       return;
     }
     if (!riskAcknowledged) {
-      notification.warning({ message: "Validation Warning", description: "You must acknowledge the structural boundary risk." });
+      notification.warning({ message: "Doğrulama uyarısı", description: "Yapısal sınır riskini onaylamanız gerekiyor." });
       return;
     }
 
@@ -573,15 +573,15 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
 
   const handleRequestRevision = async () => {
     if (!operatorId.trim()) {
-      notification.warning({ message: "Validation Warning", description: "Operator ID is required." });
+      notification.warning({ message: "Doğrulama uyarısı", description: "Operator ID zorunludur." });
       return;
     }
     if (rationale.trim().length < 5) {
-      notification.warning({ message: "Validation Warning", description: "Rationale must be at least 5 characters long." });
+      notification.warning({ message: "Doğrulama uyarısı", description: "Gerekçe en az 5 karakter olmalıdır." });
       return;
     }
     if (!revisionNotes.trim()) {
-      notification.warning({ message: "Validation Warning", description: "Revision notes are required." });
+      notification.warning({ message: "Doğrulama uyarısı", description: "Revizyon notları zorunludur." });
       return;
     }
 
@@ -621,11 +621,11 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
 
   const handleReject = async () => {
     if (!operatorId.trim()) {
-      notification.warning({ message: "Validation Warning", description: "Operator ID is required." });
+      notification.warning({ message: "Doğrulama uyarısı", description: "Operator ID zorunludur." });
       return;
     }
     if (rationale.trim().length < 5) {
-      notification.warning({ message: "Validation Warning", description: "Rationale must be at least 5 characters long." });
+      notification.warning({ message: "Doğrulama uyarısı", description: "Gerekçe en az 5 karakter olmalıdır." });
       return;
     }
 
@@ -645,7 +645,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
       });
 
       notification.success({
-        message: "Intake Rejected",
+        message: "Intake reddedildi",
         description: "The project intake has been rejected and the gate closed.",
       });
       setRationale("");
@@ -662,15 +662,15 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
 
   const handleStartImplementation = async () => {
     if (!operatorId.trim()) {
-      notification.warning({ message: "Validation Warning", description: "Operator ID is required." });
+      notification.warning({ message: "Doğrulama uyarısı", description: "Operator ID zorunludur." });
       return;
     }
     if (implRationale.trim().length < 5) {
-      notification.warning({ message: "Validation Warning", description: "Rationale must be at least 5 characters long." });
+      notification.warning({ message: "Doğrulama uyarısı", description: "Gerekçe en az 5 karakter olmalıdır." });
       return;
     }
     if (!implRiskAcknowledged) {
-      notification.warning({ message: "Validation Warning", description: "You must acknowledge the safety risk." });
+      notification.warning({ message: "Doğrulama uyarısı", description: "Güvenlik riskini onaylamanız gerekiyor." });
       return;
     }
 
@@ -760,15 +760,15 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
 
   const handleApproveDelivery = async () => {
     if (!gateOperatorId.trim()) {
-      notification.warning({ message: "Validation Warning", description: "Operator ID is required." });
+      notification.warning({ message: "Doğrulama uyarısı", description: "Operator ID zorunludur." });
       return;
     }
     if (gateRationale.trim().length < 5) {
-      notification.warning({ message: "Validation Warning", description: "Rationale must be at least 5 characters long." });
+      notification.warning({ message: "Doğrulama uyarısı", description: "Gerekçe en az 5 karakter olmalıdır." });
       return;
     }
     if (!gateRiskAcknowledged) {
-      notification.warning({ message: "Validation Warning", description: "You must acknowledge the delivery risk." });
+      notification.warning({ message: "Doğrulama uyarısı", description: "Teslimat riskini onaylamanız gerekiyor." });
       return;
     }
 
@@ -807,15 +807,15 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
 
   const handleRequestCandidateRevision = async () => {
     if (!gateOperatorId.trim()) {
-      notification.warning({ message: "Validation Warning", description: "Operator ID is required." });
+      notification.warning({ message: "Doğrulama uyarısı", description: "Operator ID zorunludur." });
       return;
     }
     if (gateRationale.trim().length < 5) {
-      notification.warning({ message: "Validation Warning", description: "Rationale must be at least 5 characters long." });
+      notification.warning({ message: "Doğrulama uyarısı", description: "Gerekçe en az 5 karakter olmalıdır." });
       return;
     }
     if (!gateRevisionNotes.trim()) {
-      notification.warning({ message: "Validation Warning", description: "Revision notes are required." });
+      notification.warning({ message: "Doğrulama uyarısı", description: "Revizyon notları zorunludur." });
       return;
     }
 
@@ -854,11 +854,11 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
 
   const handleRejectCandidate = async () => {
     if (!gateOperatorId.trim()) {
-      notification.warning({ message: "Validation Warning", description: "Operator ID is required." });
+      notification.warning({ message: "Doğrulama uyarısı", description: "Operator ID zorunludur." });
       return;
     }
     if (gateRationale.trim().length < 5) {
-      notification.warning({ message: "Validation Warning", description: "Rationale must be at least 5 characters long." });
+      notification.warning({ message: "Doğrulama uyarısı", description: "Gerekçe en az 5 karakter olmalıdır." });
       return;
     }
 
@@ -878,7 +878,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
       });
 
       notification.success({
-        message: "Candidate Rejected",
+        message: "Aday reddedildi",
         description: "Candidate permanently rejected.",
       });
       setGateRationale("");
@@ -895,15 +895,15 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
 
   const handleFinalApprove = async () => {
     if (!finalOperatorId.trim()) {
-      notification.warning({ message: "Validation Warning", description: "Operator ID is required." });
+      notification.warning({ message: "Doğrulama uyarısı", description: "Operator ID zorunludur." });
       return;
     }
     if (finalRationale.trim().length < 5) {
-      notification.warning({ message: "Validation Warning", description: "Rationale must be at least 5 characters long." });
+      notification.warning({ message: "Doğrulama uyarısı", description: "Gerekçe en az 5 karakter olmalıdır." });
       return;
     }
     if (!finalRiskAcknowledged) {
-      notification.warning({ message: "Validation Warning", description: "You must acknowledge the final delivery risk." });
+      notification.warning({ message: "Doğrulama uyarısı", description: "Final teslimat riskini onaylamanız gerekiyor." });
       return;
     }
 
@@ -942,15 +942,15 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
 
   const handleFinalRequestRevision = async () => {
     if (!finalOperatorId.trim()) {
-      notification.warning({ message: "Validation Warning", description: "Operator ID is required." });
+      notification.warning({ message: "Doğrulama uyarısı", description: "Operator ID zorunludur." });
       return;
     }
     if (finalRationale.trim().length < 5) {
-      notification.warning({ message: "Validation Warning", description: "Rationale must be at least 5 characters long." });
+      notification.warning({ message: "Doğrulama uyarısı", description: "Gerekçe en az 5 karakter olmalıdır." });
       return;
     }
     if (!finalRevisionNotes.trim()) {
-      notification.warning({ message: "Validation Warning", description: "Revision notes are required." });
+      notification.warning({ message: "Doğrulama uyarısı", description: "Revizyon notları zorunludur." });
       return;
     }
 
@@ -989,11 +989,11 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
 
   const handleFinalReject = async () => {
     if (!finalOperatorId.trim()) {
-      notification.warning({ message: "Validation Warning", description: "Operator ID is required." });
+      notification.warning({ message: "Doğrulama uyarısı", description: "Operator ID zorunludur." });
       return;
     }
     if (finalRationale.trim().length < 5) {
-      notification.warning({ message: "Validation Warning", description: "Rationale must be at least 5 characters long." });
+      notification.warning({ message: "Doğrulama uyarısı", description: "Gerekçe en az 5 karakter olmalıdır." });
       return;
     }
 
@@ -1013,15 +1013,15 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
       });
 
       notification.success({
-        message: "Project Rejected",
-        description: "Project permanently rejected at final gate.",
+        message: "Proje reddedildi",
+        description: "Proje final geçitte kalıcı olarak reddedildi.",
       });
       setFinalRationale("");
       await loadData();
     } catch (err: any) {
       notification.error({
-        message: "API Error",
-        description: err.message || "Failed to reject project.",
+        message: "API hatası",
+        description: err.message || "Proje reddedilemedi.",
       });
     } finally {
       setIsSubmitting(false);
@@ -1034,7 +1034,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
         <div className="text-center">
           <Cpu className="h-12 w-12 text-cyan-400 animate-spin mx-auto mb-4" />
           <Text className="text-gray-400 font-mono text-xs uppercase tracking-widest">
-            Loading Project Factory Context...
+            Project Factory bağlamı yükleniyor...
           </Text>
         </div>
       </div>
@@ -1045,13 +1045,13 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
     return (
       <div className="min-h-screen bg-[#060a12] p-8">
         <Alert
-          message="Error Loading Context"
-          description={`Project Factory ID '${projectId}' could not be located or has invalid artifacts.`}
+          message="Bağlam yüklenemedi"
+          description={`Project Factory ID '${projectId}' bulunamadı veya artifact dosyaları geçersiz.`}
           type="error"
           showIcon
           action={
             <Button size="small" type="primary" onClick={() => list("workflows")}>
-              Return to Dashboard
+              Dashboard'a dön
             </Button>
           }
         />
@@ -1114,7 +1114,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
             onClick={() => list("dashboard")}
             className="flex items-center gap-2 text-gray-500 hover:text-white transition-all text-xs font-mono uppercase mb-3 bg-transparent border-none cursor-pointer"
           >
-            <ArrowLeft size={14} /> Back to dashboard
+            <ArrowLeft size={14} /> Dashboard'a dön
           </button>
           <div className="flex items-center gap-4">
             <Cpu className="text-cyan-400 h-8 w-8" />
@@ -1132,7 +1132,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
         <div className="flex items-center gap-4">
           <div className="flex flex-col items-end">
             <span className="text-[9px] font-black uppercase leading-none tracking-widest text-gray-500">
-              Requirement Gate Status
+              Requirement Gate durumu
             </span>
             <div className="mt-2">{getGateBadge(requirement_gate.status)}</div>
           </div>
@@ -1161,7 +1161,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
             <div className="relative z-10">
               <div className="flex items-center gap-3 mb-6">
                 <div className="h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.6)]" />
-                <h2 className="text-xs font-black uppercase tracking-[0.3em] text-white">Project brief / Intake specs</h2>
+                <h2 className="text-xs font-black uppercase tracking-[0.3em] text-white">Proje özeti / Intake şartları</h2>
               </div>
 
               <Title level={3} className="text-white font-black tracking-tight mb-4">
@@ -1171,7 +1171,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
               <div className="space-y-6">
                 <div>
                   <Text className="text-xs font-black uppercase tracking-wider text-cyan-400 block mb-2">
-                    Problem Statement
+                    Problem tanımı
                   </Text>
                   <Paragraph className="text-gray-400 text-sm leading-relaxed bg-black/30 p-4 rounded-xl border border-white/5 font-mono">
                     {project_brief.problem_statement}
@@ -1180,7 +1180,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
 
                 <div>
                   <Text className="text-xs font-black uppercase tracking-wider text-cyan-400 block mb-2">
-                    Recommended Action
+                    Önerilen eylem
                   </Text>
                   <Paragraph className="text-gray-400 text-sm leading-relaxed bg-black/30 p-4 rounded-xl border border-white/5">
                     {project_brief.recommended_action}
@@ -1303,7 +1303,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                     {sandbox_manifest.skipped_files.length > 0 && (
                       <div>
                         <span className="text-xs font-black uppercase tracking-wider text-amber-500 block mb-2">
-                          Safely Shielded/Skipped Files ({sandbox_manifest.skipped_files.length})
+                          Güvenli şekilde korunan/atlanmış dosyalar ({sandbox_manifest.skipped_files.length})
                         </span>
                         <div className="max-h-40 overflow-y-auto space-y-1.5 pr-2">
                           {sandbox_manifest.skipped_files.map((skip, idx) => (
@@ -1334,37 +1334,37 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
           >
             <div className="flex items-center gap-3 mb-6">
               <ShieldAlert className="text-cyan-400 h-5 w-5" />
-              <h2 className="text-xs font-black uppercase tracking-[0.3em] text-white">Operator Decision panel</h2>
+              <h2 className="text-xs font-black uppercase tracking-[0.3em] text-white">Operatör karar paneli</h2>
             </div>
 
             {requirement_gate.status !== "WAITING_FOR_OPERATOR" ? (
               <div className="bg-black/30 border border-white/5 rounded-3xl p-6 text-center space-y-4">
                 <CheckCircle2 className="h-10 w-10 text-cyan-400 mx-auto" />
                 <div>
-                  <div className="text-sm font-black uppercase text-white tracking-wider">Gate Status Resolved</div>
+                  <div className="text-sm font-black uppercase text-white tracking-wider">Gate durumu çözüldü</div>
                   <div className="text-xs font-mono text-cyan-400 mt-1 uppercase tracking-widest">{requirement_gate.status}</div>
                 </div>
                 <Divider className="border-white/5 my-4" />
                 <div className="space-y-4 text-left text-xs font-mono">
                   <div>
-                    <span className="text-gray-500 uppercase">Decided By:</span>
+                    <span className="text-gray-500 uppercase">Karar veren:</span>
                     <span className="text-white block mt-0.5">{requirement_gate.approved_by || "SYSTEM"}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500 uppercase">Decided At:</span>
+                    <span className="text-gray-500 uppercase">Karar zamanı:</span>
                     <span className="text-white block mt-0.5">
                       {requirement_gate.resolved_at ? new Date(requirement_gate.resolved_at).toLocaleString() : "-"}
                     </span>
                   </div>
                   <div>
-                    <span className="text-gray-500 uppercase">Rationale:</span>
+                    <span className="text-gray-500 uppercase">Gerekçe:</span>
                     <span className="text-gray-400 block mt-1 bg-black/20 p-3 rounded-xl border border-white/5">
-                      {requirement_gate.rationale || "No rationale provided."}
+                      {requirement_gate.rationale || "Gerekçe girilmedi."}
                     </span>
                   </div>
                   {requirement_gate.scope_adjustments && (
                     <div>
-                      <span className="text-gray-500 uppercase">Details/Adjustments:</span>
+                      <span className="text-gray-500 uppercase">Detaylar/düzeltmeler:</span>
                       <span className="text-white block mt-0.5 font-bold">{requirement_gate.scope_adjustments}</span>
                     </div>
                   )}
@@ -1376,36 +1376,36 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                 <div className="space-y-4">
                   <div>
                     <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-1.5">
-                      Operator ID
+                      Operatör ID
                     </span>
                     <Input
                       value={operatorId}
                       onChange={(e) => setOperatorId(e.target.value)}
-                      placeholder="e.g. OPERATOR-01"
+                      placeholder="örn. OPERATOR-01"
                       className="bg-black/40 border-white/10 hover:border-cyan-500/30 focus:border-cyan-500 text-white rounded-xl py-2 px-3 font-mono text-xs focus:shadow-none"
                     />
                   </div>
 
                   <div>
                     <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-1.5">
-                      Decision Rationale
+                      Karar gerekçesi
                     </span>
                     <Input.TextArea
                       value={rationale}
                       onChange={(e) => setRationale(e.target.value)}
-                      placeholder="Provide reasoning details for this decision (min 5 characters)..."
+                      placeholder="Bu karar için gerekçe detaylarını yazın (min. 5 karakter)..."
                       rows={4}
                       className="bg-black/40 border-white/10 hover:border-cyan-500/30 focus:border-cyan-500 text-white rounded-xl py-2 px-3 font-mono text-xs focus:shadow-none"
                     />
                     <div className="text-[9px] text-gray-500 mt-1 uppercase font-mono text-right">
-                      {rationale.trim().length} / 5 Min Chars
+                      {rationale.trim().length} / 5 min. karakter
                     </div>
                   </div>
 
                   {/* Tabs / Actions */}
                   <div className="border-t border-b border-white/5 py-4 my-2">
                     <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-3">
-                      Action Mode Selection
+                      Aksiyon modu seçimi
                     </span>
                     <div className="grid grid-cols-3 gap-2">
                       <button
@@ -1416,7 +1416,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                             : "bg-white/[0.01] border-white/5 text-gray-500 hover:text-white"
                         }`}
                       >
-                        Approve Scope
+                        Kapsamı onayla
                       </button>
                       <button
                         onClick={() => setActiveTab("revision")}
@@ -1426,7 +1426,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                             : "bg-white/[0.01] border-white/5 text-gray-500 hover:text-white"
                         }`}
                       >
-                        Revision Required
+                        Revizyon gerekli
                       </button>
                       <button
                         onClick={() => setActiveTab("reject")}
@@ -1436,7 +1436,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                             : "bg-white/[0.01] border-white/5 text-gray-500 hover:text-white"
                         }`}
                       >
-                        Reject Intake
+                        Intake'i reddet
                       </button>
                     </div>
                   </div>
@@ -1446,15 +1446,15 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                     <div className="space-y-4 bg-cyan-500/[0.02] border border-cyan-500/10 p-4 rounded-2xl">
                       <div>
                         <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400 block mb-2">
-                          Approved Scope Level
+                          Onaylanan kapsam seviyesi
                         </span>
                         <Radio.Group
                           value={approvedScope}
                           onChange={(e) => setApprovedScope(e.target.value)}
                           className="flex gap-4 font-mono text-xs text-white"
                         >
-                          <Radio value="mvp" className="text-white">MVP Mode</Radio>
-                          <Radio value="full" className="text-white">Full Scope</Radio>
+                          <Radio value="mvp" className="text-white">MVP modu</Radio>
+                          <Radio value="full" className="text-white">Tam kapsam</Radio>
                         </Radio.Group>
                       </div>
 
@@ -1468,10 +1468,10 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                         />
                         <div>
                           <span className="text-[10px] font-black uppercase tracking-widest text-white block">
-                            Acknowledge Boundary Boundary
+                            Sınır koşullarını onayla
                           </span>
                           <span className="text-[9px] font-mono text-gray-500 mt-1 block leading-normal uppercase">
-                            I verify that this approval does not permit production write operations, keeping code containment intact.
+                            Bu onayın production yazma işlemlerine izin vermediğini ve kod sınırının korunduğunu doğruluyorum.
                           </span>
                         </div>
                       </div>
@@ -1483,7 +1483,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                         disabled={!riskAcknowledged || rationale.trim().length < 5 || !operatorId.trim()}
                         className="w-full bg-cyan-500 hover:bg-cyan-600 border-none font-black italic tracking-widest uppercase py-4 rounded-xl text-black shadow-lg"
                       >
-                        Execute Scope Approval
+                        Kapsam onayını çalıştır
                       </Button>
                     </div>
                   )}
@@ -1492,12 +1492,12 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                     <div className="space-y-4 bg-amber-500/[0.02] border border-amber-500/10 p-4 rounded-2xl">
                       <div>
                         <span className="text-[10px] font-black uppercase tracking-widest text-amber-500 block mb-2">
-                          Revision Notes / Guidelines
+                          Revizyon notları / yönergeler
                         </span>
                         <Input.TextArea
                           value={revisionNotes}
                           onChange={(e) => setRevisionNotes(e.target.value)}
-                          placeholder="Describe clear instructions/modifications needed before scope can be approved..."
+                          placeholder="Kapsam onaylanmadan önce gereken net yönergeleri veya değişiklikleri yazın..."
                           rows={3}
                           className="bg-black/40 border-white/10 hover:border-amber-500/30 focus:border-amber-500 text-white rounded-xl py-2 px-3 font-mono text-xs focus:shadow-none"
                         />
@@ -1510,7 +1510,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                         disabled={!revisionNotes.trim() || rationale.trim().length < 5 || !operatorId.trim()}
                         className="w-full bg-amber-500 hover:bg-amber-600 border-none font-black italic tracking-widest uppercase py-4 rounded-xl text-black shadow-lg"
                       >
-                        Request Scope Revision
+                        Kapsam revizyonu iste
                       </Button>
                     </div>
                   )}
@@ -1520,9 +1520,9 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                       <div className="flex gap-3 text-red-500 bg-red-500/[0.05] p-3 rounded-xl border border-red-500/20 text-[10px] font-mono uppercase leading-normal">
                         <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
                         <div>
-                          <strong>Warning: Rejection is irreversible.</strong>
+                          <strong>Uyarı: Reddetme işlemi geri alınamaz.</strong>
                           <span className="block mt-1 text-gray-500">
-                            Rejecting this intake terminates the current Requirement Gate cycle.
+                            Bu intake reddedildiğinde mevcut Requirement Gate döngüsü sonlanır.
                           </span>
                         </div>
                       </div>
@@ -1535,7 +1535,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                         disabled={rationale.trim().length < 5 || !operatorId.trim()}
                         className="w-full bg-red-500 hover:bg-red-600 border-none font-black italic tracking-widest uppercase py-4 rounded-xl text-white shadow-lg"
                       >
-                        Reject Project Intake
+                        Project intake'i reddet
                       </Button>
                     </div>
                   )}
@@ -1684,11 +1684,11 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                             </Radio>
                             <Radio value="data_project" className="text-white">
                               <span className="text-xs text-white font-bold block">Data Project</span>
-                              <span className="text-[10px] text-gray-500 block leading-tight">Scaffolds automated sheets & excel analytics dashboarding</span>
+                              <span className="text-[10px] text-gray-500 block leading-tight">Otomatik sheet ve Excel analitik dashboard iskeleti oluşturur</span>
                             </Radio>
                             <Radio value="agent_assisted" className="text-white">
                               <span className="text-xs text-white font-bold block">Agent Assisted</span>
-                              <span className="text-[10px] text-gray-500 block leading-tight">Employs specialized subagents in isolated sandbox context</span>
+                              <span className="text-[10px] text-gray-500 block leading-tight">İzole sandbox bağlamında uzman subagent'ları kullanır</span>
                             </Radio>
                           </Radio.Group>
                         </div>
@@ -1697,7 +1697,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
 
                         <div>
                           <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400 block mb-1.5">
-                            Operator ID
+                            Operatör ID
                           </span>
                           <Input
                             value={operatorId}
@@ -1708,7 +1708,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
 
                         <div>
                           <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400 block mb-1.5">
-                            Implementation Rationale
+                            Implementation gerekçesi
                           </span>
                           <Input.TextArea
                             value={implRationale}
@@ -2110,7 +2110,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                         : "bg-transparent border-transparent text-gray-500 hover:text-white"
                     }`}
                   >
-                    <FileText size={12} /> Review Details
+                    <FileText size={12} /> İnceleme detayları
                   </button>
                   <button
                     onClick={() => setReviewActiveTab("risk")}
@@ -2120,7 +2120,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                         : "bg-transparent border-transparent text-gray-500 hover:text-white"
                     }`}
                   >
-                    <ShieldAlert size={12} /> Risk Assessment
+                    <ShieldAlert size={12} /> Risk değerlendirmesi
                   </button>
                   <button
                     onClick={() => setReviewActiveTab("quality")}
@@ -2130,7 +2130,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                         : "bg-transparent border-transparent text-gray-500 hover:text-white"
                     }`}
                   >
-                    <Activity size={12} /> Quality Scorecard
+                    <Activity size={12} /> Kalite skor kartı
                   </button>
                   <button
                     onClick={() => setReviewActiveTab("decision")}
@@ -2140,7 +2140,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                         : "bg-transparent border-transparent text-gray-500 hover:text-white"
                     }`}
                   >
-                    <ListTodo size={12} /> Operator Decision
+                    <ListTodo size={12} /> Operatör kararı
                   </button>
                   <button
                     onClick={() => setReviewActiveTab("delivery")}
@@ -2150,7 +2150,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                         : "bg-transparent border-transparent text-gray-500 hover:text-white"
                     }`}
                   >
-                    <FileArchive size={12} /> Delivery Package
+                    <FileArchive size={12} /> Teslimat paketi
                   </button>
                 </div>
 
@@ -2162,10 +2162,10 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                         <ShieldAlert className="h-10 w-10 text-cyan-400 mx-auto animate-pulse" />
                         <div>
                           <div className="text-xs font-black uppercase tracking-wider text-white">
-                            No Candidate Review Evaluated Yet
+                            Aday incelemesi henüz yapılmadı
                           </div>
                           <div className="text-[10px] text-gray-600 mt-1 max-w-sm mx-auto font-mono">
-                            Run the automated scorecard and risk scoring scanners to evaluate the generated candidate files.
+                            Oluşturulan aday dosyaları değerlendirmek için otomatik skor kartını ve risk tarayıcılarını çalıştırın.
                           </div>
                         </div>
                         <Button
@@ -2174,7 +2174,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                           loading={isSubmitting}
                           className="bg-cyan-500 hover:bg-cyan-600 border-none font-black italic tracking-widest uppercase px-6 py-2.5 rounded-xl text-black shadow-lg"
                         >
-                          Run Automated Candidate Review
+                          Otomatik aday incelemesini çalıştır
                         </Button>
                       </div>
                     ) : (
@@ -2183,7 +2183,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                           <div className="bg-black/40 border border-white/5 p-4 rounded-2xl flex items-center justify-between">
                             <div>
-                              <span className="text-[9px] font-mono text-gray-500 uppercase block mb-1">Quality Score</span>
+                              <span className="text-[9px] font-mono text-gray-500 uppercase block mb-1">Kalite skoru</span>
                               <span className="text-2xl font-black text-emerald-400 font-mono">{candidateReview.quality_score * 100}%</span>
                             </div>
                             <CheckCircle2 className="text-emerald-400/20 h-10 w-10" />
@@ -2191,7 +2191,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
 
                           <div className="bg-black/40 border border-white/5 p-4 rounded-2xl flex items-center justify-between">
                             <div>
-                              <span className="text-[9px] font-mono text-gray-500 uppercase block mb-1">Risk Score</span>
+                              <span className="text-[9px] font-mono text-gray-500 uppercase block mb-1">Risk skoru</span>
                               <span className="text-2xl font-black text-cyan-400 font-mono">{candidateReview.risk_score * 100}%</span>
                             </div>
                             <Activity className="text-cyan-400/20 h-10 w-10" />
@@ -2199,7 +2199,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
 
                           <div className="bg-black/40 border border-white/5 p-4 rounded-2xl flex items-center justify-between">
                             <div>
-                              <span className="text-[9px] font-mono text-gray-500 uppercase block mb-1">Risk Level</span>
+                              <span className="text-[9px] font-mono text-gray-500 uppercase block mb-1">Risk seviyesi</span>
                               <span className={`text-xl font-black font-mono uppercase block ${
                                 candidateReview.risk_level === "HIGH" ? "text-red-400" :
                                 candidateReview.risk_level === "MEDIUM" ? "text-amber-400" : "text-emerald-400"
@@ -2214,14 +2214,14 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                           <Col xs={24} md={12}>
                             <div className="bg-black/20 p-4 rounded-2xl border border-white/5 h-full">
                               <span className="text-xs font-black uppercase tracking-wider text-cyan-400 block mb-3">
-                                Recommendations & Improvements
+                                Öneriler ve iyileştirmeler
                               </span>
                               <ul className="space-y-2 text-xs text-gray-400 pl-4 list-disc font-mono">
                                 {candidateReview.recommendations.map((rec, idx) => (
                                   <li key={idx} className="leading-relaxed">{rec}</li>
                                 ))}
                                 {candidateReview.recommendations.length === 0 && (
-                                  <span className="text-gray-500 italic block">No active recommendations.</span>
+                                  <span className="text-gray-500 italic block">Aktif öneri yok.</span>
                                 )}
                               </ul>
                             </div>
@@ -2230,14 +2230,14 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                           <Col xs={24} md={12}>
                             <div className="bg-black/20 p-4 rounded-2xl border border-white/5 h-full">
                               <span className="text-xs font-black uppercase tracking-wider text-amber-500 block mb-3">
-                                Known Limitations & Constraints
+                                Bilinen sınırlamalar ve kısıtlar
                               </span>
                               <ul className="space-y-2 text-xs text-gray-400 pl-4 list-disc font-mono">
                                 {candidateReview.limitations.map((lim, idx) => (
                                   <li key={idx} className="leading-relaxed">{lim}</li>
                                 ))}
                                 {candidateReview.limitations.length === 0 && (
-                                  <span className="text-gray-500 italic block">No identified limitations.</span>
+                                  <span className="text-gray-500 italic block">Tanımlanmış sınırlama yok.</span>
                                 )}
                               </ul>
                             </div>
@@ -2251,7 +2251,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                             loading={isSubmitting}
                             className="bg-transparent border-white/10 hover:border-cyan-500/30 text-gray-400 hover:text-white rounded-xl text-xs"
                           >
-                            Rerun Verification Review
+                            Doğrulama incelemesini yeniden çalıştır
                           </Button>
                         </div>
                       </div>
@@ -2263,7 +2263,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                   <div className="space-y-6">
                     {!riskAssessment ? (
                       <div className="py-8 text-center text-gray-500 font-mono text-[10px] uppercase">
-                        No Risk Assessment computed. Please run Candidate Review first.
+                        Risk değerlendirmesi henüz hesaplanmadı. Önce Candidate Review çalıştırın.
                       </div>
                     ) : (
                       <div className="space-y-6">
@@ -2271,7 +2271,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                         <div className="bg-black/40 border border-white/5 p-4 rounded-2xl">
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-xs font-black uppercase tracking-widest text-white block">
-                              Automated Structural Scanner Risk Score: {riskAssessment.risk_score * 100}%
+                              Otomatik yapısal tarayıcı risk skoru: {riskAssessment.risk_score * 100}%
                             </span>
                             <Tag color={
                               riskAssessment.risk_level === "HIGH" ? "error" :
@@ -2293,7 +2293,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div>
                             <span className="text-xs font-black uppercase tracking-wider text-red-400 block mb-3">
-                              Blocking Risks ({riskAssessment.blocking_risks.length})
+                              Engelleyici riskler ({riskAssessment.blocking_risks.length})
                             </span>
                             <div className="space-y-2">
                               {riskAssessment.blocking_risks.map((risk, idx) => (
@@ -2304,7 +2304,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                               ))}
                               {riskAssessment.blocking_risks.length === 0 && (
                                 <div className="text-[10px] text-gray-500 font-mono bg-black/20 p-3 rounded-xl border border-white/5 italic">
-                                  Zero blocking risks found. Verification checks passed.
+                                  Engelleyici risk bulunmadı. Doğrulama kontrolleri geçti.
                                 </div>
                               )}
                             </div>
@@ -2312,7 +2312,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
 
                           <div>
                             <span className="text-xs font-black uppercase tracking-wider text-amber-500 block mb-3">
-                              Code Scanner Warnings ({riskAssessment.warnings.length})
+                              Kod tarayıcı uyarıları ({riskAssessment.warnings.length})
                             </span>
                             <div className="space-y-2">
                               {riskAssessment.warnings.map((warn, idx) => (
@@ -2323,7 +2323,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                               ))}
                               {riskAssessment.warnings.length === 0 && (
                                 <div className="text-[10px] text-gray-500 font-mono bg-black/20 p-3 rounded-xl border border-white/5 italic">
-                                  Zero security or containment warnings detected.
+                                  Güvenlik veya containment uyarısı tespit edilmedi.
                                 </div>
                               )}
                             </div>
@@ -2338,7 +2338,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                   <div className="space-y-6">
                     {!qualityScorecard ? (
                       <div className="py-8 text-center text-gray-500 font-mono text-[10px] uppercase">
-                        No Quality Scorecard computed. Please run Candidate Review first.
+                        Kalite skor kartı henüz hesaplanmadı. Önce Candidate Review çalıştırın.
                       </div>
                     ) : (
                       <div className="space-y-6">
@@ -2346,10 +2346,10 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                         <div className="bg-black/40 border border-white/5 p-4 rounded-2xl flex items-center justify-between">
                           <div>
                             <span className="text-xs font-black uppercase tracking-widest text-white block mb-1">
-                              Verification Quality Scorecard: {qualityScorecard.score} / {qualityScorecard.max_score}
+                              Doğrulama kalite skor kartı: {qualityScorecard.score} / {qualityScorecard.max_score}
                             </span>
                             <span className="text-[10px] text-gray-500 font-mono uppercase block">
-                              DETERMINISTIC WEIGHT VALUE EVALUATION SCORER
+                              DETERMINISTIK AĞIRLIKLI DEĞERLENDİRME SKORLAYICISI
                             </span>
                           </div>
                           <Tag color={qualityScorecard.passed ? "success" : "error"} className="font-black rounded px-3 py-1 font-mono uppercase tracking-widest">
@@ -2360,9 +2360,9 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                         {/* Checks list */}
                         <div className="space-y-3 font-mono text-xs">
                           <div className="flex items-center justify-between bg-white/[0.01] hover:bg-white/[0.02] border border-white/5 p-3 rounded-xl transition-all">
-                            <span className="text-gray-400 uppercase">1. Candidate Manifest File Verification</span>
+                            <span className="text-gray-400 uppercase">1. Candidate manifest dosyası doğrulaması</span>
                             <div className="flex items-center gap-2">
-                              <span className="text-gray-500">Weight: 40%</span>
+                              <span className="text-gray-500">Ağırlık: 40%</span>
                               {qualityScorecard.candidate_manifest_exists ? (
                                 <Tag color="success" className="px-2 font-black rounded-lg m-0"><Check size={12} className="inline mr-1" /> VALID</Tag>
                               ) : (
@@ -2372,9 +2372,9 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                           </div>
 
                           <div className="flex items-center justify-between bg-white/[0.01] hover:bg-white/[0.02] border border-white/5 p-3 rounded-xl transition-all">
-                            <span className="text-gray-400 uppercase">2. Verification Test Suite Execution</span>
+                            <span className="text-gray-400 uppercase">2. Doğrulama test paketi çalıştırması</span>
                             <div className="flex items-center gap-2">
-                              <span className="text-gray-500">Weight: 40%</span>
+                              <span className="text-gray-500">Ağırlık: 40%</span>
                               {qualityScorecard.verification_report_passed ? (
                                 <Tag color="success" className="px-2 font-black rounded-lg m-0"><Check size={12} className="inline mr-1" /> ALL PASSED</Tag>
                               ) : (
@@ -2384,9 +2384,9 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                           </div>
 
                           <div className="flex items-center justify-between bg-white/[0.01] hover:bg-white/[0.02] border border-white/5 p-3 rounded-xl transition-all">
-                            <span className="text-gray-400 uppercase">3. Sandbox Structural Boundaries Containment</span>
+                            <span className="text-gray-400 uppercase">3. Sandbox yapısal sınır containment kontrolü</span>
                             <div className="flex items-center gap-2">
-                              <span className="text-gray-500">Weight: 20%</span>
+                              <span className="text-gray-500">Ağırlık: 20%</span>
                               {qualityScorecard.sandbox_boundary_respected ? (
                                 <Tag color="success" className="px-2 font-black rounded-lg m-0"><Check size={12} className="inline mr-1" /> CONTAINED</Tag>
                               ) : (
@@ -2406,12 +2406,12 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                       <div className="bg-black/30 border border-white/5 rounded-3xl p-6 text-center space-y-4 font-mono">
                         <CheckCircle2 className="h-10 w-10 text-cyan-400 mx-auto" />
                         <div>
-                          <div className="text-sm font-black uppercase text-white tracking-wider">Human Decision Completed</div>
+                          <div className="text-sm font-black uppercase text-white tracking-wider">İnsan kararı tamamlandı</div>
                           <div className="text-xs text-cyan-400 mt-1 uppercase tracking-widest">{candidateReview.status}</div>
                         </div>
                         <Divider className="border-white/5 my-2" />
                         <div className="text-xs text-gray-500 max-w-md mx-auto uppercase">
-                          The manual Human Gate has processed this candidate package. Sequential decisions can be inspected in the delivery log stream under the Delivery Package sub-tab.
+                          Manuel Human Gate bu aday paketini işledi. Sıralı kararlar Delivery Package alt sekmesindeki teslimat log akışında incelenebilir.
                         </div>
                       </div>
                     ) : (
@@ -2421,36 +2421,36 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                           <div className="space-y-4">
                             <div>
                               <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-1.5">
-                                Operator ID
+                                Operatör ID
                               </span>
                               <Input
                                 value={gateOperatorId}
                                 onChange={(e) => setGateOperatorId(e.target.value)}
-                                placeholder="e.g. OPERATOR-01"
+                                placeholder="örn. OPERATOR-01"
                                 className="bg-black/40 border-white/10 hover:border-cyan-500/30 focus:border-cyan-500 text-white rounded-xl py-2 px-3 font-mono text-xs focus:shadow-none"
                               />
                             </div>
 
                             <div>
                               <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-1.5">
-                                Decision Rationale
+                                Karar gerekçesi
                               </span>
                               <Input.TextArea
                                 value={gateRationale}
                                 onChange={(e) => setGateRationale(e.target.value)}
-                                placeholder="Provide reasoning for this candidate approval/revision/rejection (min 5 characters)..."
+                                placeholder="Bu aday onayı, revizyonu veya reddi için gerekçe yazın (min. 5 karakter)..."
                                 rows={4}
                                 className="bg-black/40 border-white/10 hover:border-cyan-500/30 focus:border-cyan-500 text-white rounded-xl py-2 px-3 font-mono text-xs focus:shadow-none"
                               />
                               <div className="text-[9px] text-gray-500 mt-1 uppercase font-mono text-right">
-                                {gateRationale.trim().length} / 5 Min Chars
+                                {gateRationale.trim().length} / 5 min. karakter
                               </div>
                             </div>
                           </div>
 
                           <div className="space-y-4">
                             <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 block mb-1">
-                              Action Mode Selection
+                              Aksiyon modu seçimi
                             </span>
                             <div className="grid grid-cols-3 gap-2 border-b border-white/5 pb-4 mb-2">
                               <button
@@ -2461,7 +2461,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                                     : "bg-white/[0.01] border-white/5 text-gray-500 hover:text-white"
                                 }`}
                               >
-                                Approve Delivery
+                                Teslimatı onayla
                               </button>
                               <button
                                 onClick={() => setGateActiveActionTab("revision")}
@@ -2471,7 +2471,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                                     : "bg-white/[0.01] border-white/5 text-gray-500 hover:text-white"
                                 }`}
                               >
-                                Revision Required
+                                Revizyon gerekli
                               </button>
                               <button
                                 onClick={() => setGateActiveActionTab("reject")}
@@ -2481,7 +2481,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                                     : "bg-white/[0.01] border-white/5 text-gray-500 hover:text-white"
                                 }`}
                               >
-                                Reject Candidate
+                                Adayı reddet
                               </button>
                             </div>
 
@@ -2496,10 +2496,10 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                                   />
                                   <div>
                                     <span className="text-[10px] font-black uppercase tracking-widest text-white block">
-                                      Acknowledge Delivery Manifest Safety Lock
+                                      Delivery manifest güvenlik kilidini onayla
                                     </span>
                                     <span className="text-[9px] font-mono text-gray-500 mt-1 block leading-normal uppercase">
-                                      I verify that this approval bundles files strictly inside delivery container. MERGES AND DIRECT DEPLOYMENTS ARE BLOCKED (Apply allowed = false).
+                                      Bu onayın dosyaları yalnızca delivery container içinde paketlediğini doğruluyorum. MERGE ve doğrudan DEPLOY işlemleri engellenmiştir (Apply allowed = false).
                                     </span>
                                   </div>
                                 </div>
@@ -2511,7 +2511,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                                   disabled={!gateRiskAcknowledged || gateRationale.trim().length < 5 || !gateOperatorId.trim()}
                                   className="w-full bg-cyan-500 hover:bg-cyan-600 border-none font-black italic tracking-widest uppercase py-4 rounded-xl text-black shadow-lg"
                                 >
-                                  Execute Delivery Approval
+                                  Teslimat onayını çalıştır
                                 </Button>
                               </div>
                             )}
@@ -2521,12 +2521,12 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                               <div className="space-y-4 bg-amber-500/[0.02] border border-amber-500/10 p-4 rounded-2xl">
                                 <div>
                                   <span className="text-[10px] font-black uppercase tracking-widest text-amber-500 block mb-2">
-                                    Candidate Revision Guidelines
+                                    Aday revizyon yönergeleri
                                   </span>
                                   <Input.TextArea
                                     value={gateRevisionNotes}
                                     onChange={(e) => setGateRevisionNotes(e.target.value)}
-                                    placeholder="Describe modifications/guidelines required before this candidate can be approved..."
+                                    placeholder="Bu aday onaylanmadan önce gereken değişiklikleri veya yönergeleri yazın..."
                                     rows={3}
                                     className="bg-black/40 border-white/10 hover:border-amber-500/30 focus:border-amber-500 text-white rounded-xl py-2 px-3 font-mono text-xs focus:shadow-none"
                                   />
@@ -2539,7 +2539,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                                   disabled={!gateRevisionNotes.trim() || gateRationale.trim().length < 5 || !gateOperatorId.trim()}
                                   className="w-full bg-amber-500 hover:bg-amber-600 border-none font-black italic tracking-widest uppercase py-4 rounded-xl text-black shadow-lg"
                                 >
-                                  Request Candidate Revision
+                                  Aday revizyonu iste
                                 </Button>
                               </div>
                             )}
@@ -2550,9 +2550,9 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                                 <div className="flex gap-3 text-red-500 bg-red-500/[0.05] p-3 rounded-xl border border-red-500/20 text-[10px] font-mono uppercase leading-normal">
                                   <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
                                   <div>
-                                    <strong>Warning: Rejection is permanent.</strong>
+                                    <strong>Uyarı: Reddetme işlemi kalıcıdır.</strong>
                                     <span className="block mt-1 text-gray-500">
-                                      This permanently closes the candidate evaluation gate.
+                                      Bu işlem aday değerlendirme geçidini kalıcı olarak kapatır.
                                     </span>
                                   </div>
                                 </div>
@@ -2565,7 +2565,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                                   disabled={gateRationale.trim().length < 5 || !gateOperatorId.trim()}
                                   className="w-full bg-red-500 hover:bg-red-600 border-none font-black italic tracking-widest uppercase py-4 rounded-xl text-white shadow-lg"
                                 >
-                                  Permanently Reject Candidate
+                                  Adayı kalıcı olarak reddet
                                 </Button>
                               </div>
                             )}
@@ -2582,10 +2582,10 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                       <div className="py-12 text-center bg-black/20 rounded-3xl border border-white/5">
                         <Lock className="h-8 w-8 text-gray-600 mx-auto mb-3" />
                         <div className="text-xs font-black uppercase tracking-wider text-gray-500">
-                          Delivery Package Locked
+                          Teslimat paketi kilitli
                         </div>
                         <div className="text-[10px] text-gray-600 mt-1 max-w-sm mx-auto font-mono">
-                          Approve the sandbox candidate package in the Operator Decision form to generate secure final deliverables.
+                          Güvenli final çıktıları üretmek için Operator Decision formunda sandbox aday paketini onaylayın.
                         </div>
                       </div>
                     ) : (
@@ -2598,7 +2598,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                               <span className="text-white font-bold">{deliveryManifest.delivery_id}</span>
                             </div>
                             <div className="flex justify-between items-center">
-                              <span className="text-gray-500">CREATED AT:</span>
+                              <span className="text-gray-500">OLUŞTURULMA:</span>
                               <span className="text-white">{new Date(deliveryManifest.created_at).toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between items-center">
@@ -2606,7 +2606,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                               <span className="text-white">{deliveryManifest.operator_id}</span>
                             </div>
                             <div className="flex justify-between items-center border-t border-white/5 pt-2 mt-2">
-                              <span className="text-gray-500 font-bold uppercase">Production Apply Safety Status:</span>
+                              <span className="text-gray-500 font-bold uppercase">Production Apply güvenlik durumu:</span>
                               {deliveryManifest.production_apply_allowed ? (
                                 <Tag color="success" className="px-2 font-black rounded-lg m-0">ALLOWED</Tag>
                               ) : (
@@ -2618,7 +2618,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                           {/* Copied files */}
                           <div>
                             <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400 block mb-2">
-                              Copied Release Files ({deliveryManifest.files.length})
+                              Kopyalanan release dosyaları ({deliveryManifest.files.length})
                             </span>
                             <div className="space-y-2">
                               {deliveryManifest.files.map((file, idx) => (
@@ -2714,10 +2714,10 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                       </div>
                       <div>
                         <Title level={4} className="!text-white !m-0 font-black tracking-tight">
-                          Final Decision & Release Archive
+                          Final karar ve release arşivi
                         </Title>
                         <Text className="text-gray-400 font-mono text-[10px] uppercase tracking-widest">
-                          Phase 12 / Terminal Delivery Gate
+                          Phase 12 / Terminal teslimat geçidi
                         </Text>
                       </div>
                     </div>
@@ -2725,11 +2725,11 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                   <div>
                     {releaseManifest ? (
                       <Tag color="success" className="px-4 py-1.5 font-black uppercase rounded-xl border-green-500/30 bg-green-500/10 shadow-[0_0_15px_rgba(34,197,94,0.15)] flex items-center gap-2">
-                        <ShieldCheck size={14} /> RELEASE ARCHIVE READY
+                        <ShieldCheck size={14} /> RELEASE ARŞİVİ HAZIR
                       </Tag>
                     ) : (
                       <Tag color="warning" className="px-4 py-1.5 font-black uppercase rounded-xl border-amber-500/30 bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.15)] flex items-center gap-2">
-                        <ListTodo size={14} /> WAITING FOR FINAL DECISION
+                        <ListTodo size={14} /> FINAL KARAR BEKLENİYOR
                       </Tag>
                     )}
                   </div>
@@ -2740,8 +2740,8 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                 {/* Tabs */}
                 <div className="flex gap-4 mb-6 border-b border-white/5 pb-4 overflow-x-auto custom-scrollbar">
                   {[
-                    { key: "decision", label: "Final Operator Decision", icon: <ShieldAlert size={14} /> },
-                    { key: "archive", label: "Release Archive", icon: <FileArchive size={14} /> },
+                    { key: "decision", label: "Final operatör kararı", icon: <ShieldAlert size={14} /> },
+                    { key: "archive", label: "Release arşivi", icon: <FileArchive size={14} /> },
                   ].map((tab) => (
                     <button
                       key={tab.key}
@@ -2762,7 +2762,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                     {finalDecision ? (
                       <div className="bg-black/30 p-6 rounded-2xl border border-white/5 font-mono text-[10px]">
                         <div className="flex justify-between items-center mb-6">
-                          <span className="text-gray-500 font-bold uppercase">Final Decision:</span>
+                          <span className="text-gray-500 font-bold uppercase">Final karar:</span>
                           <Tag color={
                             finalDecision.decision === "FINAL_APPROVED" ? "success" :
                             finalDecision.decision === "FINAL_REJECTED" ? "error" : "orange"
@@ -2772,16 +2772,16 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                         </div>
                         <div className="space-y-4 text-gray-400">
                           <div className="flex justify-between">
-                            <span>Operator:</span>
+                            <span>Operatör:</span>
                             <span className="text-white">{finalDecision.operator_id}</span>
                           </div>
                           <div>
-                            <span className="block mb-1">Rationale:</span>
+                            <span className="block mb-1">Gerekçe:</span>
                             <div className="bg-black/50 p-3 rounded text-gray-300 border border-white/5">{finalDecision.rationale}</div>
                           </div>
                           {finalDecision.revision_notes && (
                             <div>
-                              <span className="block mb-1 text-amber-500">Revision Notes:</span>
+                              <span className="block mb-1 text-amber-500">Revizyon notları:</span>
                               <div className="bg-amber-500/10 p-3 rounded text-amber-500 border border-amber-500/20">{finalDecision.revision_notes}</div>
                             </div>
                           )}
@@ -2792,27 +2792,27 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                         <Col xs={24} lg={16}>
                           <div className="bg-[#030712] border border-white/5 rounded-2xl p-6">
                             <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400 block mb-6">
-                              Operator Sign-off
+                              Operatör onayı
                             </span>
                             
                             <div className="space-y-6">
                               <div>
-                                <label className="text-[10px] font-mono text-gray-500 uppercase block mb-2">Operator ID</label>
+                                <label className="text-[10px] font-mono text-gray-500 uppercase block mb-2">Operatör ID</label>
                                 <Input 
                                   value={finalOperatorId}
                                   onChange={(e) => setFinalOperatorId(e.target.value)}
                                   className="bg-black/50 border-white/10 text-white font-mono"
-                                  placeholder="e.g. OPERATOR-01"
+                                  placeholder="örn. OPERATOR-01"
                                 />
                               </div>
                               
                               <div>
-                                <label className="text-[10px] font-mono text-gray-500 uppercase block mb-2">Decision Rationale</label>
+                                <label className="text-[10px] font-mono text-gray-500 uppercase block mb-2">Karar gerekçesi</label>
                                 <Input.TextArea 
                                   value={finalRationale}
                                   onChange={(e) => setFinalRationale(e.target.value)}
                                   className="bg-black/50 border-white/10 text-white font-mono min-h-[100px]"
-                                  placeholder="Provide detailed reasoning for final approval, rejection, or revision..."
+                                  placeholder="Final onay, ret veya revizyon için detaylı gerekçe yazın..."
                                 />
                               </div>
 
@@ -2822,7 +2822,7 @@ export default function ProjectFactoryClient({ projectId }: ProjectFactoryClient
                                   onChange={(e) => setFinalRiskAcknowledged(e.target.checked)}
                                   className="text-amber-500 font-mono text-[10px]"
                                 >
-                                  I acknowledge that this final approval locks the release archive without directly merging to production.
+                                  Bu final onayın release arşivini kilitlediğini ve production'a doğrudan merge yapmadığını onaylıyorum.
                                 </Checkbox>
                               </div>
 

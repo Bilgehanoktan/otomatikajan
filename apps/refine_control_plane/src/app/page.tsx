@@ -148,24 +148,24 @@ export default function ControlPlaneDashboard() {
     const cleanStatus = status || "NEW";
     if (cleanStatus === "NEW") {
       return [
-        { key: "approve-self-repair", label: "Approve Repair", variant: "green", targetStatus: "APPROVED_FOR_REPAIR" },
+        { key: "approve-self-repair", label: "Onarımı Onayla", variant: "green", targetStatus: "APPROVED_FOR_REPAIR" },
         { key: "approve-project-factory", label: "Project Factory", variant: "cyan", targetStatus: "APPROVED_FOR_PROJECT_FACTORY" },
         { key: "open-war-room", label: "War Room", variant: "yellow", targetStatus: "WAR_ROOM_RECOMMENDED" },
-        { key: "defer", label: "Defer", variant: "orange", targetStatus: "DEFERRED" },
-        { key: "reject", label: "Reject", variant: "red", targetStatus: "REJECTED" },
-        { key: "request-more-evidence", label: "More Evidence", variant: "violet", targetStatus: "MORE_EVIDENCE_REQUESTED" }
+        { key: "defer", label: "Ertele", variant: "orange", targetStatus: "DEFERRED" },
+        { key: "reject", label: "Reddet", variant: "red", targetStatus: "REJECTED" },
+        { key: "request-more-evidence", label: "Daha Fazla Kanıt", variant: "violet", targetStatus: "MORE_EVIDENCE_REQUESTED" }
       ];
     }
     if (cleanStatus === "DEFERRED") {
       return [
-        { key: "approve-self-repair", label: "Approve Repair", variant: "green", targetStatus: "APPROVED_FOR_REPAIR" },
+        { key: "approve-self-repair", label: "Onarımı Onayla", variant: "green", targetStatus: "APPROVED_FOR_REPAIR" },
         { key: "approve-project-factory", label: "Project Factory", variant: "cyan", targetStatus: "APPROVED_FOR_PROJECT_FACTORY" }
       ];
     }
     if (cleanStatus === "MORE_EVIDENCE_REQUESTED") {
       return [
-        { key: "approve-self-repair", label: "Approve Repair", variant: "green", targetStatus: "APPROVED_FOR_REPAIR" },
-        { key: "reject", label: "Reject", variant: "red", targetStatus: "REJECTED" }
+        { key: "approve-self-repair", label: "Onarımı Onayla", variant: "green", targetStatus: "APPROVED_FOR_REPAIR" },
+        { key: "reject", label: "Reddet", variant: "red", targetStatus: "REJECTED" }
       ];
     }
     return [];
@@ -174,16 +174,16 @@ export default function ControlPlaneDashboard() {
   const handleActionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!actionModal.operatorId.trim()) {
-      setActionModal(prev => ({ ...prev, error: "Operator ID is required." }));
+      setActionModal(prev => ({ ...prev, error: "Operator ID zorunludur." }));
       return;
     }
     if (!actionModal.rationale.trim()) {
-      setActionModal(prev => ({ ...prev, error: "Rationale is required." }));
+      setActionModal(prev => ({ ...prev, error: "Gerekçe zorunludur." }));
       return;
     }
     const isHighRisk = ["CRITICAL", "HIGH"].includes((actionModal.severity || "").toUpperCase());
     if (isHighRisk && !actionModal.riskAcknowledgement) {
-      setActionModal(prev => ({ ...prev, error: "Please acknowledge the risk associated with this action." }));
+      setActionModal(prev => ({ ...prev, error: "Bu işlemle ilişkili riski onaylamanız gerekiyor." }));
       return;
     }
 
@@ -951,7 +951,7 @@ export default function ControlPlaneDashboard() {
                                               {finding.repair_run && (
                                                   <div className="pt-4 mt-2">
                                                       <div className="text-[9px] font-black uppercase tracking-wider text-gray-600 mb-2">
-                                                          Active Self-Repair Pipeline
+                                                          Aktif Self-Repair Pipeline
                                                       </div>
                                                       <div className="glass-panel p-5 rounded-2xl border border-[var(--primary)]/20 bg-gradient-to-r from-[var(--primary)]/[0.03] to-transparent flex flex-col md:flex-row md:items-center justify-between gap-4 max-w-4xl shadow-inner relative overflow-hidden">
                                                           <div className="absolute top-0 right-0 p-4 opacity-5 text-[var(--primary)] pointer-events-none">
@@ -981,7 +981,7 @@ export default function ControlPlaneDashboard() {
                                                               href={`/workflows/${finding.repair_run.taskflow_id}`}
                                                               className="px-4 py-2 bg-[var(--primary)]/10 hover:bg-[var(--primary)]/20 text-[var(--primary)] text-[9px] font-black uppercase tracking-widest rounded-xl border border-[var(--primary)]/30 hover:border-[var(--primary)]/50 transition-all flex items-center gap-2 group relative z-10 self-start md:self-auto cursor-pointer shadow-md"
                                                           >
-                                                              View Live TaskFlow
+                                                              Canlı TaskFlow'u Gör
                                                               <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
                                                           </a>
                                                       </div>
@@ -991,7 +991,7 @@ export default function ControlPlaneDashboard() {
                                               {finding.project_factory_run && (
                                                   <div className="pt-4 mt-2">
                                                       <div className="text-[9px] font-black uppercase tracking-wider text-gray-600 mb-2">
-                                                          Active Project Factory Pipeline
+                                                          Aktif Project Factory Pipeline
                                                       </div>
                                                       <div className="glass-panel p-5 rounded-2xl border border-cyan-500/20 bg-gradient-to-r from-cyan-500/[0.03] to-transparent flex flex-col md:flex-row md:items-center justify-between gap-4 max-w-4xl shadow-inner relative overflow-hidden">
                                                           <div className="absolute top-0 right-0 p-4 opacity-5 text-cyan-400 pointer-events-none">
@@ -1003,7 +1003,7 @@ export default function ControlPlaneDashboard() {
                                                               </div>
                                                               <div>
                                                                   <div className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
-                                                                      {finding.project_factory_run.title || "Active Project Factory Intake"}
+                                                                      {finding.project_factory_run.title || "Aktif Project Factory Intake"}
                                                                       <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.6)] animate-pulse" />
                                                                   </div>
                                                                   <div className="flex items-center gap-3 mt-1.5">
@@ -1021,7 +1021,7 @@ export default function ControlPlaneDashboard() {
                                                               href={finding.project_factory_run.workflow_url || `/project-factory/${finding.project_factory_run.project_id}`}
                                                               className="px-4 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 text-[9px] font-black uppercase tracking-widest rounded-xl border border-cyan-500/30 hover:border-cyan-500/50 transition-all flex items-center gap-2 group relative z-10 self-start md:self-auto cursor-pointer shadow-md"
                                                           >
-                                                              View Project Factory
+                                                              Project Factory'yi Gör
                                                               <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
                                                           </a>
                                                       </div>
@@ -1033,7 +1033,7 @@ export default function ControlPlaneDashboard() {
                                               {finding.suggested_workflow && (
                                                   <div className="text-right">
                                                       <span className="text-[9px] font-black uppercase tracking-wider text-gray-600 block mb-1">
-                                                          Suggested Agent Sequence
+                                                          Önerilen Ajan Sırası
                                                       </span>
                                                       <span className="text-[10px] font-mono font-black text-[var(--primary)] uppercase tracking-widest bg-[var(--primary)]/5 border border-[var(--primary)]/10 px-3 py-1 rounded-xl">
                                                           {finding.suggested_workflow}
@@ -1280,7 +1280,7 @@ export default function ControlPlaneDashboard() {
                   {actionModal.actionLabel}
                 </h3>
                 <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mt-1">
-                  Operator Decision Required
+                  Operatör kararı gerekli
                 </p>
               </div>
             </div>
@@ -1288,37 +1288,37 @@ export default function ControlPlaneDashboard() {
             <form onSubmit={handleActionSubmit} className="space-y-6">
               {/* Finding Title Summary Card */}
               <div className="p-4 bg-black/40 border border-white/[0.03] rounded-2xl">
-                <span className="text-[8px] font-black text-gray-600 uppercase tracking-widest block mb-1">Target Finding</span>
+                <span className="text-[8px] font-black text-gray-600 uppercase tracking-widest block mb-1">Hedef bulgu</span>
                 <span className="text-xs font-mono font-black text-gray-300 uppercase tracking-wider block">{actionModal.suggestionTitle}</span>
                 <div className="flex items-center gap-2 mt-2">
                   <span className="text-[8px] font-mono text-gray-500">ID: {actionModal.suggestionId.substring(0, 8)}...</span>
                   <span className="w-1 h-1 rounded-full bg-white/10" />
-                  <span className="text-[8px] font-mono font-black text-amber-500 uppercase">SEVERITY: {actionModal.severity}</span>
+                  <span className="text-[8px] font-mono font-black text-amber-500 uppercase">ÖNCELİK: {actionModal.severity}</span>
                 </div>
               </div>
 
               {/* Operator ID Input */}
               <div className="space-y-2">
-                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block">Operator ID</label>
+                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block">Operatör ID</label>
                 <input
                   type="text"
                   value={actionModal.operatorId}
                   onChange={(e) => setActionModal(prev => ({ ...prev, operatorId: e.target.value }))}
                   required
-                  placeholder="e.g. OP-1"
+                  placeholder="örn. OP-1"
                   className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-xs font-mono text-white focus:outline-none focus:border-[var(--primary)]/50 focus:ring-1 focus:ring-[var(--primary)]/30 transition-all"
                 />
               </div>
 
               {/* Rationale Input */}
               <div className="space-y-2">
-                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block">Operator Rationale / Justification</label>
+                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block">Operatör gerekçesi / açıklama</label>
                 <textarea
                   value={actionModal.rationale}
                   onChange={(e) => setActionModal(prev => ({ ...prev, rationale: e.target.value }))}
                   required
                   rows={4}
-                  placeholder="Please justify why this status transition is appropriate..."
+                  placeholder="Bu durum geçişinin neden uygun olduğunu açıklayın..."
                   className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-[var(--primary)]/50 focus:ring-1 focus:ring-[var(--primary)]/30 transition-all resize-none"
                 />
               </div>
@@ -1334,7 +1334,7 @@ export default function ControlPlaneDashboard() {
                     className="mt-1 cursor-pointer accent-[var(--primary)]"
                   />
                   <label htmlFor="risk-ack" className="text-[10px] text-red-400 font-bold uppercase tracking-tight leading-relaxed cursor-pointer select-none">
-                    I explicitly acknowledge the risk of executing this critical action. I confirm that all security and operational measures have been reviewed.
+                    Bu kritik işlemin riskini açıkça kabul ediyorum. Tüm güvenlik ve operasyonel önlemlerin incelendiğini onaylıyorum.
                   </label>
                 </div>
               )}
@@ -1342,7 +1342,7 @@ export default function ControlPlaneDashboard() {
               {/* Error Box */}
               {actionModal.error && (
                 <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-[10px] font-black text-red-400 uppercase tracking-wider">
-                  ERROR: {actionModal.error}
+                  HATA: {actionModal.error}
                 </div>
               )}
 
@@ -1353,7 +1353,7 @@ export default function ControlPlaneDashboard() {
                   onClick={() => setActionModal(prev => ({ ...prev, isOpen: false, error: null }))}
                   className="px-5 py-3 bg-white/[0.02] hover:bg-white/[0.05] border border-white/10 hover:border-white/20 text-gray-400 hover:text-white text-[9px] font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer"
                 >
-                  Cancel
+                  Vazgeç
                 </button>
                 <button
                   type="submit"
@@ -1363,10 +1363,10 @@ export default function ControlPlaneDashboard() {
                   {actionModal.submitting ? (
                     <>
                       <div className="w-3 h-3 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
-                      Submitting...
+                      Gönderiliyor...
                     </>
                   ) : (
-                    "Confirm Action"
+                    "İşlemi Onayla"
                   )}
                 </button>
               </div>
