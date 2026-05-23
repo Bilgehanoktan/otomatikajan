@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import PurePosixPath
 from typing import Dict, Any, Optional
 from services.project_factory.artifacts import load_apply_preview, load_draft_pr_plan
 from services.project_factory.delivery_packager import load_delivery_manifest
@@ -55,6 +56,16 @@ def validate_pr_creation_safety(
     
     if pr_plan.get("target_branch", "") not in ["main", "master"]:
         raise ValueError("Safety violation: target_branch must be main or master.")
+
+    forbidden_keywords = [".env", "secret", "credentials", ".pem", ".key", ".p12", ".db"]
+    for file_path in pr_plan.get("files_to_apply", []):
+        normalized = str(file_path).replace("\\", "/")
+        path = PurePosixPath(normalized)
+        if path.is_absolute() or ".." in path.parts:
+            raise ValueError(f"Safety violation: files_to_apply contains path traversal: {file_path}")
+        lowered = normalized.lower()
+        if any(keyword in lowered for keyword in forbidden_keywords):
+            raise ValueError(f"Safety violation: files_to_apply contains protected file: {file_path}")
 
     return {
         "delivery_manifest": delivery_manifest,

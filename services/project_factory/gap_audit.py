@@ -30,6 +30,11 @@ class GapAuditEngine:
     ]
 
     REQUIRED_ENDPOINTS = [
+        "/api/v1/project-factory/{project_id}/apply-preview/run",
+        "/api/v1/project-factory/{project_id}/apply-preview",
+        "/api/v1/project-factory/{project_id}/draft-pr/prepare",
+        "/api/v1/project-factory/{project_id}/draft-pr/plan",
+        "/api/v1/project-factory/{project_id}/draft-pr/logs",
         "/api/v1/project-factory/archive-index/rebuild",
         "/api/v1/project-factory/portfolio/metrics",
         "/api/v1/project-factory/portfolio/search",
@@ -63,11 +68,21 @@ class GapAuditEngine:
                 checked_modules[mod] = f"ERROR: {str(e)}"
                 missing_modules.append(mod)
 
-        # Audit router imports and endpoint presence
         endpoints_audit = {}
-        # Since routing is loaded at runtime via FastAPI, we simulate verifying that routes are structurally present
-        for ep in self.REQUIRED_ENDPOINTS:
-            endpoints_audit[ep] = "VERIFIED_PRESENT"
+        missing_endpoints = []
+        try:
+            from services.workflow_api.main import app
+            registered_paths = {getattr(route, "path", "") for route in app.routes}
+            for ep in self.REQUIRED_ENDPOINTS:
+                if ep in registered_paths:
+                    endpoints_audit[ep] = "VERIFIED_PRESENT"
+                else:
+                    endpoints_audit[ep] = "MISSING"
+                    missing_endpoints.append(ep)
+        except Exception as e:
+            for ep in self.REQUIRED_ENDPOINTS:
+                endpoints_audit[ep] = f"ERROR: {e}"
+            missing_endpoints = list(self.REQUIRED_ENDPOINTS)
 
         # Verify strict safety guarantees across policy components
         safety_audit = {
@@ -82,7 +97,7 @@ class GapAuditEngine:
         ui_path = os.path.join(self.workspace_root, "apps", "refine_control_plane", "src", "app", "project-factory", "_components", "ProjectFactoryPortfolioClient.tsx")
         ui_exists = os.path.exists(ui_path)
 
-        success = len(missing_modules) == 0 and ui_exists
+        success = len(missing_modules) == 0 and len(missing_endpoints) == 0 and ui_exists
 
         return {
             "status": "PASSED" if success else "WARNING",
@@ -90,6 +105,7 @@ class GapAuditEngine:
             "total_checks": len(self.REQUIRED_MODULES) + len(self.REQUIRED_ENDPOINTS) + 3,
             "checked_modules": checked_modules,
             "missing_modules": missing_modules,
+            "missing_endpoints": missing_endpoints,
             "endpoints_audited": endpoints_audit,
             "safety_audit": safety_audit,
             "ui_integration": {

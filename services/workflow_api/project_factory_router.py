@@ -13,6 +13,8 @@ from services.project_factory.models import (
     ApproveDeliveryRequest,
     RevisionRequest,
     RejectCandidateRequest,
+    ApplyPreviewRequest,
+    DraftPrPrepareRequest,
     DraftPrCreateRequest,
     PrReviewRunRequest,
     PrReviewDecisionRequest,
@@ -48,6 +50,9 @@ from services.project_factory.human_gate_service import (
 )
 from services.project_factory.delivery_packager import load_delivery_manifest
 from services.project_factory.delivery_logs import get_delivery_decisions
+from services.project_factory.apply_preview import run_apply_preview, get_apply_preview
+from services.project_factory.draft_pr_planner import prepare_draft_pr_plan, get_draft_pr_plan
+from services.project_factory.pr_plan_logs import load_draft_pr_plan_logs
 from services.project_factory.artifacts import load_draft_pr_creation
 from services.project_factory.pr_creation_service import execute_pr_creation, abort_pr_creation
 from services.project_factory.pr_creation_logs import get_pr_creation_logs
@@ -462,6 +467,66 @@ async def get_delivery_logs_endpoint(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to retrieve delivery logs: {e}")
+
+@router.post("/{project_id}/apply-preview/run")
+async def run_apply_preview_endpoint(
+    project_id: str,
+    body: ApplyPreviewRequest,
+    identity: dict[str, Any] = Depends(require_permission("governor.override")),
+):
+    workspace_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    try:
+        preview = run_apply_preview(project_id, body, workspace_root)
+        return {"status": "success", "apply_preview": preview}
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Apply preview failed: {e}")
+
+@router.get("/{project_id}/apply-preview")
+async def get_apply_preview_endpoint(
+    project_id: str,
+    identity: dict[str, Any] = Depends(require_permission("governor.view")),
+):
+    workspace_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    preview = get_apply_preview(project_id, workspace_root)
+    if not preview:
+        raise HTTPException(status_code=404, detail=f"No apply_preview found for project {project_id}")
+    return {"status": "success", "apply_preview": preview}
+
+@router.post("/{project_id}/draft-pr/prepare")
+async def prepare_draft_pr_endpoint(
+    project_id: str,
+    body: DraftPrPrepareRequest,
+    identity: dict[str, Any] = Depends(require_permission("governor.override")),
+):
+    workspace_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    try:
+        plan = prepare_draft_pr_plan(project_id, body, workspace_root)
+        return {"status": "success", "draft_pr_plan": plan}
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Draft PR plan failed: {e}")
+
+@router.get("/{project_id}/draft-pr/plan")
+async def get_draft_pr_plan_endpoint(
+    project_id: str,
+    identity: dict[str, Any] = Depends(require_permission("governor.view")),
+):
+    workspace_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    plan = get_draft_pr_plan(project_id, workspace_root)
+    if not plan:
+        raise HTTPException(status_code=404, detail=f"No draft_pr_plan found for project {project_id}")
+    return {"status": "success", "draft_pr_plan": plan}
+
+@router.get("/{project_id}/draft-pr/logs")
+async def get_draft_pr_plan_logs_endpoint(
+    project_id: str,
+    identity: dict[str, Any] = Depends(require_permission("governor.view")),
+):
+    workspace_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    return {"status": "success", "logs": load_draft_pr_plan_logs(project_id, workspace_root)}
 
 @router.post("/{project_id}/draft-pr/create")
 async def create_draft_pr_endpoint(
@@ -1003,7 +1068,7 @@ async def board_get_apply_preview_endpoint(
     workspace_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     try:
         # Simplification: just return the latest preview
-        preview = load_policy_apply_preview(workspace_root)
+        preview = load_policy_apply_preview(proposal_id, workspace_root)
         if not preview:
             return {"status": "success", "preview": None}
         if preview.get("proposal_id") != proposal_id:
@@ -1044,7 +1109,7 @@ async def board_get_package_endpoint(
 
 # --- Phase 17: Policy Draft PR Plan & Governance Evidence Endpoints ---
 from services.project_factory.models import PolicyDraftPRPlanRequest
-from services.project_factory.policy_draft_pr_planner import prepare_draft_pr_plan
+from services.project_factory.policy_draft_pr_planner import prepare_draft_pr_plan as prepare_policy_draft_pr_plan
 from services.project_factory.policy_governance_packager import generate_governance_evidence_pack
 from services.project_factory.artifacts import load_policy_draft_pr_plan, load_policy_governance_manifest
 from services.project_factory.policy_pr_plan_logs import load_policy_pr_plan_logs
@@ -1057,7 +1122,7 @@ async def pr_plan_prepare_endpoint(
 ):
     workspace_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     try:
-        plan = prepare_draft_pr_plan(proposal_id, body)
+        plan = prepare_policy_draft_pr_plan(proposal_id, body, workspace_root)
         # Generate the evidence pack right after successful preparation
         pack = generate_governance_evidence_pack(proposal_id, workspace_root)
         return {"status": "success", "plan": plan, "evidence_manifest": pack}
@@ -1073,7 +1138,7 @@ async def pr_plan_get_endpoint(
 ):
     workspace_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     try:
-        plan = load_policy_draft_pr_plan(workspace_root)
+        plan = load_policy_draft_pr_plan(proposal_id, workspace_root)
         if not plan or plan.get("proposal_id") != proposal_id:
             return {"status": "success", "plan": None}
         return {"status": "success", "plan": plan}
@@ -1087,7 +1152,7 @@ async def evidence_pack_get_endpoint(
 ):
     workspace_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     try:
-        manifest = load_policy_governance_manifest(workspace_root)
+        manifest = load_policy_governance_manifest(proposal_id, workspace_root)
         if not manifest or manifest.get("proposal_id") != proposal_id:
             return {"status": "success", "manifest": None}
         return {"status": "success", "manifest": manifest}
@@ -1133,8 +1198,8 @@ async def get_policy_pr_status_endpoint(
 ):
     workspace_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     try:
-        status_data = load_policy_pr_status(workspace_root)
-        creation_data = load_policy_pr_creation(workspace_root)
+        status_data = load_policy_pr_status(proposal_id, workspace_root)
+        creation_data = load_policy_pr_creation(proposal_id, workspace_root)
         if not status_data or status_data.get("proposal_id") != proposal_id:
             return {"status": "success", "creation_status": None, "creation_data": None}
         return {"status": "success", "creation_status": status_data, "creation_data": creation_data}
@@ -1181,7 +1246,7 @@ async def get_policy_pr_review_endpoint(
 ):
     workspace_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     try:
-        report = load_policy_pr_review_report(workspace_root)
+        report = load_policy_pr_review_report(proposal_id, workspace_root)
         if not report or report.get("proposal_id") != proposal_id:
             return {"status": "success", "report": None}
         return {"status": "success", "report": report}
@@ -1276,7 +1341,7 @@ async def get_policy_final_release_archive_endpoint(
 ):
     workspace_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     try:
-        manifest = load_policy_release_manifest(workspace_root)
+        manifest = load_policy_release_manifest(proposal_id, workspace_root)
         if not manifest or manifest.get("proposal_id") != proposal_id:
             return {"status": "success", "manifest": None}
         return {"status": "success", "manifest": manifest}

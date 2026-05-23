@@ -25,15 +25,15 @@ def execute_policy_pr_creation(
     """
     try:
         # 1. Load artifacts
-        draft_pr_plan = load_policy_draft_pr_plan(workspace_root)
+        draft_pr_plan = load_policy_draft_pr_plan(proposal_id, workspace_root)
         if not draft_pr_plan or draft_pr_plan.get("proposal_id") != proposal_id:
             raise ValueError(f"Draft PR Plan for {proposal_id} not found or mismatch.")
             
-        apply_preview = load_policy_apply_preview(workspace_root)
+        apply_preview = load_policy_apply_preview(proposal_id, workspace_root)
         if not apply_preview or apply_preview.get("proposal_id") != proposal_id:
             raise ValueError(f"Apply Preview for {proposal_id} not found or mismatch.")
             
-        gov_manifest = load_policy_governance_manifest(workspace_root)
+        gov_manifest = load_policy_governance_manifest(proposal_id, workspace_root)
         if not gov_manifest or gov_manifest.get("proposal_id") != proposal_id:
             raise ValueError(f"Governance Manifest for {proposal_id} not found or mismatch.")
             
@@ -119,8 +119,8 @@ def execute_policy_pr_creation(
             "modified_files": modified_files,
             "four_eyes_enforced": four_eyes
         }
-        write_policy_pr_creation(result, workspace_root)
-        write_policy_pr_status({"status": "POLICY_PR_CREATED_WAITING_REVIEW", "proposal_id": proposal_id}, workspace_root)
+        write_policy_pr_creation(proposal_id, result, workspace_root)
+        write_policy_pr_status(proposal_id, {"status": "POLICY_PR_CREATED_WAITING_REVIEW", "proposal_id": proposal_id}, workspace_root)
         
         log_policy_pr_creation(
             action="CREATE_POLICY_DRAFT_PR_SUCCESS",
@@ -155,8 +155,8 @@ def _record_blocked(proposal_id: str, request: PolicyPRCreationRequest, branch_n
         "force_push_performed": False,
         "production_direct_write": False
     }
-    write_policy_pr_creation(result, workspace_root)
-    write_policy_pr_status({"status": "POLICY_PR_CREATION_BLOCKED", "proposal_id": proposal_id}, workspace_root)
+    write_policy_pr_creation(proposal_id, result, workspace_root)
+    write_policy_pr_status(proposal_id, {"status": "POLICY_PR_CREATION_BLOCKED", "proposal_id": proposal_id}, workspace_root)
     
     log_policy_pr_creation(
         action="CREATE_POLICY_DRAFT_PR_BLOCKED",
@@ -177,8 +177,8 @@ def _record_failure(proposal_id: str, request: PolicyPRCreationRequest, reason_c
         "reason": reason_code,
         "details": details
     }
-    write_policy_pr_creation(result, workspace_root)
-    write_policy_pr_status({"status": "POLICY_PR_CREATION_FAILED", "proposal_id": proposal_id}, workspace_root)
+    write_policy_pr_creation(proposal_id, result, workspace_root)
+    write_policy_pr_status(proposal_id, {"status": "POLICY_PR_CREATION_FAILED", "proposal_id": proposal_id}, workspace_root)
     
     log_policy_pr_creation(
         action="CREATE_POLICY_DRAFT_PR_FAILED",

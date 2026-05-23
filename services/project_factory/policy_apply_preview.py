@@ -51,7 +51,7 @@ def generate_apply_preview(proposal_id: str, workspace_root: Optional[str] = Non
     if blocking_risks:
         preview.status = "POLICY_APPLY_PREVIEW_BLOCKED"
         
-    write_policy_apply_preview(preview.model_dump(), workspace_root)
+    write_policy_apply_preview(proposal_id, preview.model_dump(), workspace_root)
     build_policy_diff_summary(preview, workspace_root)
     
     return preview.model_dump()

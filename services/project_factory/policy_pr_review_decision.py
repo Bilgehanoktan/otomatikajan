@@ -12,7 +12,7 @@ def execute_policy_pr_review_decision(
     Handles operator decision after review is complete.
     Transitions state to POLICY_READY_FOR_FINAL_DECISION or back to drafting.
     """
-    report = load_policy_pr_review_report(workspace_root)
+    report = load_policy_pr_review_report(proposal_id, workspace_root)
     if not report or report.get("proposal_id") != proposal_id:
         raise ValueError(f"No PR Review Report found for {proposal_id}")
         
@@ -31,7 +31,7 @@ def execute_policy_pr_review_decision(
         new_status = "POLICY_PR_REVIEW_DEFERRED"
         
     # Write artifact
-    write_policy_pr_status({
+    write_policy_pr_status(proposal_id, {
         "proposal_id": proposal_id,
         "status": new_status,
         "operator_id": request.operator_id

@@ -16,6 +16,7 @@ def test_command_safety_blacklist():
     # Command chaining or redirection must throw ValueError
     unsafe_commands = [
         "npm run build && echo 'pwned'",
+        "npm run build & echo 'pwned'",
         "npm run lint || echo 'pwned'",
         "npm test ; rm -rf /",
         "py -3.13 -m pytest > output.txt",

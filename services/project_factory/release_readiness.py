@@ -42,7 +42,7 @@ class ReleaseReadinessOrchestrator:
             "project": "Sovereign AGI — Project Factory & Policy Autopilot",
             "version": "1.0.0-phase21",
             "stabilization_date": datetime.utcnow().isoformat() + "Z",
-            "phases_covered": list(range(21)),
+            "phases_covered": list(range(22)),
             "modules_verified": len(audit_res["checked_modules"]),
             "author": "Antigravity",
             "governance_adhered": True
@@ -52,7 +52,9 @@ class ReleaseReadinessOrchestrator:
             json.dump(phase_manifest, f, indent=4)
         self._log_event("PHASE_MANIFEST_GENERATED", {"path": manifest_path})
 
-        # 3. Simulated E2E Smoke Test Trace
+        # 3. Service-level E2E smoke trace. This validates route/module wiring and
+        # records the lifecycle as a non-mutating dry-run; it does not claim that
+        # pytest or frontend build commands were executed by this orchestrator.
         self._log_event("E2E_SMOKE_TEST_START", {})
         e2e_trace = [
             {"step": 1, "state": "POLICY_SUGGESTIONS_READY", "description": "CEO Policy Suggestion successfully mined.", "status": "PASSED"},
@@ -66,7 +68,7 @@ class ReleaseReadinessOrchestrator:
             {"step": 9, "state": "POLICY_LIFECYCLE_CLOSED", "description": "Release archive built & learning sync executed strictly in artifact-only mode.", "status": "PASSED"}
         ]
         smoke_report = {
-            "status": "SUCCESS",
+            "status": "SUCCESS" if audit_res["status"] == "PASSED" else "WARNING",
             "completed_at": datetime.utcnow().isoformat() + "Z",
             "steps_executed": len(e2e_trace),
             "trace": e2e_trace,
@@ -90,7 +92,7 @@ class ReleaseReadinessOrchestrator:
             "verification_checksums": {
                 "gap_audit": "OK",
                 "smoke_test": "OK",
-                "tests_verification": "ALL_PASSED_100%"
+                "tests_verification": "EXTERNAL_TEST_COMMANDS_REQUIRED"
             },
             "signoff_records": {
                 "operator_signoff": "PORTFOLIO-ADMIN",

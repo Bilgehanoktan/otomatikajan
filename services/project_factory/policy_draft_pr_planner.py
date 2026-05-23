@@ -1,20 +1,24 @@
 import os
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from services.project_factory.models import PolicyDraftPRPlanRequest, PolicyDraftPRPlan
 from services.project_factory.artifacts import load_policy_apply_preview, write_policy_draft_pr_plan
 from services.project_factory.policy_board_service import load_policy_proposals
 from services.project_factory.policy_pr_plan_safety import check_policy_pr_plan_safety
 from services.project_factory.policy_pr_plan_logs import log_policy_pr_plan
 
-def prepare_draft_pr_plan(proposal_id: str, request: PolicyDraftPRPlanRequest) -> Dict[str, Any]:
+def prepare_draft_pr_plan(
+    proposal_id: str,
+    request: PolicyDraftPRPlanRequest,
+    workspace_root: Optional[str] = None,
+) -> Dict[str, Any]:
     """
     Prepares a draft PR plan from an approved apply preview without modifying git or policy files.
     """
-    preview = load_policy_apply_preview()
+    preview = load_policy_apply_preview(proposal_id, workspace_root)
     if not preview:
         raise ValueError("Apply preview not found.")
         
-    proposals_data = load_policy_proposals()
+    proposals_data = load_policy_proposals(workspace_root)
     proposal = None
     if proposals_data:
         for p in proposals_data.get("proposals", []):
@@ -50,7 +54,8 @@ def prepare_draft_pr_plan(proposal_id: str, request: PolicyDraftPRPlanRequest) -
             proposal_id=proposal_id,
             operator_id=request.operator_id,
             rationale="Blocked by safety checks",
-            status="POLICY_PR_PLAN_BLOCKED"
+            status="POLICY_PR_PLAN_BLOCKED",
+            workspace_root=workspace_root
         )
         raise ValueError(f"Safety checks failed: {', '.join(risks)}")
         
@@ -65,14 +70,15 @@ def prepare_draft_pr_plan(proposal_id: str, request: PolicyDraftPRPlanRequest) -
     
     plan_dict = plan.model_dump()
     
-    write_policy_draft_pr_plan(plan_dict)
+    write_policy_draft_pr_plan(proposal_id, plan_dict, workspace_root)
     
     log_policy_pr_plan(
         action="PREPARE_POLICY_DRAFT_PR_PLAN",
         proposal_id=proposal_id,
         operator_id=request.operator_id,
         rationale=request.rationale,
-        status=plan.status
+        status=plan.status,
+        workspace_root=workspace_root
     )
     
     return plan_dict

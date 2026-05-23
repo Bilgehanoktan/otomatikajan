@@ -56,14 +56,20 @@ class GitWorkspaceExecutor:
         delivery_files_dir = project_dir / "delivery_package" / "files"
         
         for file_path in files_to_apply:
-            src = delivery_files_dir / file_path
-            dest = self.workspace_root / file_path
+            src = (delivery_files_dir / file_path).resolve()
+            dest = (self.workspace_root / file_path).resolve()
+            try:
+                src.relative_to(delivery_files_dir.resolve())
+            except ValueError:
+                raise GitSafetyViolation(f"Path traversal detected in delivery source: {file_path}")
             
             if not src.exists() or not src.is_file():
                 continue # If not a file in delivery package, maybe it's meant to be deleted? We only support add/modify currently.
                 
             # Path traversal safety
-            if not str(dest.resolve()).startswith(str(self.workspace_root)):
+            try:
+                dest.relative_to(self.workspace_root)
+            except ValueError:
                 raise GitSafetyViolation(f"Path traversal detected in file: {file_path}")
             
             dest.parent.mkdir(parents=True, exist_ok=True)

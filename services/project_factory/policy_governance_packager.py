@@ -16,15 +16,15 @@ def generate_governance_evidence_pack(proposal_id: str, workspace_root: str = No
     Creates the policy_governance_evidence_pack directory and copies all relevant evidence files.
     Generates policy_governance_manifest.json and policy_pr_diff_summary.md inside it.
     """
-    d = _resolve_policy_autopilot_dir(workspace_root)
+    d = _resolve_policy_autopilot_dir(workspace_root, proposal_id)
     pack_dir = d / "policy_governance_evidence_pack"
     pack_dir.mkdir(parents=True, exist_ok=True)
     
-    plan = load_policy_draft_pr_plan(workspace_root)
+    plan = load_policy_draft_pr_plan(proposal_id, workspace_root)
     if not plan or plan.get("proposal_id") != proposal_id:
         raise ValueError("Policy Draft PR Plan not found or mismatch.")
         
-    preview = load_policy_apply_preview(workspace_root)
+    preview = load_policy_apply_preview(proposal_id, workspace_root)
     if not preview:
         raise ValueError("Apply preview not found.")
         
@@ -59,6 +59,6 @@ def generate_governance_evidence_pack(proposal_id: str, workspace_root: str = No
     )
     
     manifest_dict = manifest.model_dump()
-    write_policy_governance_manifest(manifest_dict, workspace_root)
+    write_policy_governance_manifest(proposal_id, manifest_dict, workspace_root)
     
     return manifest_dict

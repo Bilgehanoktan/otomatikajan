@@ -18,5 +18,5 @@ def run_policy_pr_agent_review(proposal_id: str, workspace_root: str = None) -> 
         ]
     )
     
-    write_policy_pr_agent_review(review.model_dump(), workspace_root)
+    write_policy_pr_agent_review(proposal_id, review.model_dump(), workspace_root)
     return review

@@ -12,10 +12,10 @@ def run_policy_verifier_mesh(proposal_id: str, workspace_root: str = None) -> Po
     """
     Runs safety constraints and verifies PR properties.
     """
-    pr_creation = load_policy_pr_creation(workspace_root) or {}
-    apply_preview = load_policy_apply_preview(workspace_root) or {}
-    gov_manifest = load_policy_governance_manifest(workspace_root) or {}
-    pr_plan = load_policy_draft_pr_plan(workspace_root) or {}
+    pr_creation = load_policy_pr_creation(proposal_id, workspace_root) or {}
+    apply_preview = load_policy_apply_preview(proposal_id, workspace_root) or {}
+    gov_manifest = load_policy_governance_manifest(proposal_id, workspace_root) or {}
+    pr_plan = load_policy_draft_pr_plan(proposal_id, workspace_root) or {}
 
     checks: List[PolicyVerifierCheck] = []
     
@@ -101,5 +101,5 @@ def run_policy_verifier_mesh(proposal_id: str, workspace_root: str = None) -> Po
         checks=checks
     )
     
-    write_policy_verifier_mesh_report(report.model_dump(), workspace_root)
+    write_policy_verifier_mesh_report(proposal_id, report.model_dump(), workspace_root)
     return report

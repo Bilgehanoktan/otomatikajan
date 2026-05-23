@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import json
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
 from services.project_factory.models import ProjectFactoryIntake, RequirementGate
 
 def _resolve_project_dir(project_id: str, workspace_root: Optional[str] = None) -> Path:
@@ -91,6 +91,16 @@ def load_apply_preview(
     with open(preview_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
+def write_apply_preview(
+    project_id: str,
+    preview_data: Dict[str, Any],
+    workspace_root: Optional[str] = None
+) -> None:
+    project_dir = _resolve_project_dir(project_id, workspace_root)
+    project_dir.mkdir(parents=True, exist_ok=True)
+    with open(project_dir / "apply_preview.json", "w", encoding="utf-8") as f:
+        json.dump(preview_data, f, indent=2, ensure_ascii=False)
+
 def load_draft_pr_plan(
     project_id: str,
     workspace_root: Optional[str] = None
@@ -101,6 +111,16 @@ def load_draft_pr_plan(
         return None
     with open(plan_path, "r", encoding="utf-8") as f:
         return json.load(f)
+
+def write_draft_pr_plan(
+    project_id: str,
+    plan_data: Dict[str, Any],
+    workspace_root: Optional[str] = None
+) -> None:
+    project_dir = _resolve_project_dir(project_id, workspace_root)
+    project_dir.mkdir(parents=True, exist_ok=True)
+    with open(project_dir / "draft_pr_plan.json", "w", encoding="utf-8") as f:
+        json.dump(plan_data, f, indent=2, ensure_ascii=False)
 
 def write_draft_pr_creation(
     project_id: str,
@@ -261,11 +281,73 @@ def write_ceo_learning_suggestions(data: Dict[str, Any], workspace_root: Optiona
 
 # --- Phase 15: Portfolio Policy Autopilot Artifacts ---
 
-def _resolve_policy_autopilot_dir(workspace_root: Optional[str] = None) -> Path:
+def _resolve_policy_autopilot_dir(workspace_root: Optional[str] = None, proposal_id: Optional[str] = None) -> Path:
     root = _resolve_project_factory_root(workspace_root)
     autopilot_dir = root / "policy_autopilot"
+    if proposal_id:
+        autopilot_dir = autopilot_dir / proposal_id
     autopilot_dir.mkdir(parents=True, exist_ok=True)
     return autopilot_dir
+
+def _looks_like_workspace_root(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    return any(sep in value for sep in ("/", "\\")) or Path(value).exists()
+
+def _coerce_policy_args(
+    proposal_id: Optional[Any],
+    workspace_root: Optional[str],
+) -> Tuple[Optional[str], Optional[str]]:
+    if _looks_like_workspace_root(proposal_id) and workspace_root is None:
+        return None, str(proposal_id)
+    if proposal_id is None:
+        return None, workspace_root
+    return str(proposal_id), workspace_root
+
+def _write_policy_json(
+    filename: str,
+    proposal_id: Optional[Any],
+    data: Optional[Dict[str, Any]] = None,
+    workspace_root: Optional[str] = None,
+) -> None:
+    # Backward compatibility: write_policy_x(data, workspace_root)
+    if isinstance(proposal_id, dict):
+        if isinstance(data, str) and workspace_root is None:
+            workspace_root = data
+        data = proposal_id
+        proposal_id = data.get("proposal_id")
+    if data is None:
+        raise TypeError(f"{filename} write requires data")
+    proposal_id, workspace_root = _coerce_policy_args(proposal_id, workspace_root)
+    d = _resolve_policy_autopilot_dir(workspace_root, proposal_id)
+    with open(d / filename, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+    if proposal_id:
+        legacy_dir = _resolve_policy_autopilot_dir(workspace_root)
+        with open(legacy_dir / filename, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+
+def _load_policy_json(
+    filename: str,
+    proposal_id: Optional[Any] = None,
+    workspace_root: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
+    proposal_id, workspace_root = _coerce_policy_args(proposal_id, workspace_root)
+    candidates = []
+    if proposal_id:
+        candidates.append(_resolve_policy_autopilot_dir(workspace_root, proposal_id) / filename)
+    # Legacy global artifact fallback keeps older tests and existing local artifacts readable.
+    candidates.append(_resolve_policy_autopilot_dir(workspace_root) / filename)
+
+    for path in candidates:
+        if not path.exists():
+            continue
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if proposal_id and data.get("proposal_id") not in (None, proposal_id):
+            continue
+        return data
+    return None
 
 def write_policy_proposals(data: Dict[str, Any], workspace_root: Optional[str] = None) -> None:
     d = _resolve_policy_autopilot_dir(workspace_root)
@@ -313,135 +395,100 @@ def write_policy_suggestion_candidates(data: Dict[str, Any], workspace_root: Opt
 
 # --- Phase 16: Policy Board & Apply Preview Artifacts ---
 
-def write_policy_apply_preview(data: Dict[str, Any], workspace_root: Optional[str] = None) -> None:
-    d = _resolve_policy_autopilot_dir(workspace_root)
-    with open(d / "policy_apply_preview.json", "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+def write_policy_apply_preview(proposal_id: Any, data: Optional[Dict[str, Any]] = None, workspace_root: Optional[str] = None) -> None:
+    _write_policy_json("policy_apply_preview.json", proposal_id, data, workspace_root)
 
-def load_policy_apply_preview(workspace_root: Optional[str] = None) -> Optional[Dict[str, Any]]:
-    d = _resolve_policy_autopilot_dir(workspace_root)
-    path = d / "policy_apply_preview.json"
-    if not path.exists():
-        return None
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+def load_policy_apply_preview(proposal_id: Optional[Any] = None, workspace_root: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    return _load_policy_json("policy_apply_preview.json", proposal_id, workspace_root)
 
-def write_policy_diff_summary(content: str, workspace_root: Optional[str] = None) -> None:
-    d = _resolve_policy_autopilot_dir(workspace_root)
+def write_policy_diff_summary(content: str, workspace_root: Optional[str] = None, proposal_id: Optional[str] = None) -> None:
+    d = _resolve_policy_autopilot_dir(workspace_root, proposal_id)
     with open(d / "policy_diff_summary.md", "w", encoding="utf-8") as f:
         f.write(content)
 
-def write_policy_board_package(data: Dict[str, Any], workspace_root: Optional[str] = None) -> None:
-    d = _resolve_policy_autopilot_dir(workspace_root)
-    with open(d / "policy_board_package.json", "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+def write_policy_board_package(proposal_id: Any, data: Optional[Dict[str, Any]] = None, workspace_root: Optional[str] = None) -> None:
+    _write_policy_json("policy_board_package.json", proposal_id, data, workspace_root)
 
-def load_policy_board_package(workspace_root: Optional[str] = None) -> Optional[Dict[str, Any]]:
-    d = _resolve_policy_autopilot_dir(workspace_root)
-    path = d / "policy_board_package.json"
-    if not path.exists():
-        return None
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+def load_policy_board_package(proposal_id: Optional[Any] = None, workspace_root: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    return _load_policy_json("policy_board_package.json", proposal_id, workspace_root)
 
 # --- Phase 17: Policy Draft PR Plan & Governance Evidence Artifacts ---
 
-def write_policy_draft_pr_plan(data: Dict[str, Any], workspace_root: Optional[str] = None) -> None:
-    d = _resolve_policy_autopilot_dir(workspace_root)
-    with open(d / "policy_draft_pr_plan.json", "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+def write_policy_draft_pr_plan(proposal_id: Any, data: Optional[Dict[str, Any]] = None, workspace_root: Optional[str] = None) -> None:
+    _write_policy_json("policy_draft_pr_plan.json", proposal_id, data, workspace_root)
 
-def load_policy_draft_pr_plan(workspace_root: Optional[str] = None) -> Optional[Dict[str, Any]]:
-    d = _resolve_policy_autopilot_dir(workspace_root)
-    path = d / "policy_draft_pr_plan.json"
-    if not path.exists():
-        return None
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+def load_policy_draft_pr_plan(proposal_id: Optional[Any] = None, workspace_root: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    return _load_policy_json("policy_draft_pr_plan.json", proposal_id, workspace_root)
 
-def write_policy_governance_manifest(data: Dict[str, Any], workspace_root: Optional[str] = None) -> None:
-    d = _resolve_policy_autopilot_dir(workspace_root)
+def write_policy_governance_manifest(proposal_id: Any, data: Optional[Dict[str, Any]] = None, workspace_root: Optional[str] = None) -> None:
+    if isinstance(proposal_id, dict):
+        if isinstance(data, str) and workspace_root is None:
+            workspace_root = data
+        data = proposal_id
+        proposal_id = data.get("proposal_id")
+    if data is None:
+        raise TypeError("policy_governance_manifest write requires data")
+    proposal_id, workspace_root = _coerce_policy_args(proposal_id, workspace_root)
+    d = _resolve_policy_autopilot_dir(workspace_root, proposal_id)
     pack_dir = d / "policy_governance_evidence_pack"
     pack_dir.mkdir(parents=True, exist_ok=True)
     with open(pack_dir / "policy_governance_manifest.json", "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
+    if proposal_id:
+        legacy_pack_dir = _resolve_policy_autopilot_dir(workspace_root) / "policy_governance_evidence_pack"
+        legacy_pack_dir.mkdir(parents=True, exist_ok=True)
+        with open(legacy_pack_dir / "policy_governance_manifest.json", "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
 
-def load_policy_governance_manifest(workspace_root: Optional[str] = None) -> Optional[Dict[str, Any]]:
-    d = _resolve_policy_autopilot_dir(workspace_root)
-    path = d / "policy_governance_evidence_pack" / "policy_governance_manifest.json"
-    if not path.exists():
-        return None
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+def load_policy_governance_manifest(proposal_id: Optional[Any] = None, workspace_root: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    proposal_id, workspace_root = _coerce_policy_args(proposal_id, workspace_root)
+    candidates = []
+    if proposal_id:
+        candidates.append(_resolve_policy_autopilot_dir(workspace_root, proposal_id) / "policy_governance_evidence_pack" / "policy_governance_manifest.json")
+    candidates.append(_resolve_policy_autopilot_dir(workspace_root) / "policy_governance_evidence_pack" / "policy_governance_manifest.json")
+    for path in candidates:
+        if not path.exists():
+            continue
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if proposal_id and data.get("proposal_id") not in (None, proposal_id):
+            continue
+        return data
+    return None
 
 # --- Phase 18: Operator-Approved Policy Draft PR Creation Artifacts ---
 
-def write_policy_pr_creation(data: Dict[str, Any], workspace_root: Optional[str] = None) -> None:
-    d = _resolve_policy_autopilot_dir(workspace_root)
-    with open(d / "policy_pr_creation.json", "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+def write_policy_pr_creation(proposal_id: Any, data: Optional[Dict[str, Any]] = None, workspace_root: Optional[str] = None) -> None:
+    _write_policy_json("policy_pr_creation.json", proposal_id, data, workspace_root)
 
-def load_policy_pr_creation(workspace_root: Optional[str] = None) -> Optional[Dict[str, Any]]:
-    d = _resolve_policy_autopilot_dir(workspace_root)
-    path = d / "policy_pr_creation.json"
-    if not path.exists():
-        return None
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+def load_policy_pr_creation(proposal_id: Optional[Any] = None, workspace_root: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    return _load_policy_json("policy_pr_creation.json", proposal_id, workspace_root)
 
-def write_policy_pr_status(data: Dict[str, Any], workspace_root: Optional[str] = None) -> None:
-    d = _resolve_policy_autopilot_dir(workspace_root)
-    with open(d / "policy_pr_status.json", "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+def write_policy_pr_status(proposal_id: Any, data: Optional[Dict[str, Any]] = None, workspace_root: Optional[str] = None) -> None:
+    _write_policy_json("policy_pr_status.json", proposal_id, data, workspace_root)
 
-def load_policy_pr_status(workspace_root: Optional[str] = None) -> Optional[Dict[str, Any]]:
-    d = _resolve_policy_autopilot_dir(workspace_root)
-    path = d / "policy_pr_status.json"
-    if not path.exists():
-        return None
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+def load_policy_pr_status(proposal_id: Optional[Any] = None, workspace_root: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    return _load_policy_json("policy_pr_status.json", proposal_id, workspace_root)
 
 # --- Phase 19: Policy PR Review Gate + Verifier Mesh Artifacts ---
 
-def write_policy_pr_review_report(data: Dict[str, Any], workspace_root: Optional[str] = None) -> None:
-    d = _resolve_policy_autopilot_dir(workspace_root)
-    with open(d / "policy_pr_review_report.json", "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+def write_policy_pr_review_report(proposal_id: Any, data: Optional[Dict[str, Any]] = None, workspace_root: Optional[str] = None) -> None:
+    _write_policy_json("policy_pr_review_report.json", proposal_id, data, workspace_root)
 
-def load_policy_pr_review_report(workspace_root: Optional[str] = None) -> Optional[Dict[str, Any]]:
-    d = _resolve_policy_autopilot_dir(workspace_root)
-    path = d / "policy_pr_review_report.json"
-    if not path.exists():
-        return None
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+def load_policy_pr_review_report(proposal_id: Optional[Any] = None, workspace_root: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    return _load_policy_json("policy_pr_review_report.json", proposal_id, workspace_root)
 
-def write_policy_pr_agent_review(data: Dict[str, Any], workspace_root: Optional[str] = None) -> None:
-    d = _resolve_policy_autopilot_dir(workspace_root)
-    with open(d / "policy_pr_agent_review.json", "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+def write_policy_pr_agent_review(proposal_id: Any, data: Optional[Dict[str, Any]] = None, workspace_root: Optional[str] = None) -> None:
+    _write_policy_json("policy_pr_agent_review.json", proposal_id, data, workspace_root)
 
-def load_policy_pr_agent_review(workspace_root: Optional[str] = None) -> Optional[Dict[str, Any]]:
-    d = _resolve_policy_autopilot_dir(workspace_root)
-    path = d / "policy_pr_agent_review.json"
-    if not path.exists():
-        return None
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+def load_policy_pr_agent_review(proposal_id: Optional[Any] = None, workspace_root: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    return _load_policy_json("policy_pr_agent_review.json", proposal_id, workspace_root)
 
-def write_policy_verifier_mesh_report(data: Dict[str, Any], workspace_root: Optional[str] = None) -> None:
-    d = _resolve_policy_autopilot_dir(workspace_root)
-    with open(d / "policy_verifier_mesh_report.json", "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+def write_policy_verifier_mesh_report(proposal_id: Any, data: Optional[Dict[str, Any]] = None, workspace_root: Optional[str] = None) -> None:
+    _write_policy_json("policy_verifier_mesh_report.json", proposal_id, data, workspace_root)
 
-def load_policy_verifier_mesh_report(workspace_root: Optional[str] = None) -> Optional[Dict[str, Any]]:
-    d = _resolve_policy_autopilot_dir(workspace_root)
-    path = d / "policy_verifier_mesh_report.json"
-    if not path.exists():
-        return None
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+def load_policy_verifier_mesh_report(proposal_id: Optional[Any] = None, workspace_root: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    return _load_policy_json("policy_verifier_mesh_report.json", proposal_id, workspace_root)
 
 # --- Phase 20: Policy Final Decision + Release Archive Artifacts ---
 
@@ -449,8 +496,9 @@ def write_policy_release_manifest(data: Dict[str, Any], archive_dir: Path) -> No
     with open(archive_dir / "policy_release_manifest.json", "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
-def load_policy_release_manifest(workspace_root: Optional[str] = None) -> Optional[Dict[str, Any]]:
-    d = _resolve_policy_autopilot_dir(workspace_root)
+def load_policy_release_manifest(proposal_id: Optional[Any] = None, workspace_root: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    proposal_id, workspace_root = _coerce_policy_args(proposal_id, workspace_root)
+    d = _resolve_policy_autopilot_dir(workspace_root, proposal_id)
     path = d / "policy_release_archive" / "policy_release_manifest.json"
     if not path.exists():
         return None
@@ -461,23 +509,17 @@ def write_policy_learning_memory_sync(data: Dict[str, Any], archive_dir: Path) -
     with open(archive_dir / "policy_learning_memory_sync.json", "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
-def load_policy_learning_memory_sync(workspace_root: Optional[str] = None) -> Optional[Dict[str, Any]]:
-    d = _resolve_policy_autopilot_dir(workspace_root)
+def load_policy_learning_memory_sync(proposal_id: Optional[Any] = None, workspace_root: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    proposal_id, workspace_root = _coerce_policy_args(proposal_id, workspace_root)
+    d = _resolve_policy_autopilot_dir(workspace_root, proposal_id)
     path = d / "policy_release_archive" / "policy_learning_memory_sync.json"
     if not path.exists():
         return None
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
-def write_policy_pr_review_scorecard(data: Dict[str, Any], workspace_root: Optional[str] = None) -> None:
-    d = _resolve_policy_autopilot_dir(workspace_root)
-    with open(d / "policy_pr_review_scorecard.json", "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+def write_policy_pr_review_scorecard(proposal_id: Any, data: Optional[Dict[str, Any]] = None, workspace_root: Optional[str] = None) -> None:
+    _write_policy_json("policy_pr_review_scorecard.json", proposal_id, data, workspace_root)
 
-def load_policy_pr_review_scorecard(workspace_root: Optional[str] = None) -> Optional[Dict[str, Any]]:
-    d = _resolve_policy_autopilot_dir(workspace_root)
-    path = d / "policy_pr_review_scorecard.json"
-    if not path.exists():
-        return None
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+def load_policy_pr_review_scorecard(proposal_id: Optional[Any] = None, workspace_root: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    return _load_policy_json("policy_pr_review_scorecard.json", proposal_id, workspace_root)

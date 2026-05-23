@@ -4,12 +4,12 @@ from pathlib import Path
 from typing import Optional
 from services.project_factory.artifacts import _resolve_policy_autopilot_dir
 
-def build_policy_evidence_bundle(archive_dir: Path, workspace_root: Optional[str] = None) -> int:
+def build_policy_evidence_bundle(archive_dir: Path, workspace_root: Optional[str] = None, proposal_id: Optional[str] = None) -> int:
     """
     Copies all governance and policy artifacts into the evidence bundle.
     Returns the number of files bundled.
     """
-    source_dir = _resolve_policy_autopilot_dir(workspace_root)
+    source_dir = _resolve_policy_autopilot_dir(workspace_root, proposal_id)
     bundle_dir = archive_dir / "policy_evidence_bundle"
     bundle_dir.mkdir(parents=True, exist_ok=True)
     

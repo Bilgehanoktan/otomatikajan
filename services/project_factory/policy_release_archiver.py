@@ -11,7 +11,7 @@ def create_policy_release_archive(proposal_id: str, operator_id: str, final_deci
     """
     Orchestrates the creation of the final release archive.
     """
-    source_dir = _resolve_policy_autopilot_dir(workspace_root)
+    source_dir = _resolve_policy_autopilot_dir(workspace_root, proposal_id)
     archive_dir = source_dir / "policy_release_archive"
     archive_dir.mkdir(parents=True, exist_ok=True)
     
@@ -20,9 +20,14 @@ def create_policy_release_archive(proposal_id: str, operator_id: str, final_deci
     # 1. Build learning memory sync artifact
     learning_sync = build_policy_learning_memory_sync(proposal_id, workspace_root)
     write_policy_learning_memory_sync(learning_sync.model_dump(), archive_dir)
+    legacy_archive_dir = _resolve_policy_autopilot_dir(workspace_root) / "policy_release_archive"
+    legacy_archive_dir.mkdir(parents=True, exist_ok=True)
+    write_policy_learning_memory_sync(learning_sync.model_dump(), legacy_archive_dir)
     
     # 2. Build evidence bundle
-    evidence_count = build_policy_evidence_bundle(archive_dir, workspace_root)
+    evidence_count = build_policy_evidence_bundle(archive_dir, workspace_root, proposal_id)
+    legacy_evidence_count = build_policy_evidence_bundle(legacy_archive_dir, workspace_root)
+    evidence_count = max(evidence_count, legacy_evidence_count)
     
     # 3. Build manifest
     manifest = PolicyReleaseManifest(
@@ -41,8 +46,10 @@ def create_policy_release_archive(proposal_id: str, operator_id: str, final_deci
     
     manifest_dict = manifest.model_dump()
     write_policy_release_manifest(manifest_dict, archive_dir)
+    write_policy_release_manifest(manifest_dict, legacy_archive_dir)
     
     # 4. Generate closure report
     generate_policy_closure_report(manifest_dict, archive_dir)
+    generate_policy_closure_report(manifest_dict, legacy_archive_dir)
     
     return manifest

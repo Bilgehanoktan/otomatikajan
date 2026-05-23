@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import subprocess
+import os
+import shlex
 from pathlib import Path
 from typing import Optional, Dict, Any
 
 # Forbidden command substrings or symbols
 FORBIDDEN_OPERATORS = [
-    "&&", "||", ";", ">", ">>", "<", "|", "$(", "`", "start-process", "docker", "git", "curl", "wget", "env"
+    "&&", "||", "&", ";", ">", ">>", "<", "|", "$(", "`", "start-process", "docker", "git", "curl", "wget", "env"
 ]
 
 # Whitelist of allowed exact/starts-with commands
@@ -40,6 +42,14 @@ def check_command_safety(command_str: str) -> None:
     if not is_whitelisted:
         raise ValueError(f"Command '{command_str}' is not in the approved whitelist of commands.")
 
+def _command_to_args(command_str: str) -> list[str]:
+    args = shlex.split(command_str, posix=False)
+    if not args:
+        raise ValueError("Command cannot be empty.")
+    if os.name == "nt" and args[0].lower() == "npm":
+        args[0] = "npm.cmd"
+    return args
+
 def execute_sandbox_command(
     project_id: str,
     command_str: str,
@@ -60,9 +70,9 @@ def execute_sandbox_command(
     try:
         # Run command with a timeout to prevent hanging
         res = subprocess.run(
-            command_str,
+            _command_to_args(command_str),
             cwd=sandbox_path,
-            shell=True,
+            shell=False,
             capture_output=True,
             text=True,
             timeout=30

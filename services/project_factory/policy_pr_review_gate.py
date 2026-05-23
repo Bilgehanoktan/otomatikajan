@@ -16,7 +16,7 @@ def run_policy_pr_review_gate(
     Does NOT merge or modify the branch.
     """
     # Verify prerequisites
-    pr_creation = load_policy_pr_creation(workspace_root)
+    pr_creation = load_policy_pr_creation(proposal_id, workspace_root)
     if not pr_creation or pr_creation.get("proposal_id") != proposal_id:
         raise ValueError(f"No PR Creation artifact found for {proposal_id}")
         
@@ -73,10 +73,10 @@ def run_policy_pr_review_gate(
     )
     
     # Write artifacts
-    write_policy_pr_review_report(report.model_dump(), workspace_root)
+    write_policy_pr_review_report(proposal_id, report.model_dump(), workspace_root)
     
     # Update status artifact
-    write_policy_pr_status({
+    write_policy_pr_status(proposal_id, {
         "proposal_id": proposal_id,
         "status": final_status,
         "operator_id": "SYSTEM"

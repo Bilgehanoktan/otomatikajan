@@ -29,4 +29,4 @@ def build_policy_diff_summary(preview: PolicyApplyPreview, workspace_root: Optio
             lines.append(f"- {r}")
             
     content = "\n".join(lines)
-    write_policy_diff_summary(content, workspace_root)
+    write_policy_diff_summary(proposal_id, content, workspace_root)

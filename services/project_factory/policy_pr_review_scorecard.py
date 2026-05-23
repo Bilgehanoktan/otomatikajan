@@ -49,5 +49,5 @@ def calculate_policy_pr_scorecard(
         verifier_pass_rate=verifier_pass_rate
     )
     
-    write_policy_pr_review_scorecard(scorecard.model_dump(), workspace_root)
+    write_policy_pr_review_scorecard(proposal_id, scorecard.model_dump(), workspace_root)
     return scorecard

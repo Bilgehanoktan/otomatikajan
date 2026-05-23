@@ -19,19 +19,19 @@ def validate_final_approve_security(proposal_id: str, workspace_root: Optional[s
     Validates that no unsafe operations were performed before allowing a final approve.
     """
     # 1. Review status MUST be PASSED
-    review_report = load_policy_pr_review_report(workspace_root)
+    review_report = load_policy_pr_review_report(proposal_id, workspace_root)
     if not review_report or review_report.get("status") != "POLICY_PR_REVIEW_PASSED":
         raise ValueError("Cannot final approve: PR Review status is not PASSED.")
     if review_report.get("blocking_findings"):
         raise ValueError("Cannot final approve: PR Review has blocking findings.")
         
     # 2. Verifier Mesh MUST be PASSED
-    mesh = load_policy_verifier_mesh_report(workspace_root)
+    mesh = load_policy_verifier_mesh_report(proposal_id, workspace_root)
     if not mesh or mesh.get("status") != "PASSED":
         raise ValueError("Cannot final approve: Verifier Mesh is not PASSED.")
         
     # 3. Check for specific safety flags across artifacts
-    creation = load_policy_pr_creation(workspace_root)
+    creation = load_policy_pr_creation(proposal_id, workspace_root)
     if creation:
         if creation.get("merge_performed"):
             raise ValueError("Safety violation: merge_performed is True.")
@@ -40,12 +40,12 @@ def validate_final_approve_security(proposal_id: str, workspace_root: Optional[s
         if creation.get("production_direct_write"):
             raise ValueError("Safety violation: production_direct_write is True.")
             
-    pr_plan = load_policy_draft_pr_plan(workspace_root)
+    pr_plan = load_policy_draft_pr_plan(proposal_id, workspace_root)
     if pr_plan:
         if pr_plan.get("git_operations_performed"):
             raise ValueError("Safety violation: pr plan performed git operations prematurely.")
             
-    apply_preview = load_policy_apply_preview(workspace_root)
+    apply_preview = load_policy_apply_preview(proposal_id, workspace_root)
     if apply_preview:
         if apply_preview.get("production_apply_performed"):
             raise ValueError("Safety violation: production_apply_performed is True.")
@@ -59,7 +59,7 @@ def execute_final_approve(proposal_id: str, request: PolicyFinalDecisionRequest,
     if not request.risk_acknowledgement:
         raise ValueError("Risk acknowledgement is required to final approve the policy.")
         
-    status_data = load_policy_pr_status(workspace_root)
+    status_data = load_policy_pr_status(proposal_id, workspace_root)
     if not status_data or status_data.get("status") != "POLICY_READY_FOR_FINAL_DECISION":
         raise ValueError(f"Proposal must be in POLICY_READY_FOR_FINAL_DECISION status. Current: {status_data.get('status') if status_data else 'None'}")
         
@@ -82,7 +82,7 @@ def execute_final_approve(proposal_id: str, request: PolicyFinalDecisionRequest,
     
     # Update status
     status_data["status"] = "POLICY_LIFECYCLE_CLOSED"
-    write_policy_pr_status(status_data, workspace_root)
+    write_policy_pr_status(proposal_id, status_data, workspace_root)
     
     return {
         "status": "success",
@@ -92,7 +92,7 @@ def execute_final_approve(proposal_id: str, request: PolicyFinalDecisionRequest,
     }
 
 def execute_final_reject(proposal_id: str, request: PolicyFinalDecisionRequest, workspace_root: Optional[str] = None) -> Dict[str, Any]:
-    status_data = load_policy_pr_status(workspace_root)
+    status_data = load_policy_pr_status(proposal_id, workspace_root)
     if not status_data or status_data.get("status") != "POLICY_READY_FOR_FINAL_DECISION":
         raise ValueError("Proposal must be in POLICY_READY_FOR_FINAL_DECISION status.")
         
@@ -107,12 +107,12 @@ def execute_final_reject(proposal_id: str, request: PolicyFinalDecisionRequest, 
     }, workspace_root)
     
     status_data["status"] = "FINAL_POLICY_REJECTED"
-    write_policy_pr_status(status_data, workspace_root)
+    write_policy_pr_status(proposal_id, status_data, workspace_root)
     
     return {"status": "success", "new_status": "FINAL_POLICY_REJECTED"}
 
 def execute_final_revision_request(proposal_id: str, request: PolicyFinalRevisionRequest, workspace_root: Optional[str] = None) -> Dict[str, Any]:
-    status_data = load_policy_pr_status(workspace_root)
+    status_data = load_policy_pr_status(proposal_id, workspace_root)
     if not status_data or status_data.get("status") != "POLICY_READY_FOR_FINAL_DECISION":
         raise ValueError("Proposal must be in POLICY_READY_FOR_FINAL_DECISION status.")
         
@@ -128,6 +128,6 @@ def execute_final_revision_request(proposal_id: str, request: PolicyFinalRevisio
     }, workspace_root)
     
     status_data["status"] = "FINAL_POLICY_REVISION_REQUESTED"
-    write_policy_pr_status(status_data, workspace_root)
+    write_policy_pr_status(proposal_id, status_data, workspace_root)
     
     return {"status": "success", "new_status": "FINAL_POLICY_REVISION_REQUESTED"}
