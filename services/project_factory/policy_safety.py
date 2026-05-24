@@ -27,4 +27,3 @@ def check_policy_safety(proposal: PolicyProposal) -> List[str]:
             blocking_risks.append("Delete operations are blocked in recommended_changes.")
             
     return blocking_risks
-\n# Added via Policy Autopilot SMOKE-TEST-001\n
