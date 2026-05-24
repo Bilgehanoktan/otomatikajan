@@ -11,6 +11,7 @@ from services.self_repair_audit.finding_classifier import classify_findings
 
 # Scanners
 from services.self_repair_audit.api_contract_scanner import APIContractScanner
+from services.self_repair_audit.dashboard_data_source_contract_scanner import DashboardDataSourceContractScanner
 from services.self_repair_audit.dashboard_health_scanner import DashboardHealthScanner
 from services.self_repair_audit.test_build_scanner import TestBuildScanner
 from services.self_repair_audit.security_guardrail_scanner import SecurityGuardrailScanner
@@ -81,6 +82,10 @@ class AuditOrchestrator:
         dash_art = dash_scanner.scan(audit_run_id)
         save_artifact(audit_run_id, "dashboard_health_audit.json", dash_art.to_dict(), workspace_root=self.workspace_root)
 
+        ds_scanner = DashboardDataSourceContractScanner(self.workspace_root)
+        ds_art = ds_scanner.scan(audit_run_id)
+        save_artifact(audit_run_id, "dashboard_data_source_contract_audit.json", ds_art.to_dict(), workspace_root=self.workspace_root)
+
         tb_scanner = TestBuildScanner(self.workspace_root)
         tb_art = tb_scanner.scan(audit_run_id)
         save_artifact(audit_run_id, "test_build_audit.json", tb_art.to_dict(), workspace_root=self.workspace_root)
@@ -97,6 +102,7 @@ class AuditOrchestrator:
         all_findings = []
         all_findings.extend(api_art.findings)
         all_findings.extend(dash_art.findings)
+        all_findings.extend(ds_art.findings)
         all_findings.extend(tb_art.findings)
         all_findings.extend(sec_art.findings)
         all_findings.extend(pf_art.findings)
@@ -117,9 +123,9 @@ class AuditOrchestrator:
 
         # 4. Generate Final Audit Report
         summary_status = "PASSED"
-        if any(art.status == "FAILED" for art in [api_art, dash_art, tb_art, sec_art, pf_art]):
+        if any(art.status == "FAILED" for art in [api_art, dash_art, ds_art, tb_art, sec_art, pf_art]):
             summary_status = "FAILED"
-        elif any(art.status == "WARNING" for art in [api_art, dash_art, tb_art, sec_art, pf_art]):
+        elif any(art.status == "WARNING" for art in [api_art, dash_art, ds_art, tb_art, sec_art, pf_art]):
             summary_status = "WARNING"
 
         final_report = {
@@ -179,6 +185,15 @@ def scan_dashboard_health_step(context: Dict[str, Any]) -> Dict[str, Any]:
     save_artifact(context["audit_run_id"], "dashboard_health_audit.json", art.to_dict(), workspace_root=orch.workspace_root)
     context.setdefault("findings", []).extend(art.findings)
     context.setdefault("artifacts", {})["dashboard_health_audit"] = art.to_dict()
+    return context
+
+def scan_dashboard_data_source_contracts_step(context: Dict[str, Any]) -> Dict[str, Any]:
+    orch = AuditOrchestrator(context.get("workspace_root"))
+    scanner = DashboardDataSourceContractScanner(orch.workspace_root)
+    art = scanner.scan(context["audit_run_id"])
+    save_artifact(context["audit_run_id"], "dashboard_data_source_contract_audit.json", art.to_dict(), workspace_root=orch.workspace_root)
+    context.setdefault("findings", []).extend(art.findings)
+    context.setdefault("artifacts", {})["dashboard_data_source_contract_audit"] = art.to_dict()
     return context
 
 def scan_test_build_step(context: Dict[str, Any]) -> Dict[str, Any]:

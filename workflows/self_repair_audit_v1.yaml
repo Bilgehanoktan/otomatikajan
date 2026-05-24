@@ -25,6 +25,11 @@ steps:
     handler: services.self_repair_audit.audit_orchestrator.scan_dashboard_health_step
     artifact: dashboard_health_audit.json
 
+  - id: scan_dashboard_data_source_contracts
+    type: deterministic
+    handler: services.self_repair_audit.audit_orchestrator.scan_dashboard_data_source_contracts_step
+    artifact: dashboard_data_source_contract_audit.json
+
   - id: scan_test_and_build_health
     type: deterministic
     handler: services.self_repair_audit.audit_orchestrator.scan_test_build_step

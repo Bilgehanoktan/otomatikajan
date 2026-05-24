@@ -1435,6 +1435,70 @@ async def get_launch_gates():
         "timestamp": datetime.now(UTC)
     }
 
+@router.get("/ops/handover-status")
+async def get_handover_status():
+    from sqlalchemy import func, select
+
+    from libs.db.models.governance_models import SignoffStatus
+    from libs.db.session import AsyncSessionLocal
+
+    async with AsyncSessionLocal() as db:
+        total = (await db.execute(select(func.count()).select_from(ProductionSignoff))).scalar() or 0
+        signed = (
+            await db.execute(
+                select(func.count()).select_from(ProductionSignoff).where(ProductionSignoff.status == SignoffStatus.SIGNED)
+            )
+        ).scalar() or 0
+        pending = (
+            await db.execute(
+                select(func.count()).select_from(ProductionSignoff).where(ProductionSignoff.status == SignoffStatus.PENDING)
+            )
+        ).scalar() or 0
+        revoked_or_expired = (
+            await db.execute(
+                select(func.count()).select_from(ProductionSignoff).where(
+                    ProductionSignoff.status.in_([SignoffStatus.REVOKED, SignoffStatus.EXPIRED])
+                )
+            )
+        ).scalar() or 0
+
+        q = select(ProductionSignoff).order_by(ProductionSignoff.created_at.desc()).limit(20)
+        res = await db.execute(q)
+        items = res.scalars().all()
+
+    active_rollouts = [
+        {
+            "id": str(item.id),
+            "name": item.component_name,
+            "status": "LIVE" if (item.status.value if hasattr(item.status, "value") else str(item.status)) == "SIGNED" else "PENDING",
+            "tier": "Tier-2",
+            "progress": 100 if (item.status.value if hasattr(item.status, "value") else str(item.status)) == "SIGNED" else 45,
+            "launched_at": item.created_at,
+            "audit_bundle": f"AUDIT_{str(item.id)[:8]}.zip",
+            "observability": "Healthy" if (item.status.value if hasattr(item.status, "value") else str(item.status)) == "SIGNED" else "Monitoring",
+            "autonomy": "Advisory Mode",
+            "version": item.version,
+        }
+        for item in items
+    ]
+
+    success_rate = (signed / total) if total else 0.0
+    passed = pending == 0 and revoked_or_expired == 0
+
+    return {
+        "passed": passed,
+        "summary": {
+            "total_signoffs": total,
+            "signed": signed,
+            "pending": pending,
+            "revoked_or_expired": revoked_or_expired,
+            "active_pilots": len(active_rollouts),
+            "success_rate": success_rate,
+        },
+        "rollouts": active_rollouts,
+        "timestamp": datetime.now(UTC),
+    }
+
 @router.post("/ops/handover")
 @router.post("/ops/handover/", include_in_schema=False)
 async def trigger_handover(
