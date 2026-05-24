@@ -170,7 +170,14 @@ const SidebarContent = () => {
     );
 
     return (
-        <aside className={`${isCollapsed ? "w-20" : "w-64"} h-full shrink-0 glass border-r border-white/5 flex flex-col overflow-hidden transition-all duration-500 ease-in-out`}>
+        <aside 
+            className={`${isCollapsed ? "w-20" : "w-64"} h-full shrink-0 glass border-r border-white/5 flex flex-col overflow-hidden transition-all duration-500 ease-in-out`}
+            style={{
+                marginLeft: 0,
+                minWidth: isCollapsed ? "80px" : "256px",
+                width: isCollapsed ? "80px" : "256px"
+            }}
+        >
             <div className={`p-6 border-b border-white/5 bg-[#0b0c10]/40 relative group/header transition-all duration-500 ${isCollapsed ? "px-4" : ""}`}>
                 <div className="flex items-center gap-3">
                     <div className="relative group">
