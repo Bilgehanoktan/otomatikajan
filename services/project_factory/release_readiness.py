@@ -273,10 +273,12 @@ class ReleaseReadinessOrchestrator:
         self._log_event("E2E_SMOKE_TEST_COMPLETE", {"status": "SUCCESS" if smoke_passed else "FAILED", "report": smoke_report_path})
 
         # 4. Generate Final Release Readiness Pack
+        ready_for_release = audit_res["status"] == "PASSED" and smoke_passed
+
         readiness_pack = {
             "package_name": "ProjectFactoryAutopilot-ReleasePack",
             "generation_time": datetime.utcnow().isoformat() + "Z",
-            "ready_for_release": audit_res["status"] == "PASSED",
+            "ready_for_release": ready_for_release,
             "verification_checksums": {
                 "gap_audit": "OK",
                 "smoke_test": "OK",

@@ -9,8 +9,11 @@ def test_gate_thresholds():
 
 
 def test_evaluate_gate_returns_waiting_human_for_medium_risk():
-    result = evaluate_gate({"risk_score": 0.5})
+    result = evaluate_gate({
+        "risk_score": 0.5,
+        "repair_candidate": {"candidate_id": "candidate-01"},
+    })
 
-    assert result["gate_decision"].decision == "HUMAN_APPROVAL_REQUIRED"
+    assert result["gate_decision"]["decision"] == "HUMAN_APPROVAL_REQUIRED"
     assert result["workflow_status"] == "WAITING_HUMAN"
-
+    assert result["_context_update"]["final_decision"] == "HUMAN_APPROVAL_REQUIRED"

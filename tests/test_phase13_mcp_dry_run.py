@@ -22,8 +22,34 @@ async def mock_execute_step(context: dict, **kwargs):
     return {"output": "Execution completed", "lines_changed": 150}
 
 class MockPersistence:
-    async def save_instance(self, instance): pass
-    async def save_step(self, w_id, step): pass
+    def __init__(self):
+        self.instances = {}
+        self.events = {}
+        self.steps = {}
+
+    async def save_instance(self, instance):
+        self.instances[instance.id] = instance
+
+    async def load_instance(self, project_id):
+        return self.instances.get(project_id)
+
+    async def save_step(self, w_id, step):
+        if w_id not in self.steps:
+            self.steps[w_id] = {}
+        self.steps[w_id][step.id] = step
+
+    async def save_event(self, project_id, event_type, step_id=None, payload=None, operator_id="system"):
+        if project_id not in self.events:
+            self.events[project_id] = []
+        self.events[project_id].append({
+            "event_type": event_type,
+            "step_id": step_id,
+            "payload": payload,
+            "operator_id": operator_id
+        })
+
+    async def load_history(self, project_id):
+        return self.events.get(project_id, [])
 
 async def setup_dry_run():
     # 1. Workflow Engine'i hazırlayalım (db olmadan çalışması için mock)

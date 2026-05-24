@@ -20,6 +20,14 @@ def execute_policy_pr_review_decision(
     valid_decisions = ["MARK_REVIEWED", "REQUEST_CHANGES", "BLOCK", "DEFER"]
     if decision not in valid_decisions:
         raise ValueError(f"Invalid decision: {decision}. Must be one of {valid_decisions}")
+
+    if decision == "MARK_REVIEWED":
+        if not request.risk_acknowledgement:
+            raise ValueError("Cannot mark reviewed: risk acknowledgement is required.")
+        if report.get("status") != "POLICY_PR_REVIEW_PASSED":
+            raise ValueError("Cannot mark reviewed: PR Review status is not POLICY_PR_REVIEW_PASSED.")
+        if report.get("blocking_findings"):
+            raise ValueError("Cannot mark reviewed: PR Review has blocking findings.")
         
     if decision == "MARK_REVIEWED":
         new_status = "POLICY_READY_FOR_FINAL_DECISION"

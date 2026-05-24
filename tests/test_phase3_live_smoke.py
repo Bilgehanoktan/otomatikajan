@@ -124,7 +124,7 @@ def test_phase3_live_workflow_and_governance_smoke():
     assert isinstance(approvals_response.json(), list), approvals_response.text
 
     proof_response = session.get(
-        f"{BASE_URL}/governance/inbox/governor/proof/snapshots",
+        f"{BASE_URL}/governance/governor/proof/snapshots",
         headers=headers,
         timeout=20,
     )

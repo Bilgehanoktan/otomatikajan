@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from services.taskflow.taskflow_models import GateDecision
+from services.repair.repair_models import to_plain_data
 
 
 def decision_for_risk(risk_score: float) -> str:
@@ -115,11 +116,12 @@ def evaluate_gate(context: dict[str, Any]) -> dict[str, Any]:
         output_root=context.get("output_root")
     )
 
-    return {
+    payload = {
         "gate_decision": gate,
         "final_decision": decision,
         "workflow_status": "WAITING_HUMAN" if decision in {"HUMAN_APPROVAL_REQUIRED", "QUORUM_REQUIRED"} else (
             "BLOCKED" if decision == "AUTO_REPAIR_BLOCKED" else "DRAFT_PR_READY"
         ),
     }
-
+    plain = to_plain_data(payload)
+    return {**plain, "_context_update": plain}

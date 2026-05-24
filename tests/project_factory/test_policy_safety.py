@@ -36,6 +36,23 @@ def test_policy_safety_out_of_bounds():
     risks = check_policy_safety(p)
     assert any("out of workspace bounds" in r for r in risks)
 
+def test_policy_safety_windows_absolute_path_out_of_bounds():
+    p = PolicyProposal(
+        proposal_id="p1",
+        title="t",
+        description="d",
+        target_files=[r"C:\outside\policy.yaml", r"\absolute\policy.yaml"],
+        proposal_type="t",
+        risk_level="HIGH",
+        priority="HIGH",
+        recommended_changes=[],
+        status="s",
+        requires_human_gate=True,
+        auto_apply_allowed=False
+    )
+    risks = check_policy_safety(p)
+    assert sum("out of workspace bounds" in r for r in risks) == 2
+
 def test_policy_safety_sensitive_files():
     p = PolicyProposal(
         proposal_id="p1",

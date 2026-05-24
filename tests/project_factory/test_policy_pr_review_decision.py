@@ -56,3 +56,24 @@ def test_execute_decision_invalid(workspace_dir):
     
     with pytest.raises(ValueError):
         execute_policy_pr_review_decision(proposal_id, request, workspace_dir)
+
+def test_mark_reviewed_blocks_failed_report(workspace_dir):
+    p_dir = _resolve_policy_autopilot_dir(workspace_dir)
+    proposal_id = "POL-1"
+
+    with open(p_dir / "policy_pr_review_report.json", "w", encoding="utf-8") as f:
+        json.dump({
+            "proposal_id": proposal_id,
+            "status": "POLICY_PR_REVIEW_BLOCKED",
+            "blocking_findings": ["Verifier Mesh Failed: modified_files_scope"],
+        }, f)
+
+    request = PolicyPRReviewDecisionRequest(
+        operator_id="ADMIN",
+        decision="MARK_REVIEWED",
+        rationale="Override blocked report",
+        risk_acknowledgement=True
+    )
+
+    with pytest.raises(ValueError, match="Cannot mark reviewed"):
+        execute_policy_pr_review_decision(proposal_id, request, workspace_dir)

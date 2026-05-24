@@ -12,12 +12,12 @@ echo [*] Backend baslatiliyor...
 set RUNTIME_PROFILE=local-dev
 start "AGI-Backend" /b python -m uvicorn apps.public_api.main:app --host 0.0.0.0 --port 8000 > live_backend.log 2>&1
 
-timeout /t 5 >nul
+ping -n 6 127.0.0.1 >nul
 
 echo [*] Worker baslatiliyor...
 start "AGI-Worker" /b python -m celery -A workers.workflow_worker.tasks.celery_app worker --loglevel=info --queues=critical,default,background --concurrency=2 > live_worker.log 2>&1
 
-timeout /t 2 >nul
+ping -n 3 127.0.0.1 >nul
 
 echo [*] Frontend baslatiliyor...
 cd apps\refine_control_plane

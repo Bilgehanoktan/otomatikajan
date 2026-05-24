@@ -63,23 +63,25 @@ def execute_policy_pr_creation(
             _record_failure(proposal_id, request, "GIT_CHECKOUT_FAILED", str(e), workspace_root)
             raise ValueError(f"Failed to create codex/ branch: {e}")
             
-        # Apply the policy file changes locally
-        # Since we only allowed APPEND/MODIFY_LIST we will append to the files.
-        # This simulates the file modification
+        files_to_apply = draft_pr_plan.get("files_to_apply", [])
+
+        # Apply the policy file changes locally. This remains a sandboxed draft
+        # PR mutation; direct production apply is still forbidden.
         modified_files = []
         for change in apply_preview.get("preview_changes", []):
-            if change.get("change_type") in ["APPEND", "MODIFY_LIST"]:
-                target_file = change["target_file"]
-                full_path = os.path.join(workspace_root or os.getcwd(), target_file)
-                # Ensure directory exists
-                os.makedirs(os.path.dirname(full_path), exist_ok=True)
-                with open(full_path, "a", encoding="utf-8") as f:
-                    # Very simple simulation of appending policy configuration
-                    f.write(f"\\n# Added via Policy Autopilot {proposal_id}\\n")
+            if change.get("change_type") not in ["APPEND", "MODIFY_LIST", "MODIFY", "ADD"]:
+                continue
+            target_file = change["target_file"]
+            if target_file not in files_to_apply:
+                raise ValueError(f"Preview change target is not in files_to_apply: {target_file}")
+            full_path = os.path.join(workspace_root or os.getcwd(), target_file)
+            os.makedirs(os.path.dirname(full_path), exist_ok=True)
+            with open(full_path, "a", encoding="utf-8") as f:
+                f.write(f"\\n# Added via Policy Autopilot {proposal_id}\\n")
+            if target_file not in modified_files:
                 modified_files.append(target_file)
                 
         # Stage files
-        files_to_apply = draft_pr_plan.get("files_to_apply", [])
         if files_to_apply:
             try:
                 git_ws.add_files(files_to_apply)

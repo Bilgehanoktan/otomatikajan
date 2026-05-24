@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 import { Skeleton } from "@/components/dashboard/Skeleton";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { safeFetchJson } from "@/lib/api";
 
 type SystemUpdate = {
@@ -47,6 +47,7 @@ export default function EvolutionPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const t = useTranslations("evolution");
+  const locale = useLocale();
 
   useEffect(() => {
     setIsClient(true);
@@ -269,18 +270,18 @@ export default function EvolutionPage() {
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                   <DetailMetric 
                     icon={<FileCode size={16} />}
-                    label="Target File"
+                    label={locale === "tr" ? "Hedef Dosya" : "Target File"}
                     value={selectedUpdate.target_file}
                   />
                   <DetailMetric 
                     icon={<Terminal size={16} />}
-                    label="Execution ID"
+                    label={locale === "tr" ? "Çalıştırma ID" : "Execution ID"}
                     value={selectedUpdate.id}
                   />
                   <DetailMetric 
                     icon={<Activity size={16} />}
-                    label="Validation"
-                    value="PASSED (SHADOW RUNNER)"
+                    label={locale === "tr" ? "Doğrulama" : "Validation"}
+                    value={locale === "tr" ? "BAŞARILI (SHADOW RUNNER)" : "PASSED (SHADOW RUNNER)"}
                     success
                   />
                 </div>
@@ -289,7 +290,7 @@ export default function EvolutionPage() {
                 <div className="mt-10">
                   <div className="mb-4 flex items-center justify-between">
                     <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500">
-                      Change Summary
+                      {locale === "tr" ? "Değişiklik Özeti" : "Change Summary"}
                     </h3>
                     <div className="flex gap-2">
                       {(selectedUpdate.changed_symbols || []).map(s => (
@@ -301,7 +302,7 @@ export default function EvolutionPage() {
                   </div>
                   <div className="rounded-3xl border border-white/5 bg-black/60 p-8 font-mono text-xs leading-relaxed text-green-400/80">
                     <pre className="whitespace-pre-wrap">
-                      {selectedUpdate.diff_summary || "// No diff summary provided"}
+                      {selectedUpdate.diff_summary || (locale === "tr" ? "// Herhangi bir değişiklik özeti sağlanmadı" : "// No diff summary provided")}
                     </pre>
                   </div>
                 </div>
@@ -312,31 +313,35 @@ export default function EvolutionPage() {
                 <div className="glass-panel rounded-3xl border-white/5 bg-white/[0.01] p-8">
                   <div className="mb-4 flex items-center gap-3">
                     <CheckCircle2 size={18} className="text-green-400" />
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-white">Self-Test Report</h3>
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-white">
+                      {locale === "tr" ? "Öz-Test Raporu" : "Self-Test Report"}
+                    </h3>
                   </div>
                   <div className="space-y-3">
                     <div className="flex justify-between text-[11px]">
-                      <span className="text-gray-500">Syntax Check</span>
-                      <span className="font-bold text-green-400">PASSED</span>
+                      <span className="text-gray-500">{locale === "tr" ? "Sözdizimi Kontrolü" : "Syntax Check"}</span>
+                      <span className="font-bold text-green-400">{locale === "tr" ? "BAŞARILI" : "PASSED"}</span>
                     </div>
                     <div className="flex justify-between text-[11px]">
-                      <span className="text-gray-500">Logical Consistency</span>
-                      <span className="font-bold text-green-400">VERIFIED</span>
+                      <span className="text-gray-500">{locale === "tr" ? "Mantıksal Tutarlılık" : "Logical Consistency"}</span>
+                      <span className="font-bold text-green-400">{locale === "tr" ? "DOĞRULANDI" : "VERIFIED"}</span>
                     </div>
                     <div className="flex justify-between text-[11px]">
-                      <span className="text-gray-500">Safety Constraints</span>
-                      <span className="font-bold text-green-400">ENFORCED</span>
+                      <span className="text-gray-500">{locale === "tr" ? "Güvenlik Kısıtlamaları" : "Safety Constraints"}</span>
+                      <span className="font-bold text-green-400">{locale === "tr" ? "UYGULANDI" : "ENFORCED"}</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="flex flex-col justify-center rounded-3xl bg-[var(--primary)] p-8 text-[#060a12]">
-                   <h3 className="mb-2 text-xl font-black uppercase tracking-tighter">Evolutionary Jump</h3>
+                   <h3 className="mb-2 text-xl font-black uppercase tracking-tighter">
+                     {locale === "tr" ? "Evrimsel Sıçrama" : "Evolutionary Jump"}
+                   </h3>
                    <p className="text-xs font-bold opacity-70">
                      Sistem bu güncellemeyle birlikte kendi mimarisini daha dayanıklı ve otonom hale getirdi.
                    </p>
                    <div className="mt-6 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
-                     <span>View Code Lineage</span>
+                     <span>{locale === "tr" ? "Kod Soy Ağacını Görüntüle" : "View Code Lineage"}</span>
                      <ArrowRight size={14} />
                    </div>
                 </div>
@@ -350,16 +355,33 @@ export default function EvolutionPage() {
                     <Dna size={28} />
                   </div>
                   <div>
-                    <h2 className="text-xl font-black uppercase tracking-tight text-white">Evrim Defteri Hazır</h2>
+                    <h2 className="text-xl font-black uppercase tracking-tight text-white">
+                      {locale === "tr" ? "Evrim Defteri Hazır" : "Evolution Ledger Ready"}
+                    </h2>
                     <p className="mt-2 text-xs font-bold text-gray-500">
-                      İnceleme için soldan bir olay seç. Kayıt yoksa sistem boş durumu açıkça gösterir.
+                      {locale === "tr" 
+                        ? "İnceleme için soldan bir olay seç. Kayıt yoksa sistem boş durumu açıkça gösterir."
+                        : "Select an event from the left to inspect. If there are no records, the system explicitly displays the empty state."}
                     </p>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                  <DetailMetric icon={<Activity size={16} />} label="Runtime Events" value={String(updates.length)} />
-                  <DetailMetric icon={<GitBranch size={16} />} label="Kernel" value={state?.current_version ?? "v13.0"} />
-                  <DetailMetric icon={<CheckCircle2 size={16} />} label="Ledger" value={updates.length > 0 ? "ACTIVE" : "EMPTY"} success={updates.length > 0} />
+                  <DetailMetric 
+                    icon={<Activity size={16} />} 
+                    label={locale === "tr" ? "Çalışma Zamanı Olayları" : "Runtime Events"} 
+                    value={String(updates.length)} 
+                  />
+                  <DetailMetric 
+                    icon={<GitBranch size={16} />} 
+                    label={locale === "tr" ? "Çekirdek" : "Kernel"} 
+                    value={state?.current_version ?? "v13.0"} 
+                  />
+                  <DetailMetric 
+                    icon={<CheckCircle2 size={16} />} 
+                    label={locale === "tr" ? "Defter" : "Ledger"} 
+                    value={updates.length > 0 ? (locale === "tr" ? "AKTİF" : "ACTIVE") : (locale === "tr" ? "BOŞ" : "EMPTY")} 
+                    success={updates.length > 0} 
+                  />
                 </div>
               </div>
 
@@ -367,20 +389,27 @@ export default function EvolutionPage() {
                 <div className="glass-panel rounded-3xl border-white/5 bg-white/[0.01] p-8">
                   <div className="mb-4 flex items-center gap-3">
                     <CheckCircle2 size={18} className="text-green-400" />
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-white">Bağlantı Durumu</h3>
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-white">
+                      {locale === "tr" ? "Bağlantı Durumu" : "Connectivity Status"}
+                    </h3>
                   </div>
                   <p className="text-xs font-bold leading-relaxed text-gray-500">
-                    `/api/v1/evolution/state` ve `/api/v1/health/evolution` kaynakları birlikte okunuyor.
-                    Birincil defter boşsa runtime olay akışı yedek görünüm olarak kullanılır.
+                    {locale === "tr"
+                      ? "`/api/v1/evolution/state` ve `/api/v1/health/evolution` kaynakları birlikte okunuyor. Birincil defter boşsa runtime olay akışı yedek görünüm olarak kullanılır."
+                      : "The resources `/api/v1/evolution/state` and `/api/v1/health/evolution` are read together. If the primary ledger is empty, the runtime event stream is used as a fallback view."}
                   </p>
                 </div>
                 <div className="glass-panel rounded-3xl border-amber-500/10 bg-amber-500/[0.04] p-8">
                   <div className="mb-4 flex items-center gap-3">
                     <AlertTriangle size={18} className="text-amber-400" />
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-white">Operatör Notu</h3>
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-white">
+                      {locale === "tr" ? "Operatör Notu" : "Operator Note"}
+                    </h3>
                   </div>
                   <p className="text-xs font-bold leading-relaxed text-gray-500">
-                    Bu ekran otomatik kod değişikliği başlatmaz; sadece doğrulanmış evrim ve runtime repair olaylarını gösterir.
+                    {locale === "tr"
+                      ? "Bu ekran otomatik kod değişikliği başlatmaz; sadece doğrulanmış evrim ve runtime repair olaylarını gösterir."
+                      : "This screen does not trigger automatic code changes; it only displays verified evolution and runtime repair events."}
                   </p>
                 </div>
               </div>

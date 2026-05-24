@@ -9,7 +9,15 @@ from services.repair.code_localizer import localize_code
 from services.repair.patch_candidate_runner import generate_patch_candidate
 from services.repair.repair_case_builder import build_repair_case
 from services.repair.repair_plan_builder import build_repair_plan
-from services.repair.repair_models import RepairReport, to_plain_data
+from services.repair.repair_models import (
+    RepairCandidate,
+    RepairCase,
+    RepairDecision,
+    RepairPlan,
+    RepairReport,
+    SandboxResult,
+    to_plain_data,
+)
 from services.repair.repair_reporter import write_case, write_plan, write_repair_outputs, write_sandbox_log
 from services.repair.risk_adapter import calculate_risk
 from services.repair.sandbox_executor import run_patch_in_sandbox
@@ -68,6 +76,34 @@ def _output_root_from_context(context: dict[str, Any]) -> Path | None:
     return Path(output_root) if output_root else None
 
 
+def _context_update(payload: dict[str, Any]) -> dict[str, Any]:
+    """Return WorkflowEngine-compatible context updates with JSON-safe payloads."""
+    plain = to_plain_data(payload)
+    return {**plain, "_context_update": plain}
+
+
+def _repair_case_from_context(context: dict[str, Any]) -> RepairCase:
+    value = context["repair_case"]
+    return RepairCase(**value) if isinstance(value, dict) else value
+
+
+def _repair_plan_from_context(context: dict[str, Any]) -> RepairPlan | None:
+    value = context.get("repair_plan")
+    if value is None:
+        return None
+    return RepairPlan(**value) if isinstance(value, dict) else value
+
+
+def _repair_candidate_from_context(context: dict[str, Any]) -> RepairCandidate:
+    value = context["repair_candidate"]
+    return RepairCandidate(**value) if isinstance(value, dict) else value
+
+
+def _sandbox_result_from_context(context: dict[str, Any]) -> SandboxResult:
+    value = context["sandbox_result"]
+    return SandboxResult(**value) if isinstance(value, dict) else value
+
+
 def collect_failure_context_step(context: dict[str, Any]) -> dict[str, Any]:
     from services.repair.taskflow_artifacts import write_step_artifact
     incident_id = context.get("incident_id") or "INC-UNKNOWN"
@@ -90,7 +126,14 @@ def build_repair_case_step(context: dict[str, Any]) -> dict[str, Any]:
     incident_id = context.get("incident_id") or "INC-UNKNOWN"
     run_id = context.get("run_id") or "RUN-UNKNOWN"
     output_root = _output_root_from_context(context)
-    repair_case = build_repair_case(context["input_payload"])
+    input_payload = context.get("input_payload")
+    if not input_payload:
+        input_payload = {
+            key: value
+            for key, value in context.items()
+            if not key.startswith("_")
+        }
+    repair_case = build_repair_case(input_payload)
     if output_root is not None:
         repair_case.repo_snapshot["_repair_output_root"] = str(output_root)
     write_step_artifact(
@@ -101,14 +144,14 @@ def build_repair_case_step(context: dict[str, Any]) -> dict[str, Any]:
         payload=to_plain_data(repair_case),
         output_root=output_root,
     )
-    return {"repair_case": repair_case}
+    return _context_update({"repair_case": repair_case})
 
 
 def localize_code_step(context: dict[str, Any]) -> dict[str, Any]:
     from services.repair.taskflow_artifacts import write_step_artifact
     incident_id = context.get("incident_id") or "INC-UNKNOWN"
     run_id = context.get("run_id") or "RUN-UNKNOWN"
-    repair_case = context["repair_case"]
+    repair_case = _repair_case_from_context(context)
     suspected = localize_code(repair_case)
     repair_case.suspected_files = [str(item["file"]) for item in suspected]
     write_step_artifact(
@@ -119,7 +162,7 @@ def localize_code_step(context: dict[str, Any]) -> dict[str, Any]:
         payload={"suspected_files": suspected},
         output_root=context.get("output_root"),
     )
-    return {"repair_case": repair_case, "suspected_files": suspected}
+    return _context_update({"repair_case": repair_case, "suspected_files": suspected})
 
 
 def create_repair_plan_step(context: dict[str, Any]) -> dict[str, Any]:
@@ -127,7 +170,7 @@ def create_repair_plan_step(context: dict[str, Any]) -> dict[str, Any]:
     from services.repair.repair_models import to_plain_data
     incident_id = context.get("incident_id") or "INC-UNKNOWN"
     run_id = context.get("run_id") or "RUN-UNKNOWN"
-    repair_case = context["repair_case"]
+    repair_case = _repair_case_from_context(context)
     repair_plan = build_repair_plan(repair_case, context.get("suspected_files") or [])
     write_step_artifact(
         incident_id=incident_id,
@@ -137,7 +180,7 @@ def create_repair_plan_step(context: dict[str, Any]) -> dict[str, Any]:
         payload=to_plain_data(repair_plan),
         output_root=context.get("output_root"),
     )
-    return {"repair_plan": repair_plan}
+    return _context_update({"repair_plan": repair_plan})
 
 
 def generate_patch_candidate_step(context: dict[str, Any]) -> dict[str, Any]:
@@ -145,7 +188,9 @@ def generate_patch_candidate_step(context: dict[str, Any]) -> dict[str, Any]:
     from services.repair.learning_memory_scoring import score_candidates_with_memory
     incident_id = context.get("incident_id") or "INC-UNKNOWN"
     run_id = context.get("run_id") or "RUN-UNKNOWN"
-    candidate = generate_patch_candidate(context["repair_case"], context.get("repair_plan"))
+    repair_case = _repair_case_from_context(context)
+    repair_plan = _repair_plan_from_context(context)
+    candidate = generate_patch_candidate(repair_case, repair_plan)
     
     candidates_list = [{
         "candidate_id": candidate.candidate_id,
@@ -196,7 +241,7 @@ def generate_patch_candidate_step(context: dict[str, Any]) -> dict[str, Any]:
         payload=payload,
         output_root=context.get("output_root"),
     )
-    return {"repair_candidate": candidate}
+    return _context_update({"repair_candidate": candidate})
 
 
 def run_sandbox_verification_step(context: dict[str, Any]) -> dict[str, Any]:
@@ -204,7 +249,9 @@ def run_sandbox_verification_step(context: dict[str, Any]) -> dict[str, Any]:
     from services.repair.repair_models import to_plain_data
     incident_id = context.get("incident_id") or "INC-UNKNOWN"
     run_id = context.get("run_id") or "RUN-UNKNOWN"
-    sandbox_result = run_patch_in_sandbox(context["repair_candidate"], context["repair_case"])
+    repair_candidate = _repair_candidate_from_context(context)
+    repair_case = _repair_case_from_context(context)
+    sandbox_result = run_patch_in_sandbox(repair_candidate, repair_case)
     write_step_artifact(
         incident_id=incident_id,
         run_id=run_id,
@@ -213,7 +260,7 @@ def run_sandbox_verification_step(context: dict[str, Any]) -> dict[str, Any]:
         payload=to_plain_data(sandbox_result),
         output_root=context.get("output_root"),
     )
-    return {"sandbox_result": sandbox_result}
+    return _context_update({"sandbox_result": sandbox_result})
 
 
 def run_verifier_mesh_step(context: dict[str, Any]) -> dict[str, Any]:
@@ -221,9 +268,9 @@ def run_verifier_mesh_step(context: dict[str, Any]) -> dict[str, Any]:
     incident_id = context.get("incident_id") or "INC-UNKNOWN"
     run_id = context.get("run_id") or "RUN-UNKNOWN"
     verifier_result = run_verifier_mesh(
-        context["repair_case"],
-        context["repair_candidate"],
-        context["sandbox_result"],
+        _repair_case_from_context(context),
+        _repair_candidate_from_context(context),
+        _sandbox_result_from_context(context),
     )
     write_step_artifact(
         incident_id=incident_id,
@@ -233,10 +280,10 @@ def run_verifier_mesh_step(context: dict[str, Any]) -> dict[str, Any]:
         payload=verifier_result,
         output_root=context.get("output_root"),
     )
-    return {
+    return _context_update({
         "verifier_result": verifier_result,
         "verifier_passed": verifier_result.get("status") == "VERIFIER_PASSED",
-    }
+    })
 
 
 def run_pr_agent_review_step(context: dict[str, Any]) -> dict[str, Any]:
@@ -267,7 +314,7 @@ def run_pr_agent_review_step(context: dict[str, Any]) -> dict[str, Any]:
             output_root=output_root
         ))
         
-    return {"pr_review_result": review_payload}
+    return _context_update({"pr_review_result": review_payload})
 
 
 def run_cognitive_integrity_check_step(context: dict[str, Any]) -> dict[str, Any]:
@@ -287,35 +334,39 @@ def run_cognitive_integrity_check_step(context: dict[str, Any]) -> dict[str, Any
         payload=payload,
         output_root=context.get("output_root"),
     )
-    return {"cognitive_integrity_result": payload}
+    return _context_update({"cognitive_integrity_result": payload})
 
 
 def score_risk_step(context: dict[str, Any]) -> dict[str, Any]:
     from services.repair.taskflow_artifacts import write_step_artifact
     incident_id = context.get("incident_id") or "INC-UNKNOWN"
     run_id = context.get("run_id") or "RUN-UNKNOWN"
+    repair_case = _repair_case_from_context(context)
+    repair_candidate = _repair_candidate_from_context(context)
+    sandbox_result = _sandbox_result_from_context(context)
+    repair_plan = _repair_plan_from_context(context)
     risk_decision = calculate_risk(
-        context["repair_case"],
-        context["repair_candidate"],
+        repair_case,
+        repair_candidate,
         context.get("verifier_result") or {},
     )
     if risk_decision.status in {"AUTO_REPAIR_BLOCKED", "QUORUM_REQUIRED", "HUMAN_APPROVAL_REQUIRED"}:
         final_status = risk_decision.status
-    elif not context["sandbox_result"].patch_applied or not context["sandbox_result"].tests_passed:
+    elif not sandbox_result.patch_applied or not sandbox_result.tests_passed:
         final_status = "SANDBOX_FAILED"
     elif (context.get("verifier_result") or {}).get("status") == "VERIFIER_FAILED":
         final_status = "VERIFIER_FAILED"
     else:
         final_status = risk_decision.status
     report = RepairReport(
-        repair_case=context["repair_case"],
+        repair_case=repair_case,
         suspected_files=context.get("suspected_files") or [],
-        candidate=context["repair_candidate"],
-        sandbox_result=context["sandbox_result"],
+        candidate=repair_candidate,
+        sandbox_result=sandbox_result,
         verifier_result=context.get("verifier_result") or {},
         risk_decision=risk_decision,
         final_status=final_status,
-        repair_plan=context.get("repair_plan"),
+        repair_plan=repair_plan,
     )
     
     # Write to risk_report.json according to Phase 4 step 7 schema
@@ -323,7 +374,7 @@ def score_risk_step(context: dict[str, Any]) -> dict[str, Any]:
         "risk_score": risk_decision.risk_score,
         "risk_level": risk_decision.risk_level,
         "blast_radius": "low",
-        "changed_files": context["repair_candidate"].changed_files,
+        "changed_files": repair_candidate.changed_files,
         "policy_findings": [],
         "security_findings": [],
         "rollback_available": True,
@@ -337,13 +388,13 @@ def score_risk_step(context: dict[str, Any]) -> dict[str, Any]:
         payload=payload,
         output_root=context.get("output_root"),
     )
-    return {
+    return _context_update({
         "risk_decision": risk_decision,
         "risk_decision_status": risk_decision.status,
         "risk_score": risk_decision.risk_score,
         "final_status": final_status,
         "repair_report": report,
-    }
+    })
 
 
 def run_patch_tournament_step(context: dict[str, Any]) -> dict[str, Any]:
@@ -353,11 +404,11 @@ def run_patch_tournament_step(context: dict[str, Any]) -> dict[str, Any]:
     output_root = context.get("output_root")
     
     result = run_patch_tournament(incident_id, run_id, output_root=output_root)
-    return {
+    return _context_update({
         "tournament_result": result,
         "selected_candidate_id": result.selected_candidate_id,
         "requires_human_gate": result.requires_human_gate
-    }
+    })
 
 
 def build_final_report_step(context: dict[str, Any]) -> dict[str, Any]:
@@ -365,7 +416,7 @@ def build_final_report_step(context: dict[str, Any]) -> dict[str, Any]:
     if report is None:
         return {}
     artifact_path = write_repair_outputs(report, output_root=_output_root_from_context(context))
-    return {"artifact_path": str(artifact_path), "artifact_type": "json"}
+    return _context_update({"artifact_path": str(artifact_path), "artifact_type": "json"})
 
 
 def update_learning_memory_step(context: dict[str, Any]) -> dict[str, Any]:

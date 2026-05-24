@@ -13,7 +13,10 @@ def event_loop():
     
     # Clean up any lingering async tasks before closing
     try:
-        pending = asyncio.all_tasks(loop)
+        current_task = asyncio.current_task(loop)
+        pending = [t for t in asyncio.all_tasks(loop) if t is not current_task]
+        for task in pending:
+            task.cancel()
         if pending:
             # Shield pending tasks or finish them cleanly
             loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))

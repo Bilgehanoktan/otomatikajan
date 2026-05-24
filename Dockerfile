@@ -10,8 +10,8 @@ RUN apt-get -o Acquire::Retries=3 update && apt-get -o Acquire::Retries=3 instal
 
 # Bağımlılıkları kur
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip --retries 5 \
-    && pip install --no-cache-dir --prefix=/install -r requirements.txt --retries 5
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+RUN uv pip install --no-cache --system --prefix=/install -r requirements.txt
 
 
 # ─── Aşama 2: Temel Çalışma Zamanı (Base Runtime) ────────

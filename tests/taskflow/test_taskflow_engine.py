@@ -6,9 +6,9 @@ def test_self_repair_workflow_contract_loads_steps():
 
     assert contract["workflow_id"] == "self_repair_v1"
     assert [step["id"] for step in contract["steps"]][:3] == [
+        "collect_failure_context",
         "build_repair_case",
         "localize_code",
-        "create_repair_plan",
     ]
 
 
@@ -27,10 +27,11 @@ def test_engine_runs_self_repair_workflow_and_writes_trace(tmp_path):
     run = run_workflow("self_repair_v1", payload, output_root=tmp_path)
 
     assert run.status in {"DRAFT_PR_READY", "WAITING_HUMAN", "BLOCKED", "COMPLETED"}
-    assert (tmp_path / "INC-TF" / "repair_case.json").exists()
-    assert (tmp_path / "INC-TF" / "repair_plan.json").exists()
+    run_dir = tmp_path / "INC-TF" / "taskflow" / run.run_id
+    assert (run_dir / "failure_context.json").exists()
+    assert (run_dir / "repair_case.json").exists()
+    assert (run_dir / "repair_plan.json").exists()
     assert (tmp_path / "INC-TF" / "patch.diff").exists()
-    assert (tmp_path / "INC-TF" / "sandbox.log").exists()
-    assert (tmp_path / "INC-TF" / "repair_report.json").exists()
+    assert (run_dir / "sandbox_result.json").exists()
+    assert (run_dir / "human_gate_decision.json").exists()
     assert (tmp_path / "INC-TF" / "taskflow_trace.json").exists()
-

@@ -56,7 +56,7 @@ def test_phase34_repair_lab_and_self_heal_surfaces():
     assert run_payload.get("status") in {"started", "ok"}, run_payload
 
     improvements = session.get(
-        f"{BASE_URL}/improvements?_end=20&_order=desc&_sort=created_at&_start=0",
+        f"{BASE_URL}/governance/improvements?_end=20&_order=desc&_sort=created_at&_start=0",
         timeout=20,
     )
     assert improvements.status_code == 200, improvements.text

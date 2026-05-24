@@ -186,9 +186,20 @@ async def get_ui_repair_case_detail(case_id: str, db: AsyncSession = Depends(get
         linked_runtime_diagnostic_id=str(case.linked_runtime_diagnostic_id or "")
     )
 
+@router.get("/runtime-guard/status")
+async def get_runtime_guard_status():
+    """Returns the current runtime guard status checking all infrastructure dependencies."""
+    from services.ui_repair.runtime_guard import check_runtime_dependencies
+    return await check_runtime_dependencies()
+
 @router.post("/smoke/run")
 async def trigger_ui_smoke_run(routes: Optional[List[str]] = None, db: AsyncSession = Depends(get_db)):
     """Manually triggers a Playwright smoke test run."""
+    from services.ui_repair.runtime_guard import check_runtime_dependencies
+    guard = await check_runtime_dependencies()
+    if guard["status"] == "degraded":
+        return guard
+
     svc = UIRepairService(db)
     # Note: In a production environment, this should be moved to a Celery worker.
     # For the Faz 3 backbone, we execute it synchronously to confirm functionality.
@@ -218,6 +229,11 @@ async def resolve_case(case_id: str, db: AsyncSession = Depends(get_db)):
 @router.post("/cases/{case_id}/repair")
 async def trigger_autonomous_repair(case_id: str, db: AsyncSession = Depends(get_db)):
     """Triggers the autonomous repair hand-off for a specific case."""
+    from services.ui_repair.runtime_guard import check_runtime_dependencies
+    guard = await check_runtime_dependencies()
+    if guard["status"] == "degraded":
+        return guard
+
     svc = UIRepairService(db)
     return await svc.trigger_autonomous_repair(case_id)
 
@@ -266,6 +282,11 @@ async def get_monitoring_runs(limit: int = 20, db: AsyncSession = Depends(get_db
 @router.post("/monitoring/trigger")
 async def trigger_monitoring_cycle(db: AsyncSession = Depends(get_db)):
     """Manually triggers a background monitoring cycle."""
+    from services.ui_repair.runtime_guard import check_runtime_dependencies
+    guard = await check_runtime_dependencies()
+    if guard["status"] == "degraded":
+        return guard
+
     svc = UIRepairService(db)
     return await svc.trigger_monitoring_cycle()
 

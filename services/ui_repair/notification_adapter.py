@@ -67,3 +67,10 @@ class NotificationAdapter:
         if channel == "EMAIL": return "admin@sovereign-agi.local"
         if channel == "TELEGRAM": return "@SovereignOpsBot"
         return "SYSTEM"
+
+    async def send_alert(self, message: str):
+        """Sends an urgent alert/notification."""
+        from services.observability.logging import get_logger
+        logger = get_logger("notification_adapter")
+        logger.warning(f"[ALERT] {message}")
+

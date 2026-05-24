@@ -1,1 +1,14 @@
 node_modules
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+project_outputs/
+apps/refine_control_plane/.next/
+apps/refine_control_plane/.playwright-browsers/
+artifacts/
+scratch/
+runtime/data/
+*.log
+*.txt
+*.db

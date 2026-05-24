@@ -94,6 +94,7 @@ export default function UIRepairPage() {
   const [monitoringRuns, setMonitoringRuns] = useState<any[]>([]);
   const [mainTab, setMainTab] = useState("matrix"); // matrix | monitoring | chaos | soak | proof
   const [triggeringMonitoring, setTriggeringMonitoring] = useState(false);
+  const [degradedInfo, setDegradedInfo] = useState<any>(null);
 
 
   useEffect(() => {
@@ -130,8 +131,12 @@ export default function UIRepairPage() {
   const handleTriggerMonitoring = async () => {
     setTriggeringMonitoring(true);
     try {
-      await safeFetchJson('/api/v1/ui-repair/monitoring/trigger', { method: 'POST' });
-      setTimeout(fetchMonitoringData, 2000);
+      const res = await safeFetchJson('/api/v1/ui-repair/monitoring/trigger', { method: 'POST' });
+      if (res && res.status === "degraded") {
+        setDegradedInfo(res);
+      } else {
+        setTimeout(fetchMonitoringData, 2000);
+      }
     } catch (err) {
       console.error("Failed to trigger monitoring", err);
     } finally {
@@ -141,15 +146,21 @@ export default function UIRepairPage() {
 
   const fetchData = async () => {
     try {
-      const [over, route, caseList] = await Promise.all([
+      const [over, route, caseList, guard] = await Promise.all([
         safeFetchJson('/api/v1/ui-repair/overview'),
         safeFetchJson('/api/v1/ui-repair/routes'),
-        safeFetchJson('/api/v1/ui-repair/cases')
+        safeFetchJson('/api/v1/ui-repair/cases'),
+        safeFetchJson('/api/v1/ui-repair/runtime-guard/status')
       ]);
       
       setOverview(over);
       setRoutes(route);
       setCases(caseList);
+      if (guard && guard.status === "degraded") {
+        setDegradedInfo(guard);
+      } else {
+        setDegradedInfo(null);
+      }
     } catch (err) {
       console.error("Failed to fetch UI repair data", err);
     } finally {
@@ -160,8 +171,12 @@ export default function UIRepairPage() {
   const handleRunSmoke = async () => {
     setRunning(true);
     try {
-      await safeFetchJson('/api/v1/ui-repair/smoke/run', { method: 'POST' });
-      await fetchData();
+      const res = await safeFetchJson('/api/v1/ui-repair/smoke/run', { method: 'POST' });
+      if (res && res.status === "degraded") {
+        setDegradedInfo(res);
+      } else {
+        await fetchData();
+      }
     } catch (err) {
       console.error("Failed to run smoke tests", err);
     } finally {
@@ -171,10 +186,14 @@ export default function UIRepairPage() {
 
   const handleTriggerRepair = async (caseId: string) => {
     try {
-      await safeFetchJson(`/api/v1/ui-repair/cases/${caseId}/repair`, { method: 'POST' });
-      await fetchData();
-      if (selectedCase && selectedCase.id === caseId) {
-        fetchCaseDetails(caseId);
+      const res = await safeFetchJson(`/api/v1/ui-repair/cases/${caseId}/repair`, { method: 'POST' });
+      if (res && res.status === "degraded") {
+        setDegradedInfo(res);
+      } else {
+        await fetchData();
+        if (selectedCase && selectedCase.id === caseId) {
+          fetchCaseDetails(caseId);
+        }
       }
     } catch (err) {
       console.error("Failed to trigger repair", err);
@@ -279,6 +298,37 @@ export default function UIRepairPage() {
             </button>
           </div>
         </div>
+
+        {degradedInfo && degradedInfo.status === "degraded" && (
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 animate-in fade-in duration-500">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 text-amber-400" />
+              </div>
+              <div>
+                <h4 className="font-extrabold text-amber-400 text-sm tracking-wide uppercase">
+                  Self-Repair System Degraded Mode Active
+                </h4>
+                <p className="text-xs text-slate-400 mt-1 max-w-2xl leading-relaxed">
+                  The UI self-repair system is running in degraded mode because of a missing or misconfigured dependency. 
+                  Failed Stage: <span className="font-bold text-slate-200">{degradedInfo.failed_stage || "N/A"}</span> ({degradedInfo.reason || "unknown_dependency"}). 
+                  Fallback Mode: <span className="font-bold text-slate-200">{degradedInfo.fallback_used || "N/A"}</span> is currently handling analysis.
+                </p>
+                <div className="mt-2 text-xs text-slate-500 font-mono select-all">
+                  Raw Error: {degradedInfo.error_details}
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 md:w-80 shrink-0 font-mono text-xs">
+              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Operator Action Required</div>
+              <div className="text-slate-200 mb-2">Run the following to restore full capability:</div>
+              <div className="bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-blue-400 font-bold select-all overflow-x-auto">
+                {degradedInfo.operator_action}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Overview Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

@@ -217,6 +217,7 @@ async def start_self_repair_from_repair_case(
         description=project.description or "",
         workflow_template=project.workflow_template or "self_repair",
         quality_profile=project.quality_profile or "standard",
+        execution_context={**exec_context, "input_payload": exec_context},
     )
 
     # Update job_id in Project

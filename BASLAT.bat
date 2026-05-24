@@ -5,6 +5,9 @@ echo [*] Baslatiliyor... Lutfen bekleyin.
 set "PROJECT_ROOT=%~dp0"
 cd /d "%PROJECT_ROOT%"
 
+set "INTERACTIVE=1"
+if not "%~1"=="" set "INTERACTIVE=0"
+
 :: Python Kontrolu
 echo [*] Python kontrol ediliyor...
 set "PY_CMD=python"
@@ -55,7 +58,10 @@ echo [!] Gecersiz secim. Lokal mod baslatiliyor.
 goto local_mode
 
 :self_repair_demo
-echo [*] Self-Repair demo / health check calistiriliyor...
+echo [*] Calistirilabiliyor: check_system_health.py ...
+%PY_CMD% check_system_health.py
+echo.
+echo [*] Self-Repair demo calistiriliyor...
 set "MINI_SWE_MODE=mock"
 set "REPAIR_AGENT_BACKEND=mini_swe"
 set "SANDBOX_BACKEND=local_temp"
@@ -72,30 +78,55 @@ echo   - repair_outputs\INC-001\taskflow\{run_id}\artifact_manifest.json
 echo   - repair_outputs\INC-001\taskflow\{run_id}\tournament_result.json
 echo   - repair_outputs\INC-001\taskflow\{run_id}\human_gate_decision.json
 echo   - repair_outputs\INC-001\taskflow\{run_id}\draft_pr_metadata.json
-pause
-exit
+if "%INTERACTIVE%"=="1" pause
+exit /b 0
 
 :local_mode
 :: Backend Port Temizligi
 echo [*] Eski surecler temizleniyor...
-powershell -Command "$pids = netstat -ano | Select-String 'LISTENING' | ForEach-Object { $parts = $_.ToString().Split(' ', [System.StringSplitOptions]::RemoveEmptyEntries); $addr = $parts[1]; if ($addr -like '*:8000' -or $addr -like '*:3100') { $parts[-1] } } | Select-Object -Unique; if ($pids) { Stop-Process -Id $pids -Force -ErrorAction SilentlyContinue }"
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8000 ^| findstr LISTENING') do taskkill /f /pid %%a >nul 2>&1
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr :3100 ^| findstr LISTENING') do taskkill /f /pid %%a >nul 2>&1
+call :assert_port_free 8000 "Backend API"
+if errorlevel 1 (
+    echo [HATA] 8000 portu hala kullanimda. Docker Desktop veya eski backend surecini kapatin.
+    echo [IPUCU] Docker kaynakliysa once BASLAT.bat repair calistirin veya Docker Desktop'i kapatin.
+    if "%INTERACTIVE%"=="1" pause
+    exit /b 1
+)
+call :assert_port_free 3100 "Frontend UI"
+if errorlevel 1 (
+    echo [HATA] 3100 portu hala kullanimda. Eski frontend surecini kapatin.
+    if "%INTERACTIVE%"=="1" pause
+    exit /b 1
+)
 
 echo [*] Lokal mod baslatiliyor...
-start "Backend API" cmd /k "set SOVEREIGN_DOTENV_OVERRIDE=false&& set RUNTIME_PROFILE=local-dev&& set REDIS_ENABLED=false&& set CELERY_ENABLED=false&& set QUEUE_BACKEND=inprocess&& set INPROCESS_JOB_WORKERS_ENABLED=true&& %PY_CMD% -m uvicorn services.workflow_api.main:app --host 0.0.0.0 --port 8000"
-timeout /t 10 >nul
-start "Frontend UI" /d "apps\refine_control_plane" cmd /k "npm run dev -- -p 3100"
-timeout /t 5 >nul
-start "" "http://localhost:3100"
+start "Backend API" cmd /c "set SOVEREIGN_DOTENV_OVERRIDE=false&& set RUNTIME_PROFILE=local-dev&& set REDIS_ENABLED=false&& set CELERY_ENABLED=false&& set QUEUE_BACKEND=inprocess&& set INPROCESS_JOB_WORKERS_ENABLED=true&& set PLAYWRIGHT_BROWSERS_PATH=C:\Users\BLGEHA~1\.gemini\antigravity\.playwright-browsers&& %PY_CMD% -m uvicorn services.workflow_api.main:app --host 0.0.0.0 --port 8000"
+call :wait_http "Backend API" "http://127.0.0.1:8000/health" 24
+if errorlevel 1 (
+    echo [HATA] Backend API hazir olmadi. Backend API penceresindeki loglari kontrol edin.
+    if "%INTERACTIVE%"=="1" pause
+    exit /b 1
+)
+start "Frontend UI" /d "%PROJECT_ROOT%apps\refine_control_plane" cmd /k "npm.cmd run dev -- -p 3100"
+call :wait_http "Frontend UI" "http://127.0.0.1:3100" 24
+if errorlevel 1 (
+    echo [HATA] Frontend UI hazir olmadi. Frontend UI penceresindeki loglari kontrol edin.
+    if "%INTERACTIVE%"=="1" pause
+    exit /b 1
+)
+if "%INTERACTIVE%"=="1" start "" "http://localhost:3100"
 echo [OK] Sistem acildi. Bu pencereyi kapatabilirsiniz.
-pause
-exit
+if "%INTERACTIVE%"=="1" pause
+exit /b 0
 
 :docker_mode
 setlocal enabledelayedexpansion
 
 :: Port Temizligi (Cakismalari onlemek icin)
 echo [*] Eski surecler temizleniyor...
-powershell -Command "$pids = netstat -ano | Select-String 'LISTENING' | ForEach-Object { $parts = $_.ToString().Split(' ', [System.StringSplitOptions]::RemoveEmptyEntries); $addr = $parts[1]; if ($addr -like '*:8000' -or $addr -like '*:3100') { $parts[-1] } } | Select-Object -Unique; if ($pids) { Stop-Process -Id $pids -Force -ErrorAction SilentlyContinue }"
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8000 ^| findstr LISTENING') do taskkill /f /pid %%a >nul 2>&1
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr :3100 ^| findstr LISTENING') do taskkill /f /pid %%a >nul 2>&1
 
 echo [*] Docker mod baslatiliyor...
 
@@ -166,6 +197,49 @@ if errorlevel 1 (
     pause
     goto local_mode
 )
-start "" "http://localhost:3100"
-pause
-exit
+call :wait_http "Backend API" "http://127.0.0.1:8000/health" 24
+if errorlevel 1 (
+    echo [HATA] Docker Backend API hazir olmadi! Loglari kontrol edin.
+    pause
+    goto local_mode
+)
+call :wait_http "Frontend UI" "http://127.0.0.1:3100" 24
+if errorlevel 1 (
+    echo [HATA] Docker Frontend UI hazir olmadi! Loglari kontrol edin.
+    pause
+    goto local_mode
+)
+if "%INTERACTIVE%"=="1" start "" "http://localhost:3100"
+if "%INTERACTIVE%"=="1" pause
+exit /b 0
+
+:wait_http
+set "WAIT_NAME=%~1"
+set "WAIT_URL=%~2"
+set /a WAIT_MAX=%~3
+set /a WAIT_COUNT=0
+echo [*] %WAIT_NAME% hazirlik kontrolu: %WAIT_URL%
+:wait_http_loop
+powershell -NoProfile -ExecutionPolicy Bypass -Command "try { $r = Invoke-WebRequest -UseBasicParsing '%WAIT_URL%' -TimeoutSec 3; if ($r.StatusCode -ge 200 -and $r.StatusCode -lt 500) { exit 0 } } catch { exit 1 }; exit 1" >nul 2>&1
+if not errorlevel 1 (
+    echo [OK] %WAIT_NAME% hazir.
+    exit /b 0
+)
+set /a WAIT_COUNT+=1
+if %WAIT_COUNT% GEQ %WAIT_MAX% (
+    echo [HATA] %WAIT_NAME% zaman asimina ugradi.
+    exit /b 1
+)
+timeout /t 2 >nul
+goto wait_http_loop
+
+:assert_port_free
+set "PORT_TO_CHECK=%~1"
+set "PORT_LABEL=%~2"
+netstat -aon | findstr /R /C:":%PORT_TO_CHECK% .*LISTENING" >nul 2>&1
+if not errorlevel 1 (
+    echo [HATA] %PORT_LABEL% portu bos degil: %PORT_TO_CHECK%
+    netstat -aon | findstr /R /C:":%PORT_TO_CHECK% .*LISTENING"
+    exit /b 1
+)
+exit /b 0

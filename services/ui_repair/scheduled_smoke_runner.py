@@ -27,7 +27,8 @@ class ScheduledSmokeRunner:
         self.db = db
         self.repair_service = UIRepairService(db)
         self.health_service = RouteHealthService(db)
-        self.notifier = NotificationAdapter()
+        self.notifier = NotificationAdapter(db)
+
 
     async def run_monitoring_cycle(self, triggered_by: str = "SCHEDULED") -> Dict[str, Any]:
         """

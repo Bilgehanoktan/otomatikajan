@@ -790,11 +790,11 @@ async def get_portfolio_metrics_endpoint(
 
 @router.get("/portfolio/search")
 async def search_portfolio_endpoint(
-    q: Optional[str] = None,
-    status: Optional[str] = None,
-    risk_level: Optional[str] = None,
-    has_release_archive: Optional[bool] = None,
-    final_decision: Optional[str] = None,
+    q: str | None = None,
+    status: str | None = None,
+    risk_level: str | None = None,
+    has_release_archive: bool | None = None,
+    final_decision: str | None = None,
     sort: str = "updated_at_desc",
     limit: int = 20,
     offset: int = 0,
