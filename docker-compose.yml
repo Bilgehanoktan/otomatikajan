@@ -119,6 +119,8 @@ services:
     build:
       context: .
       target: production-worker
+      args:
+        INSTALL_DOCKER_CLI: ${INSTALL_DOCKER_CLI:-false}
     restart: no
     env_file:
       - .env
@@ -158,6 +160,8 @@ services:
     build:
       context: .
       target: production-worker
+      args:
+        INSTALL_DOCKER_CLI: ${INSTALL_DOCKER_CLI:-false}
     restart: no
     env_file:
       - .env

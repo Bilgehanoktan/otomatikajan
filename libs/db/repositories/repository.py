@@ -360,7 +360,16 @@ class ProjectRepository:
         report: str,
         status: str = ProjectStatus.COMPLETED.value,
         total_cost: float = 0.0,
+        quality_score: float | None = None,
+        quality_detail: dict | None = None,
     ) -> None:
+        """Mark a project terminal while accepting workflow quality metadata.
+
+        Project rows do not currently expose dedicated quality columns.  Worker
+        tasks still pass this metadata as part of the completion contract, so the
+        repository must accept it without turning a completed workflow into an
+        error.
+        """
         await db.execute(
             update(Project)
             .where(Project.id == project_id)
@@ -370,6 +379,7 @@ class ProjectRepository:
                 total_cost=total_cost,
                 progress_pct=100 if status in (ProjectStatus.COMPLETED.value, ProjectStatus.PARTIAL_COMPLETE.value) else 0,
                 completed_at=_utcnow(),
+                error_detail="",
             )
         )
 

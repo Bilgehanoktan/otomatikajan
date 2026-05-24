@@ -77,11 +77,17 @@ CMD ["sh", "-c", \
 # ─── Aşama 4: Üretim Worker (Full Browser Support) ───────
 FROM base-runtime AS production-worker
 
-# Root yetkisiyle tarayıcı ve Docker bağımlılıklarını kur
+# Docker CLI kurulumu varsayılan olarak kapalıdır. Full-stack worker image
+# build'i, offline/DNS sorunlarında `docker.io` indirmeye mecbur kalmamalıdır.
 USER root
-RUN apt-get -o Acquire::Retries=3 update && apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
-    docker.io \
-    && rm -rf /var/lib/apt/lists/*
+ARG INSTALL_DOCKER_CLI=false
+RUN if [ "${INSTALL_DOCKER_CLI}" = "true" ]; then \
+        apt-get -o Acquire::Retries=3 update && \
+        apt-get -o Acquire::Retries=3 install -y --no-install-recommends docker.io && \
+        rm -rf /var/lib/apt/lists/*; \
+    else \
+        echo "Skipping docker.io install for production-worker. Set INSTALL_DOCKER_CLI=true only when host Docker access is required."; \
+    fi
 
 # Playwright browser'ları zaten base-runtime'da kurulu.
 
