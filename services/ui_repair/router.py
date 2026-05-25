@@ -230,7 +230,7 @@ async def resolve_case(case_id: str, db: AsyncSession = Depends(get_db)):
 async def trigger_autonomous_repair(case_id: str, db: AsyncSession = Depends(get_db)):
     """Triggers the autonomous repair hand-off for a specific case."""
     from services.ui_repair.runtime_guard import check_runtime_dependencies
-    guard = await check_runtime_dependencies()
+    guard = await check_runtime_dependencies(require_docker=True)
     if guard["status"] == "degraded":
         return guard
 

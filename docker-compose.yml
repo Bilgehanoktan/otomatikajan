@@ -31,6 +31,7 @@ services:
       INPROCESS_JOB_WORKERS_ENABLED: ${INPROCESS_JOB_WORKERS_ENABLED:-false}
       PRMR_AUDIT_ENABLED: "false"
       PYTHONPATH: /app
+      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
       DOCKER_CONTAINER: "true"
     ports:
       - "8000:8000"
@@ -138,6 +139,7 @@ services:
       REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
       DEERFLOW_BRIDGE_URL: http://deerflow-bridge:8010
       PYTHONPATH: /app
+      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
       DOCKER_CONTAINER: "true"
     depends_on:
       db:
@@ -179,6 +181,7 @@ services:
       REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
       DEERFLOW_BRIDGE_URL: http://deerflow-bridge:8010
       PYTHONPATH: /app
+      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
       DOCKER_CONTAINER: "true"
     command: >
       celery -A workers.workflow_worker.tasks.celery_app worker
@@ -228,6 +231,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/ai_company
       REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
       PYTHONPATH: /app
+      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
       DOCKER_CONTAINER: "true"
     command: >
       celery -A workers.workflow_worker.tasks.celery_app beat
@@ -309,6 +313,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/ai_company
       REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
       PYTHONPATH: /app
+      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
       DOCKER_CONTAINER: "true"
     command: ["python", "-m", "apps.telegram_bot.polling"]
     depends_on:

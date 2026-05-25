@@ -40,19 +40,41 @@ class GoalDecomposer:
         normalized_title = title.lower().replace("İ", "i").replace("I", "ı")
         normalized_desc = description.lower().replace("İ", "i").replace("I", "ı")
         
-        banned_keywords = ["rm -rf", "delete all", "wipe", "format", "imha", "sil", "destroy", "bash", "sh ", "drop"]
-        critical_keywords = [k for k in banned_keywords if k in normalized_title or k in normalized_desc]
+        # Check environment override first
+        bypass_safety = os.environ.get("AGI_BYPASS_SAFETY_GUARDRAIL", "false").lower() in ("true", "1", "yes")
         
-        # Eğer kritik bir anahtar varsa ve koruma/yedekleme anahtarları YOKSA engelle
-        safe_keywords = ["yedek", "arşiv", "backup", "archive", "koru", "safe"]
-        is_safe_intent = any(s in normalized_title or s in normalized_desc for s in safe_keywords)
+        if bypass_safety:
+            _log.info("[SAFETY-BYPASS] Egemen Güvenlik BYPASS aktif - Planlamaya devam ediliyor.")
+            critical_keywords = []
+        else:
+            import re
+            banned_keywords = ["rm -rf", "delete all", "wipe", "format", "imha", "sil", "destroy", "bash", "sh ", "drop"]
+            critical_keywords = []
+            
+            for k in banned_keywords:
+                # Eger anahtar kelime cok kisaysa veya yaygin bir kelimeyse (örn: sil, drop, bash, sh, imha)
+                # alt kelime eslesmesi (substring) yerine kelime siniri kontrolu (word boundary) yapalim.
+                # Boylece 'temsilci', 'yeşil', 'basit', 'sistemdiltaraması' gibi kelimeler engellenmez.
+                if k in ["sil", "drop", "bash", "sh ", "imha", "format", "destroy"]:
+                    # Türkçe karakter sınırları için regex
+                    # Kelime sınırını hem standart \b ile hem de boşluk/noktalama işaretleri ile kontrol edelim.
+                    pattern = rf"(?:\b|(?<=\s)|(?<=^)){re.escape(k)}(?:\b|(?=\s)|(?=$))"
+                    if re.search(pattern, normalized_title) or re.search(pattern, normalized_desc):
+                        critical_keywords.append(k)
+                else:
+                    if k in normalized_title or k in normalized_desc:
+                        critical_keywords.append(k)
+            
+            # Eğer kritik bir anahtar varsa ve koruma/yedekleme/taramak anahtarları YOKSA engelle
+            safe_keywords = ["yedek", "arşiv", "backup", "archive", "koru", "safe", "tara", "tarama", "scan", "check", "analiz"]
+            is_safe_intent = any(s in normalized_title or s in normalized_desc for s in safe_keywords)
 
-        if critical_keywords and not is_safe_intent:
-            # Temel sistem bileşenlerini hedef alıyorsa engelle
-            risk_targets = ["sistem", "veriler", "her şey", "all", "database", "sql", "dosya"]
-            if any(t in normalized_title or t in normalized_desc for t in risk_targets):
-                _log.warning(f"[SAFETY-BLOCK] Egemen Güvenlik Tarafından Engellendi: {critical_keywords}")
-                return [] 
+            if critical_keywords and not is_safe_intent:
+                # Temel sistem bileşenlerini hedef alıyorsa engelle
+                risk_targets = ["sistem", "veriler", "her şey", "all", "database", "sql", "dosya"]
+                if any(t in normalized_title or t in normalized_desc for t in risk_targets):
+                    _log.warning(f"[SAFETY-BLOCK] Egemen Güvenlik Tarafından Engellendi: {critical_keywords}")
+                    return [] 
         
         # Faz 46: Bilişsel Bilgelik (Semantic Wisdom) Geri Çağırma
         wisdom_brief = ""

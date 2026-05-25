@@ -140,11 +140,19 @@ def check_db() -> Dict[str, Any]:
             "error_details": str(e)
         }
 
-async def check_runtime_dependencies() -> Dict[str, Any]:
+def _env_flag(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+async def check_runtime_dependencies(require_docker: bool | None = None) -> Dict[str, Any]:
     """
     Main entrypoint to check all dependencies.
     Aggregates checks and identifies the degraded state if any critical resource is missing.
     """
+    docker_required = _env_flag("UI_REPAIR_REQUIRE_DOCKER", False) if require_docker is None else require_docker
+
     playwright_res = await check_playwright()
     llm_res = check_llm()
     docker_res = await check_docker()
@@ -171,7 +179,7 @@ async def check_runtime_dependencies() -> Dict[str, Any]:
             "fallback_used": "mock_evidence"
         }
 
-    if not docker_res["available"]:
+    if docker_required and not docker_res["available"]:
         return {
             "status": "degraded",
             "reason": docker_res["reason"],
@@ -191,12 +199,23 @@ async def check_runtime_dependencies() -> Dict[str, Any]:
             "fallback_used": "sqlite_fallback"
         }
 
+    warnings: List[Dict[str, Any]] = []
+    if not docker_res["available"]:
+        warnings.append({
+            "stage": "sandboxed_execution",
+            "reason": docker_res["reason"],
+            "operator_action": docker_res["operator_action"],
+            "fallback_used": "local_mock_patch",
+            "error_details": docker_res["error_details"],
+        })
+
     return {
         "status": "healthy",
+        "warnings": warnings,
         "details": {
             "playwright": playwright_res,
             "llm": llm_res,
-            "docker": docker_res,
+            "docker": {**docker_res, "required": docker_required},
             "db": db_res
         }
     }
