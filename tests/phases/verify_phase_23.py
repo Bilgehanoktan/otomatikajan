@@ -5,8 +5,8 @@ from datetime import datetime, timezone, timedelta
 from services.orchestration.agi.cognitive.architect import Architect
 from services.orchestration.agi.operational.source_refactor import SourceRefactorNode
 from agents.agent_registry import build_agents
-from db.session import session_scope
-from db.models import SkillExecutionLog, ImprovementOpportunity
+from libs.db.session import session_scope
+from libs.db.models import SkillExecutionLog, ImprovementOpportunity
 
 async def verify_recursive_self_optimization():
     print("--- Phase 23 Recursive Cognitive Self-Optimization Verification ---")

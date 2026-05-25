@@ -5,7 +5,7 @@ from typing import Dict, Any, List
 from datetime import datetime, timezone
 from services.orchestration.agi.central_executive import CentralExecutive
 from services.orchestration.agi.schemas import SourceType, RiskLevel, ProblemFrame, TaskType
-from db.session import session_scope
+from libs.db.session import session_scope
 
 # Mocking ModelOrchestrator to simulate different agent responses
 class MockModelOrchestrator:

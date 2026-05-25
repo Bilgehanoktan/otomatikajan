@@ -3,9 +3,10 @@ import os
 import uuid
 import json
 from services.orchestration.agi.cognitive.reflection_cortex import ReflectionCortex
+from services.orchestration.agi.cognitive.metacognitive_auditor import DiagnosticNode
 from services.orchestration.agi.operational.self_patcher import self_patcher
-from db.session import session_scope
-from db.models import SkillExecutionLog, ImprovementOpportunity
+from libs.db.session import session_scope
+from libs.db.models import SkillExecutionLog, ImprovementOpportunity
 from pathlib import Path
 
 async def verify_cognitive_layer():

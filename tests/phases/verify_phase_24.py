@@ -6,8 +6,8 @@ from datetime import datetime, timezone, timedelta
 from services.orchestration.agi.monitoring.token_budgeter import token_budgeter
 from services.orchestration.agi.monitoring.nervous_system import nervous_system
 from llm.model_orchestrator import ModelOrchestrator
-from db.session import session_scope
-from db.models import LLMCostLog
+from libs.db.session import session_scope
+from libs.db.models import LLMCostLog
 
 async def verify_biological_equilibrium():
     print("--- Phase 24 Biological Equilibrium Verification ---")

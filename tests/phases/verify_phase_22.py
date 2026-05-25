@@ -6,8 +6,8 @@ from datetime import datetime, timezone, timedelta
 from sqlalchemy import select
 from services.orchestration.agi.cognitive.synapse_stabilizer import SynapseStabilizer
 from services.orchestration.agi.central_executive import CentralExecutive
-from db.session import session_scope
-from db.models import SkillExecutionLog, ImprovementOpportunity, Memory
+from libs.db.session import session_scope
+from libs.db.models import SkillExecutionLog, ImprovementOpportunity, Memory
 from services.orchestration.agi.cognitive.synaptic_cortex import synaptic_cortex as memory_store
 
 async def verify_synapse_evolution():

@@ -3,10 +3,10 @@ import os
 import uuid
 from services.orchestration.agi.cognitive.consolidator import Consolidator
 from services.orchestration.agi.cognitive.memory_api import memory_api
-from db.session import session_scope
-from db.repository import ProjectRepository
+from libs.db.session import session_scope
+from libs.db.repositories.repository import ProjectRepository
 
-from db.models import ProjectStatus
+from libs.db.models import ProjectStatus
 
 async def verify_knowledge_layer():
     print("--- Phase 20 Knowledge Consolidation Verification ---")
@@ -34,7 +34,7 @@ async def verify_knowledge_layer():
     print("[*] Running Consolidator...")
     consolidator = Consolidator()
     async with session_scope() as db_dream: # Yeni session ile kontrol et
-        await consolidator.run_consolidation_cycle()
+        await consolidator.run_dream_cycle(db_dream)
     
     # 3. Check for KI creation
     ki_files = os.listdir("knowledge")
