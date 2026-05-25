@@ -45,15 +45,15 @@ const SystemHeaderContent = () => {
     }, []);
 
     return (
-        <header className="h-16 border-b border-white/5 px-8 flex items-center justify-between glass-panel sticky top-0 z-50 backdrop-blur-xl">
-            <div className="flex items-center gap-6">
+        <header className="h-16 w-full max-w-full overflow-hidden border-b border-white/5 px-4 lg:px-6 flex items-center justify-between gap-4 glass-panel sticky top-0 z-50 backdrop-blur-xl">
+            <div className="flex min-w-0 items-center gap-4">
                 {!isCrisisMode && (
-                    <div className="relative group animate-in fade-in duration-700">
+                    <div className="relative group hidden md:block min-w-0 animate-in fade-in duration-700">
                         <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-[var(--primary)] transition-all duration-300" />
                         <input
                             type="text"
                             placeholder={t("searchPlaceholder")}
-                            className="bg-white/5 border border-white/5 rounded-full pl-11 pr-5 py-2 text-[11px] font-medium text-gray-300 focus:outline-none focus:border-[var(--primary)]/30 focus:bg-white/[0.08] focus:ring-4 focus:ring-[var(--primary)]/5 transition-all w-72 placeholder:text-gray-600"
+                            className="bg-white/5 border border-white/5 rounded-full pl-11 pr-5 py-2 text-[11px] font-medium text-gray-300 focus:outline-none focus:border-[var(--primary)]/30 focus:bg-white/[0.08] focus:ring-4 focus:ring-[var(--primary)]/5 transition-all w-48 xl:w-72 placeholder:text-gray-600"
                         />
                     </div>
                 )}
@@ -65,7 +65,7 @@ const SystemHeaderContent = () => {
                 )}
             </div>
 
-            <div className="flex items-center gap-8">
+            <div className="flex min-w-0 shrink items-center justify-end gap-4 xl:gap-6">
                 {/* Metabolic Health Indicator */}
                 <div className="hidden 2xl:flex items-center gap-4 px-6 border-l border-white/5">
                     <div className="flex flex-col items-end">
@@ -89,7 +89,7 @@ const SystemHeaderContent = () => {
                 </div>
 
                 {/* System Metrics */}
-                <div className="hidden xl:flex items-center gap-10 border-r border-white/10 pr-8">
+                <div className="hidden xl:flex items-center gap-6 2xl:gap-10 border-r border-white/10 pr-4 2xl:pr-8">
                     <div className="flex items-center gap-3 group">
                         <div className={`p-2 rounded-lg ${isCrisisMode ? "bg-red-500/10" : "bg-[var(--primary)]/5"} border border-white/5`}>
                             <Activity size={14} className={isCrisisMode ? "text-red-400" : "text-[var(--primary)]"} />
@@ -122,7 +122,7 @@ const SystemHeaderContent = () => {
                 </div>
 
                 {/* Actions & User */}
-                <div className="flex items-center gap-5">
+                <div className="flex min-w-0 items-center gap-3 2xl:gap-5">
                     <button
                         onClick={() => window.location.href = "/workflows"}
                         className="hidden lg:flex items-center gap-2.5 px-5 py-2 bg-[var(--primary)] text-[#0b0c10] text-[11px] font-black uppercase rounded-xl hover:shadow-[0_0_25px_var(--primary-glow)] hover:-translate-y-0.5 transition-all active:scale-95 group"
@@ -149,10 +149,10 @@ const SystemHeaderContent = () => {
                         </button>
                     </div>
 
-                    <div className="flex items-center gap-4 pl-5 border-l border-white/10">
-                        <div className="flex flex-col items-end">
+                    <div className="hidden lg:flex min-w-0 items-center gap-3 pl-4 border-l border-white/10">
+                        <div className="flex min-w-0 max-w-[9rem] 2xl:max-w-[13rem] flex-col items-end">
                             <span className="text-[11px] text-white font-black tracking-tight">{t("operator")}</span>
-                            <span className="text-[8px] text-[var(--secondary)] font-black uppercase tracking-[0.25em]">
+                            <span className="max-w-full truncate text-[8px] text-[var(--secondary)] font-black uppercase tracking-[0.18em] 2xl:tracking-[0.25em]">
                                 {identity?.name || identity?.email || operatorEmail || "GUEST"}
                             </span>
                         </div>
