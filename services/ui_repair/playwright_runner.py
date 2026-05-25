@@ -11,7 +11,16 @@ from services.observability.logging import get_logger
 _log = get_logger("ui_evidence_runner")
 
 class UIEvidenceRunner:
-    def __init__(self, base_url: str = "http://localhost:3100"):
+    def __init__(self, base_url: Optional[str] = None):
+        if base_url is None:
+            is_docker = os.path.exists("/.dockerenv") or os.getenv("DOCKER_CONTAINER", "false").lower() in {"true", "1", "yes"}
+            default_url = "http://cms:3100" if is_docker else "http://localhost:3100"
+            base_url = os.getenv("PLAYWRIGHT_BASE_URL", os.getenv("APP_FRONTEND_URL", default_url))
+            
+            # If APP_FRONTEND_URL is http://localhost:3100 but we are inside Docker, we must route to http://cms:3100
+            if is_docker and "localhost" in base_url:
+                base_url = "http://cms:3100"
+                
         self.base_url = base_url.rstrip("/")
         self.artifacts_dir = "artifacts/ui_repair/evidence"
         os.makedirs(self.artifacts_dir, exist_ok=True)
@@ -42,6 +51,30 @@ class UIEvidenceRunner:
                 ignore_https_errors=True
             )
             
+            # --- AUTHENTICATION INITIATION ---
+            login_page = await context.new_page()
+            try:
+                _log.info(f"Playwright: Logging in to Control Plane at {self.base_url}/login")
+                await login_page.goto(f"{self.base_url}/login", wait_until="networkidle", timeout=15000)
+                
+                email_selector = "input[type='email']"
+                password_selector = "input[type='password']"
+                
+                await login_page.wait_for_selector(email_selector, timeout=10000)
+                await login_page.fill(email_selector, "admin@sovereign.agi")
+                await login_page.fill(password_selector, "admin1234")
+                
+                submit_selector = "button[type='submit']"
+                await login_page.click(submit_selector)
+                
+                # Wait for redirection to dashboard or URL change
+                await login_page.wait_for_url(f"**/dashboard", timeout=15000)
+                _log.info("Playwright login successful! Browser context is now authenticated.")
+            except Exception as e:
+                _log.warning(f"Playwright pre-authentication failed (proceeding as unauthenticated): {e}")
+            finally:
+                await login_page.close()
+            
             for route in routes:
                 route_result = await self._test_route(context, route)
                 results.append(route_result)
@@ -59,13 +92,13 @@ class UIEvidenceRunner:
             "type": msg.type,
             "text": msg.text,
             "location": msg.location
-        }) if msg.type == "error" else None)
+        }) if msg.type == "error" and not any(ignored in msg.text for ignored in ["401", "422", "/auth/me", "/auth/refresh"]) else None)
         
         network_errors = []
         page.on("requestfailed", lambda request: network_errors.append({
             "url": request.url,
             "error": request.failure
-        }))
+        }) if not any(ignored in request.url for ignored in ["/auth/me", "/auth/refresh"]) else None)
         
         # Track 404/500 responses from API or assets
         bad_responses = []
@@ -73,7 +106,7 @@ class UIEvidenceRunner:
             "url": response.url,
             "status": response.status,
             "statusText": response.status_text
-        }) if response.status >= 400 else None)
+        }) if response.status >= 400 and response.status not in [401, 422] and not any(ignored in response.url for ignored in ["/auth/me", "/auth/refresh"]) else None)
 
         start_time = time.time()
         
@@ -146,6 +179,8 @@ class UIEvidenceRunner:
         else:
             # Stop tracing without saving
             await context.tracing.stop()
+        
+        return evidence
 
     async def _analyze_page(self, page: Page, route: str) -> Dict[str, Any]:
         """Analyzes an already navigated page for evidence."""

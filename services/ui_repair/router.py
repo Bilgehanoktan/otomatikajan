@@ -494,8 +494,8 @@ async def record_operator_action(
     operator: str = Query(...), 
     action_type: str = Query(...), 
     rationale: str = Query(...),
-    target_type: str = Query(None),
-    target_id: str = Query(None),
+    target_type: str | None = Query(None),
+    target_id: str | None = Query(None),
     db: AsyncSession = Depends(get_db)
 ):
     svc = UIRepairService(db)
@@ -952,7 +952,7 @@ async def simulate_policy(
 
 @router.get("/security/posture", response_model=UISecurityPostureScoreSchema)
 async def get_latest_security_posture(
-    tenant_key: Optional[str] = Query(None),
+    tenant_key: str | None = Query(None),
     db: AsyncSession = Depends(get_db)
 ):
     """Gets the latest security posture score and level."""
@@ -986,7 +986,7 @@ async def list_compliance_controls(db: AsyncSession = Depends(get_db)):
 
 @router.get("/security/findings", response_model=List[UISecurityPostureFindingSchema])
 async def list_compliance_findings(
-    tenant_key: Optional[str] = Query(None),
+    tenant_key: str | None = Query(None),
     db: AsyncSession = Depends(get_db)
 ):
     """Lists recent compliance findings."""
@@ -997,7 +997,7 @@ async def list_compliance_findings(
 
 @router.post("/security/scan", response_model=UISecurityPostureScoreSchema)
 async def trigger_security_scan(
-    tenant_key: Optional[str] = Query(None),
+    tenant_key: str | None = Query(None),
     db: AsyncSession = Depends(get_db)
 ):
     """Triggers an immediate platform security posture scan."""
@@ -1007,7 +1007,7 @@ async def trigger_security_scan(
 
 @router.post("/security/certify", response_model=UISecurityCertificationSchema)
 async def generate_compliance_certification(
-    tenant_key: Optional[str] = Query(None),
+    tenant_key: str | None = Query(None),
     operator_name: str = Query("System"),
     db: AsyncSession = Depends(get_db)
 ):
@@ -1018,7 +1018,7 @@ async def generate_compliance_certification(
 
 @router.get("/security/certifications", response_model=List[UISecurityCertificationSchema])
 async def list_certifications(
-    tenant_key: Optional[str] = Query(None),
+    tenant_key: str | None = Query(None),
     db: AsyncSession = Depends(get_db)
 ):
     """Lists historical certification records."""
@@ -1040,7 +1040,7 @@ async def orchestrate_security_remediation(
 
 @router.get("/security/remediation/plans", response_model=List[UISecurityRemediationPlanSchema])
 async def list_remediation_plans(
-    status: Optional[str] = Query(None),
+    status: str | None = Query(None),
     db: AsyncSession = Depends(get_db)
 ):
     """Lists active remediation plans."""
@@ -1049,7 +1049,7 @@ async def list_remediation_plans(
 
 @router.get("/security/remediation/attempts", response_model=List[UISecurityAutoFixAttemptSchema])
 async def list_autofix_attempts(
-    finding_id: Optional[UUID] = Query(None),
+    finding_id: UUID | None = Query(None),
     db: AsyncSession = Depends(get_db)
 ):
     """Lists auto-fix attempts."""
@@ -1085,7 +1085,7 @@ async def finalize_security_remediation(
 
 @router.get("/security/threat/assets", response_model=List[UIAttackSurfaceAssetSchema])
 async def get_attack_surface_assets(
-    tenant_key: Optional[str] = Query(None),
+    tenant_key: str | None = Query(None),
     db: AsyncSession = Depends(get_db)
 ):
     """Lists discovered attack surface assets."""
@@ -1094,7 +1094,7 @@ async def get_attack_surface_assets(
 
 @router.post("/security/threat/inventory/scan", response_model=List[UIAttackSurfaceAssetSchema])
 async def trigger_attack_surface_scan(
-    tenant_key: Optional[str] = Query(None),
+    tenant_key: str | None = Query(None),
     db: AsyncSession = Depends(get_db)
 ):
     """Triggers a new attack surface discovery scan."""
@@ -1104,7 +1104,7 @@ async def trigger_attack_surface_scan(
 @router.post("/security/threat/models/generate", response_model=UIThreatModelSchema)
 async def generate_threat_model(
     scope: str = Query("SYSTEM"),
-    tenant_key: Optional[str] = Query(None),
+    tenant_key: str | None = Query(None),
     db: AsyncSession = Depends(get_db)
 ):
     """Triggers autonomous threat model generation."""
@@ -1130,7 +1130,7 @@ async def get_threat_model_detail(model_id: UUID, db: AsyncSession = Depends(get
 
 @router.get("/security/threat/attack-paths", response_model=List[UIAttackPathSchema])
 async def list_attack_paths(
-    threat_model_id: Optional[UUID] = Query(None),
+    threat_model_id: UUID | None = Query(None),
     db: AsyncSession = Depends(get_db)
 ):
     """Lists identified attack paths."""
@@ -1217,7 +1217,7 @@ async def get_red_team_run(run_id: UUID, db: AsyncSession = Depends(get_db)):
     return await service.get_red_team_run(run_id)
 
 @router.get("/security/red-team/probes", response_model=List[UIAdversarialProbeSchema])
-async def list_red_team_probes(run_id: Optional[UUID] = None, db: AsyncSession = Depends(get_db)):
+async def list_red_team_probes(run_id: UUID | None = None, db: AsyncSession = Depends(get_db)):
     """Lists adversarial probes executed during runs."""
     service = UIRepairService(db)
     return await service.list_red_team_probes(run_id)
