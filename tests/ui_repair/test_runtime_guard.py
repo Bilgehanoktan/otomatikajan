@@ -3,6 +3,28 @@ import pytest
 from services.ui_repair import runtime_guard
 
 
+def test_runtime_guard_normalizes_windows_browser_path_inside_container(monkeypatch):
+    monkeypatch.setattr(runtime_guard.os.path, "exists", lambda path: path == "/.dockerenv")
+    monkeypatch.setenv("DOCKER_CONTAINER", "true")
+    monkeypatch.setenv("PLAYWRIGHT_BROWSERS_PATH", r"C:\Users\BILGEHAN\.gemini\antigravity\.playwright-browsers")
+
+    previous = runtime_guard._normalize_playwright_browser_path()
+
+    assert previous == r"C:\Users\BILGEHAN\.gemini\antigravity\.playwright-browsers"
+    assert runtime_guard.os.getenv("PLAYWRIGHT_BROWSERS_PATH") == "/ms-playwright"
+
+
+def test_runtime_guard_keeps_valid_container_browser_path(monkeypatch):
+    monkeypatch.setattr(runtime_guard.os.path, "exists", lambda path: path == "/.dockerenv")
+    monkeypatch.setenv("DOCKER_CONTAINER", "true")
+    monkeypatch.setenv("PLAYWRIGHT_BROWSERS_PATH", "/ms-playwright")
+
+    previous = runtime_guard._normalize_playwright_browser_path()
+
+    assert previous is None
+    assert runtime_guard.os.getenv("PLAYWRIGHT_BROWSERS_PATH") == "/ms-playwright"
+
+
 @pytest.mark.asyncio
 async def test_runtime_guard_treats_docker_as_optional_for_smoke(monkeypatch):
     async def ok_playwright():

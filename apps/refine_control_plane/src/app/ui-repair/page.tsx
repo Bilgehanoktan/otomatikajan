@@ -95,6 +95,7 @@ export default function UIRepairPage() {
   const [mainTab, setMainTab] = useState("matrix"); // matrix | monitoring | chaos | soak | proof
   const [triggeringMonitoring, setTriggeringMonitoring] = useState(false);
   const [degradedInfo, setDegradedInfo] = useState<any>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
 
 
   useEffect(() => {
@@ -103,15 +104,17 @@ export default function UIRepairPage() {
   }, []);
 
   const fetchMonitoringData = async () => {
-    try {
-      const [cfg, runs] = await Promise.all([
-        safeFetchJson('/api/v1/ui-repair/monitoring/config'),
-        safeFetchJson('/api/v1/ui-repair/monitoring/runs')
-      ]);
-      setMonitoringConfig(cfg);
-      setMonitoringRuns(runs);
-    } catch (err) {
-      console.error("Failed to fetch monitoring data", err);
+    const [cfg, runs] = await Promise.allSettled([
+      safeFetchJson('/api/v1/ui-repair/monitoring/config', { retries: 0, useOfflineFallback: false }),
+      safeFetchJson('/api/v1/ui-repair/monitoring/runs', { retries: 0, useOfflineFallback: false })
+    ]);
+
+    if (cfg.status === "fulfilled") setMonitoringConfig(cfg.value);
+    if (runs.status === "fulfilled") setMonitoringRuns(runs.value);
+
+    const rejected = [cfg, runs].find((result) => result.status === "rejected") as PromiseRejectedResult | undefined;
+    if (rejected) {
+      console.error("Failed to fetch monitoring data", rejected.reason);
     }
   };
 
@@ -145,27 +148,34 @@ export default function UIRepairPage() {
   };
 
   const fetchData = async () => {
-    try {
-      const [over, route, caseList, guard] = await Promise.all([
-        safeFetchJson('/api/v1/ui-repair/overview'),
-        safeFetchJson('/api/v1/ui-repair/routes'),
-        safeFetchJson('/api/v1/ui-repair/cases'),
-        safeFetchJson('/api/v1/ui-repair/runtime-guard/status')
-      ]);
-      
-      setOverview(over);
-      setRoutes(route);
-      setCases(caseList);
-      if (guard && guard.status === "degraded") {
-        setDegradedInfo(guard);
+    const [over, route, caseList, guard] = await Promise.allSettled([
+      safeFetchJson('/api/v1/ui-repair/overview', { retries: 0, useOfflineFallback: false }),
+      safeFetchJson('/api/v1/ui-repair/routes', { retries: 0, useOfflineFallback: false }),
+      safeFetchJson('/api/v1/ui-repair/cases', { retries: 0, useOfflineFallback: false }),
+      safeFetchJson('/api/v1/ui-repair/runtime-guard/status', { retries: 0, useOfflineFallback: false })
+    ]);
+
+    if (over.status === "fulfilled") setOverview(over.value);
+    if (route.status === "fulfilled") setRoutes(route.value);
+    if (caseList.status === "fulfilled") setCases(caseList.value);
+
+    if (guard.status === "fulfilled") {
+      if (guard.value && guard.value.status === "degraded") {
+        setDegradedInfo(guard.value);
       } else {
         setDegradedInfo(null);
       }
-    } catch (err) {
-      console.error("Failed to fetch UI repair data", err);
-    } finally {
-      setLoading(false);
     }
+
+    const rejected = [over, route, caseList, guard].find((result) => result.status === "rejected") as PromiseRejectedResult | undefined;
+    if (rejected) {
+      console.error("Failed to fetch UI repair data", rejected.reason);
+      setApiError(rejected.reason instanceof Error ? rejected.reason.message : String(rejected.reason));
+    } else {
+      setApiError(null);
+    }
+
+    setLoading(false);
   };
 
   const handleRunSmoke = async () => {
@@ -260,12 +270,12 @@ export default function UIRepairPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#020617] text-slate-200 selection:bg-blue-500/30">
-      <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 ease-out">
+    <div className="min-h-screen max-w-full overflow-x-hidden bg-[#020617] text-slate-200 selection:bg-blue-500/30">
+      <div className="p-6 lg:p-8 w-full max-w-full md:max-w-[calc(100vw-16rem)] overflow-x-hidden box-border space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 ease-out">
         
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-          <div>
+        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-4">
+          <div className="min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <Zap className="w-4 h-4 text-blue-400 fill-blue-400" />
               <span className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.2em]">Phase 32: Autonomous Repair</span>
@@ -278,7 +288,7 @@ export default function UIRepairPage() {
             </p>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 max-w-full">
             <div className="text-right hidden sm:block">
               <div className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Last Sync</div>
               <div className="text-xs text-slate-300 font-mono">
@@ -288,7 +298,7 @@ export default function UIRepairPage() {
             <button 
               onClick={handleRunSmoke}
               disabled={running}
-              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all
+              className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold transition-all whitespace-nowrap
                 ${running 
                   ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700' 
                   : 'bg-blue-600 hover:bg-blue-500 text-white shadow-2xl shadow-blue-900/40 border border-blue-400/20 active:scale-95'}`}
@@ -330,13 +340,20 @@ export default function UIRepairPage() {
           </div>
         )}
 
+        {apiError && (
+          <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-4 text-sm text-rose-200">
+            <span className="font-bold uppercase tracking-wide text-rose-300">Partial API degradation:</span>{" "}
+            UI Repair verileri kısmi yükleniyor. Hata: <span className="font-mono text-xs">{apiError}</span>
+          </div>
+        )}
+
         {/* Overview Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
-            { label: 'UI Health Score', val: `${(overview?.ui_health_score * 100).toFixed(0)}%`, icon: Activity, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-            { label: 'Stability Index', val: `${overview?.passing_routes}/${overview?.total_routes}`, icon: Globe, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-            { label: 'Active Repairs', val: overview?.open_cases, icon: AlertTriangle, color: 'text-amber-400', bg: 'bg-amber-500/10' },
-            { label: 'Critical Risk', val: overview?.critical_cases, icon: ShieldCheck, color: 'text-rose-400', bg: 'bg-rose-500/10' }
+            { label: 'UI Health Score', val: overview ? `${(overview.ui_health_score * 100).toFixed(0)}%` : 'N/A', icon: Activity, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+            { label: 'Stability Index', val: overview ? `${overview.passing_routes}/${overview.total_routes}` : 'N/A', icon: Globe, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+            { label: 'Active Repairs', val: overview?.open_cases ?? 'N/A', icon: AlertTriangle, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+            { label: 'Critical Risk', val: overview?.critical_cases ?? 'N/A', icon: ShieldCheck, color: 'text-rose-400', bg: 'bg-rose-500/10' }
           ].map((stat, i) => (
             <Card key={i} className="p-6 relative group hover:border-slate-700 transition-all">
               <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">

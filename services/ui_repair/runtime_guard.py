@@ -6,8 +6,40 @@ from services.observability.logging import get_logger
 
 _log = get_logger("ui_repair_runtime_guard")
 
+def _is_container_runtime() -> bool:
+    return os.path.exists("/.dockerenv") or os.getenv("DOCKER_CONTAINER", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+def _looks_like_host_browser_path(path: str | None) -> bool:
+    if not path:
+        return False
+    normalized = path.replace("\\", "/")
+    return ":" in normalized or normalized.lower().startswith(("c:/", "d:/", "e:/"))
+
+def _normalize_playwright_browser_path() -> str | None:
+    """
+    Docker containers must not inherit the Windows host browser cache path.
+    A leaked value such as C:\\Users\\...\\.playwright-browsers makes Playwright
+    look for /app/C:\\Users\\.../chrome-linux/chrome inside Linux.
+    """
+    current = os.getenv("PLAYWRIGHT_BROWSERS_PATH")
+    if _is_container_runtime() and (not current or _looks_like_host_browser_path(current)):
+        os.environ["PLAYWRIGHT_BROWSERS_PATH"] = "/ms-playwright"
+        return current
+    return None
+
+def _playwright_operator_action() -> str:
+    if _is_container_runtime():
+        return "docker compose build app worker && docker compose up -d --force-recreate app worker"
+    return "py -3.13 -m playwright install chromium"
+
 async def check_playwright() -> Dict[str, Any]:
     """Checks if Playwright is installed and the Chromium binary is available."""
+    leaked_path = _normalize_playwright_browser_path()
     try:
         from playwright.async_api import async_playwright
     except ImportError as e:
@@ -22,16 +54,28 @@ async def check_playwright() -> Dict[str, Any]:
     
     try:
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
+            browser = await asyncio.wait_for(p.chromium.launch(headless=True), timeout=8.0)
             await browser.close()
-        return {"available": True}
+        result: Dict[str, Any] = {"available": True}
+        if leaked_path:
+            result["normalized_browser_path_from"] = leaked_path
+            result["browser_path"] = os.getenv("PLAYWRIGHT_BROWSERS_PATH")
+        return result
+    except asyncio.TimeoutError:
+        _log.warning("Playwright Chromium launch timed out.")
+        return {
+            "available": False,
+            "reason": "playwright_browser_unavailable",
+            "operator_action": _playwright_operator_action(),
+            "error_details": "Chromium launch timed out after 8 seconds."
+        }
     except Exception as e:
         clean_err = str(e).encode('ascii', 'ignore').decode('ascii')
         _log.warning(f"Playwright Chromium browser binary is not available or failed: {clean_err}")
         return {
             "available": False,
             "reason": "playwright_browser_unavailable",
-            "operator_action": "py -3.13 -m playwright install chromium",
+            "operator_action": _playwright_operator_action(),
             "error_details": clean_err
         }
 
