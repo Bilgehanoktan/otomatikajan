@@ -4,7 +4,7 @@ import json
 from datetime import datetime, timezone, timedelta
 from services.orchestration.agi.cognitive.architect import Architect
 from services.orchestration.agi.operational.source_refactor import SourceRefactorNode
-from agents.agent_registry import build_agents
+from agents.specialist_agents.agent_registry import build_agents
 from libs.db.session import session_scope
 from libs.db.models import SkillExecutionLog, ImprovementOpportunity
 
