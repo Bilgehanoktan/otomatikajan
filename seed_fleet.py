@@ -2,7 +2,7 @@
 import asyncio
 import uuid
 from datetime import datetime, timedelta, timezone
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, text
 from libs.db.session import AsyncSessionLocal
 from libs.db.models.core_models import (
     Project, ProjectStatus, ProjectSource, TaskPriority,
@@ -16,6 +16,9 @@ from libs.db.models.learning_models import LearningRecord, ErrorFingerprint, Str
 async def seed_fleet():
     print("Starting Comprehensive System Seeding...")
     async with AsyncSessionLocal() as db:
+        # Disable foreign keys temporarily for clean delete/reseed
+        await db.execute(text("PRAGMA foreign_keys = OFF;"))
+        
         # 1. Clean existing data (except Operators)
         await db.execute(delete(WorkflowEvent))
         await db.execute(delete(FleetAssignment))

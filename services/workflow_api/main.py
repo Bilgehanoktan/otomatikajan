@@ -29,6 +29,7 @@ from services.workflow_api.router import router as workflow_router
 from services.orchestration.ceo.router import router as ceo_engine_router
 from services.workflow_api.ceo_router import router as ceo_bridge_router
 from services.workflow_api.project_factory_router import router as project_factory_router
+from services.workflow_api.mcp_router import router as mcp_router
 
 from contextlib import asynccontextmanager
 
@@ -135,6 +136,7 @@ app.include_router(ui_repair_router, prefix="/api/v1/ui-repair")
 app.include_router(ceo_engine_router, prefix="/api/v1/ceo")
 app.include_router(ceo_bridge_router, prefix="/api/v1/ceo")
 app.include_router(project_factory_router, prefix="/api/v1/project-factory")
+app.include_router(mcp_router, prefix="/api/v1/mcp")
 
 @app.websocket("/ws/events")
 async def websocket_route(websocket: WebSocket):

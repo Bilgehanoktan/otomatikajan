@@ -272,13 +272,23 @@ async def _audit_runtime_repair(
 
 @router.get("/runtime-diagnostics")
 async def get_runtime_diagnostics(request: Request):
-    identity_role = await _optional_identity_role(request)
-    findings = await _collect_runtime_diagnostics(identity_role=identity_role)
-    return {
-        "diagnostics": diagnostics_to_dict(findings),
-        "count": len(findings),
-        "timestamp": datetime.now(UTC).isoformat(),
-    }
+    try:
+        identity_role = await _optional_identity_role(request)
+        findings = await _collect_runtime_diagnostics(identity_role=identity_role)
+        return {
+            "diagnostics": diagnostics_to_dict(findings),
+            "count": len(findings),
+            "timestamp": datetime.now(UTC).isoformat(),
+        }
+    except Exception as exc:
+        logger.error("Error in get_runtime_diagnostics endpoint: %s", exc, exc_info=True)
+        return {
+            "diagnostics": [],
+            "count": 0,
+            "timestamp": datetime.now(UTC).isoformat(),
+            "fallback": True,
+            "error_detail": str(exc)
+        }
 
 
 @router.post("/runtime-diagnostics/{diagnostic_id}/repair")
