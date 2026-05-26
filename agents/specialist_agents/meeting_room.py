@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 import json
 import re
 
-from services.orchestration.agi.agent_registry import build_agents, Agent
+from agents.specialist_agents.agent_registry import build_agents, Agent
 from libs.llm.model_orchestrator import ModelOrchestrator
 from services.observability.logging import get_logger
 

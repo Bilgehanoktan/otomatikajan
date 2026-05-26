@@ -5,9 +5,9 @@ from datetime import datetime, timezone
 import json
 import re
 
-from agents.agent_registry import build_agents, Agent
-from llm.model_orchestrator import ModelOrchestrator
-from observability.logging import get_logger
+from agents.specialist_agents.agent_registry import build_agents, Agent
+from libs.llm.model_orchestrator import ModelOrchestrator
+from services.observability.logging import get_logger
 
 logger = get_logger("meeting_room")
 
