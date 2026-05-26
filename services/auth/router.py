@@ -119,6 +119,8 @@ async def list_identities(
     identity: Dict[str, Any] = Depends(require_permission("identity.manage"))
 ):
     """SIF-02: Lists all system identities for lifecycle management."""
+    from sqlalchemy import select
+    from libs.db.models.auth_models import SystemIdentity
     res = await db.execute(select(SystemIdentity))
     items = res.scalars().all()
     return [{
@@ -163,6 +165,7 @@ async def recover_identity(
     identity: Dict[str, Any] = Depends(require_permission("identity.manage"))
 ):
     """Restores trust and removes quarantine status."""
+    from sqlalchemy import select
     from libs.db.models.auth_models import SystemIdentity
     import uuid
     
