@@ -95,7 +95,7 @@ class AgencyLoader:
 
 # Faz 12.4: Bilişsel Bütünlük — Otonom Loader Senkronizasyonu
 _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-default_path = os.path.join(_root, "packages", "orchestration", "agi", "agents", "agency_library")
+default_path = os.path.join(_root, "agents", "specialist_agents", "agency_library")
 fallback_path = os.path.join(_root, "external", "vendor", "deer-flow", "skills", "public")
 
 if not os.path.exists(default_path) and os.path.exists(fallback_path):
