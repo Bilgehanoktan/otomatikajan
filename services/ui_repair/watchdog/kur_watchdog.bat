@@ -1,5 +1,6 @@
 @echo off
 setlocal
+
 :: Yönetici izni kontrolü
 net session >nul 2>&1
 if %errorLevel% == 0 (
@@ -13,8 +14,8 @@ if %errorLevel% == 0 (
 
 :: PowerShell scriptini Scheduled Task olarak ekle
 echo Watchdog Gorev Zamanlayiciya Ekleniyor...
-powershell -Command "$action = New-ScheduledTaskAction -Execute 'PowerShell.exe' -Argument '-ExecutionPolicy Bypass -WindowStyle Hidden -File E:\Otomasyon\watchdog.ps1'; $trigger1 = New-ScheduledTaskTrigger -AtLogOn; $trigger2 = New-ScheduledTaskTrigger -AtStartup; Register-ScheduledTask -TaskName 'OtonomAI-Watchdog' -Trigger @($trigger1, $trigger2) -Action $action -RunLevel Highest -Force"
+powershell -Command "$action = New-ScheduledTaskAction -Execute 'PowerShell.exe' -Argument '-ExecutionPolicy Bypass -WindowStyle Hidden -File E:\ai_company_faz12.1\services\ui_repair\watchdog\watchdog.ps1'; $trigger1 = New-ScheduledTaskTrigger -AtLogOn; $trigger2 = New-ScheduledTaskTrigger -AtStartup; Register-ScheduledTask -TaskName 'SovereignAGI-Watchdog' -Trigger @($trigger1, $trigger2) -Action $action -RunLevel Highest -Force"
 
 echo.
-echo Kurulum Tamamlandi! B компyuterinizi yeniden baslattiginizda veya uyku modundan dondugunde Watchdog otomatik calisacaktir.
+echo Kurulum Tamamlandi! Bilgisayariniz acildiginda veya yeniden baslatildiginda Watchdog otomatik olarak arka planda baslayacaktir.
 pause
