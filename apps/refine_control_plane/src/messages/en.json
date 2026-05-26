@@ -714,6 +714,14 @@
     "verifiers": "Verifiers",
     "workflows": "Workflows"
   },
+  "learning": {
+    "strategyMemory": {
+      "title": "Strategy Memory",
+      "strategy": "Strategy",
+      "trustScore": "Trust Score",
+      "latency": "Latency"
+    }
+  },
   "resources_adaptationCandidates": "Adaptation Candidates",
   "resources_agents": "Agent Registry",
   "resources_alerts": "Active Alerts",

@@ -102,13 +102,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
         clearStoredAccessToken();
         return {
           logout: true,
-          error: new Error("Oturumunuz sona erdi. Lutfen tekrar giris yapin."),
+          error: new Error("Oturumunuz sona erdi. Lütfen tekrar giriş yapın."),
         };
       }
 
       if (error?.status === 403 || error?.statusCode === 403) {
         return {
-          error: new Error("Bu islem icin yetkiniz bulunmuyor."),
+          error: new Error("Bu işlem için yetkiniz bulunmuyor."),
         };
       }
 

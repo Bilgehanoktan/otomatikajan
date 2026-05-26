@@ -1,5 +1,6 @@
 import asyncio
 import os
+import sys
 import subprocess
 from typing import Dict, Any, List
 from services.observability.logging import get_logger
@@ -30,12 +31,42 @@ def _normalize_playwright_browser_path() -> str | None:
     if _is_container_runtime() and (not current or _looks_like_host_browser_path(current)):
         os.environ["PLAYWRIGHT_BROWSERS_PATH"] = "/ms-playwright"
         return current
+    if not _is_container_runtime() and current and not os.path.exists(current):
+        host_cache = os.path.join(
+            os.path.expanduser("~"),
+            ".gemini",
+            "antigravity",
+            ".playwright-browsers",
+        )
+        if os.path.exists(host_cache):
+            os.environ["PLAYWRIGHT_BROWSERS_PATH"] = host_cache
+            return current
     return None
 
 def _playwright_operator_action() -> str:
     if _is_container_runtime():
         return "docker compose build app worker && docker compose up -d --force-recreate app worker"
     return "py -3.13 -m playwright install chromium"
+
+async def _launch_chromium_probe(async_playwright: Any) -> None:
+    async with async_playwright() as p:
+        browser = await asyncio.wait_for(p.chromium.launch(headless=True), timeout=8.0)
+        await browser.close()
+
+def _launch_chromium_probe_in_proactor_loop(async_playwright: Any) -> None:
+    policy = asyncio.WindowsProactorEventLoopPolicy()
+    loop = policy.new_event_loop()
+    try:
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(_launch_chromium_probe(async_playwright))
+    finally:
+        loop.close()
+
+async def _launch_chromium_probe_for_runtime(async_playwright: Any) -> None:
+    if sys.platform == "win32" and hasattr(asyncio, "WindowsProactorEventLoopPolicy"):
+        await asyncio.to_thread(_launch_chromium_probe_in_proactor_loop, async_playwright)
+        return
+    await _launch_chromium_probe(async_playwright)
 
 async def check_playwright() -> Dict[str, Any]:
     """Checks if Playwright is installed and the Chromium binary is available."""
@@ -53,9 +84,7 @@ async def check_playwright() -> Dict[str, Any]:
         }
     
     try:
-        async with async_playwright() as p:
-            browser = await asyncio.wait_for(p.chromium.launch(headless=True), timeout=8.0)
-            await browser.close()
+        await _launch_chromium_probe_for_runtime(async_playwright)
         result: Dict[str, Any] = {"available": True}
         if leaked_path:
             result["normalized_browser_path_from"] = leaked_path
@@ -70,6 +99,28 @@ async def check_playwright() -> Dict[str, Any]:
             "error_details": "Chromium launch timed out after 8 seconds."
         }
     except Exception as e:
+        if not _is_container_runtime() and os.getenv("PLAYWRIGHT_BROWSERS_PATH"):
+            previous_path = os.getenv("PLAYWRIGHT_BROWSERS_PATH")
+            host_cache = os.path.join(
+                os.path.expanduser("~"),
+                ".gemini",
+                "antigravity",
+                ".playwright-browsers",
+            )
+            if host_cache != previous_path and os.path.exists(host_cache):
+                os.environ["PLAYWRIGHT_BROWSERS_PATH"] = host_cache
+            else:
+                os.environ.pop("PLAYWRIGHT_BROWSERS_PATH", None)
+            try:
+                await _launch_chromium_probe_for_runtime(async_playwright)
+                return {
+                    "available": True,
+                    "normalized_browser_path_from": previous_path,
+                    "browser_path": os.getenv("PLAYWRIGHT_BROWSERS_PATH", "default"),
+                }
+            except Exception:
+                if previous_path:
+                    os.environ["PLAYWRIGHT_BROWSERS_PATH"] = previous_path
         clean_err = str(e).encode('ascii', 'ignore').decode('ascii')
         _log.warning(f"Playwright Chromium browser binary is not available or failed: {clean_err}")
         return {

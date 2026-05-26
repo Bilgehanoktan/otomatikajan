@@ -46,7 +46,7 @@ interface HealthData {
 const LOAD_PROFILE_HEIGHTS = Array.from({ length: 40 }, (_, index) => {
   const wave = Math.sin(index * 1.7) * 28;
   const pulse = ((index * 17) % 31);
-  return Math.max(20, Math.min(98, 56 + wave + pulse));
+  return Math.round(Math.max(20, Math.min(98, 56 + wave + pulse)));
 });
 
 export default function SystemHealthPage() {

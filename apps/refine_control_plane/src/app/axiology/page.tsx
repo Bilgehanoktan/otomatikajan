@@ -57,10 +57,10 @@ export default function AxiologyListPage() {
           </div>
           <div>
             <Title level={4} className="!m-0 !text-white tracking-tighter uppercase">
-              Bilissel Denetim
+              Bilişsel Denetim
             </Title>
             <Text className="text-[10px] text-[#45a29e] font-black uppercase tracking-[0.2em]">
-              Axiology Engine Denetim Loglari
+              Axiology Engine Denetim Logları
             </Text>
           </div>
         </div>
@@ -112,7 +112,7 @@ export default function AxiologyListPage() {
         <Col span={6}>
           <Card className="glass-card !bg-[#0e1320]/40 border-none">
             <Statistic
-              title={<span className="label-tech text-gray-400">Otonom Duzeltmeler</span>}
+              title={<span className="label-tech text-gray-400">Otonom Düzeltmeler</span>}
               value={45}
               valueStyle={{ color: "#45a29e", fontWeight: 900, fontSize: "28px" }}
               prefix={<Fingerprint className="inline-block mr-2 text-[#45a29e]" size={24} />}

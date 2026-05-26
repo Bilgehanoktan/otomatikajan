@@ -107,7 +107,12 @@ async def get_ui_repair_overview(db: AsyncSession = Depends(get_db)):
 @router.get("/routes", response_model=List[UIRouteHealthSchema])
 async def get_ui_route_health(db: AsyncSession = Depends(get_db)):
     """Detailed health matrix for all tracked UI routes."""
-    stmt = select(UIRouteHealth).order_by(UIRouteHealth.route)
+    active_routes = UIRepairService.DEFAULT_ROUTES
+    stmt = (
+        select(UIRouteHealth)
+        .where(UIRouteHealth.route.in_(active_routes))
+        .order_by(UIRouteHealth.route)
+    )
     res = await db.execute(stmt)
     routes = []
     for route in res.scalars().all():
@@ -129,9 +134,23 @@ async def get_ui_repair_cases(
     db: AsyncSession = Depends(get_db)
 ):
     """Lists all detected UI repair cases, filtered by status."""
+    active_routes = UIRepairService.DEFAULT_ROUTES
     stmt = select(UIRepairCase)
     if status:
         stmt = stmt.where(UIRepairCase.status == status)
+    else:
+        failing_routes_stmt = select(UIRouteHealth.route).where(
+            UIRouteHealth.route.in_(active_routes),
+            UIRouteHealth.last_status == "FAIL",
+        )
+        failing_routes = set((await db.execute(failing_routes_stmt)).scalars().all())
+        if not failing_routes:
+            return []
+        stmt = stmt.where(
+            UIRepairCase.route.in_(failing_routes),
+            UIRepairCase.status != "RESOLVED",
+            UIRepairCase.status != "IGNORED",
+        )
     stmt = stmt.order_by(UIRepairCase.created_at.desc())
     
     res = await db.execute(stmt)

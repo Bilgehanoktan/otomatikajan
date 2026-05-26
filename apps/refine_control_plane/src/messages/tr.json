@@ -1220,5 +1220,13 @@
   },
   "workflow": {
     "create": "Yeni İş Akışı Oluştur"
+  },
+  "learning": {
+    "strategyMemory": {
+      "title": "Strateji Belleği",
+      "strategy": "Strateji",
+      "trustScore": "Güven Skoru",
+      "latency": "Gecikme"
+    }
   }
 }

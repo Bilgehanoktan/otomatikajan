@@ -113,18 +113,19 @@ class RouterRegistry:
         # Returns the UI routes to be monitored
         return [
             {"path": "/"},
-            {"path": "/dashboard"},
             {"path": "/project-factory"},
             {"path": "/workflows"},
             {"path": "/repair-lab"},
             {"path": "/system-health"},
-            {"path": "/runtime-diagnostics"},
-            {"path": "/governance"},
+            {"path": "/ops/handover-status"},
+            {"path": "/ops/launch-gates"},
+            {"path": "/governance/approvals"},
+            {"path": "/governance/safety"},
             {"path": "/audit"},
             {"path": "/approvals"},
             {"path": "/incidents"},
             {"path": "/costs"},
-            {"path": "/learning"},
+            {"path": "/learning/strategy-memory"},
             {"path": "/compliance"},
             {"path": "/fleet"},
             {"path": "/mesh"},
@@ -133,4 +134,3 @@ class RouterRegistry:
         ]
 
 router_registry = RouterRegistry()
-

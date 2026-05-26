@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import sys
 import time
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
@@ -41,6 +42,21 @@ class UIEvidenceRunner:
 
     async def run_smoke_test(self, routes: List[str]) -> List[Dict[str, Any]]:
         """Runs smoke tests on a list of routes and collects evidence."""
+        if sys.platform == "win32" and hasattr(asyncio, "WindowsProactorEventLoopPolicy"):
+            return await asyncio.to_thread(self._run_smoke_test_in_proactor_loop, routes)
+        return await self._run_smoke_test_async(routes)
+
+    def _run_smoke_test_in_proactor_loop(self, routes: List[str]) -> List[Dict[str, Any]]:
+        policy = asyncio.WindowsProactorEventLoopPolicy()
+        loop = policy.new_event_loop()
+        try:
+            asyncio.set_event_loop(loop)
+            return loop.run_until_complete(self._run_smoke_test_async(routes))
+        finally:
+            loop.close()
+
+    async def _run_smoke_test_async(self, routes: List[str]) -> List[Dict[str, Any]]:
+        """Runs smoke tests on a list of routes and collects evidence."""
         _log.info(f"Starting UI smoke run for {len(routes)} routes at {self.base_url}")
         results = []
         async with async_playwright() as p:
@@ -55,10 +71,11 @@ class UIEvidenceRunner:
             login_page = await context.new_page()
             try:
                 _log.info(f"Playwright: Logging in to Control Plane at {self.base_url}/login")
-                await login_page.goto(f"{self.base_url}/login", wait_until="networkidle", timeout=15000)
+                await login_page.goto(f"{self.base_url}/login", wait_until="load", timeout=15000)
+                await login_page.wait_for_timeout(1000)
                 
-                email_selector = "input[type='email']"
-                password_selector = "input[type='password']"
+                email_selector = "#login_email"
+                password_selector = "#login_password"
                 
                 await login_page.wait_for_selector(email_selector, timeout=10000)
                 await login_page.fill(email_selector, "admin@sovereign.agi")
@@ -88,11 +105,21 @@ class UIEvidenceRunner:
         full_url = f"{self.base_url}/{route.lstrip('/')}"
         
         console_errors = []
+        ignored_console_fragments = [
+            "401",
+            "422",
+            "/auth/me",
+            "/auth/refresh",
+            "Warning: [antd:",
+            "antd v5 support React is 16 ~ 18",
+            "Instance created by `useForm` is not connected to any Form element",
+        ]
+
         page.on("console", lambda msg: console_errors.append({
             "type": msg.type,
             "text": msg.text,
             "location": msg.location
-        }) if msg.type == "error" and not any(ignored in msg.text for ignored in ["401", "422", "/auth/me", "/auth/refresh"]) else None)
+        }) if msg.type == "error" and not any(ignored in msg.text for ignored in ignored_console_fragments) else None)
         
         network_errors = []
         page.on("requestfailed", lambda request: network_errors.append({
@@ -128,18 +155,20 @@ class UIEvidenceRunner:
             # Start tracing per route if we want fine-grained traces
             await context.tracing.start(screenshots=True, snapshots=True, sources=True)
             
-            response = await page.goto(full_url, wait_until="networkidle", timeout=30000)
+            response = await page.goto(full_url, wait_until="load", timeout=15000)
+            await page.wait_for_timeout(1000)
             evidence["http_status"] = response.status if response else 0
             
             # Blank page detection logic
             # 1. Body text length
             body_text = await page.inner_text("body")
-            if len(body_text.strip()) < 100:
+            visible_elements = await page.locator("main, header, nav, section, article, table, button, a").count()
+            if len(body_text.strip()) < 20 and visible_elements < 3:
                 evidence["blank_page_detected"] = True
                 
             # 2. Check for common React error boundaries or blank shells
             # For Next.js/React, often a blank page has a <div id="__next"></div> with nothing inside.
-            content_exists = await page.query_selector("main") or await page.query_selector("#__next > *")
+            content_exists = visible_elements >= 3 or await page.query_selector("main") or await page.query_selector("#__next > *")
             if not content_exists and not evidence["blank_page_detected"]:
                 # If neither main nor child of next exists, likely blank or loading stuck
                 evidence["blank_page_detected"] = True

@@ -80,22 +80,24 @@ class UIRepairService:
     
     DEFAULT_ROUTES = [
         "/", 
-        "/dashboard", 
+        "/project-factory",
         "/workflows", 
         "/repair-lab", 
         "/system-health", 
-        "/runtime-diagnostics", 
-        "/governance",
-        "/audit", 
-        "/approvals", 
-        "/incidents", 
-        "/costs", 
-        "/learning", 
-        "/compliance", 
-        "/fleet", 
+        "/ops/handover-status",
+        "/ops/launch-gates",
+        "/governance/approvals",
+        "/governance/safety",
+        "/audit",
+        "/approvals",
+        "/incidents",
+        "/costs",
+        "/learning/strategy-memory",
+        "/compliance",
+        "/fleet",
         "/mesh",
         "/federation",
-        "/evolution"
+        "/evolution",
     ]
 
     def __init__(self, db: AsyncSession):
@@ -122,7 +124,7 @@ class UIRepairService:
     async def run_smoke_test(self, routes: Optional[List[str]] = None) -> UISmokeRun:
         """Executes a full smoke run on defined routes."""
         routes = routes or self.DEFAULT_ROUTES
-        
+
         # 1. Create UISmokeRun record
         run = UISmokeRun(status="RUNNING", total_routes=len(routes), started_at=datetime.now())
         self.db.add(run)
@@ -142,10 +144,10 @@ class UIRepairService:
             cast(Any, run).summary_json = {"error": str(e)}
             await self.db.commit()
             return run
-        
+
         passed = 0
         failed = 0
-        
+
         for res in results:
             # 3. Classify and handle each route result
             classification = UIRiskClassifier.classify(res)
@@ -172,26 +174,78 @@ class UIRepairService:
 
     async def get_overview(self) -> Dict[str, Any]:
         """Calculates the high-level UI health overview."""
-        total_routes = len(self.DEFAULT_ROUTES)
+        active_routes = self.DEFAULT_ROUTES
+        total_routes = len(active_routes)
         
-        stmt_failing = select(func.count(UIRouteHealth.id)).where(UIRouteHealth.last_status == "FAIL")
+        stmt_failing = select(func.count(UIRouteHealth.id)).where(
+            UIRouteHealth.route.in_(active_routes),
+            UIRouteHealth.last_status == "FAIL",
+        )
         failing_routes = (await self.db.execute(stmt_failing)).scalar() or 0
-        
-        stmt_open_cases = select(func.count(UIRepairCase.id)).where(UIRepairCase.status != "RESOLVED", UIRepairCase.status != "IGNORED")
-        open_cases = (await self.db.execute(stmt_open_cases)).scalar() or 0
-        
-        stmt_critical = select(func.count(UIRepairCase.id)).where(UIRepairCase.severity == "CRITICAL", UIRepairCase.status != "RESOLVED")
-        critical_cases = (await self.db.execute(stmt_critical)).scalar() or 0
+
+        stmt_failing_routes = select(UIRouteHealth.route).where(
+            UIRouteHealth.route.in_(active_routes),
+            UIRouteHealth.last_status == "FAIL",
+        )
+        failing_route_rows = (await self.db.execute(stmt_failing_routes)).scalars().all()
+        failing_route_set = set(failing_route_rows)
+
+        if failing_route_set:
+            stmt_open_cases = select(func.count(UIRepairCase.id)).where(
+                UIRepairCase.route.in_(failing_route_set),
+                UIRepairCase.status != "RESOLVED",
+                UIRepairCase.status != "IGNORED",
+            )
+            open_cases = (await self.db.execute(stmt_open_cases)).scalar() or 0
+        else:
+            open_cases = 0
+
+        if failing_route_set:
+            stmt_critical = select(func.count(UIRepairCase.id)).where(
+                UIRepairCase.route.in_(failing_route_set),
+                UIRepairCase.severity == "CRITICAL",
+                UIRepairCase.status != "RESOLVED",
+                UIRepairCase.status != "IGNORED",
+            )
+            critical_cases = (await self.db.execute(stmt_critical)).scalar() or 0
+        else:
+            critical_cases = 0
         
         stmt_last_run = select(UISmokeRun).order_by(UISmokeRun.started_at.desc()).limit(1)
         last_run = (await self.db.execute(stmt_last_run)).scalar_one_or_none()
+        if last_run and str(last_run.status) == "RUNNING":
+            started_at = cast(Any, last_run).started_at
+            now_for_stale_check = datetime.now(started_at.tzinfo) if getattr(started_at, "tzinfo", None) else datetime.now()
+            if started_at and now_for_stale_check - started_at > timedelta(minutes=30):
+                stmt_last_finished_run = (
+                    select(UISmokeRun)
+                    .where(UISmokeRun.status != "RUNNING")
+                    .order_by(UISmokeRun.started_at.desc())
+                    .limit(1)
+                )
+                last_finished_run = (await self.db.execute(stmt_last_finished_run)).scalar_one_or_none()
+                if last_finished_run:
+                    last_run = last_finished_run
+                else:
+                    cast(Any, last_run).status = "STALE"
         
         # Calculate health score: 1.0 - (failing_routes / total_routes)
         health_score = 1.0 - (failing_routes / total_routes if total_routes > 0 else 0)
         
         # Top failure types
-        stmt_fail_types = select(UIRepairCase.failure_type, func.count(UIRepairCase.id)).group_by(UIRepairCase.failure_type)
-        fail_types_res = (await self.db.execute(stmt_fail_types)).all()
+        if failing_route_set:
+            stmt_fail_types = (
+                select(UIRepairCase.failure_type, func.count(UIRepairCase.id))
+                .where(
+                    UIRepairCase.route.in_(failing_route_set),
+                    UIRepairCase.status != "RESOLVED",
+                    UIRepairCase.status != "IGNORED",
+                )
+                .group_by(UIRepairCase.failure_type)
+            )
+            fail_types_res = (await self.db.execute(stmt_fail_types)).all()
+        else:
+            fail_types_res = []
         top_failure_types = [{"type": row[0], "count": row[1]} for row in fail_types_res]
 
         return {

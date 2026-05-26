@@ -1,5 +1,7 @@
 import logging
 import os
+import sys
+import asyncio
 
 import uvicorn
 from fastapi import FastAPI, WebSocket
@@ -9,6 +11,7 @@ from libs.config import ALLOWED_HEADERS, ALLOWED_METHODS, ALLOWED_ORIGINS
 from libs.db.session import init_db
 from services.auth.router import router as auth_router
 from services.governance.harness_api import router as harness_router
+from services.governance.learning_api import router as learning_router
 from services.governance.mesh_actions_api import router as mesh_actions_router
 from services.observability.fleet_status_api import router as fleet_status_router
 from services.observability.mesh_status_api import router as mesh_status_router
@@ -28,6 +31,9 @@ from services.workflow_api.ceo_router import router as ceo_bridge_router
 from services.workflow_api.project_factory_router import router as project_factory_router
 
 from contextlib import asynccontextmanager
+
+if sys.platform == "win32" and hasattr(asyncio, "WindowsProactorEventLoopPolicy"):
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 logger = logging.getLogger(__name__)
 
@@ -124,6 +130,7 @@ app.include_router(mesh_status_router, prefix="/api/v1/mesh")
 app.include_router(mesh_actions_router, prefix="/api/v1/mesh/actions")
 app.include_router(governor_api_router, prefix="/api/v1/governance/governor")
 app.include_router(harness_router, prefix="/api/v1/harness")
+app.include_router(learning_router, prefix="/api/v1")
 app.include_router(ui_repair_router, prefix="/api/v1/ui-repair")
 app.include_router(ceo_engine_router, prefix="/api/v1/ceo")
 app.include_router(ceo_bridge_router, prefix="/api/v1/ceo")
@@ -142,5 +149,5 @@ if __name__ == "__main__":
         "services.workflow_api.main:app",
         host=os.getenv("WORKFLOW_API_HOST", "127.0.0.1"),
         port=int(os.getenv("WORKFLOW_API_PORT", "8000")),
-        reload=True,
+        reload=os.getenv("WORKFLOW_API_RELOAD", "false").strip().lower() in {"1", "true", "yes", "on"},
     )

@@ -13,12 +13,7 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 
 function getApiBaseUrl() {
-  if (typeof window !== "undefined") {
-    return window.location.hostname === "localhost"
-      ? "http://localhost:8000/api/v1"
-      : "http://127.0.0.1:8000/api/v1";
-  }
-  return "http://127.0.0.1:8000/api/v1";
+  return "/api/v1";
 }
 
 async function safeFetchJson(url: string, options?: RequestInit) {

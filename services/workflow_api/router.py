@@ -1006,6 +1006,24 @@ async def workflow_stats():
         )
         rows = result.all()
 
+        active_failed_count = (
+            await db.execute(
+                select(func.count(Project.id)).where(
+                    Project.status.in_(["ERROR", "error", "FAILED", "failed"]),
+                    Project.completed_at.is_(None),
+                )
+            )
+        ).scalar() or 0
+
+        historical_failed_count = (
+            await db.execute(
+                select(func.count(Project.id)).where(
+                    Project.status.in_(["ERROR", "error", "FAILED", "failed"]),
+                    Project.completed_at.is_not(None),
+                )
+            )
+        ).scalar() or 0
+
         # 2. Systemic anomalies count (Error Fingerprints)
         f_count = (await db.execute(select(func.count(ErrorFingerprint.id)).where(ErrorFingerprint.is_active == True))).scalar() or 0
 
@@ -1021,8 +1039,10 @@ async def workflow_stats():
     total = sum(counts.values())
     running = counts.get("running", 0)
     completed = counts.get("completed", 0) + counts.get("partial_complete", 0)
-    # Add systemic anomalies and pending patches to failed count to ensure visibility in the header
-    failed = counts.get("error", 0) + counts.get("failed", 0) + f_count + i_count
+    # Header metrics should describe current operational failures. Historical
+    # completed ERROR records are exposed separately so old smoke failures do
+    # not keep the live UI in a degraded-looking state.
+    failed = active_failed_count + f_count + i_count
     pending = counts.get("pending", 0) + counts.get("queued", 0)
     pending_approval = counts.get("pending_approval", 0)
 
@@ -1039,6 +1059,7 @@ async def workflow_stats():
         "running": running,
         "completed": completed,
         "failed": failed,
+        "historical_failed": historical_failed_count,
         "pending": pending,
         "pending_approval": pending_approval,
         "success_rate_pct": success_rate,

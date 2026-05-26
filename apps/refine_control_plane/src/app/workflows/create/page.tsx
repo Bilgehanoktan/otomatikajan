@@ -63,7 +63,7 @@ export default function CreateWorkflowPage() {
             const rawDetail = error?.response?.data?.detail || error?.message || "Bilinmeyen hata";
             const status = error?.statusCode || error?.status || error?.response?.status;
             const detail = status === 403
-              ? "Bu islem icin OPERATOR yetkisi gerekir. AUDIT_OBSERVER hesaplari salt okunurdur."
+              ? "Bu işlem için OPERATOR yetkisi gerekir. AUDIT_OBSERVER hesapları salt okunurdur."
               : rawDetail;
             message.error("İş akışı oluşturulamadı: " + detail);
           },

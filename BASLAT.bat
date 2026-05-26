@@ -11,12 +11,14 @@ if not "%~1"=="" set "INTERACTIVE=0"
 :: Python Kontrolu
 echo [*] Python kontrol ediliyor...
 set "PY_CMD=python"
-py -3.13 --version >nul 2>&1
+where python >nul 2>&1
 if not errorlevel 1 (
-    set "PY_CMD=py -3.13"
+    set "PY_CMD=python"
 ) else (
-    where python >nul 2>&1
-    if errorlevel 1 (
+    py -3.13 --version >nul 2>&1
+    if not errorlevel 1 (
+        set "PY_CMD=py -3.13"
+    ) else (
         echo [!] Python bulunamadi! C:\Python314\python.exe deneniyor...
         set "PY_CMD=C:\Python314\python.exe"
     )
@@ -101,7 +103,7 @@ if errorlevel 1 (
 )
 
 echo [*] Lokal mod baslatiliyor...
-start "Backend API" cmd /c "set SOVEREIGN_DOTENV_OVERRIDE=false&& set RUNTIME_PROFILE=local-dev&& set REDIS_ENABLED=false&& set CELERY_ENABLED=false&& set QUEUE_BACKEND=inprocess&& set INPROCESS_JOB_WORKERS_ENABLED=true&& set PLAYWRIGHT_BROWSERS_PATH=C:\Users\BLGEHA~1\.gemini\antigravity\.playwright-browsers&& %PY_CMD% -m uvicorn services.workflow_api.main:app --host 0.0.0.0 --port 8000"
+start "Backend API" cmd /c "set SOVEREIGN_DOTENV_OVERRIDE=false&& set RUNTIME_PROFILE=local-dev&& set REDIS_ENABLED=false&& set CELERY_ENABLED=false&& set QUEUE_BACKEND=inprocess&& set INPROCESS_JOB_WORKERS_ENABLED=true&& set WORKFLOW_API_RELOAD=false&& set PLAYWRIGHT_BROWSERS_PATH=%USERPROFILE%\.gemini\antigravity\.playwright-browsers&& %PY_CMD% -m services.workflow_api.main"
 call :wait_http "Backend API" "http://127.0.0.1:8000/health" 24
 if errorlevel 1 (
     echo [HATA] Backend API hazir olmadi. Backend API penceresindeki loglari kontrol edin.

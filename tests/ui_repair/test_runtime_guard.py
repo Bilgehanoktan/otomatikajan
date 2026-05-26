@@ -25,6 +25,23 @@ def test_runtime_guard_keeps_valid_container_browser_path(monkeypatch):
     assert runtime_guard.os.getenv("PLAYWRIGHT_BROWSERS_PATH") == "/ms-playwright"
 
 
+def test_runtime_guard_repairs_invalid_windows_host_browser_path(monkeypatch):
+    valid_host_cache = r"C:\Users\BILGEHAN\.gemini\antigravity\.playwright-browsers"
+
+    def fake_exists(path):
+        return path == valid_host_cache
+
+    monkeypatch.setattr(runtime_guard.os.path, "exists", fake_exists)
+    monkeypatch.setattr(runtime_guard.os.path, "expanduser", lambda _: r"C:\Users\BILGEHAN")
+    monkeypatch.delenv("DOCKER_CONTAINER", raising=False)
+    monkeypatch.setenv("PLAYWRIGHT_BROWSERS_PATH", r"C:\Users\BLGEHA~1\.gemini\antigravity\.playwright-browsers")
+
+    previous = runtime_guard._normalize_playwright_browser_path()
+
+    assert previous == r"C:\Users\BLGEHA~1\.gemini\antigravity\.playwright-browsers"
+    assert runtime_guard.os.getenv("PLAYWRIGHT_BROWSERS_PATH") == valid_host_cache
+
+
 @pytest.mark.asyncio
 async def test_runtime_guard_treats_docker_as_optional_for_smoke(monkeypatch):
     async def ok_playwright():
