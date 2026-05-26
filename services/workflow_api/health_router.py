@@ -592,3 +592,41 @@ async def websocket_endpoint(websocket: WebSocket):
     finally:
         manager.disconnect(websocket)
 
+
+@router.get("/db/diagnose")
+async def diagnose_database(
+    identity: dict[str, Any] = Depends(require_permission("repair_lab.repair"))
+):
+    """Runs native integrity check and schema metrics validation on the active local database."""
+    from services.database.recovery.manager import DatabaseRecoveryManager
+    try:
+        diagnostics = DatabaseRecoveryManager.diagnose()
+        return diagnostics
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Database diagnosis failed: {exc}")
+
+
+@router.post("/db/repair")
+async def repair_database(
+    identity: dict[str, Any] = Depends(require_permission("repair_lab.repair"))
+):
+    """Safely backups and reconstructs the active local database to repair indexes and resolve corruption."""
+    from services.database.recovery.manager import DatabaseRecoveryManager
+    try:
+        result = DatabaseRecoveryManager.recover()
+        if result["status"] == "SUCCESS":
+            # Broadcast the healing event to all connected dashboard websockets
+            await manager.broadcast_event(
+                event_type="DB_HEALING",
+                component="DATABASE_RECOVERY_SUITE",
+                rationale=result["message"],
+                severity="info",
+                summary="Active local database was successfully rebuilt and self-healed"
+            )
+            return result
+        else:
+            raise HTTPException(status_code=500, detail=result["message"])
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Database self-healing failed: {exc}")
+
+
