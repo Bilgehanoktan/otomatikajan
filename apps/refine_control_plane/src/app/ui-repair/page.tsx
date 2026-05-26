@@ -371,125 +371,125 @@ export default function UIRepairPage() {
         </div>
 
         {/* Main Navigation Tabs */}
-        <div className="flex gap-4 border-b border-slate-800 overflow-x-auto no-scrollbar scroll-smooth">
+        <div className="flex flex-wrap gap-2 border-b border-slate-800 pb-2">
           <button 
             onClick={() => setMainTab("matrix")}
-            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "matrix" ? 'border-blue-500 text-blue-400 bg-blue-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+            className={`px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 rounded-t-lg ${mainTab === "matrix" ? 'border-blue-500 text-blue-400 bg-blue-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
           >
             Health Matrix
           </button>
           <button 
             onClick={() => setMainTab("monitoring")}
-            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "monitoring" ? 'border-blue-500 text-blue-400 bg-blue-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+            className={`px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 rounded-t-lg ${mainTab === "monitoring" ? 'border-blue-500 text-blue-400 bg-blue-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
           >
             Continuous Monitoring
           </button>
           <button 
             onClick={() => setMainTab("chaos")}
-            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "chaos" ? 'border-red-500 text-red-400 bg-red-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+            className={`px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 rounded-t-lg ${mainTab === "chaos" ? 'border-red-500 text-red-400 bg-red-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
           >
             Chaos Drills
           </button>
           <button 
             onClick={() => setMainTab("resiliency")}
-            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "resiliency" ? 'border-indigo-500 text-indigo-400 bg-indigo-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+            className={`px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 rounded-t-lg ${mainTab === "resiliency" ? 'border-indigo-500 text-indigo-400 bg-indigo-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
           >
             Resiliency Mesh
           </button>
           <button 
             onClick={() => setMainTab("tools")}
-            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "tools" ? 'border-cyan-500 text-cyan-400 bg-cyan-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+            className={`px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 rounded-t-lg ${mainTab === "tools" ? 'border-cyan-500 text-cyan-400 bg-cyan-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
           >
             External Tools
           </button>
           <button 
             onClick={() => setMainTab("soak")}
-            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "soak" ? 'border-purple-500 text-purple-400 bg-purple-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+            className={`px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 rounded-t-lg ${mainTab === "soak" ? 'border-purple-500 text-purple-400 bg-purple-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
           >
             Soak Validation
           </button>
           <button 
             onClick={() => setMainTab("proof")}
-            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "proof" ? 'border-green-500 text-green-400 bg-green-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+            className={`px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 rounded-t-lg ${mainTab === "proof" ? 'border-green-500 text-green-400 bg-green-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
           >
             Proof Packs
           </button>
           <button 
             onClick={() => setMainTab("advanced-chaos")}
-            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "advanced-chaos" ? 'border-orange-500 text-orange-400 bg-orange-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+            className={`px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 rounded-t-lg ${mainTab === "advanced-chaos" ? 'border-orange-500 text-orange-400 bg-orange-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
           >
             Advanced Chaos
           </button>
           <button 
             onClick={() => setMainTab("escalation")}
-            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "escalation" ? 'border-rose-500 text-rose-400 bg-rose-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+            className={`px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 rounded-t-lg ${mainTab === "escalation" ? 'border-rose-500 text-rose-400 bg-rose-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
           >
             Escalation
           </button>
           <button 
             onClick={() => setMainTab("crisis")}
-            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "crisis" ? 'border-amber-500 text-amber-400 bg-amber-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+            className={`px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 rounded-t-lg ${mainTab === "crisis" ? 'border-amber-500 text-amber-400 bg-amber-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
           >
             Crisis Control
           </button>
           <button 
             onClick={() => setMainTab("notifications")}
-            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "notifications" ? 'border-blue-500 text-blue-400 bg-blue-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+            className={`px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 rounded-t-lg ${mainTab === "notifications" ? 'border-blue-500 text-blue-400 bg-blue-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
           >
             Notifications
           </button>
           <button 
             onClick={() => setMainTab("readiness")}
-            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "readiness" ? 'border-indigo-500 text-indigo-400 bg-indigo-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+            className={`px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 rounded-t-lg ${mainTab === "readiness" ? 'border-indigo-500 text-indigo-400 bg-indigo-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
           >
             Final Readiness
           </button>
           <button 
             onClick={() => setMainTab("pilot")}
-            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "pilot" ? 'border-orange-500 text-orange-400 bg-orange-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+            className={`px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 rounded-t-lg ${mainTab === "pilot" ? 'border-orange-500 text-orange-400 bg-orange-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
           >
             Pilot Rollout
           </button>
           <button 
             onClick={() => setMainTab("enterprise")}
-            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "enterprise" ? 'border-indigo-500 text-indigo-400 bg-indigo-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+            className={`px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 rounded-t-lg ${mainTab === "enterprise" ? 'border-indigo-500 text-indigo-400 bg-indigo-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
           >
             Enterprise GA
           </button>
           <button 
             onClick={() => setMainTab("ga-operations")}
-            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "ga-operations" ? 'border-emerald-500 text-emerald-400 bg-emerald-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+            className={`px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 rounded-t-lg ${mainTab === "ga-operations" ? 'border-emerald-500 text-emerald-400 bg-emerald-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
           >
             GA Operations
           </button>
           <button 
             onClick={() => setMainTab("identity")}
-            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "identity" ? 'border-amber-500 text-amber-400 bg-amber-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+            className={`px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 rounded-t-lg ${mainTab === "identity" ? 'border-amber-500 text-amber-400 bg-amber-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
           >
             Identity & Trust
           </button>
           <button 
             onClick={() => setMainTab("cognitive")}
-            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "cognitive" ? 'border-purple-500 text-purple-400 bg-purple-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+            className={`px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 rounded-t-lg ${mainTab === "cognitive" ? 'border-purple-500 text-purple-400 bg-purple-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
           >
             Cognitive Integrity
           </button>
 
           <button 
             onClick={() => setMainTab("security")}
-            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "security" ? 'border-rose-500 text-rose-400 bg-rose-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+            className={`px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 rounded-t-lg ${mainTab === "security" ? 'border-rose-500 text-rose-400 bg-rose-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
           >
             Security Posture
           </button>
           <button 
             onClick={() => setMainTab("knowledge")}
-            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "knowledge" ? 'border-purple-500 text-purple-400 bg-purple-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+            className={`px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 rounded-t-lg ${mainTab === "knowledge" ? 'border-purple-500 text-purple-400 bg-purple-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
           >
             Knowledge Center
           </button>
           <button 
             onClick={() => setMainTab("release-center")}
-            className={`px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${mainTab === "release-center" ? 'border-blue-500 text-blue-400 bg-blue-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+            className={`px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 rounded-t-lg ${mainTab === "release-center" ? 'border-blue-500 text-blue-400 bg-blue-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
           >
             Release Center
           </button>
