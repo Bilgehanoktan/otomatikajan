@@ -69,7 +69,7 @@ export const FinalAuditPackPanel: React.FC = () => {
 
             {latestPack && (
                 <div className="pack-details">
-                    <Card style={{ marginBottom: '24px', background: '#f9f9f9', border: '1px dashed #d9d9d9' }}>
+                    <Card style={{ marginBottom: '24px', background: 'rgba(255, 255, 255, 0.03)', border: '1px dashed rgba(255, 255, 255, 0.15)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                             <Space size="large">
                                 <Statistic title="Version" value={latestPack.version} />

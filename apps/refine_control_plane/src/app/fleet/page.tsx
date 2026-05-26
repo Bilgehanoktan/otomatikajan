@@ -256,7 +256,8 @@ export default function FleetDashboard() {
                         style={{
                           padding: 12,
                           borderRadius: 8,
-                          background: "#f9f9f9",
+                          background: "rgba(255, 255, 255, 0.03)",
+                          border: "1px solid rgba(255, 255, 255, 0.05)",
                           borderLeft: `4px solid ${borderColor}`,
                         }}
                       >

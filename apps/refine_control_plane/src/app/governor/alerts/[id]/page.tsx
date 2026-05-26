@@ -97,7 +97,7 @@ export default function AlertDetailPage() {
                   title="Recorded Metric" 
                   value={alert.metric_value} 
                   precision={2}
-                  valueStyle={{ color: "#262626" }}
+                  valueStyle={{ color: "var(--foreground)" }}
                 />
               </Col>
               <Col span={12}>
@@ -105,12 +105,12 @@ export default function AlertDetailPage() {
                   title="Safety Threshold" 
                   value={alert.threshold_value} 
                   precision={2}
-                  valueStyle={{ color: "#8c8c8c" }}
+                  valueStyle={{ color: "rgba(255, 255, 255, 0.45)" }}
                 />
               </Col>
             </Row>
 
-            <div style={{ marginTop: "32px", padding: "16px", background: "#f9f9f9", borderRadius: "8px" }}>
+            <div style={{ marginTop: "32px", padding: "16px", background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: "8px" }}>
               <Title level={5}><BlockOutlined /> Evidence Payload</Title>
               <pre style={{ fontSize: "11px", overflow: "auto", maxHeight: "300px" }}>
                 {JSON.stringify(alert.evidence_payload || {}, null, 2)}
