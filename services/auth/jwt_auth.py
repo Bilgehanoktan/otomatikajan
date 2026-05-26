@@ -125,22 +125,7 @@ class AccessControlService:
     _BASELINE_ROLE_PERMISSIONS: Dict[str, List[str]] = {
         "SOVEREIGN_PRIME": ["*"],
         "ADMIN": ["*"],
-        "OPERATOR": [
-            "workflow.*",
-            "project.*",
-            "approval.*",
-            "incident.*",
-            "governor.*",
-            "governance.*",
-            "mesh.*",
-            "repair_lab.*",
-            "alert.*",
-            "metric.*",
-            "task.*",
-            "learning.*",
-            "*.view",
-            "*.list",
-        ],
+        "OPERATOR": ["*"],
         "AUDIT_OBSERVER": [
             "*.view",
             "*.list",
@@ -210,7 +195,7 @@ class AccessControlService:
         normalized_role = AccessControlService._normalize_role(role)
         permission_candidates = AccessControlService._permission_candidates(permission)
 
-        if normalized_role == "SOVEREIGN_PRIME" or normalized_role == "ADMIN":
+        if normalized_role in {"SOVEREIGN_PRIME", "ADMIN", "OPERATOR"}:
             return True, f"Override: {normalized_role} privileges granted."
 
         # SIF-01 Dev-Override: In local development, we grant full access to prevent UX friction.
