@@ -111,6 +111,7 @@ class FleetScheduler:
             # All agents found, perform assignments
             for agent in allocated_agents:
                 self.assignment_repo.create_assignment(project_id, agent.id)
+                agent.status = AgentStatus.ASSIGNED
                 
                 # Phase 12: Record Assignment
                 self._fire_and_forget_logging(LineageService.log_fleet_event(

@@ -346,7 +346,7 @@ MEMORY_DATABASE_URL = os.getenv("MEMORY_DATABASE_URL", "sqlite:///./data/memory.
 MEMORY_MODE         = os.getenv("MEMORY_MODE", "inject")
 
 # ── Orkestrasyon & Ajanlar ──────────────────────────────────
-AGENT_COUNT              = int(os.getenv("AGENT_COUNT", "12"))
+AGENT_COUNT              = int(os.getenv("AGENT_COUNT", "20"))
 ENABLE_HEALING           = os.getenv("ENABLE_HEALING", "true").lower() == "true"
 ENABLE_MODEL_ROTATION    = os.getenv("ENABLE_MODEL_ROTATION", "true").lower() == "true"
 ENABLE_WORKLOAD_REDIRECT = os.getenv("ENABLE_WORKLOAD_REDIRECT", "true").lower() == "true"
