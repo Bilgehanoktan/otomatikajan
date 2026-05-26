@@ -138,7 +138,7 @@ export default function AxiologyShowPage() {
                       <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Safety</span>
                       <span className="text-[var(--primary)] font-bold">{Math.round((scores.Safety || 0) * 100)}%</span>
                     </div>
-                    <Progress percent={(scores.Safety || 0) * 100} strokeColor="#66fcf1" trailColor="rgba(255,255,255,0.05)" strokeWidth={12} showInfo={false} />
+                    <Progress percent={(scores.Safety || 0) * 100} strokeColor="#66fcf1" trailColor="rgba(255,255,255,0.05)" size={12} showInfo={false} />
                   </div>
 
                   <div>
@@ -146,7 +146,7 @@ export default function AxiologyShowPage() {
                       <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Resource Integrity</span>
                       <span className="text-blue-400 font-bold">{Math.round((scores.ResourceIntegrity || 0) * 100)}%</span>
                     </div>
-                    <Progress percent={(scores.ResourceIntegrity || 0) * 100} strokeColor="#4299e1" trailColor="rgba(255,255,255,0.05)" strokeWidth={12} showInfo={false} />
+                    <Progress percent={(scores.ResourceIntegrity || 0) * 100} strokeColor="#4299e1" trailColor="rgba(255,255,255,0.05)" size={12} showInfo={false} />
                   </div>
 
                   <div>
@@ -154,7 +154,7 @@ export default function AxiologyShowPage() {
                       <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Operational Risk</span>
                       <span className="text-red-400 font-bold">{Math.round((scores.OperationalRisk || 0) * 100)}%</span>
                     </div>
-                    <Progress percent={(scores.OperationalRisk || 0) * 100} strokeColor="#f56565" trailColor="rgba(255,255,255,0.05)" strokeWidth={12} showInfo={false} />
+                    <Progress percent={(scores.OperationalRisk || 0) * 100} strokeColor="#f56565" trailColor="rgba(255,255,255,0.05)" size={12} showInfo={false} />
                   </div>
                 </div>
               </Card>

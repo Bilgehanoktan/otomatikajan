@@ -282,21 +282,21 @@ export default function SystemHealthPage() {
                        <span className="text-gray-400">Compute Load</span>
                        <span className="text-white">42%</span>
                     </div>
-                    <Progress percent={42} showInfo={false} strokeColor="var(--primary)" trailColor="rgba(255,255,255,0.05)" size={{ height: 4 }} />
+                    <Progress percent={42} showInfo={false} strokeColor="var(--primary)" trailColor="rgba(255,255,255,0.05)" size={4} />
                  </div>
                  <div>
                     <div className="flex justify-between text-[11px] font-black uppercase tracking-tight italic mb-2">
                        <span className="text-gray-400">Memory Cluster</span>
                        <span className="text-white">68%</span>
                     </div>
-                    <Progress percent={68} showInfo={false} strokeColor="#f59e0b" trailColor="rgba(255,255,255,0.05)" size={{ height: 4 }} />
+                    <Progress percent={68} showInfo={false} strokeColor="#f59e0b" trailColor="rgba(255,255,255,0.05)" size={4} />
                  </div>
                  <div>
                     <div className="flex justify-between text-[11px] font-black uppercase tracking-tight italic mb-2">
                        <span className="text-gray-400">Network Latency</span>
                        <span className="text-white">12%</span>
                     </div>
-                    <Progress percent={12} showInfo={false} strokeColor="#10b981" trailColor="rgba(255,255,255,0.05)" size={{ height: 4 }} />
+                    <Progress percent={12} showInfo={false} strokeColor="#10b981" trailColor="rgba(255,255,255,0.05)" size={4} />
                  </div>
               </div>
 

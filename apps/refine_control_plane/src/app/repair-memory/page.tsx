@@ -92,7 +92,7 @@ export default function RepairMemoryPage() {
                       percent={ss.rate * 100}
                       strokeColor={ss.rate > 0.7 ? "#66fcf1" : ss.rate > 0.4 ? "#f6ad55" : "#f56565"}
                       trailColor="rgba(255,255,255,0.05)"
-                      strokeWidth={8}
+                      size={8}
                       showInfo={false}
                     />
                     <div className="flex justify-between mt-4 text-[9px] font-bold uppercase tracking-tighter">
