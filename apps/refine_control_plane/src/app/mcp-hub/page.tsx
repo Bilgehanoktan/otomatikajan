@@ -85,11 +85,11 @@ export default function McpHubPage() {
         }
     }, [error]);
 
-    const servers = data?.data?.mcp_servers || {};
+    const servers = (data?.data as any)?.data?.mcp_servers || (data?.data as any)?.mcp_servers || {};
     const serverList = Object.entries(servers).map(([name, config]) => ({
         key: name,
         name,
-        ...config
+        ...(config as any)
     }));
 
     return (
