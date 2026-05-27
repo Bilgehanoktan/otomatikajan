@@ -24,9 +24,9 @@ class MeetingRoom:
 
     async def hold_meeting(self, proposal: str, participant_ids: List[str] = ["architect", "qa_engineer", "security"]) -> Dict[str, Any]:
         """
-        Runs a structured debate between selected agents.
+        Runs a structured 4-turn dynamic debate between selected agents to reach consensus.
         """
-        logger.info(f"MeetingRoom: Starting meeting for proposal: {proposal[:100]}...")
+        logger.info(f"MeetingRoom: Starting multi-turn debate for proposal: {proposal[:100]}...")
         
         meeting_id = f"mtg_{int(datetime.now(timezone.utc).timestamp())}"
         results = {
@@ -39,21 +39,74 @@ class MeetingRoom:
             "final_decision": ""
         }
 
-        # Round 1: Each agent gives initial feedback
+        # ----------------------------------------------------
+        # TURN 1: INITIAL THESIS (Tez Sunumu)
+        # ----------------------------------------------------
+        logger.info("MeetingRoom: Running Turn 1 - Initial Thesis")
         for agent_id in participant_ids:
             if agent_id not in self.agents:
                 continue
-            
             agent = self.agents[agent_id]
-            response = await self._get_agent_response(agent, proposal, "INITIAL_FEEDBACK")
+            response = await self._get_agent_response(agent, proposal, "INITIAL_THESIS")
             results["debate"].append({
                 "agent": agent_id,
-                "role": agent.role_name,
+                "role": f"{agent.role_name} (TUR 1: Tez)",
                 "thought": response
             })
 
-        # Round 2: Consensus Check (Voting)
-        debate_summary = "\n".join([f"{d['agent']} ({d['role']}): {d['thought']}" for d in results["debate"]])
+        # ----------------------------------------------------
+        # TURN 2: CROSS-EXAMINATION / REBUTTAL (Çapraz Sorgu)
+        # ----------------------------------------------------
+        logger.info("MeetingRoom: Running Turn 2 - Cross-Examination")
+        t1_summary = "\n".join([f"- {d['agent']} ({d['role']}): {d['thought']}" for d in results["debate"]])
+        for agent_id in participant_ids:
+            if agent_id not in self.agents:
+                continue
+            agent = self.agents[agent_id]
+            cross_exam_prompt = f"""
+            Gündemdeki Öneri: {proposal}
+            
+            Diğer Uzmanların İlk Tezleri:
+            {t1_summary}
+            
+            Lütfen diğer uzmanların ilk tezlerini kendi uzmanlık alanın açısından eleştir/değerlendir. Argümanlardaki zayıf noktaları, riskleri veya uyarıları belirt.
+            """
+            response = await self._get_agent_response(agent, cross_exam_prompt, "CROSS_EXAM")
+            results["debate"].append({
+                "agent": agent_id,
+                "role": f"{agent.role_name} (TUR 2: Çapraz Eleştiri)",
+                "thought": response
+            })
+
+        # ----------------------------------------------------
+        # TURN 3: SYNTHESIS / REALIGNMENT (Sentez ve Hizalama)
+        # ----------------------------------------------------
+        logger.info("MeetingRoom: Running Turn 3 - Synthesis")
+        t2_summary = "\n".join([f"- {d['agent']} ({d['role']}): {d['thought']}" for d in results["debate"] if "TUR 2" in d["role"]])
+        for agent_id in participant_ids:
+            if agent_id not in self.agents:
+                continue
+            agent = self.agents[agent_id]
+            synthesis_prompt = f"""
+            Gündemdeki Öneri: {proposal}
+            
+            Karşılıklı Çapraz Eleştiriler:
+            {t2_summary}
+            
+            Yapılan bu eleştiriler ışığında, tezini revize ediyor musun? Ortak bir sentez noktasında buluşmak için önerin nedir?
+            """
+            response = await self._get_agent_response(agent, synthesis_prompt, "SYNTHESIS")
+            results["debate"].append({
+                "agent": agent_id,
+                "role": f"{agent.role_name} (TUR 3: Sentez)",
+                "thought": response
+            })
+
+        # ----------------------------------------------------
+        # TURN 4: CONSENSUS VOTING (Hüküm Oylaması)
+        # ----------------------------------------------------
+        logger.info("MeetingRoom: Running Turn 4 - Consensus Voting")
+        debate_full_history = "\n".join([f"{d['agent']} ({d['role']}): {d['thought']}" for d in results["debate"]])
         
         for agent_id in participant_ids:
             if agent_id not in self.agents:
@@ -63,18 +116,17 @@ class MeetingRoom:
             vote_prompt = f"""
             Gündemdeki Öneri: {proposal}
             
-            Tartışma Özeti:
-            {debate_summary}
+            Tüm Tartışma Geçmişi (Tezler, Eleştiriler ve Sentezler):
+            {debate_full_history}
             
-            Lütfen bu öneriye ONAY verip vermediğini belirt. 
+            Lütfen yapılan tüm bu tartışmalar ve sentez önerileri doğrultusunda nihai ONAY/RED kararını ver.
             Yanıtını şu formatta ver:
             VOTE: [YES/NO]
-            REASON: [Kısa gerekçe]
+            REASON: [Kısa nihai gerekçe]
             """
             
             vote_resp = await self._get_agent_response(agent, vote_prompt, "VOTING")
             
-            # Simple parsing for vote
             is_yes = "VOTE: YES" in vote_resp.upper()
             results["votes"][agent_id] = {
                 "approved": is_yes,
@@ -83,16 +135,16 @@ class MeetingRoom:
 
         # Final Tally
         yes_votes = sum(1 for v in results["votes"].values() if v["approved"])
-        results["consensus"] = yes_votes == len(participant_ids) # Unanimous for now
+        results["consensus"] = yes_votes == len(participant_ids) # Unanimous consensus required
         
         if results["consensus"]:
-            results["final_decision"] = "APPROVED: All specialists reached consensus."
+            results["final_decision"] = "APPROVED: All specialists reached unanimous consensus after dynamic debate."
         elif yes_votes > len(participant_ids) / 2:
-            results["final_decision"] = "PARTIAL: Majority approved, but concerns remain. Manual review recommended."
+            results["final_decision"] = "PARTIAL: Majority approved after debate, but critical concerns remain. Manual realigment required."
         else:
-            results["final_decision"] = "REJECTED: Consensus not reached."
+            results["final_decision"] = "REJECTED: Consensus was completely rejected during cross-examination."
 
-        logger.info(f"MeetingRoom: Meeting finished. Consensus: {results['consensus']}")
+        logger.info(f"MeetingRoom: Debate finished. Consensus: {results['consensus']}")
         return results
 
     async def _get_agent_response(self, agent: Agent, prompt: str, phase: str) -> str:
@@ -114,21 +166,35 @@ class MeetingRoom:
             return self._simulate_response(agent, phase, prompt)
 
     def _simulate_response(self, agent: Agent, phase: str, prompt: str) -> str:
-        """Provides realistic mock responses for Phase 12 demo."""
-        if phase == "INITIAL_FEEDBACK":
+        """Provides realistic mock responses for Phase 12 debate rounds simulation."""
+        if phase == "INITIAL_THESIS":
             if agent.id == "architect":
                 return "Önerilen değişiklik mimari açıdan riskli görünüyor. Senkron I/O kullanımı event-loop'u bloke edebilir."
             elif agent.id == "qa_engineer":
                 return "Bu değişikliğin performans kazanımı ölçülmeli. Regresyon riski yüksek."
             else:
                 return "Güvenlik açısından nötr bir değişiklik, ancak uygulama stabilitesi risk altında."
+        elif phase == "CROSS_EXAM":
+            if agent.id == "architect":
+                return "QA Mühendisinin regresyon uyarısına katılıyorum. Kesinlikle bir yük testi yapılması gerek."
+            elif agent.id == "qa_engineer":
+                return "Mimarın event-loop blokajı uyarısı çok yerinde. Bu durum testi otomasyonlarında da tıkanıklık yapabilir."
+            else:
+                return "Güvenlik analizi olarak, sistem event-loop tıkandığında DoS ataklarına karşı daha hassas hale gelebilir."
+        elif phase == "SYNTHESIS":
+            if agent.id == "architect":
+                return "Orta yol olarak: Tüm G/Ç işlemlerini doğrudan değil, ThreadPoolExecutor vasıtasıyla asenkron sarmalayıcı altında çalıştıralım."
+            elif agent.id == "qa_engineer":
+                return "Mimarın ThreadPool önerisi regresyon riskini azaltır. Bu şekilde performans kazanımını izole test edebiliriz."
+            else:
+                return "ThreadPool sarmalaması güvenli ve stabil bir çözüm. Bu sentezi destekliyorum."
         else: # VOTING
             if agent.id == "architect":
-                return "VOTE: NO\nREASON: Event-loop engelleme riski kabul edilemez."
+                return "VOTE: YES\nREASON: ThreadPoolExecutor sentezi kabul edildiği için riskler giderilmiştir."
             elif agent.id == "qa_engineer":
-                return "VOTE: NO\nREASON: Test coverage düşebilir ve performans verisi eksik."
+                return "VOTE: YES\nREASON: ThreadPool sarmalayıcısı performans izleme ve kararlılık testlerini kolaylaştırır."
             else:
-                return "VOTE: YES\nREASON: Güvenlik açığı oluşturmuyor."
+                return "VOTE: YES\nREASON: Çözüm güvenli ve event-loop engelleme riskleri elimine edildi."
 
     def _extract_reason(self, text: str) -> str:
         match = re.search(r"REASON:\s*(.*)", text, re.IGNORECASE | re.DOTALL)

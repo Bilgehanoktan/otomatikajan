@@ -23,7 +23,8 @@ async def test_meeting_room_hold_meeting_success():
     assert "meeting_id" in result
     assert result["proposal"] == proposal
     assert result["participants"] == ["architect", "qa_engineer"]
-    assert len(result["debate"]) == 2
+    # 2 participants * 3 debate rounds (Thesis, Rebuttal, Synthesis) = 6 messages
+    assert len(result["debate"]) == 6
     assert "votes" in result
     assert len(result["votes"]) == 2
     assert "consensus" in result
