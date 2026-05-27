@@ -160,7 +160,7 @@ const SidebarContent = () => {
             }
         };
 
-        const menuHref = item.key === "learning" ? "/learning/fingerprints" : (item.route ?? "/");
+        const menuHref = (item.key === "learning" || item.name === "learning") ? "/learning/fingerprints" : (item.route ?? "/");
 
         const menuItemElement = (
             <Link
