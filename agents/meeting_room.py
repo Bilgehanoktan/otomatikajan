@@ -4,12 +4,56 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 import json
 import re
+import http.client
 
 from agents.specialist_agents.agent_registry import build_agents, Agent
 from libs.llm.model_orchestrator import ModelOrchestrator
 from services.observability.logging import get_logger
 
 logger = get_logger("meeting_room")
+
+class OllamaClient:
+    @staticmethod
+    def get_available_model() -> Optional[str]:
+        try:
+            conn = http.client.HTTPConnection("localhost", 11434, timeout=2.0)
+            conn.request("GET", "/api/tags")
+            res = conn.getresponse()
+            if res.status == 200:
+                data = json.loads(res.read().decode("utf-8"))
+                models = data.get("models", [])
+                if models:
+                    return models[0].get("name")
+        except Exception:
+            pass
+        return None
+
+    @staticmethod
+    def is_available() -> bool:
+        return OllamaClient.get_available_model() is not None
+
+    @staticmethod
+    def generate(prompt: str, system_prompt: str = "") -> Optional[str]:
+        model = OllamaClient.get_available_model()
+        if not model:
+            return None
+        try:
+            conn = http.client.HTTPConnection("localhost", 11434, timeout=30.0)
+            headers = {"Content-Type": "application/json"}
+            payload = {
+                "model": model,
+                "prompt": prompt,
+                "system": system_prompt,
+                "stream": False
+            }
+            conn.request("POST", "/api/generate", body=json.dumps(payload), headers=headers)
+            res = conn.getresponse()
+            if res.status == 200:
+                data = json.loads(res.read().decode("utf-8"))
+                return data.get("response", "")
+        except Exception as e:
+            logger.warning(f"Ollama inference failed for model {model}: {e}")
+        return None
 
 class MeetingRoom:
     """
@@ -22,9 +66,10 @@ class MeetingRoom:
         self.agents = build_agents()
         self.history: List[Dict[str, Any]] = []
 
-    async def hold_meeting(self, proposal: str, participant_ids: List[str] = ["architect", "qa_engineer", "security"]) -> Dict[str, Any]:
+    async def hold_meeting(self, proposal: str, participant_ids: List[str] = ["architect", "qa_engineer", "security"], step_callback: Any = None) -> Dict[str, Any]:
         """
         Runs a structured 4-turn dynamic debate between selected agents to reach consensus.
+        Supports async step_callback triggers for real-time WebSocket streaming.
         """
         logger.info(f"MeetingRoom: Starting multi-turn debate for proposal: {proposal[:100]}...")
         
@@ -48,11 +93,16 @@ class MeetingRoom:
                 continue
             agent = self.agents[agent_id]
             response = await self._get_agent_response(agent, proposal, "INITIAL_THESIS")
-            results["debate"].append({
+            thought_data = {
                 "agent": agent_id,
                 "role": f"{agent.role_name} (TUR 1: Tez)",
                 "thought": response
-            })
+            }
+            results["debate"].append(thought_data)
+            
+            if step_callback:
+                await step_callback({"type": "thought", "data": thought_data})
+                await asyncio.sleep(0.8) # Small delay for smooth visual flow
 
         # ----------------------------------------------------
         # TURN 2: CROSS-EXAMINATION / REBUTTAL (Çapraz Sorgu)
@@ -72,11 +122,16 @@ class MeetingRoom:
             Lütfen diğer uzmanların ilk tezlerini kendi uzmanlık alanın açısından eleştir/değerlendir. Argümanlardaki zayıf noktaları, riskleri veya uyarıları belirt.
             """
             response = await self._get_agent_response(agent, cross_exam_prompt, "CROSS_EXAM")
-            results["debate"].append({
+            thought_data = {
                 "agent": agent_id,
                 "role": f"{agent.role_name} (TUR 2: Çapraz Eleştiri)",
                 "thought": response
-            })
+            }
+            results["debate"].append(thought_data)
+            
+            if step_callback:
+                await step_callback({"type": "thought", "data": thought_data})
+                await asyncio.sleep(0.8)
 
         # ----------------------------------------------------
         # TURN 3: SYNTHESIS / REALIGNMENT (Sentez ve Hizalama)
@@ -96,11 +151,16 @@ class MeetingRoom:
             Yapılan bu eleştiriler ışığında, tezini revize ediyor musun? Ortak bir sentez noktasında buluşmak için önerin nedir?
             """
             response = await self._get_agent_response(agent, synthesis_prompt, "SYNTHESIS")
-            results["debate"].append({
+            thought_data = {
                 "agent": agent_id,
                 "role": f"{agent.role_name} (TUR 3: Sentez)",
                 "thought": response
-            })
+            }
+            results["debate"].append(thought_data)
+            
+            if step_callback:
+                await step_callback({"type": "thought", "data": thought_data})
+                await asyncio.sleep(0.8)
 
         # ----------------------------------------------------
         # TURN 4: CONSENSUS VOTING (Hüküm Oylaması)
@@ -128,10 +188,15 @@ class MeetingRoom:
             vote_resp = await self._get_agent_response(agent, vote_prompt, "VOTING")
             
             is_yes = "VOTE: YES" in vote_resp.upper()
-            results["votes"][agent_id] = {
+            vote_data = {
                 "approved": is_yes,
                 "reason": self._extract_reason(vote_resp)
             }
+            results["votes"][agent_id] = vote_data
+            
+            if step_callback:
+                await step_callback({"type": "vote", "agent": agent_id, "data": vote_data})
+                await asyncio.sleep(0.8)
 
         # Final Tally
         yes_votes = sum(1 for v in results["votes"].values() if v["approved"])
@@ -144,26 +209,42 @@ class MeetingRoom:
         else:
             results["final_decision"] = "REJECTED: Consensus was completely rejected during cross-examination."
 
+        if step_callback:
+            await step_callback({"type": "complete", "data": results})
+
         logger.info(f"MeetingRoom: Debate finished. Consensus: {results['consensus']}")
         return results
 
     async def _get_agent_response(self, agent: Agent, prompt: str, phase: str) -> str:
         """Helper to get LLM response for an agent."""
         try:
-            # Check if we should simulate (if keys are placeholders)
-            if self.model_orch.providers.get("openai", {}).is_placeholder_key() and \
-               self.model_orch.providers.get("gemini", {}).is_placeholder_key():
-                return self._simulate_response(agent, phase, prompt)
-
-            response = await self.model_orch.complete_task(
-                agent_role=agent.id,
-                prompt=f"PHASE: {phase}\n\nTASK: {prompt}",
-                system_prompt=agent.system_prompt
+            # Check if we have valid online API keys
+            has_valid_keys = not (
+                self.model_orch.providers.get("openai", {}).is_placeholder_key() and \
+                self.model_orch.providers.get("gemini", {}).is_placeholder_key()
             )
-            return response.content
+            
+            if has_valid_keys:
+                response = await self.model_orch.complete_task(
+                    agent_role=agent.id,
+                    prompt=f"PHASE: {phase}\n\nTASK: {prompt}",
+                    system_prompt=agent.system_prompt
+                )
+                return response.content
         except Exception as e:
-            logger.warning(f"MeetingRoom: LLM failed for {agent.id}, falling back to simulation.")
-            return self._simulate_response(agent, phase, prompt)
+            logger.warning(f"MeetingRoom: Online LLM failed for {agent.id}: {e}")
+
+        # Fallback to local Ollama if available
+        if OllamaClient.is_available():
+            logger.info(f"MeetingRoom: Local Ollama fallback active for {agent.id}.")
+            ollama_prompt = f"PHASE: {phase}\n\nTASK: {prompt}"
+            response = OllamaClient.generate(ollama_prompt, agent.system_prompt)
+            if response:
+                return response
+
+        # Last resort fallback: Static simulated mock response
+        logger.info(f"MeetingRoom: Falling back to static mock simulation for {agent.id}.")
+        return self._simulate_response(agent, phase, prompt)
 
     def _simulate_response(self, agent: Agent, phase: str, prompt: str) -> str:
         """Provides realistic mock responses for Phase 12 debate rounds simulation."""

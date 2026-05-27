@@ -322,7 +322,14 @@ def _register_repair_actions(engine: WorkflowEngine):
     @traced("repair.prepare_pr")
     async def _repair_prepare_pr(context: dict, **kw) -> dict:
         from services.repair.github_pr_adapter import prepare_draft_pr
-        return prepare_draft_pr(context) or {}
+        try:
+            result = prepare_draft_pr(context) or {}
+        except ValueError as exc:
+            result = {
+                "draft_pr_status": "BLOCKED",
+                "draft_pr_blocked_reason": str(exc),
+            }
+        return {**result, "_context_update": result}
 
     @traced("taskflow.evaluate_gate")
     async def _taskflow_evaluate_gate(context: dict, **kw) -> dict:

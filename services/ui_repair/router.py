@@ -130,7 +130,7 @@ async def get_ui_route_health(db: AsyncSession = Depends(get_db)):
 
 @router.get("/cases", response_model=List[UIRepairCaseSchema])
 async def get_ui_repair_cases(
-    status: Optional[str] = None,
+    status: str | None = None,
     db: AsyncSession = Depends(get_db)
 ):
     """Lists all detected UI repair cases, filtered by status."""
@@ -212,7 +212,7 @@ async def get_runtime_guard_status():
     return await check_runtime_dependencies()
 
 @router.post("/smoke/run")
-async def trigger_ui_smoke_run(routes: Optional[List[str]] = None, db: AsyncSession = Depends(get_db)):
+async def trigger_ui_smoke_run(routes: List[str] | None = None, db: AsyncSession = Depends(get_db)):
     """Manually triggers a Playwright smoke test run."""
     from services.ui_repair.runtime_guard import check_runtime_dependencies
     guard = await check_runtime_dependencies()
@@ -555,8 +555,8 @@ async def pause_ui_repair_project(project_key: str, db: AsyncSession = Depends(g
 @router.post("/projects/{project_key}/policy")
 async def update_ui_repair_project_policy(
     project_key: str, 
-    safety: Optional[Dict[str, Any]] = None, 
-    governance: Optional[Dict[str, Any]] = None, 
+    safety: Dict[str, Any] | None = None, 
+    governance: Dict[str, Any] | None = None, 
     db: AsyncSession = Depends(get_db)
 ):
     """Updates a project's safety and governance policy."""
@@ -605,7 +605,7 @@ async def check_ui_ga_readiness(assessor: str = Query(...), db: AsyncSession = D
     svc = UIRepairService(db)
     return await svc.check_ga_readiness(assessor)
 
-@router.get("/enterprise/ga-readiness/latest", response_model=Optional[UIGAReadinessAssessmentSchema])
+@router.get("/enterprise/ga-readiness/latest", response_model=UIGAReadinessAssessmentSchema | None)
 async def get_latest_ui_ga_readiness(db: AsyncSession = Depends(get_db)):
     """Gets the latest GA readiness assessment."""
     svc = UIRepairService(db)
@@ -617,7 +617,7 @@ async def generate_ui_enterprise_runbook(title: str = Query(...), version: str =
     svc = UIRepairService(db)
     return await svc.generate_enterprise_runbook(title, version)
 
-@router.get("/enterprise/runbook/latest", response_model=Optional[UIEnterpriseRunbookSchema])
+@router.get("/enterprise/runbook/latest", response_model=UIEnterpriseRunbookSchema | None)
 async def get_latest_ui_enterprise_runbook(db: AsyncSession = Depends(get_db)):
     """Gets the latest enterprise runbook."""
     svc = UIRepairService(db)
@@ -675,7 +675,7 @@ async def run_compatibility_check(project_key: str, version: str, db: AsyncSessi
     svc = UIRepairService(db)
     return await svc.run_compatibility_check(project_key, version)
 
-@router.get("/compatibility/latest", response_model=Optional[UICompatibilityCheckSchema])
+@router.get("/compatibility/latest", response_model=UICompatibilityCheckSchema | None)
 async def get_latest_compatibility_check(project_key: str, db: AsyncSession = Depends(get_db)):
     svc = UIRepairService(db)
     return await svc.get_latest_compatibility_check(project_key)
@@ -691,7 +691,7 @@ async def create_evidence_retention_policy(data: UIEvidenceRetentionPolicyCreate
     return await svc.create_evidence_retention_policy(data)
 
 @router.get("/slo/breaches", response_model=List[UISLOBreachSchema])
-async def list_slo_breaches(project_key: Optional[str] = None, db: AsyncSession = Depends(get_db)):
+async def list_slo_breaches(project_key: str | None = None, db: AsyncSession = Depends(get_db)):
     svc = UIRepairService(db)
     return await svc.list_slo_breaches(project_key)
 
@@ -758,27 +758,27 @@ async def get_federated_health(db: AsyncSession = Depends(get_db)):
     return await svc.get_federated_health()
 
 @router.get("/federation/policy-drift")
-async def scan_policy_drift(tenant_key: Optional[str] = None, db: AsyncSession = Depends(get_db)):
+async def scan_policy_drift(tenant_key: str | None = None, db: AsyncSession = Depends(get_db)):
     """Scans for deviations from global/tenant policy standards."""
     svc = UIRepairService(db)
     return await svc.scan_policy_drift(tenant_key)
 
 @router.get("/federation/evidence")
-async def get_federated_evidence(tenant_key: Optional[str] = None, db: AsyncSession = Depends(get_db)):
+async def get_federated_evidence(tenant_key: str | None = None, db: AsyncSession = Depends(get_db)):
     """Centralized audit trail of evidence hashes across the federation."""
     svc = UIRepairService(db)
     return await svc.get_federated_evidence(tenant_key)
 
 @router.get("/finops/costs", response_model=List[UICostEventSchema])
 async def list_cost_events(
-    project_key: Optional[str] = None,
+    project_key: str | None = None,
     db: AsyncSession = Depends(get_db)
 ):
     """List recent cost events with attribution."""
     svc = UIRepairService(db)
     return await svc.list_cost_events(project_key)
 
-@router.get("/finops/budget/{project_key}", response_model=Optional[UIBudgetPolicySchema])
+@router.get("/finops/budget/{project_key}", response_model=UIBudgetPolicySchema | None)
 async def get_budget_policy(project_key: str, db: AsyncSession = Depends(get_db)):
     """Get budget policy for a project."""
     svc = UIRepairService(db)
@@ -792,7 +792,7 @@ async def update_budget_policy(data: UIBudgetPolicyCreate, db: AsyncSession = De
 
 @router.get("/finops/anomalies", response_model=List[UICostAnomalySchema])
 async def list_cost_anomalies(
-    project_key: Optional[str] = None,
+    project_key: str | None = None,
     db: AsyncSession = Depends(get_db)
 ):
     """List cost anomalies and spikes."""
@@ -808,7 +808,7 @@ async def resolve_cost_anomaly(anomaly_id: str, db: AsyncSession = Depends(get_d
         raise HTTPException(status_code=404, detail="Anomaly not found")
     return res
 
-@router.get("/finops/forecast/{project_key}", response_model=Optional[UICapacityForecastSchema])
+@router.get("/finops/forecast/{project_key}", response_model=UICapacityForecastSchema | None)
 async def get_capacity_forecast(project_key: str, db: AsyncSession = Depends(get_db)):
     """Get latest capacity forecast."""
     svc = UIRepairService(db)
@@ -822,7 +822,7 @@ async def generate_capacity_forecast(project_key: str, db: AsyncSession = Depend
 
 @router.get("/finops/recommendations", response_model=List[UIFinOpsRecommendationSchema])
 async def list_finops_recommendations(
-    project_key: Optional[str] = None,
+    project_key: str | None = None,
     db: AsyncSession = Depends(get_db)
 ):
     """List cost-saving recommendations."""
@@ -846,7 +846,7 @@ async def update_recommendation_status(
 
 @router.get("/governance/policies", response_model=List[UIPolicyRuleSchema])
 async def list_policy_rules(
-    project_key: Optional[str] = None,
+    project_key: str | None = None,
     db: AsyncSession = Depends(get_db)
 ):
     """Lists all active governance policies."""
@@ -874,7 +874,7 @@ async def evaluate_governance_policy(
 
 @router.get("/governance/evaluations", response_model=List[UIPolicyEvaluationSchema])
 async def list_policy_evaluations(
-    project_key: Optional[str] = None,
+    project_key: str | None = None,
     db: AsyncSession = Depends(get_db)
 ):
     """Audit log of policy evaluations."""
@@ -887,7 +887,7 @@ async def list_policy_evaluations(
 
 @router.get("/governance/overrides", response_model=List[UIAutonomousOverrideSchema])
 async def list_policy_overrides(
-    tenant_key: Optional[str] = None,
+    tenant_key: str | None = None,
     db: AsyncSession = Depends(get_db)
 ):
     """Audit log of manual autonomous governance overrides."""
@@ -909,7 +909,7 @@ async def create_policy_override(
 
 @router.get("/governance/compliance-findings", response_model=List[UISecurityPostureFindingSchema])
 async def list_compliance_findings(
-    project_key: Optional[str] = None,
+    project_key: str | None = None,
     db: AsyncSession = Depends(get_db)
 ):
     """Lists compliance violations found in the ecosystem."""
@@ -918,7 +918,7 @@ async def list_compliance_findings(
 
 @router.get("/governance/proposals", response_model=List[UIPolicyProposalSchema])
 async def list_policy_proposals(
-    project_key: Optional[str] = None,
+    project_key: str | None = None,
     db: AsyncSession = Depends(get_db)
 ):
     """Lists all policy proposals."""
@@ -949,7 +949,7 @@ async def approve_proposal(
 
 @router.get("/governance/conflicts", response_model=List[UIPolicyConflictSchema])
 async def list_policy_conflicts(
-    project_key: Optional[str] = None,
+    project_key: str | None = None,
     db: AsyncSession = Depends(get_db)
 ):
     """Lists detected policy conflicts."""
@@ -959,7 +959,7 @@ async def list_policy_conflicts(
 @router.post("/governance/simulate")
 async def simulate_policy(
     rule_definition: Dict[str, Any] = Body(...),
-    project_key: Optional[str] = None,
+    project_key: str | None = None,
     db: AsyncSession = Depends(get_db)
 ):
     """Simulates a policy rule against historical evaluations."""
@@ -1259,7 +1259,7 @@ async def generate_red_team_report(db: AsyncSession = Depends(get_db)):
     service = UIRepairService(db)
     return await service.generate_red_team_report()
 
-@router.get("/security/red-team/report/latest", response_model=Optional[UIRedTeamReportSchema])
+@router.get("/security/red-team/report/latest", response_model=UIRedTeamReportSchema | None)
 async def get_latest_red_team_report(db: AsyncSession = Depends(get_db)):
     """Retrieves the most recent Red Team audit report."""
     service = UIRepairService(db)
@@ -1323,7 +1323,7 @@ async def get_execution_traces(execution_id: UUID, db: AsyncSession = Depends(ge
     service = UIRepairService(db)
     return await service.get_execution_traces(execution_id)
 
-@router.get("/security/autopatch/{execution_id}/negotiation", response_model=Optional[PatchNegotiationSessionSchema])
+@router.get("/security/autopatch/{execution_id}/negotiation", response_model=PatchNegotiationSessionSchema | None)
 async def get_negotiation_session(execution_id: UUID, db: AsyncSession = Depends(get_db)):
     """Phase 28: Gets the negotiation session for an execution."""
     service = UIRepairService(db)
@@ -1335,7 +1335,7 @@ async def get_debate_turns(session_id: UUID, db: AsyncSession = Depends(get_db))
     service = UIRepairService(db)
     return await service.get_debate_turns(session_id)
 
-@router.get("/security/autopatch/candidate/{candidate_id}/scores", response_model=Optional[PatchCandidateScoreSchema])
+@router.get("/security/autopatch/candidate/{candidate_id}/scores", response_model=PatchCandidateScoreSchema | None)
 async def get_candidate_scores(candidate_id: UUID, db: AsyncSession = Depends(get_db)):
     """Phase 28: Gets the multi-dimensional scores for a candidate."""
     service = UIRepairService(db)
@@ -1353,7 +1353,7 @@ async def list_defensive_patterns(db: AsyncSession = Depends(get_db)):
     service = UIRepairService(db)
     return await service.tuning_service.get_patterns()
 
-@router.get("/security/defense/report/latest", response_model=Optional[UIDefenseOptimizationReportSchema])
+@router.get("/security/defense/report/latest", response_model=UIDefenseOptimizationReportSchema | None)
 async def get_latest_defense_report(db: AsyncSession = Depends(get_db)):
     """Retrieves the latest executive defense optimization report."""
     service = UIRepairService(db)
@@ -1368,7 +1368,7 @@ async def generate_defense_report(db: AsyncSession = Depends(get_db)):
 # --- Phase 26: Incident War Room & Executive Risk ---
 
 @router.get("/war-rooms", response_model=List[UIIncidentWarRoomSchema])
-async def list_war_rooms(status: Optional[str] = None, db: AsyncSession = Depends(get_db)):
+async def list_war_rooms(status: str | None = None, db: AsyncSession = Depends(get_db)):
     svc = UIRepairService(db)
     return await svc.list_war_rooms(status)
 
@@ -1497,8 +1497,8 @@ async def get_knowledge_overview(db: AsyncSession = Depends(get_db)):
 
 @router.get("/knowledge/nodes", response_model=List[UIKnowledgeNodeSchema], tags=["Knowledge"])
 async def list_knowledge_nodes(
-    node_type: Optional[str] = None,
-    severity: Optional[str] = None,
+    node_type: str | None = None,
+    severity: str | None = None,
     limit: int = 100,
     db: AsyncSession = Depends(get_db)
 ):
@@ -1526,8 +1526,8 @@ async def list_knowledge_nodes(
 
 @router.get("/knowledge/edges", response_model=List[UIKnowledgeEdgeSchema], tags=["Knowledge"])
 async def list_knowledge_edges(
-    source_node_key: Optional[str] = None,
-    edge_type: Optional[str] = None,
+    source_node_key: str | None = None,
+    edge_type: str | None = None,
     limit: int = 100,
     db: AsyncSession = Depends(get_db)
 ):
@@ -1646,7 +1646,7 @@ async def generate_audit_pack(version: str = Query("1.0.0"), db: AsyncSession = 
     pack = await generator.generate_pack(version)
     return UIFinalAuditPackSchema.model_validate(pack)
 
-@router.get("/final/audit-pack/latest", response_model=Optional[UIFinalAuditPackSchema], tags=["Final Release"])
+@router.get("/final/audit-pack/latest", response_model=UIFinalAuditPackSchema | None, tags=["Final Release"])
 async def get_latest_audit_pack(db: AsyncSession = Depends(get_db)):
     """Fetches the most recently generated audit pack."""
     generator = FinalAuditPackGenerator(db)
@@ -1669,7 +1669,7 @@ async def create_release_lock(version: str = Body(..., embed=True), locked_by: s
     lock = await manager.create_release_lock(version, locked_by, audit_pack_id)
     return UIReleaseLockSchema.model_validate(lock)
 
-@router.get("/final/release-lock/latest", response_model=Optional[UIReleaseLockSchema], tags=["Final Release"])
+@router.get("/final/release-lock/latest", response_model=UIReleaseLockSchema | None, tags=["Final Release"])
 async def get_latest_release_lock(db: AsyncSession = Depends(get_db)):
     """Fetches the latest release lock."""
     manager = ReleaseLockManager(db)

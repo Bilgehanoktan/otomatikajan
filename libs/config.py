@@ -193,7 +193,7 @@ PROFILE_DEFAULTS = {
 PROFILE_DEFAULT = PROFILE_DEFAULTS[RUNTIME_PROFILE]
 
 QUEUE_BACKEND = os.getenv("QUEUE_BACKEND", PROFILE_DEFAULT["QUEUE_BACKEND"]).lower().strip()
-if QUEUE_BACKEND not in {"auto", "celery", "inprocess"}:
+if QUEUE_BACKEND not in {"auto", "celery", "inprocess", "huey"}:
     QUEUE_BACKEND = PROFILE_DEFAULT["QUEUE_BACKEND"]
 
 APP_UI_MODE = os.getenv("APP_UI_MODE", PROFILE_DEFAULT["APP_UI_MODE"]).lower().strip()

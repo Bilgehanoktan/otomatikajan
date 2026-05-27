@@ -157,7 +157,9 @@ async def run_ceo_graph(opportunity_data: Dict[str, Any]) -> Dict[str, Any]:
     thread_id = str(opportunity_data.get("id", "default_thread"))
     config = {"configurable": {"thread_id": thread_id}}
 
-    async with AsyncSqliteSaver.from_conn_string("agent_checkpoints.db") as memory:
+    db_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "runtime", "data", "cortex_local_v2.db"))
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    async with AsyncSqliteSaver.from_conn_string(db_path) as memory:
         app = build_ceo_graph(checkpointer=memory)
 
         initial_state = {

@@ -280,6 +280,49 @@ export default function ApprovalsPage() {
             </div>
           </section>
 
+          <section className="glass-panel group relative overflow-hidden rounded-[2.5rem] border-white/[0.05] bg-[#060a12]/50 p-10 shadow-xl transition-all hover:border-[#0088cc]/20">
+            <div className="pointer-events-none absolute right-0 top-0 p-8 opacity-[0.03] transition-opacity group-hover:opacity-[0.08]">
+              <Target size={140} className="text-[#0088cc]" />
+            </div>
+
+            <div className="relative z-10 mb-8 flex items-center gap-4">
+              <div className="rounded-2xl border border-[#0088cc]/20 bg-[#0088cc]/10 p-3 shadow-xl">
+                <Zap size={24} className="text-[#0088cc] animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-xl font-black uppercase tracking-tighter text-white">Mobil Onay Linki</h3>
+                <p className="mt-1 text-[9px] font-black uppercase tracking-[0.2em] text-[#0088cc]">
+                  Telegram Bot Entegrasyonu
+                </p>
+              </div>
+            </div>
+
+            <div className="relative z-10 space-y-6">
+              <div className="rounded-2xl border border-white/5 bg-white/[0.015] p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <span className="text-[9px] font-black uppercase leading-none tracking-widest text-gray-600">
+                    Bot Aktiflik Durumu
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-black tracking-widest bg-green-500/[0.08] text-green-400 border border-green-500/15">
+                    ● AKTİF
+                  </span>
+                </div>
+                <p className="text-[10px] text-gray-500 leading-relaxed font-semibold">
+                  L3-L4 kritik güvenlik kapıları otonom olarak Telegram üzerinden mobil onayınıza sunulur.
+                </p>
+              </div>
+
+              <a
+                href="https://t.me/SovereignAgiBot"
+                target="_blank"
+                rel="noreferrer"
+                className="flex w-full items-center justify-center gap-3 rounded-2xl bg-[#0088cc] px-8 py-4 text-[11px] font-black uppercase tracking-widest text-white transition-all hover:shadow-[0_8px_32px_rgba(0,136,204,0.4)] active:scale-95 text-center"
+              >
+                <span>Sovereign Bot'a Bağlan</span>
+              </a>
+            </div>
+          </section>
+
           <section className="glass-panel relative overflow-hidden rounded-[3rem] border-white/[0.03] bg-gradient-to-br from-white/[0.01] to-transparent p-10 shadow-2xl">
             <div className="relative z-10 flex flex-col gap-6">
               <div className="flex items-center justify-between border-b border-white/[0.03] pb-6">
@@ -397,6 +440,9 @@ function EliteApprovalCard({
               </h3>
               <span className="rounded-lg border border-white/5 bg-black/40 px-2.5 py-1 text-[9px] font-mono font-black uppercase leading-none tracking-widest text-gray-600">
                 TX_ID: {String(request.id).substring(0, 12)}
+              </span>
+              <span className="rounded-lg border border-[#0088cc]/20 bg-[#0088cc]/10 px-2.5 py-1 text-[9px] font-mono font-black uppercase leading-none tracking-widest text-[#0088cc] flex items-center gap-1.5 animate-pulse">
+                ⚡ Mobil Onay Destekli
               </span>
             </div>
             <p className="mb-8 max-w-2xl text-xs font-bold leading-relaxed tracking-tight text-gray-500">

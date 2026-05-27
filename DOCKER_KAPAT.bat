@@ -28,7 +28,10 @@ wsl --shutdown >nul 2>&1
 timeout /t 2 /nobreak >nul
 
 echo [*] 5. Portlar temizleniyor (8000, 3100, 5432, 6379)...
-powershell -Command "Get-NetTCPConnection -LocalPort 8000,3100,5432,6379 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }"
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8000 ^| findstr LISTENING') do taskkill /f /pid %%a >nul 2>&1
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr :3100 ^| findstr LISTENING') do taskkill /f /pid %%a >nul 2>&1
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr :5432 ^| findstr LISTENING') do taskkill /f /pid %%a >nul 2>&1
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr :6379 ^| findstr LISTENING') do taskkill /f /pid %%a >nul 2>&1
 
 echo.
 echo [OK] Docker, WSL ve tum servisler tamamen temizlendi.

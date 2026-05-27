@@ -763,7 +763,9 @@ def create_job_queue():
             return JobQueue(concurrency=WORKER_CONCURRENCY)
         return CeleryJobQueue()
 
-    if backend == "inprocess":
+    if backend in ("inprocess", "huey"):
+        if backend == "huey":
+            _log.info("QUEUE_BACKEND=huey configured. Falling back to lightweight SQLite-backed queue.")
         return JobQueue(concurrency=WORKER_CONCURRENCY)
 
     # Local development should prefer the canonical in-process runner unless the

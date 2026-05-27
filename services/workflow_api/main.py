@@ -30,11 +30,18 @@ from services.orchestration.ceo.router import router as ceo_engine_router
 from services.workflow_api.ceo_router import router as ceo_bridge_router
 from services.workflow_api.project_factory_router import router as project_factory_router
 from services.workflow_api.mcp_router import router as mcp_router
+from services.workflow_api.debate_router import router as debate_router
 
 from contextlib import asynccontextmanager
 
 if sys.platform == "win32" and hasattr(asyncio, "WindowsProactorEventLoopPolicy"):
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
 
 logger = logging.getLogger(__name__)
 
@@ -137,6 +144,7 @@ app.include_router(ceo_engine_router, prefix="/api/v1/ceo")
 app.include_router(ceo_bridge_router, prefix="/api/v1/ceo")
 app.include_router(project_factory_router, prefix="/api/v1/project-factory")
 app.include_router(mcp_router, prefix="/api/v1/mcp")
+app.include_router(debate_router, prefix="/api/v1/debate")
 
 @app.websocket("/ws/events")
 async def websocket_route(websocket: WebSocket):

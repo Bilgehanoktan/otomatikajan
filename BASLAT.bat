@@ -2,6 +2,7 @@
 title Sovereign AGI - Debug Launcher
 echo [*] Baslatiliyor... Lutfen bekleyin.
 
+set PYTHONIOENCODING=utf-8
 set "PROJECT_ROOT=%~dp0"
 cd /d "%PROJECT_ROOT%"
 

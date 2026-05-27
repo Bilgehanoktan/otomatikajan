@@ -1,0 +1,87 @@
+from playwright.sync_api import Page, expect
+import time
+
+def test_websocket_reconnect(page: Page):
+    """
+    E2E Playwright test validating UI auto-reconnect behaviors under connection losses.
+    Simulates a total network blackout and restores it cleanly.
+    """
+    # Inject a monkeypatch script to track created WebSocket instances
+    page.add_init_script("""
+        window.activeWebSockets = [];
+        const OriginalWebSocket = window.WebSocket;
+        window.OriginalWebSocket = OriginalWebSocket; // Keep reference to raw WebSocket
+        
+        window.WebSocketTracker = function(url, protocols) {
+            console.log("WebSocket constructor called with url:", url);
+            const ws = new OriginalWebSocket(url, protocols);
+            window.activeWebSockets.push(ws);
+            return ws;
+        };
+        window.WebSocketTracker.prototype = OriginalWebSocket.prototype;
+        window.WebSocket = window.WebSocketTracker;
+    """)
+
+    # Navigate to the Refine control plane dashboard
+    page.goto("http://localhost:3100/")
+    
+    # Locate the telemetry status badge on the dashboard
+    status_badge = page.locator("div.ml-auto.px-2\\.5.py-1").first
+    expect(status_badge).to_be_visible(timeout=10000)
+    
+    # Wait for the WebSocket connection to stabilize (change from SYNC to STABLE)
+    stable_established = False
+    for _ in range(40):
+        status_text = status_badge.inner_text()
+        if any(x in status_text.upper() for x in ["STABLE", "KARARLI", "STABİL"]):
+            stable_established = True
+            break
+        time.sleep(0.5)
+        
+    print(f"[E2E Test] Initial Established Status: {status_badge.inner_text()}")
+    assert stable_established, "WebSocket connection failed to establish stable state within timeout."
+    
+    # Simulate network connection loss (network blackout) by blocking constructor and closing active ones
+    print("[E2E Test] Simulating connection loss (blocking all new WebSockets)...")
+    page.evaluate("""
+        // Monkeypatch to block all new connections instantly
+        window.WebSocket = function() {
+            throw new Error("Network Blackout: Connection refused");
+        };
+        
+        // Terminate all active connections to trigger recovery loop
+        window.activeWebSockets.forEach(ws => {
+            try {
+                ws.close();
+            } catch (e) {}
+        });
+    """)
+    
+    # Wait for the recovery loop to run through all candidates and transition to polling fallback state
+    time.sleep(4.0)
+    
+    # Assert that the UI reflects the degraded state (non-STABLE / fallback / lost)
+    offline_status_text = status_badge.inner_text()
+    print(f"[E2E Test] Degraded WebSocket Status: {offline_status_text}")
+    assert any(x in offline_status_text.upper() for x in ["FALLBACK", "KAYIP", "LOST"])
+    assert not any(x in offline_status_text.upper() for x in ["STABLE", "KARARLI", "STABİL"])
+    
+    # Restore the network connection (unblock WebSocket constructor)
+    print("[E2E Test] Restoring connection (unblocking WebSockets)...")
+    page.evaluate("""
+        window.activeWebSockets = [];
+        window.WebSocket = window.WebSocketTracker;
+    """)
+    
+    # Wait for the auto-reconnection loop to establish standard link again
+    reconnected = False
+    for _ in range(40):
+        status_text = status_badge.inner_text()
+        if any(x in status_text.upper() for x in ["STABLE", "SYNC", "KARARLI", "SENKRONIZE", "STABİL"]):
+            reconnected = True
+            break
+        time.sleep(0.5)
+        
+    reconnected_status_text = status_badge.inner_text()
+    print(f"[E2E Test] Reconnected WebSocket Status: {reconnected_status_text}")
+    assert reconnected, "WebSocket connection failed to re-establish stable state within timeout."

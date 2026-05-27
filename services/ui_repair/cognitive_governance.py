@@ -28,8 +28,8 @@ router = APIRouter(prefix="/cognitive", tags=["Cognitive Integrity"])
 
 @router.get("/checks", response_model=List[UICognitiveIntegrityCheckSchema])
 async def get_checks(
-    status: Optional[str] = None,
-    agent_name: Optional[str] = None,
+    status: str | None = None,
+    agent_name: str | None = None,
     db: AsyncSession = Depends(get_db)
 ):
     stmt = select(UICognitiveIntegrityCheck)
