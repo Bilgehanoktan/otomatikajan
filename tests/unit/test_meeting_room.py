@@ -68,3 +68,40 @@ def test_debate_router_hold_meeting_endpoint():
     assert "consensus" in data
     assert "votes" in data
     assert "final_decision" in data
+
+
+def test_debate_router_websocket_meeting():
+    """
+    WebSocket /api/v1/debate/meeting endpoint'inin canlı debate akışını
+    adım adım stream ettiğini doğrular.
+    """
+    with client.websocket_connect("/api/v1/debate/meeting") as websocket:
+        # Send initial request JSON
+        websocket.send_json({
+            "proposal": "WebSocket entegrasyonu denemesi.",
+            "participant_ids": ["architect", "qa_engineer"]
+        })
+        
+        events = []
+        try:
+            # Let's read some messages from websocket stream
+            # Since MeetingRoom holds artificial delays (0.8s), we receive multiple steps
+            for _ in range(20):
+                data = websocket.receive_json()
+                events.append(data)
+                if data.get("type") == "complete":
+                    break
+        except Exception:
+            pass
+            
+        assert len(events) > 0
+        # We expect thoughts and a final complete event
+        thought_events = [e for e in events if e.get("type") == "thought"]
+        vote_events = [e for e in events if e.get("type") == "vote"]
+        complete_events = [e for e in events if e.get("type") == "complete"]
+        
+        assert len(thought_events) > 0
+        assert len(vote_events) > 0
+        assert len(complete_events) == 1
+        assert "debate" in complete_events[0]["data"]
+

@@ -65,8 +65,26 @@ export default function MeetingRoomPage() {
   const [result, setResult] = useState<DebateResult | null>(null);
   const [activeTab, setActiveTab] = useState<"setup" | "history">("setup");
   const [isClient, setIsClient] = useState(false);
+  const [streamStatus, setStreamStatus] = useState<"idle" | "connecting" | "streaming" | "completed" | "error">("idle");
+  const [activeSpeaker, setActiveSpeaker] = useState<string | null>(null);
+  const [socket, setSocket] = useState<WebSocket | null>(null);
 
   const apiUrl = getApiBaseUrl();
+
+  const getWsBaseUrl = () => {
+    if (!apiUrl) return "ws://localhost:8000/api/v1";
+    if (apiUrl.startsWith("http://")) {
+      return apiUrl.replace("http://", "ws://");
+    }
+    if (apiUrl.startsWith("https://")) {
+      return apiUrl.replace("https://", "wss://");
+    }
+    if (typeof window !== "undefined") {
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      return `${protocol}//${window.location.host}${apiUrl}`;
+    }
+    return "ws://localhost:8000/api/v1";
+  };
 
   useEffect(() => {
     setIsClient(true);
@@ -98,28 +116,104 @@ export default function MeetingRoomPage() {
     }
   };
 
-  const handleStartMeeting = async () => {
+  const handleStartMeeting = () => {
     if (!proposal.trim()) return;
     setLoading(true);
-    setResult(null);
+    setStreamStatus("connecting");
+    setResult({
+      meeting_id: "Tebligat...",
+      proposal: proposal,
+      participants: selectedParticipants,
+      debate: [],
+      consensus: false,
+      votes: {},
+      final_decision: ""
+    });
 
-    try {
-      const response: any = await safeFetchJson(`${apiUrl}/debate/meeting`, {
-        method: "POST",
-        body: JSON.stringify({
+    const wsUrl = `${getWsBaseUrl()}/debate/meeting`;
+    const ws = new WebSocket(wsUrl);
+    setSocket(ws);
+
+    ws.onopen = () => {
+      console.log("WebSocket debate connected.");
+      ws.send(
+        JSON.stringify({
           proposal,
           participant_ids: selectedParticipants
         })
-      });
+      );
+    };
 
-      if (response && response.meeting_id) {
-        setResult(response);
+    ws.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        console.log("WebSocket event:", payload);
+
+        if (payload.type === "thought") {
+          setLoading(false);
+          setStreamStatus("streaming");
+          setActiveSpeaker(payload.data.agent);
+          setResult((prev) => {
+            if (!prev) return null;
+            const exists = prev.debate.some(
+              (d) => d.agent === payload.data.agent && d.role === payload.data.role && d.thought === payload.data.thought
+            );
+            if (exists) return prev;
+            return {
+              ...prev,
+              debate: [...prev.debate, payload.data]
+            };
+          });
+        } else if (payload.type === "vote") {
+          setLoading(false);
+          setStreamStatus("streaming");
+          setActiveSpeaker(payload.agent);
+          setResult((prev) => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              votes: {
+                ...prev.votes,
+                [payload.agent]: payload.data
+              }
+            };
+          });
+        } else if (payload.type === "complete") {
+          setLoading(false);
+          setStreamStatus("completed");
+          setActiveSpeaker(null);
+          setResult(payload.data);
+          ws.close();
+        } else if (payload.type === "error") {
+          console.error("Debate error:", payload.message);
+          setStreamStatus("error");
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error("WebSocket message parsing error:", err);
       }
-    } catch (err) {
-      console.error("Toplantı başlatılamadı:", err);
-    } finally {
+    };
+
+    ws.onerror = (err) => {
+      console.error("WebSocket error:", err);
+      setStreamStatus("error");
       setLoading(false);
+    };
+
+    ws.onclose = () => {
+      console.log("WebSocket debate disconnected.");
+      setSocket(null);
+    };
+  };
+
+  const handleStopMeeting = () => {
+    if (socket) {
+      socket.close();
+      setSocket(null);
     }
+    setStreamStatus("idle");
+    setLoading(false);
+    setResult(null);
   };
 
   if (!isClient) return <div className="min-h-screen bg-[#060a12]" />;
@@ -241,9 +335,15 @@ export default function MeetingRoomPage() {
                 <div className="bg-black/40 border border-white/5 p-6 rounded-3xl space-y-3 font-mono">
                   <div className="text-[9px] text-gray-500 uppercase tracking-widest">Öneri Başlığı & Gündem</div>
                   <div className="text-sm font-semibold text-white leading-relaxed">{result.proposal}</div>
-                  <div className="flex gap-4 pt-2 text-[9px] text-gray-500 uppercase font-black tracking-wider border-t border-white/[0.04]">
+                  <div className="flex gap-4 pt-2 text-[9px] text-gray-500 uppercase font-black tracking-wider border-t border-white/[0.04] items-center">
                     <span>MEETING ID: {result.meeting_id}</span>
                     <span>KATILIMCI SAYISI: {result.participants.length}</span>
+                    {streamStatus === "streaming" && (
+                      <span className="flex items-center gap-1.5 text-cyan-400 bg-cyan-400/10 border border-cyan-400/20 px-2 py-0.5 rounded-md text-[8px] font-black tracking-widest animate-pulse uppercase ml-auto">
+                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+                        Canlı Yayın
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -256,20 +356,30 @@ export default function MeetingRoomPage() {
                   <div className="space-y-4">
                     {result.debate.map((d, index) => {
                       const agentMeta = participants.find((p) => p.id === d.agent);
+                      const isActiveSpeaker = activeSpeaker === d.agent && index === result.debate.length - 1;
                       return (
                         <div
                           key={index}
-                          className="flex gap-6 p-6 bg-white/[0.015] rounded-3xl border border-white/5 hover:border-white/10 transition-all"
+                          className={`flex gap-6 p-6 rounded-3xl border transition-all duration-500 ${
+                            isActiveSpeaker
+                              ? "bg-[var(--primary)]/[0.04] border-[var(--primary)]/30 shadow-[0_0_24px_rgba(102,252,241,0.15)] scale-[1.01]"
+                              : "bg-white/[0.015] border-white/5 hover:border-white/10"
+                          }`}
                         >
                           <div className="text-3xl flex items-center justify-center bg-white/5 w-16 h-16 rounded-2xl border border-white/10 shrink-0">
                             {agentMeta?.emoji || "🤖"}
                           </div>
-                          <div className="space-y-2">
+                          <div className="space-y-2 w-full">
                             <div className="flex items-center gap-3">
                               <span className="text-xs font-black text-white uppercase">{agentMeta?.name || d.agent}</span>
                               <span className="text-[9px] font-black text-[var(--primary)] bg-[var(--primary)]/10 px-2 py-0.5 rounded-md uppercase">
                                 {d.role}
                               </span>
+                              {isActiveSpeaker && (
+                                <span className="flex items-center gap-1 text-[8px] font-black text-[var(--primary)] animate-pulse uppercase font-mono tracking-widest bg-[var(--primary)]/20 px-2 py-0.5 rounded ml-auto">
+                                  <Sparkles size={8} className="animate-spin" /> Konuşuyor
+                                </span>
+                              )}
                             </div>
                             <p className="text-xs text-gray-400 leading-relaxed font-semibold italic">
                               "{d.thought}"
@@ -325,19 +435,33 @@ export default function MeetingRoomPage() {
                   </div>
                 </div>
 
-                {/* Reset Form Button */}
+                {/* Reset Form / Stop Button */}
                 <div className="pt-6 border-t border-white/[0.04]">
-                  <button
-                    onClick={() => setResult(null)}
-                    className="flex items-center justify-center gap-2 px-8 py-3 bg-white/5 border border-white/10 hover:bg-white/10 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all"
-                  >
-                    Yeni Tartışma Gündemi Oluştur
-                  </button>
+                  {streamStatus === "streaming" && socket ? (
+                    <button
+                      onClick={handleStopMeeting}
+                      className="flex items-center justify-center gap-2 px-8 py-3 bg-red-500/10 border border-red-500/20 hover:bg-red-500/25 text-red-400 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all"
+                    >
+                      <XCircle size={14} />
+                      Toplantıyı Durdur / Bağlantıyı Kes
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setResult(null);
+                        setStreamStatus("idle");
+                      }}
+                      className="flex items-center justify-center gap-2 px-8 py-3 bg-white/5 border border-white/10 hover:bg-white/10 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all"
+                    >
+                      Yeni Tartışma Gündemi Oluştur
+                    </button>
+                  )}
                 </div>
               </div>
             )}
           </section>
         </div>
+
 
         {/* RIGHT PANEL: Participant Selection & Status */}
         <div className="xl:col-span-4 space-y-10">
