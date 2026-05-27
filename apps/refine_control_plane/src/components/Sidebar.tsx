@@ -69,6 +69,7 @@ const icons: Record<string, React.ReactNode> = {
     "governance/audit": <Eye size={20} />,
     axiology: <Search size={20} />,
     "repair-lab": <FlaskConical size={20} />,
+    "meeting-room": <Boxes size={20} />,
     fleet: <Rocket size={20} />,
     identity: <Fingerprint size={20} />,
     costs: <DollarSign size={20} />,
@@ -114,6 +115,7 @@ const SidebarContent = () => {
             title: t("groups.autonomous"),
             items: [
                 "repair-lab",
+                "meeting-room",
                 "governance/drills",
                 "learning",
                 "adaptation-candidates",

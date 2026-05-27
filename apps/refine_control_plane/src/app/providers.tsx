@@ -304,6 +304,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
               meta: { label: "resources_repairLab", icon: <FlaskConical className="w-4 h-4" /> },
             },
             {
+              name: "meeting-room",
+              list: "/meeting-room",
+              meta: { label: "resources_meetingRoom", icon: <Boxes className="w-4 h-4" /> },
+            },
+            {
               name: "fleet",
               list: "/fleet",
               meta: { label: "resources_fleet", icon: <Rocket className="w-4 h-4" /> },
