@@ -51,6 +51,9 @@ const icons: Record<string, React.ReactNode> = {
     "governance/governor/resilience": <Dna size={20} />,
     "governance/ops/handover": <Rocket size={20} />,
     "governance/ops/launch-gates": <Target size={20} />,
+    "governance/lineage": <Search size={20} />,
+    "governance/signoffs": <CheckSquare size={20} />,
+    "governance/validations": <Target size={20} />,
     "governance/drills": <Dna size={20} />,
     mesh: <Globe size={20} />,
     verifiers: <Activity size={20} />,
@@ -100,7 +103,7 @@ const SidebarContent = () => {
     const groups = [
         {
             title: t("groups.operations"),
-            items: ["dashboard", "workflows", "fleet", "mcp-hub", "governance/ops/handover", "governance/ops/launch-gates", "governance/incidents"]
+            items: ["dashboard", "workflows", "fleet", "mcp-hub", "governance/lineage", "governance/signoffs", "governance/validations", "governance/incidents"]
         },
         {
             title: t("groups.governance"),

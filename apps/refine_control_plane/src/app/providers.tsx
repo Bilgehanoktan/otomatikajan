@@ -185,12 +185,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
             {
               name: "governance/ops/handover",
               list: "/ops/handover-status",
-              meta: { label: "resources_handoverStatus", icon: <Rocket className="w-4 h-4" /> },
+              meta: { label: "resources_handoverStatus", icon: <Rocket className="w-4 h-4" />, hide: true },
             },
             {
               name: "governance/ops/launch-gates",
               list: "/ops/launch-gates",
-              meta: { label: "resources_launchGates", icon: <Target className="w-4 h-4" /> },
+              meta: { label: "resources_launchGates", icon: <Target className="w-4 h-4" />, hide: true },
             },
             {
               name: "governance/drills",
