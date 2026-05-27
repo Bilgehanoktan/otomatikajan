@@ -87,7 +87,14 @@ const SidebarContent = () => {
     const { data: identity } = useGetIdentity<{ name: string }>();
     const translate = useTranslate();
     const [isCollapsed, setIsCollapsed] = React.useState(false);
+    const [expandedMenus, setExpandedMenus] = React.useState<Record<string, boolean>>({});
     const t = useTranslations("sidebar");
+
+    // Check if any child of a menu item is active
+    const checkIsChildActive = (item: any): boolean => {
+        if (!item.children || item.children.length === 0) return false;
+        return item.children.some((child: any) => selectedKey === child.key || checkIsChildActive(child));
+    };
 
     // Define Grouping
     const groups = [
@@ -137,39 +144,140 @@ const SidebarContent = () => {
         }
     ];
 
-    const renderMenuItem = (item: any) => (
-        <Link
-            key={item.key}
-            href={item.key === "learning" ? "/learning/fingerprints" : (item.route ?? "/")}
-            title={isCollapsed ? translate(item.label, item.label) : ""}
-            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-400 group relative ${
-                selectedKey === item.key
-                    ? "bg-[var(--primary)]/8 text-[var(--primary)] border border-[var(--primary)]/15 shadow-[0_0_20px_rgba(102,252,241,0.06)]"
-                    : "text-gray-400 hover:text-white hover:bg-white/5"
-            } ${isCollapsed ? "justify-center px-0 w-12 mx-auto" : ""}`}
-        >
-            {/* Active Indicator Bar */}
-            {selectedKey === item.key && (
-                <div className={`absolute ${isCollapsed ? "-left-1" : "-left-4"} top-1/2 -translate-y-1/2 w-1.5 h-6 bg-[var(--primary)] rounded-r-full shadow-[0_0_12px_var(--primary)] animate-pulse`} />
-            )}
+    const renderMenuItem = (item: any) => {
+        const hasChildren = item.children && item.children.length > 0;
+        const isAnyChildActive = checkIsChildActive(item);
+        const isDirectActive = selectedKey === item.key;
+        const isParentActive = isDirectActive || isAnyChildActive;
+        const isExpanded = expandedMenus[item.key] ?? isAnyChildActive;
 
-            <span className={`transition-all duration-400 ${selectedKey === item.key ? "text-[var(--primary)] scale-110" : "text-gray-500 group-hover:text-gray-300"} ${isCollapsed ? "scale-125" : ""}`}>
-                {icons[item.name] || <LayoutDashboard size={20} />}
-            </span>
-            {!isCollapsed && (
-                <span className={`font-bold text-[11px] uppercase tracking-wider transition-all truncate ${selectedKey === item.key ? "tracking-[0.1em]" : "tracking-tight"}`}>
-                    {translate(item.label, undefined, item.label)}
+        const toggleExpand = (e: React.MouseEvent) => {
+            if (hasChildren) {
+                setExpandedMenus(prev => ({
+                    ...prev,
+                    [item.key]: !isExpanded
+                }));
+            }
+        };
+
+        const menuHref = item.key === "learning" ? "/learning/fingerprints" : (item.route ?? "/");
+
+        const menuItemElement = (
+            <Link
+                key={item.key}
+                href={menuHref}
+                onClick={toggleExpand}
+                title={isCollapsed ? translate(item.label, item.label) : ""}
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-400 group relative ${
+                    isDirectActive
+                        ? "bg-[var(--primary)]/8 text-[var(--primary)] border border-[var(--primary)]/15 shadow-[0_0_20px_rgba(102,252,241,0.06)]"
+                        : isParentActive
+                        ? "text-[var(--primary)] hover:text-white bg-white/2 border border-white/5"
+                        : "text-gray-400 hover:text-white hover:bg-white/5"
+                } ${isCollapsed ? "justify-center px-0 w-12 mx-auto" : ""}`}
+            >
+                {/* Active Indicator Bar */}
+                {isDirectActive && (
+                    <div className={`absolute ${isCollapsed ? "-left-1" : "-left-4"} top-1/2 -translate-y-1/2 w-1.5 h-6 bg-[var(--primary)] rounded-r-full shadow-[0_0_12px_var(--primary)] animate-pulse`} />
+                )}
+
+                <span className={`transition-all duration-400 ${isParentActive ? "text-[var(--primary)] scale-110" : "text-gray-500 group-hover:text-gray-300"} ${isCollapsed ? "scale-125" : ""}`}>
+                    {icons[item.name] || <LayoutDashboard size={20} />}
                 </span>
-            )}
-            
-            {/* Tooltip for Collapsed State */}
-            {isCollapsed && (
-                <div className="absolute left-16 bg-black border border-white/10 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 translate-x-1 group-hover:translate-x-0 transition-all pointer-events-none z-[100] whitespace-nowrap shadow-xl text-[var(--primary)]">
-                    {translate(item.label, item.label)}
+                {!isCollapsed && (
+                    <span className={`font-bold text-[11px] uppercase tracking-wider transition-all truncate ${isDirectActive ? "tracking-[0.1em]" : "tracking-tight"}`}>
+                        {translate(item.label, undefined, item.label)}
+                    </span>
+                )}
+                
+                {/* Chevron icon for items with children (Expanded mode only) */}
+                {hasChildren && !isCollapsed && (
+                    <span className={`ml-auto text-[8px] transition-transform duration-300 text-gray-500 group-hover:text-gray-300 ${isExpanded ? "rotate-90 text-[var(--primary)]" : ""}`}>
+                        ▶
+                    </span>
+                )}
+
+                {/* Floating submenu for collapsed state */}
+                {isCollapsed && hasChildren && (
+                    <div className="absolute left-[54px] top-0 ml-1 bg-[#0b0c10]/95 border border-white/10 p-2 rounded-xl flex flex-col gap-1 shadow-[0_0_30px_rgba(0,0,0,0.8)] opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto translate-x-2 group-hover:translate-x-0 transition-all duration-300 z-[100] w-52 backdrop-blur-md">
+                        <div className="px-3 py-1.5 border-b border-white/5 mb-1 text-left">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-[var(--primary)]">
+                                {translate(item.label, item.label)}
+                            </p>
+                        </div>
+                        {item.children.map((child: any) => {
+                            const isChildActive = selectedKey === child.key;
+                            return (
+                                <Link
+                                    key={child.key}
+                                    href={child.route ?? "/"}
+                                    className={`flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all duration-200 text-left ${
+                                        isChildActive
+                                            ? "bg-[var(--primary)]/10 text-[var(--primary)] font-bold border border-[var(--primary)]/20"
+                                            : "text-gray-400 hover:text-white hover:bg-white/5"
+                                    }`}
+                                >
+                                    <span className={isChildActive ? "text-[var(--primary)]" : "text-gray-500"}>
+                                        {icons[child.name] || <LayoutDashboard size={14} />}
+                                    </span>
+                                    <span className="text-[10px] uppercase tracking-wider truncate font-semibold">
+                                        {translate(child.label, undefined, child.label)}
+                                    </span>
+                                </Link>
+                            );
+                        })}
+                    </div>
+                )}
+                
+                {/* Tooltip for Collapsed State (No children) */}
+                {isCollapsed && !hasChildren && (
+                    <div className="absolute left-16 bg-black border border-white/10 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 translate-x-1 group-hover:translate-x-0 transition-all pointer-events-none z-[100] whitespace-nowrap shadow-xl text-[var(--primary)]">
+                        {translate(item.label, item.label)}
+                    </div>
+                )}
+            </Link>
+        );
+
+        if (hasChildren && !isCollapsed) {
+            return (
+                <div key={item.key} className="flex flex-col gap-1 w-full">
+                    {menuItemElement}
+                    <div 
+                        className={`flex flex-col gap-1 pl-4 ml-4 border-l border-white/5 transition-all duration-500 overflow-hidden ${
+                            isExpanded ? "max-h-[300px] opacity-100 py-1" : "max-h-0 opacity-0 pointer-events-none"
+                        }`}
+                    >
+                        {item.children.map((child: any) => {
+                            const isChildActive = selectedKey === child.key;
+                            return (
+                                <Link
+                                    key={child.key}
+                                    href={child.route ?? "/"}
+                                    className={`flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all duration-300 relative ${
+                                        isChildActive
+                                            ? "text-[var(--primary)] bg-[var(--primary)]/5 font-bold border border-[var(--primary)]/10"
+                                            : "text-gray-400 hover:text-white hover:bg-white/5"
+                                    }`}
+                                >
+                                    {isChildActive && (
+                                        <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-1.5 h-4 bg-[var(--primary)] rounded-r-full shadow-[0_0_8px_var(--primary)] animate-pulse" />
+                                    )}
+                                    <span className={`transition-all duration-300 ${isChildActive ? "text-[var(--primary)] scale-110" : "text-gray-500"}`}>
+                                        {icons[child.name] || <LayoutDashboard size={14} />}
+                                    </span>
+                                    <span className="text-[10px] uppercase tracking-wider truncate font-semibold">
+                                        {translate(child.label, undefined, child.label)}
+                                    </span>
+                                </Link>
+                            );
+                        })}
+                    </div>
                 </div>
-            )}
-        </Link>
-    );
+            );
+        }
+
+        return menuItemElement;
+    };
 
     return (
         <aside 
