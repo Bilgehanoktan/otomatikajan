@@ -24,3 +24,6 @@ celerybeat-schedule
 .env.development
 .env.production
 .env.*
+.nx/
+.playwright-browsers/
+
