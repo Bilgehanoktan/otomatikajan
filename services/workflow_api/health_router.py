@@ -630,3 +630,43 @@ async def repair_database(
         raise HTTPException(status_code=500, detail=f"Database self-healing failed: {exc}")
 
 
+@router.get("/queue-detailed")
+async def get_queue_detailed():
+    """
+    Exposes real-time queue performance indicators and metrics.
+    Integrates directly with the active asyncio inprocess JobQueue.
+    """
+    from services.orchestration.application.job_queue import job_queue
+    try:
+        # Fetch live queue statistics and active/pending job records
+        stats = job_queue.stats() if hasattr(job_queue, "stats") else {}
+        
+        # Enrich stats with structural concurrency data
+        concurrency = getattr(job_queue, "_concurrency", 2)
+        is_running = getattr(job_queue, "_running", False)
+        
+        queue_size = 0
+        if hasattr(job_queue, "_queue") and job_queue._queue:
+            queue_size = job_queue._queue.qsize() if hasattr(job_queue._queue, "qsize") else 0
+            
+        active_workers = len(getattr(job_queue, "_workers", []))
+        
+        return {
+            "status": "online" if is_running else "offline",
+            "concurrency": concurrency,
+            "active_workers": active_workers,
+            "queue_size": queue_size,
+            "backend": getattr(job_queue, "backend_name", "inprocess"),
+            "stats": stats,
+            "timestamp": datetime.now(UTC).isoformat()
+        }
+    except Exception as exc:
+        logger.error("Error in get_queue_detailed endpoint: %s", exc, exc_info=True)
+        return {
+            "status": "error",
+            "message": str(exc),
+            "timestamp": datetime.now(UTC).isoformat()
+        }
+
+
+

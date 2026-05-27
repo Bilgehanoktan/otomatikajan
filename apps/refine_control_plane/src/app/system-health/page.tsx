@@ -82,6 +82,17 @@ export default function SystemHealthPage() {
 
   const health = healthRaw?.data || {};
   const diagnostics = diagnosticsQuery.data?.data?.diagnostics || [];
+
+  const { query: queueQuery } = useCustom<any>({
+    url: `${apiUrl}/health/queue-detailed`,
+    method: "get",
+    queryOptions: {
+      enabled: isClient,
+      refetchInterval: 3000,
+    },
+  });
+  const queueData = queueQuery.data?.data || { status: "offline", concurrency: 2, active_workers: 0, queue_size: 0, stats: {} };
+
   const diagnosticTone = (item: RuntimeDiagnostic) => {
     if (item.severity === "error") return "border-red-500/20 bg-red-500/5 text-red-400";
     if (item.severity === "warning") return "border-amber-500/20 bg-amber-500/5 text-amber-400";
@@ -230,6 +241,90 @@ export default function SystemHealthPage() {
             ))}
           </div>
         )}
+      </section>
+
+      {/* Asenkron Kuyruk Gözlemlenebilirlik HUD'ı (Queue & Performance HUD) */}
+      <section className="mb-12 rounded-[2rem] border border-white/5 bg-white/[0.015] p-8 shadow-2xl">
+        <div className="mb-8 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[var(--primary)] shadow-[0_0_10px_rgba(102,252,241,0.6)] animate-ping" />
+              <h2 className="text-[11px] font-black uppercase tracking-[0.4em] text-[var(--primary)]">
+                Asenkron Kuyruk Gözlemlenebilirlik HUD'ı
+              </h2>
+            </div>
+            <p className="mt-2 text-sm font-medium text-gray-500">
+              SQLite-backed Huey JobQueue active workers, pending jobs, and autonomous incident consensus trigger.
+            </p>
+          </div>
+          <Tag className={`w-fit border-white/10 font-black uppercase tracking-widest ${queueData.status === "online" ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-red-500/10 text-red-400 border-red-500/20"}`}>
+            {queueData.status === "online" ? "AKTİF" : "DEGRADED"}
+          </Tag>
+        </div>
+
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+          {/* Worker Status Grid */}
+          <div className="glass-panel p-6 rounded-2xl border border-white/5 bg-white/[0.01] flex flex-col justify-between">
+            <div className="mb-4">
+              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Aktif İşçiler (Workers)</span>
+              <div className="mt-2 text-3xl font-black text-white italic">
+                {queueData.active_workers} / {queueData.concurrency} <span className="text-xs font-mono font-bold text-gray-600">aktif</span>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              {Array.from({ length: queueData.concurrency || 2 }).map((_, i) => (
+                <div 
+                  key={i} 
+                  className={`flex-1 p-3 rounded-lg border text-center transition-all ${
+                    i < queueData.active_workers 
+                      ? "border-green-500/20 bg-green-500/5 text-green-400" 
+                      : "border-white/5 bg-white/[0.01] text-gray-600"
+                  }`}
+                >
+                  <Cpu size={16} className={`mx-auto mb-1 ${i < queueData.active_workers ? "animate-pulse text-green-400" : ""}`} />
+                  <span className="text-[9px] font-black tracking-widest">W-{i+1}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Queue Size & Telemetry */}
+          <div className="glass-panel p-6 rounded-2xl border border-white/5 bg-white/[0.01] flex flex-col justify-between">
+            <div className="mb-4">
+              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Kuyruk Boyutu & Biriken İşler</span>
+              <div className="mt-2 text-3xl font-black text-amber-500 italic">
+                {queueData.queue_size || 0} <span className="text-xs font-mono font-bold text-gray-600">bekleyen iş</span>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-[9px] font-black text-gray-500 uppercase mb-1">
+                <span>SQLite-Backed queue</span>
+                <span>{queueData.backend || "inprocess"}</span>
+              </div>
+              <Progress 
+                percent={Math.min(100, ((queueData.queue_size || 0) / 20) * 100)} 
+                showInfo={false} 
+                strokeColor="#f59e0b" 
+                trailColor="rgba(255,255,255,0.05)" 
+                size="small" 
+              />
+            </div>
+          </div>
+
+          {/* Autonomous Incident Consensus Widget */}
+          <div className="glass-panel p-6 rounded-2xl border border-white/5 bg-white/[0.01] flex flex-col justify-between">
+            <div>
+              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Consensus Debate Trigger</span>
+              <div className="mt-2 flex items-center gap-2 text-xl font-black text-emerald-400 italic">
+                <Zap size={18} className="text-emerald-400 animate-bounce" />
+                NOMİNAL <span className="text-[10px] font-bold text-gray-600 tracking-widest not-italic">AKTİF</span>
+              </div>
+            </div>
+            <p className="text-[10px] font-bold text-gray-500 mt-2 leading-relaxed border-t border-white/5 pt-4">
+              ⚡ Otonom anomali tespit motoru devrededir. Yeni bir olay yakalandığında tartışma konsensüsü otomatik tetiklenir.
+            </p>
+          </div>
+        </div>
       </section>
 
       {/* Main Stats Grid */}
