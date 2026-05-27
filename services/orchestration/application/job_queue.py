@@ -87,6 +87,7 @@ class JobQueue(BaseQueueCapabilities):
         self._dead_letter: list[Job]          = []
         self._handlers:    dict[str, Callable] = {}
         self._semaphore:   asyncio.Semaphore  = asyncio.Semaphore(concurrency)
+        self._concurrency: int                = concurrency
         self._max_retry_wait = max_retry_wait
         self._running      = False
         self._workers:     list[asyncio.Task] = []
@@ -203,6 +204,34 @@ class JobQueue(BaseQueueCapabilities):
             w.cancel()
         await asyncio.gather(*self._workers, return_exceptions=True)
         self._workers.clear()
+
+    async def scale(self, concurrency: int):
+        """
+        Dynamically adjusts worker concurrency at runtime.
+        Safely cancels existing worker tasks and restarts them under the new limit.
+        """
+        _log.info(f"JobQueue: Dynamic scaling requested. Target concurrency: {concurrency}")
+        
+        # Temporarily shut down workers safely
+        self._running = False
+        for w in self._workers:
+            w.cancel()
+        await asyncio.gather(*self._workers, return_exceptions=True)
+        self._workers.clear()
+        
+        # Reset concurrency and semaphore locks
+        self._semaphore = asyncio.Semaphore(concurrency)
+        self._concurrency = concurrency
+        
+        # Restart the scaled worker tasks
+        self._running = True
+        for i in range(concurrency):
+            task = asyncio.create_task(self._worker(f"worker-{i}"))
+            self._workers.append(task)
+            
+        # Re-initialize background zombie sweeper
+        self._workers.append(asyncio.create_task(self._zombie_sweeper()))
+        _log.info(f"JobQueue: Successfully scaled in-process workers to {concurrency}.")
 
     async def _worker(self, name: str):
         while self._running:
@@ -482,6 +511,7 @@ class CeleryJobQueue(BaseQueueCapabilities):
         except ImportError:
             self._available = False
             
+        self._concurrency = 4
         # Capability Flags (Sync with dataclass)
         self.supports_registration = self.capabilities.supports_registration
         self.supports_listing      = self.capabilities.supports_listing
@@ -489,6 +519,11 @@ class CeleryJobQueue(BaseQueueCapabilities):
         self.supports_cancel       = self.capabilities.supports_cancel
         self.supports_pause        = self.capabilities.supports_pause
         self.supports_resume       = self.capabilities.supports_resume
+
+    async def scale(self, concurrency: int):
+        """Noop scale fallback for Celery."""
+        _log.info(f"CeleryJobQueue: Dynamic scaling requested to {concurrency} workers (noop).")
+        self._concurrency = concurrency
 
     async def enqueue(self, job_type: str, **payload) -> Job:
         """Celery ile işi kuyruğa ekler."""

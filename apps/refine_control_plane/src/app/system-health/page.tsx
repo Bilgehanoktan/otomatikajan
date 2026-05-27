@@ -57,6 +57,28 @@ export default function SystemHealthPage() {
   const [isClient, setIsClient] = useState(false);
   const [repairingId, setRepairingId] = useState<string | null>(null);
   const [repairResults, setRepairResults] = useState<Record<string, string>>({});
+  const [scaling, setScaling] = useState(false);
+
+  const handleScale = async (newVal: number) => {
+    setScaling(true);
+    try {
+      await safeFetchJson<{ status: string; message: string }>(
+        `${apiUrl}/health/queue-scale`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ concurrency: newVal }),
+          useOfflineFallback: false,
+        }
+      );
+      message.success(`Kuyruk başarıyla ${newVal} worker'a ölçeklendi!`);
+      await queueQuery.refetch?.();
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : "Ölçekleme başarısız oldu");
+    } finally {
+      setScaling(false);
+    }
+  };
 
   useEffect(() => {
     setIsClient(true);
@@ -265,10 +287,28 @@ export default function SystemHealthPage() {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           {/* Worker Status Grid */}
           <div className="glass-panel p-6 rounded-2xl border border-white/5 bg-white/[0.01] flex flex-col justify-between">
-            <div className="mb-4">
-              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Aktif İşçiler (Workers)</span>
-              <div className="mt-2 text-3xl font-black text-white italic">
-                {queueData.active_workers} / {queueData.concurrency} <span className="text-xs font-mono font-bold text-gray-600">aktif</span>
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Aktif İşçiler (Workers)</span>
+                <div className="mt-2 text-3xl font-black text-white italic">
+                  {queueData.active_workers} / {queueData.concurrency} <span className="text-xs font-mono font-bold text-gray-600">aktif</span>
+                </div>
+              </div>
+              <div className="flex gap-1.5 bg-black/40 p-1.5 rounded-xl border border-white/5">
+                {[1, 2, 4, 8].map((num) => (
+                  <button
+                    key={num}
+                    disabled={scaling}
+                    onClick={() => void handleScale(num)}
+                    className={`px-2.5 py-1 text-[10px] font-black rounded-lg border transition-all ${
+                      queueData.concurrency === num
+                        ? "border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)] shadow-[0_0_10px_rgba(102,252,241,0.2)]"
+                        : "border-transparent text-gray-500 hover:text-white"
+                    }`}
+                  >
+                    {num}
+                  </button>
+                ))}
               </div>
             </div>
             <div className="flex gap-2">

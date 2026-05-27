@@ -669,4 +669,34 @@ async def get_queue_detailed():
         }
 
 
+from pydantic import BaseModel, Field
+
+class ScaleRequest(BaseModel):
+    concurrency: int = Field(..., ge=1, le=10, description="Yeni concurrency worker limit değeri")
+
+
+@router.post("/queue-scale")
+async def scale_job_queue(req: ScaleRequest):
+    """
+    Dynamically scales the concurrency level of the active asyncio JobQueue workers.
+    """
+    from services.orchestration.application.job_queue import job_queue
+    if getattr(job_queue, "backend_name", "") != "inprocess":
+        raise HTTPException(status_code=400, detail="Dynamic scaling only supported under local-dev inprocess queue backend.")
+    try:
+        if hasattr(job_queue, "scale"):
+            await job_queue.scale(req.concurrency)
+            return {
+                "status": "success",
+                "message": f"Successfully scaled JobQueue workers dynamically to {req.concurrency}.",
+                "concurrency": req.concurrency
+            }
+        else:
+            raise HTTPException(status_code=400, detail="Active JobQueue is missing scale method.")
+    except Exception as exc:
+        logger.error("Error scaling job queue: %s", exc, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+
 
