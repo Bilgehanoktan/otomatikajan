@@ -17,7 +17,12 @@ async def seed_fleet():
     print("Starting Comprehensive System Seeding...")
     async with AsyncSessionLocal() as db:
         # Disable foreign keys temporarily for clean delete/reseed
-        await db.execute(text("PRAGMA foreign_keys = OFF;"))
+        dialect_name = db.bind.dialect.name
+        if dialect_name == "sqlite":
+            await db.execute(text("PRAGMA foreign_keys = OFF;"))
+        elif dialect_name == "postgresql":
+            await db.execute(text("SET session_replication_role = 'replica';"))
+        
         
         # 1. Clean existing data (except Operators)
         await db.execute(delete(WorkflowEvent))
@@ -254,6 +259,9 @@ async def seed_fleet():
             created_at=datetime.now(timezone.utc) - timedelta(hours=5)
         )
         db.add_all([imp1, imp2])
+
+        if dialect_name == "postgresql":
+            await db.execute(text("SET session_replication_role = 'origin';"))
 
         await db.commit()
         print("Successfully seeded all System modules.")
