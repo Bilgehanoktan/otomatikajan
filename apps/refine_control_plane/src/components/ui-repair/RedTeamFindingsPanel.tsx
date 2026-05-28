@@ -11,12 +11,14 @@ const { Text } = Typography;
 
 interface Finding {
   id: string;
-  finding_name: string;
+  finding_type: string;
   severity: string;
+  description: string;
   affected_domain: string;
-  is_remediated: boolean;
-  remediation_id: string | null;
+  feasible: boolean;
+  remediation_plan_id: string | null;
   created_at: string;
+  resolved_at: string | null;
 }
 
 const RedTeamFindingsPanel: React.FC = () => {
@@ -41,7 +43,7 @@ const RedTeamFindingsPanel: React.FC = () => {
 
   const triggerRemediation = async (id: string) => {
     try {
-      await safeFetchJson(`/api/v1/ui-repair/security/red-team/findings/${id}/remediate`, { method: 'POST' });
+      await safeFetchJson(`/api/v1/ui-repair/security/remediation/plan/${id}`, { method: 'POST' });
       message.success('Remediation workflow triggered');
       await fetchFindings();
     } catch (err) {
@@ -52,9 +54,15 @@ const RedTeamFindingsPanel: React.FC = () => {
   const columns = [
     {
       title: 'Finding',
-      dataIndex: 'finding_name',
-      key: 'finding_name',
+      dataIndex: 'finding_type',
+      key: 'finding_type',
       render: (text: string) => <Text strong>{text}</Text>,
+    },
+    {
+      title: 'Summary',
+      dataIndex: 'description',
+      key: 'description',
+      render: (text: string) => <Text className="text-slate-300">{text}</Text>,
     },
     {
       title: 'Severity',
@@ -75,11 +83,17 @@ const RedTeamFindingsPanel: React.FC = () => {
     },
     {
       title: 'Status',
-      dataIndex: 'is_remediated',
-      key: 'is_remediated',
-      render: (rem: boolean) => rem ? 
-        <Badge status="success" text="Remediated" /> : 
-        <Badge status="warning" text="Pending" />,
+      dataIndex: 'resolved_at',
+      key: 'resolved_at',
+      render: (_: string | null, record: Finding) => {
+        if (record.resolved_at) {
+          return <Badge status="success" text="Resolved" />;
+        }
+        if (record.remediation_plan_id) {
+          return <Badge status="processing" text="Plan Created" />;
+        }
+        return <Badge status="warning" text="Pending" />;
+      },
     },
     {
       title: 'Detected',
@@ -93,7 +107,7 @@ const RedTeamFindingsPanel: React.FC = () => {
       align: 'right' as const,
       render: (_: any, record: Finding) => (
         <Space>
-          {!record.is_remediated && (
+          {!record.resolved_at && record.feasible && (
             <Button 
               type="primary" 
               size="small" 

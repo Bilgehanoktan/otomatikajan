@@ -20,7 +20,7 @@ const TuningProposalPanel: React.FC = () => {
   const fetchProposals = async () => {
     setLoading(true);
     try {
-      const data = await safeFetchJson('/api/v1/ui-repair/defense/proposals');
+      const data = await safeFetchJson('/api/v1/ui-repair/security/defense/proposals');
       setProposals(data);
     } catch (err) {
       console.error(err);
@@ -35,7 +35,7 @@ const TuningProposalPanel: React.FC = () => {
 
   const promoteProposal = async (id: string) => {
     try {
-      await safeFetchJson(`/api/v1/ui-repair/defense/proposals/${id}/promote`, { method: 'POST' });
+      await safeFetchJson(`/api/v1/ui-repair/security/defense/proposals/${id}/promote`, { method: 'POST' });
       message.success('Proposal promoted to next verification stage.');
       fetchProposals();
     } catch (err) {
@@ -45,7 +45,7 @@ const TuningProposalPanel: React.FC = () => {
 
   const approveProposal = async (id: string) => {
     try {
-      await safeFetchJson(`/api/v1/ui-repair/defense/proposals/${id}/approve`, { method: 'POST' });
+      await safeFetchJson(`/api/v1/ui-repair/security/defense/proposals/${id}/approve`, { method: 'POST' });
       message.success('Proposal approved by operator.');
       fetchProposals();
     } catch (err) {
@@ -55,7 +55,7 @@ const TuningProposalPanel: React.FC = () => {
 
   const applyProposal = async (id: string) => {
     try {
-      await safeFetchJson(`/api/v1/ui-repair/defense/proposals/${id}/apply`, { method: 'POST' });
+      await safeFetchJson(`/api/v1/ui-repair/security/defense/proposals/${id}/apply`, { method: 'POST' });
       message.success('Optimization applied to live guardrails.');
       fetchProposals();
     } catch (err) {

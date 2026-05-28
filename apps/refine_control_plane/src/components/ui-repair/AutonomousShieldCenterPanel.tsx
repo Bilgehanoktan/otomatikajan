@@ -58,7 +58,7 @@ const AutonomousShieldCenterPanel: React.FC = () => {
   const triggerTuningCycle = async () => {
     setLoading(true);
     try {
-      await safeFetchJson('/api/v1/ui-repair/defense/optimization/cycle', { method: 'POST' });
+      await safeFetchJson('/api/v1/ui-repair/security/defense/optimization/cycle', { method: 'POST' });
       message.success('Autonomous tuning cycle triggered successfully.');
       fetchOverview();
     } catch (err: any) {

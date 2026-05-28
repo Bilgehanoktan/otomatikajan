@@ -41,6 +41,10 @@ const Badge = ({ children, variant = "info" }: { children: React.ReactNode, vari
 };
 
 export const ResiliencyMeshPanel = () => {
+  const [meshHealth, setMeshHealth] = useState<{ global_federation_health_index: number; total_nodes: number }>({
+    global_federation_health_index: 0,
+    total_nodes: 0,
+  });
   const [nodes, setNodes] = useState<any[]>([]);
   const [decisions, setDecisions] = useState<any[]>([]);
   const [slos, setSlos] = useState<any[]>([]);
@@ -54,14 +58,18 @@ export const ResiliencyMeshPanel = () => {
 
   const fetchMeshData = async () => {
     try {
-      const [nodesData, decisionsData, slosData, postmortemsData] = await Promise.all([
-        safeFetchJson<any[]>('/api/v1/ui-repair/mesh/health'),
+      const [meshHealthData, decisionsData, slosData, postmortemsData] = await Promise.all([
+        safeFetchJson<any>('/api/v1/ui-repair/mesh/health'),
         safeFetchJson<any[]>('/api/v1/ui-repair/mesh/steering/decisions'),
         safeFetchJson<any[]>('/api/v1/ui-repair/mesh/slo/snapshots'),
         safeFetchJson<any[]>('/api/v1/ui-repair/mesh/postmortems')
       ]);
 
-      setNodes(nodesData);
+      setMeshHealth({
+        global_federation_health_index: meshHealthData.global_federation_health_index ?? 0,
+        total_nodes: meshHealthData.total_nodes ?? 0,
+      });
+      setNodes(meshHealthData.nodes ?? []);
       setDecisions(decisionsData);
       setSlos(slosData);
       setPostmortems(postmortemsData);
@@ -93,7 +101,7 @@ export const ResiliencyMeshPanel = () => {
             </div>
             <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Mesh Nodes</h4>
           </div>
-          <div className="text-3xl font-black text-white">{nodes.length}</div>
+          <div className="text-3xl font-black text-white">{meshHealth.total_nodes}</div>
           <p className="text-[10px] text-slate-500 mt-2">Active federated clusters in mesh</p>
         </Card>
 
@@ -105,7 +113,9 @@ export const ResiliencyMeshPanel = () => {
             <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Global Health</h4>
           </div>
           <div className="text-3xl font-black text-white">
-            {slos.length > 0 ? (slos[0].federation_health_score * 100).toFixed(0) : "100"}%
+            {slos.length > 0
+              ? slos[0].federation_health_score.toFixed(0)
+              : meshHealth.global_federation_health_index.toFixed(0)}%
           </div>
           <p className="text-[10px] text-slate-500 mt-2">Aggregate federation health index</p>
         </Card>
@@ -173,7 +183,7 @@ export const ResiliencyMeshPanel = () => {
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div className="p-2 bg-slate-950/50 rounded-lg border border-slate-800">
                     <div className="text-[9px] text-slate-500 uppercase font-black mb-1">Health Score</div>
-                    <div className="text-sm font-mono text-emerald-400">{(node.health_score * 100).toFixed(0)}%</div>
+                    <div className="text-sm font-mono text-emerald-400">{node.health_score.toFixed(0)}%</div>
                   </div>
                   <div className="p-2 bg-slate-950/50 rounded-lg border border-slate-800">
                     <div className="text-[9px] text-slate-500 uppercase font-black mb-1">Latency</div>
@@ -226,11 +236,11 @@ export const ResiliencyMeshPanel = () => {
                         <div className="flex items-center gap-2">
                           <span className="text-slate-500">{dec.source_cluster_key || "ANY"}</span>
                           <ChevronRight className="w-3 h-3 text-slate-700" />
-                          <span className="text-emerald-400 font-bold">{dec.target_cluster_key}</span>
+                          <span className="text-emerald-400 font-bold">{dec.selected_cluster_key}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4 max-w-[200px] truncate text-slate-400">
-                        {dec.reason}
+                        {dec.decision_reason}
                       </td>
                       <td className="px-6 py-4 text-right font-mono text-slate-500">
                         {new Date(dec.created_at).toLocaleTimeString()}
@@ -257,12 +267,12 @@ export const ResiliencyMeshPanel = () => {
                 <div key={i} className="space-y-2">
                   <div className="flex justify-between text-[10px] uppercase font-bold">
                     <span className="text-slate-400">Federation Availability</span>
-                    <span className="text-white">{(slo.federation_health_score * 100).toFixed(2)}%</span>
+                    <span className="text-white">{slo.federation_health_score.toFixed(2)}%</span>
                   </div>
                   <div className="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-800">
                     <div 
                       className="h-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]" 
-                      style={{ width: `${slo.federation_health_score * 100}%` }} 
+                      style={{ width: `${Math.min(slo.federation_health_score, 100)}%` }} 
                     />
                   </div>
                 </div>
@@ -294,7 +304,7 @@ export const ResiliencyMeshPanel = () => {
               <Card key={i} className="p-4 hover:border-rose-500/30 transition-all border-l-4 border-l-rose-500/50 bg-rose-500/5">
                 <div className="flex justify-between items-start mb-2">
                   <Badge variant="critical">Self-Healed</Badge>
-                  <span className="text-[10px] font-mono text-slate-600">{new Date(pm.created_at).toLocaleDateString()}</span>
+                  <span className="text-[10px] font-mono text-slate-600">{new Date(pm.generated_at).toLocaleDateString()}</span>
                 </div>
                 <h4 className="text-xs font-bold text-slate-200 mb-1">{pm.title}</h4>
                 <p className="text-[10px] text-slate-500 mb-3 line-clamp-2">

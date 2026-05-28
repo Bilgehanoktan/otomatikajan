@@ -11,11 +11,11 @@ const { Text, Title } = Typography;
 
 interface DriftEvent {
   id: string;
-  metric_name: string;
-  baseline_value: number;
-  observed_value: number;
+  domain: string;
+  drift_type: string;
   drift_score: number;
-  is_anomalous: boolean;
+  severity: string;
+  description: string;
   created_at: string;
 }
 
@@ -26,7 +26,7 @@ const AdversarialDriftPanel: React.FC = () => {
   const fetchDrifts = async () => {
     setLoading(true);
     try {
-      const data = await safeFetchJson<DriftEvent[]>('/api/v1/ui-repair/security/red-team/drifts');
+      const data = await safeFetchJson<DriftEvent[]>('/api/v1/ui-repair/security/red-team/drift-events');
       setDrifts(data);
     } catch (err) {
       message.error('Failed to fetch drift data');
@@ -41,24 +41,22 @@ const AdversarialDriftPanel: React.FC = () => {
 
   const columns = [
     {
-      title: 'Metric',
-      dataIndex: 'metric_name',
-      key: 'metric_name',
+      title: 'Domain',
+      dataIndex: 'domain',
+      key: 'domain',
       render: (text: string) => <Text strong>{text}</Text>,
     },
     {
-      title: 'Baseline',
-      dataIndex: 'baseline_value',
-      key: 'baseline_value',
-      render: (val: number) => val.toFixed(2),
+      title: 'Drift Type',
+      dataIndex: 'drift_type',
+      key: 'drift_type',
+      render: (value: string) => <Tag color="blue">{value.replace(/_/g, ' ')}</Tag>,
     },
     {
-      title: 'Observed',
-      dataIndex: 'observed_value',
-      key: 'observed_value',
-      render: (val: number, record: DriftEvent) => (
-        <Text type={record.is_anomalous ? 'danger' : 'success'}>{val.toFixed(2)}</Text>
-      ),
+      title: 'Summary',
+      dataIndex: 'description',
+      key: 'description',
+      render: (value: string) => <Text className="text-slate-300">{value}</Text>,
     },
     {
       title: 'Drift Score',
@@ -73,11 +71,13 @@ const AdversarialDriftPanel: React.FC = () => {
     },
     {
       title: 'Status',
-      dataIndex: 'is_anomalous',
-      key: 'is_anomalous',
-      render: (anom: boolean) => anom ? 
-        <Tag color="error" icon={<AlertTriangle size={12} />}>ANOMALY</Tag> : 
-        <Tag color="success">STABLE</Tag>,
+      dataIndex: 'severity',
+      key: 'severity',
+      render: (severity: string) => (
+        <Tag color={severity === 'CRITICAL' ? 'error' : severity === 'HIGH' ? 'warning' : 'processing'} icon={<AlertTriangle size={12} />}>
+          {severity}
+        </Tag>
+      ),
     },
     {
       title: 'Detected At',
@@ -106,12 +106,12 @@ const AdversarialDriftPanel: React.FC = () => {
       <Card title={<Space><Clock size={16} />Drift History</Space>} className="bg-slate-900/50 border-slate-800">
         <Timeline 
           items={drifts.slice(0, 5).map(d => ({
-            color: d.is_anomalous ? 'red' : 'green',
+            color: d.severity === 'CRITICAL' ? 'red' : d.severity === 'HIGH' ? 'orange' : 'blue',
             children: (
               <div>
                 <Text type="secondary" className="text-xs">{new Date(d.created_at).toLocaleTimeString()}</Text>
                 <br />
-                <Text>{d.metric_name} drift: {(d.drift_score * 100).toFixed(0)}%</Text>
+                <Text>{d.domain} / {d.drift_type}: {(d.drift_score * 100).toFixed(0)}%</Text>
               </div>
             )
           }))}

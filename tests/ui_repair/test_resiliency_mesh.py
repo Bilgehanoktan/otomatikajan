@@ -162,3 +162,55 @@ async def test_automated_postmortem_generation(db_session: AsyncSession, setup_m
     assert pm.title.startswith("Incident Post-Mortem")
     assert pm.tenant_key == "ACME_CORP"
     assert "Incident Detected" in str(pm.timeline_json)
+
+@pytest.mark.asyncio
+async def test_mesh_dashboard_history_endpoints(client, db_session: AsyncSession, setup_mesh_data):
+    decision = UIGlobalLoadSteeringDecision(
+        tenant_key="ACME_CORP",
+        project_key="PROJECT_X",
+        source_cluster_key="cluster-eu-west-1",
+        selected_cluster_key="cluster-us-east-1",
+        workload_type=WorkloadType.OPENSWE_REPAIR.value,
+        decision_reason="Optimal score: 95.00",
+        health_score=95.0,
+        cost_score=90.0,
+        latency_score=88.0,
+        policy_score=100.0,
+        final_score=94.5,
+    )
+    slo = UIGlobalSLOSnapshot(
+        tenant_key=None,
+        federation_health_score=97.5,
+        global_mttr_s=600.0,
+        global_detection_latency_s=30.0,
+        repair_success_rate=0.9,
+        failover_success_rate=0.8,
+        policy_violation_count=1,
+        evidence_sync_success_rate=99.0,
+    )
+    postmortem = UIAutomatedPostmortem(
+        incident_id=uuid.uuid4(),
+        tenant_key="ACME_CORP",
+        cluster_key="cluster-us-east-1",
+        title="Incident Post-Mortem: Mesh Failover",
+        root_cause="Primary cluster degraded under load",
+        timeline_json={"steps": ["detect", "failover", "recover"]},
+        impact_summary="Traffic rerouted without operator action.",
+        contributing_factors_json=[{"factor": "latency"}],
+        remediation_actions_json=[{"action": "scale up"}],
+        prevention_actions_json=[{"action": "add early warning"}],
+    )
+    db_session.add_all([decision, slo, postmortem])
+    await db_session.commit()
+
+    decisions_resp = await client.get("/api/v1/ui-repair/mesh/steering/decisions")
+    assert decisions_resp.status_code == 200
+    assert decisions_resp.json()[0]["selected_cluster_key"] == "cluster-us-east-1"
+
+    slo_resp = await client.get("/api/v1/ui-repair/mesh/slo/snapshots")
+    assert slo_resp.status_code == 200
+    assert slo_resp.json()[0]["federation_health_score"] == 97.5
+
+    postmortem_resp = await client.get("/api/v1/ui-repair/mesh/postmortems")
+    assert postmortem_resp.status_code == 200
+    assert postmortem_resp.json()[0]["title"] == "Incident Post-Mortem: Mesh Failover"

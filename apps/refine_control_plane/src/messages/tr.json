@@ -1228,6 +1228,19 @@
       "strategy": "Strateji",
       "trustScore": "Güven Skoru",
       "latency": "Gecikme"
+    },
+    "negativePatterns": {
+      "title": "Negatif Örüntüler",
+      "strategy": "Strateji / Örüntü Adı",
+      "occurrence": "Tekrarlanma Sayısı",
+      "penaltyWeight": "Ceza Ağırlığı"
+    },
+    "adaptation": {
+      "title": "Adaptasyon Adayları",
+      "subtitle": "Otonom Ajan Kalibrasyon ve Stratejik Kendi Kendini Ayarlama Matrisi",
+      "apply": "Adayı Uygula",
+      "applySuccess": "Stratejik kalibrasyon ajan kümesine başarıyla uygulandı.",
+      "applyError": "Stratejik kalibrasyon uygulanamadı. Quorum ve bağlantıyı kontrol edin."
     }
   }
 }

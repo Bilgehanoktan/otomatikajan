@@ -720,6 +720,19 @@
       "strategy": "Strategy",
       "trustScore": "Trust Score",
       "latency": "Latency"
+    },
+    "negativePatterns": {
+      "title": "Negative Patterns",
+      "strategy": "Strategy / Pattern Name",
+      "occurrence": "Occurrence Count",
+      "penaltyWeight": "Penalty Weight"
+    },
+    "adaptation": {
+      "title": "Adaptation Candidates",
+      "subtitle": "Autonomous Agentic Calibration & Strategic Self-Tuning Matrix",
+      "apply": "Apply Candidate",
+      "applySuccess": "Strategic calibration successfully applied to the agent cluster.",
+      "applyError": "Failed to apply strategic calibration. Check quorum and connectivity."
     }
   },
   "resources_adaptationCandidates": "Adaptation Candidates",

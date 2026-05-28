@@ -18,7 +18,7 @@ const DefensivePatternPanel: React.FC = () => {
   const fetchPatterns = async () => {
     setLoading(true);
     try {
-      const data = await safeFetchJson<any[]>('/api/v1/ui-repair/defense/patterns');
+      const data = await safeFetchJson<any[]>('/api/v1/ui-repair/security/defense/patterns');
       setPatterns(data);
     } catch (err) {
       console.error(err);

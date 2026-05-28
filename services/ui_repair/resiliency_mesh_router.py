@@ -2,9 +2,15 @@ import logging
 from typing import List, Dict, Any, Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from libs.db.session import get_db
+from libs.db.models.ui_repair_models import (
+    UIGlobalLoadSteeringDecision,
+    UIGlobalSLOSnapshot,
+    UIAutomatedPostmortem,
+)
 from services.ui_repair.schemas import (
     UIResiliencyMeshNodeSchema, UIResiliencyMeshNodeCreate,
     UIClusterFailoverEventSchema, UIGlobalLoadSteeringDecisionSchema,
@@ -25,6 +31,17 @@ router = APIRouter(prefix="/mesh", tags=["Resiliency Mesh"])
 async def get_mesh_health(db: AsyncSession = Depends(get_db)):
     """Returns the aggregated health of the resiliency mesh."""
     return await MeshHealthAggregator.get_mesh_status(db)
+
+@router.get("/steering/decisions", response_model=List[UIGlobalLoadSteeringDecisionSchema])
+async def list_steering_decisions(limit: int = 20, db: AsyncSession = Depends(get_db)):
+    """Lists recent autonomous load steering decisions."""
+    stmt = (
+        select(UIGlobalLoadSteeringDecision)
+        .order_by(UIGlobalLoadSteeringDecision.created_at.desc())
+        .limit(limit)
+    )
+    result = await db.execute(stmt)
+    return list(result.scalars().all())
 
 @router.post("/nodes/heartbeat")
 async def register_node_heartbeat(
@@ -93,6 +110,17 @@ async def get_global_slo(db: AsyncSession = Depends(get_db)):
     """Returns the latest global SLO snapshot."""
     return await GlobalSLOWatcher.create_snapshot(db)
 
+@router.get("/slo/snapshots", response_model=List[UIGlobalSLOSnapshotSchema])
+async def list_global_slo_snapshots(limit: int = 10, db: AsyncSession = Depends(get_db)):
+    """Lists recent global SLO snapshots for dashboard history panels."""
+    stmt = (
+        select(UIGlobalSLOSnapshot)
+        .order_by(UIGlobalSLOSnapshot.created_at.desc())
+        .limit(limit)
+    )
+    result = await db.execute(stmt)
+    return list(result.scalars().all())
+
 @router.post("/postmortem/generate", response_model=UIAutomatedPostmortemSchema)
 async def generate_postmortem(
     incident_id: str,
@@ -101,3 +129,14 @@ async def generate_postmortem(
 ):
     """Generates an automated post-mortem for an incident."""
     return await AutomatedPostmortemGenerator.generate_for_incident(db, incident_id, tenant_key)
+
+@router.get("/postmortems", response_model=List[UIAutomatedPostmortemSchema])
+async def list_postmortems(limit: int = 10, db: AsyncSession = Depends(get_db)):
+    """Lists recent automated post-mortems."""
+    stmt = (
+        select(UIAutomatedPostmortem)
+        .order_by(UIAutomatedPostmortem.generated_at.desc())
+        .limit(limit)
+    )
+    result = await db.execute(stmt)
+    return list(result.scalars().all())

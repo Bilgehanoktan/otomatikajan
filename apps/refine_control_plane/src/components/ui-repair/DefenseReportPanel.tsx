@@ -19,7 +19,7 @@ const DefenseReportPanel: React.FC = () => {
   const fetchReport = async () => {
     setLoading(true);
     try {
-      const data = await safeFetchJson<any>('/api/v1/ui-repair/defense/report/latest');
+      const data = await safeFetchJson<any>('/api/v1/ui-repair/security/defense/report/latest');
       setReport(data);
     } catch (err) {
       console.error(err);
@@ -31,7 +31,7 @@ const DefenseReportPanel: React.FC = () => {
   const generateReport = async () => {
     setLoading(true);
     try {
-      const data = await safeFetchJson<any>('/api/v1/ui-repair/defense/report/generate', { method: 'POST' });
+      const data = await safeFetchJson<any>('/api/v1/ui-repair/security/defense/report/generate', { method: 'POST' });
       setReport(data);
     } catch (err) {
       console.error(err);
