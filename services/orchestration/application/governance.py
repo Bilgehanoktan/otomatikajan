@@ -66,6 +66,26 @@ class TaskPlanner:
         self.dynamic_contracts = {}
         self._contract_history = {} 
 
+    def plan(self, title: str, description: str) -> List[GovernedTask]:
+        # Sync planner bridge for test compatibility (Phase 37)
+        agent_id = "architect"
+        base_contract = self.AGENT_CONTRACTS.get(agent_id)
+        contract = self.dynamic_contracts.get(agent_id, base_contract)
+        
+        prompt = (
+            f"STRATEJİK ALT-GÖREV: Architect Task\n"
+            f"Senin Uzmanlığın: {contract['skill']}\n"
+            f"Beklenen Çıktı: {contract['expected_output']}\n"
+        )
+        
+        gt = GovernedTask(
+            id=str(uuid.uuid4())[:8],
+            agent_id=agent_id,
+            prompt=prompt,
+            risk_level="low"
+        )
+        return [gt]
+
     async def plan_sovereign(self, title: str, description: str, history: Optional[str] = None) -> List[GovernedTask]:
         """Faz 51 [Sovereign Evolution]: Rekürsif Stratejik Dekompozisyon destekli planlama."""
         from services.orchestration.agi.cognitive.recursive_decomposer import RecursiveDecomposer

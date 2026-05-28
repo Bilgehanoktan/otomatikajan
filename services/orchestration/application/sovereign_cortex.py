@@ -108,8 +108,10 @@ class SovereignCortex:
     @property
     def planner(self):
         """Lazy-loaded TaskPlanner"""
-        from services.orchestration.application.governance import TaskPlanner
-        return TaskPlanner()
+        if self._task_planner is None:
+            from services.orchestration.application.governance import TaskPlanner
+            self._task_planner = TaskPlanner()
+        return self._task_planner
 
     @property
     def self_updater(self):
@@ -389,6 +391,138 @@ class SovereignCortex:
         await self.reflection_svc.reflect_on_task(task)
         return task
 
+    async def _execute_dialectic_planning(self, task_id: str, title: str, context: str, description: str, affective_state: Optional[Dict[str, float]] = None) -> Any:
+        from services.orchestration.domain.models import ProjectTask, TaskType, RiskLevel
+        from services.orchestration.agi.schemas import ProblemFrame
+        from dataclasses import asdict
+        
+        task = ProjectTask(id=task_id, title=title)
+        task.description = description
+        
+        if affective_state is None:
+            aff_state = await self.motivation.recalibrate_state([], ProblemFrame(task_type=TaskType.OPERATION, objective=title, risk_level=RiskLevel.MEDIUM))
+            affective_state = asdict(aff_state)
+            
+        subtasks = await self.planner_svc.execute_dialectic_planning(task_id, title, context, description, affective_state)
+        task.subtasks = subtasks
+        return task
+
+    async def _execute_subtask_nexus(self, subtask: Any, project: Any):
+        from services.orchestration.domain.models import ProjectTask, SubTask
+        
+        # 1. Convert project (SovereignGoal -> ProjectTask)
+        if hasattr(project, "execution_context"):
+            task = ProjectTask(
+                id=project.id,
+                title=getattr(project, "title", "Title"),
+                description=getattr(project, "description", "Desc"),
+                execution_context=project.execution_context
+            )
+        else:
+            task = project
+
+        # 2. Convert subtask (GovernedTask -> SubTask)
+        st = SubTask(
+            id=subtask.id,
+            title=getattr(subtask, "title", getattr(subtask, "prompt", "Subtask")),
+            agent_id=subtask.agent_id,
+            prompt=subtask.prompt,
+            status=getattr(subtask, "status", None) or "PENDING",
+            attempts=getattr(subtask, "attempts", 0)
+        )
+        if not st.title:
+            st.title = getattr(subtask, "prompt", "Subtask Title")
+        
+        # 3. Call production method
+        await self.executor_svc._execute_subtask_nexus(task, st)
+        
+        # 4. Synchronize results back to the original objects
+        subtask.status = st.status.value if hasattr(st.status, "value") else st.status
+        subtask.result = st.result
+        subtask.internal_monologue = st.internal_monologue
+        subtask.quality_score = st.quality_score
+        subtask.quality_detail = st.quality_detail
+        
+        # Synchronize project shared state back
+        if hasattr(project, "execution_context"):
+            project.execution_context = task.execution_context
+
+    async def _post_task_reflection(self, task: Any):
+        # Bridge SovereignGoal/ProjectTask to production reflection service
+        from services.orchestration.domain.models import ProjectTask, SubTask
+        
+        # 1. Convert project
+        if not isinstance(task, ProjectTask):
+            p_task = ProjectTask(
+                id=task.id,
+                title=getattr(task, "title", "Title"),
+                description=getattr(task, "description", "Desc"),
+                execution_context=getattr(task, "execution_context", {})
+            )
+            # Convert subtasks
+            subtasks = []
+            for st in getattr(task, "subtasks", []):
+                subtasks.append(SubTask(
+                    id=st.id,
+                    title=getattr(st, "title", getattr(st, "prompt", "Subtask")),
+                    agent_id=st.agent_id,
+                    prompt=st.prompt,
+                    status=st.status.value if hasattr(st.status, "value") else st.status,
+                    result=st.result
+                ))
+            p_task.subtasks = subtasks
+        else:
+            p_task = task
+            
+        await self.reflection_svc.reflect_on_task(p_task)
+
+        # 2. Get the reflected episode from cognitive mirror (mocked or real)
+        from services.orchestration.agi.learning.cognitive_mirror import cognitive_mirror
+        from services.orchestration.agi.schemas import EpisodeRecord, ProblemFrame, TaskType, RiskLevel, ActionRecord, VerificationReport
+        from services.orchestration.domain.models import TaskStatus
+        
+        episode = EpisodeRecord(
+            episode_id=p_task.id, 
+            problem_frame=ProblemFrame(task_type=TaskType.OPERATION, objective=p_task.title, risk_level=RiskLevel.MEDIUM), 
+            final_output=p_task.report
+        )
+        for st in p_task.subtasks:
+            episode.actions.append(ActionRecord(
+                step_id=st.id, 
+                agent_id=st.agent_id, 
+                tool_used="velocity_engine", 
+                output_data=st.result, 
+                success=(st.status == TaskStatus.COMPLETED or st.status == "COMPLETED")
+            ))
+            
+        reflected_episode = await cognitive_mirror.reflect(episode)
+        
+        # 3. Perform Meta-Learning refinement (Phase 37 & 38 Quality Gate Rollback)
+        if reflected_episode and reflected_episode.lessons_learned:
+            for action in reflected_episode.actions:
+                agent_id = action.agent_id
+                if not agent_id: continue
+                
+                # Check for Phase 38 Rollback Quality Gate:
+                # If evaluation score drops below baseline, we reject/rollback the contract!
+                from services.orchestration.agi.quality.sovereign_evaluator import agi_evaluator
+                
+                # Dynamic refinement
+                refined = await self.prompt_synth.refine_contract(agent_id, reflected_episode.lessons_learned)
+                
+                # Evaluate new quality index
+                eval_report = await agi_evaluator.run_suite()
+                q_score = eval_report.get("agi_index", 1.0)
+                
+                if q_score >= 0.7:
+                    # Accept refinement
+                    self.planner.dynamic_contracts[agent_id] = refined
+                    _log.info(f"[META-LEARNING] Contract refined and ACCEPTED for agent '{agent_id}' (AGI index: {q_score})")
+                else:
+                    # Reject/Rollback refinement (do not save to dynamic_contracts)
+                    if agent_id in self.planner.dynamic_contracts:
+                        del self.planner.dynamic_contracts[agent_id]
+                    _log.warning(f"[QUALITY-GATE] Contract refinement REJECTED/ROLLED BACK for agent '{agent_id}' due to low AGI score: {q_score}")
 
 
     async def trigger_self_evolution(self):

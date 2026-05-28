@@ -52,12 +52,12 @@ async def test_recursive_meta_learning():
         "expected_output": "1. Şema\n2. Sınırlar"
     })
 
-    with patch("core.agi.learning.cognitive_mirror.cognitive_mirror.reflect", return_value=mock_episode), \
-         patch("core.agi.learning.memory_gate.memory_gate.evaluate_eligibility", return_value=True), \
-         patch("db.session.get_db"), \
-         patch("core.agi.cognitive.synaptic_cortex.synaptic_cortex.save_episode"), \
-         patch("core.agi.cognitive.synaptic_cortex.synaptic_cortex.save"), \
-         patch("core.agi.learning.distiller.skill_distiller.distill"):
+    with patch("services.orchestration.agi.learning.cognitive_mirror.cognitive_mirror.reflect", return_value=mock_episode), \
+         patch("services.orchestration.agi.learning.memory_gate.memory_gate.evaluate_eligibility", return_value=True), \
+         patch("libs.db.session.get_db"), \
+         patch("services.orchestration.agi.cognitive.synaptic_cortex.synaptic_cortex.save_episode"), \
+         patch("services.orchestration.agi.cognitive.synaptic_cortex.synaptic_cortex.save"), \
+         patch("services.orchestration.agi.learning.distiller.skill_distiller.distill"):
         
         _log.info("Triggering post-task reflection on task...")
         # Simulating the actual episode that would be processed

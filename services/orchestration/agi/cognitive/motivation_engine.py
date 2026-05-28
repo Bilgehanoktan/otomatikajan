@@ -57,7 +57,7 @@ class MotivationEngine:
 
         # 5. Israr Politikası (Persistence Policy) Belirleme
         # Stres yüksekse veya enerji düşükse 'careful' moduna geç.
-        if (self.current_state.internal_stress > 0.7 or self.current_state.energy_reserve < 0.3):
+        if (self.current_state.internal_stress >= 0.7 or self.current_state.energy_reserve <= 0.3):
             self.current_state.persistence_policy = "careful"
         elif self.current_state.motivation_level > 0.8 and self.current_state.resilience_score > 0.7:
             self.current_state.persistence_policy = "aggressive"

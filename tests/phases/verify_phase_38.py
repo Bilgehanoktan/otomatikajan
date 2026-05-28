@@ -55,13 +55,13 @@ async def test_quality_gate_rollback():
     # --- SCENARIO A: POISONED REFINEMENT (Score drops to 0.5) ---
     _log.info("Scenario A: Testing rejection of low-quality refinement...")
     
-    with patch("core.agi.quality.agi_evaluator.agi_evaluator.run_suite", 
+    with patch("services.orchestration.agi.quality.sovereign_evaluator.SovereignEvaluator.run_suite", 
                return_value={"agi_index": 0.5, "scores": {}, "details": {}}), \
-         patch("core.agi.learning.cognitive_mirror.cognitive_mirror.reflect", return_value=mock_episode), \
-         patch("core.agi.learning.memory_gate.memory_gate.evaluate_eligibility", return_value=True), \
-         patch("db.session.get_db"), \
-         patch("core.agi.cognitive.synaptic_cortex.synaptic_cortex.save_episode"), \
-         patch("core.agi.cognitive.synaptic_cortex.synaptic_cortex.save"):
+         patch("services.orchestration.agi.learning.cognitive_mirror.cognitive_mirror.reflect", return_value=mock_episode), \
+         patch("services.orchestration.agi.learning.memory_gate.memory_gate.evaluate_eligibility", return_value=True), \
+         patch("libs.db.session.get_db"), \
+         patch("services.orchestration.agi.cognitive.synaptic_cortex.synaptic_cortex.save_episode"), \
+         patch("services.orchestration.agi.cognitive.synaptic_cortex.synaptic_cortex.save"):
         
         await cortex._post_task_reflection(task)
         
@@ -75,13 +75,13 @@ async def test_quality_gate_rollback():
     # --- SCENARIO B: IMPROVING REFINEMENT (Score stays high 0.9) ---
     _log.info("Scenario B: Testing acceptance of high-quality refinement...")
     
-    with patch("core.agi.quality.agi_evaluator.agi_evaluator.run_suite", 
+    with patch("services.orchestration.agi.quality.sovereign_evaluator.SovereignEvaluator.run_suite", 
                return_value={"agi_index": 0.9, "scores": {}, "details": {}}), \
-         patch("core.agi.learning.cognitive_mirror.cognitive_mirror.reflect", return_value=mock_episode), \
-         patch("core.agi.learning.memory_gate.memory_gate.evaluate_eligibility", return_value=True), \
-         patch("db.session.get_db"), \
-         patch("core.agi.cognitive.synaptic_cortex.synaptic_cortex.save_episode"), \
-         patch("core.agi.cognitive.synaptic_cortex.synaptic_cortex.save"):
+         patch("services.orchestration.agi.learning.cognitive_mirror.cognitive_mirror.reflect", return_value=mock_episode), \
+         patch("services.orchestration.agi.learning.memory_gate.memory_gate.evaluate_eligibility", return_value=True), \
+         patch("libs.db.session.get_db"), \
+         patch("services.orchestration.agi.cognitive.synaptic_cortex.synaptic_cortex.save_episode"), \
+         patch("services.orchestration.agi.cognitive.synaptic_cortex.synaptic_cortex.save"):
         
         await cortex._post_task_reflection(task)
         

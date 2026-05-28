@@ -84,10 +84,13 @@ def register_routers(app: FastAPI):
     from services.governance.harness_api import router as harness_router
     print("[DEBUG] Loading mcp_router...")
     from services.workflow_api.mcp_router import router as mcp_router
+    print("[DEBUG] Loading debate_router...")
+    from services.workflow_api.debate_router import router as debate_router
     
     api_v1.include_router(learning_router)
     api_v1.include_router(governor_router, prefix="/governance/governor")
     api_v1.include_router(governor_router, prefix="/governance/inbox/governor", tags=["Compatibility"])
+    api_v1.include_router(debate_router, prefix="/debate")
     api_v1.include_router(ceo_engine_router, prefix="/ceo")
     api_v1.include_router(ceo_bridge_router, prefix="/ceo")
     api_v1.include_router(harness_router, prefix="/harness", tags=["Harness API"])

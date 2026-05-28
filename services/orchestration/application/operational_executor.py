@@ -49,6 +49,7 @@ class OperationalExecutor:
         from libs.memory.retrieval import context_builder
         from libs.db.session import AsyncSessionLocal
         from services.orchestration.agi.schemas import ProblemFrame, TaskType, RiskLevel
+        from libs.db.repositories.repository import SubTaskRepository
 
         try:
             async with AsyncSessionLocal() as db_mem:
@@ -67,9 +68,10 @@ class OperationalExecutor:
             t_start = time.time()
             enriched_context = await context_builder.build_context(agent_id=subtask.agent_id, task_text=subtask.prompt, project_id=task.id)
             context_dict = {"working_context": enriched_context}
+            if task.execution_context and "shared_state" in task.execution_context:
+                context_dict["shared_state"] = task.execution_context["shared_state"]
             
             # Faz 8: Persistent START status
-            from libs.db.repositories.repository import SubTaskRepository
             async with AsyncSessionLocal() as db_sync:
                 await db_sync.execute(
                     update(DbSubTask)
@@ -83,6 +85,21 @@ class OperationalExecutor:
             if result.success:
                 subtask.status = TaskStatus.COMPLETED
                 subtask.result = str(result.output_data)
+                
+                # [Phase 36: Cognitive Continuity] Extract and update shared state
+                if "[STATE_UPDATE]" in subtask.result:
+                    try:
+                        import re
+                        state_match = re.search(r'\[STATE_UPDATE\]\s*(\{.*?\})', subtask.result, re.DOTALL)
+                        if state_match:
+                            import json
+                            updates = json.loads(state_match.group(1))
+                            if "shared_state" not in task.execution_context:
+                                task.execution_context["shared_state"] = {}
+                            task.execution_context["shared_state"].update(updates)
+                            _log.info(f"[EXECUTOR-STATE] Shared state updated successfully: {task.execution_context['shared_state']}")
+                    except Exception as se_err:
+                        _log.error(f"[EXECUTOR-STATE] Failed to parse state update: {se_err}")
                 subtask.internal_monologue = result.reflection
                 subtask.quality_score = result.quality_score
                 subtask.quality_detail = result.quality_detail

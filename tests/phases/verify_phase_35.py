@@ -3,7 +3,7 @@ import logging
 from services.orchestration.agi.cognitive.sovereign_cortex import SovereignCortex
 from services.orchestration.agi.consciousness.affective_core import affective_core
 from services.orchestration.agi.learning.knowledge_distiller import knowledge_distiller
-from services.orchestration.agi.quality.agi_evaluator import agi_evaluator
+from services.orchestration.agi.quality.sovereign_evaluator import agi_evaluator
 
 logging.basicConfig(level=logging.INFO)
 _log = logging.getLogger("phase_35_verif")

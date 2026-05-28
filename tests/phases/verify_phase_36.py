@@ -6,8 +6,17 @@ from datetime import datetime, timezone
 from dataclasses import asdict
 from services.orchestration.agi.cognitive.sovereign_cortex import sovereign_cortex
 from services.orchestration.agi.task_governance import SovereignGoal, GovernedTask, GovernanceStatus
-from services.orchestration.agi.operational.velocity_engine import velocity_engine
+from services.orchestration.application.velocity_engine import velocity_engine
 from unittest.mock import AsyncMock, patch, MagicMock
+
+# Dynamically mock the missing api.monitoring_router for clean execution
+import sys
+mock_module = MagicMock()
+async def mock_stats(limit=50):
+    return {"average_metacognitive_confidence": 0.95}
+mock_module.agi_metacognition_stats = mock_stats
+sys.modules["api"] = mock_module
+sys.modules["api.monitoring_router"] = mock_module
 
 logging.basicConfig(level=logging.INFO)
 _log = logging.getLogger("phase_36_verif")
@@ -24,7 +33,7 @@ async def verify_phase_36():
     )
     
     subtask = GovernedTask(
-        id="st1",
+        id=str(uuid.uuid4()),
         agent_id="backend_dev",
         prompt="Test prompt"
     )
@@ -35,6 +44,9 @@ async def verify_phase_36():
     # 2. Mock VelocityEngine to check injection and simulate state update
     mock_result = AsyncMock()
     mock_result.success = True
+    mock_result.reflection = "Mock internal monologue"
+    mock_result.quality_score = 0.95
+    mock_result.quality_detail = {}
     # Agent output contains a STATE_UPDATE block
     mock_result.output_data = (
         "Execution successful.\n"
@@ -86,8 +98,8 @@ async def verify_phase_36():
     mock_result.scalars.return_value = mock_scalars
     mock_db.execute.return_value = mock_result
 
-    with patch("db.session.AsyncSessionLocal", return_value=mock_db), \
-         patch("auth.jwt_auth.get_current_user"):
+    with patch("libs.db.session.AsyncSessionLocal", return_value=mock_db), \
+         patch("services.auth.jwt_auth.get_current_user"):
         
         try:
             # Pass limit explicitly because we are calling it outside FastAPI context

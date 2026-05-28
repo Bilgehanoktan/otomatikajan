@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from services.orchestration.agi.cognitive.sovereign_cortex import SovereignCortex
-from services.orchestration.agi.quality.agi_evaluator import agi_evaluator
+from services.orchestration.agi.quality.sovereign_evaluator import agi_evaluator
 
 logging.basicConfig(level=logging.INFO)
 _log = logging.getLogger("phase_34_verif")
