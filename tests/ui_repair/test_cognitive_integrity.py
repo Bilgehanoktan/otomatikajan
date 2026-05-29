@@ -11,7 +11,7 @@ from sqlalchemy.orm import sessionmaker
 from libs.db.models.ui_repair_models import UIRepairCase, UICognitiveOutputType, Base
 from services.ui_repair.cognitive_integrity_guard import CognitiveIntegrityGuard
 
-DATABASE_URL = "sqlite+aiosqlite:///e:/ai_company_faz12.1/data/ui_repair.db"
+DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
 async def test_cognitive_integrity():
     engine = create_async_engine(DATABASE_URL)

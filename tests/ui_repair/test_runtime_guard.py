@@ -29,7 +29,7 @@ def test_runtime_guard_repairs_invalid_windows_host_browser_path(monkeypatch):
     valid_host_cache = r"C:\Users\BILGEHAN\.gemini\antigravity\.playwright-browsers"
 
     def fake_exists(path):
-        return path == valid_host_cache
+        return path.replace("\\", "/").rstrip("/") == valid_host_cache.replace("\\", "/").rstrip("/")
 
     monkeypatch.setattr(runtime_guard.os.path, "exists", fake_exists)
     monkeypatch.setattr(runtime_guard.os.path, "expanduser", lambda _: r"C:\Users\BILGEHAN")
@@ -39,7 +39,7 @@ def test_runtime_guard_repairs_invalid_windows_host_browser_path(monkeypatch):
     previous = runtime_guard._normalize_playwright_browser_path()
 
     assert previous == r"C:\Users\BLGEHA~1\.gemini\antigravity\.playwright-browsers"
-    assert runtime_guard.os.getenv("PLAYWRIGHT_BROWSERS_PATH") == valid_host_cache
+    assert runtime_guard.os.getenv("PLAYWRIGHT_BROWSERS_PATH").replace("\\", "/") == valid_host_cache.replace("\\", "/")
 
 
 @pytest.mark.asyncio

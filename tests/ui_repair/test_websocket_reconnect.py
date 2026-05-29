@@ -1,5 +1,6 @@
 from playwright.sync_api import Page, expect
 import time
+import os
 
 def test_websocket_reconnect(page: Page):
     """
@@ -14,16 +15,25 @@ def test_websocket_reconnect(page: Page):
         
         window.WebSocketTracker = function(url, protocols) {
             console.log("WebSocket constructor called with url:", url);
-            const ws = new OriginalWebSocket(url, protocols);
-            window.activeWebSockets.push(ws);
-            return ws;
+            if (!url || typeof url !== "string") {
+                return protocols !== undefined ? new OriginalWebSocket(url, protocols) : new OriginalWebSocket(url);
+            }
+            try {
+                const ws = protocols !== undefined ? new OriginalWebSocket(url, protocols) : new OriginalWebSocket(url);
+                window.activeWebSockets.push(ws);
+                return ws;
+            } catch (e) {
+                return protocols !== undefined ? new OriginalWebSocket(url, protocols) : new OriginalWebSocket(url);
+            }
         };
         window.WebSocketTracker.prototype = OriginalWebSocket.prototype;
         window.WebSocket = window.WebSocketTracker;
     """)
 
     # Navigate to the Refine control plane dashboard
-    page.goto("http://localhost:3100/")
+    in_container = os.path.exists("/.dockerenv") or os.getenv("DOCKER_CONTAINER", "").strip().lower() in {"1", "true", "yes", "on"}
+    target_url = "http://cms:3100/" if in_container else "http://localhost:3100/"
+    page.goto(target_url)
     
     # Locate the telemetry status badge on the dashboard
     status_badge = page.locator("div.ml-auto.px-2\\.5.py-1").first
@@ -71,6 +81,7 @@ def test_websocket_reconnect(page: Page):
     page.evaluate("""
         window.activeWebSockets = [];
         window.WebSocket = window.WebSocketTracker;
+        void 0;
     """)
     
     # Wait for the auto-reconnection loop to establish standard link again
