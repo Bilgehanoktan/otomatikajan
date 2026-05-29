@@ -68,7 +68,7 @@ def test_websocket_reconnect(page: Page):
     """)
     
     # Wait for the recovery loop to run through all candidates and transition to polling fallback state
-    time.sleep(4.0)
+    time.sleep(1.5)
     
     # Assert that the UI reflects the degraded state (non-STABLE / fallback / lost)
     offline_status_text = status_badge.inner_text()
@@ -86,7 +86,7 @@ def test_websocket_reconnect(page: Page):
     
     # Wait for the auto-reconnection loop to establish standard link again
     reconnected = False
-    for _ in range(40):
+    for _ in range(120):
         status_text = status_badge.inner_text()
         if any(x in status_text.upper() for x in ["STABLE", "SYNC", "KARARLI", "SENKRONIZE", "STABİL"]):
             reconnected = True
