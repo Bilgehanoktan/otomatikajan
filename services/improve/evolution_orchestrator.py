@@ -180,6 +180,7 @@ Dönüş Formatı (Sadece JSON):
                             results.append(str(p.relative_to(self.project_root)))
                     except:
                         continue
+        return results
     def _scan_for_errors(self) -> List[str]:
         """Runtime loglarından veya incident'lardan hata paternlerini yakalar."""
         # Basitlik için şu an runtime/logs dizinini veya incident tablosunu tarayabilir.

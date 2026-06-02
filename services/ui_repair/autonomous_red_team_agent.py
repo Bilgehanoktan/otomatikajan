@@ -6,7 +6,7 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from libs.db.models.ui_repair_models import (
     UIRedTeamScenario, UIRedTeamRun, RedTeamRunStatus, RedTeamSafetyMode,
-    UIRedTeamFinding, UIRedTeamReport
+    UIRedTeamFinding, UIRedTeamReport, UIAdversarialDriftEvent
 )
 from libs.db.models.core_models import SovereignEvidence
 from .red_team_scenario_builder import RedTeamScenarioBuilder
@@ -126,12 +126,31 @@ class AutonomousRedTeamAgent:
         total_runs = await self.db.scalar(select(func.count(UIRedTeamRun.id)))
         passed_runs = await self.db.scalar(select(func.count(UIRedTeamRun.id)).where(UIRedTeamRun.status == RedTeamRunStatus.PASSED))
         success_rate = (passed_runs / total_runs * 100) if total_runs > 0 else 100.0
+        run_rows = list((
+            await self.db.execute(
+                select(UIRedTeamRun).where(UIRedTeamRun.finished_at.is_not(None))
+            )
+        ).scalars().all())
+        detection_latencies = [
+            max(0.0, (run.finished_at - run.started_at).total_seconds() * 1000)
+            for run in run_rows
+            if run.started_at and run.finished_at
+        ]
+        avg_detection_latency = (
+            sum(detection_latencies) / len(detection_latencies)
+            if detection_latencies
+            else 0.0
+        )
+        critical_drifts = await self.db.scalar(
+            select(func.count(UIAdversarialDriftEvent.id)).where(UIAdversarialDriftEvent.severity == "CRITICAL")
+        ) or 0
+        latest_run_at = max((run.finished_at or run.started_at for run in run_rows), default=datetime.now(timezone.utc))
         
         return {
             "total_scenarios": total_scenarios or 0,
             "active_operations": active_ops or 0,
             "success_rate": success_rate,
-            "avg_detection_latency": 142.5, # Mock value for now
-            "critical_drifts": 0,
-            "last_run_at": datetime.now(timezone.utc)
+            "avg_detection_latency": round(avg_detection_latency, 1),
+            "critical_drifts": critical_drifts,
+            "last_run_at": latest_run_at
         }
