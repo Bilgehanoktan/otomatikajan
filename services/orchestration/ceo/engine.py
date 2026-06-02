@@ -91,6 +91,19 @@ class CEOEngine:
                 if current_latency > target * 1.5: # %50'den fazla sapma
                     return {"deviation_detected": True, "reason": f"Latency regression: {current_latency}ms > {target}ms", "delta": current_latency - target}
 
+            # Faz 12.2: Extended North Star Metrics (Error Rate & Memory)
+            if "error_target" in current_kpis:
+                current_errors = metrics.get("error_rate", 0)
+                target_err = current_kpis["error_target"]
+                if current_errors > target_err:
+                    return {"deviation_detected": True, "reason": f"Error rate spike: {current_errors}% > {target_err}%", "delta": current_errors - target_err}
+
+            if "memory_target" in current_kpis:
+                current_mem = metrics.get("memory_usage", 0)
+                target_mem = current_kpis["memory_target"]
+                if current_mem > target_mem * 1.2: # %20 memory overage
+                    return {"deviation_detected": True, "reason": f"Memory limit exceeded: {current_mem}MB > {target_mem}MB", "delta": current_mem - target_mem}
+
             return {"deviation_detected": False, "delta": 0}
         except Exception as e:
             logger.error(f"KPI verification error: {e}")
@@ -157,6 +170,17 @@ class CEOEngine:
                 # Sadece repo ve metod varsa await et
                 if hasattr(CostRepository, 'total_cost'):
                     total_spent = await CostRepository.total_cost(db)
+                    
+                    # Faz 12.2: Economy Mode (Cost-Aware Degradation)
+                    if total_spent >= MONTHLY_BUDGET * 0.8:
+                        if not getattr(self.model_orch, "economy_mode", False):
+                            logger.warning(f"CEO Engine: Budget at %80+ (${total_spent}/${MONTHLY_BUDGET}). Activating Economy Mode!")
+                            self.model_orch.economy_mode = True
+                    else:
+                        if getattr(self.model_orch, "economy_mode", False):
+                            logger.info(f"CEO Engine: Budget is safe (${total_spent}). Deactivating Economy Mode.")
+                            self.model_orch.economy_mode = False
+
                     if total_spent >= MONTHLY_BUDGET:
                         logger.warning(f"CEO Engine: Monthly budget limit reached (${MONTHLY_BUDGET}). Scanning paused.")
                         return
@@ -341,15 +365,17 @@ class CEOEngine:
                     p.error_detail = f"Kuyruk zaman aşımı ({int(elapsed)}s). Sistem tarafından otomatik hata durumuna çekildi."  # type: ignore[assignment]
                     logger.info(f"👔 CEO Engine: Proje '{p.id}' otomatik olarak 'ERROR' durumuna çekildi.")
 
-                source_type = "queue_stuck"
+                # Faz 12.2: Kendi Kendini İyileştirme (Self-Healing Restart)
+                # Sadece görevi ERROR yapmak yerine altyapıyı yeniden başlatma önerisi oluştur.
+                source_type = "infrastructure_restart" if elapsed > 1200 else "queue_stuck" 
                 source_ref = str(p.id)
                 ops.append({
                     "source_type": source_type,
                     "source_ref": source_ref,
                     "pattern_hash": ImprovementOpportunity.generate_hash(source_type, source_ref),
-                    "title": f"Queue Stalling: {p.title}",
-                    "description": f"Project '{p.title}' has been in 'queued' status for over 10 minutes. Check worker/redis.",
-                    "severity": "high",
+                    "title": f"Infrastructure Intervention: Worker Restart Needed" if source_type == "infrastructure_restart" else f"Queue Stalling: {p.title}",
+                    "description": f"Worker queues seem completely stalled. We may need to restart the worker containers." if source_type == "infrastructure_restart" else f"Project '{p.title}' has been in 'queued' status for over 10 minutes. Check worker/redis.",
+                    "severity": "critical" if source_type == "infrastructure_restart" else "high",
                     "category": "reliability",
                     "evidence": {"project_id": str(p.id), "time_in_status": elapsed},
                     "evidence_detail": f"Project '{p.title}' stuck in queue for {int(elapsed)}s. Threshold: 600s."
@@ -771,6 +797,11 @@ class CEOEngine:
         is_roadmap = ai_suggestion.get("is_roadmap", False)
         steps = ai_suggestion.get("steps", [])
 
+        # Faz 12.2: Human-in-the-loop Onay Kademesi
+        # Kritik görevlerin otonom işletilmesini engelle
+        is_critical = (op_obj.severity == "critical" or op_obj.priority_score > 85)
+        initial_status = "pending_approval" if is_critical else "suggested"
+
         # 1. Ana Öneriyi (Parent/Summary) Oluştur
         parent_id = uuid.uuid4()
         new_suggestion = CEOSuggestedTask(
@@ -780,7 +811,7 @@ class CEOEngine:
             description=ai_suggestion["description"],
             priority=op_obj.severity,
             owner_agent_hint=agent_id,
-            status="suggested",
+            status=initial_status,
             reasoning_summary=ai_suggestion.get("reasoning", f"Priority score {op_obj.priority_score}"),
             impact_projection=ai_suggestion.get("projection", {"estimated_cost": 0.01, "risk_reduction_pct": 50, "performance_gain": "medium"}),
             plan_hierarchy={"is_roadmap": is_roadmap, "step_count": len(steps) if is_roadmap else 1},

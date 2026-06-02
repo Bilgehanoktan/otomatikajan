@@ -295,6 +295,7 @@ class ModelOrchestrator:
 
     def __init__(self):
         self.providers = {p.name: p for p in PROVIDERS}
+        self.economy_mode = False # Faz 12.2: Otonom tasarruf modu
         # Refresh config from env for all providers
         for p in self.providers.values():
             p.__post_init__()
@@ -352,6 +353,13 @@ class ModelOrchestrator:
 
         # Health score'a göre sırala (azalan)
         available_stats.sort(key=lambda x: x.health_score, reverse=True)
+        
+        # Economy Mode Check
+        if getattr(self, "economy_mode", False):
+            # Ucuz modellere (örneğin gemini, openai gpt-4o-mini) öncelik ver
+            cheap_providers = ["gemini", "openai", "groq", "deepseek"]
+            available_stats.sort(key=lambda x: (x.name in cheap_providers, x.health_score), reverse=True)
+            
         return [p.name for p in available_stats]
 
     @traced("ModelOrchestrator.complete_task")
@@ -393,6 +401,9 @@ class ModelOrchestrator:
         for p_name in base_providers:
             p_stat = self.providers.get(p_name)
             if p_stat and p_stat.api_key and not p_stat.is_placeholder_key():
+                # Faz 12.2: Economy Mode devredeyse çok pahalı modelleri es geçebiliriz (Opsiyonel)
+                if getattr(self, "economy_mode", False) and p_name in ["anthropic", "nvidia", "openrouter"]:
+                    continue # Bütçe tehlikesinde bu sağlayıcıları hiç zincire alma
                 available_stats.append(p_stat)
 
         # Health score'a göre sırala (azalan)
