@@ -108,14 +108,11 @@ def main() -> None:
         browser = p.chromium.launch(headless=True)
         context = browser.new_context(viewport={"width": 1440, "height": 1100})
         context.add_init_script(
+            script=f"""
+            window.localStorage.setItem('sqv_access_token', {json.dumps(token)});
+            window.localStorage.setItem('sqv_operator_email', 'admin@sovereign.agi');
+            window.localStorage.setItem('auth', JSON.stringify({{ role: 'OPERATOR' }}));
             """
-            ([token]) => {
-              window.localStorage.setItem('sqv_access_token', token);
-              window.localStorage.setItem('sqv_operator_email', 'admin@sovereign.agi');
-              window.localStorage.setItem('auth', JSON.stringify({ role: 'OPERATOR' }));
-            }
-            """,
-            [token],
         )
         page = context.new_page()
         for index, item in enumerate(routes, start=1):
