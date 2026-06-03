@@ -257,7 +257,7 @@ async def approve_self_repair(
     import os
     import json
     import uuid
-    from datetime import datetime
+    from datetime import datetime, timezone
     from services.self_repair_audit.suggestion_run_links import load_suggestion_run_links, save_suggestion_run_link
     from services.self_repair_audit.suggestion_actions import get_finding_details, process_suggestion_action
     from services.orchestration.ceo.repair_bridge import (
@@ -373,13 +373,13 @@ async def approve_self_repair(
             "incident_id": trigger_res["incident_id"],
             "workflow_template": "self_repair",
             "status": "QUEUED",
-            "created_at": datetime.utcnow().isoformat() + "Z"
+            "created_at": datetime.now(timezone.utc).isoformat() + "Z"
         }
         save_suggestion_run_link(resolved_run_id, suggestion_id, run_link, workspace_root)
 
         # 8. Record second action: SELF_REPAIR_STARTED (append-only)
         action_id = f"ACT-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
-        created_at = datetime.utcnow().isoformat() + "Z"
+        created_at = datetime.now(timezone.utc).isoformat() + "Z"
 
         start_log = SuggestionActionLog(
             action_id=action_id,
@@ -430,7 +430,7 @@ async def approve_project_factory(
 ):
     import os
     import uuid
-    from datetime import datetime
+    from datetime import datetime, timezone
     from services.self_repair_audit.project_factory_run_links import load_project_factory_run_links, save_project_factory_run_link
     from services.self_repair_audit.suggestion_actions import get_finding_details, process_suggestion_action
     from services.project_factory.project_factory_bridge import bridge_suggestion_to_project_factory
@@ -483,13 +483,13 @@ async def approve_project_factory(
             "project_brief_ref": bridge_res["project_brief_ref"],
             "requirement_gate_ref": bridge_res["requirement_gate_ref"],
             "status": "REQUIREMENT_GATE_WAITING",
-            "created_at": datetime.utcnow().isoformat() + "Z"
+            "created_at": datetime.now(timezone.utc).isoformat() + "Z"
         }
         save_project_factory_run_link(resolved_run_id, suggestion_id, run_link, workspace_root)
 
         # 6. Record second action: PROJECT_FACTORY_INTAKE_CREATED (append-only)
         action_id = f"ACT-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
-        created_at = datetime.utcnow().isoformat() + "Z"
+        created_at = datetime.now(timezone.utc).isoformat() + "Z"
 
         start_log = SuggestionActionLog(
             action_id=action_id,

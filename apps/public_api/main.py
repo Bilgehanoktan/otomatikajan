@@ -302,10 +302,18 @@ async def health_check():
     current_agents = len(orchestrator._agents) if hasattr(orchestrator, "_agents") else 0
     specialists = len(agency_loader.agents)
     mem_usage = memory_governor.get_current_usage_mb()
+    
+    from services.governance.standby_manager import StandbyManager
+    is_standby = StandbyManager.is_in_standby()
+    
+    status = "standby" if is_standby else ("degraded" if (not db_ok or mem_usage > memory_governor.MAX_MEMORY_MB) else "ok")
+    autonomous_mode = "STANDBY" if is_standby else "FULL_AUTONOMOUS"
+    reason = "standby" if is_standby else ("memory_limit_exceeded" if mem_usage > memory_governor.MAX_MEMORY_MB else ("db_failed" if not db_ok else None))
 
     return {
-        "status": "degraded" if (not db_ok or mem_usage > memory_governor.MAX_MEMORY_MB) else "ok",
-        "reason": "memory_limit_exceeded" if mem_usage > memory_governor.MAX_MEMORY_MB else ("db_failed" if not db_ok else None),
+        "status": status,
+        "autonomous_mode": autonomous_mode,
+        "reason": reason,
         "version": APP_VERSION,
         "v13_stabilized_final": True,
         "env": _ENV,

@@ -121,7 +121,7 @@ def build_repair_case_from_finding(finding: CEOFindingPayload | dict[str, Any]) 
     )
 
     # 5. Safe Artifact Path Writing (strictly under repair_outputs/{incident_id}/)
-    workspace_root = Path("e:/ai_company_faz12.1").resolve()
+    workspace_root = Path(__file__).resolve().parents[3]
     outputs_base = (workspace_root / "repair_outputs").resolve()
     
     # Path traversal protection
@@ -225,7 +225,7 @@ async def start_self_repair_from_repair_case(
     await db.commit()
 
     # 3. Write taskflow_run.json under repair_outputs/{incident_id}/taskflow_run.json
-    workspace_root = Path("e:/ai_company_faz12.1").resolve()
+    workspace_root = Path(__file__).resolve().parents[3]
     outputs_base = (workspace_root / "repair_outputs").resolve()
     incident_dir = (outputs_base / case_input.incident_id).resolve()
     

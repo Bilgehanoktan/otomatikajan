@@ -13,6 +13,8 @@ const { Title, Text, Paragraph } = Typography;
 export const FinalReleaseCenterPanel: React.FC = () => {
     const [activeTab, setActiveTab] = useState('readiness');
     const [readinessSummary, setReadinessSummary] = useState<any>(null);
+    const [latestLock, setLatestLock] = useState<any>(null);
+    const [latestAudit, setLatestAudit] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -22,8 +24,14 @@ export const FinalReleaseCenterPanel: React.FC = () => {
     const fetchReadiness = async () => {
         setLoading(true);
         try {
-            const data = await safeFetchJson('/api/v1/ui-repair/final/readiness');
+            const [data, lock, audits] = await Promise.all([
+                safeFetchJson('/api/v1/ui-repair/final/readiness'),
+                safeFetchJson('/api/v1/ui-repair/final/release-lock/latest'),
+                safeFetchJson('/api/v1/ui-repair/final/integration-audits'),
+            ]);
             setReadinessSummary(data);
+            setLatestLock(lock);
+            setLatestAudit(Array.isArray(audits) && audits.length > 0 ? audits[0] : null);
         } catch (error) {
             console.error('Failed to fetch readiness:', error);
         } finally {
@@ -65,7 +73,7 @@ export const FinalReleaseCenterPanel: React.FC = () => {
                     <Text type="secondary">Phase 30: Final Integration, Production Hardening & Release Lock</Text>
                 </div>
                 <Space>
-                    <Badge status={readinessSummary?.status === 'RELEASE_CANDIDATE' ? 'success' : 'processing'} 
+                    <Badge status={readinessSummary?.status === 'RELEASE_CANDIDATE' ? 'success' : readinessSummary?.status === 'BLOCKED' ? 'error' : 'processing'} 
                            text={<Text strong>{readinessSummary?.status || 'PENDING'}</Text>} />
                     <Button type="primary" icon={<RocketOutlined />} disabled={readinessSummary?.status !== 'RELEASE_CANDIDATE'}>
                         Final Release Lock
@@ -106,8 +114,8 @@ export const FinalReleaseCenterPanel: React.FC = () => {
                     <Card bordered={false} className="glass-card">
                         <Statistic 
                             title="Audit Status" 
-                            value="SEALED" 
-                            valueStyle={{ color: '#1890ff' }}
+                            value={latestAudit?.status || 'PENDING'} 
+                            valueStyle={{ color: latestAudit?.status === 'PASSED' ? '#3f8600' : latestAudit?.status === 'FAILED' ? '#cf1322' : '#1890ff' }}
                             prefix={<SafetyOutlined />}
                         />
                     </Card>
@@ -116,7 +124,7 @@ export const FinalReleaseCenterPanel: React.FC = () => {
                     <Card bordered={false} className="glass-card">
                         <Statistic 
                             title="Version" 
-                            value="1.0.0-RC1" 
+                            value={latestLock?.version || 'UNLOCKED'} 
                             prefix={<LockOutlined />}
                         />
                     </Card>
@@ -152,6 +160,22 @@ export const FinalReleaseCenterPanel: React.FC = () => {
 const AuditPanel: React.FC = () => {
     const [audits, setAudits] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        fetchAudits();
+    }, []);
+
+    const fetchAudits = async () => {
+        setLoading(true);
+        try {
+            const data = await safeFetchJson('/api/v1/ui-repair/final/integration-audits');
+            setAudits(data);
+        } catch (error) {
+            console.error('Failed to load audits:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const runAudit = async () => {
         setLoading(true);

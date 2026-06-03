@@ -1,7 +1,7 @@
 from typing import List, Dict, Any
 import logging
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, func
 from libs.db.models.ui_repair_models import (
     UIKnowledgeNode, UIKnowledgeEdge,
     UIIncidentWarRoom, UIComplianceFinding,
@@ -25,17 +25,6 @@ class KnowledgeGraphBuilder:
         """Clears and rebuilds the entire knowledge graph from current data."""
         logger.info("Rebuilding Knowledge Graph...")
         
-        # 1. Clear existing graph
-        await self.db.execute(delete(UIKnowledgeEdge))
-        await self.db.execute(delete(UIKnowledgeNode))
-        await self.db.commit()
-        
-        counts = {
-            "nodes": 0,
-            "edges": 0
-        }
-        
-        # 2. Extract Nodes from all relevant entities
         entities = [
             (UIIncidentWarRoom, GraphNodeExtractor.from_incident_war_room),
             (UIComplianceFinding, GraphNodeExtractor.from_security_finding),
@@ -49,6 +38,30 @@ class KnowledgeGraphBuilder:
             (UISLOBreach, GraphNodeExtractor.from_slo_breach),
             (UICostAnomaly, GraphNodeExtractor.from_cost_anomaly)
         ]
+
+        # Check if source entities are empty before rebuilding
+        total_source_objects = 0
+        for model, _ in entities:
+            try:
+                cnt = (await self.db.execute(select(func.count(model.id)))).scalar() or 0
+                total_source_objects += cnt
+            except Exception:
+                pass
+        
+        if total_source_objects == 0:
+            from services.ui_repair.baseline_bootstrap import UIRepairBaselineBootstrapper
+            bootstrapper = UIRepairBaselineBootstrapper(self.db)
+            await bootstrapper.ensure_baseline()
+
+        # 1. Clear existing graph
+        await self.db.execute(delete(UIKnowledgeEdge))
+        await self.db.execute(delete(UIKnowledgeNode))
+        await self.db.commit()
+        
+        counts = {
+            "nodes": 0,
+            "edges": 0
+        }
         
         for model, extractor in entities:
             stmt = select(model)

@@ -11,7 +11,7 @@ from sqlalchemy import and_, case, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from libs.db.models.governance_models import (
-    GovernorOutcomeQuality,
+    GovernorDecisionQuality,
     GovernorOutcomeRecord,
     GovernorOutcomeType,
 )
@@ -72,7 +72,7 @@ class GovernorOutcomeRepo:
             select(func.count(GovernorOutcomeRecord.id))
             .where(and_(
                 GovernorOutcomeRecord.created_at >= since,
-                GovernorOutcomeRecord.quality == GovernorOutcomeQuality.OPTIMAL
+                GovernorOutcomeRecord.quality == GovernorDecisionQuality.CORRECT
             ))
         )
         correct = correct_res.scalar() or 0
@@ -131,7 +131,7 @@ class GovernorOutcomeRepo:
             select(
                 GovernorOutcomeRecord.decision,
                 func.count(GovernorOutcomeRecord.id).label("total"),
-                func.sum(case((GovernorOutcomeRecord.quality == GovernorOutcomeQuality.OPTIMAL, 1), else_=0)).label("correct")
+                func.sum(case((GovernorOutcomeRecord.quality == GovernorDecisionQuality.CORRECT, 1), else_=0)).label("correct")
             )
             .where(GovernorOutcomeRecord.created_at >= since)
             .group_by(GovernorOutcomeRecord.decision)

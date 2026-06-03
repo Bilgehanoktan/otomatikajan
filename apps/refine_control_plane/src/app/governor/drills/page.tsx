@@ -4,6 +4,7 @@ import React from "react";
 import { List, Table, Tag, Space, Card, Typography, Button, Modal, Form, Select, notification } from "antd";
 import { useTable } from "@refinedev/antd";
 import { useCustomMutation } from "@refinedev/core";
+import dayjs from "dayjs";
 import { 
     BugOutlined, 
     PlayCircleOutlined, 
@@ -14,6 +15,7 @@ import {
 const { Title, Text } = Typography;
 
 export default function GovernorDrillsPage() {
+    const [isClient, setIsClient] = React.useState(false);
     const { tableProps, tableQuery } = useTable<any>({
         resource: "governance/governor/resilience/drills",
     });
@@ -24,6 +26,10 @@ export default function GovernorDrillsPage() {
 
     const [isModalOpen, setIsModalOpen] = React.useState(false);
     const [form] = Form.useForm();
+
+    React.useEffect(() => {
+        setIsClient(true);
+    }, []);
 
     const handleStartDrill = async (values: any) => {
         mutate({
@@ -74,18 +80,22 @@ export default function GovernorDrillsPage() {
             title: "Started",
             dataIndex: "started_at",
             key: "started_at",
-            render: (date: string) => date ? new Date(date).toLocaleString() : "-",
+            render: (date: string) => date ? dayjs(date).format("YYYY-MM-DD HH:mm:ss") : "-",
         },
         {
             title: "Duration",
             key: "duration",
-            render: (record: any) => {
+            render: (_value: unknown, record: any) => {
                 if (!record.started_at || !record.completed_at) return "-";
                 const diff = new Date(record.completed_at).getTime() - new Date(record.started_at).getTime();
                 return `${(diff / 1000).toFixed(2)}s`;
             }
         }
     ];
+
+    if (!isClient) {
+        return <div className="min-h-screen bg-[#060a12]" />;
+    }
 
     return (
         <Space direction="vertical" size="large" style={{ width: "100%" }}>

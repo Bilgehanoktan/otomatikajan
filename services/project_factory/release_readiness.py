@@ -1,6 +1,6 @@
 import os
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, List
 from services.project_factory.gap_audit import GapAuditEngine
 
@@ -17,7 +17,7 @@ class ReleaseReadinessOrchestrator:
 
     def _log_event(self, event_type: str, details: Dict[str, Any]):
         event = {
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
             "event_type": event_type,
             "details": details
         }
@@ -41,7 +41,7 @@ class ReleaseReadinessOrchestrator:
         phase_manifest = {
             "project": "Sovereign AGI — Project Factory & Policy Autopilot",
             "version": "1.0.0-phase21",
-            "stabilization_date": datetime.utcnow().isoformat() + "Z",
+            "stabilization_date": datetime.now(timezone.utc).isoformat() + "Z",
             "phases_covered": list(range(22)),
             "modules_verified": len(audit_res["checked_modules"]),
             "author": "Antigravity",
@@ -84,7 +84,7 @@ class ReleaseReadinessOrchestrator:
 
             # Step 1: Pre-populate policy_proposals.json
             proposals = {
-                "generated_at": datetime.utcnow().isoformat() + "Z",
+                "generated_at": datetime.now(timezone.utc).isoformat() + "Z",
                 "proposals": [
                     {
                         "proposal_id": proposal_id,
@@ -256,7 +256,7 @@ class ReleaseReadinessOrchestrator:
 
         smoke_report = {
             "status": "SUCCESS" if (audit_res["status"] == "PASSED" and smoke_passed) else "WARNING",
-            "completed_at": datetime.utcnow().isoformat() + "Z",
+            "completed_at": datetime.now(timezone.utc).isoformat() + "Z",
             "steps_executed": len(e2e_trace),
             "trace": e2e_trace,
             "error_details": error_details,
@@ -277,7 +277,7 @@ class ReleaseReadinessOrchestrator:
 
         readiness_pack = {
             "package_name": "ProjectFactoryAutopilot-ReleasePack",
-            "generation_time": datetime.utcnow().isoformat() + "Z",
+            "generation_time": datetime.now(timezone.utc).isoformat() + "Z",
             "ready_for_release": ready_for_release,
             "verification_checksums": {
                 "gap_audit": "OK",

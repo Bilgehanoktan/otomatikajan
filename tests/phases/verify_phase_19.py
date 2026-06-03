@@ -24,7 +24,7 @@ async def verify_self_building_layer():
     # 2. Execute via Nexus (includes AuditGate check)
     print("[*] Coordinating architecture via Nexus...")
     # Clean up before test if exists
-    test_dir = Path("e:/ai_company_faz12.1/core/agi/experimental_tests/")
+    test_dir = Path(__file__).resolve().parents[2] / "core" / "agi" / "experimental_tests"
     if test_dir.exists():
         shutil.rmtree(test_dir)
 

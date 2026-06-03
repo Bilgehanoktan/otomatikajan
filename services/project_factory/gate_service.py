@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 from services.project_factory.models import (
     ProjectFactoryIntake,
@@ -32,7 +32,7 @@ def approve_project_scope(
     if gate.status != "WAITING_FOR_OPERATOR":
         raise ValueError(f"Requirement Gate for project {project_id} has already been resolved with status {gate.status}")
 
-    resolved_time = datetime.utcnow().isoformat() + "Z"
+    resolved_time = datetime.now(timezone.utc).isoformat() + "Z"
 
     # 1. Update Requirement Gate Model
     gate.status = "SCOPE_APPROVED"
@@ -88,7 +88,7 @@ def request_project_revision(
     if gate.status != "WAITING_FOR_OPERATOR":
         raise ValueError(f"Requirement Gate for project {project_id} has already been resolved with status {gate.status}")
 
-    resolved_time = datetime.utcnow().isoformat() + "Z"
+    resolved_time = datetime.now(timezone.utc).isoformat() + "Z"
 
     # 1. Update Models
     gate.status = "REVISION_REQUESTED"
@@ -137,7 +137,7 @@ def reject_project_intake(
     if gate.status != "WAITING_FOR_OPERATOR":
         raise ValueError(f"Requirement Gate for project {project_id} has already been resolved with status {gate.status}")
 
-    resolved_time = datetime.utcnow().isoformat() + "Z"
+    resolved_time = datetime.now(timezone.utc).isoformat() + "Z"
 
     # 1. Update Models
     gate.status = "REJECTED"

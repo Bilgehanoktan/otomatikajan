@@ -2,7 +2,7 @@ import uuid
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from libs.db.models.ui_repair_models import (
     UISovereignIdentity, IdentityType, IdentityStatus, UITrustScore
 )
@@ -40,13 +40,25 @@ class SovereignIdentityRegistry:
         await self.db_session.commit()
         return identity
 
-    async def get_identity(self, identity_key: str) -> Optional[UISovereignIdentity]:
+    async def get_identity(self, identity_key: str, auto_seed: bool = True) -> Optional[UISovereignIdentity]:
         res = await self.db_session.execute(
             select(UISovereignIdentity).where(UISovereignIdentity.identity_key == identity_key)
         )
-        return res.scalars().first()
+        identity = res.scalars().first()
+        if not identity and auto_seed:
+            count = (await self.db_session.execute(select(func.count(UISovereignIdentity.id)))).scalar() or 0
+            if count == 0:
+                await self.seed_identities()
+                res = await self.db_session.execute(
+                    select(UISovereignIdentity).where(UISovereignIdentity.identity_key == identity_key)
+                )
+                identity = res.scalars().first()
+        return identity
 
     async def list_identities(self, tenant_key: Optional[str] = None) -> List[UISovereignIdentity]:
+        count = (await self.db_session.execute(select(func.count(UISovereignIdentity.id)))).scalar() or 0
+        if count == 0:
+            await self.seed_identities()
         stmt = select(UISovereignIdentity)
         if tenant_key:
             stmt = stmt.where(UISovereignIdentity.tenant_key == tenant_key)
@@ -73,6 +85,6 @@ class SovereignIdentityRegistry:
         ]
         
         for item in defaults:
-            existing = await self.get_identity(item["identity_key"])
+            existing = await self.get_identity(item["identity_key"], auto_seed=False)
             if not existing:
                 await self.register_identity(item)

@@ -24,7 +24,7 @@ from services.project_factory.human_gate_service import (
     reject_candidate_delivery
 )
 
-WORKSPACE_ROOT = Path("e:/ai_company_faz12.1").resolve()
+WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
 TEST_PROJECT_ID = "PF-TEST-HG-222"
 TEST_PROJECT_DIR = WORKSPACE_ROOT / "project_outputs" / "project_factory" / TEST_PROJECT_ID
 

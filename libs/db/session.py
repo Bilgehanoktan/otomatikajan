@@ -285,6 +285,7 @@ async def init_db():
     from libs.db.models.lineage_models import Base as LineageBase
     from libs.db.models.lineage_models import DecisionLineage
     from libs.db.models.repair_models import Base as RepairBase
+    from libs.db.models.ui_repair_models import Base as UIRepairBase
 
     engine = get_engine()
 
@@ -300,6 +301,7 @@ async def init_db():
         await conn.run_sync(AuthBase.metadata.create_all)
         await conn.run_sync(RepairBase.metadata.create_all)
         await conn.run_sync(FederationBase.metadata.create_all)
+        await conn.run_sync(UIRepairBase.metadata.create_all)
         db_label = "SQLite Fallback" if is_db_degraded() else "PostgreSQL"
         logger.info(f"OK: Veritabanı tabloları hazır ({db_label}).")
 
@@ -826,6 +828,17 @@ async def init_db():
         except Exception as e:
             logger.error(f"SEED ERROR: {e}")
             await db.rollback()
+
+    # ── Auto-Seeding Phase 3: UI Repair Baseline Seeding ───
+    async with AsyncSessionLocal() as db:
+        try:
+            from services.ui_repair.baseline_bootstrap import UIRepairBaselineBootstrapper
+            bootstrapper = UIRepairBaselineBootstrapper(db)
+            res = await bootstrapper.ensure_baseline()
+            logger.info(f"SEED Phase 3: UI Repair baseline ready. Results: {res}")
+        except Exception as e:
+            logger.error(f"SEED Phase 3 ERROR: {e}")
+
 
 async def close_db():
     global _engine, _sync_engine, _REDIS_CLIENT, _REDIS_DISABLED, _REDIS_LOGGED

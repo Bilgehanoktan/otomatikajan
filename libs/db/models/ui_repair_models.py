@@ -3442,3 +3442,23 @@ class UIReleaseLock(Base):
     evidence_hash: Mapped[str | None] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
+class UIResidualRiskAcceptance(Base):
+    """Phase 30: Persistent operator acceptance record for a residual risk."""
+    __tablename__ = "ui_residual_risk_acceptances"
+
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    risk_id: Mapped[str] = mapped_column(String(64), index=True)
+    risk_fingerprint: Mapped[str] = mapped_column(String(128), unique=True, index=True)
+
+    module: Mapped[str] = mapped_column(String(128))
+    severity: Mapped[str] = mapped_column(String(32))
+    description: Mapped[str] = mapped_column(Text)
+    mitigation: Mapped[str] = mapped_column(Text)
+    mitigation_strategy: Mapped[str] = mapped_column(Text)
+
+    operator: Mapped[str] = mapped_column(String(128), index=True)
+    operator_rationale: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(32), default="ACCEPTED")
+
+    accepted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

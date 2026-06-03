@@ -10,7 +10,7 @@ from services.repair.ui_diagnostics import (
     CEOFindingPayload
 )
 
-WORKSPACE_ROOT = Path("e:/ai_company_faz12.1").resolve()
+WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
 REPAIR_OUTPUTS_DIR = WORKSPACE_ROOT / "repair_outputs"
 DIAGNOSTICS_DIR = REPAIR_OUTPUTS_DIR / "diagnostics"
 

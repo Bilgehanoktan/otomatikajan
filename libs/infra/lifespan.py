@@ -10,7 +10,7 @@ import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
-from libs.db.session import init_db, close_db
+from libs.db.session import init_db, close_db, AsyncSessionLocal
 from libs.config import (
     APP_ENV,
     APP_UI_MODE,
@@ -47,6 +47,16 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"[STARTUP] CRITICAL: DB Init Failed: {e}", exc_info=True)
         # We continue to allow degraded mode if configured in session.py
+
+    if APP_ENV == "development":
+        try:
+            from services.ui_repair.baseline_bootstrap import UIRepairBaselineBootstrapper
+
+            async with AsyncSessionLocal() as bootstrap_db:
+                bootstrap_result = await UIRepairBaselineBootstrapper(bootstrap_db).ensure_baseline()
+            logger.info("[STARTUP] UI Repair baseline bootstrap completed: %s", bootstrap_result)
+        except Exception as bootstrap_err:
+            logger.warning("[STARTUP] UI Repair baseline bootstrap skipped: %s", bootstrap_err)
 
     # 2. Sovereign Cortex & Engine Startup
     try:

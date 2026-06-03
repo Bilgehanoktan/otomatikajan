@@ -1,7 +1,7 @@
 import os
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 from services.project_factory.artifacts import _resolve_policy_autopilot_dir
 
@@ -28,7 +28,7 @@ def log_policy_pr_creation(
         from datetime import timezone
         created_at = datetime.now(timezone.utc).isoformat()
     except Exception:
-        created_at = datetime.utcnow().isoformat() + "Z"
+        created_at = datetime.now(timezone.utc).isoformat() + "Z"
         
     entry = {
         "event_id": f"PRCREATE-{str(uuid.uuid4())[:8]}",

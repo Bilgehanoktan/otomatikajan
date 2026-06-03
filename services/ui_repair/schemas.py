@@ -90,6 +90,17 @@ class UIDefenseOptimizationReportSchema(BaseSchema):
     evidence_hash: Optional[str]
     generated_at: datetime
 
+class UIDefenseOverviewSchema(BaseModel):
+    total_proposals: int
+    active_canaries: int
+    security_lift: float
+    patterns_synthesized: int
+    compliance_status: str
+    governance_requested: int = 0
+    approved_proposals: int = 0
+    rejected_proposals: int = 0
+    latest_report_at: Optional[datetime] = None
+
 class UIRepairOverview(BaseSchema):
     ui_health_score: float
     total_routes: int
@@ -609,6 +620,22 @@ class UIProjectHealthSnapshotSchema(BaseSchema):
     sla_status: Optional[str]
     slo_status: Optional[str]
     created_at: datetime
+
+class UIProjectHealthMatrixRowSchema(BaseModel):
+    id: UUID
+    project_key: str
+    project_name: str
+    environment: str
+    health_score: float
+    monitoring_status: Optional[str] = None
+    open_cases: int
+    critical_cases: int
+    governance_waiting: int
+    active_repairs: int
+    last_incident_at: Optional[datetime] = None
+    sla_status: Optional[str] = None
+    slo_status: Optional[str] = None
+    route_coverage_percent: float = 0.0
 
 class UIGAReadinessAssessmentSchema(BaseSchema):
     id: UUID
@@ -1215,6 +1242,18 @@ class UIGlobalSLOSnapshotSchema(BaseSchema):
     evidence_sync_success_rate: float
     created_at: datetime
 
+class UIFederationOverviewSchema(BaseModel):
+    total_tenants: int
+    active_clusters: int
+    global_health: float
+    drift_count: int
+    isolation_violations: int
+    sync_status: str
+    healthy_clusters: int = 0
+    degraded_clusters: int = 0
+    offline_clusters: int = 0
+    evidence_records: int = 0
+
 class UIAutomatedPostmortemSchema(BaseSchema):
     id: UUID
     incident_id: Optional[UUID]
@@ -1353,10 +1392,22 @@ class UIThirdPartyRiskAssessmentSchema(BaseModel):
     tool_key: Optional[str]
     risk_score: float
     risk_level: str
-    findings_json: List[Dict[str, Any]]
+    findings_json: List[Any]
     recommendation: str
     assessed_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
+class UIToolRiskOverviewSchema(BaseModel):
+    provider_count: int
+    healthy_providers: int
+    degraded_providers: int
+    unavailable_providers: int
+    tool_count: int
+    assessment_count: int
+    highest_risk_level: str
+    highest_risk_score: float
+    critical_findings: int
+    latest_assessments: List[UIThirdPartyRiskAssessmentSchema] = Field(default_factory=list)
 
 class ToolCallEvaluationRequest(BaseModel):
     tool_key: str

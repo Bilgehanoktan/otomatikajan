@@ -123,5 +123,6 @@ class UIEvidenceRunner:
             ],
             page_url="https://app.sovereign-agi.local/dashboard",
             page_title="Sovereign Control Plane",
-            viewport_size={'width': 1280, 'height': 720}
+            viewport_size={'width': 1280, 'height': 720},
+            metadata={"mode": "SIMULATED"}
         )

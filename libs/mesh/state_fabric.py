@@ -8,7 +8,7 @@ import json
 import asyncio
 import os
 from typing import Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Import DB session for SQLite fallback logic
 from libs.db.session import get_redis_client, get_db, get_db_ctx
@@ -68,7 +68,7 @@ class GlobalStateFabric:
                     ON CONFLICT(key) DO UPDATE SET 
                         value = excluded.value,
                         updated_at = excluded.updated_at
-                """), {"key": key, "value": json_val, "updated_at": datetime.utcnow()})
+                """), {"key": key, "value": json_val, "updated_at": datetime.now(timezone.utc)})
                 await session.commit()
             logger.debug(f"Fabric: State '{key}' synced to Shared SQLite (R-03 Active)")
             return True
@@ -155,11 +155,11 @@ class GlobalStateFabric:
                 # 1. Clear expired locks
                 await session.execute(text("""
                     DELETE FROM mesh_fabric WHERE key = :lock_key AND updated_at < :expiry
-                """), {"lock_key": f"lock:{lock_id}", "expiry": datetime.utcnow()})
+                """), {"lock_key": f"lock:{lock_id}", "expiry": datetime.now(timezone.utc)})
                 
                 # 2. Try to insert lock
                 try:
-                    expiry_time = datetime.utcnow().timestamp() + timeout
+                    expiry_time = datetime.now(timezone.utc).timestamp() + timeout
                     await session.execute(text("""
                         INSERT INTO mesh_fabric (key, value, updated_at)
                         VALUES (:key, :value, :updated_at)

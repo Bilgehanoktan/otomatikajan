@@ -4,7 +4,7 @@ import os
 import shutil
 import json
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 from services.project_factory.models import ProjectFactoryIntake
 from services.project_factory.artifacts import _resolve_project_dir, write_sandbox_manifest
@@ -146,7 +146,7 @@ def scaffold_project_sandbox(
         f.write(f"**Title:** {project_brief.title}\n")
         f.write(f"**Intake ID:** {project_brief.project_id}\n")
         f.write(f"**State:** SCOPE_APPROVED\n")
-        f.write(f"**Scaffolded At:** {datetime.utcnow().isoformat()}Z\n\n")
+        f.write(f"**Scaffolded At:** {datetime.now(timezone.utc).isoformat()}Z\n\n")
         f.write("## Problem Statement\n")
         f.write(f"{project_brief.problem_statement}\n\n")
         f.write("## Recommended Action\n")
@@ -164,7 +164,7 @@ def scaffold_project_sandbox(
     # 6. Generate and save the manifest
     manifest = {
         "project_id": project_brief.project_id,
-        "created_at": datetime.utcnow().isoformat() + "Z",
+        "created_at": datetime.now(timezone.utc).isoformat() + "Z",
         "status": "SCAFFOLD_COMPLETED",
         "sandbox_path": f"project_outputs/project_factory/{project_brief.project_id}/sandbox",
         "copied_files": copied_files,

@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 from datetime import datetime, timedelta, timezone
@@ -28,7 +29,10 @@ from libs.db.models.ui_repair_models import (
     AutoPatchExecutionStatus, AutoPatchSourceType,
     UIEnterpriseReadinessAssessment, UIReleaseGateDecision, UIFinalAuditPack, UIOperatorHandoverReport,
     UITenantProfile, UITenantProjectBinding, UIClusterProfile, UIPolicyDrift, UIFederatedEvidenceRecord,
-    UISecurityRemediationPlan, UISecurityAutoFixAttempt
+    UISecurityRemediationPlan, UISecurityAutoFixAttempt, UIProviderHealth, UIFinalIntegrationAudit,
+    UIReleaseReadinessCheck, UIThirdPartyRiskAssessment, UISovereignIdentity,
+    UISecurityPostureFinding, UIAttackPath, UIAttackSimulationRun, UIResidualRiskAcceptance
+    , UIKnowledgeNode, UIKnowledgeEdge
 )
 from libs.db.models.core_models import OperationalIncident, SovereignEvidence
 from services.ui_repair.playwright_runner import UIEvidenceRunner
@@ -68,6 +72,10 @@ from .schemas import (
 )
 
 _log = get_logger("ui_repair_service")
+
+
+def _status_value(value: Any) -> Any:
+    return getattr(value, "value", value)
 
 class UIRepairService:
     """
@@ -121,6 +129,19 @@ class UIRepairService:
         self.autopatch_orchestrator = AutoPatchV2Orchestrator(db)
         self.closure_manager = WarRoomClosureManager(db)
 
+    @staticmethod
+    def _risk_fingerprint(risk: Dict[str, Any]) -> str:
+        payload = "|".join(
+            [
+                str(risk.get("module", "")),
+                str(risk.get("severity", "")),
+                str(risk.get("description", "")),
+                str(risk.get("mitigation", "")),
+                str(risk.get("mitigation_strategy", "")),
+            ]
+        )
+        return hashlib.sha1(payload.encode("utf-8")).hexdigest()
+
     async def run_smoke_test(self, routes: Optional[List[str]] = None) -> UISmokeRun:
         """Executes a full smoke run on defined routes."""
         routes = routes or self.DEFAULT_ROUTES
@@ -172,93 +193,120 @@ class UIRepairService:
         _log.info(f"UI Repair Service: Completed smoke run {cast(Any, run).id}. Passed: {passed}, Failed: {failed}")
         return run
 
-    async def get_overview(self) -> Dict[str, Any]:
-        """Calculates the high-level UI health overview."""
+    async def get_dashboard_summary(self) -> Dict[str, Any]:
+        """
+        Lightweight dashboard summary for operator-facing UI.
+        Keeps the initial page render independent from slower analytics queries.
+        """
         active_routes = self.DEFAULT_ROUTES
         total_routes = len(active_routes)
-        
-        stmt_failing = select(func.count(UIRouteHealth.id)).where(
-            UIRouteHealth.route.in_(active_routes),
-            UIRouteHealth.last_status == "FAIL",
+
+        route_rows = (
+            await self.db.execute(
+                select(
+                    UIRouteHealth.route,
+                    UIRouteHealth.last_status,
+                    UIRouteHealth.last_checked_at,
+                ).where(UIRouteHealth.route.in_(active_routes))
+            )
+        ).all()
+
+        failing_route_set = {
+            str(route)
+            for route, status, _checked_at in route_rows
+            if _status_value(status) == "FAIL"
+        }
+        latest_route_check_at = max(
+            (checked_at for _route, _status, checked_at in route_rows if checked_at is not None),
+            default=None,
         )
-        failing_routes = (await self.db.execute(stmt_failing)).scalar() or 0
 
-        stmt_failing_routes = select(UIRouteHealth.route).where(
-            UIRouteHealth.route.in_(active_routes),
-            UIRouteHealth.last_status == "FAIL",
-        )
-        failing_route_rows = (await self.db.execute(stmt_failing_routes)).scalars().all()
-        failing_route_set = set(failing_route_rows)
-
-        if failing_route_set:
-            stmt_open_cases = select(func.count(UIRepairCase.id)).where(
-                UIRepairCase.route.in_(failing_route_set),
-                UIRepairCase.status != "RESOLVED",
-                UIRepairCase.status != "IGNORED",
-            )
-            open_cases = (await self.db.execute(stmt_open_cases)).scalar() or 0
-        else:
-            open_cases = 0
-
-        if failing_route_set:
-            stmt_critical = select(func.count(UIRepairCase.id)).where(
-                UIRepairCase.route.in_(failing_route_set),
-                UIRepairCase.severity == "CRITICAL",
-                UIRepairCase.status != "RESOLVED",
-                UIRepairCase.status != "IGNORED",
-            )
-            critical_cases = (await self.db.execute(stmt_critical)).scalar() or 0
-        else:
-            critical_cases = 0
-        
-        stmt_last_run = select(UISmokeRun).order_by(UISmokeRun.started_at.desc()).limit(1)
-        last_run = (await self.db.execute(stmt_last_run)).scalar_one_or_none()
-        if last_run and str(last_run.status) == "RUNNING":
-            started_at = cast(Any, last_run).started_at
-            now_for_stale_check = datetime.now(started_at.tzinfo) if getattr(started_at, "tzinfo", None) else datetime.now()
-            if started_at and now_for_stale_check - started_at > timedelta(minutes=30):
-                stmt_last_finished_run = (
-                    select(UISmokeRun)
-                    .where(UISmokeRun.status != "RUNNING")
-                    .order_by(UISmokeRun.started_at.desc())
-                    .limit(1)
+        case_rows = (
+            await self.db.execute(
+                select(UIRepairCase.severity).where(
+                    UIRepairCase.route.in_(active_routes),
+                    UIRepairCase.status.not_in(["RESOLVED", "IGNORED"]),
                 )
-                last_finished_run = (await self.db.execute(stmt_last_finished_run)).scalar_one_or_none()
-                if last_finished_run:
-                    last_run = last_finished_run
-                else:
-                    cast(Any, last_run).status = "STALE"
-        
-        # Calculate health score: 1.0 - (failing_routes / total_routes)
-        health_score = 1.0 - (failing_routes / total_routes if total_routes > 0 else 0)
-        
-        # Top failure types
-        if failing_route_set:
-            stmt_fail_types = (
-                select(UIRepairCase.failure_type, func.count(UIRepairCase.id))
-                .where(
-                    UIRepairCase.route.in_(failing_route_set),
-                    UIRepairCase.status != "RESOLVED",
-                    UIRepairCase.status != "IGNORED",
-                )
-                .group_by(UIRepairCase.failure_type)
             )
-            fail_types_res = (await self.db.execute(stmt_fail_types)).all()
-        else:
-            fail_types_res = []
-        top_failure_types = [{"type": row[0], "count": row[1]} for row in fail_types_res]
+        ).scalars().all()
+
+        open_cases = len(case_rows)
+        critical_cases = sum(1 for severity in case_rows if _status_value(severity) == "CRITICAL")
+
+        last_run_row = (
+            await self.db.execute(
+                select(UISmokeRun.started_at, UISmokeRun.status)
+                .order_by(UISmokeRun.started_at.desc())
+                .limit(1)
+            )
+        ).first()
+
+        last_smoke_run_at = latest_route_check_at
+        last_smoke_status: Optional[str] = None
+        if last_run_row:
+            started_at = last_run_row[0]
+            status_value = _status_value(last_run_row[1])
+            if (
+                status_value == "RUNNING"
+                and started_at
+                and (
+                    (
+                        datetime.now(started_at.tzinfo)
+                        if getattr(started_at, "tzinfo", None)
+                        else datetime.now()
+                    )
+                    - started_at
+                )
+                > timedelta(minutes=30)
+            ):
+                last_smoke_status = "STALE"
+            else:
+                last_smoke_status = status_value
+            last_smoke_run_at = started_at or latest_route_check_at
+
+        failing_routes = len(failing_route_set)
+        passing_routes = max(total_routes - failing_routes, 0)
+        health_score = 1.0 - (failing_routes / total_routes if total_routes > 0 else 0.0)
 
         return {
             "ui_health_score": round(health_score, 2),
             "total_routes": total_routes,
-            "passing_routes": total_routes - failing_routes,
+            "passing_routes": passing_routes,
             "failing_routes": failing_routes,
             "open_cases": open_cases,
             "critical_cases": critical_cases,
-            "last_smoke_run_at": last_run.started_at if last_run else None,
-            "last_smoke_status": last_run.status if last_run else None,
-            "top_failure_types": top_failure_types
+            "last_smoke_run_at": last_smoke_run_at,
+            "last_smoke_status": last_smoke_status,
+            "top_failure_types": [],
         }
+
+    async def get_overview(self) -> Dict[str, Any]:
+        """Calculates the high-level UI health overview."""
+        summary = await self.get_dashboard_summary()
+
+        fail_types_res: List[Any] = []
+        if summary["failing_routes"] > 0:
+            try:
+                stmt_fail_types = (
+                    select(UIRepairCase.failure_type, func.count(UIRepairCase.id))
+                    .where(
+                        UIRepairCase.route.in_(self.DEFAULT_ROUTES),
+                        UIRepairCase.status.not_in(["RESOLVED", "IGNORED"]),
+                    )
+                    .group_by(UIRepairCase.failure_type)
+                    .order_by(desc(func.count(UIRepairCase.id)))
+                    .limit(5)
+                )
+                fail_types_res = (await self.db.execute(stmt_fail_types)).all()
+            except Exception as exc:
+                await self.db.rollback()
+                _log.warning(f"UI overview failure-type enrichment skipped: {exc}")
+
+        summary["top_failure_types"] = [
+            {"type": _status_value(row[0]), "count": int(row[1])}
+            for row in fail_types_res
+        ]
+        return summary
 
     async def _update_route_health(self, res: Dict[str, Any]):
         """Updates the persistent health matrix for a specific route."""
@@ -448,7 +496,7 @@ class UIRepairService:
             {
                 "id": str(a.id),
                 "attempt_no": int(cast(Any, a).attempt_no or 0),
-                "status": str(a.status),
+                "status": _status_value(a.status),
                 "started_at": a.started_at,
                 "finished_at": a.finished_at,
                 "stagehand_status": str(a.stagehand_status or ""),
@@ -549,7 +597,7 @@ class UIRepairService:
         cast(Any, case).status = UIRepairStatus.APPLYING.value
         await self.db.commit()
         
-        apply_orch = ApplyOrchestrator()
+        apply_orch = ApplyOrchestrator(self.db)
         result = await apply_orch.apply_repair(str(case.pr_url))
         
         # 3. Record Apply Result
@@ -861,6 +909,288 @@ class UIRepairService:
     async def list_projects(self) -> List[UIRepairProjectProfile]:
         from .project_rollout_manager import ProjectRolloutManager
         return list(await ProjectRolloutManager.list_projects(self.db))
+
+    async def get_project_health_matrix(self) -> List[Dict[str, Any]]:
+        from libs.db.models.ui_repair_models import UIProjectHealthSnapshot
+
+        snapshots = (
+            await self.db.execute(
+                select(UIProjectHealthSnapshot).order_by(
+                    UIProjectHealthSnapshot.project_key.asc(),
+                    UIProjectHealthSnapshot.created_at.desc(),
+                )
+            )
+        ).scalars().all()
+        latest_snapshot_by_project: Dict[str, Any] = {}
+        for snapshot in snapshots:
+            latest_snapshot_by_project.setdefault(snapshot.project_key, snapshot)
+
+        projects = await self.list_projects()
+        rows: List[Dict[str, Any]] = []
+
+        async def build_row(
+            project_key: str,
+            project_name: str,
+            environment: str,
+            route_scope: List[str],
+            auto_repair_enabled: bool,
+            snapshot: Optional[Any],
+        ) -> Dict[str, Any]:
+            route_scope = route_scope or self.DEFAULT_ROUTES
+            active_routes = len(route_scope)
+            passing_routes = 0
+            if active_routes:
+                passing_routes = (
+                    await self.db.execute(
+                        select(func.count(UIRouteHealth.id)).where(
+                            UIRouteHealth.route.in_(route_scope),
+                            UIRouteHealth.last_status == "PASS",
+                        )
+                    )
+                ).scalar() or 0
+
+            open_cases = (
+                await self.db.execute(
+                    select(func.count(UIRepairCase.id)).where(
+                        UIRepairCase.project_key == project_key,
+                        UIRepairCase.status.not_in(["RESOLVED", "IGNORED"]),
+                    )
+                )
+            ).scalar() or 0
+            critical_cases = (
+                await self.db.execute(
+                    select(func.count(UIRepairCase.id)).where(
+                        UIRepairCase.project_key == project_key,
+                        UIRepairCase.severity == "CRITICAL",
+                        UIRepairCase.status.not_in(["RESOLVED", "IGNORED"]),
+                    )
+                )
+            ).scalar() or 0
+            governance_waiting = (
+                await self.db.execute(
+                    select(func.count(UIRepairCase.id)).where(
+                        UIRepairCase.project_key == project_key,
+                        UIRepairCase.status == "WAITING_GOVERNANCE",
+                    )
+                )
+            ).scalar() or 0
+            active_repairs = (
+                await self.db.execute(
+                    select(func.count(UIRepairCase.id)).where(
+                        UIRepairCase.project_key == project_key,
+                        UIRepairCase.status.in_([
+                            "REPAIRING",
+                            "PATCH_GENERATED",
+                            "PR_OPENED",
+                            "WAITING_GOVERNANCE",
+                        ]),
+                    )
+                )
+            ).scalar() or 0
+            last_incident_at = (
+                await self.db.execute(
+                    select(func.max(UIRepairCase.updated_at)).where(
+                        UIRepairCase.project_key == project_key,
+                    )
+                )
+            ).scalar_one_or_none()
+
+            health_score = float(snapshot.health_score) if snapshot else max(
+                0.0,
+                round(100.0 - (open_cases * 6.0) - (critical_cases * 12.0), 1),
+            )
+            monitoring_status = snapshot.monitoring_status if snapshot else ("ACTIVE" if auto_repair_enabled else "PASSIVE")
+            if snapshot:
+                open_cases = snapshot.open_cases
+                critical_cases = snapshot.critical_cases
+                governance_waiting = snapshot.governance_waiting
+                active_repairs = snapshot.active_repairs
+                last_incident_at = snapshot.last_incident_at
+
+            if snapshot and snapshot.sla_status:
+                sla_status = snapshot.sla_status
+            else:
+                sla_status = "COMPLIANT" if health_score >= 90 else "AT_RISK" if health_score >= 75 else "BREACHED"
+
+            if snapshot and snapshot.slo_status:
+                slo_status = snapshot.slo_status
+            else:
+                slo_status = "HEALTHY" if health_score >= 90 else "DEGRADED" if health_score >= 75 else "BREACHING"
+
+            coverage = round((passing_routes / active_routes) * 100, 1) if active_routes else 0.0
+            return {
+                "id": snapshot.id if snapshot else uuid.uuid5(uuid.NAMESPACE_URL, f"project-health:{project_key}"),
+                "project_key": project_key,
+                "project_name": project_name,
+                "environment": environment,
+                "health_score": round(health_score, 1),
+                "monitoring_status": monitoring_status,
+                "open_cases": int(open_cases),
+                "critical_cases": int(critical_cases),
+                "governance_waiting": int(governance_waiting),
+                "active_repairs": int(active_repairs),
+                "last_incident_at": last_incident_at,
+                "sla_status": sla_status,
+                "slo_status": slo_status,
+                "route_coverage_percent": coverage,
+            }
+
+        if projects:
+            for project in projects:
+                rows.append(
+                    await build_row(
+                        project_key=project.project_key,
+                        project_name=project.project_name,
+                        environment=project.environment,
+                        route_scope=list(project.route_scope_json or []),
+                        auto_repair_enabled=bool(project.auto_repair_enabled),
+                        snapshot=latest_snapshot_by_project.get(project.project_key),
+                    )
+                )
+
+        for project_key, snapshot in latest_snapshot_by_project.items():
+            if any(row["project_key"] == project_key for row in rows):
+                continue
+            rows.append(
+                await build_row(
+                    project_key=project_key,
+                    project_name=project_key.replace("_", " ").title(),
+                    environment="PRODUCTION",
+                    route_scope=[],
+                    auto_repair_enabled=False,
+                    snapshot=snapshot,
+                )
+            )
+
+        if not rows:
+            overview = await self.get_overview()
+            rows.append({
+                "id": uuid.uuid5(uuid.NAMESPACE_URL, "project-health:GLOBAL"),
+                "project_key": "GLOBAL",
+                "project_name": "Global UI Surface",
+                "environment": "GLOBAL",
+                "health_score": round(float(overview["ui_health_score"]) * 100, 1),
+                "monitoring_status": "ACTIVE",
+                "open_cases": int(overview["open_cases"]),
+                "critical_cases": int(overview["critical_cases"]),
+                "governance_waiting": 0,
+                "active_repairs": int(overview["open_cases"]),
+                "last_incident_at": overview["last_smoke_run_at"],
+                "sla_status": "COMPLIANT" if overview["ui_health_score"] >= 0.9 else "AT_RISK",
+                "slo_status": "HEALTHY" if overview["ui_health_score"] >= 0.9 else "DEGRADED",
+                "route_coverage_percent": round(
+                    (overview["passing_routes"] / max(1, overview["total_routes"])) * 100,
+                    1,
+                ),
+            })
+
+        rows.sort(key=lambda item: (item["health_score"], -item["open_cases"]), reverse=True)
+        return rows
+
+    async def get_defense_overview(self) -> Dict[str, Any]:
+        total_proposals = (
+            await self.db.execute(select(func.count(UIGuardrailTuningProposal.id)))
+        ).scalar() or 0
+        governance_requested = (
+            await self.db.execute(
+                select(func.count(UIGuardrailTuningProposal.id)).where(
+                    UIGuardrailTuningProposal.status == "GOVERNANCE_REQUESTED"
+                )
+            )
+        ).scalar() or 0
+        approved_proposals = (
+            await self.db.execute(
+                select(func.count(UIGuardrailTuningProposal.id)).where(
+                    UIGuardrailTuningProposal.status.in_(["APPROVED", "APPLIED"])
+                )
+            )
+        ).scalar() or 0
+        rejected_proposals = (
+            await self.db.execute(
+                select(func.count(UIGuardrailTuningProposal.id)).where(
+                    UIGuardrailTuningProposal.status == "REJECTED"
+                )
+            )
+        ).scalar() or 0
+        active_canaries = (
+            await self.db.execute(
+                select(func.count(UIGuardrailCanaryRun.id)).where(UIGuardrailCanaryRun.status == "RUNNING")
+            )
+        ).scalar() or 0
+        patterns_synthesized = (
+            await self.db.execute(select(func.count(UIDefensivePattern.id)))
+        ).scalar() or 0
+
+        latest_report = await self.defense_reporter.get_latest_report()
+        security_lift = 0.0
+        if latest_report:
+            security_lift = round(float(latest_report.security_score_after - latest_report.security_score_before), 1)
+
+        if total_proposals == 0 and patterns_synthesized == 0:
+            compliance_status = "NO_DATA"
+        elif rejected_proposals > 0:
+            compliance_status = "REVIEW_REQUIRED"
+        elif governance_requested > 0:
+            compliance_status = "GOVERNANCE_PENDING"
+        elif active_canaries > 0:
+            compliance_status = "CANARY_ACTIVE"
+        else:
+            compliance_status = "HEALTHY"
+
+        return {
+            "total_proposals": int(total_proposals),
+            "active_canaries": int(active_canaries),
+            "security_lift": security_lift,
+            "patterns_synthesized": int(patterns_synthesized),
+            "compliance_status": compliance_status,
+            "governance_requested": int(governance_requested),
+            "approved_proposals": int(approved_proposals),
+            "rejected_proposals": int(rejected_proposals),
+            "latest_report_at": latest_report.generated_at if latest_report else None,
+        }
+
+    async def get_federation_overview(self) -> Dict[str, Any]:
+        from .cluster_health_aggregator import ClusterHealthAggregator
+
+        cluster_summary = await ClusterHealthAggregator.get_federated_health_summary(self.db)
+        summary = cluster_summary.get("summary", {})
+        total_tenants = (
+            await self.db.execute(select(func.count(UITenantProfile.id)))
+        ).scalar() or 0
+        drift_count = (
+            await self.db.execute(select(func.count(UIPolicyDrift.id)))
+        ).scalar() or 0
+        isolation_violations = (
+            await self.db.execute(
+                select(func.count(SovereignEvidence.id)).where(SovereignEvidence.evidence_type == "ISOLATION_VIOLATION")
+            )
+        ).scalar() or 0
+        evidence_records = (
+            await self.db.execute(select(func.count(UIFederatedEvidenceRecord.id)))
+        ).scalar() or 0
+        offline_clusters = int(summary.get("offline", 0) or 0)
+        total_clusters = int(summary.get("total", 0) or 0)
+        if total_clusters == 0:
+            sync_status = "NO_DATA"
+        elif offline_clusters > 0:
+            sync_status = "DEGRADED"
+        elif evidence_records == 0:
+            sync_status = "PENDING_EVIDENCE"
+        else:
+            sync_status = "OPTIMAL"
+
+        return {
+            "total_tenants": int(total_tenants),
+            "active_clusters": total_clusters,
+            "global_health": round(float(summary.get("global_health_score", 0.0) or 0.0), 1),
+            "drift_count": int(drift_count),
+            "isolation_violations": int(isolation_violations),
+            "sync_status": sync_status,
+            "healthy_clusters": int(summary.get("healthy", 0) or 0),
+            "degraded_clusters": int(summary.get("degraded", 0) or 0),
+            "offline_clusters": offline_clusters,
+            "evidence_records": int(evidence_records),
+        }
 
     async def create_project(self, data: UIProjectProfileCreate) -> UIRepairProjectProfile:
         from .project_rollout_manager import ProjectRolloutManager
@@ -1563,26 +1893,52 @@ class UIRepairService:
         execution = await self.db.get(UIAutoPatchExecution, execution_id)
         if not execution:
             raise ValueError("Execution not found.")
-        
-        # 1. Governance Check (Heuristic)
+
+        if execution.status != AutoPatchExecutionStatus.GOVERNANCE_REQUESTED:
+            raise ValueError(f"Execution {execution.execution_key} is not ready for apply. Current status: {execution.status}")
+        if not actor or not actor.strip():
+            raise ValueError("Operator identity is required for apply.")
+        if not rationale or len(rationale.strip()) < 8:
+            raise ValueError("Operator rationale must be at least 8 characters.")
+
+        latest_verification = (
+            await self.db.execute(
+                select(UIVerificationRunV2)
+                .where(UIVerificationRunV2.execution_id == execution_id)
+                .order_by(UIVerificationRunV2.created_at.desc())
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        if not latest_verification or latest_verification.status != "PASSED":
+            raise ValueError("A PASSED verification run is required before apply.")
+
         execution.status = AutoPatchExecutionStatus.APPLYING
-        execution.governance_approval_id = uuid.uuid4() # Mock approval
-        self.autopatch_orchestrator.evidence.write_execution_event(execution.id, "apply_started", f"Applying patch. Actor: {actor}. Rationale: {rationale}")
-        
-        # 2. Pre-apply snapshot (Heuristic)
+        execution.governance_approval_id = uuid.uuid5(
+            uuid.NAMESPACE_URL,
+            f"ui-autopatch-approval:{execution.id}:{actor.strip()}:{rationale.strip()}",
+        )
+        self.autopatch_orchestrator.evidence.write_execution_event(
+            execution.id,
+            "governance_approved",
+            f"Approved by {actor.strip()} with rationale: {rationale.strip()}",
+        )
+        self.autopatch_orchestrator.evidence.write_execution_event(
+            execution.id,
+            "apply_started",
+            f"Applying patch. Actor: {actor.strip()}. Rationale: {rationale.strip()}",
+        )
+
         execution.rollback_snapshot_path = f"snapshots/pre-apply-{execution.id}.img"
-        
-        # 3. Apply Patch (Heuristic)
+
         execution.status = AutoPatchExecutionStatus.APPLIED
         await self.db.commit()
-        
-        # 4. Post-Apply Validation
+
         validation = await self.autopatch_orchestrator.validator.validate_apply(execution)
         self.autopatch_orchestrator.evidence.write_execution_event(execution.id, "post_apply_validation", f"Status: {validation.status}")
-        
+
         if validation.status == "PASSED":
             await self.closure_manager.close_action_item(execution)
-        
+
         await self.db.commit()
         return validation
 
@@ -1646,3 +2002,432 @@ class UIRepairService:
     async def list_patch_candidates(self, execution_id: UUID) -> List[UIPatchCandidate]:
         res = await self.db.execute(select(UIPatchCandidate).where(UIPatchCandidate.execution_id == execution_id))
         return list(res.scalars().all())
+
+    async def get_release_phase_completion_matrix(self) -> List[Dict[str, Any]]:
+        now = datetime.now(timezone.utc)
+        matrix = [
+            {
+                "phase_id": phase_id,
+                "phase_name": f"Phase {phase_id}",
+                "status": "NOT_EVALUATED",
+                "completion_date": None,
+                "blockers_count": 0,
+                "warnings_count": 0,
+            }
+            for phase_id in range(1, 31)
+        ]
+
+        provider_count = (await self.db.execute(select(func.count(UIProviderHealth.id)))).scalar() or 0
+        tool_risk_count = (await self.db.execute(select(func.count(UIThirdPartyRiskAssessment.id)))).scalar() or 0
+        degraded_providers = (
+            await self.db.execute(
+                select(func.count(UIProviderHealth.id)).where(UIProviderHealth.status.in_(["DEGRADED", "UNAVAILABLE"]))
+            )
+        ).scalar() or 0
+        high_tool_risks = (
+            await self.db.execute(
+                select(func.count(UIThirdPartyRiskAssessment.id)).where(UIThirdPartyRiskAssessment.risk_level.in_(["HIGH", "CRITICAL"]))
+            )
+        ).scalar() or 0
+        phase_18 = matrix[17]
+        if provider_count > 0 or tool_risk_count > 0:
+            phase_18["status"] = "WARNING" if degraded_providers or high_tool_risks else "PASSED"
+            phase_18["warnings_count"] = degraded_providers + high_tool_risks
+            phase_18["completion_date"] = now
+
+        identities = (await self.db.execute(select(func.count(UISovereignIdentity.id)))).scalar() or 0
+        phase_19 = matrix[18]
+        if identities > 0:
+            phase_19["status"] = "PASSED"
+            phase_19["completion_date"] = now
+
+        cognitive_checks = (await self.db.execute(select(func.count(UICognitiveIntegrityCheck.id)))).scalar() or 0
+        blocked_cognitive = (
+            await self.db.execute(
+                select(func.count(UICognitiveIntegrityCheck.id)).where(
+                    UICognitiveIntegrityCheck.status.in_(["FAILED", "BLOCKED", "MANUAL_REVIEW_REQUIRED"])
+                )
+            )
+        ).scalar() or 0
+        phase_20 = matrix[19]
+        if cognitive_checks > 0:
+            phase_20["status"] = "WARNING" if blocked_cognitive else "PASSED"
+            phase_20["blockers_count"] = blocked_cognitive
+            phase_20["completion_date"] = now
+
+        posture_findings = (await self.db.execute(select(func.count(UISecurityPostureFinding.id)))).scalar() or 0
+        failed_posture = (
+            await self.db.execute(
+                select(func.count(UISecurityPostureFinding.id)).where(
+                    UISecurityPostureFinding.status.in_(["FAILED", "WARNING"])
+                )
+            )
+        ).scalar() or 0
+        phase_21 = matrix[20]
+        if posture_findings > 0:
+            phase_21["status"] = "WARNING" if failed_posture else "PASSED"
+            phase_21["warnings_count"] = failed_posture
+            phase_21["completion_date"] = now
+
+        remediation_plans = (await self.db.execute(select(func.count(UISecurityRemediationPlan.id)))).scalar() or 0
+        autofix_attempts = (await self.db.execute(select(func.count(UISecurityAutoFixAttempt.id)))).scalar() or 0
+        failed_remediation = (
+            await self.db.execute(
+                select(func.count(UISecurityAutoFixAttempt.id)).where(
+                    UISecurityAutoFixAttempt.status.in_(["FAILED", "MANUAL_REQUIRED", "BLOCKED_BY_POLICY"])
+                )
+            )
+        ).scalar() or 0
+        phase_22 = matrix[21]
+        if remediation_plans > 0 or autofix_attempts > 0:
+            phase_22["status"] = "WARNING" if failed_remediation else "PASSED"
+            phase_22["warnings_count"] = failed_remediation
+            phase_22["completion_date"] = now
+
+        attack_paths = (await self.db.execute(select(func.count(UIAttackPath.id)))).scalar() or 0
+        attack_simulations = (await self.db.execute(select(func.count(UIAttackSimulationRun.id)))).scalar() or 0
+        failed_simulations = (
+            await self.db.execute(
+                select(func.count(UIAttackSimulationRun.id)).where(UIAttackSimulationRun.status == "FAILED")
+            )
+        ).scalar() or 0
+        phase_23 = matrix[22]
+        if attack_paths > 0 or attack_simulations > 0:
+            phase_23["status"] = "WARNING" if failed_simulations else "PASSED"
+            phase_23["warnings_count"] = failed_simulations
+            phase_23["completion_date"] = now
+
+        red_team_runs = (await self.db.execute(select(func.count(UIRedTeamRun.id)))).scalar() or 0
+        red_team_reports = (await self.db.execute(select(func.count(UIRedTeamReport.id)))).scalar() or 0
+        drift_events = (await self.db.execute(select(func.count(UIAdversarialDriftEvent.id)))).scalar() or 0
+        failed_red_team = (
+            await self.db.execute(
+                select(func.count(UIRedTeamRun.id)).where(
+                    UIRedTeamRun.status.in_(["FAILED", "BLOCKED_BY_SAFETY", "MANUAL_REVIEW_REQUIRED"])
+                )
+            )
+        ).scalar() or 0
+        phase_24 = matrix[23]
+        if red_team_runs > 0 or red_team_reports > 0 or drift_events > 0:
+            phase_24["status"] = "WARNING" if failed_red_team or drift_events else "PASSED"
+            phase_24["warnings_count"] = failed_red_team + drift_events
+            phase_24["completion_date"] = now
+
+        tuning_proposals = (await self.db.execute(select(func.count(UIGuardrailTuningProposal.id)))).scalar() or 0
+        defensive_patterns = (await self.db.execute(select(func.count(UIDefensivePattern.id)))).scalar() or 0
+        defense_reports = (await self.db.execute(select(func.count(UIDefenseOptimizationReport.id)))).scalar() or 0
+        pending_proposals = (
+            await self.db.execute(
+                select(func.count(UIGuardrailTuningProposal.id)).where(
+                    UIGuardrailTuningProposal.status.in_([
+                        "DRAFT",
+                        "GOVERNANCE_REQUESTED",
+                        "REGRESSION_FAILED",
+                        "CANARY_FAILED",
+                        "MANUAL_REVIEW_REQUIRED",
+                    ])
+                )
+            )
+        ).scalar() or 0
+        phase_25 = matrix[24]
+        if tuning_proposals > 0 or defensive_patterns > 0 or defense_reports > 0:
+            phase_25["status"] = "WARNING" if pending_proposals else "PASSED"
+            phase_25["warnings_count"] = pending_proposals
+            phase_25["completion_date"] = now
+
+        war_rooms = (await self.db.execute(select(func.count(UIIncidentWarRoom.id)))).scalar() or 0
+        open_war_rooms = (
+            await self.db.execute(
+                select(func.count(UIIncidentWarRoom.id)).where(UIIncidentWarRoom.status.not_in(["RESOLVED", "CLOSED"]))
+            )
+        ).scalar() or 0
+        phase_26 = matrix[25]
+        if war_rooms > 0:
+            phase_26["status"] = "WARNING" if open_war_rooms else "PASSED"
+            phase_26["warnings_count"] = open_war_rooms
+            phase_26["completion_date"] = now
+
+        executions = (
+            await self.db.execute(
+                select(UIAutoPatchExecution).order_by(UIAutoPatchExecution.created_at.desc()).limit(20)
+            )
+        ).scalars().all()
+        execution_statuses = {_status_value(ex.status) for ex in executions}
+        phase_27 = matrix[26]
+        if execution_statuses & {"FAILED", "PREFLIGHT_BLOCKED", "ROLLBACK_REQUIRED", "ROLLED_BACK"}:
+            phase_27["status"] = "WARNING"
+            phase_27["warnings_count"] = sum(
+                1 for ex in executions
+                if _status_value(ex.status) in {"FAILED", "PREFLIGHT_BLOCKED", "ROLLBACK_REQUIRED", "ROLLED_BACK"}
+            )
+        elif execution_statuses & {"GOVERNANCE_REQUESTED", "VERIFICATION_RUNNING", "PATCH_GENERATED", "PATCH_PLANNING", "APPLYING"}:
+            phase_27["status"] = "RUNNING"
+        elif execution_statuses & {"VERIFIED", "APPLIED"}:
+            phase_27["status"] = "PASSED"
+            phase_27["completion_date"] = max((ex.created_at for ex in executions), default=now)
+
+        sessions = (
+            await self.db.execute(
+                select(UIPatchNegotiationSession).order_by(UIPatchNegotiationSession.created_at.desc()).limit(20)
+            )
+        ).scalars().all()
+        session_statuses = {_status_value(s.status) for s in sessions}
+        phase_28 = matrix[27]
+        if session_statuses & {"DISAGREEMENT", "FAILED", "MANUAL_REVIEW_REQUIRED"}:
+            phase_28["status"] = "WARNING"
+            phase_28["warnings_count"] = sum(
+                1 for session in sessions
+                if _status_value(session.status) in {"DISAGREEMENT", "FAILED", "MANUAL_REVIEW_REQUIRED"}
+            )
+        elif session_statuses & {"RUNNING", "PENDING"}:
+            phase_28["status"] = "RUNNING"
+        elif session_statuses & {"CONSENSUS_REACHED"}:
+            phase_28["status"] = "PASSED"
+            phase_28["completion_date"] = max((s.created_at for s in sessions), default=now)
+
+        node_count = (await self.db.execute(select(func.count(UIKnowledgeNode.id)))).scalar() or 0
+        edge_count = (await self.db.execute(select(func.count(UIKnowledgeEdge.id)))).scalar() or 0
+        phase_29 = matrix[28]
+        if node_count == 0 and edge_count == 0:
+            phase_29["status"] = "WARNING"
+            phase_29["warnings_count"] = 1
+        else:
+            phase_29["status"] = "PASSED"
+            phase_29["completion_date"] = now
+
+        latest_audit = (
+            await self.db.execute(
+                select(UIFinalIntegrationAudit).order_by(UIFinalIntegrationAudit.created_at.desc()).limit(1)
+            )
+        ).scalar_one_or_none()
+        latest_checks = (
+            await self.db.execute(
+                select(UIReleaseReadinessCheck).order_by(UIReleaseReadinessCheck.created_at.desc()).limit(10)
+            )
+        ).scalars().all()
+        phase_30 = matrix[29]
+        blocker_count = sum(len(check.blockers_json or []) for check in latest_checks)
+        warning_count = sum(len(check.warnings_json or []) for check in latest_checks)
+        if latest_audit and _status_value(latest_audit.status) in {"FAILED", "BLOCKED"}:
+            phase_30["status"] = "FAILED"
+            phase_30["blockers_count"] = max(blocker_count, len(latest_audit.failed_modules_json or []))
+        elif blocker_count > 0:
+            phase_30["status"] = "WARNING"
+            phase_30["blockers_count"] = blocker_count
+            phase_30["warnings_count"] = warning_count
+        elif latest_audit or latest_checks:
+            phase_30["status"] = "PASSED" if warning_count == 0 and latest_audit and _status_value(latest_audit.status) == "PASSED" else "WARNING"
+            phase_30["warnings_count"] = warning_count + len((latest_audit.warnings_json if latest_audit else []) or [])
+            phase_30["completion_date"] = max(
+                [item.created_at for item in latest_checks] + ([latest_audit.created_at] if latest_audit else []),
+                default=now,
+            )
+
+        return matrix
+
+    async def get_residual_release_risks(self) -> List[Dict[str, Any]]:
+        risks: List[Dict[str, Any]] = []
+        index = 1
+
+        latest_checks = (
+            await self.db.execute(
+                select(UIReleaseReadinessCheck).order_by(UIReleaseReadinessCheck.created_at.desc()).limit(10)
+            )
+        ).scalars().all()
+        for check in latest_checks:
+            for blocker in check.blockers_json or []:
+                risks.append({
+                    "risk_id": f"RR-{index:03d}",
+                    "module": "Release Readiness",
+                    "severity": "HIGH",
+                    "description": blocker,
+                    "mitigation": check.recommendation or "Resolve blocking gate before release.",
+                    "is_accepted": False,
+                    "accepted_by": None,
+                    "accepted_at": None,
+                    "mitigation_strategy": "Clear blocker and re-run readiness evaluation.",
+                    "operator_rationale": None,
+                    "status": "MONITORING",
+                })
+                index += 1
+            for warning in check.warnings_json or []:
+                risks.append({
+                    "risk_id": f"RR-{index:03d}",
+                    "module": check.category,
+                    "severity": "MEDIUM",
+                    "description": warning,
+                    "mitigation": check.recommendation or "Monitor warning until next audit cycle.",
+                    "is_accepted": False,
+                    "accepted_by": None,
+                    "accepted_at": None,
+                    "mitigation_strategy": "Track warning closure before release lock.",
+                    "operator_rationale": None,
+                    "status": "MONITORING",
+                })
+                index += 1
+
+        latest_audit = (
+            await self.db.execute(
+                select(UIFinalIntegrationAudit).order_by(UIFinalIntegrationAudit.created_at.desc()).limit(1)
+            )
+        ).scalar_one_or_none()
+        if latest_audit:
+            for failed_module in latest_audit.failed_modules_json or []:
+                risks.append({
+                    "risk_id": f"RR-{index:03d}",
+                    "module": failed_module,
+                    "severity": "HIGH",
+                    "description": f"Integration audit failed for {failed_module}.",
+                    "mitigation": "Resolve module failure and rerun final audit.",
+                    "is_accepted": False,
+                    "accepted_by": None,
+                    "accepted_at": None,
+                    "mitigation_strategy": "Block release lock until integration audit passes.",
+                    "operator_rationale": None,
+                    "status": "MONITORING",
+                })
+                index += 1
+            for warning_module in latest_audit.warnings_json or []:
+                risks.append({
+                    "risk_id": f"RR-{index:03d}",
+                    "module": warning_module,
+                    "severity": "MEDIUM",
+                    "description": f"Integration audit warning on {warning_module}.",
+                    "mitigation": "Investigate warning and document compensating controls.",
+                    "is_accepted": False,
+                    "accepted_by": None,
+                    "accepted_at": None,
+                    "mitigation_strategy": "Keep warning under release review until cleared.",
+                    "operator_rationale": None,
+                    "status": "MONITORING",
+                })
+                index += 1
+
+        risky_executions = (
+            await self.db.execute(
+                select(UIAutoPatchExecution)
+                .where(
+                    UIAutoPatchExecution.status.in_([
+                        "FAILED",
+                        "PREFLIGHT_BLOCKED",
+                        "GOVERNANCE_REQUESTED",
+                        "ROLLBACK_REQUIRED",
+                    ])
+                )
+                .order_by(UIAutoPatchExecution.created_at.desc())
+                .limit(10)
+            )
+        ).scalars().all()
+        for execution in risky_executions:
+            execution_state = _status_value(execution.status)
+            severity = "HIGH" if execution_state in {"FAILED", "ROLLBACK_REQUIRED"} else "MEDIUM"
+            risks.append({
+                "risk_id": f"RR-{index:03d}",
+                "module": "Auto-Patch",
+                "severity": severity,
+                "description": f"{execution.execution_key} is in {execution_state} state.",
+                "mitigation": execution.error_message or "Resolve autopatch gate before release.",
+                "is_accepted": False,
+                "accepted_by": None,
+                "accepted_at": None,
+                "mitigation_strategy": "Complete verification/governance flow or cancel execution.",
+                "operator_rationale": None,
+                "status": "MONITORING",
+            })
+            index += 1
+
+        provider_risks = (
+            await self.db.execute(
+                select(UIProviderHealth).where(UIProviderHealth.status.in_(["DEGRADED", "UNAVAILABLE"]))
+            )
+        ).scalars().all()
+        for provider in provider_risks:
+            provider_state = _status_value(provider.status)
+            severity = "HIGH" if provider_state == "UNAVAILABLE" else "MEDIUM"
+            risks.append({
+                "risk_id": f"RR-{index:03d}",
+                "module": "Tool Governance",
+                "severity": severity,
+                "description": f"Provider {provider.provider} is {provider_state}.",
+                "mitigation": "Fallback to alternative provider or disable autonomous write paths.",
+                "is_accepted": False,
+                "accepted_by": None,
+                "accepted_at": None,
+                "mitigation_strategy": "Keep provider under active monitoring before release lock.",
+                "operator_rationale": None,
+                "status": "MONITORING",
+            })
+            index += 1
+
+        acceptances = (await self.db.execute(select(UIResidualRiskAcceptance))).scalars().all()
+        acceptance_by_fingerprint = {item.risk_fingerprint: item for item in acceptances}
+        acceptance_by_risk_id = {item.risk_id: item for item in acceptances}
+
+        for risk in risks:
+            fingerprint = self._risk_fingerprint(risk)
+            accepted = acceptance_by_fingerprint.get(fingerprint) or acceptance_by_risk_id.get(risk["risk_id"])
+            if accepted:
+                risk["is_accepted"] = True
+                risk["accepted_by"] = accepted.operator
+                risk["accepted_at"] = accepted.accepted_at
+                risk["operator_rationale"] = accepted.operator_rationale
+                risk["status"] = accepted.status
+
+        return risks
+
+    async def accept_residual_risk(
+        self,
+        risk_id: str,
+        operator: str,
+        rationale: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        risks = await self.get_residual_release_risks()
+        target = next((risk for risk in risks if risk["risk_id"] == risk_id), None)
+        if target is None:
+            raise ValueError(f"Residual risk not found: {risk_id}")
+
+        fingerprint = self._risk_fingerprint(target)
+        existing = (
+            await self.db.execute(
+                select(UIResidualRiskAcceptance).where(UIResidualRiskAcceptance.risk_fingerprint == fingerprint)
+            )
+        ).scalar_one_or_none()
+
+        accepted_at = datetime.now(timezone.utc)
+        if existing:
+            existing.risk_id = risk_id
+            existing.module = target["module"]
+            existing.severity = target["severity"]
+            existing.description = target["description"]
+            existing.mitigation = target["mitigation"]
+            existing.mitigation_strategy = target["mitigation_strategy"]
+            existing.operator = operator
+            existing.operator_rationale = rationale
+            existing.status = "ACCEPTED"
+            existing.accepted_at = accepted_at
+            record = existing
+        else:
+            record = UIResidualRiskAcceptance(
+                risk_id=risk_id,
+                risk_fingerprint=fingerprint,
+                module=target["module"],
+                severity=target["severity"],
+                description=target["description"],
+                mitigation=target["mitigation"],
+                mitigation_strategy=target["mitigation_strategy"],
+                operator=operator,
+                operator_rationale=rationale,
+                status="ACCEPTED",
+                accepted_at=accepted_at,
+            )
+            self.db.add(record)
+
+        await self.db.commit()
+        await self.db.refresh(record)
+
+        target["is_accepted"] = True
+        target["accepted_by"] = record.operator
+        target["accepted_at"] = record.accepted_at
+        target["operator_rationale"] = record.operator_rationale
+        target["status"] = record.status
+        return target

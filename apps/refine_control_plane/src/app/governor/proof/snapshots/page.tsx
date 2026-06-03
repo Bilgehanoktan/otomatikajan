@@ -93,7 +93,7 @@ export default function ProofSnapshotsPage() {
             dataIndex="seal_status"
             width={140}
             render={(value: string) => (
-              <Tag color={value === "sealed" ? "green" : "blue"}>
+              <Tag color={value?.toUpperCase() === "SEALED" ? "green" : "blue"}>
                 {value.toUpperCase()}
               </Tag>
             )}
@@ -129,8 +129,8 @@ export default function ProofSnapshotsPage() {
           <Table.Column<ProofSnapshotRecord>
             title="Action"
             width={120}
-            render={() => (
-              <Link href="/audit">
+            render={(_value, record) => (
+              <Link href={`/proof/snapshots/${record.id}`}>
                 <Button type="link" size="small" icon={<FileSearchOutlined />}>
                   Inspect
                 </Button>

@@ -1,7 +1,7 @@
 import os
 import shlex
 import subprocess
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List
 from services.observability.logging import get_logger
 from services.integrations.web_search import get_web_search
@@ -74,7 +74,7 @@ class ToolExecutor:
                 "agent_id": agent_id,
                 "tool_name": call.tool_name,
                 "input": grounded_input,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             })
 
             try:
@@ -98,7 +98,7 @@ class ToolExecutor:
                     "workflow_id": workflow_id,
                     "tool_name": call.tool_name,
                     "status": "success",
-                    "timestamp": datetime.utcnow().isoformat()
+                    "timestamp": datetime.now(timezone.utc).isoformat()
                 })
 
             except Exception as e:
@@ -109,7 +109,7 @@ class ToolExecutor:
                     "workflow_id": workflow_id,
                     "tool_name": call.tool_name,
                     "error": str(e),
-                    "timestamp": datetime.utcnow().isoformat()
+                    "timestamp": datetime.now(timezone.utc).isoformat()
                 })
 
         return results

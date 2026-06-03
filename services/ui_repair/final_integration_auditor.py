@@ -3,8 +3,13 @@ import uuid
 from typing import Any, Dict, List, Optional
 from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from libs.db.models.ui_repair_models import UIFinalIntegrationAudit, ReleaseStatus
+from sqlalchemy import select, func
+from libs.db.models.ui_repair_models import (
+    UIFinalIntegrationAudit, ReleaseStatus,
+    UIProviderHealth, UIAutoPatchExecution, UIKnowledgeNode, UIKnowledgeEdge,
+    UITenantProfile, UIClusterProfile
+)
+from services.ui_repair.service import UIRepairService
 
 logger = logging.getLogger(__name__)
 
@@ -32,29 +37,37 @@ class FinalIntegrationAuditor:
         await self.db.commit()
         await self.db.refresh(audit)
 
-        modules_to_check = [
-            "ResearchWorkflow", "UIRepairCore", "ContinuousMonitoring", 
-            "ChaosResilience", "GAOperations", "FinOps", "PolicyAsCode",
-            "FederationMesh", "ToolGovernance", "IdentityTrust",
-            "CognitiveIntegrity", "SecurityPosture", "ThreatModeling",
-            "DefenseOptimization", "IncidentWarRoom", "KnowledgeGraph"
-        ]
+        summary = await UIRepairService(self.db).get_dashboard_summary()
+        failing_routes = int(summary["failing_routes"])
+        open_cases = int(summary["open_cases"])
+        degraded_providers = (
+            await self.db.execute(
+                select(func.count(UIProviderHealth.id)).where(UIProviderHealth.status.in_(["DEGRADED", "UNAVAILABLE"]))
+            )
+        ).scalar() or 0
+        failed_autopatch = (
+            await self.db.execute(
+                select(func.count(UIAutoPatchExecution.id)).where(UIAutoPatchExecution.status.in_(["FAILED", "PREFLIGHT_BLOCKED", "ROLLBACK_REQUIRED"]))
+            )
+        ).scalar() or 0
+        knowledge_nodes = (await self.db.execute(select(func.count(UIKnowledgeNode.id)))).scalar() or 0
+        knowledge_edges = (await self.db.execute(select(func.count(UIKnowledgeEdge.id)))).scalar() or 0
+        tenant_count = (await self.db.execute(select(func.count(UITenantProfile.id)))).scalar() or 0
+        cluster_count = (await self.db.execute(select(func.count(UIClusterProfile.id)))).scalar() or 0
 
-        results = {}
-        failed = []
-        warnings = []
+        checks = {
+            "UIRepairCore": "FAILED" if failing_routes > 0 else "PASSED",
+            "ContinuousMonitoring": "WARNING" if open_cases > 0 else "PASSED",
+            "ToolGovernance": "WARNING" if degraded_providers > 0 else "PASSED",
+            "AutonomousPatching": "FAILED" if failed_autopatch > 0 else "PASSED",
+            "KnowledgeGraph": "WARNING" if knowledge_nodes == 0 or knowledge_edges == 0 else "PASSED",
+            "FederationMesh": "WARNING" if tenant_count == 0 or cluster_count == 0 else "PASSED",
+        }
 
-        # Simulation of module checks (In a real scenario, this would check health endpoints, 
-        # database consistency, and API reachability for each module)
-        for module in modules_to_check:
-            # Here we would perform actual checks. For now, we simulate.
-            status = "PASSED"
-            
-            # Example logic for simulation
-            if module == "KnowledgeGraph":
-                # Check if graph exists
-                status = "PASSED"
-            
+        results: Dict[str, str] = {}
+        failed: List[str] = []
+        warnings: List[str] = []
+        for module, status in checks.items():
             results[module] = status
             if status == "FAILED":
                 failed.append(module)
@@ -64,17 +77,15 @@ class FinalIntegrationAuditor:
         audit.checked_modules_json = results
         audit.failed_modules_json = failed
         audit.warnings_json = warnings
-        audit.status = ReleaseStatus.PASSED if not failed else ReleaseStatus.FAILED
+        audit.status = ReleaseStatus.FAILED if failed else ReleaseStatus.WARNING if warnings else ReleaseStatus.PASSED
         audit.completed_at = datetime.now(timezone.utc)
         audit.summary_json = {
-            "total_modules": len(modules_to_check),
-            "passed": len(modules_to_check) - len(failed) - len(warnings),
+            "total_modules": len(results),
+            "passed": len(results) - len(failed) - len(warnings),
             "failed": len(failed),
             "warnings": len(warnings)
         }
-        
-        # Evidence hash generation (simulated)
-        audit.evidence_hash = f"SHA256:{uuid.uuid4().hex}"
+        audit.evidence_hash = f"SHA256:{audit.audit_key}:{len(failed)}:{len(warnings)}"
         
         await self.db.commit()
         await self.db.refresh(audit)

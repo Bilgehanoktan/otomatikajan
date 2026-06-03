@@ -12,7 +12,7 @@ from services.taskflow.taskflow_engine import run_workflow
 from services.repair.taskflow_artifacts import artifact_dir_for_run
 
 # Workspace Root
-WORKSPACE_ROOT = Path("e:/ai_company_faz12.1").resolve()
+WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
 REPAIR_OUTPUTS = WORKSPACE_ROOT / "repair_outputs"
 
 @pytest.fixture(autouse=True)

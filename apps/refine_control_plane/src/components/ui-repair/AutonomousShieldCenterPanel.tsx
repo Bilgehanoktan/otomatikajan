@@ -24,6 +24,10 @@ interface ShieldOverview {
   security_lift: number;
   patterns_synthesized: number;
   compliance_status: string;
+  governance_requested: number;
+  approved_proposals: number;
+  rejected_proposals: number;
+  latest_report_at?: string | null;
 }
 
 const AutonomousShieldCenterPanel: React.FC = () => {
@@ -34,16 +38,10 @@ const AutonomousShieldCenterPanel: React.FC = () => {
 
   const fetchOverview = async () => {
     setLoading(true);
+    setError(null);
     try {
-      // In a real app, this would be an aggregate endpoint
-      // Mocking overview based on component state
-      setOverview({
-        total_proposals: 12,
-        active_canaries: 3,
-        security_lift: 18.5,
-        patterns_synthesized: 8,
-        compliance_status: 'HEALTHY'
-      });
+      const data = await safeFetchJson('/api/v1/ui-repair/security/defense/overview');
+      setOverview(data);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -138,7 +136,9 @@ const AutonomousShieldCenterPanel: React.FC = () => {
               valueStyle={{ color: '#fff', fontWeight: '900', fontSize: '2rem' }}
               prefix={<div className="p-2 bg-blue-500/10 rounded-lg mr-3 group-hover:scale-110 transition-transform"><Settings className="text-blue-400" size={20} /></div>}
             />
-            <div className="mt-2 text-[10px] text-blue-400 font-bold">+2 from last cycle</div>
+            <div className="mt-2 text-[10px] text-blue-400 font-bold">
+              {overview?.governance_requested ? `${overview.governance_requested} governance pending` : 'Live summary'}
+            </div>
           </Card>
         </Col>
         <Col xs={24} sm={12} md={4}>
@@ -149,7 +149,7 @@ const AutonomousShieldCenterPanel: React.FC = () => {
               valueStyle={{ color: '#f59e0b', fontWeight: '900', fontSize: '2rem' }}
               prefix={<div className="p-2 bg-amber-500/10 rounded-lg mr-3 group-hover:scale-110 transition-transform"><Activity className="text-amber-400" size={20} /></div>}
             />
-            <div className="mt-2 text-[10px] text-amber-400 font-bold">In progress</div>
+            <div className="mt-2 text-[10px] text-amber-400 font-bold">Live canary state</div>
           </Card>
         </Col>
         <Col xs={24} sm={12} md={4}>
@@ -161,7 +161,9 @@ const AutonomousShieldCenterPanel: React.FC = () => {
               valueStyle={{ color: '#10b981', fontWeight: '900', fontSize: '2rem' }}
               prefix={<div className="p-2 bg-emerald-500/10 rounded-lg mr-3 group-hover:scale-110 transition-transform"><Zap className="text-emerald-400" size={20} /></div>}
             />
-            <div className="mt-2 text-[10px] text-emerald-400 font-bold">Target reached</div>
+            <div className="mt-2 text-[10px] text-emerald-400 font-bold">
+              {overview?.latest_report_at ? `Report ${new Date(overview.latest_report_at).toLocaleTimeString()}` : 'Awaiting report'}
+            </div>
           </Card>
         </Col>
         <Col xs={24} sm={12} md={4}>
@@ -183,7 +185,9 @@ const AutonomousShieldCenterPanel: React.FC = () => {
               valueStyle={{ color: '#10b981', fontWeight: '900', fontSize: '1.2rem', marginTop: '8px' }}
               prefix={<div className="p-2 bg-emerald-500/10 rounded-lg mr-3 group-hover:scale-110 transition-transform"><ShieldCheck className="text-emerald-400" size={20} /></div>}
             />
-            <div className="mt-2 text-[10px] text-slate-500 font-bold italic">ISO/IEC 42001 Aligned</div>
+            <div className="mt-2 text-[10px] text-slate-500 font-bold italic">
+              {overview?.rejected_proposals ? `${overview.rejected_proposals} rejected proposals require follow-up` : 'No rejected proposals'}
+            </div>
           </Card>
         </Col>
       </Row>

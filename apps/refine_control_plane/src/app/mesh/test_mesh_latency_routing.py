@@ -3,8 +3,9 @@ import os
 import sys
 import yaml
 
-# Add workspace to path
-sys.path.append("e:/ai_company_faz12.1")
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parents[5]))
 
 from services.orchestration.federation_router import FederationTask
 from services.orchestration.mesh_router import MeshRouter

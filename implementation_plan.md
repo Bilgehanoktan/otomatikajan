@@ -6,6 +6,34 @@ We adhere strictly to the **governance-first principle**: **CEO Finding → Repa
 
 ---
 
+## 2026-06-03 P0 Control-Plane Route Repairs
+
+### Scope
+- `governor/drills`: hydration-safe tarih render ve row contract düzeltmesi
+- `governance/proposals` / `policy-proposals`: `policy_proposals` schema drift toleransı
+- `self-tuning`: `repair_lab` tuning endpoint path hizalaması
+- `governor/scorecard`: enum drift (`GovernorDecisionQuality` vs `GovernorOutcomeQuality`) düzeltmesi
+- `governor/proof/snapshots/[id]`: detail endpoint, frontend path ve inspect akışı düzeltmesi
+
+### Acceptance
+1. Hedef sayfalar `3100` üstünde açılırken `page_error` üretmemeli.
+2. `GET /api/v1/governance/proposals` eski `policy_proposals` şemasıyla da `200` dönmeli.
+3. `GET /api/v1/governance/governor/scorecard` `GovernorDecisionQuality.CORRECT` verisini doğru saymalı.
+4. `GET /api/v1/governance/governor/proof/snapshots/{id}` hem persisted hem `derived-local-proof-snapshot` için çalışmalı.
+5. Canlı audit tekrarında P0 route’lar temizlenmeli.
+
+### Test Strategy
+- Backend regression tests:
+  - proposals schema drift fallback
+  - governor scorecard accuracy aggregation
+  - proof snapshot detail (persisted + derived)
+- Frontend/runtime verification:
+  - `npm run build`
+  - hedef route’lara canlı GET/smoke
+  - `runtime/live-test/page_audit.py` tekrar koşumu
+
+---
+
 ## Scope
 
 ### In-Scope
@@ -154,5 +182,4 @@ Transition the `approval_gate` taskflow step from a passive wait state into a st
 4. **Testing Suites**:
    * Create `tests/repair/test_human_gate_decision.py` for validation constraints and audit logging.
    * Create `tests/integration/test_repair_lab_human_gate_api.py` for endpoint contract validation.
-
 

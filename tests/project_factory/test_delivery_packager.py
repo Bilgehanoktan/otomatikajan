@@ -14,7 +14,7 @@ from services.project_factory.models import ProjectFactoryIntake, RequirementGat
 from services.project_factory.artifacts import write_project_factory_artifacts, _resolve_project_dir
 from services.project_factory.delivery_packager import build_delivery_package, load_delivery_manifest
 
-WORKSPACE_ROOT = Path("e:/ai_company_faz12.1").resolve()
+WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
 TEST_PROJECT_ID = "PF-TEST-DEL-333"
 TEST_PROJECT_DIR = WORKSPACE_ROOT / "project_outputs" / "project_factory" / TEST_PROJECT_ID
 

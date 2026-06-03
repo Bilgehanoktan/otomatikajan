@@ -1,7 +1,7 @@
 import logging
 from typing import List, Dict, Any, Optional
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 from libs.db.models.ui_repair_models import UIAttackSurfaceAsset, AssetType
@@ -110,7 +110,7 @@ class AttackSurfaceInventory:
                 existing.exposure_level = asset.exposure_level
                 existing.criticality = asset.criticality
                 existing.metadata_json = asset.metadata_json
-                existing.updated_at = datetime.utcnow()
+                existing.updated_at = datetime.now(timezone.utc)
             else:
                 self.session.add(asset)
         

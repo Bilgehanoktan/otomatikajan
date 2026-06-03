@@ -20,7 +20,7 @@ from services.orchestration.ceo.repair_bridge import (
 client = TestClient(app)
 
 # Workspace Root
-WORKSPACE_ROOT = Path("e:/ai_company_faz12.1").resolve()
+WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
 REPAIR_OUTPUTS = WORKSPACE_ROOT / "repair_outputs"
 
 

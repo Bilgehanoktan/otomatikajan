@@ -10650,3 +10650,61 @@ Error: EPERM: operation not permitted, rename 'E:\ai_company_faz12.1\.nx\cache\p
 [NX Daemon Server] - 2026-05-27T03:55:12.840Z - Done responding to the client recordOutputsHash
 [NX Daemon Server] - 2026-05-27T03:55:12.841Z - Handled RECORD_OUTPUTS_HASH. Handling time: 297. Response time: 0.
 [NX Daemon Server] - 2026-05-27T03:55:12.918Z - Closed a connection. Number of open connections: 0
+[NX Daemon Server] - 2026-05-28T09:21:26.496Z - Started listening on: \\.\pipe\nx\C:\Users\BLGEHA~1\AppData\Local\Temp\12748498b70cdb5c2462\d.sock
+[NX Daemon Server] - 2026-05-28T09:21:26.507Z - [WATCHER]: Subscribed to changes within: E:\ai_company_faz12.1 (native)
+[NX Daemon Server] - 2026-05-28T09:21:26.513Z - Established a connection. Number of open connections: 1
+[NX Daemon Server] - 2026-05-28T09:21:26.516Z - Closed a connection. Number of open connections: 0
+[NX Daemon Server] - 2026-05-28T09:21:26.517Z - Established a connection. Number of open connections: 1
+[NX Daemon Server] - 2026-05-28T09:21:26.521Z - [REQUEST]: Client Request for Project Graph Received
+[NX Daemon Server] - 2026-05-28T09:21:27.936Z - [REQUEST]: Updated workspace context based on watched changes, recomputing project graph...
+[NX Daemon Server] - 2026-05-28T09:21:27.936Z - [REQUEST]: 
+[NX Daemon Server] - 2026-05-28T09:21:27.936Z - [REQUEST]: 
+[NX Daemon Server] - 2026-05-28T09:21:29.766Z - [REQUEST]: Responding to the client. project-graph
+[NX Daemon Server] - 2026-05-28T09:21:29.767Z - Time taken for 'total for creating and serializing project graph' 3244.7207000000003ms
+[NX Daemon Server] - 2026-05-28T09:21:29.768Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:29.769Z - Done responding to the client project-graph
+[NX Daemon Server] - 2026-05-28T09:21:29.769Z - Handled REQUEST_PROJECT_GRAPH. Handling time: 3245. Response time: 4.
+[NX Daemon Server] - 2026-05-28T09:21:29.839Z - [REQUEST]: Responding to the client. handleHashTasks
+[NX Daemon Server] - 2026-05-28T09:21:29.839Z - Time taken for 'Load Nx Plugin: E:\ai_company_faz12.1\node_modules\nx\src\plugins\project-json\build-nodes\package-json-next-to-project-json' 0.34130000000004657ms
+[NX Daemon Server] - 2026-05-28T09:21:29.840Z - Done responding to the client handleHashTasks
+[NX Daemon Server] - 2026-05-28T09:21:29.840Z - Handled HASH_TASKS. Handling time: 16. Response time: 1.
+[NX Daemon Server] - 2026-05-28T09:21:31.867Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:31.918Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:31.969Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:32.020Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:32.071Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:32.122Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:32.173Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:32.224Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:32.276Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:32.327Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:32.377Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:32.437Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:32.509Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:32.913Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:35.232Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:41.129Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:41.180Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:41.231Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:41.282Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:41.332Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:41.383Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:41.447Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:41.546Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:41.597Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:41.647Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:41.740Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:44.003Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:47.312Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:54.691Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:56.058Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:56.110Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:56.562Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:56.745Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:56.833Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:56.972Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:57.373Z - [WATCHER]: Processing file changes in outputs
+[NX Daemon Server] - 2026-05-28T09:21:57.941Z - [REQUEST]: Responding to the client. recordOutputsHash
+[NX Daemon Server] - 2026-05-28T09:21:57.942Z - Done responding to the client recordOutputsHash
+[NX Daemon Server] - 2026-05-28T09:21:57.942Z - Handled RECORD_OUTPUTS_HASH. Handling time: 481. Response time: 1.
+[NX Daemon Server] - 2026-05-28T09:21:58.022Z - Closed a connection. Number of open connections: 0

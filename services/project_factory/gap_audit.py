@@ -1,7 +1,7 @@
 import os
 import importlib
 from typing import Dict, Any, List
-from datetime import datetime
+from datetime import datetime, timezone
 
 class GapAuditEngine:
     """
@@ -101,7 +101,7 @@ class GapAuditEngine:
 
         return {
             "status": "PASSED" if success else "WARNING",
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
             "total_checks": len(self.REQUIRED_MODULES) + len(self.REQUIRED_ENDPOINTS) + 3,
             "checked_modules": checked_modules,
             "missing_modules": missing_modules,

@@ -1,8 +1,8 @@
 {
   "run": {
     "command": "nx build refine_control_plane",
-    "startTime": "2026-05-27T03:54:52.310Z",
-    "endTime": "2026-05-27T03:55:12.911Z",
+    "startTime": "2026-05-28T09:21:29.841Z",
+    "endTime": "2026-05-28T09:21:58.017Z",
     "inner": false
   },
   "tasks": [
@@ -10,9 +10,9 @@
       "taskId": "refine_control_plane:build",
       "target": "build",
       "projectName": "refine_control_plane",
-      "hash": "17855335437480930911",
-      "startTime": "2026-05-27T03:54:52.317Z",
-      "endTime": "2026-05-27T03:55:12.910Z",
+      "hash": "13195277895684349525",
+      "startTime": "2026-05-28T09:21:29.851Z",
+      "endTime": "2026-05-28T09:21:58.017Z",
       "params": "",
       "cacheStatus": "cache-miss",
       "status": 0

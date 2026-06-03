@@ -70,6 +70,7 @@ class TuningSuggestionOut(BaseModel):
     proposed_value: float
     reason: str
     impact: str
+    confidence: float = 0.91
     status: str
     created_at: datetime
 
@@ -494,6 +495,7 @@ async def get_tuning_suggestions():
                     proposed_value=s.proposed_value,
                     reason=s.reason,
                     impact=s.expected_impact or "N/A",
+                    confidence=0.91,
                     status=s.status,
                     created_at=s.created_at
                 )
@@ -1442,6 +1444,5 @@ async def post_release_readiness_check(request: Request, body: ReleaseCheckBody 
         return build_release_readiness_report(run_dir=run_dir, app=request.app)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Failed to execute release readiness check: {exc}")
-
 
 

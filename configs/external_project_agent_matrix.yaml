@@ -16,6 +16,7 @@ integration_matrix:
     forbidden_actions:
       - "direct_workspace_write"
       - "unrestricted_command_execution"
+      - "direct_git_push"
     governance:
       requires_approval: true
       max_cost_limit_usd: 50.0

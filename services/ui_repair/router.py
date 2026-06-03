@@ -21,7 +21,7 @@ from services.ui_repair.schemas import (
     UIPilotRolloutSchema, UIPilotRolloutCreate, UIPilotEventSchema, UIPilotEventCreate,
     UIPilotMetricsSchema, UIOperatorActionLedgerSchema, UIOperatorActionLedgerCreate, UIPilotFinalReportSchema,
     UIProjectProfileSchema, UIProjectProfileCreate, UIRolloutWaveSchema, UIRolloutWaveCreate,
-    UIProjectHealthSnapshotSchema, UIGAReadinessAssessmentSchema, UIEnterpriseRunbookSchema, UIEnterpriseOverviewSchema,
+    UIProjectHealthSnapshotSchema, UIProjectHealthMatrixRowSchema, UIGAReadinessAssessmentSchema, UIEnterpriseRunbookSchema, UIEnterpriseOverviewSchema,
     UIOperationsTeamSchema, UIOperationsTeamCreate, UIProjectOwnershipSchema, UIProjectOwnershipCreate,
     UIMaintenancePolicySchema, UIMaintenancePolicyCreate, UIReleaseRecordSchema, UIReleaseRecordCreate,
     UICompatibilityCheckSchema, UICompatibilityCheckCreate, UIEvidenceRetentionPolicySchema, UIEvidenceRetentionPolicyCreate,
@@ -39,7 +39,7 @@ from services.ui_repair.schemas import (
     UIMonitoringConfigSchema, UIMonitoringRunSchema, UIRouteHealthHistSchema,
     UIBudgetPolicyCreate,
     UITenantProfileSchema, UITenantProfileCreate, UIClusterProfileSchema, UIClusterProfileCreate,
-    UITenantProjectBindingSchema, UITenantProjectBindingCreate, UIClusterHealthSnapshotSchema, UIClusterHealthSnapshotCreate,
+    UITenantProjectBindingSchema, UITenantProjectBindingCreate, UIClusterHealthSnapshotSchema, UIClusterHealthSnapshotCreate, UIFederationOverviewSchema,
     UIFinOpsOverviewSchema, UIFinOpsRecommendationSchema,
     UICostEventSchema, UICostAnomalySchema, UIBudgetPolicySchema,
     UICapacityForecastSchema,
@@ -57,7 +57,7 @@ from services.ui_repair.schemas import (
     UIDefensivePatternSchema,
     UIPolicyRegressionRunSchema,
     UIGuardrailCanaryRunSchema,
-    UIDefenseOptimizationReportSchema,
+    UIDefenseOptimizationReportSchema, UIDefenseOverviewSchema,
     UIIncidentWarRoomSchema, UIIncidentTimelineEventSchema, UIExecutiveRiskSnapshotSchema,
     UIIncidentActionItemSchema, UIExecutiveRiskReportSchema,
     UIIncidentActionItemCreate, WarRoomResolveRequest, ExecutiveRiskOverview,
@@ -73,7 +73,7 @@ from services.ui_repair.schemas import (
     UIKnowledgeGraphOverviewSchema, UIKnowledgeReportSchema, SimilarCaseRequest,
     UIFinalIntegrationAuditSchema, UIReleaseReadinessCheckSchema,
     UIFinalAuditPackSchema, UIReleaseLockSchema, UISmokeTestResultSchema,
-    UIPhaseCompletionSchema, UIResidualRiskSchema
+    UIPhaseCompletionSchema, UIResidualRiskSchema, UIToolRiskOverviewSchema
 )
 
 from services.ui_repair.knowledge_graph_builder import KnowledgeGraphBuilder
@@ -98,11 +98,25 @@ router.include_router(tool_governance_router)
 router.include_router(identity_governance_router)
 router.include_router(cognitive_governance_router)
 
+@router.post("/bootstrap")
+async def run_ui_repair_bootstrap(db: AsyncSession = Depends(get_db)):
+    """Idempotently seeds baseline data for UI repair."""
+    from services.ui_repair.baseline_bootstrap import UIRepairBaselineBootstrapper
+    bootstrapper = UIRepairBaselineBootstrapper(db)
+    res = await bootstrapper.ensure_baseline()
+    return {"status": "success", "results": res}
+
 @router.get("/overview", response_model=UIRepairOverview)
 async def get_ui_repair_overview(db: AsyncSession = Depends(get_db)):
     """High-level health overview of the UI system."""
     svc = UIRepairService(db)
     return await svc.get_overview()
+
+@router.get("/dashboard/summary", response_model=UIRepairOverview)
+async def get_ui_repair_dashboard_summary(db: AsyncSession = Depends(get_db)):
+    """Fast dashboard summary for the operator home surface."""
+    svc = UIRepairService(db)
+    return await svc.get_dashboard_summary()
 
 @router.get("/routes", response_model=List[UIRouteHealthSchema])
 async def get_ui_route_health(db: AsyncSession = Depends(get_db)):
@@ -528,6 +542,12 @@ async def list_ui_repair_projects(db: AsyncSession = Depends(get_db)):
     svc = UIRepairService(db)
     return await svc.list_projects()
 
+@router.get("/projects/health-matrix", response_model=List[UIProjectHealthMatrixRowSchema])
+async def get_project_health_matrix(db: AsyncSession = Depends(get_db)):
+    """Returns the live project health matrix used by the operator dashboard."""
+    svc = UIRepairService(db)
+    return await svc.get_project_health_matrix()
+
 @router.post("/projects", response_model=UIProjectProfileSchema)
 async def create_ui_repair_project(data: UIProjectProfileCreate, db: AsyncSession = Depends(get_db)):
     """Creates a new UI repair project profile."""
@@ -720,6 +740,12 @@ async def get_finops_overview(db: AsyncSession = Depends(get_db)):
     return await svc.get_finops_overview()
 
 # --- Phase 16: Multi-Tenant Federation + Cross-Cluster Governance Endpoints ---
+
+@router.get("/federation/overview", response_model=UIFederationOverviewSchema)
+async def get_federation_overview(db: AsyncSession = Depends(get_db)):
+    """Live federation summary for the control-plane overview."""
+    svc = UIRepairService(db)
+    return await svc.get_federation_overview()
 
 @router.get("/federation/tenants", response_model=List[UITenantProfileSchema])
 async def list_tenants(db: AsyncSession = Depends(get_db)):
@@ -1267,6 +1293,12 @@ async def get_latest_red_team_report(db: AsyncSession = Depends(get_db)):
 
 # --- Phase 25: Autonomous Defense Optimization ---
 
+@router.get("/security/defense/overview", response_model=UIDefenseOverviewSchema)
+async def get_defense_overview(db: AsyncSession = Depends(get_db)):
+    """Aggregated defense posture summary for the shield dashboard."""
+    service = UIRepairService(db)
+    return await service.get_defense_overview()
+
 @router.post("/security/defense/optimization/cycle", response_model=List[UIGuardrailTuningProposalSchema])
 async def trigger_defense_optimization_cycle(db: AsyncSession = Depends(get_db)):
     """Triggers an autonomous defense optimization cycle (Findings -> Patterns -> Proposals)."""
@@ -1492,6 +1524,13 @@ async def rebuild_knowledge_graph(db: AsyncSession = Depends(get_db)):
 @router.get("/knowledge/overview", response_model=UIKnowledgeGraphOverviewSchema, tags=["Knowledge"])
 async def get_knowledge_overview(db: AsyncSession = Depends(get_db)):
     """Returns an overview of the knowledge graph statistics."""
+    from libs.db.models.ui_repair_models import UIKnowledgeNode
+    from sqlalchemy import func
+    node_count = (await db.execute(select(func.count(UIKnowledgeNode.id)))).scalar() or 0
+    if node_count == 0:
+        from services.ui_repair.baseline_bootstrap import UIRepairBaselineBootstrapper
+        bootstrapper = UIRepairBaselineBootstrapper(db)
+        await bootstrapper.ensure_baseline()
     builder = KnowledgeGraphBuilder(db)
     return await builder.get_graph_overview()
 
@@ -1511,9 +1550,16 @@ async def list_knowledge_nodes(
         stmt = stmt.where(UIKnowledgeNode.severity == severity)
     stmt = stmt.limit(limit).order_by(UIKnowledgeNode.created_at.desc())
     res = await db.execute(stmt)
+    results = res.scalars().all()
+    if not results and not node_type and not severity:
+        from services.ui_repair.baseline_bootstrap import UIRepairBaselineBootstrapper
+        bootstrapper = UIRepairBaselineBootstrapper(db)
+        await bootstrapper.ensure_baseline()
+        res = await db.execute(stmt)
+        results = res.scalars().all()
     # Mapping to schema
     nodes = []
-    for n in res.scalars().all():
+    for n in results:
         nodes.append(UIKnowledgeNodeSchema(
             id=n.id, node_key=n.node_key, node_type=n.node_type,
             source_type=n.source_type, source_id=n.source_id,
@@ -1540,8 +1586,15 @@ async def list_knowledge_edges(
         stmt = stmt.where(UIKnowledgeEdge.edge_type == edge_type)
     stmt = stmt.limit(limit)
     res = await db.execute(stmt)
+    results = res.scalars().all()
+    if not results and not source_node_key and not edge_type:
+        from services.ui_repair.baseline_bootstrap import UIRepairBaselineBootstrapper
+        bootstrapper = UIRepairBaselineBootstrapper(db)
+        await bootstrapper.ensure_baseline()
+        res = await db.execute(stmt)
+        results = res.scalars().all()
     edges = []
-    for e in res.scalars().all():
+    for e in results:
         edges.append(UIKnowledgeEdgeSchema(
             id=e.id, source_node_key=e.source_node_key, target_node_key=e.target_node_key,
             edge_type=e.edge_type, confidence=e.confidence,
@@ -1679,63 +1732,28 @@ async def get_latest_release_lock(db: AsyncSession = Depends(get_db)):
 @router.get("/final/phase-completion-matrix", response_model=List[UIPhaseCompletionSchema], tags=["Final Release"])
 async def get_phase_completion_matrix(db: AsyncSession = Depends(get_db)):
     """Returns a summary of completion status for all 30 phases."""
-    # Simplified simulation
-    phases = []
-    for i in range(1, 31):
-        phases.append(UIPhaseCompletionSchema(
-            phase_id=i,
-            phase_name=f"Phase {i}",
-            status="PASSED" if i < 30 else "RUNNING",
-            completion_date=datetime.now(timezone.utc),
-            blockers_count=0,
-            warnings_count=0
-        ))
-    return phases
+    service = UIRepairService(db)
+    phases = await service.get_release_phase_completion_matrix()
+    return [UIPhaseCompletionSchema.model_validate(phase) for phase in phases]
 
 @router.get("/final/residual-risks", response_model=List[UIResidualRiskSchema], tags=["Final Release"])
 async def get_residual_risks(db: AsyncSession = Depends(get_db)):
-    """Lists all accepted residual risks for the current release candidate."""
-    return [
-        UIResidualRiskSchema(
-            risk_id="RR-001",
-            module="Auto-Patch",
-            severity="LOW",
-            description="Minor edge case in multi-file patch application.",
-            mitigation="Manual review required for patches affecting > 10 files.",
-            is_accepted=True,
-            accepted_by="Egemen YAZ",
-            accepted_at=datetime.now(timezone.utc),
-            mitigation_strategy="Manual review required for patches affecting > 10 files.",
-            operator_rationale="Accepted for RC1 with manual governance gate coverage.",
-            status="ACCEPTED"
-        ),
-        UIResidualRiskSchema(
-            risk_id="RR-002",
-            module="Cognitive Guard",
-            severity="LOW",
-            description="Latency spike when processing > 5000 tokens.",
-            mitigation="Timeout increased for large payloads.",
-            is_accepted=False,
-            mitigation_strategy="Monitor large-payload latency and keep timeout tuning under release freeze.",
-            operator_rationale=None,
-            status="MONITORING"
-        )
-    ]
+    """Lists data-driven residual risks for the current release candidate."""
+    service = UIRepairService(db)
+    risks = await service.get_residual_release_risks()
+    return [UIResidualRiskSchema.model_validate(risk) for risk in risks]
 
 @router.post("/final/residual-risks/{risk_id}/sign-off", response_model=UIResidualRiskSchema, tags=["Final Release"])
-async def sign_off_residual_risk(risk_id: str, operator: str = Body(..., embed=True), db: AsyncSession = Depends(get_db)):
-    """Manually signs off on a residual risk."""
-    # Simulated persistence
-    return UIResidualRiskSchema(
-        risk_id=risk_id,
-        module="System",
-        severity="LOW",
-        description="Accepted risk signed off by operator.",
-        mitigation="N/A",
-        is_accepted=True,
-        accepted_by=operator,
-        accepted_at=datetime.now(timezone.utc),
-        mitigation_strategy="Operator accepted current mitigation under final release governance.",
-        operator_rationale=f"Signed off by {operator}.",
-        status="ACCEPTED"
-    )
+async def sign_off_residual_risk(
+    risk_id: str,
+    operator: str = Body(..., embed=True),
+    rationale: Optional[str] = Body(default=None, embed=True),
+    db: AsyncSession = Depends(get_db),
+):
+    """Persists operator acceptance for a residual risk."""
+    service = UIRepairService(db)
+    try:
+        risk = await service.accept_residual_risk(risk_id, operator, rationale)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return UIResidualRiskSchema.model_validate(risk)

@@ -14,7 +14,7 @@ class SelfPatcher:
     
     def __init__(self):
         # Ajan dizinini belirle
-        self.agents_dir = Path("e:/ai_company_faz12.1/agents")
+        self.agents_dir = Path(__file__).resolve().parents[4] / "agents"
         self.dynamic_prompts_path = self.agents_dir / "dynamic_prompts.json"
         self.dynamic_agents_path = self.agents_dir / "dynamic_agents.json"
 

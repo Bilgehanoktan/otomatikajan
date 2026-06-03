@@ -30,6 +30,7 @@ export default function ExternalToolGovernancePanel() {
   const [mcpServers, setMcpServers] = useState<any[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [health, setHealth] = useState<any[]>([]);
+  const [riskOverview, setRiskOverview] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
@@ -47,6 +48,9 @@ export default function ExternalToolGovernancePanel() {
       } else if (activeTab === 'health') {
         const data = await safeFetchJson<any[]>('/api/v1/ui-repair/tools/provider-health');
         setHealth(data);
+      } else if (activeTab === 'risk') {
+        const data = await safeFetchJson<any>('/api/v1/ui-repair/tools/risk/overview');
+        setRiskOverview(data);
       }
     } catch (e) {
       console.error('Fetch error:', e);
@@ -79,7 +83,7 @@ export default function ExternalToolGovernancePanel() {
               External Tool Governance
             </h1>
             <p className="text-sm text-slate-500 mt-1">
-              Phase 18 — Integration Safety & MCP Sovereignty
+              Phase 18 - Integration Safety & MCP Sovereignty
             </p>
           </div>
         </div>
@@ -131,7 +135,7 @@ export default function ExternalToolGovernancePanel() {
             {activeTab === 'mcp' && <MCPServersTable servers={mcpServers} />}
             {activeTab === 'audit' && <AuditLedgerList logs={auditLogs} />}
             {activeTab === 'health' && <ProviderHealthGrid health={health} />}
-            {activeTab === 'risk' && <RiskAssessmentPlaceholder />}
+            {activeTab === 'risk' && <RiskAssessmentPanel overview={riskOverview} />}
           </div>
         )}
       </div>
@@ -230,7 +234,11 @@ function MCPServersTable({ servers }: { servers: any[] }) {
               </div>
             </div>
             <div className={`px-2 py-1 rounded text-[10px] font-bold ${
-              server.health_status === 'HEALTHY' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
+              server.health_status === 'HEALTHY' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+              (server.health_status === 'DEGRADED' || server.health_status === 'WARNING' || server.health_status === 'STALE') ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+              (server.health_status === 'UNAVAILABLE' || server.health_status === 'FAILED') ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
+              server.health_status === 'SIMULATED' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
+              'bg-slate-500/10 text-slate-400 border border-white/10'
             }`}>
               {server.health_status}
             </div>
@@ -309,7 +317,11 @@ function ProviderHealthGrid({ health }: { health: any[] }) {
           </div>
           <div className="flex items-center gap-3 mb-6">
             <div className={`w-2.5 h-2.5 rounded-full ${
-              p.status === 'HEALTHY' ? 'bg-emerald-500' : 'bg-amber-500'
+              p.status === 'HEALTHY' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' :
+              (p.status === 'DEGRADED' || p.status === 'WARNING' || p.status === 'STALE') ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]' :
+              (p.status === 'UNAVAILABLE' || p.status === 'FAILED') ? 'bg-rose-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]' :
+              p.status === 'SIMULATED' ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]' :
+              'bg-slate-500'
             }`} />
             <h3 className="font-bold text-white text-lg">{p.provider}</h3>
           </div>
@@ -344,19 +356,93 @@ function ProviderHealthGrid({ health }: { health: any[] }) {
   );
 }
 
-function RiskAssessmentPlaceholder() {
-  return (
-    <div className="flex flex-col items-center justify-center p-20 bg-white/5 rounded-3xl border border-dashed border-white/10 text-center">
-      <div className="w-16 h-16 bg-indigo-500/10 rounded-2xl flex items-center justify-center mb-6 border border-indigo-500/20">
-        <ShieldAlert className="w-8 h-8 text-indigo-400" />
+function RiskAssessmentPanel({ overview }: { overview: any | null }) {
+  if (!overview) {
+    return (
+      <div className="flex flex-col items-center justify-center p-20 bg-white/5 rounded-3xl border border-dashed border-white/10 text-center">
+        <div className="w-16 h-16 bg-slate-500/10 rounded-2xl flex items-center justify-center mb-6 border border-slate-500/20">
+          <ShieldAlert className="w-8 h-8 text-slate-400" />
+        </div>
+        <h2 className="text-xl font-bold text-white mb-2">Risk Summary Unavailable</h2>
+        <p className="text-slate-500 max-w-md mx-auto">
+          Provider and tool risk evidence has not been generated yet.
+        </p>
       </div>
-      <h2 className="text-xl font-bold text-white mb-2">Third-Party Risk Engine</h2>
-      <p className="text-slate-500 max-w-md mx-auto mb-8">
-        Scanning external providers for security vulnerabilities, compliance drift, and architectural risks.
-      </p>
-      <button className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-indigo-500/20">
-        Run Global Risk Scan
-      </button>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <RiskStatCard label="Providers" value={overview.provider_count} tone="blue" />
+        <RiskStatCard label="Degraded" value={overview.degraded_providers + overview.unavailable_providers} tone="amber" />
+        <RiskStatCard label="Highest Risk" value={overview.highest_risk_level} tone="rose" />
+        <RiskStatCard label="Critical Findings" value={overview.critical_findings} tone="purple" />
+      </div>
+
+      <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden">
+        <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-white">Latest Risk Assessments</h3>
+            <p className="text-xs text-slate-500 mt-1">Generated from live provider health and tool capability metadata.</p>
+          </div>
+          <div className="text-xs text-slate-400 font-mono">Max score: {Number(overview.highest_risk_score ?? 0).toFixed(1)}</div>
+        </div>
+        <div className="divide-y divide-white/5">
+          {(overview.latest_assessments || []).map((assessment: any) => (
+            <div key={assessment.id} className="px-6 py-4 flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-white">{assessment.provider}</span>
+                  {assessment.tool_key && (
+                    <span className="text-[10px] font-mono bg-white/5 border border-white/10 rounded px-1.5 py-0.5 text-slate-400">
+                      {assessment.tool_key}
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-slate-500 mt-1">{assessment.recommendation}</div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {(assessment.findings_json || []).slice(0, 3).map((finding: string, index: number) => (
+                    <span key={index} className="text-[10px] rounded-full bg-white/5 border border-white/10 px-2 py-1 text-slate-300">
+                      {finding}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <div className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Risk Score</div>
+                  <div className="text-lg font-bold text-white">{Number(assessment.risk_score ?? 0).toFixed(1)}</div>
+                </div>
+                <span className={`text-xs font-bold px-2 py-1 rounded ${
+                  assessment.risk_level === 'CRITICAL' ? 'bg-rose-500/15 text-rose-400 border border-rose-500/20' :
+                  assessment.risk_level === 'HIGH' ? 'bg-amber-500/15 text-amber-400 border border-amber-500/20' :
+                  assessment.risk_level === 'MEDIUM' ? 'bg-blue-500/15 text-blue-400 border border-blue-500/20' :
+                  'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'
+                }`}>
+                  {assessment.risk_level}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RiskStatCard({ label, value, tone }: { label: string; value: string | number; tone: 'blue' | 'amber' | 'rose' | 'purple' }) {
+  const toneMap = {
+    blue: 'text-blue-400 border-blue-500/20 bg-blue-500/10',
+    amber: 'text-amber-400 border-amber-500/20 bg-amber-500/10',
+    rose: 'text-rose-400 border-rose-500/20 bg-rose-500/10',
+    purple: 'text-purple-400 border-purple-500/20 bg-purple-500/10',
+  } as const;
+
+  return (
+    <div className={`rounded-2xl border p-5 ${toneMap[tone]}`}>
+      <div className="text-[10px] uppercase tracking-widest font-bold opacity-80">{label}</div>
+      <div className="text-2xl font-black text-white mt-2">{value}</div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import os
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 from services.project_factory.artifacts import _resolve_policy_autopilot_dir
 
@@ -25,7 +25,7 @@ def log_policy_pr_plan(
         "proposal_id": proposal_id,
         "operator_id": operator_id,
         "rationale": rationale,
-        "created_at": datetime.utcnow().isoformat() + "Z",
+        "created_at": datetime.now(timezone.utc).isoformat() + "Z",
         "status": status,
         "git_operations_performed": False
     }

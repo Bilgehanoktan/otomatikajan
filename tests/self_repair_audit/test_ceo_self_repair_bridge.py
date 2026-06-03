@@ -15,7 +15,7 @@ from libs.db.session import get_db_ctx
 from libs.db.repositories.repository import ProjectRepository
 
 # Workspace Paths
-WORKSPACE_ROOT = Path("e:/ai_company_faz12.1").resolve()
+WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
 AUDIT_RUNS_DIR = WORKSPACE_ROOT / "project_outputs" / "audit_runs"
 TEST_AUDIT_RUN_ID = "AUD-TEST-BRIDGE-999"
 TEST_RUN_DIR = AUDIT_RUNS_DIR / TEST_AUDIT_RUN_ID

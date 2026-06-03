@@ -143,14 +143,14 @@ async def quarantine_identity(
     from sqlalchemy import select
     from libs.db.models.auth_models import SystemIdentity
     import uuid
-    from datetime import datetime
+    from datetime import datetime, timezone
     
     res = await db.execute(select(SystemIdentity).where(SystemIdentity.id == uuid.UUID(target_id)))
     sys_id = res.scalar_one_or_none()
     if not sys_id:
         raise HTTPException(status_code=404, detail="Sistem kimliği bulunamadı.")
         
-    sys_id.quarantined_at = datetime.utcnow()
+    sys_id.quarantined_at = datetime.now(timezone.utc)
     sys_id.risk_level = "CRITICAL"
     sys_id.risk_reason = f"Manual Quarantine by {identity['name']}"
     sys_id.trust_score = 0

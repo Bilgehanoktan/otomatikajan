@@ -68,7 +68,7 @@ async def verify_cognitive_layer():
 
     # 5. Verify Filesystem Reality
     print("[*] Verifying dynamic prompt storage...")
-    prompt_path = Path("e:/ai_company_faz12.1/agents/dynamic_prompts.json")
+    prompt_path = Path(__file__).resolve().parents[2] / "agents" / "dynamic_prompts.json"
     if prompt_path.exists():
         with open(prompt_path, "r", encoding="utf-8") as f:
             prompts = json.load(f)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 from services.project_factory.artifacts import _resolve_project_dir
@@ -21,7 +21,7 @@ def record_delivery_decision(
     project_dir = _resolve_project_dir(project_id, workspace_root)
     log_path = project_dir / "delivery_decisions.jsonl"
     
-    created_at = datetime.utcnow().isoformat() + "Z"
+    created_at = datetime.now(timezone.utc).isoformat() + "Z"
     
     entry = {
         "project_id": project_id,

@@ -16,7 +16,7 @@ from services.project_factory.artifacts import write_project_factory_artifacts, 
 from libs.infra.router_registry import router_registry
 
 # Paths
-WORKSPACE_ROOT = Path("e:/ai_company_faz12.1").resolve()
+WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
 PROJECT_FACTORY_BASE = WORKSPACE_ROOT / "project_outputs" / "project_factory"
 TEST_PROJECT_ID = "PF-TEST-RESOLVE-999"
 TEST_PROJECT_DIR = PROJECT_FACTORY_BASE / TEST_PROJECT_ID

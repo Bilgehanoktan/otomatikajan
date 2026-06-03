@@ -27,7 +27,7 @@ async def test_constitutional_locks():
     for path, expected in test_files:
         # Resolve path as the guard expects absolute path or handles it relative
         # The guard's is_locked uses .relative_to(project_root)
-        full_path = str(Path("e:/ai_company_faz12.1") / path)
+        full_path = str(Path(__file__).resolve().parents[1] / path)
         locked = guard.is_locked(full_path)
         status = "PASS" if locked == expected else "FAIL"
         print(f"[{status}] File: {path} | Locked: {locked} | Expected: {expected}")

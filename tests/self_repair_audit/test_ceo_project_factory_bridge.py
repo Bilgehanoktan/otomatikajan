@@ -13,7 +13,7 @@ from services.workflow_api.main import app
 from services.auth.jwt_auth import get_current_identity, require_permission
 
 # Workspace Paths
-WORKSPACE_ROOT = Path("e:/ai_company_faz12.1").resolve()
+WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
 AUDIT_RUNS_DIR = WORKSPACE_ROOT / "project_outputs" / "audit_runs"
 TEST_AUDIT_RUN_ID = "AUD-TEST-BRIDGE-PF-999"
 TEST_RUN_DIR = AUDIT_RUNS_DIR / TEST_AUDIT_RUN_ID

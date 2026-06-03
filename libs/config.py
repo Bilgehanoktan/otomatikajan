@@ -82,6 +82,7 @@ def validate_production_config():
     weak_templates = {
         *globals().get("WEAK_TEMPLATES", []),
         "sovereign-agi-control-plane-local-secret-stable-v1",
+        "sovereign-agi-control-plane-local-secret-stable-v1-padding-000",
         "agi-admin-fallback-secret-2026",
         "your-webhook-secret",
         "admin1234",
@@ -96,7 +97,7 @@ def validate_production_config():
             raise RuntimeError(f"{name} üretim ortamı için kabul edilemez!")
     
     if len(JWT_SECRET) < 64:
-        raise RuntimeError("JWT_SECRET üretim ortamı için en az 64 karakter olmalı!")
+        raise RuntimeError(f"JWT_SECRET üretim ortamı için en az 64 karakter olmalı! (Mevcut uzunluk: {len(JWT_SECRET)})")
 
     for r_name, r_val in recommended_vars.items():
         if not r_val:

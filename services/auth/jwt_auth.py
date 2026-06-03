@@ -207,11 +207,7 @@ class AccessControlService:
             return True, "Authorized: Local development bypass active."
 
         if not _is_dev and normalized_role == "AUDIT_OBSERVER" and not permission.endswith(".view") and not permission.endswith(".list"):
-             # Extra safety check for production - but wait, we are in is_allowed.
-             # If we are NOT in dev_env, we should follow the normal rules.
-             pass
-
-
+            return False, "SIF-01: AUDIT_OBSERVER roles are restricted to read-only actions."
         if AccessControlService._baseline_enabled() and AccessControlService._has_baseline_permission(normalized_role, permission):
             return True, "Authorized via Baseline Role Policy"
 

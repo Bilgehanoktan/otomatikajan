@@ -50,11 +50,33 @@ export const ReleaseReadinessPanel: React.FC = () => {
             title: 'Status',
             dataIndex: 'status',
             key: 'status',
-            render: (status: string) => (
-                <Tag color={status === 'PASSED' ? 'success' : 'error'}>
-                    {status}
-                </Tag>
-            )
+            render: (status: string) => {
+                const getStatusColor = (s: string) => {
+                    switch (s) {
+                        case 'PASSED':
+                        case 'SEALED':
+                        case 'RELEASE_CANDIDATE':
+                            return 'success';
+                        case 'WARNING':
+                        case 'STALE':
+                            return 'warning';
+                        case 'FAILED':
+                        case 'BLOCKED':
+                            return 'error';
+                        case 'NO_DATA':
+                            return 'default';
+                        case 'SIMULATED':
+                            return 'processing';
+                        default:
+                            return 'default';
+                    }
+                };
+                return (
+                    <Tag color={getStatusColor(status)}>
+                        {status}
+                    </Tag>
+                );
+            }
         },
         {
             title: 'Blockers',

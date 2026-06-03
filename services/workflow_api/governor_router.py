@@ -974,6 +974,38 @@ class ProofSnapshotOut(BaseModel):
     seal_status: str
     created_at: datetime
 
+
+class ProofSnapshotDetailOut(ProofSnapshotOut):
+    start_chain_index: int
+    end_chain_index: int
+    sealed_by: str | None = None
+
+
+def _build_derived_snapshot_detail(proof_events: list[Any], proof_seal_status: Any) -> ProofSnapshotDetailOut | None:
+    import hashlib
+
+    if not proof_events:
+        return None
+
+    combined_hashes = "".join(event.event_hash for event in proof_events)
+    merkle_root = hashlib.sha256(combined_hashes.encode("utf-8")).hexdigest()
+    snapshot_hash = hashlib.sha256(
+        f"derived-proof|{merkle_root}|{len(proof_events)}".encode()
+    ).hexdigest()
+
+    return ProofSnapshotDetailOut(
+        id="derived-local-proof-snapshot",
+        snapshot_name="LOCAL_DERIVED_PROOF_SNAPSHOT",
+        merkle_root=merkle_root,
+        snapshot_hash=snapshot_hash,
+        event_count=len(proof_events),
+        seal_status=proof_seal_status.SEALED.value,
+        created_at=proof_events[-1].created_at,
+        start_chain_index=int(proof_events[0].chain_index),
+        end_chain_index=int(proof_events[-1].chain_index),
+        sealed_by="SYSTEM_DERIVED",
+    )
+
 @router.get("/proof/events", response_model=list[ProofEventOut])
 async def list_proof_events(
     limit: int = Query(50),
@@ -1001,8 +1033,6 @@ async def list_proof_events(
 async def list_proof_snapshots(
     identity: dict[str, Any] = Depends(require_permission("governance.proof.view")),
 ):
-    import hashlib
-
     from sqlalchemy import desc, select
 
     from libs.db.models.governance_models import (
@@ -1018,21 +1048,17 @@ async def list_proof_snapshots(
                 select(GovernanceProofEventRecord).order_by(GovernanceProofEventRecord.chain_index.asc())
             )
             proof_events = event_res.scalars().all()
-            if proof_events:
-                combined_hashes = "".join(event.event_hash for event in proof_events)
-                merkle_root = hashlib.sha256(combined_hashes.encode("utf-8")).hexdigest()
-                snapshot_hash = hashlib.sha256(
-                    f"derived-proof|{merkle_root}|{len(proof_events)}".encode()
-                ).hexdigest()
+            derived = _build_derived_snapshot_detail(proof_events, ProofSealStatus)
+            if derived:
                 return [
                     ProofSnapshotOut(
-                        id="derived-local-proof-snapshot",
-                        snapshot_name="LOCAL_DERIVED_PROOF_SNAPSHOT",
-                        merkle_root=merkle_root,
-                        snapshot_hash=snapshot_hash,
-                        event_count=len(proof_events),
-                        seal_status=ProofSealStatus.SEALED.value,
-                        created_at=proof_events[-1].created_at,
+                        id=derived.id,
+                        snapshot_name=derived.snapshot_name,
+                        merkle_root=derived.merkle_root,
+                        snapshot_hash=derived.snapshot_hash,
+                        event_count=derived.event_count,
+                        seal_status=derived.seal_status,
+                        created_at=derived.created_at,
                     )
                 ]
     return [
@@ -1046,6 +1072,56 @@ async def list_proof_snapshots(
             created_at=r.created_at
         ) for r in items
     ]
+
+
+@router.get("/proof/snapshots/{snapshot_id}", response_model=ProofSnapshotDetailOut)
+async def get_proof_snapshot_detail(
+    snapshot_id: str,
+    identity: dict[str, Any] = Depends(require_permission("governance.proof.view")),
+):
+    from sqlalchemy import asc, select
+
+    from libs.db.models.governance_models import (
+        GovernanceProofEventRecord,
+        GovernanceProofSnapshotRecord,
+        ProofSealStatus,
+    )
+
+    async with AsyncSessionLocal() as db:
+        if snapshot_id == "derived-local-proof-snapshot":
+            event_res = await db.execute(
+                select(GovernanceProofEventRecord).order_by(asc(GovernanceProofEventRecord.chain_index))
+            )
+            proof_events = event_res.scalars().all()
+            derived = _build_derived_snapshot_detail(proof_events, ProofSealStatus)
+            if not derived:
+                raise HTTPException(status_code=404, detail="Snapshot not found")
+            return derived
+
+        try:
+            snapshot_uuid = uuid.UUID(snapshot_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=404, detail="Snapshot not found") from exc
+
+        res = await db.execute(
+            select(GovernanceProofSnapshotRecord).where(GovernanceProofSnapshotRecord.id == snapshot_uuid)
+        )
+        snapshot = res.scalar_one_or_none()
+        if not snapshot:
+            raise HTTPException(status_code=404, detail="Snapshot not found")
+
+        return ProofSnapshotDetailOut(
+            id=str(snapshot.id),
+            snapshot_name=snapshot.snapshot_name,
+            merkle_root=snapshot.merkle_root,
+            snapshot_hash=snapshot.snapshot_hash,
+            event_count=snapshot.event_count,
+            seal_status=snapshot.seal_status.value,
+            created_at=snapshot.created_at,
+            start_chain_index=int(snapshot.start_chain_index),
+            end_chain_index=int(snapshot.end_chain_index),
+            sealed_by=snapshot.sealed_by,
+        )
 
 @router.post("/proof/snapshots/seal")
 async def seal_manual_snapshot(

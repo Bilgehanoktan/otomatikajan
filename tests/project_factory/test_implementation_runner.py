@@ -6,7 +6,7 @@ import shutil
 import uuid
 import pytest
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from httpx import AsyncClient, ASGITransport
 
 from services.workflow_api.main import app
@@ -19,7 +19,7 @@ from services.project_factory.artifacts import (
 )
 from services.project_factory.implementation_runner import get_implementation_run
 
-WORKSPACE_ROOT = Path("e:/ai_company_faz12.1").resolve()
+WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
 PROJECT_FACTORY_BASE = WORKSPACE_ROOT / "project_outputs" / "project_factory"
 TEST_PROJECT_ID = "PF-TEST-RUNNER-777"
 TEST_PROJECT_DIR = PROJECT_FACTORY_BASE / TEST_PROJECT_ID
@@ -197,7 +197,7 @@ async def test_implementation_cancel_flow():
             "runner_mode": "template_first",
             "sandbox_path": f"project_outputs/project_factory/{TEST_PROJECT_ID}/sandbox",
             "started_by": "OPERATOR-1",
-            "started_at": datetime.utcnow().isoformat() + "Z",
+            "started_at": datetime.now(timezone.utc).isoformat() + "Z",
             "completed_at": None,
             "changed_files": [],
             "generated_files": [],

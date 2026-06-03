@@ -63,19 +63,22 @@ def generate_with_mini_swe(repair_case: RepairCase, repair_plan: RepairPlan | No
         patch_path.write_text("", encoding="utf-8")
         changed_files: list[str] = []
         confidence = 0.15
-        summary = "mini-swe-agent real mode is configured but disabled by Phase 1 safety policy."
+        summary = "[DISABLED] mini-swe-agent real mode is configured but disabled by Phase 1 safety policy."
+        candidate_status = "DISABLED"
     elif simulated_patch:
         trajectory_path.write_text("Mock mode used payload repo_snapshot.simulated_patch.\n", encoding="utf-8")
         patch_path.write_text(str(simulated_patch), encoding="utf-8")
         changed_files = list(repair_plan.target_files if repair_plan else repair_case.suspected_files)
         confidence = 0.45
-        summary = "Simulated patch supplied by payload repo_snapshot.simulated_patch."
+        summary = "[SIMULATED] Simulated patch supplied by payload repo_snapshot.simulated_patch."
+        candidate_status = "SIMULATED"
     else:
         trajectory_path.write_text("MINI_SWE_MODE=mock generated no code changes.\n", encoding="utf-8")
         patch_path.write_text("", encoding="utf-8")
         changed_files = []
         confidence = 0.1
-        summary = "No autonomous patch generated in mock mode; prompt prepared for future mini-swe-agent execution."
+        summary = "[NO_PROVIDER] No autonomous patch generated in mock mode; prompt prepared for future mini-swe-agent execution."
+        candidate_status = "NO_PROVIDER"
 
     digest = hashlib.sha256(f"{repair_case.incident_id}:{prompt}:{mode}".encode("utf-8")).hexdigest()[:12]
     return RepairCandidate(
@@ -85,6 +88,6 @@ def generate_with_mini_swe(repair_case: RepairCase, repair_plan: RepairPlan | No
         agent_summary=summary,
         commands_run=[],
         confidence=confidence,
-        status="PATCH_PROPOSED",
+        status=candidate_status,
     )
 

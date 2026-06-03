@@ -126,12 +126,32 @@ class SecurityPostureManager:
         return score_record
 
     async def _scan_identity(self, tenant_key: Optional[str]) -> UISecurityPostureFinding:
-        # Placeholder for identity risk audit
-        # In real scenario, would query UIIdentityRegistry and TrustScoreEngine
+        from libs.db.models.ui_repair_models import UISovereignIdentity, UITrustScore
+        
+        stmt_identities = select(UISovereignIdentity)
+        if tenant_key:
+            stmt_identities = stmt_identities.where(UISovereignIdentity.tenant_key == tenant_key)
+        identities = (await self.db.execute(stmt_identities)).scalars().all()
+        
+        low_trust_identities = []
+        for ident in identities:
+            stmt_trust = select(UITrustScore.trust_score).where(UITrustScore.identity_key == ident.identity_key).order_by(UITrustScore.created_at.desc())
+            trust_score = (await self.db.execute(stmt_trust)).scalar()
+            if trust_score is not None and trust_score < 0.8:
+                low_trust_identities.append(ident.identity_key)
+        
+        if low_trust_identities:
+            return UISecurityPostureFinding(
+                control_key="ID-01-TRUST",
+                status=UIControlStatus.FAILED,
+                rationale=f"Identities with low trust scores (< 0.8) found: {', '.join(low_trust_identities)}",
+                tenant_key=tenant_key
+            )
+        
         return UISecurityPostureFinding(
             control_key="ID-01-TRUST",
             status=UIControlStatus.PASSED,
-            rationale="All active agent identities verified with trust scores > 0.9.",
+            rationale="All active agent identities verified with trust scores >= 0.8.",
             tenant_key=tenant_key
         )
 
@@ -181,6 +201,19 @@ class SecurityPostureManager:
         )
 
     async def _scan_isolation(self, tenant_key: Optional[str]) -> UISecurityPostureFinding:
+        from libs.db.models.core_models import OperationalIncident
+        stmt = select(OperationalIncident).where(
+            (OperationalIncident.incident_type == "TENANT_ISOLATION_VIOLATION") &
+            (OperationalIncident.status == "OPEN")
+        )
+        violations = (await self.db.execute(stmt)).scalars().all()
+        if violations:
+            return UISecurityPostureFinding(
+                control_key="ISO-01-TENANT",
+                status=UIControlStatus.FAILED,
+                rationale=f"Active tenant isolation violations detected: {len(violations)} open incidents.",
+                tenant_key=tenant_key
+            )
         return UISecurityPostureFinding(
             control_key="ISO-01-TENANT",
             status=UIControlStatus.PASSED,
@@ -189,6 +222,34 @@ class SecurityPostureManager:
         )
 
     async def _scan_evidence(self, tenant_key: Optional[str]) -> UISecurityPostureFinding:
+        from libs.db.models.core_models import OperationalIncident
+        from libs.db.models.ui_repair_models import UIFederatedEvidenceRecord
+        stmt_inc = select(OperationalIncident).where(
+            (OperationalIncident.incident_type == "EVIDENCE_CHAIN_FAILURE") &
+            (OperationalIncident.status == "OPEN")
+        )
+        incidents = (await self.db.execute(stmt_inc)).scalars().all()
+        
+        stmt_failed_syncs = select(UIFederatedEvidenceRecord).where(
+            UIFederatedEvidenceRecord.sync_status == "FAILED"
+        )
+        if tenant_key:
+            stmt_failed_syncs = stmt_failed_syncs.where(UIFederatedEvidenceRecord.tenant_key == tenant_key)
+        failed_syncs = (await self.db.execute(stmt_failed_syncs)).scalars().all()
+        
+        if incidents or failed_syncs:
+            reasons = []
+            if incidents:
+                reasons.append(f"{len(incidents)} open evidence chain incidents")
+            if failed_syncs:
+                reasons.append(f"{len(failed_syncs)} failed evidence record syncs")
+            return UISecurityPostureFinding(
+                control_key="EVI-01-CHAIN",
+                status=UIControlStatus.FAILED,
+                rationale=f"Evidence ledger integrity checks failed: {', '.join(reasons)}.",
+                tenant_key=tenant_key
+            )
+            
         return UISecurityPostureFinding(
             control_key="EVI-01-CHAIN",
             status=UIControlStatus.PASSED,

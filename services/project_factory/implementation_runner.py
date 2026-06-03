@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import json
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List
 
 from services.project_factory.models import ProjectFactoryIntake, RequirementGate
@@ -82,7 +82,7 @@ def start_sandbox_implementation(
     if existing_run and existing_run.get("status") == "IMPLEMENTATION_RUNNING":
         raise ValueError(f"An implementation run is already in progress for project {project_id}")
 
-    start_time = datetime.utcnow().isoformat() + "Z"
+    start_time = datetime.now(timezone.utc).isoformat() + "Z"
     sandbox_path = f"project_outputs/project_factory/{project_id}/sandbox"
 
     # 3. Create initial implementation_run
@@ -179,7 +179,7 @@ def start_sandbox_implementation(
             )
 
             # Mark state as succeeded
-            completed_time = datetime.utcnow().isoformat() + "Z"
+            completed_time = datetime.now(timezone.utc).isoformat() + "Z"
             run_data.update({
                 "status": "IMPLEMENTATION_SUCCEEDED",
                 "completed_at": completed_time,
@@ -194,7 +194,7 @@ def start_sandbox_implementation(
 
         else:
             # Verification failed
-            completed_time = datetime.utcnow().isoformat() + "Z"
+            completed_time = datetime.now(timezone.utc).isoformat() + "Z"
             run_data.update({
                 "status": "IMPLEMENTATION_FAILED",
                 "completed_at": completed_time,
@@ -217,7 +217,7 @@ def start_sandbox_implementation(
 
     except Exception as e:
         # Error during execution
-        completed_time = datetime.utcnow().isoformat() + "Z"
+        completed_time = datetime.now(timezone.utc).isoformat() + "Z"
         run_data.update({
             "status": "IMPLEMENTATION_FAILED",
             "completed_at": completed_time,
@@ -253,7 +253,7 @@ def cancel_sandbox_implementation(
     if not run_data or run_data.get("status") not in ["IMPLEMENTATION_RUNNING", "IMPLEMENTATION_READY"]:
         raise ValueError(f"No active running implementation found for project {project_id} that can be cancelled.")
 
-    completed_time = datetime.utcnow().isoformat() + "Z"
+    completed_time = datetime.now(timezone.utc).isoformat() + "Z"
     run_data.update({
         "status": "CANCELLED",
         "completed_at": completed_time

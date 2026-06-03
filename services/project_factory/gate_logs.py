@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 from services.project_factory.artifacts import _resolve_project_dir
 
@@ -22,7 +22,7 @@ def record_gate_decision(
     project_dir.mkdir(parents=True, exist_ok=True)
 
     decision_id = f"DEC-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
-    created_at = datetime.utcnow().isoformat() + "Z"
+    created_at = datetime.now(timezone.utc).isoformat() + "Z"
 
     log_entry = {
         "decision_id": decision_id,

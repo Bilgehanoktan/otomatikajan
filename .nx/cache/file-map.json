@@ -97,7 +97,7 @@
       },
       {
         "file": ".gitignore",
-        "hash": "18410760938725291034"
+        "hash": "15523512826389259133"
       },
       {
         "file": ".legacy_archive/.backup/test_target_v35.txt_20260401T035107Z.bak",
@@ -46460,18 +46460,6 @@
         "hash": "7357458779890459924"
       },
       {
-        "file": ".nx/workspace-data/eslint-2654242865465226088.hash",
-        "hash": "1389868326933519382"
-      },
-      {
-        "file": ".nx/workspace-data/nx_files.nxt",
-        "hash": "9289549512224015485"
-      },
-      {
-        "file": ".playwright-browsers/.links/d6da960d6475de93be791964d8ee18c753dc98e3",
-        "hash": "10313693442813863633"
-      },
-      {
         "file": ".vscode/settings.json",
         "hash": "13929502336625195715"
       },
@@ -46485,7 +46473,7 @@
       },
       {
         "file": "BASLAT.bat",
-        "hash": "9877830544366337054"
+        "hash": "248589593364716850"
       },
       {
         "file": "CHANGELOG_RC1.md",
@@ -46544,12 +46532,20 @@
         "hash": "17111436958500069781"
       },
       {
+        "file": "STANDARDS_MANIFEST.md",
+        "hash": "11795688532233212315"
+      },
+      {
         "file": "SYSTEM_TEST_CHECKLIST.md",
         "hash": "8669805518820975844"
       },
       {
+        "file": "adaptation_candidates.png",
+        "hash": "17717723327784305241"
+      },
+      {
         "file": "agents/meeting_room.py",
-        "hash": "16707717561490023689"
+        "hash": "17213751833002070823"
       },
       {
         "file": "agents/prompts/__init__.py",
@@ -47140,6 +47136,10 @@
         "hash": "15677743061845138508"
       },
       {
+        "file": "audit_ledger.png",
+        "hash": "5845038150581322102"
+      },
+      {
         "file": "benchmarks/repair_bench/benchmark_loader.py",
         "hash": "16069563868324014924"
       },
@@ -47556,6 +47556,10 @@
         "hash": "3244421341483603138"
       },
       {
+        "file": "debate_meeting_room.png",
+        "hash": "8248627416665127693"
+      },
+      {
         "file": "docker-compose.docker-sandbox.yml",
         "hash": "10237382883326519208"
       },
@@ -47852,6 +47856,10 @@
         "hash": "3244421341483603138"
       },
       {
+        "file": "incidents.png",
+        "hash": "16540606473038011533"
+      },
+      {
         "file": "infra/otel/otel-collector-config.yaml",
         "hash": "209624529816822108"
       },
@@ -47929,7 +47937,7 @@
       },
       {
         "file": "libs/config.py",
-        "hash": "16347261005883058674"
+        "hash": "10138560549429471383"
       },
       {
         "file": "libs/contracts/__init__.py",
@@ -48001,7 +48009,7 @@
       },
       {
         "file": "libs/infra/router_registry.py",
-        "hash": "3003895912078986865"
+        "hash": "13901501297648925766"
       },
       {
         "file": "libs/infra/ws_manager.py",
@@ -50696,12 +50704,24 @@
         "hash": "14345082118302214300"
       },
       {
+        "file": "lineage.png",
+        "hash": "15091601883653738350"
+      },
+      {
         "file": "migrate_v13.py",
         "hash": "7330582036626160107"
       },
       {
         "file": "mini_test.py",
         "hash": "10563391102848051789"
+      },
+      {
+        "file": "negative_patterns.png",
+        "hash": "7950588640271828444"
+      },
+      {
+        "file": "neural_fingerprints.png",
+        "hash": "16263879562301140566"
       },
       {
         "file": "nx.json",
@@ -51273,7 +51293,15 @@
       },
       {
         "file": "seed_fleet.py",
-        "hash": "17087252030569184974"
+        "hash": "4338553181467326105"
+      },
+      {
+        "file": "seed_repair_mesh.py",
+        "hash": "11016827455350976565"
+      },
+      {
+        "file": "seed_signoffs.py",
+        "hash": "12924270686431692365"
       },
       {
         "file": "services/auth/__init__.py",
@@ -51969,7 +51997,7 @@
       },
       {
         "file": "services/orchestration/agi/cognitive/motivation_engine.py",
-        "hash": "3279688658121431480"
+        "hash": "3182776531067676729"
       },
       {
         "file": "services/orchestration/agi/cognitive/perception_gate.py",
@@ -52289,7 +52317,7 @@
       },
       {
         "file": "services/orchestration/agi/quality/sovereign_evaluator.py",
-        "hash": "7705689211001371326"
+        "hash": "11309482733221320712"
       },
       {
         "file": "services/orchestration/agi/roles/__init__.py",
@@ -52385,11 +52413,11 @@
       },
       {
         "file": "services/orchestration/application/governance.py",
-        "hash": "18298443452664273261"
+        "hash": "5076971940842061866"
       },
       {
         "file": "services/orchestration/application/job_queue.py",
-        "hash": "2786102601749219463"
+        "hash": "2335812562763447241"
       },
       {
         "file": "services/orchestration/application/metabolic_governor.py",
@@ -52397,7 +52425,7 @@
       },
       {
         "file": "services/orchestration/application/operational_executor.py",
-        "hash": "18150350182163034816"
+        "hash": "3125664738804979183"
       },
       {
         "file": "services/orchestration/application/orchestrator.py",
@@ -52449,7 +52477,7 @@
       },
       {
         "file": "services/orchestration/application/sovereign_cortex.py",
-        "hash": "612549490501774300"
+        "hash": "16756160875428044184"
       },
       {
         "file": "services/orchestration/application/startup/__init__.py",
@@ -53797,7 +53825,7 @@
       },
       {
         "file": "services/ui_repair/cognitive_governance.py",
-        "hash": "8822175753433160344"
+        "hash": "3735461963357823541"
       },
       {
         "file": "services/ui_repair/cognitive_integrity_guard.py",
@@ -54053,7 +54081,7 @@
       },
       {
         "file": "services/ui_repair/open_swe_adapter.py",
-        "hash": "4441317825994013123"
+        "hash": "5422328489460473031"
       },
       {
         "file": "services/ui_repair/operations_model.py",
@@ -54245,7 +54273,7 @@
       },
       {
         "file": "services/ui_repair/resiliency_mesh_router.py",
-        "hash": "17713196256857729568"
+        "hash": "13816743030485624391"
       },
       {
         "file": "services/ui_repair/risk_classifier.py",
@@ -54269,7 +54297,7 @@
       },
       {
         "file": "services/ui_repair/router.py",
-        "hash": "16891725876898231209"
+        "hash": "5121916384206712878"
       },
       {
         "file": "services/ui_repair/runbook_generator.py",
@@ -54341,7 +54369,7 @@
       },
       {
         "file": "services/ui_repair/stagehand_adapter.py",
-        "hash": "14038264481169943579"
+        "hash": "18354231702943220461"
       },
       {
         "file": "services/ui_repair/system_smoke_test_runner.py",
@@ -54412,6 +54440,10 @@
         "hash": "3323591014775713486"
       },
       {
+        "file": "services/ui_repair/watchdog/incident_consensus_trigger.py",
+        "hash": "15450469454740546069"
+      },
+      {
         "file": "services/ui_repair/watchdog/kur_watchdog.bat",
         "hash": "14978281640376582990"
       },
@@ -54438,6 +54470,14 @@
       {
         "file": "services/validation/proof_engine.py",
         "hash": "15470952762039894573"
+      },
+      {
+        "file": "signoffs_handover_status.png",
+        "hash": "12987820408075181823"
+      },
+      {
+        "file": "strategy_memory.png",
+        "hash": "15428279645795770655"
       },
       {
         "file": "templates/project_factory/template_registry.yaml",
@@ -54641,23 +54681,23 @@
       },
       {
         "file": "tests/phases/verify_phase_34.py",
-        "hash": "16426409883453265898"
+        "hash": "9144562209173200039"
       },
       {
         "file": "tests/phases/verify_phase_35.py",
-        "hash": "13028009308396871580"
+        "hash": "16774187781835228206"
       },
       {
         "file": "tests/phases/verify_phase_36.py",
-        "hash": "12149446233809247912"
+        "hash": "7093066578905619061"
       },
       {
         "file": "tests/phases/verify_phase_37.py",
-        "hash": "15248585172101998497"
+        "hash": "9549104192614713322"
       },
       {
         "file": "tests/phases/verify_phase_38.py",
-        "hash": "9577124120659169027"
+        "hash": "5466166626673301263"
       },
       {
         "file": "tests/phases/verify_phase_39.py",
@@ -55149,7 +55189,7 @@
       },
       {
         "file": "tests/ui_repair/test_resiliency_mesh.py",
-        "hash": "1318622160811807636"
+        "hash": "8891592495619963418"
       },
       {
         "file": "tests/ui_repair/test_route_scope.py",
@@ -55176,6 +55216,10 @@
         "hash": "13474910135729758443"
       },
       {
+        "file": "tests/ui_repair/test_websocket_reconnect.py",
+        "hash": "13726920809280446459"
+      },
+      {
         "file": "tests/unit/test_agi_safety_guardrail.py",
         "hash": "1585893243513895135"
       },
@@ -55184,12 +55228,36 @@
         "hash": "5901298070184445110"
       },
       {
+        "file": "tests/unit/test_incident_consensus_trigger.py",
+        "hash": "17451302208818429484"
+      },
+      {
+        "file": "tests/unit/test_job_queue_scaling.py",
+        "hash": "5604691480573872412"
+      },
+      {
+        "file": "tests/unit/test_live_stagehand_diagnosis.py",
+        "hash": "864407160726606983"
+      },
+      {
+        "file": "tests/unit/test_meeting_room.py",
+        "hash": "7947905162127052802"
+      },
+      {
+        "file": "tests/unit/test_openswe_live_patch.py",
+        "hash": "2917790869822631471"
+      },
+      {
         "file": "tests/unit/test_production_import_smoke.py",
         "hash": "5419429647281855405"
       },
       {
         "file": "tests/unit/test_project_repository_completion_contract.py",
         "hash": "13937200914261094633"
+      },
+      {
+        "file": "tests/unit/test_queue_detailed_api.py",
+        "hash": "13272907717221585832"
       },
       {
         "file": "tests/unit/test_repair_lab_improvements.py",
@@ -55234,6 +55302,10 @@
       {
         "file": "tsconfig.base.json",
         "hash": "16157933664989664119"
+      },
+      {
+        "file": "validations_launch_gates.png",
+        "hash": "3608009182307071893"
       },
       {
         "file": "verify_db_content.py",
@@ -55365,182 +55437,6 @@
       }
     ],
     "projectFileMap": {
-      "worker-project-tasks": [
-        {
-          "file": "workers/project_tasks/project.json",
-          "hash": "7249564082197783064"
-        }
-      ],
-      "lib-auth": [
-        {
-          "file": "libs/auth/project.json",
-          "hash": "8869482996449088439"
-        },
-        {
-          "file": "libs/auth/rbac.py",
-          "hash": "3853347898723839614"
-        },
-        {
-          "file": "libs/auth/tests/test_rbac.py",
-          "hash": "4293499527992674481"
-        }
-      ],
-      "lib-workflow": [
-        {
-          "file": "libs/workflow/__init__.py",
-          "hash": "11985135550986446045"
-        },
-        {
-          "file": "libs/workflow/audit_verifier.py",
-          "hash": "14114731160070397015"
-        },
-        {
-          "file": "libs/workflow/engine.py",
-          "hash": "2265009925513306786"
-        },
-        {
-          "file": "libs/workflow/models.py",
-          "hash": "8863947494728518286"
-        },
-        {
-          "file": "libs/workflow/persistence.py",
-          "hash": "11086977912578548072"
-        },
-        {
-          "file": "libs/workflow/project.json",
-          "hash": "14269955449004793233"
-        },
-        {
-          "file": "libs/workflow/registry.py",
-          "hash": "1701544790167238377"
-        },
-        {
-          "file": "libs/workflow/runner.py",
-          "hash": "11273008600530607592"
-        },
-        {
-          "file": "libs/workflow/tests/test_workflow_engine_smoke.py",
-          "hash": "15646865586649784825"
-        }
-      ],
-      "workflow-api": [
-        {
-          "file": "services/workflow_api/__init__.py",
-          "hash": "7385497916338391379"
-        },
-        {
-          "file": "services/workflow_api/ceo_router.py",
-          "hash": "9215873864209993621"
-        },
-        {
-          "file": "services/workflow_api/compatibility_router.py",
-          "hash": "4925506339981205327"
-        },
-        {
-          "file": "services/workflow_api/dashboard.html",
-          "hash": "14537706588167191029"
-        },
-        {
-          "file": "services/workflow_api/debate_router.py",
-          "hash": "9178806739082341702"
-        },
-        {
-          "file": "services/workflow_api/debug_routes.py",
-          "hash": "6683178169894216091"
-        },
-        {
-          "file": "services/workflow_api/fleet_router.py",
-          "hash": "4829070613454101064"
-        },
-        {
-          "file": "services/workflow_api/governance_router.py",
-          "hash": "6515382630078929510"
-        },
-        {
-          "file": "services/workflow_api/governor_router.py",
-          "hash": "2885340483434108247"
-        },
-        {
-          "file": "services/workflow_api/health_router.py",
-          "hash": "10852855309626543208"
-        },
-        {
-          "file": "services/workflow_api/main.py",
-          "hash": "7559194785760084120"
-        },
-        {
-          "file": "services/workflow_api/mcp_router.py",
-          "hash": "10781733453033788781"
-        },
-        {
-          "file": "services/workflow_api/metrics_router.py",
-          "hash": "962926302389415277"
-        },
-        {
-          "file": "services/workflow_api/project.json",
-          "hash": "6413387028025755057"
-        },
-        {
-          "file": "services/workflow_api/project_factory_router.py",
-          "hash": "13239940487931201302"
-        },
-        {
-          "file": "services/workflow_api/repair_lab_router.py",
-          "hash": "16937104471932682020"
-        },
-        {
-          "file": "services/workflow_api/router.py",
-          "hash": "1708227100783281254"
-        },
-        {
-          "file": "services/workflow_api/runtime_diagnostics.py",
-          "hash": "17120502489772591860"
-        },
-        {
-          "file": "services/workflow_api/test_query.py",
-          "hash": "1293057799453770506"
-        },
-        {
-          "file": "services/workflow_api/test_slashes.py",
-          "hash": "770097829353895871"
-        }
-      ],
-      "service-mcp": [
-        {
-          "file": "services/mcp_server/main.py",
-          "hash": "1424785428830392464"
-        },
-        {
-          "file": "services/mcp_server/project.json",
-          "hash": "7978142702247858150"
-        },
-        {
-          "file": "services/mcp_server/tests/test_mcp_server_smoke.py",
-          "hash": "6184240820281959118"
-        }
-      ],
-      "agent-ceo": [
-        {
-          "file": "agents/ceo_agent/__init__.py",
-          "hash": "3244421341483603138"
-        },
-        {
-          "file": "agents/ceo_agent/ceo_engine.py",
-          "hash": "10479619836381135095"
-        },
-        {
-          "file": "agents/ceo_agent/ceo_graph.py",
-          "hash": "2650569424976385818"
-        },
-        {
-          "file": "agents/ceo_agent/ceo_supervisor.py",
-          "hash": "11289891238833663505"
-        },
-        {
-          "file": "agents/ceo_agent/project.json",
-          "hash": "14853347080127606628"
-        }
-      ],
       "lib-db": [
         {
           "file": "libs/db/__init__.py",
@@ -55871,6 +55767,140 @@
           "hash": "13119923602762294730"
         }
       ],
+      "lib-workflow": [
+        {
+          "file": "libs/workflow/__init__.py",
+          "hash": "11985135550986446045"
+        },
+        {
+          "file": "libs/workflow/audit_verifier.py",
+          "hash": "14114731160070397015"
+        },
+        {
+          "file": "libs/workflow/engine.py",
+          "hash": "2265009925513306786"
+        },
+        {
+          "file": "libs/workflow/models.py",
+          "hash": "8863947494728518286"
+        },
+        {
+          "file": "libs/workflow/persistence.py",
+          "hash": "11086977912578548072"
+        },
+        {
+          "file": "libs/workflow/project.json",
+          "hash": "14269955449004793233"
+        },
+        {
+          "file": "libs/workflow/registry.py",
+          "hash": "1701544790167238377"
+        },
+        {
+          "file": "libs/workflow/runner.py",
+          "hash": "11273008600530607592"
+        },
+        {
+          "file": "libs/workflow/tests/test_workflow_engine_smoke.py",
+          "hash": "15646865586649784825"
+        }
+      ],
+      "service-mcp": [
+        {
+          "file": "services/mcp_server/main.py",
+          "hash": "1424785428830392464"
+        },
+        {
+          "file": "services/mcp_server/project.json",
+          "hash": "7978142702247858150"
+        },
+        {
+          "file": "services/mcp_server/tests/test_mcp_server_smoke.py",
+          "hash": "6184240820281959118"
+        }
+      ],
+      "workflow-api": [
+        {
+          "file": "services/workflow_api/__init__.py",
+          "hash": "7385497916338391379"
+        },
+        {
+          "file": "services/workflow_api/ceo_router.py",
+          "hash": "9215873864209993621"
+        },
+        {
+          "file": "services/workflow_api/compatibility_router.py",
+          "hash": "4925506339981205327"
+        },
+        {
+          "file": "services/workflow_api/dashboard.html",
+          "hash": "14537706588167191029"
+        },
+        {
+          "file": "services/workflow_api/debate_router.py",
+          "hash": "17505406726033077265"
+        },
+        {
+          "file": "services/workflow_api/debug_routes.py",
+          "hash": "6683178169894216091"
+        },
+        {
+          "file": "services/workflow_api/fleet_router.py",
+          "hash": "4829070613454101064"
+        },
+        {
+          "file": "services/workflow_api/governance_router.py",
+          "hash": "6515382630078929510"
+        },
+        {
+          "file": "services/workflow_api/governor_router.py",
+          "hash": "2885340483434108247"
+        },
+        {
+          "file": "services/workflow_api/health_router.py",
+          "hash": "15636812796194583289"
+        },
+        {
+          "file": "services/workflow_api/main.py",
+          "hash": "17685475388964663035"
+        },
+        {
+          "file": "services/workflow_api/mcp_router.py",
+          "hash": "10781733453033788781"
+        },
+        {
+          "file": "services/workflow_api/metrics_router.py",
+          "hash": "962926302389415277"
+        },
+        {
+          "file": "services/workflow_api/project.json",
+          "hash": "6413387028025755057"
+        },
+        {
+          "file": "services/workflow_api/project_factory_router.py",
+          "hash": "13239940487931201302"
+        },
+        {
+          "file": "services/workflow_api/repair_lab_router.py",
+          "hash": "16937104471932682020"
+        },
+        {
+          "file": "services/workflow_api/router.py",
+          "hash": "1708227100783281254"
+        },
+        {
+          "file": "services/workflow_api/runtime_diagnostics.py",
+          "hash": "17120502489772591860"
+        },
+        {
+          "file": "services/workflow_api/test_query.py",
+          "hash": "1293057799453770506"
+        },
+        {
+          "file": "services/workflow_api/test_slashes.py",
+          "hash": "770097829353895871"
+        }
+      ],
       "refine_control_plane": [
         {
           "file": "apps/refine_control_plane/.gitignore",
@@ -55976,7 +56006,7 @@
         },
         {
           "file": "apps/refine_control_plane/src/app/approvals/page.tsx",
-          "hash": "733716484226502914",
+          "hash": "6713458138956090188",
           "deps": [
             "npm:next-intl",
             "npm:react",
@@ -56543,7 +56573,7 @@
         },
         {
           "file": "apps/refine_control_plane/src/app/meeting-room/page.tsx",
-          "hash": "11722848966508367423",
+          "hash": "6333920970734588277",
           "deps": [
             "npm:react",
             "npm:lucide-react",
@@ -56691,7 +56721,7 @@
         },
         {
           "file": "apps/refine_control_plane/src/app/providers.tsx",
-          "hash": "3861160491902623331",
+          "hash": "12319405884751137676",
           "deps": [
             "npm:react",
             "npm:antd",
@@ -56769,7 +56799,7 @@
         },
         {
           "file": "apps/refine_control_plane/src/app/system-health/page.tsx",
-          "hash": "11040530750218851113",
+          "hash": "10451548024500278681",
           "deps": [
             "npm:react",
             "npm:@refinedev/core",
@@ -56992,7 +57022,7 @@
         },
         {
           "file": "apps/refine_control_plane/src/components/Sidebar.tsx",
-          "hash": "13730571255284547957",
+          "hash": "18122180048655187243",
           "deps": [
             "npm:react",
             "npm:@refinedev/core",
@@ -57244,7 +57274,7 @@
         },
         {
           "file": "apps/refine_control_plane/src/components/ui-repair/AdversarialDriftPanel.tsx",
-          "hash": "9624537403213508598",
+          "hash": "13203021534097203132",
           "deps": [
             "npm:react",
             "npm:antd",
@@ -57254,7 +57284,7 @@
         },
         {
           "file": "apps/refine_control_plane/src/components/ui-repair/AutonomousShieldCenterPanel.tsx",
-          "hash": "18103618315296730632",
+          "hash": "14434397218571252591",
           "deps": [
             "npm:react",
             "npm:antd",
@@ -57302,7 +57332,7 @@
         },
         {
           "file": "apps/refine_control_plane/src/components/ui-repair/DefenseReportPanel.tsx",
-          "hash": "8798722465356357299",
+          "hash": "4391434919912881959",
           "deps": [
             "npm:react",
             "npm:antd",
@@ -57312,7 +57342,7 @@
         },
         {
           "file": "apps/refine_control_plane/src/components/ui-repair/DefensivePatternPanel.tsx",
-          "hash": "12836978034021145812",
+          "hash": "16669911351846342456",
           "deps": [
             "npm:react",
             "npm:antd",
@@ -57448,7 +57478,7 @@
         },
         {
           "file": "apps/refine_control_plane/src/components/ui-repair/GuardrailValidationPanel.tsx",
-          "hash": "12637609287819630970",
+          "hash": "8712522101932999668",
           "deps": [
             "npm:react",
             "npm:antd",
@@ -57602,7 +57632,7 @@
         },
         {
           "file": "apps/refine_control_plane/src/components/ui-repair/RedTeamFindingsPanel.tsx",
-          "hash": "6957204614343910740",
+          "hash": "8388215458076060913",
           "deps": [
             "npm:react",
             "npm:antd",
@@ -57612,7 +57642,7 @@
         },
         {
           "file": "apps/refine_control_plane/src/components/ui-repair/RedTeamPanel.tsx",
-          "hash": "6154836624235528545",
+          "hash": "17517235746481122424",
           "deps": [
             "npm:react",
             "npm:lucide-react",
@@ -57621,7 +57651,7 @@
         },
         {
           "file": "apps/refine_control_plane/src/components/ui-repair/RedTeamReportPanel.tsx",
-          "hash": "2652306166734579191",
+          "hash": "2152836112934216470",
           "deps": [
             "npm:react",
             "npm:antd",
@@ -57672,7 +57702,7 @@
         },
         {
           "file": "apps/refine_control_plane/src/components/ui-repair/ResiliencyMeshPanel.tsx",
-          "hash": "497850393244806442",
+          "hash": "3199867686843274618",
           "deps": [
             "npm:react",
             "npm:lucide-react",
@@ -57750,7 +57780,7 @@
         },
         {
           "file": "apps/refine_control_plane/src/components/ui-repair/TuningProposalPanel.tsx",
-          "hash": "5263311845266995041",
+          "hash": "5724781025655367315",
           "deps": [
             "npm:react",
             "npm:antd",
@@ -57826,7 +57856,7 @@
         },
         {
           "file": "apps/refine_control_plane/src/messages/en.json",
-          "hash": "16665820915332513266"
+          "hash": "3132313698880596406"
         },
         {
           "file": "apps/refine_control_plane/src/messages/refine/en-common.json",
@@ -57838,7 +57868,7 @@
         },
         {
           "file": "apps/refine_control_plane/src/messages/tr.json",
-          "hash": "4149236435570192293"
+          "hash": "4738677046219348175"
         },
         {
           "file": "apps/refine_control_plane/src/providers/accessControlProvider.ts",
@@ -57858,6 +57888,48 @@
         {
           "file": "apps/refine_control_plane/tsconfig.json",
           "hash": "6910913951217489120"
+        }
+      ],
+      "worker-project-tasks": [
+        {
+          "file": "workers/project_tasks/project.json",
+          "hash": "7249564082197783064"
+        }
+      ],
+      "agent-ceo": [
+        {
+          "file": "agents/ceo_agent/__init__.py",
+          "hash": "3244421341483603138"
+        },
+        {
+          "file": "agents/ceo_agent/ceo_engine.py",
+          "hash": "10479619836381135095"
+        },
+        {
+          "file": "agents/ceo_agent/ceo_graph.py",
+          "hash": "7866660813326570627"
+        },
+        {
+          "file": "agents/ceo_agent/ceo_supervisor.py",
+          "hash": "11289891238833663505"
+        },
+        {
+          "file": "agents/ceo_agent/project.json",
+          "hash": "14853347080127606628"
+        }
+      ],
+      "lib-auth": [
+        {
+          "file": "libs/auth/project.json",
+          "hash": "8869482996449088439"
+        },
+        {
+          "file": "libs/auth/rbac.py",
+          "hash": "3853347898723839614"
+        },
+        {
+          "file": "libs/auth/tests/test_rbac.py",
+          "hash": "4293499527992674481"
         }
       ]
     }

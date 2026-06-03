@@ -7,9 +7,10 @@ from typing import Any, Optional
 import yaml
 from fastapi import FastAPI
 
-CONFIG_PATH = Path("e:/ai_company_faz12.1/configs/release_contract_matrix.yaml")
-FRONTEND_SRC_DIR = Path("e:/ai_company_faz12.1/apps/refine_control_plane/src")
-REPAIR_OUTPUTS_DIR = Path("e:/ai_company_faz12.1/repair_outputs")
+WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
+CONFIG_PATH = WORKSPACE_ROOT / "configs" / "release_contract_matrix.yaml"
+FRONTEND_SRC_DIR = WORKSPACE_ROOT / "apps" / "refine_control_plane" / "src"
+REPAIR_OUTPUTS_DIR = WORKSPACE_ROOT / "repair_outputs"
 
 def load_matrix_config() -> dict[str, Any]:
     if not CONFIG_PATH.exists():

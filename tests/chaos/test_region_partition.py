@@ -1,6 +1,6 @@
 import pytest
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from services.orchestration.mesh_state_store import mesh_state_store
 from services.orchestration.mesh_router import MeshRouter, QuorumLossException
 from services.orchestration.federation_router import FederationTask
@@ -23,7 +23,7 @@ async def test_region_partition_behavior():
     assert mesh_state_store.is_quorum_maintained() is True
 
     # 2. Simulate Partition (Kill US and EU pulses)
-    old_time = (datetime.utcnow() - timedelta(seconds=60)).isoformat()
+    old_time = (datetime.now(timezone.utc) - timedelta(seconds=60)).isoformat()
     with mesh_state_store._lock:
         mesh_state_store._state["regions"]["us-east-1"]["updated_at"] = old_time
         mesh_state_store._state["regions"]["eu-central-1"]["updated_at"] = old_time

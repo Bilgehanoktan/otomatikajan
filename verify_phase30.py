@@ -47,7 +47,7 @@ async def verify_compliance_and_quorum():
     
     # 1. Quorum Requirement
     req = await QuorumService.register_quorum_requirement("CONSTITUTION", "CRITICAL", 3, "Anayasa değişikliği için 3 onay gerekir.")
-    logger.info(f"Registered Quorum: {req.required_quorum} for {req.component_type}")
+    logger.info(f"Registered Quorum: {req.required_count} for {req.component_type}")
     
     # 2. Audit Bundle
     bundle = await ComplianceService.generate_audit_bundle(

@@ -15,6 +15,20 @@ class FinOpsRecommendationEngine:
         
         # 1. Check for chronic high-cost operation types
         op_costs = await CostAttributionService.get_operation_attribution(db, days=7)
+        if not op_costs:
+            return [UIFinOpsRecommendation(
+                id=uuid.uuid4(),
+                project_key=project_key,
+                recommendation_type="NO_DATA",
+                priority="LOW",
+                title="No FinOps Data Available",
+                description="No historical cost telemetry is available to generate recommendations.",
+                expected_savings_usd=0.0,
+                risk_impact="NONE",
+                status="NO_DATA",
+                created_at=datetime.now(timezone.utc)
+            )]
+
         for op in op_costs:
             if op["operation_type"] == "OPENSWE_REPAIR" and op["total_cost"] > 50:
                 recommendations.append(UIFinOpsRecommendation(

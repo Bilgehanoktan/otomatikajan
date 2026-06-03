@@ -52,13 +52,14 @@ class PRAgentAdapter:
         
         return {
             "success": True,
-            "status": "PASSED",
+            "status": "SIMULATED",
             "risk_level": risk_level,
-            "review_summary": "Patch looks solid. Minor optimization suggested in DataGrid.",
+            "review_summary": "[SIMULATED] Simulated PR-Agent review cycle. No real provider configured.",
             "describe": describe_output,
             "review": review_output,
             "improve": improve_output,
             "changed_files": describe_output["relevant_files"],
             "started_at": datetime.now(), # In real usage, these would be captured properly
-            "finished_at": datetime.now()
+            "finished_at": datetime.now(),
+            "provider": "NO_PROVIDER"
         }

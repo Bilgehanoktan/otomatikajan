@@ -1090,44 +1090,91 @@ async def list_retention_policies(response: Response):
 @router.get("/policy-proposals", response_model=list[PolicyProposalOut], include_in_schema=False)
 @router.get("/policy-proposals/", response_model=list[PolicyProposalOut], include_in_schema=False)
 async def list_policy_proposals(response: Response):
-    from sqlalchemy import func, select
+    import json
 
-    from libs.db.models.governance_models import PolicyProposal
+    from sqlalchemy import inspect, text
+
     from libs.db.session import AsyncSessionLocal
 
     async with AsyncSessionLocal() as db:
-        total = (await db.execute(select(func.count(PolicyProposal.id)))).scalar() or 0
+        connection = await db.connection()
+
+        def _load_columns(sync_connection):
+            try:
+                return {column["name"] for column in inspect(sync_connection).get_columns("policy_proposals")}
+            except Exception:
+                return set()
+
+        available_columns = await connection.run_sync(_load_columns)
+        if not available_columns:
+            response.headers["x-total-count"] = "0"
+            response.headers["Access-Control-Expose-Headers"] = "x-total-count"
+            return []
+
+        total = (await db.execute(text("SELECT COUNT(*) FROM policy_proposals"))).scalar() or 0
         response.headers["x-total-count"] = str(total)
         response.headers["Access-Control-Expose-Headers"] = "x-total-count"
 
-        res = await db.execute(select(PolicyProposal).order_by(PolicyProposal.created_at.desc()))
-        items = res.scalars().all()
+        selected_columns = [
+            column
+            for column in (
+                "id",
+                "title",
+                "description",
+                "policy_code",
+                "status",
+                "created_at",
+                "scope",
+                "proposed_changes",
+                "author_id",
+                "git_commit_sha",
+            )
+            if column in available_columns
+        ]
+        if not selected_columns:
+            return []
+
+        order_by = "created_at DESC" if "created_at" in available_columns else "id DESC"
+        query = text(
+            f"SELECT {', '.join(selected_columns)} FROM policy_proposals ORDER BY {order_by}"
+        )
+        items = (await db.execute(query)).mappings().all()
+
+        def _coerce_changes(raw_value: Any) -> dict[str, Any]:
+            if isinstance(raw_value, dict):
+                return raw_value
+            if isinstance(raw_value, str) and raw_value.strip():
+                try:
+                    parsed = json.loads(raw_value)
+                except json.JSONDecodeError:
+                    return {}
+                return parsed if isinstance(parsed, dict) else {}
+            return {}
 
         return [
             PolicyProposalOut(
-                id=str(i.id),
-                title=i.title,
-                description=i.description or "",
-                scope=getattr(i, "scope", "AUTONOMOUS_LEARNING"),
-                status=i.status.value if hasattr(i.status, "value") else str(i.status),
-                author_id=str(getattr(i, "author_id", "governance_agent")),
-                created_at=i.created_at,
-                parameter=getattr(i, "proposed_changes", {}).get("parameter", i.title)
-                if isinstance(getattr(i, "proposed_changes", {}), dict)
-                else i.title,
-                current_value=str(getattr(i, "proposed_changes", {}).get("current_value", "Default")),
-                proposed_value=str(getattr(i, "proposed_changes", {}).get("proposed_value", "N/A"))
-                if isinstance(getattr(i, "proposed_changes", {}), dict)
-                else i.policy_code,
-                confidence=getattr(i, "proposed_changes", {}).get("confidence", 0.91)
-                if isinstance(getattr(i, "proposed_changes", {}), dict)
-                else 0.91,
-                impact=getattr(i, "proposed_changes", {}).get("impact", "Medium"),
+                id=str(item.get("id")),
+                title=str(item.get("title") or "Untitled Proposal"),
+                description=str(item.get("description") or ""),
+                scope=str(item.get("scope") or "AUTONOMOUS_LEARNING"),
+                status=str(item.get("status") or "PROPOSED"),
+                author_id=str(item.get("author_id") or "governance_agent"),
+                created_at=item.get("created_at") or datetime.now(UTC),
+                parameter=_coerce_changes(item.get("proposed_changes")).get("parameter", item.get("title") or "System Tuning"),
+                current_value=str(_coerce_changes(item.get("proposed_changes")).get("current_value", "Default")),
+                proposed_value=str(
+                    _coerce_changes(item.get("proposed_changes")).get(
+                        "proposed_value",
+                        item.get("policy_code") or "N/A",
+                    )
+                ),
+                confidence=float(_coerce_changes(item.get("proposed_changes")).get("confidence", 0.91)),
+                impact=str(_coerce_changes(item.get("proposed_changes")).get("impact", "Medium")),
                 required_signoffs=2,
                 current_signoffs=0,
                 signatories=[],
             )
-            for i in items
+            for item in items
         ]
 
 @router.post("/proposals/{proposal_id}/approve")

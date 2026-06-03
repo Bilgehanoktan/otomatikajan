@@ -49,9 +49,15 @@ export const SystemSmokeTestPanel: React.FC = () => {
             title: 'Status',
             dataIndex: 'status',
             key: 'status',
-            render: (status: string) => (
-                <Badge status={status === 'PASSED' ? 'success' : 'error'} text={status} />
-            )
+            render: (status: string) => {
+                let badgeStatus: 'success' | 'error' | 'warning' | 'default' | 'processing' = 'default';
+                if (status === 'PASSED') badgeStatus = 'success';
+                else if (status === 'FAILED' || status === 'BLOCKED') badgeStatus = 'error';
+                else if (status === 'WARNING' || status === 'STALE') badgeStatus = 'warning';
+                else if (status === 'NO_DATA') badgeStatus = 'default';
+                else if (status === 'SIMULATED') badgeStatus = 'processing';
+                return <Badge status={badgeStatus} text={status} />;
+            }
         }
     ];
 
@@ -99,8 +105,8 @@ export const SystemSmokeTestPanel: React.FC = () => {
                         <Divider style={{ margin: '12px 0' }} />
                         <List size="small">
                             <List.Item><Text type="secondary">Total Modules:</Text> <Text strong>{results.length}</Text></List.Item>
-                            <List.Item><Text type="secondary">Failures:</Text> <Text strong type="danger">{results.filter(r => r.status !== 'PASSED').length}</Text></List.Item>
-                            <List.Item><Text type="secondary">Warnings:</Text> <Text strong type="warning">0</Text></List.Item>
+                            <List.Item><Text type="secondary">Failures:</Text> <Text strong type="danger">{results.filter(r => r.status === 'FAILED' || r.status === 'BLOCKED').length}</Text></List.Item>
+                            <List.Item><Text type="secondary">Warnings:</Text> <Text strong type="warning">{results.filter(r => r.status === 'WARNING' || r.status === 'STALE').length}</Text></List.Item>
                         </List>
                     </Card>
                 </Col>

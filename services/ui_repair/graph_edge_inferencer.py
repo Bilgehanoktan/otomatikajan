@@ -61,10 +61,10 @@ class GraphEdgeInferencer:
 
         elif isinstance(source_obj, UIToolCallAudit):
             # Tool -> Identity
-            if source_obj.agent_id:
+            if source_obj.caller_id:
                 edges.append(UIKnowledgeEdge(
                     source_node_key=f"TOOL_CALL:{source_obj.id}",
-                    target_node_key=f"IDENTITY:{source_obj.agent_id}",
+                    target_node_key=f"IDENTITY:{source_obj.caller_id}",
                     edge_type=KnowledgeEdgeType.USED_TOOL
                 ))
 

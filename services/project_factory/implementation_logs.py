@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Any, Dict
 from services.project_factory.artifacts import _resolve_project_dir
@@ -23,7 +23,7 @@ def record_implementation_event(
     events_path = project_dir / "implementation_events.jsonl"
     
     event = {
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
         "event_type": event_type,
         "message": message,
         "details": details or {}

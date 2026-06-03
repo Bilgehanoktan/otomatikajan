@@ -42,7 +42,7 @@ export default function SelfTuningPage() {
 
   const fetchData = async () => {
     try {
-      const sugData: any = await safeFetchJson(`/api/v1/repair-lab/suggestions`);
+      const sugData: any = await safeFetchJson(`/api/v1/repair-lab/tuning/suggestions`);
       setSuggestions(sugData || []);
 
       const feedData: any = await safeFetchJson(`/api/v1/repair-lab/evolution/feed`);
@@ -74,7 +74,7 @@ export default function SelfTuningPage() {
 
   const handleAction = async (id: string, status: 'approved' | 'rejected') => {
     try {
-      const response: any = await safeFetchJson(`/api/v1/repair-lab/apply/${id}`, {
+      const response: any = await safeFetchJson(`/api/v1/repair-lab/tuning/suggestions/${id}/apply`, {
         method: 'POST',
         body: JSON.stringify({ status })
       });

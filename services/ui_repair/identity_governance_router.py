@@ -51,7 +51,11 @@ async def perform_handshake(req: HandshakeRequest, db: AsyncSession = Depends(ge
 @router.get("/trust-scores", response_model=List[UITrustScoreSchema])
 async def get_trust_scores(db: AsyncSession = Depends(get_db)):
     from libs.db.models.ui_repair_models import UITrustScore
-    from sqlalchemy import select
+    from sqlalchemy import select, func
+    count = (await db.execute(select(func.count(UITrustScore.id)))).scalar() or 0
+    if count == 0:
+        registry = SovereignIdentityRegistry(db)
+        await registry.seed_identities()
     res = await db.execute(select(UITrustScore))
     return list(res.scalars().all())
 

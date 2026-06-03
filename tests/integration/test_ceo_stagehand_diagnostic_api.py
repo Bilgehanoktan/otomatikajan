@@ -10,7 +10,7 @@ from httpx import AsyncClient, ASGITransport
 from services.workflow_api.main import app
 from services.auth.jwt_auth import get_current_identity, require_permission
 
-WORKSPACE_ROOT = Path("e:/ai_company_faz12.1").resolve()
+WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
 REPAIR_OUTPUTS = WORKSPACE_ROOT / "repair_outputs"
 DIAGNOSTICS_DIR = REPAIR_OUTPUTS / "diagnostics"
 

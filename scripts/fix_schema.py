@@ -42,8 +42,20 @@ async def fix():
             "success_count": "INTEGER DEFAULT 0",
             "failure_count": "INTEGER DEFAULT 0",
         }
+        
+        # SQL Injection (DDL) önlemi: col_name ve col_type güvenilir listeye (whitelist) uygun mu?
         for col_name, col_type in missing_cols.items():
             if col_name not in agent_cols:
+                if not col_name.isidentifier() or " " in col_name:
+                    print(f"Skipping dangerous column name: {col_name}")
+                    continue
+                
+                # İzin verilen tipler whitelist
+                allowed_types = ["INTEGER DEFAULT 0", "VARCHAR(255)", "TEXT", "BOOLEAN DEFAULT FALSE"]
+                if col_type not in allowed_types:
+                    print(f"Skipping dangerous column type: {col_type}")
+                    continue
+                    
                 await conn.execute(text(f"ALTER TABLE agent_nodes ADD COLUMN {col_name} {col_type}"))
                 print(f"  Added agent_nodes.{col_name}")
 

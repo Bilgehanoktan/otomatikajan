@@ -12,7 +12,7 @@ from services.repair.patch_tournament_models import (
     PatchTournamentResult
 )
 
-WORKSPACE_ROOT = Path("e:/ai_company_faz12.1").resolve()
+WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
 REPAIR_OUTPUTS_DIR = WORKSPACE_ROOT / "repair_outputs"
 
 def load_tournament_inputs(

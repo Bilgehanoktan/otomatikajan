@@ -7,7 +7,7 @@ from pathlib import Path
 from services.project_factory.candidate_packager import package_candidate, load_candidate_manifest
 from services.project_factory.artifacts import _resolve_project_dir
 
-WORKSPACE_ROOT = Path("e:/ai_company_faz12.1").resolve()
+WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
 TEST_PROJECT_ID = "PF-TEST-PKG-888"
 TEST_PROJECT_DIR = WORKSPACE_ROOT / "project_outputs" / "project_factory" / TEST_PROJECT_ID
 

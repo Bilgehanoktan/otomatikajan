@@ -16,17 +16,8 @@ const ProjectHealthMatrixPanel: React.FC = () => {
 
   const fetchHealth = async () => {
     setLoading(true);
-    // In real implementation, this would fetch UIProjectHealthSnapshot or projects with health
     try {
-      const projects = await safeFetchJson('/api/v1/ui-repair/projects');
-      
-      const snapshots = projects.map((p: any) => ({
-        ...p,
-        health_score: 95 + Math.random() * 5, // Mock score
-        open_cases: Math.floor(Math.random() * 5),
-        sla_status: 'COMPLIANT',
-        slo_status: 'HEALTHY'
-      }));
+      const snapshots = await safeFetchJson('/api/v1/ui-repair/projects/health-matrix');
       setData(snapshots);
     } catch (err) {
       message.error('Failed to fetch health matrix');
@@ -36,7 +27,17 @@ const ProjectHealthMatrixPanel: React.FC = () => {
   };
 
   const columns = [
-    { title: t('table.project'), dataIndex: 'project_name', key: 'name' },
+    {
+      title: t('table.project'),
+      dataIndex: 'project_name',
+      key: 'name',
+      render: (_: string, row: any) => (
+        <div>
+          <div className="font-medium text-slate-100">{row.project_name}</div>
+          <div className="text-[11px] text-slate-500">{row.project_key}</div>
+        </div>
+      )
+    },
     { 
       title: t('table.health_score'), 
       dataIndex: 'health_score', 
@@ -64,8 +65,9 @@ const ProjectHealthMatrixPanel: React.FC = () => {
     },
     {
       title: t('table.route_coverage'),
+      dataIndex: 'route_coverage_percent',
       key: 'coverage',
-      render: () => <Progress type="circle" percent={100} width={30} />
+      render: (value: number) => <Progress type="circle" percent={Math.round(value ?? 0)} width={30} />
     }
   ];
 

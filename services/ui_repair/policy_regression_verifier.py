@@ -36,9 +36,46 @@ class PolicyRegressionVerifier:
         self.db.add(run)
         await self.db.flush()
         
-        # 1. Fetch historical events (Mocked for Phase 25)
-        # In production, we'd query DecisionLineage or EvidenceLedger
-        history = self._get_mock_event_history()
+        # 1. Fetch historical events from real database tables
+        history = []
+        try:
+            from libs.db.models.ui_repair_models import UIPolicyEvaluation, UIRepairCase
+            from libs.db.models.core_models import OperationalIncident
+
+            # Fetch UIPolicyEvaluations
+            evals = (await self.db.execute(select(UIPolicyEvaluation).limit(50))).scalars().all()
+            for e in evals:
+                risk = e.input_context_json.get("risk", 0.2 if e.decision == "ALLOW" else 0.75) if e.input_context_json else (0.2 if e.decision == "ALLOW" else 0.75)
+                is_legitimate = e.decision == "ALLOW"
+                history.append({
+                    "id": f"eval-{e.id}",
+                    "risk": risk,
+                    "is_legitimate": is_legitimate
+                })
+
+            # Fetch UIRepairCases
+            cases = (await self.db.execute(select(UIRepairCase).limit(50))).scalars().all()
+            for c in cases:
+                risk = 0.95 if c.severity == "CRITICAL" else (0.75 if c.severity == "HIGH" else (0.4 if c.severity == "MEDIUM" else 0.15))
+                history.append({
+                    "id": f"case-{c.id}",
+                    "risk": risk,
+                    "is_legitimate": c.status == "RESOLVED"
+                })
+
+            # Fetch OperationalIncidents
+            incidents = (await self.db.execute(select(OperationalIncident).limit(50))).scalars().all()
+            for inc in incidents:
+                history.append({
+                    "id": f"inc-{inc.id}",
+                    "risk": 0.9,
+                    "is_legitimate": False
+                })
+        except Exception as exc:
+            _log.error(f"Failed to fetch real historical events for regression: {exc}")
+
+        if not history:
+            history = self._get_mock_event_history()
         
         allowed = 0
         denied = 0

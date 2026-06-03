@@ -35,9 +35,10 @@ export default function SnapshotDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const { mutate: exportBundle } = useCustomMutation();
+  const snapshotId = Array.isArray(id) ? id[0] : id;
   
   const snapshotQuery = useCustom<any>({
-    url: `governance/proof/snapshots/${id}`,
+    url: `governance/governor/proof/snapshots/${snapshotId}`,
     method: "get"
   });
   const { data, isLoading } = snapshotQuery.query;
@@ -62,7 +63,7 @@ export default function SnapshotDetailPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
         <Button icon={<ArrowLeftOutlined />} onClick={() => router.back()}>Back</Button>
         <Space>
-          <Button icon={<DownloadOutlined />} onClick={() => exportBundle({ url: `/governance/proof/export/${id}`, method: "post", values: {} })}>
+          <Button icon={<DownloadOutlined />} onClick={() => exportBundle({ url: `/governance/governor/proof/export/${snapshotId}`, method: "post", values: {} })}>
             Export Audit Bundle
           </Button>
           <Button type="primary" icon={<CheckCircleOutlined />}>Verify Integrity</Button>

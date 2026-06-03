@@ -1,7 +1,7 @@
 import os
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Set, Dict
 
 from services.self_repair_audit.action_models import SuggestionActionRequest, SuggestionActionLog
@@ -113,7 +113,7 @@ def process_suggestion_action(
         
     # 6. Generate action logs
     action_id = f"ACT-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
-    created_at = datetime.utcnow().isoformat() + "Z"
+    created_at = datetime.now(timezone.utc).isoformat() + "Z"
     
     # Format a dummy next step message for this phase
     step_msg = "Faz 4 bridge will convert this to repair case" if to_status == "APPROVED_FOR_REPAIR" else \

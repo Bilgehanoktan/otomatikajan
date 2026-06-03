@@ -48,6 +48,7 @@ import CognitiveIntegrityCenterPanel from "@/components/ui-repair/CognitiveInteg
 import SecurityPostureCenterPanel from "@/components/ui-repair/SecurityPostureCenterPanel";
 import { FinalReleaseCenterPanel } from "@/components/ui-repair/FinalReleaseCenterPanel";
 import { KnowledgeCenterPanel } from "@/components/ui-repair/KnowledgeCenterPanel";
+import { FederationCenter } from "@/components/ui-repair/FederationCenter";
 
 // Premium UI Components
 const Card = ({ children, className = "", onClick }: { children: React.ReactNode, className?: string, onClick?: () => void }) => (
@@ -75,6 +76,35 @@ const Badge = ({ children, variant = "info" }: { children: React.ReactNode, vari
       {children}
     </span>
   );
+};
+
+const isActiveRepairStatus = (status?: string | null) => {
+  const normalized = (status || "").toUpperCase();
+  return normalized !== "RESOLVED" && normalized !== "IGNORED";
+};
+
+const deriveOverviewFromLocalData = (routes: any[], cases: any[]) => {
+  const totalRoutes = routes.length;
+  const failingRoutes = routes.filter((route) => route?.status === "FAIL").length;
+  const passingRoutes = Math.max(totalRoutes - failingRoutes, 0);
+  const activeCases = cases.filter((repairCase) => isActiveRepairStatus(repairCase?.status));
+  const latestRouteCheckAt = routes.reduce<string | null>((latest, route) => {
+    if (!route?.last_checked_at) return latest;
+    if (!latest) return route.last_checked_at;
+    return Date.parse(route.last_checked_at) > Date.parse(latest) ? route.last_checked_at : latest;
+  }, null);
+
+  return {
+    ui_health_score: totalRoutes > 0 ? passingRoutes / totalRoutes : 0,
+    total_routes: totalRoutes,
+    passing_routes: passingRoutes,
+    failing_routes: failingRoutes,
+    open_cases: activeCases.length,
+    critical_cases: activeCases.filter((repairCase) => repairCase?.severity === "CRITICAL").length,
+    last_smoke_run_at: latestRouteCheckAt,
+    last_smoke_status: null,
+    top_failure_types: [],
+  };
 };
 
 export default function UIRepairPage() {
@@ -148,16 +178,18 @@ export default function UIRepairPage() {
   };
 
   const fetchData = async () => {
-    const [over, route, caseList, guard] = await Promise.allSettled([
-      safeFetchJson('/api/v1/ui-repair/overview', { retries: 0, useOfflineFallback: false }),
+    const [route, caseList, guard] = await Promise.allSettled([
       safeFetchJson('/api/v1/ui-repair/routes', { retries: 0, useOfflineFallback: false }),
       safeFetchJson('/api/v1/ui-repair/cases', { retries: 0, useOfflineFallback: false }),
       safeFetchJson('/api/v1/ui-repair/runtime-guard/status', { retries: 0, useOfflineFallback: false })
     ]);
 
-    if (over.status === "fulfilled") setOverview(over.value);
-    if (route.status === "fulfilled") setRoutes(route.value);
-    if (caseList.status === "fulfilled") setCases(caseList.value);
+    const nextRoutes = route.status === "fulfilled" ? route.value : [];
+    const nextCases = caseList.status === "fulfilled" ? caseList.value : [];
+
+    setRoutes(nextRoutes);
+    setCases(nextCases);
+    setOverview(deriveOverviewFromLocalData(nextRoutes, nextCases));
 
     if (guard.status === "fulfilled") {
       if (guard.value && guard.value.status === "degraded") {
@@ -167,7 +199,7 @@ export default function UIRepairPage() {
       }
     }
 
-    const rejected = [over, route, caseList, guard].find((result) => result.status === "rejected") as PromiseRejectedResult | undefined;
+    const rejected = [route, caseList, guard].find((result) => result.status === "rejected") as PromiseRejectedResult | undefined;
     if (rejected) {
       console.error("Failed to fetch UI repair data", rejected.reason);
       setApiError(rejected.reason instanceof Error ? rejected.reason.message : String(rejected.reason));
@@ -176,6 +208,14 @@ export default function UIRepairPage() {
     }
 
     setLoading(false);
+
+    void safeFetchJson('/api/v1/ui-repair/dashboard/summary', { retries: 0, useOfflineFallback: false })
+      .then((summary) => {
+        setOverview(summary);
+      })
+      .catch((reason) => {
+        console.error("Failed to fetch UI repair dashboard summary", reason);
+      });
   };
 
   const handleRunSmoke = async () => {
@@ -467,6 +507,12 @@ export default function UIRepairPage() {
             className={`px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 rounded-t-lg ${mainTab === "identity" ? 'border-amber-500 text-amber-400 bg-amber-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
           >
             Identity & Trust
+          </button>
+          <button 
+            onClick={() => setMainTab("federation")}
+            className={`px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 rounded-t-lg ${mainTab === "federation" ? 'border-sky-500 text-sky-400 bg-sky-500/5' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+          >
+            Federation
           </button>
           <button 
             onClick={() => setMainTab("cognitive")}
@@ -899,6 +945,10 @@ export default function UIRepairPage() {
         ) : mainTab === "identity" ? (
           <div className="animate-in fade-in duration-500">
             <IdentityTrustCenterPanel />
+          </div>
+        ) : mainTab === "federation" ? (
+          <div className="animate-in fade-in duration-500">
+            <FederationCenter />
           </div>
         ) : mainTab === "tools" ? (
           <div className="animate-in fade-in duration-500">

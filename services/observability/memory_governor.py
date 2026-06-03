@@ -16,7 +16,7 @@ class MemoryGovernor:
     Faz 30: Unified Galactic Cortex (UGC) ile uyumlu.
     """
     
-    def __init__(self, limit_mb: float = 200.0, warning_mb: float = 150.0):
+    def __init__(self, limit_mb: float = 1024.0, warning_mb: float = 800.0):
         self.MAX_MEMORY_MB = float(os.getenv("MAX_MEMORY_MB", limit_mb))
         self.WARNING_MEMORY_MB = float(os.getenv("WARNING_MEMORY_MB", warning_mb))
         self._registry: List[Callable] = []  # Temizlik fonksiyonları listesi

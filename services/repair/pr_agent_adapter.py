@@ -57,7 +57,7 @@ class PRAgentAdapter:
         artifact = build_pr_review_artifact(
             incident_id=incident_id,
             run_id=run_id,
-            summary="PR-Agent automated review of patch candidate.",
+            summary="[SIMULATED] PR-Agent automated review of patch candidate (NO_PROVIDER).",
             possible_bugs=["Small typo in comment"] if "BUG" in incident_id else [],
             security_findings=[],
             suggested_improvements=["Refactor helper function"] if "IMPROVE" in incident_id else [],
@@ -96,7 +96,7 @@ class PRAgentAdapter:
         
         # If the case indicates a failure test, block it
         is_failure_test = "FAIL" in case_id or "RUN" in case_id
-        decision = "BLOCKED" if is_failure_test else "PASSED"
+        decision = "BLOCKED" if is_failure_test else "SIMULATED"
         
         mock_findings = [
             PRAgentFinding(
@@ -104,7 +104,7 @@ class PRAgentAdapter:
                 line_number=160,
                 severity="critical" if is_failure_test else "info",
                 category="security" if is_failure_test else "quality",
-                message=f"PR-Agent: UI Integrity breach detected. Button 'New Directive' is non-functional." if is_failure_test else "PR-Agent: Component logic looks clean.",
+                message=f"PR-Agent: UI Integrity breach detected. Button 'New Directive' is non-functional." if is_failure_test else "[SIMULATED] PR-Agent: Component logic looks clean.",
                 suggestion="Restore pointer-events and remove disabled attribute." if is_failure_test else "Add TypeScript interface."
             )
         ]
@@ -114,7 +114,7 @@ class PRAgentAdapter:
             pr_url=pr_url,
             status=decision,
             governance_decision=decision,
-            summary=f"PR-Agent: CRITICAL FAILURE DETECTED. Review {decision}." if is_failure_test else "PR-Agent automated review passed.",
+            summary=f"PR-Agent: CRITICAL FAILURE DETECTED. Review {decision}." if is_failure_test else "[SIMULATED] PR-Agent automated review completed (NO_PROVIDER).",
             findings=mock_findings
         )
 

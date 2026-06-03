@@ -62,15 +62,16 @@ class GraphNodeExtractor:
             node_type=KnowledgeNodeType.REMEDIATION_PLAN,
             source_type="REMEDIATION_PLAN",
             source_id=str(plan.id),
-            tenant_key=plan.tenant_key,
-            project_key=plan.project_key,
-            title=plan.title,
-            summary=plan.description,
-            severity="INFO",
+            project_key="UI_REPAIR",
+            title=f"Remediation Plan: {plan.finding_type}",
+            summary=plan.recommended_action,
+            severity=plan.severity,
             metadata_json={
                 "finding_id": str(plan.finding_id),
-                "strategy": plan.remediation_strategy,
-                "status": plan.status
+                "remediation_type": str(plan.remediation_type),
+                "affected_module": plan.affected_module,
+                "affected_route": plan.affected_route,
+                "status": str(plan.status),
             }
         )
 
@@ -82,13 +83,14 @@ class GraphNodeExtractor:
             source_type="AUTOPATCH_EXECUTION",
             source_id=str(execution.id),
             project_key=execution.project_key,
-            title=f"Auto-Patch for {execution.affected_route}",
-            summary=f"Execution of patch for {execution.affected_route}. Status: {execution.status}",
+            title=f"Auto-Patch Execution {execution.execution_key}",
+            summary=f"Execution {execution.execution_key} from {execution.source_type}. Status: {execution.status}",
             severity="INFO",
             metadata_json={
-                "case_id": str(execution.case_id),
-                "route": execution.affected_route,
-                "status": execution.status
+                "source_id": str(execution.source_id) if execution.source_id else None,
+                "source_type": str(execution.source_type),
+                "status": str(execution.status),
+                "patch_strategy": execution.patch_strategy,
             }
         )
 
@@ -100,12 +102,13 @@ class GraphNodeExtractor:
             source_type="PATCH_CANDIDATE",
             source_id=str(candidate.id),
             title=f"Patch Candidate {candidate.id}",
-            summary=candidate.patch_summary,
+            summary=candidate.summary,
             severity="INFO",
             metadata_json={
                 "execution_id": str(candidate.execution_id),
-                "strategy": candidate.strategy_name,
-                "confidence": candidate.confidence_score
+                "strategy": candidate.strategy,
+                "risk_level": candidate.risk_level,
+                "selected": candidate.selected,
             }
         )
 
@@ -131,18 +134,21 @@ class GraphNodeExtractor:
     @staticmethod
     def from_identity(identity: UISovereignIdentity) -> UIKnowledgeNode:
         return UIKnowledgeNode(
-            node_key=f"IDENTITY:{identity.id}",
+            node_key=f"IDENTITY:{identity.identity_key}",
             node_type=KnowledgeNodeType.IDENTITY,
             source_type="IDENTITY",
             source_id=str(identity.id),
             tenant_key=identity.tenant_key,
-            title=f"Identity: {identity.identity_name}",
-            summary=f"Identity {identity.identity_key} for {identity.owner_type}",
+            project_key=identity.project_key,
+            cluster_key=identity.cluster_key,
+            title=f"Identity: {identity.display_name}",
+            summary=f"Identity {identity.identity_key} for {identity.identity_type}",
             severity="INFO",
             metadata_json={
                 "identity_key": identity.identity_key,
-                "owner_type": identity.owner_type,
-                "trust_score": identity.trust_score
+                "identity_type": identity.identity_type,
+                "trust_level": identity.trust_level,
+                "status": identity.status,
             }
         )
 
@@ -155,13 +161,14 @@ class GraphNodeExtractor:
             source_id=str(audit.id),
             tenant_key=audit.tenant_key,
             project_key=audit.project_key,
-            title=f"Tool Call: {audit.tool_name}",
-            summary=f"Execution of tool {audit.tool_name} by {audit.agent_id}",
-            severity="INFO" if audit.governance_status == "APPROVED" else "HIGH",
+            title=f"Tool Call: {audit.tool_key}",
+            summary=f"Execution of tool {audit.tool_key} by {audit.caller_id}",
+            severity="INFO" if audit.policy_decision == "ALLOW" else "HIGH",
             metadata_json={
-                "tool_name": audit.tool_name,
-                "agent_id": audit.agent_id,
-                "governance_status": audit.governance_status
+                "tool_key": audit.tool_key,
+                "caller_id": audit.caller_id,
+                "caller_type": audit.caller_type,
+                "policy_decision": audit.policy_decision,
             }
         )
 
@@ -172,13 +179,15 @@ class GraphNodeExtractor:
             node_type=KnowledgeNodeType.RED_TEAM_FINDING,
             source_type="RED_TEAM_FINDING",
             source_id=str(finding.id),
-            title=finding.title,
+            title=f"Red Team Finding: {finding.finding_type}",
             summary=finding.description,
             severity=finding.severity,
             metadata_json={
                 "run_id": str(finding.run_id),
-                "attack_type": finding.attack_type,
-                "exploitability": finding.exploitability
+                "scenario_id": str(finding.scenario_id),
+                "affected_control": finding.affected_control,
+                "affected_domain": str(finding.affected_domain),
+                "feasible": finding.feasible,
             }
         )
 
