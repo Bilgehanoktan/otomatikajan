@@ -698,5 +698,28 @@ async def scale_job_queue(req: ScaleRequest):
         raise HTTPException(status_code=500, detail=str(exc))
 
 
+@router.post("/aesthetic/audit")
+async def run_aesthetic_audit():
+    """Runs the Aesthetic Auditor to analyze frontend CSS files."""
+    try:
+        from services.orchestration.agi.cognitive.aesthetic_auditor import aesthetic_auditor
+        res = await aesthetic_auditor.audit_aesthetics()
+        return res
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Aesthetic audit failed: {exc}")
+
+
+@router.get("/pathogen/detect")
+async def run_pathogen_detection():
+    """Runs the Pathogen Detector to analyze recent log failures for patterns."""
+    try:
+        from services.orchestration.agi.monitoring.pathogen_detector import pathogen_detector
+        async with AsyncSessionLocal() as db:
+            res = await pathogen_detector.detect_pathogens(db_session=db)
+        return {"pathogens": res, "count": len(res)}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Pathogen detection failed: {exc}")
+
+
 
 
