@@ -312,6 +312,7 @@ class WorkflowEngine:
             if any(e["event_type"] == "step_completed" and e["step_id"] == step.id for e in history):
                 logger.info(f"[Step {step.name}] Already completed in history. Skipping.")
                 step.status = StepStatus.COMPLETED
+                await self.persistence.save_step(instance.id, step)
                 return
 
             # ── Phase 14: Governance & Budget Check ────────────────────
@@ -524,6 +525,9 @@ class WorkflowEngine:
 
                     # Apply overrides to step input
                     s.input_data.update(overrides.get("input", {}))
+                
+                # Save step status to DB (Fix: Persist reset steps)
+                await self.persistence.save_step(instance.id, s)
                 target_found = True
 
         if not target_found:
