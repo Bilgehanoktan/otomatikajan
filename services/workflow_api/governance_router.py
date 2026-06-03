@@ -502,6 +502,11 @@ async def list_approvals(
 
 @router.get("/approvals/{id}", response_model=ApprovalOut)
 async def get_approval(id: str):
+    try:
+        uuid.UUID(id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Approval request not found")
+
     from sqlalchemy import select
 
     async with AsyncSessionLocal() as db:
@@ -530,6 +535,11 @@ async def update_approval_status(
     identity: dict[str, Any] = Depends(require_permission("approval.decide"))
 ):
     """Standard PATCH endpoint for Refine useUpdate compatibility."""
+    try:
+        uuid.UUID(id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Approval request not found")
+
     from datetime import datetime
 
     from sqlalchemy import select
@@ -612,6 +622,11 @@ async def update_approval_status(
 
 @router.post("/approvals/{id}/decide")
 async def decide_approval(id: str, dec: ApprovalDecision):
+    try:
+        uuid.UUID(id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Approval request not found")
+
     from sqlalchemy import select
 
     async with AsyncSessionLocal() as db:
@@ -1306,6 +1321,11 @@ async def list_incidents(
 
 @router.get("/incidents/{id}", response_model=IncidentOut)
 async def get_incident(id: str):
+    try:
+        uuid.UUID(id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Incident not found")
+
     from sqlalchemy import select
 
     from libs.db.session import AsyncSessionLocal
@@ -1333,6 +1353,11 @@ async def resolve_incident(
     dec: IncidentResolve,
     identity: dict[str, Any] = Depends(require_permission("incident.resolve"))
 ):
+    try:
+        uuid.UUID(id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Incident not found")
+
     from sqlalchemy import select
 
     from libs.db.session import AsyncSessionLocal
@@ -1393,6 +1418,11 @@ async def resolve_incident(
 
 @router.patch("/incidents/{id}", response_model=IncidentOut)
 async def update_incident(id: str, data: dict[str, Any]):
+    try:
+        uuid.UUID(id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Incident not found")
+
     from sqlalchemy import select
 
     from libs.db.session import AsyncSessionLocal
