@@ -364,6 +364,71 @@ gunicorn main:app \
 
 ---
 
+## BilgeAPI — Incident & Repair Orchestration
+
+BilgeAPI, bağımsız bir incident intake, diagnostic lifecycle ve repair request governance API'sidir. Ana uygulamadan (`8000`) ayrı olarak `8100` portunda çalışır.
+
+### Hızlı Başlatma
+
+```bash
+# Local dev (port 8100, hot-reload)
+make bilgeapi-dev
+
+# Docker build (slim image, Playwright yok)
+make bilgeapi-build
+
+# Docker ile (full-stack profile)
+docker compose --profile full-stack up bilgeapi db --build
+
+# Smoke test
+make bilgeapi-smoke
+```
+
+### Ortam Değişkenleri (BilgeAPI)
+
+| Değişken | Zorunlu | Varsayılan | Açıklama |
+|----------|---------|------------|----------|
+| `BILGEAPI_PORT` | Hayır | `8100` | API port |
+| `BILGEAPI_DATABASE_URL` | Evet | `postgresql+asyncpg://...` | DB bağlantısı |
+| `BILGEAPI_AUTH_MODE` | Hayır | `disabled` | `disabled`, `api_key`, `jwt` |
+| `BILGEAPI_STATIC_KEYS` | auth=api_key | - | Virgülle ayrılmış API key'ler |
+| `BILGEAPI_JWT_SECRET` | auth=jwt | (auto) | JWT imza secret (prod: zorunlu) |
+| `BILGEAPI_WEBHOOK_SECRET` | Evet (prod) | - | Webhook HMAC secret |
+| `BILGEAPI_CORS_ALLOWLIST` | Hayır | `*` | Virgülle ayrılmış origin'ler |
+| `BILGEAPI_RATE_LIMIT_RPS` | Hayır | `10` | İstek/saniye limiti |
+| `BILGEAPI_WEBHOOK_URL` | Hayır | - | Varsayılan webhook URL |
+| `BILGEAPI_ALLOW_PRIVATE_WEBHOOKS` | Hayır | `false` | Özel ağ webhook'ları (prod: kapalı) |
+
+### Operasyonel Komutlar
+
+```bash
+make bilgeapi-dev       # Local geliştirme (hot-reload, port 8100)
+make bilgeapi-build     # Docker image oluştur
+make bilgeapi-test      # Unit + integration testler
+make bilgeapi-smoke     # Smoke test (sağlık, auth, endpoint doğrulaması)
+make bilgeapi-openapi   # OpenAPI spec export
+```
+
+### Production Dağıtım
+
+- BilgeAPI production'da `bilgeapi.${APP_DOMAIN}` subdomain'i ile Traefik arkasında çalışır.
+- `docker-compose.prod.yml` içinde `restart: unless-stopped` ile yapılandırılmıştır.
+- Startup validation: eksik veya default secret'lar production'da servis başlamasını engeller.
+
+> **Multi-replica notu:** Tek instance deployment'ta startup migration (`alembic upgrade head`) kabul edilebilir. Multi-replica production'da migration ayrı bir one-off job olarak çalıştırılmalıdır (ör. `docker compose run --rm bilgeapi alembic -c alembic.ini upgrade head`).
+
+### Smoke Test
+
+```bash
+# Varsayılan (localhost:8100)
+python scripts/smoke_bilgeapi.py
+
+# Özel URL ve API key ile
+python scripts/smoke_bilgeapi.py --base-url http://localhost:8100 --api-key dev-test-key-001
+```
+
+---
+
 ## Geliştirici Araçları
 
 ```bash

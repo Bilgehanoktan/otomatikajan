@@ -146,3 +146,19 @@ run:
 
 run-prod:
 	gunicorn apps.public_api.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+
+# ── BilgeAPI ─────────────────────────────────────────────
+bilgeapi-dev:
+	uvicorn apps.bilgeapi.main:app --reload --host 0.0.0.0 --port 8100 --log-level debug
+
+bilgeapi-build:
+	docker build -f Dockerfile.bilgeapi -t bilgeapi:latest .
+
+bilgeapi-test:
+	python -m pytest tests/unit/bilgeapi tests/integration/bilgeapi --cov=apps/bilgeapi --cov-report=term-missing -v
+
+bilgeapi-smoke:
+	python scripts/smoke_bilgeapi.py
+
+bilgeapi-openapi:
+	python scripts/export_bilgeapi_openapi.py

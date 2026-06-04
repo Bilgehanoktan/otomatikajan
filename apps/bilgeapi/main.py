@@ -1,17 +1,33 @@
+import logging
 import sys
 import time
 from collections import deque
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from apps.bilgeapi.config import settings
 from apps.bilgeapi.routers import health, catalog, incidents, audit, diagnostics, repairs
+from apps.bilgeapi.startup import validate_production_config
+
+logger = logging.getLogger("bilgeapi")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan: validate config on startup."""
+    validate_production_config()
+    logger.info("BilgeAPI started successfully.")
+    yield
+    logger.info("BilgeAPI shutting down.")
+
 
 app = FastAPI(
     title="BilgeAPI",
     description="Independent Incident Intake, Diagnostic and Repair-Orchestration API",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
 # CORS Middleware

@@ -39,3 +39,11 @@ external/
 .env
 .env.*
 !.env.example
+
+# BilgeAPI slim image exclusions
+.playwright-browsers/
+playwright_*.log
+cortex_local_v2.db
+governance_test.db
+*.db
+celerybeat-schedule

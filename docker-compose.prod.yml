@@ -270,6 +270,55 @@ services:
     networks:
       - backend
 
+  bilgeapi:
+    build:
+      context: .
+      dockerfile: Dockerfile.bilgeapi
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      APP_ENV: production
+      BILGEAPI_PORT: "8100"
+      # Both are needed: libs/db/session.py reads DATABASE_URL,
+      # apps/bilgeapi/config.py reads BILGEAPI_DATABASE_URL.
+      DATABASE_URL: postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@db:5432/ai_company
+      BILGEAPI_DATABASE_URL: postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@db:5432/ai_company
+      BILGEAPI_AUTH_MODE: api_key
+      BILGEAPI_JWT_SECRET: ${BILGEAPI_JWT_SECRET}
+      BILGEAPI_WEBHOOK_SECRET: ${BILGEAPI_WEBHOOK_SECRET}
+      BILGEAPI_STATIC_KEYS: ${BILGEAPI_STATIC_KEYS}
+      BILGEAPI_CORS_ALLOWLIST: ${BILGEAPI_CORS_ALLOWLIST:-}
+      BILGEAPI_RATE_LIMIT_RPS: "10"
+      PYTHONPATH: /app
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend
+      - proxy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8100/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.routers.bilgeapi.rule=Host(`bilgeapi.${APP_DOMAIN}`)
+      - traefik.http.routers.bilgeapi.entrypoints=websecure
+      - traefik.http.routers.bilgeapi.tls=true
+      - traefik.http.routers.bilgeapi.tls.certresolver=le
+      - traefik.http.services.bilgeapi.loadbalancer.server.port=8100
+      # Security headers
+      - traefik.http.middlewares.bilgeapi-headers.headers.stsSeconds=31536000
+      - traefik.http.middlewares.bilgeapi-headers.headers.stsIncludeSubdomains=true
+      - traefik.http.middlewares.bilgeapi-headers.headers.browserXssFilter=true
+      - traefik.http.middlewares.bilgeapi-headers.headers.contentTypeNosniff=true
+      - traefik.http.middlewares.bilgeapi-headers.headers.frameDeny=true
+      - traefik.http.routers.bilgeapi.middlewares=bilgeapi-headers@docker
+
 volumes:
   pgdata:
   redis_data:
