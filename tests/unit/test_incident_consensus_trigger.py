@@ -4,6 +4,7 @@ import uuid
 from datetime import datetime, timezone
 from sqlalchemy import select
 
+from unittest.mock import patch, AsyncMock
 from libs.db.session import session_scope
 from libs.db.models.core_models import OperationalIncident
 from services.ui_repair.watchdog.incident_consensus_trigger import IncidentConsensusTrigger
@@ -29,9 +30,19 @@ async def test_incident_consensus_trigger_flow():
         session.add(incident)
         await session.commit()
 
-    # 2. Trigger tetikleniyor
-    trigger = IncidentConsensusTrigger()
-    reports = await trigger.scan_and_resolve_incidents()
+    # 2. Trigger tetikleniyor (MeetingRoom.hold_meeting mock'lanıyor)
+    mock_report = {
+        "meeting_id": "mock-meeting-123",
+        "consensus": True,
+        "votes": {"architect": True, "qa_engineer": True, "security": True},
+        "final_decision": "Mock consensus reached to resolve the incident.",
+        "proposal": "Sistem Kritik Hata Sentezi | Tür: stuck_workflow | Mesaj: Kritik veri eşleme iş akışı 30 dakikadır yanıt vermiyor (Zaman Aşımı)."
+    }
+    
+    with patch("agents.meeting_room.MeetingRoom.hold_meeting", new_callable=AsyncMock) as mock_hold:
+        mock_hold.return_value = mock_report
+        trigger = IncidentConsensusTrigger()
+        reports = await trigger.scan_and_resolve_incidents()
 
     # 3. Sonuçların doğrulanması
     assert len(reports) >= 1

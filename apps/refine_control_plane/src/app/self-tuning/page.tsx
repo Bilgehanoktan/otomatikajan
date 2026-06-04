@@ -28,7 +28,7 @@ import { Skeleton } from "@/components/dashboard/Skeleton";
 import { safeFetchJson } from "@/lib/api";
 
 export default function SelfTuningPage() {
-  const t = useTranslations("evolution");
+  const t = useTranslations("improvements");
   const [isClient, setIsClient] = useState(false);
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [evolutionFeed, setEvolutionFeed] = useState<any[]>([]);
@@ -60,7 +60,7 @@ export default function SelfTuningPage() {
         setStaleMeta(null);
       }
     } catch (err) {
-      console.error("Evolution verileri alınamadı", err);
+      console.error(t("errorFetch"), err);
     } finally {
       setLoading(false);
     }
@@ -82,7 +82,7 @@ export default function SelfTuningPage() {
         setSuggestions(prev => prev.map(s => s.id === id ? { ...s, status } : s));
       }
     } catch (err) {
-      console.error("İşlem başarısız", err);
+      console.error(t("errorAction"), err);
     }
   };
 
@@ -143,7 +143,7 @@ export default function SelfTuningPage() {
                           <Target size={48} className="text-gray-700" />
                        </div>
                        <p className="font-black text-gray-700 uppercase tracking-[0.3em] italic max-w-xs leading-loose">
-                          Sistem performans verilerini topladıkça optimizasyon önerileri üretecektir.
+                          {t("noSuggestions")}
                        </p>
                     </div>
                  ) : (
@@ -182,7 +182,7 @@ export default function SelfTuningPage() {
 
               <div className="space-y-4 relative z-10 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
                  {evolutionFeed.length === 0 ? (
-                    <div className="py-20 text-center text-gray-700 font-black uppercase tracking-widest italic opacity-40">Gelişim verisi toplanıyor...</div>
+                    <div className="py-20 text-center text-gray-700 font-black uppercase tracking-widest italic opacity-40">{t("gatheringData")}</div>
                  ) : (
                     evolutionFeed.map((item: any) => (
                        <div key={item.id} className={`p-6 rounded-[1.5rem] bg-white/[0.012] border transition-all hover:bg-white/[0.025]
@@ -233,7 +233,7 @@ export default function SelfTuningPage() {
                  {(!evolutionStatus?.failure_counts || Object.values(evolutionStatus?.failure_counts).every(c => c === 0)) && (
                     <div className="text-center py-10 opacity-30 flex flex-col items-center gap-4">
                        <ShieldCheck size={32} className="text-green-500" />
-                       <span className="text-[9px] font-black text-green-500 uppercase tracking-widest leading-loose">Frenleyici tıkanma tespit edilmedi.</span>
+                       <span className="text-[9px] font-black text-green-500 uppercase tracking-widest leading-loose">{t("noStuckState")}</span>
                     </div>
                  )}
               </div>

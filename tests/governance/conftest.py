@@ -53,6 +53,26 @@ def db_session(setup_test_db):
     engine = setup_test_db
     SessionLocal = sessionmaker(bind=engine)
     session = SessionLocal()
+    
+    # Ensure test isolation by cleaning tables
+    from libs.db.models.core_models import AgentNode, FleetCluster, Project, FleetAssignment, ProjectExecutionPlan
+    from libs.db.models.governance_models import ValidationResult, GovernorPolicyEvolutionRecord, GovernorPolicySimulationRecord, GovernanceProofEventRecord, GovernanceProofSnapshotRecord
+    
+    try:
+        session.query(FleetAssignment).delete()
+        session.query(ProjectExecutionPlan).delete()
+        session.query(AgentNode).delete()
+        session.query(FleetCluster).delete()
+        session.query(Project).delete()
+        session.query(ValidationResult).delete()
+        session.query(GovernorPolicyEvolutionRecord).delete()
+        session.query(GovernorPolicySimulationRecord).delete()
+        session.query(GovernanceProofEventRecord).delete()
+        session.query(GovernanceProofSnapshotRecord).delete()
+        session.commit()
+    except Exception:
+        session.rollback()
+        
     try:
         yield session
     finally:

@@ -8,7 +8,7 @@ import uuid
 from typing import List, Dict, Any
 from datetime import datetime, timezone
 
-from libs.db.session import async_session_factory
+from libs.db.session import AsyncSessionLocal
 from libs.db.models.governance_models import ValidationResult, ValidationType, ValidationStatus
 from services.observability.logging import get_logger
 
@@ -17,18 +17,18 @@ logger = get_logger("governance.sync")
 class PolicyLogicSync:
     """
     Sistemin anayasal kurallara (Constitution) ve operasyonel politikalara (Policies)
-    uyumunu denetler. TutarsÄ±zlÄ±k durumunda dÃ¼zeltici eylem tetikler.
+    uyumunu denetler. Tutarsızlık durumunda düzeltici eylem tetikler.
     """
 
     @staticmethod
     async def audit_consistency() -> Dict[str, Any]:
         """
-        Runbook'lar ile mevcut politikalarÄ± kÄ±yaslayarak tutarsÄ±zlÄ±k taramasÄ± yapar.
+        Runbook'lar ile mevcut politikaları kıyaslayarak tutarsızlık taraması yapar.
         """
         logger.info("Starting governance consistency audit...")
         
         # Mock logic for Faz 29 demo
-        # Gerçek hayatta burası Git repo'daki runbook YAML'ları ile DB'deki PolicyEvolution'ları kÄ±yaslar.
+        # Gerçek hayatta burası Git repo'daki runbook YAML'ları ile DB'deki PolicyEvolution'ları kıyaslar.
         
         audit_id = str(uuid.uuid4())
         results = {
@@ -38,7 +38,7 @@ class PolicyLogicSync:
             "findings": []
         }
         
-        async with async_session_factory() as session:
+        async with AsyncSessionLocal() as session:
             # Audit sonucunu validation_results tablosuna kaydet
             audit_entry = ValidationResult(
                 component_name="GovernanceEngine",

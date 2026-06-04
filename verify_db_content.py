@@ -1,13 +1,13 @@
 import asyncio
 import sys
 sys.path.insert(0, '.')
-from libs.db.session import async_session_factory, init_db
+from libs.db.session import AsyncSessionLocal, init_db
 from libs.db.models.core_models import Project, AgentNode, FleetCluster
 from sqlalchemy import select
 
 async def main():
     await init_db()
-    async with async_session_factory() as db:
+    async with AsyncSessionLocal() as db:
         projects = await db.execute(select(Project))
         print("Projects:", [(p.title, p.status) for p in projects.scalars().all()])
         

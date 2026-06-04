@@ -8,6 +8,15 @@ from services.workflow_api.main import app
 
 client = TestClient(app)
 
+@pytest.fixture(autouse=True)
+def mock_meeting_room_llm():
+    """Mocks LLM calls in MeetingRoom during testing to use static simulation instead."""
+    async def mock_get_agent_response(self, agent, prompt, phase):
+        return self._simulate_response(agent, phase, prompt)
+        
+    with patch("agents.meeting_room.MeetingRoom._get_agent_response", mock_get_agent_response):
+        yield
+
 @pytest.mark.asyncio
 async def test_meeting_room_hold_meeting_success():
     """

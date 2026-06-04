@@ -7,7 +7,6 @@ import asyncio
 import uuid
 from typing import Dict, Any
 
-from libs.db.session import async_session_factory
 from libs.db.models.lineage_models import DecisionLineage
 from services.governance.lineage_service import LineageService
 from services.governance.policy_logic_sync import PolicyLogicSync
@@ -25,13 +24,13 @@ async def verify_lineage_logging():
     )
     assert decision.id is not None
     assert decision.decision_type == "TEST_DECISION"
-    logger.info(f"✓ Lineage Logging Verified (ID: {decision.id})")
+    logger.info(f"[OK] Lineage Logging Verified (ID: {decision.id})")
 
 async def verify_policy_sync():
     logger.info("Verifying Policy Logic Sync...")
     audit = await PolicyLogicSync.audit_consistency()
     assert audit["status"] == "CONSISTENT"
-    logger.info("✓ Policy Logic Sync Verified")
+    logger.info("[OK] Policy Logic Sync Verified")
 
 async def run_all_checks():
     logger.info("=== STARTING PHASE 29 VERIFICATION ===")

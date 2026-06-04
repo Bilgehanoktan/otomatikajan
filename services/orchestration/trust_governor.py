@@ -146,5 +146,13 @@ class TrustGovernor:
 
             _log.info(f"[TRUST-AGENT] {agent_id}: {old_score:.2f} -> {agent.trust_score:.2f} (Success: {success})")
 
+    @classmethod
+    async def get_trust_map(cls) -> Dict[str, float]:
+        """Tüm cluster'ların güncel güven puanlarını bir sözlük olarak döner."""
+        async with session_scope() as db:
+            res = await db.execute(select(FederationTrust))
+            trusts = res.scalars().all()
+            return {t.cluster_id: t.trust_score for t in trusts}
+
 # Singleton-like access
 trust_governor = TrustGovernor()

@@ -57,6 +57,8 @@ class WorkflowPersistence:
                 db_step_status = step.status.value.upper()
                 if db_step_status == "FAILED":
                     db_step_status = "ERROR"
+                elif db_step_status == "REPLAY_PENDING":
+                    db_step_status = "PENDING"
                 existing.status = db_step_status
                 # Hardening: If step failed, persist the error message into result column for visibility
                 if db_step_status == "ERROR" and step.error:
@@ -81,6 +83,11 @@ class WorkflowPersistence:
                     existing.latency_s = step.output_data.get("latency_s", existing.latency_s)
                     existing.quality_score = step.output_data.get("quality_score", existing.quality_score)
             else:
+                db_step_status = step.status.value.upper()
+                if db_step_status == "FAILED":
+                    db_step_status = "ERROR"
+                elif db_step_status == "REPLAY_PENDING":
+                    db_step_status = "PENDING"
                 new_subtask = SubTask(
                     id=UUID(step.id),
                     project_id=UUID(instance_id),
@@ -89,7 +96,7 @@ class WorkflowPersistence:
                     prompt=step.input_data.get("prompt", ""),
                     input_data=step.input_data,
                     input_schema=step.input_schema,
-                    status="ERROR" if step.status.value.upper() == "FAILED" else step.status.value.upper(),
+                    status=db_step_status,
                     attempts=step.retries,
                     dependencies=step.dependencies,
                     internal_monologue=step.output_data.get("internal_monologue", "") if step.output_data else ""
