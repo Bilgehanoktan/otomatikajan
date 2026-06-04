@@ -19,6 +19,7 @@ from services.orchestration.application.job_queue import job_queue
 from services.ui_repair.router import router as ui_repair_router
 from services.workflow_api.compatibility_router import router as compatibility_router
 from services.workflow_api.fleet_router import router as fleet_ops_router
+from services.workflow_api.free_web_api_router import router as free_web_api_router
 from services.workflow_api.governance_router import router as governance_router
 from services.workflow_api.governor_router import router as governor_api_router
 from services.workflow_api.health_router import router as health_router
@@ -145,6 +146,7 @@ app.include_router(ceo_bridge_router, prefix="/api/v1/ceo")
 app.include_router(project_factory_router, prefix="/api/v1/project-factory")
 app.include_router(mcp_router, prefix="/api/v1/mcp")
 app.include_router(debate_router, prefix="/api/v1/debate")
+app.include_router(free_web_api_router, prefix="/api/v1/free-web-apis")
 
 @app.websocket("/ws/events")
 async def websocket_route(websocket: WebSocket):
