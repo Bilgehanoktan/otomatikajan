@@ -42,8 +42,8 @@ class TestStartupValidation:
         os.environ["APP_ENV"] = "development"
         warnings = validate_production_config()
         assert isinstance(warnings, list)
-        # Should have warnings about missing secrets
-        assert len(warnings) > 0
+        # Should have warning about default webhook secret
+        assert any("BILGEAPI_WEBHOOK_SECRET" in w for w in warnings)
 
     def test_development_mode_no_warnings_when_configured(self):
         """In development mode with all secrets set, no warnings."""
@@ -55,15 +55,27 @@ class TestStartupValidation:
         warnings = validate_production_config()
         assert len(warnings) == 0
 
-    def test_production_fails_without_jwt_secret(self):
-        """Production mode raises error when JWT secret is missing."""
+    def test_production_fails_without_jwt_secret_in_jwt_mode(self):
+        """Production mode raises error when JWT secret is missing and auth_mode is 'jwt'."""
+        _clean_env()
+        os.environ["APP_ENV"] = "production"
+        os.environ["BILGEAPI_WEBHOOK_SECRET"] = "prod-webhook-secret"
+        os.environ["DATABASE_URL"] = "postgresql+asyncpg://user:pass@db-host:5432/bilgeapi"
+        os.environ["BILGEAPI_AUTH_MODE"] = "jwt"
+        with pytest.raises(StartupValidationError, match="BILGEAPI_JWT_SECRET"):
+            validate_production_config()
+
+    def test_production_passes_without_jwt_secret_in_api_key_mode(self):
+        """Production mode passes without JWT secret when auth_mode is 'api_key'."""
         _clean_env()
         os.environ["APP_ENV"] = "production"
         os.environ["BILGEAPI_WEBHOOK_SECRET"] = "prod-webhook-secret"
         os.environ["DATABASE_URL"] = "postgresql+asyncpg://user:pass@db-host:5432/bilgeapi"
         os.environ["BILGEAPI_AUTH_MODE"] = "api_key"
-        with pytest.raises(StartupValidationError, match="BILGEAPI_JWT_SECRET"):
-            validate_production_config()
+        os.environ["BILGEAPI_CORS_ALLOWLIST"] = "https://app.example.com"
+        warnings = validate_production_config()
+        # Should pass — JWT secret is not required in api_key mode
+        assert not any("JWT" in w for w in warnings)
 
     def test_production_fails_with_default_webhook_secret(self):
         """Production mode raises error when webhook secret is default."""

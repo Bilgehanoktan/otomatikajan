@@ -16,7 +16,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     # Add columns to bilgeapi_repair_requests table
-    op.add_column('bilgeapi_repair_requests', sa.Column('approval_required', sa.Boolean(), server_default=sa.text('1'), nullable=False))
+    op.add_column('bilgeapi_repair_requests', sa.Column('approval_required', sa.Boolean(), server_default=sa.text('true'), nullable=False))
     op.add_column('bilgeapi_repair_requests', sa.Column('rejection_reason', sa.Text(), nullable=True))
     op.add_column('bilgeapi_repair_requests', sa.Column('approved_at', sa.DateTime(timezone=True), nullable=True))
     op.add_column('bilgeapi_repair_requests', sa.Column('rejected_at', sa.DateTime(timezone=True), nullable=True))

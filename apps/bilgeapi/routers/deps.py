@@ -13,6 +13,7 @@ from apps.bilgeapi.repositories.postgres import (
 from apps.bilgeapi.services.audit import AuditService
 from apps.bilgeapi.services.diagnostic import DiagnosticService
 from apps.bilgeapi.services.risk import RiskScoringService
+from apps.bilgeapi.services.webhook import WebhookDeliveryService
 
 def get_risk_scoring_service() -> RiskScoringService:
     return RiskScoringService()
@@ -46,7 +47,6 @@ def get_webhook_service(
     repair_repo: RepairRequestRepository = Depends(get_repair_repository),
     audit_service: AuditService = Depends(get_audit_service)
 ) -> WebhookDeliveryService:
-    from apps.bilgeapi.services.webhook import WebhookDeliveryService
     return WebhookDeliveryService(
         webhook_repo=webhook_repo,
         repair_repo=repair_repo,

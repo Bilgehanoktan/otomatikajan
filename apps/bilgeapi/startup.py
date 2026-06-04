@@ -39,16 +39,27 @@ def validate_production_config() -> list[str]:
     warnings: list[str] = []
     errors: list[str] = []
 
-    # 1. JWT Secret
+    # 1. Auth Mode (checked first because JWT secret depends on it)
+    auth_mode = os.getenv("BILGEAPI_AUTH_MODE", "disabled").lower()
+    if is_production and auth_mode == "disabled":
+        errors.append(
+            "BILGEAPI_AUTH_MODE is 'disabled' in production. "
+            "Authentication must be enabled (api_key or jwt)."
+        )
+
+    # 2. JWT Secret (only required when auth_mode is 'jwt')
     jwt_secret = os.getenv("BILGEAPI_JWT_SECRET", os.getenv("JWT_SECRET", ""))
-    if not jwt_secret:
-        msg = "BILGEAPI_JWT_SECRET is not set."
+    if auth_mode == "jwt" and not jwt_secret:
+        msg = "BILGEAPI_JWT_SECRET is not set but BILGEAPI_AUTH_MODE is 'jwt'."
         if is_production:
             errors.append(msg)
         else:
             warnings.append(f"[DEV] {msg} Auto-generated fallback will be used.")
+    elif auth_mode != "jwt" and not jwt_secret:
+        # Informational only — JWT secret is optional in api_key mode
+        pass
 
-    # 2. Webhook Secret
+    # 3. Webhook Secret
     webhook_secret = os.getenv("BILGEAPI_WEBHOOK_SECRET", "webhook_secret")
     if not webhook_secret or webhook_secret == "webhook_secret":
         msg = "BILGEAPI_WEBHOOK_SECRET is missing or using the default value 'webhook_secret'."
@@ -57,7 +68,7 @@ def validate_production_config() -> list[str]:
         else:
             warnings.append(f"[DEV] {msg}")
 
-    # 3. Database URL
+    # 4. Database URL
     db_url = os.getenv("BILGEAPI_DATABASE_URL", "")
     if not db_url:
         db_url = os.getenv("DATABASE_URL", "")
@@ -69,14 +80,6 @@ def validate_production_config() -> list[str]:
                 f"Database URL points to localhost in production: {db_url[:50]}... "
                 "This is likely a misconfiguration."
             )
-
-    # 4. Auth Mode
-    auth_mode = os.getenv("BILGEAPI_AUTH_MODE", "disabled").lower()
-    if is_production and auth_mode == "disabled":
-        errors.append(
-            "BILGEAPI_AUTH_MODE is 'disabled' in production. "
-            "Authentication must be enabled (api_key or jwt)."
-        )
 
     # 5. CORS Allowlist
     cors_raw = os.getenv("BILGEAPI_CORS_ALLOWLIST", "")
