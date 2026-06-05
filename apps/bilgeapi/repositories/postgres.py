@@ -5,7 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from apps.bilgeapi.repositories.interface import (
     IncidentRepository, DiagnosticRepository, FindingRepository,
-    RecommendationRepository, RepairRequestRepository, AuditRepository, WebhookDeliveryRepository
+    RecommendationRepository, RepairRequestRepository, AuditRepository, WebhookDeliveryRepository,
+    ReleaseCheckRepository
 )
 from apps.bilgeapi.schemas.incident import IncidentCreate, IncidentResponse
 from apps.bilgeapi.schemas.diagnostic import DiagnosticResult, DiagnosticStatus
@@ -13,7 +14,7 @@ from apps.bilgeapi.schemas.repair import RepairRequestCreate, RepairRequestRespo
 from apps.bilgeapi.schemas.audit import AuditEvent
 from apps.bilgeapi.models.database import (
     IncidentModel, DiagnosticRunModel, FindingModel, RecommendationModel,
-    RepairRequestModel, AuditEventModel, WebhookDeliveryModel
+    RepairRequestModel, AuditEventModel, WebhookDeliveryModel, ReleaseCheckModel
 )
 
 class PostgresIncidentRepository(IncidentRepository):
@@ -493,4 +494,64 @@ class PostgresWebhookDeliveryRepository(WebhookDeliveryRepository):
             }
             for m in models
         ]
+
+
+class PostgresReleaseCheckRepository(ReleaseCheckRepository):
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    def _to_dict(self, model: ReleaseCheckModel) -> Dict[str, Any]:
+        return {
+            "id": model.id,
+            "status": model.status,
+            "score": model.score,
+            "blockers": model.blockers or [],
+            "warnings": model.warnings or [],
+            "checked_modules": model.checked_modules or {},
+            "checked_endpoints": model.checked_endpoints or {},
+            "smoke_trace": model.smoke_trace or [],
+            "app_version": model.app_version,
+            "git_sha": model.git_sha,
+            "environment": model.environment,
+            "triggered_by": model.triggered_by,
+            "created_at": model.created_at
+        }
+
+    async def create_check(self, check_data: Dict[str, Any]) -> Dict[str, Any]:
+        check_data = check_data.copy()
+        if "id" not in check_data:
+            check_data["id"] = f"rel_{uuid.uuid4().hex[:8]}"
+        if "created_at" not in check_data:
+            check_data["created_at"] = datetime.now(timezone.utc)
+
+        model = ReleaseCheckModel(
+            id=check_data["id"],
+            status=check_data["status"],
+            score=check_data["score"],
+            blockers=check_data.get("blockers"),
+            warnings=check_data.get("warnings"),
+            checked_modules=check_data.get("checked_modules"),
+            checked_endpoints=check_data.get("checked_endpoints"),
+            smoke_trace=check_data.get("smoke_trace"),
+            app_version=check_data.get("app_version"),
+            git_sha=check_data.get("git_sha"),
+            environment=check_data.get("environment"),
+            triggered_by=check_data.get("triggered_by"),
+            created_at=check_data["created_at"]
+        )
+        self.db.add(model)
+        await self.db.commit()
+        return self._to_dict(model)
+
+    async def get_latest_check(self) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(select(ReleaseCheckModel).order_by(desc(ReleaseCheckModel.created_at)).limit(1))
+        model = res.scalar_one_or_none()
+        if not model:
+            return None
+        return self._to_dict(model)
+
+    async def list_checks(self, limit: int = 20) -> List[Dict[str, Any]]:
+        res = await self.db.execute(select(ReleaseCheckModel).order_by(desc(ReleaseCheckModel.created_at)).limit(limit))
+        models = res.scalars().all()
+        return [self._to_dict(m) for m in models]
 

@@ -17,12 +17,15 @@ from apps.bilgeapi.routers.deps import get_release_repository, get_release_gate_
 _RELEASE_KEYS = [
     "APP_ENV",
     "BILGEAPI_JWT_SECRET",
+    "BILGEAPI_JWT_SECRETS",
     "BILGEAPI_WEBHOOK_SECRET",
     "BILGEAPI_DATABASE_URL",
     "DATABASE_URL",
     "BILGEAPI_AUTH_MODE",
     "BILGEAPI_CORS_ALLOWLIST",
     "BILGEAPI_ALLOW_PRIVATE_WEBHOOKS",
+    "BILGEAPI_STATIC_KEYS",
+    "BILGEAPI_STATIC_KEY_HASHES",
 ]
 
 @pytest.fixture(autouse=True)
@@ -132,11 +135,17 @@ class TestReleaseGate:
         # Test in development with warnings
         _clean_env()
         os.environ["APP_ENV"] = "development"
+        # Avoid plaintext keys warning by using key hashes instead
+        os.environ["BILGEAPI_STATIC_KEY_HASHES"] = "somehash_16chars:admin"
         settings.BILGEAPI_WEBHOOK_SECRET = "webhook_secret" # generates 1 warning
 
-        check_data = await gate.execute_readiness_audit()
-        assert check_data["score"] == 95.0 # 100 - 5 = 95
-        assert check_data["status"] == "WARNING" # score >= 90 but warnings exist
+        # Mock check_test_and_coverage and check_database_migrations to avoid extra warnings
+        with patch.object(gate, "check_test_and_coverage", return_value={"coverage_pct": 85.0, "passed_tests": 10, "failed_tests": 0, "source": "mock", "blockers": [], "warnings": []}):
+            with patch.object(gate, "check_database_migrations", return_value={"head_revision": "rev1", "current_revision": "rev1", "blockers": [], "warnings": []}):
+                with patch("apps.bilgeapi.main.REDIS_FALLBACK_ACTIVE", False):
+                    check_data = await gate.execute_readiness_audit()
+                    assert check_data["score"] == 95.0 # 100 - 5 = 95
+                    assert check_data["status"] == "WARNING" # score >= 90 but warnings exist
 
     async def test_security_headers_middleware_active_on_non_public_paths(self):
         from fastapi.testclient import TestClient
@@ -156,12 +165,14 @@ class TestReleaseGate:
         from fastapi.testclient import TestClient
         client = TestClient(real_app)
 
-        # GET public docs or health path should not have Katı CSP
+        # GET /health should have basic security headers (nosniff, X-Frame-Options)
+        # but NOT strict CSP (sandbox) — Phase 10 policy
         response = client.get("/health")
         assert response.status_code == 200
         assert "Content-Security-Policy" not in response.headers
-        assert "X-Frame-Options" not in response.headers
+        assert response.headers.get("X-Content-Type-Options") == "nosniff"
 
+        # GET /docs should NOT have any security headers (Swagger UI needs inline scripts)
         response = client.get("/docs")
         assert "Content-Security-Policy" not in response.headers
 
@@ -629,4 +640,183 @@ class TestReleaseGate:
             json={"webhook_url": "https://8.8.8.8/dispatch"}
         )
         assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+class TestReleaseGatePhase11:
+
+    async def test_check_test_and_coverage_xml(self):
+        repo = InMemoryReleaseCheckRepository()
+        gate = BilgeAPIReleaseGate(repo)
+
+        xml_content = """<?xml version="1.0" ?>
+        <coverage line-rate="0.875" branch-rate="0.5">
+            <sources><source>/path/to/project</source></sources>
+        </coverage>
+        """
+        with patch("os.path.exists", side_effect=lambda p: p == "coverage.xml"):
+            with patch("builtins.open", mock_open(read_data=xml_content)):
+                # Mock ET.parse
+                import xml.etree.ElementTree as ET
+                mock_root = MagicMock()
+                mock_root.attrib = {"line-rate": "0.875"}
+                with patch("xml.etree.ElementTree.parse", return_value=MagicMock(getroot=lambda: mock_root)):
+                    res = gate.check_test_and_coverage()
+                    assert res["coverage_pct"] == 87.5
+                    assert res["source"] == "coverage.xml"
+                    assert len(res["blockers"]) == 0
+
+    async def test_check_test_and_coverage_sqlite(self):
+        repo = InMemoryReleaseCheckRepository()
+        gate = BilgeAPIReleaseGate(repo)
+
+        # Mock coverage package and load
+        mock_cov = MagicMock()
+        mock_cov.report.return_value = 82.34
+        
+        with patch("os.path.exists", side_effect=lambda p: p == ".coverage"):
+            with patch("coverage.Coverage", return_value=mock_cov):
+                res = gate.check_test_and_coverage()
+                assert res["coverage_pct"] == 82.34
+                assert res["source"] == ".coverage"
+                assert len(res["blockers"]) == 0
+
+    async def test_check_test_and_coverage_txt(self):
+        repo = InMemoryReleaseCheckRepository()
+        gate = BilgeAPIReleaseGate(repo)
+
+        txt_content = """
+        TOTAL                                             2488    315    87%
+        ====== 119 passed, 0 failed, 18 warnings in 19.58s =====
+        """
+        with patch("os.path.exists", side_effect=lambda p: p == "pytest_output.txt"):
+            with patch("builtins.open", mock_open(read_data=txt_content)):
+                res = gate.check_test_and_coverage()
+                assert res["coverage_pct"] == 87.0
+                assert res["source"] == "pytest_output.txt"
+                assert res["passed_tests"] == 119
+                assert res["failed_tests"] == 0
+                assert len(res["blockers"]) == 0
+
+    async def test_check_test_and_coverage_txt_with_failures(self):
+        _clean_env()
+        os.environ["APP_ENV"] = "production"
+        repo = InMemoryReleaseCheckRepository()
+        gate = BilgeAPIReleaseGate(repo)
+
+        txt_content = """
+        TOTAL                                             2488    315    87%
+        ====== 2 failed, 117 passed, 18 warnings in 19.58s =====
+        """
+        with patch("os.path.exists", side_effect=lambda p: p == "pytest_output.txt"):
+            with patch("builtins.open", mock_open(read_data=txt_content)):
+                res = gate.check_test_and_coverage()
+                assert res["coverage_pct"] == 87.0
+                assert res["failed_tests"] == 2
+                assert len(res["blockers"]) > 0
+
+    async def test_check_test_and_coverage_missing_evidence(self):
+        _clean_env()
+        os.environ["APP_ENV"] = "production"
+        repo = InMemoryReleaseCheckRepository()
+        gate = BilgeAPIReleaseGate(repo)
+
+        with patch("os.path.exists", return_value=False):
+            res = gate.check_test_and_coverage()
+            assert res["coverage_pct"] is None
+            assert len(res["blockers"]) > 0
+            assert "No test coverage evidence found" in res["blockers"][0]
+
+    async def test_check_database_migrations_match(self):
+        repo = InMemoryReleaseCheckRepository()
+        gate = BilgeAPIReleaseGate(repo)
+
+        mock_config = MagicMock()
+        mock_script = MagicMock()
+        mock_script.get_current_head.return_value = "rev123"
+
+        # Mock DB session returning rev123
+        mock_session = AsyncMock()
+        mock_res = MagicMock()
+        mock_res.fetchone.return_value = ["rev123"]
+        mock_session.execute.return_value = mock_res
+        
+        mock_session_factory = AsyncMock()
+        mock_session_factory.__aenter__.return_value = mock_session
+        mock_session_local = MagicMock(return_value=mock_session_factory)
+
+        with patch("os.path.exists", return_value=True):
+            with patch("alembic.config.Config", return_value=mock_config):
+                with patch("alembic.script.ScriptDirectory.from_config", return_value=mock_script):
+                    with patch("libs.db.session.AsyncSessionLocal", mock_session_local):
+                        res = await gate.check_database_migrations()
+                        assert res["head_revision"] == "rev123"
+                        assert res["current_revision"] == "rev123"
+                        assert len(res["blockers"]) == 0
+
+    async def test_check_database_migrations_mismatch_blocked(self):
+        _clean_env()
+        os.environ["APP_ENV"] = "production"
+        repo = InMemoryReleaseCheckRepository()
+        gate = BilgeAPIReleaseGate(repo)
+
+        mock_config = MagicMock()
+        mock_script = MagicMock()
+        mock_script.get_current_head.return_value = "rev124"
+
+        # Mock DB session returning rev123
+        mock_session = AsyncMock()
+        mock_res = MagicMock()
+        mock_res.fetchone.return_value = ["rev123"]
+        mock_session.execute.return_value = mock_res
+        
+        mock_session_factory = AsyncMock()
+        mock_session_factory.__aenter__.return_value = mock_session
+        mock_session_local = MagicMock(return_value=mock_session_factory)
+
+        with patch("os.path.exists", return_value=True):
+            with patch("alembic.config.Config", return_value=mock_config):
+                with patch("alembic.script.ScriptDirectory.from_config", return_value=mock_script):
+                    with patch("libs.db.session.AsyncSessionLocal", mock_session_local):
+                        res = await gate.check_database_migrations()
+                        assert res["head_revision"] == "rev124"
+                        assert res["current_revision"] == "rev123"
+                        assert len(res["blockers"]) > 0
+                        assert "Database schema is not up to date" in res["blockers"][0]
+
+    async def test_check_security_config_metrics_public_blocked_in_production(self):
+        _clean_env()
+        os.environ["APP_ENV"] = "production"
+        settings.BILGEAPI_WEBHOOK_SECRET = "secure-webhook-secret-1234"
+        settings.BILGEAPI_DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5433/ai_company"
+        settings.BILGEAPI_CORS_ALLOWLIST = ["https://app.domain.com"]
+        settings.BILGEAPI_AUTH_MODE = "api_key"
+        settings.BILGEAPI_METRICS_PUBLIC = True  # Public in prod!
+
+        repo = InMemoryReleaseCheckRepository()
+        gate = BilgeAPIReleaseGate(repo)
+
+        res = gate.check_security_config()
+        assert any("BILGEAPI_METRICS_PUBLIC" in b for b in res["blockers"])
+
+    async def test_check_security_config_weak_secrets_blocked_in_production(self):
+        _clean_env()
+        os.environ["APP_ENV"] = "production"
+        settings.BILGEAPI_WEBHOOK_SECRET = "short"  # Too short!
+        settings.BILGEAPI_DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5433/ai_company"
+        settings.BILGEAPI_CORS_ALLOWLIST = ["https://app.domain.com"]
+        settings.BILGEAPI_AUTH_MODE = "jwt"
+        settings.BILGEAPI_JWT_SECRET = "weak"  # Too short!
+        settings.BILGEAPI_METRICS_PUBLIC = False
+
+        repo = InMemoryReleaseCheckRepository()
+        gate = BilgeAPIReleaseGate(repo)
+
+        res = gate.check_security_config()
+        assert any("BILGEAPI_WEBHOOK_SECRET is too weak" in b for b in res["blockers"])
+        assert any("BILGEAPI_JWT_SECRET is too weak" in b for b in res["blockers"])
+
+
+from unittest.mock import mock_open
+
 

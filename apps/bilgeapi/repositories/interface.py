@@ -106,3 +106,17 @@ class WebhookDeliveryRepository(ABC):
     async def list_deliveries(self) -> List[Dict[str, Any]]:
         pass
 
+
+class ReleaseCheckRepository(ABC):
+    @abstractmethod
+    async def create_check(self, check_data: Dict[str, Any]) -> Dict[str, Any]:
+        pass
+
+    @abstractmethod
+    async def get_latest_check(self) -> Optional[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def list_checks(self, limit: int = 20) -> List[Dict[str, Any]]:
+        pass
+

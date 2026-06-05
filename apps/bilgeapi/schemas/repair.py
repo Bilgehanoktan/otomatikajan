@@ -45,3 +45,8 @@ class RepairApprovalRequest(BaseModel):
 class RepairRejectionRequest(BaseModel):
     rejection_reason: str
 
+class RepairDispatchRequest(BaseModel):
+    adapter: str = "webhook"
+    webhook_url: Optional[str] = None
+    dry_run: bool = False
+

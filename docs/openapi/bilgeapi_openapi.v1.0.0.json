@@ -12,7 +12,7 @@
           "Health"
         ],
         "summary": "Health Check",
-        "description": "Public health check — returns minimal status for load balancers and uptime monitors.",
+        "description": "Public health check \u2014 returns minimal status for load balancers and uptime monitors.",
         "operationId": "health_check_health_get",
         "responses": {
           "200": {

@@ -9,7 +9,7 @@ from apps.bilgeapi.config import settings
 from apps.bilgeapi.auth import require_permission
 from apps.bilgeapi.schemas.repair import (
     RepairRequestCreate, RepairRequestResponse, RepairApprovalRequest, 
-    RepairRejectionRequest, ApprovalStatus, DispatchStatus
+    RepairRejectionRequest, ApprovalStatus, DispatchStatus, RepairDispatchRequest
 )
 from apps.bilgeapi.schemas.webhook import WebhookTestRequest, WebhookTestResponse, WebhookDeliveryResponse
 from apps.bilgeapi.repositories.interface import (
@@ -248,7 +248,7 @@ async def reject_repair_request(
 @router.post("/repair-requests/{id}/dispatch", response_model=RepairRequestResponse, tags=["Repairs"])
 async def dispatch_repair_request(
     id: str,
-    approval: Optional[RepairApprovalRequest] = None,
+    dispatch_req: Optional[RepairDispatchRequest] = None,
     repair_repo: RepairRequestRepository = Depends(get_repair_repository),
     webhook_service: WebhookDeliveryService = Depends(get_webhook_service),
     audit_service: AuditService = Depends(get_audit_service),
@@ -271,12 +271,29 @@ async def dispatch_repair_request(
     if repair_req.dispatch_status == DispatchStatus.DISPATCHED:
         raise HTTPException(status_code=400, detail="Repair request has already been dispatched")
 
-    webhook_url = approval.webhook_url if approval and approval.webhook_url else settings.BILGEAPI_WEBHOOK_URL
-    if not webhook_url:
+    adapter = "webhook"
+    webhook_url = None
+    dry_run = False
+
+    if dispatch_req:
+        adapter = dispatch_req.adapter
+        webhook_url = dispatch_req.webhook_url
+        dry_run = dispatch_req.dry_run
+
+    supported_adapters = {"webhook", "github_issue", "jira", "sovereign_repair_lab"}
+    if adapter not in supported_adapters:
         raise HTTPException(
             status_code=400,
-            detail="Webhook URL has not been provided and is not configured in settings."
+            detail=f"Unsupported dispatch adapter: '{adapter}'. Supported: {list(supported_adapters)}"
         )
+
+    if adapter == "webhook":
+        webhook_url = webhook_url if webhook_url else settings.BILGEAPI_WEBHOOK_URL
+        if not webhook_url:
+            raise HTTPException(
+                status_code=400,
+                detail="Webhook URL has not been provided and is not configured in settings."
+            )
 
     # Format webhook payload
     payload = {
@@ -306,14 +323,16 @@ async def dispatch_repair_request(
         actor_type=_identity["type"],
         entity_type="repair_request",
         entity_id=id,
-        metadata={"webhook_url": webhook_url}
+        metadata={"webhook_url": webhook_url, "adapter": adapter, "dry_run": dry_run}
     )
 
     # Trigger background dispatch
     await webhook_service.dispatch_webhook(
         repair_request_id=id,
         webhook_url=webhook_url,
-        payload=payload
+        payload=payload,
+        adapter=adapter,
+        dry_run=dry_run
     )
 
     # Reload the latest state from repository

@@ -115,3 +115,21 @@ class WebhookDeliveryModel(Base):
     payload_hash = Column(String(64), nullable=False)
     attempt_count = Column(Float, default=1.0)
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+
+
+class ReleaseCheckModel(Base):
+    __tablename__ = "bilgeapi_release_checks"
+
+    id = Column(String(64), primary_key=True)
+    status = Column(String(32), nullable=False, index=True)  # PASSED, WARNING, BLOCKED
+    score = Column(Float, nullable=False)
+    blockers = Column(SmartJSON(), nullable=True)
+    warnings = Column(SmartJSON(), nullable=True)
+    checked_modules = Column(SmartJSON(), nullable=True)
+    checked_endpoints = Column(SmartJSON(), nullable=True)
+    smoke_trace = Column(SmartJSON(), nullable=True)
+    app_version = Column(String(64), nullable=True)
+    git_sha = Column(String(64), nullable=True)
+    environment = Column(String(64), nullable=True)
+    triggered_by = Column(String(64), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)

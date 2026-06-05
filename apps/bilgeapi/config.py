@@ -142,5 +142,240 @@ class Settings:
         else:
             os.environ["BILGEAPI_WEBHOOK_URL"] = str(value)
 
+    # GitHub issue adapter configuration
+    @property
+    def BILGEAPI_GITHUB_ENABLED(self) -> bool:
+        raw = os.getenv("BILGEAPI_GITHUB_ENABLED", "false").lower()
+        return raw in ("1", "true", "yes", "on")
+
+    @BILGEAPI_GITHUB_ENABLED.setter
+    def BILGEAPI_GITHUB_ENABLED(self, value):
+        os.environ["BILGEAPI_GITHUB_ENABLED"] = str(value).lower()
+
+    @property
+    def BILGEAPI_GITHUB_TOKEN(self) -> Optional[str]:
+        return os.getenv("BILGEAPI_GITHUB_TOKEN")
+
+    @BILGEAPI_GITHUB_TOKEN.setter
+    def BILGEAPI_GITHUB_TOKEN(self, value):
+        if value is None:
+            os.environ.pop("BILGEAPI_GITHUB_TOKEN", None)
+        else:
+            os.environ["BILGEAPI_GITHUB_TOKEN"] = str(value)
+
+    @property
+    def BILGEAPI_GITHUB_OWNER(self) -> Optional[str]:
+        return os.getenv("BILGEAPI_GITHUB_OWNER")
+
+    @BILGEAPI_GITHUB_OWNER.setter
+    def BILGEAPI_GITHUB_OWNER(self, value):
+        if value is None:
+            os.environ.pop("BILGEAPI_GITHUB_OWNER", None)
+        else:
+            os.environ["BILGEAPI_GITHUB_OWNER"] = str(value)
+
+    @property
+    def BILGEAPI_GITHUB_REPO(self) -> Optional[str]:
+        return os.getenv("BILGEAPI_GITHUB_REPO")
+
+    @BILGEAPI_GITHUB_REPO.setter
+    def BILGEAPI_GITHUB_REPO(self, value):
+        if value is None:
+            os.environ.pop("BILGEAPI_GITHUB_REPO", None)
+        else:
+            os.environ["BILGEAPI_GITHUB_REPO"] = str(value)
+
+    @property
+    def BILGEAPI_GITHUB_LABELS(self) -> str:
+        return os.getenv("BILGEAPI_GITHUB_LABELS", "bilgeapi,repair-request")
+
+    @BILGEAPI_GITHUB_LABELS.setter
+    def BILGEAPI_GITHUB_LABELS(self, value):
+        os.environ["BILGEAPI_GITHUB_LABELS"] = str(value)
+
+    # Jira adapter configuration
+    @property
+    def BILGEAPI_JIRA_ENABLED(self) -> bool:
+        raw = os.getenv("BILGEAPI_JIRA_ENABLED", "false").lower()
+        return raw in ("1", "true", "yes", "on")
+
+    @BILGEAPI_JIRA_ENABLED.setter
+    def BILGEAPI_JIRA_ENABLED(self, value):
+        os.environ["BILGEAPI_JIRA_ENABLED"] = str(value).lower()
+
+    @property
+    def BILGEAPI_JIRA_BASE_URL(self) -> Optional[str]:
+        return os.getenv("BILGEAPI_JIRA_BASE_URL")
+
+    @BILGEAPI_JIRA_BASE_URL.setter
+    def BILGEAPI_JIRA_BASE_URL(self, value):
+        if value is None:
+            os.environ.pop("BILGEAPI_JIRA_BASE_URL", None)
+        else:
+            os.environ["BILGEAPI_JIRA_BASE_URL"] = str(value)
+
+    @property
+    def BILGEAPI_JIRA_EMAIL(self) -> Optional[str]:
+        return os.getenv("BILGEAPI_JIRA_EMAIL")
+
+    @BILGEAPI_JIRA_EMAIL.setter
+    def BILGEAPI_JIRA_EMAIL(self, value):
+        if value is None:
+            os.environ.pop("BILGEAPI_JIRA_EMAIL", None)
+        else:
+            os.environ["BILGEAPI_JIRA_EMAIL"] = str(value)
+
+    @property
+    def BILGEAPI_JIRA_API_TOKEN(self) -> Optional[str]:
+        return os.getenv("BILGEAPI_JIRA_API_TOKEN")
+
+    @BILGEAPI_JIRA_API_TOKEN.setter
+    def BILGEAPI_JIRA_API_TOKEN(self, value):
+        if value is None:
+            os.environ.pop("BILGEAPI_JIRA_API_TOKEN", None)
+        else:
+            os.environ["BILGEAPI_JIRA_API_TOKEN"] = str(value)
+
+    @property
+    def BILGEAPI_JIRA_PROJECT_KEY(self) -> str:
+        return os.getenv("BILGEAPI_JIRA_PROJECT_KEY", "OPS")
+
+    @BILGEAPI_JIRA_PROJECT_KEY.setter
+    def BILGEAPI_JIRA_PROJECT_KEY(self, value):
+        os.environ["BILGEAPI_JIRA_PROJECT_KEY"] = str(value)
+
+    @property
+    def BILGEAPI_JIRA_ISSUE_TYPE(self) -> str:
+        return os.getenv("BILGEAPI_JIRA_ISSUE_TYPE", "Task")
+
+    @BILGEAPI_JIRA_ISSUE_TYPE.setter
+    def BILGEAPI_JIRA_ISSUE_TYPE(self, value):
+        os.environ["BILGEAPI_JIRA_ISSUE_TYPE"] = str(value)
+
+    # Sovereign Repair Lab configuration
+    @property
+    def BILGEAPI_SOVEREIGN_ENABLED(self) -> bool:
+        raw = os.getenv("BILGEAPI_SOVEREIGN_ENABLED", "false").lower()
+        return raw in ("1", "true", "yes", "on")
+
+    @BILGEAPI_SOVEREIGN_ENABLED.setter
+    def BILGEAPI_SOVEREIGN_ENABLED(self, value):
+        os.environ["BILGEAPI_SOVEREIGN_ENABLED"] = str(value).lower()
+
+    @property
+    def BILGEAPI_SOVEREIGN_BASE_URL(self) -> Optional[str]:
+        return os.getenv("BILGEAPI_SOVEREIGN_BASE_URL")
+
+    @BILGEAPI_SOVEREIGN_BASE_URL.setter
+    def BILGEAPI_SOVEREIGN_BASE_URL(self, value):
+        if value is None:
+            os.environ.pop("BILGEAPI_SOVEREIGN_BASE_URL", None)
+        else:
+            os.environ["BILGEAPI_SOVEREIGN_BASE_URL"] = str(value)
+
+    @property
+    def BILGEAPI_SOVEREIGN_API_KEY(self) -> Optional[str]:
+        return os.getenv("BILGEAPI_SOVEREIGN_API_KEY")
+
+    @BILGEAPI_SOVEREIGN_API_KEY.setter
+    def BILGEAPI_SOVEREIGN_API_KEY(self, value):
+        if value is None:
+            os.environ.pop("BILGEAPI_SOVEREIGN_API_KEY", None)
+        else:
+            os.environ["BILGEAPI_SOVEREIGN_API_KEY"] = str(value)
+
+    @property
+    def BILGEAPI_SOVEREIGN_DEFAULT_PROJECT(self) -> str:
+        return os.getenv("BILGEAPI_SOVEREIGN_DEFAULT_PROJECT", "default")
+
+    @BILGEAPI_SOVEREIGN_DEFAULT_PROJECT.setter
+    def BILGEAPI_SOVEREIGN_DEFAULT_PROJECT(self, value):
+        os.environ["BILGEAPI_SOVEREIGN_DEFAULT_PROJECT"] = str(value)
+
+    @property
+    def BILGEAPI_METRICS_PUBLIC(self) -> bool:
+        raw = os.getenv("BILGEAPI_METRICS_PUBLIC", "true").lower()
+        return raw in ("1", "true", "yes", "on")
+
+    @BILGEAPI_METRICS_PUBLIC.setter
+    def BILGEAPI_METRICS_PUBLIC(self, value):
+        os.environ["BILGEAPI_METRICS_PUBLIC"] = str(value).lower()
+
+    @property
+    def BILGEAPI_SHUTDOWN_TIMEOUT_S(self) -> float:
+        return float(os.getenv("BILGEAPI_SHUTDOWN_TIMEOUT_S", "5.0"))
+
+    @BILGEAPI_SHUTDOWN_TIMEOUT_S.setter
+    def BILGEAPI_SHUTDOWN_TIMEOUT_S(self, value):
+        os.environ["BILGEAPI_SHUTDOWN_TIMEOUT_S"] = str(value)
+
+    @property
+    def BILGEAPI_RELEASE_MIN_COVERAGE(self) -> float:
+        return float(os.getenv("BILGEAPI_RELEASE_MIN_COVERAGE", "80.0"))
+
+    @BILGEAPI_RELEASE_MIN_COVERAGE.setter
+    def BILGEAPI_RELEASE_MIN_COVERAGE(self, value):
+        os.environ["BILGEAPI_RELEASE_MIN_COVERAGE"] = str(value)
+
+    @property
+    def BILGEAPI_REDIS_URL(self) -> str:
+        return os.getenv("BILGEAPI_REDIS_URL", "")
+
+    @BILGEAPI_REDIS_URL.setter
+    def BILGEAPI_REDIS_URL(self, value):
+        os.environ["BILGEAPI_REDIS_URL"] = str(value)
+
+    @property
+    def BILGEAPI_STATIC_KEY_HASHES(self) -> list[str]:
+        raw = os.getenv("BILGEAPI_STATIC_KEY_HASHES", "")
+        return [k.strip() for k in raw.split(",") if k.strip()]
+
+    @BILGEAPI_STATIC_KEY_HASHES.setter
+    def BILGEAPI_STATIC_KEY_HASHES(self, value):
+        if isinstance(value, list):
+            os.environ["BILGEAPI_STATIC_KEY_HASHES"] = ",".join(value)
+        else:
+            os.environ["BILGEAPI_STATIC_KEY_HASHES"] = str(value)
+
+    @property
+    def BILGEAPI_JWT_SECRETS(self) -> list[str]:
+        raw = os.getenv("BILGEAPI_JWT_SECRETS", "")
+        secrets_list = [k.strip() for k in raw.split(",") if k.strip()]
+        if not secrets_list:
+            return [self.BILGEAPI_JWT_SECRET]
+        return secrets_list
+
+    @BILGEAPI_JWT_SECRETS.setter
+    def BILGEAPI_JWT_SECRETS(self, value):
+        if isinstance(value, list):
+            os.environ["BILGEAPI_JWT_SECRETS"] = ",".join(value)
+        else:
+            os.environ["BILGEAPI_JWT_SECRETS"] = str(value)
+
+    @property
+    def BILGEAPI_DURABLE_QUEUE_ENABLED(self) -> bool:
+        raw = os.getenv("BILGEAPI_DURABLE_QUEUE_ENABLED", "false").lower()
+        return raw in ("1", "true", "yes", "on")
+
+    @BILGEAPI_DURABLE_QUEUE_ENABLED.setter
+    def BILGEAPI_DURABLE_QUEUE_ENABLED(self, value):
+        os.environ["BILGEAPI_DURABLE_QUEUE_ENABLED"] = str(value).lower()
+
+    @property
+    def BILGEAPI_SLACK_WEBHOOK_URL(self) -> str:
+        return os.getenv("BILGEAPI_SLACK_WEBHOOK_URL", "")
+
+    @BILGEAPI_SLACK_WEBHOOK_URL.setter
+    def BILGEAPI_SLACK_WEBHOOK_URL(self, value):
+        os.environ["BILGEAPI_SLACK_WEBHOOK_URL"] = str(value)
+
+    @property
+    def BILGEAPI_TEAMS_WEBHOOK_URL(self) -> str:
+        return os.getenv("BILGEAPI_TEAMS_WEBHOOK_URL", "")
+
+    @BILGEAPI_TEAMS_WEBHOOK_URL.setter
+    def BILGEAPI_TEAMS_WEBHOOK_URL(self, value):
+        os.environ["BILGEAPI_TEAMS_WEBHOOK_URL"] = str(value)
+
 settings = Settings()
 

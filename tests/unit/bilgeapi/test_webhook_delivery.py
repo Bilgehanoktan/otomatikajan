@@ -237,7 +237,8 @@ def test_webhook_test_endpoint_ssrf_blocked(test_client, monkeypatch):
 def test_webhook_test_endpoint_rbac_restricted(monkeypatch, test_client_real_auth):
     # Enable JWT and verify OPERATOR cannot run webhooks test (requires bilgeapi.admin)
     monkeypatch.setattr(settings, "BILGEAPI_AUTH_MODE", "jwt")
-    monkeypatch.setattr(settings, "BILGEAPI_JWT_SECRET", "secret")
+    monkeypatch.setenv("BILGEAPI_JWT_SECRET", "secret")
+    monkeypatch.setenv("BILGEAPI_JWT_SECRETS", "secret")
     
     op_token = jwt.encode({
         "sub": "user_op_1",

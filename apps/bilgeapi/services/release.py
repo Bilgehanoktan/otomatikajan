@@ -89,6 +89,12 @@ class BilgeAPIReleaseGate:
                 blockers.append(msg)
             else:
                 warnings.append(msg)
+        elif len(webhook_secret) < 16:
+            msg = "BILGEAPI_WEBHOOK_SECRET is too weak (must be at least 16 characters)."
+            if is_production:
+                blockers.append(msg)
+            else:
+                warnings.append(msg)
 
         # CORS wildcard check
         cors_raw = os.getenv("BILGEAPI_CORS_ALLOWLIST", "")
@@ -112,8 +118,54 @@ class BilgeAPIReleaseGate:
             blockers.append("BILGEAPI_AUTH_MODE cannot be 'disabled' in production.")
 
         # JWT Secret Check
-        if is_production and settings.BILGEAPI_AUTH_MODE == "jwt" and not settings.BILGEAPI_JWT_SECRET:
-            blockers.append("BILGEAPI_JWT_SECRET is required when auth mode is 'jwt' in production.")
+        if settings.BILGEAPI_AUTH_MODE == "jwt":
+            jwt_secret = settings.BILGEAPI_JWT_SECRET
+            if not jwt_secret:
+                msg = "BILGEAPI_JWT_SECRET is required when auth mode is 'jwt' in production."
+                if is_production:
+                    blockers.append(msg)
+                else:
+                    warnings.append(msg)
+            elif len(jwt_secret) < 32:
+                msg = "BILGEAPI_JWT_SECRET is too weak (must be at least 32 characters for HMAC-SHA256)."
+                if is_production:
+                    blockers.append(msg)
+                else:
+                    warnings.append(msg)
+
+        # Static API Keys Check
+        if settings.BILGEAPI_STATIC_KEYS:
+            msg = "Plaintext BILGEAPI_STATIC_KEYS usage is discouraged. Use hashed API keys (BILGEAPI_STATIC_KEY_HASHES) instead."
+            if is_production:
+                blockers.append(msg)
+            else:
+                warnings.append(msg)
+
+        if settings.BILGEAPI_AUTH_MODE in ("api_key", "hybrid", "disabled"):
+            from apps.bilgeapi.auth import parse_static_keys
+            try:
+                keys = parse_static_keys()
+                for key in keys:
+                    if len(key) < 16 or key in ("dev-test-key-001", "dev-test-key-002", "test_key_1", "test_key_2"):
+                        msg = f"Static API key '{key[:4]}...' is default or too weak (must be at least 16 characters)."
+                        if is_production:
+                            blockers.append(msg)
+                        else:
+                            warnings.append(msg)
+            except Exception as e:
+                logger.warning(f"Failed to check static key strength: {e}")
+
+        # Redis Fallback Check
+        try:
+            import apps.bilgeapi.main as bilgeapi_main
+            if getattr(bilgeapi_main, "REDIS_FALLBACK_ACTIVE", False):
+                warnings.append("Redis rate limiter connection fallback is currently active (falling back to in-memory rate limiter).")
+        except Exception:
+            pass
+
+        # Metrics Privacy Check
+        if is_production and settings.BILGEAPI_METRICS_PUBLIC:
+            blockers.append("BILGEAPI_METRICS_PUBLIC must be disabled (false) in production.")
 
         return {
             "blockers": blockers,
@@ -174,6 +226,8 @@ class BilgeAPIReleaseGate:
             webhook_service = WebhookDeliveryService(
                 webhook_repo=webhook_repo,
                 repair_repo=repair_repo,
+                incident_repo=incident_repo,
+                diagnostic_repo=diagnostic_repo,
                 audit_service=audit_service,
                 dispatcher=dispatcher
             )
@@ -325,6 +379,162 @@ class BilgeAPIReleaseGate:
             })
         return trace
 
+    def check_test_and_coverage(self) -> Dict[str, Any]:
+        """
+        Phase 11: Reads existing test and coverage evidence files in read-only mode.
+        Checks coverage.xml -> .coverage -> pytest_output.txt.
+        """
+        import re
+        blockers = []
+        warnings = []
+        coverage_pct = None
+        failed_tests = 0
+        passed_tests = 0
+        source = "NONE"
+
+        is_production = settings.APP_ENV == "production"
+
+        # 1. Try coverage.xml
+        if os.path.exists("coverage.xml"):
+            try:
+                import xml.etree.ElementTree as ET
+                tree = ET.parse("coverage.xml")
+                root = tree.getroot()
+                line_rate = root.attrib.get("line-rate")
+                if line_rate:
+                    coverage_pct = float(line_rate) * 100.0
+                    source = "coverage.xml"
+            except Exception as e:
+                logger.warning(f"Failed to parse coverage.xml: {e}")
+
+        # 2. Try .coverage SQLite db
+        if coverage_pct is None and os.path.exists(".coverage"):
+            try:
+                import coverage
+                cov = coverage.Coverage(data_file=".coverage")
+                cov.load()
+                import io
+                f = io.StringIO()
+                coverage_pct = cov.report(file=f)
+                source = ".coverage"
+            except Exception as e:
+                logger.warning(f"Failed to read .coverage database: {e}")
+
+        # 3. Try pytest_output.txt or pytest_output_v10.txt etc.
+        txt_files = ["pytest_output.txt", "pytest_output_v10.txt", "pytest_output_v11.txt", "pytest_output_v12.txt"]
+        for txt_file in txt_files:
+            if coverage_pct is None and os.path.exists(txt_file):
+                try:
+                    with open(txt_file, "r", encoding="utf-8") as f:
+                        content = f.read()
+                    
+                    cov_match = re.search(r"Total coverage:\s*(\d+(?:\.\d+)?)%", content)
+                    if not cov_match:
+                        cov_match = re.search(r"TOTAL\s+\d+\s+\d+\s+(\d+)%", content)
+                    if cov_match:
+                        coverage_pct = float(cov_match.group(1))
+                        source = txt_file
+
+                    fail_match = re.search(r"(\d+)\s+failed", content)
+                    if fail_match:
+                        failed_tests = int(fail_match.group(1))
+                    pass_match = re.search(r"(\d+)\s+passed", content)
+                    if pass_match:
+                        passed_tests = int(pass_match.group(1))
+                except Exception as e:
+                    logger.warning(f"Failed to parse {txt_file}: {e}")
+
+        # Check constraints
+        if coverage_pct is None:
+            msg = "No test coverage evidence found (coverage.xml, .coverage, or pytest_output.txt missing)."
+            if is_production:
+                blockers.append(msg)
+            else:
+                warnings.append(msg)
+        else:
+            min_cov = settings.BILGEAPI_RELEASE_MIN_COVERAGE
+            if coverage_pct < min_cov:
+                msg = f"Test coverage ({coverage_pct:.2f}%) is below minimum required threshold ({min_cov:.2f}%)."
+                if is_production:
+                    blockers.append(msg)
+                else:
+                    warnings.append(msg)
+
+        if failed_tests > 0:
+            msg = f"Test suite has {failed_tests} failed tests. Release blocked."
+            if is_production:
+                blockers.append(msg)
+            else:
+                warnings.append(msg)
+
+        return {
+            "coverage_pct": coverage_pct,
+            "passed_tests": passed_tests,
+            "failed_tests": failed_tests,
+            "source": source,
+            "blockers": blockers,
+            "warnings": warnings,
+        }
+
+    async def check_database_migrations(self) -> Dict[str, Any]:
+        """
+        Phase 11: Compares current DB revision with head migration using Alembic APIs in read-only mode.
+        """
+        blockers = []
+        warnings = []
+        head_rev = None
+        current_rev = None
+        is_production = settings.APP_ENV == "production"
+
+        try:
+            ini_path = "alembic.ini"
+            if not os.path.exists(ini_path):
+                ini_path = "libs/db/migrations/alembic.ini"
+
+            if os.path.exists(ini_path):
+                from alembic.config import Config
+                from alembic.script import ScriptDirectory
+                config = Config(ini_path)
+                script = ScriptDirectory.from_config(config)
+                head_rev = script.get_current_head()
+            else:
+                warnings.append("Alembic configuration (alembic.ini) not found.")
+        except Exception as e:
+            logger.warning(f"Failed to determine Alembic head revision: {e}")
+            warnings.append(f"Alembic head check failed: {str(e)}")
+
+        try:
+            from libs.db.session import AsyncSessionLocal
+            from sqlalchemy import text
+            async with AsyncSessionLocal() as session:
+                res = await session.execute(text("SELECT version_num FROM alembic_version"))
+                row = res.fetchone()
+                current_rev = row[0] if row else None
+        except Exception as e:
+            logger.warning(f"Failed to query alembic_version table: {e}")
+            current_rev = None
+
+        if head_rev:
+            if current_rev != head_rev:
+                msg = f"Database schema is not up to date. Head migration: {head_rev}, Current DB migration: {current_rev}"
+                if is_production:
+                    blockers.append(msg)
+                else:
+                    warnings.append(msg)
+        else:
+            msg = "Could not verify Alembic head revision."
+            if is_production:
+                blockers.append(msg)
+            else:
+                warnings.append(msg)
+
+        return {
+            "head_revision": head_rev,
+            "current_revision": current_rev,
+            "blockers": blockers,
+            "warnings": warnings,
+        }
+
     async def execute_readiness_audit(self, triggered_by: Optional[str] = None) -> Dict[str, Any]:
         """
         Runs the full readiness check pipeline and persists results into DB/repository.
@@ -340,8 +550,8 @@ class BilgeAPIReleaseGate:
         
         # 3. Security Config Check
         security_res = self.check_security_config()
-        blockers = security_res["blockers"]
-        warnings = security_res["warnings"]
+        blockers = list(security_res["blockers"])
+        warnings = list(security_res["warnings"])
 
         # 4. E2E dry-run simulation
         smoke_trace = await self.run_e2e_dry_run()
@@ -353,13 +563,37 @@ class BilgeAPIReleaseGate:
         if missing_modules:
             blockers.append(f"Module check failed for: {', '.join(missing_modules)}")
 
-        # 5. Scoring Algorithm
+        # 5. Check Test and Coverage Evidence (Phase 11)
+        coverage_res = self.check_test_and_coverage()
+        blockers.extend(coverage_res["blockers"])
+        warnings.extend(coverage_res["warnings"])
+
+        smoke_trace.append({
+            "step": 7,
+            "action": "TEST_AND_COVERAGE_CHECK",
+            "status": "PASSED" if not coverage_res["blockers"] else "FAILED",
+            "details": f"Source: {coverage_res['source']}, Coverage: {coverage_res['coverage_pct']}%, Passed: {coverage_res['passed_tests']}, Failed: {coverage_res['failed_tests']}"
+        })
+
+        # 6. Check Database Migrations (Phase 11)
+        migration_res = await self.check_database_migrations()
+        blockers.extend(migration_res["blockers"])
+        warnings.extend(migration_res["warnings"])
+
+        smoke_trace.append({
+            "step": 8,
+            "action": "DATABASE_MIGRATION_CHECK",
+            "status": "PASSED" if not migration_res["blockers"] else "FAILED",
+            "details": f"Head Revision: {migration_res['head_revision']}, Current DB Revision: {migration_res['current_revision']}"
+        })
+
+        # 7. Scoring Algorithm
         score = 100.0
         score -= len(warnings) * 5.0
         score -= len(blockers) * 20.0
         score = max(0.0, score)
 
-        # 6. GO / NO-GO Decision Logic
+        # 8. GO / NO-GO Decision Logic
         if blockers or score < 80:
             status = "BLOCKED"
         elif warnings or score < 90:
@@ -369,7 +603,7 @@ class BilgeAPIReleaseGate:
 
         # Gather metadata
         git_sha = os.getenv("BILGEAPI_GIT_SHA", os.getenv("GIT_SHA", "unknown"))
-        app_version = "1.0.0-phase8"
+        app_version = "1.0.0"
         environment = settings.APP_ENV
 
         check_data = {

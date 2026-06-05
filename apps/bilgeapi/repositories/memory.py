@@ -9,7 +9,8 @@ from apps.bilgeapi.repositories.interface import (
     RecommendationRepository,
     RepairRequestRepository,
     AuditRepository,
-    WebhookDeliveryRepository
+    WebhookDeliveryRepository,
+    ReleaseCheckRepository
 )
 from apps.bilgeapi.schemas.incident import IncidentCreate, IncidentResponse
 from apps.bilgeapi.schemas.diagnostic import DiagnosticResult, DiagnosticStatus
@@ -25,6 +26,7 @@ class MemoryRepositoriesContainer:
         self.repair_requests: Dict[str, RepairRequestResponse] = {}
         self.audit_events: List[AuditEvent] = []
         self.webhook_deliveries: List[Dict[str, Any]] = []
+        self.release_checks: List[Dict[str, Any]] = []
         self._lock = asyncio.Lock()
 
     def clear_all(self):
@@ -35,6 +37,7 @@ class MemoryRepositoriesContainer:
         self.repair_requests.clear()
         self.audit_events.clear()
         self.webhook_deliveries.clear()
+        self.release_checks.clear()
 
 memory_repositories = MemoryRepositoriesContainer()
 
@@ -239,4 +242,36 @@ class InMemoryWebhookDeliveryRepository(WebhookDeliveryRepository):
         async with memory_repositories._lock:
             # Sort with fallback if created_at is missing (unlikely)
             return sorted(memory_repositories.webhook_deliveries, key=lambda d: d.get("created_at") or datetime.min.replace(tzinfo=timezone.utc), reverse=True)
+
+
+class InMemoryReleaseCheckRepository(ReleaseCheckRepository):
+    async def create_check(self, check_data: Dict[str, Any]) -> Dict[str, Any]:
+        async with memory_repositories._lock:
+            check_data = check_data.copy()
+            if "id" not in check_data:
+                check_data["id"] = f"rel_{uuid.uuid4().hex[:8]}"
+            if "created_at" not in check_data:
+                check_data["created_at"] = datetime.now(timezone.utc)
+            memory_repositories.release_checks.append(check_data)
+            return check_data
+
+    async def get_latest_check(self) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            if not memory_repositories.release_checks:
+                return None
+            sorted_checks = sorted(
+                memory_repositories.release_checks,
+                key=lambda d: d.get("created_at") or datetime.min.replace(tzinfo=timezone.utc),
+                reverse=True
+            )
+            return sorted_checks[0]
+
+    async def list_checks(self, limit: int = 20) -> List[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            sorted_checks = sorted(
+                memory_repositories.release_checks,
+                key=lambda d: d.get("created_at") or datetime.min.replace(tzinfo=timezone.utc),
+                reverse=True
+            )
+            return sorted_checks[:limit]
 
