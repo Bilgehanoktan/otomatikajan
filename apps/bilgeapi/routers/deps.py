@@ -7,13 +7,13 @@ from apps.bilgeapi.repositories.interface import (
     IncidentRepository, DiagnosticRepository, FindingRepository,
     RecommendationRepository, RepairRequestRepository, AuditRepository, WebhookDeliveryRepository,
     ReleaseCheckRepository, ApiKeyRepository, ResearchRepository, ImprovementRepository,
-    PrDraftRepository
+    PrDraftRepository, PrVerificationRepository
 )
 from apps.bilgeapi.repositories.postgres import (
     PostgresIncidentRepository, PostgresDiagnosticRepository, PostgresFindingRepository,
     PostgresRecommendationRepository, PostgresRepairRequestRepository, PostgresAuditRepository, PostgresWebhookDeliveryRepository,
     PostgresReleaseCheckRepository, PostgresApiKeyRepository, PostgresResearchRepository, PostgresImprovementRepository,
-    PostgresPrDraftRepository
+    PostgresPrDraftRepository, PostgresPrVerificationRepository
 )
 from apps.bilgeapi.services.audit import AuditService
 from apps.bilgeapi.services.diagnostic import DiagnosticService
@@ -171,6 +171,27 @@ def get_pr_draft_service(
 ) -> Any:
     from apps.bilgeapi.services.pr_draft import PrDraftService
     return PrDraftService(pr_draft_repo, proposal_repo, github_adapter, audit_service)
+
+
+async def get_pr_verification_repository(db: AsyncSession = Depends(get_db)) -> PrVerificationRepository:
+    return PostgresPrVerificationRepository(db)
+
+
+def get_pr_verification_service(
+    verification_repo: PrVerificationRepository = Depends(get_pr_verification_repository),
+    pr_draft_repo: PrDraftRepository = Depends(get_pr_draft_repository),
+    proposal_repo: ImprovementRepository = Depends(get_improvement_repository),
+    research_repo: ResearchRepository = Depends(get_research_repository),
+    audit_service: AuditService = Depends(get_audit_service)
+) -> Any:
+    from apps.bilgeapi.services.pr_verification import PrVerificationService
+    return PrVerificationService(
+        verification_repo=verification_repo,
+        pr_draft_repo=pr_draft_repo,
+        proposal_repo=proposal_repo,
+        research_repo=research_repo,
+        audit_service=audit_service
+    )
 
 
 

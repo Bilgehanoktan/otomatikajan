@@ -7,7 +7,7 @@ from apps.bilgeapi.repositories.interface import (
     IncidentRepository, DiagnosticRepository, FindingRepository,
     RecommendationRepository, RepairRequestRepository, AuditRepository, WebhookDeliveryRepository,
     ReleaseCheckRepository, ApiKeyRepository, ResearchRepository, ImprovementRepository,
-    PrDraftRepository
+    PrDraftRepository, PrVerificationRepository
 )
 from apps.bilgeapi.schemas.incident import IncidentCreate, IncidentResponse
 from apps.bilgeapi.schemas.diagnostic import DiagnosticResult, DiagnosticStatus
@@ -17,7 +17,7 @@ from apps.bilgeapi.models.database import (
     IncidentModel, DiagnosticRunModel, FindingModel, RecommendationModel,
     RepairRequestModel, AuditEventModel, WebhookDeliveryModel, ReleaseCheckModel,
     ApiKeyModel, ResearchRequestModel, ResearchEvidenceModel, ImprovementProposalModel,
-    PrDraftModel
+    PrDraftModel, PrVerificationModel
 )
 
 class PostgresIncidentRepository(IncidentRepository):
@@ -905,4 +905,74 @@ class PostgresPrDraftRepository(PrDraftRepository):
         await self.db.commit()
         await self.db.refresh(model)
         return self._draft_to_dict(model)
+
+
+class PostgresPrVerificationRepository(PrVerificationRepository):
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    def _verification_to_dict(self, model: PrVerificationModel) -> Dict[str, Any]:
+        return {
+            "id": model.id,
+            "pr_draft_id": model.pr_draft_id,
+            "proposal_id": model.proposal_id,
+            "status": model.status,
+            "review_score": model.review_score,
+            "review_decision": model.review_decision,
+            "risk_level": model.risk_level,
+            "risk_flags": model.risk_flags,
+            "affected_files": model.affected_files,
+            "mutation_detected": model.mutation_detected,
+            "test_files_present": model.test_files_present,
+            "patch_size_lines": model.patch_size_lines,
+            "test_plan": model.test_plan,
+            "rollback_plan": model.rollback_plan,
+            "verification_report": model.verification_report,
+            "created_at": model.created_at,
+            "updated_at": model.updated_at,
+        }
+
+    async def create_verification(self, verification_data: Dict[str, Any]) -> Dict[str, Any]:
+        ver_id = f"prv_{uuid.uuid4().hex[:8]}"
+        model = PrVerificationModel(
+            id=ver_id,
+            pr_draft_id=verification_data["pr_draft_id"],
+            proposal_id=verification_data["proposal_id"],
+            status=verification_data.get("status", "PENDING"),
+            review_score=verification_data["review_score"],
+            review_decision=verification_data["review_decision"],
+            risk_level=verification_data["risk_level"],
+            risk_flags=verification_data.get("risk_flags"),
+            affected_files=verification_data.get("affected_files"),
+            mutation_detected=verification_data.get("mutation_detected", False),
+            test_files_present=verification_data.get("test_files_present", False),
+            patch_size_lines=verification_data.get("patch_size_lines", 0),
+            test_plan=verification_data.get("test_plan"),
+            rollback_plan=verification_data.get("rollback_plan"),
+            verification_report=verification_data.get("verification_report")
+        )
+        self.db.add(model)
+        await self.db.commit()
+        await self.db.refresh(model)
+        return self._verification_to_dict(model)
+
+    async def get_verification_by_pr_draft(self, pr_draft_id: str) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(PrVerificationModel)
+            .where(PrVerificationModel.pr_draft_id == pr_draft_id)
+            .order_by(desc(PrVerificationModel.created_at))
+            .limit(1)
+        )
+        model = res.scalar_one_or_none()
+        return self._verification_to_dict(model) if model else None
+
+    async def list_verifications_by_proposal(self, proposal_id: str) -> List[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(PrVerificationModel)
+            .where(PrVerificationModel.proposal_id == proposal_id)
+            .order_by(desc(PrVerificationModel.created_at))
+        )
+        models = res.scalars().all()
+        return [self._verification_to_dict(m) for m in models]
+
 

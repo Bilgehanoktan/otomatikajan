@@ -14,7 +14,8 @@ from apps.bilgeapi.repositories.interface import (
     ApiKeyRepository,
     ResearchRepository,
     ImprovementRepository,
-    PrDraftRepository
+    PrDraftRepository,
+    PrVerificationRepository
 )
 from apps.bilgeapi.schemas.incident import IncidentCreate, IncidentResponse
 from apps.bilgeapi.schemas.diagnostic import DiagnosticResult, DiagnosticStatus
@@ -36,6 +37,7 @@ class MemoryRepositoriesContainer:
         self.research_evidences: Dict[str, Dict[str, Any]] = {}
         self.improvement_proposals: Dict[str, Dict[str, Any]] = {}
         self.pr_drafts: Dict[str, Dict[str, Any]] = {}
+        self.pr_verifications: Dict[str, Dict[str, Any]] = {}
         self._lock = asyncio.Lock()
 
     def clear_all(self):
@@ -52,6 +54,7 @@ class MemoryRepositoriesContainer:
         self.research_evidences.clear()
         self.improvement_proposals.clear()
         self.pr_drafts.clear()
+        self.pr_verifications.clear()
 
 memory_repositories = MemoryRepositoriesContainer()
 
@@ -526,6 +529,55 @@ class InMemoryPrDraftRepository(PrDraftRepository):
                 item["github_pr_url"] = github_pr_url
             item["updated_at"] = datetime.now(timezone.utc)
             return item
+
+
+class InMemoryPrVerificationRepository(PrVerificationRepository):
+    async def create_verification(self, verification_data: Dict[str, Any]) -> Dict[str, Any]:
+        async with memory_repositories._lock:
+            ver_id = f"prv_{uuid.uuid4().hex[:8]}"
+            response = {
+                "id": ver_id,
+                "pr_draft_id": verification_data["pr_draft_id"],
+                "proposal_id": verification_data["proposal_id"],
+                "status": verification_data.get("status", "PENDING"),
+                "review_score": verification_data["review_score"],
+                "review_decision": verification_data["review_decision"],
+                "risk_level": verification_data["risk_level"],
+                "risk_flags": verification_data.get("risk_flags"),
+                "affected_files": verification_data.get("affected_files"),
+                "mutation_detected": verification_data.get("mutation_detected", False),
+                "test_files_present": verification_data.get("test_files_present", False),
+                "patch_size_lines": verification_data.get("patch_size_lines", 0),
+                "test_plan": verification_data.get("test_plan"),
+                "rollback_plan": verification_data.get("rollback_plan"),
+                "verification_report": verification_data.get("verification_report"),
+                "created_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc),
+            }
+            memory_repositories.pr_verifications[ver_id] = response
+            return response
+
+    async def get_verification_by_pr_draft(self, pr_draft_id: str) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            verifications = [
+                v for v in memory_repositories.pr_verifications.values()
+                if v["pr_draft_id"] == pr_draft_id
+            ]
+            if not verifications:
+                return None
+            return sorted(
+                verifications,
+                key=lambda x: x.get("created_at") or datetime.min.replace(tzinfo=timezone.utc),
+                reverse=True
+            )[0]
+
+    async def list_verifications_by_proposal(self, proposal_id: str) -> List[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            return sorted(
+                [v for v in memory_repositories.pr_verifications.values() if v["proposal_id"] == proposal_id],
+                key=lambda x: x.get("created_at") or datetime.min.replace(tzinfo=timezone.utc),
+                reverse=True
+            )
 
 
 

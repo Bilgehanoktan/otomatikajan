@@ -218,3 +218,18 @@ class PrDraftRepository(ABC):
         pass
 
 
+class PrVerificationRepository(ABC):
+    @abstractmethod
+    async def create_verification(self, verification_data: Dict[str, Any]) -> Dict[str, Any]:
+        pass
+
+    @abstractmethod
+    async def get_verification_by_pr_draft(self, pr_draft_id: str) -> Optional[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def list_verifications_by_proposal(self, proposal_id: str) -> List[Dict[str, Any]]:
+        pass
+
+
+

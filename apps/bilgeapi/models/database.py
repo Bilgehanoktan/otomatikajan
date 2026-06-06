@@ -231,3 +231,29 @@ class PrDraftModel(Base):
 
     proposal = relationship("ImprovementProposalModel")
 
+
+class PrVerificationModel(Base):
+    __tablename__ = "bilgeapi_pr_verifications"
+
+    id = Column(String(64), primary_key=True)
+    pr_draft_id = Column(String(64), ForeignKey("bilgeapi_pr_drafts.id"), nullable=False, index=True)
+    proposal_id = Column(String(64), ForeignKey("bilgeapi_improvement_proposals.id"), nullable=False, index=True)
+    status = Column(String(32), default="PENDING", nullable=False, index=True) # PENDING, REVIEW_READY, NEEDS_HUMAN_CAUTION, NEEDS_REVISION, BLOCKED
+    review_score = Column(Float, nullable=False)
+    review_decision = Column(String(32), nullable=False) # REVIEW_READY, NEEDS_HUMAN_CAUTION, NEEDS_REVISION, BLOCKED
+    risk_level = Column(String(32), nullable=False) # LOW, MEDIUM, HIGH
+    risk_flags = Column(SmartJSON(), nullable=True) # E.g., list of risky files affected
+    affected_files = Column(SmartJSON(), nullable=True) # List of file paths
+    mutation_detected = Column(Boolean, default=False, nullable=False)
+    test_files_present = Column(Boolean, default=False, nullable=False)
+    patch_size_lines = Column(Integer, default=0, nullable=False)
+    test_plan = Column(SmartJSON(), nullable=True) # Generated test plan details
+    rollback_plan = Column(Text, nullable=True) # Suggested rollback steps
+    verification_report = Column(Text, nullable=True) # Markdown report content
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
+
+    pr_draft = relationship("PrDraftModel")
+    proposal = relationship("ImprovementProposalModel")
+
+

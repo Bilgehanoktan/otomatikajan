@@ -10,6 +10,7 @@ from apps.bilgeapi.schemas.improvements import (
     ResearchCreate, ResearchResponse, EvidenceResponse, ProposalResponse, DraftPrResponse
 )
 from apps.bilgeapi.schemas.pr_draft import PrDraftResponse
+from apps.bilgeapi.schemas.pr_verification import PrVerificationResponse, PrReviewReportResponse
 from apps.bilgeapi.routers.deps import (
     get_research_repository,
     get_improvement_repository,
@@ -17,7 +18,9 @@ from apps.bilgeapi.routers.deps import (
     get_improvement_proposal_engine,
     get_release_gate_simulator,
     get_pr_draft_service,
-    get_pr_draft_repository
+    get_pr_draft_repository,
+    get_pr_verification_service,
+    get_pr_verification_repository
 )
 
 router = APIRouter(prefix="/v1/improvements", tags=["Improvements"])
@@ -283,6 +286,74 @@ async def list_draft_prs_endpoint(
     """
     try:
         return await repo.list_pr_drafts_by_proposal(proposal_id)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.post("/pr-drafts/{pr_draft_id}/verify", response_model=PrVerificationResponse, status_code=status.HTTP_201_CREATED)
+async def verify_pr_draft_endpoint(
+    pr_draft_id: str,
+    identity: dict = Depends(require_permission("bilgeapi.admin")),
+    service: Any = Depends(get_pr_verification_service)
+):
+    """
+    Trigger Sandbox verification and PR Review Gate scoring for a Draft PR. Admin-only.
+    """
+    actor_id = identity.get("id", "admin")
+    try:
+        verification = await service.verify_pr_draft(pr_draft_id=pr_draft_id, actor_id=actor_id)
+        return verification
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.get("/pr-drafts/{pr_draft_id}/verification", response_model=PrVerificationResponse)
+async def get_pr_verification_endpoint(
+    pr_draft_id: str,
+    _identity: dict = Depends(require_permission("bilgeapi.operator")),
+    repo: Any = Depends(get_pr_verification_repository)
+):
+    """
+    Get the latest sandbox verification record for a Draft PR. Operator or Admin.
+    """
+    try:
+        verification = await repo.get_verification_by_pr_draft(pr_draft_id)
+        if not verification:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No verification record found for this PR draft")
+        return verification
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.get("/pr-drafts/{pr_draft_id}/review-report", response_model=PrReviewReportResponse)
+async def get_pr_review_report_endpoint(
+    pr_draft_id: str,
+    _identity: dict = Depends(require_permission("bilgeapi.operator")),
+    repo: Any = Depends(get_pr_verification_repository)
+):
+    """
+    Get the markdown PR review report for a Draft PR. Operator or Admin.
+    """
+    try:
+        verification = await repo.get_verification_by_pr_draft(pr_draft_id)
+        if not verification:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No verification report found for this PR draft")
+        
+        return PrReviewReportResponse(
+            pr_draft_id=verification["pr_draft_id"],
+            proposal_id=verification["proposal_id"],
+            review_score=verification["review_score"],
+            review_decision=verification["review_decision"],
+            risk_level=verification["risk_level"],
+            report_markdown=verification["verification_report"] or "",
+            created_at=verification["created_at"]
+        )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 

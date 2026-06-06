@@ -2186,6 +2186,159 @@
           }
         }
       }
+    },
+    "/v1/improvements/pr-drafts/{pr_draft_id}/verify": {
+      "post": {
+        "tags": [
+          "Improvements"
+        ],
+        "summary": "Verify Pr Draft Endpoint",
+        "description": "Trigger Sandbox verification and PR Review Gate scoring for a Draft PR. Admin-only.",
+        "operationId": "verify_pr_draft_endpoint_v1_improvements_pr_drafts__pr_draft_id__verify_post",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pr_draft_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Pr Draft Id"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrVerificationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/improvements/pr-drafts/{pr_draft_id}/verification": {
+      "get": {
+        "tags": [
+          "Improvements"
+        ],
+        "summary": "Get Pr Verification Endpoint",
+        "description": "Get the latest sandbox verification record for a Draft PR. Operator or Admin.",
+        "operationId": "get_pr_verification_endpoint_v1_improvements_pr_drafts__pr_draft_id__verification_get",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pr_draft_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Pr Draft Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrVerificationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/improvements/pr-drafts/{pr_draft_id}/review-report": {
+      "get": {
+        "tags": [
+          "Improvements"
+        ],
+        "summary": "Get Pr Review Report Endpoint",
+        "description": "Get the markdown PR review report for a Draft PR. Operator or Admin.",
+        "operationId": "get_pr_review_report_endpoint_v1_improvements_pr_drafts__pr_draft_id__review_report_get",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pr_draft_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Pr Draft Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrReviewReportResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3438,6 +3591,184 @@
           "updated_at"
         ],
         "title": "PrDraftResponse"
+      },
+      "PrReviewReportResponse": {
+        "properties": {
+          "pr_draft_id": {
+            "type": "string",
+            "title": "Pr Draft Id"
+          },
+          "proposal_id": {
+            "type": "string",
+            "title": "Proposal Id"
+          },
+          "review_score": {
+            "type": "number",
+            "title": "Review Score"
+          },
+          "review_decision": {
+            "type": "string",
+            "title": "Review Decision"
+          },
+          "risk_level": {
+            "type": "string",
+            "title": "Risk Level"
+          },
+          "report_markdown": {
+            "type": "string",
+            "title": "Report Markdown"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pr_draft_id",
+          "proposal_id",
+          "review_score",
+          "review_decision",
+          "risk_level",
+          "report_markdown",
+          "created_at"
+        ],
+        "title": "PrReviewReportResponse"
+      },
+      "PrVerificationResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "pr_draft_id": {
+            "type": "string",
+            "title": "Pr Draft Id"
+          },
+          "proposal_id": {
+            "type": "string",
+            "title": "Proposal Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "review_score": {
+            "type": "number",
+            "title": "Review Score"
+          },
+          "review_decision": {
+            "type": "string",
+            "title": "Review Decision"
+          },
+          "risk_level": {
+            "type": "string",
+            "title": "Risk Level"
+          },
+          "risk_flags": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Flags"
+          },
+          "affected_files": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Affected Files"
+          },
+          "mutation_detected": {
+            "type": "boolean",
+            "title": "Mutation Detected"
+          },
+          "test_files_present": {
+            "type": "boolean",
+            "title": "Test Files Present"
+          },
+          "patch_size_lines": {
+            "type": "integer",
+            "title": "Patch Size Lines"
+          },
+          "test_plan": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Test Plan"
+          },
+          "rollback_plan": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rollback Plan"
+          },
+          "verification_report": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verification Report"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "pr_draft_id",
+          "proposal_id",
+          "status",
+          "review_score",
+          "review_decision",
+          "risk_level",
+          "mutation_detected",
+          "test_files_present",
+          "patch_size_lines",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "PrVerificationResponse"
       },
       "ProposalResponse": {
         "properties": {
