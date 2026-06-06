@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 
 from apps.bilgeapi.auth import require_permission
 from apps.bilgeapi.repositories.interface import ResearchRepository, ImprovementRepository
@@ -129,6 +129,26 @@ async def list_proposals(
     return proposals
 
 
+@router.get("/proposals/{proposal_id}/audit-report")
+async def get_audit_report(
+    proposal_id: str,
+    _identity: dict = Depends(require_permission("bilgeapi.incident.read")),
+    proposal_repo: ImprovementRepository = Depends(get_improvement_repository),
+    research_repo: ResearchRepository = Depends(get_research_repository),
+    simulator: ReleaseGateSimulator = Depends(get_release_gate_simulator)
+):
+    """
+    Retrieve the generated self-improvement markdown audit report.
+    """
+    proposal = await proposal_repo.get_proposal(proposal_id)
+    if not proposal:
+        raise HTTPException(status_code=404, detail="Proposal not found")
+
+    evidences = await research_repo.list_evidences(proposal["research_id"])
+    report = simulator.generate_audit_report(proposal, evidences)
+    return Response(content=report, media_type="text/markdown")
+
+
 @router.post("/{proposal_id}/draft-pr", response_model=DraftPrResponse)
 async def create_draft_pr(
     proposal_id: str,
@@ -144,11 +164,36 @@ async def create_draft_pr(
 
     risk_analysis = proposal.get("risk_analysis") or {}
     affected_files = risk_analysis.get("affected_files", ["apps/bilgeapi/main.py"])
+    confidence_score = risk_analysis.get("confidence_score", 0.0)
+    confidence_level = risk_analysis.get("confidence_level", "UNKNOWN")
+
+    description = (
+        f"### 1. Problem Özeti\n"
+        f"Autonomous self-improvement proposal based on request query: '{proposal['title']}'.\n\n"
+        f"### 2. Kullanılan Kaynaklar & Trust Scores\n"
+        f"Confidence Score: {confidence_score:.2f} ({confidence_level})\n"
+        f"Evidence summary details:\n"
+        f"{proposal['rationale']}\n\n"
+        f"### 3. Önerilen Değişiklik\n"
+        f"Autonomous code patch designed to resolve potential issues:\n"
+        f"```diff\n{proposal['patch_code']}```\n\n"
+        f"### 4. Etkilenen Dosyalar\n"
+        + "\n".join(f"- `{f}`" for f in affected_files) + "\n\n"
+        f"### 5. Risk Analizi\n"
+        f"- Risk Level: {risk_analysis.get('risk_level', 'LOW')}\n"
+        f"- Potential Side Effects: {risk_analysis.get('potential_side_effects', 'None expected.')}\n"
+        f"- Mitigation Plan: {risk_analysis.get('mitigation_plan', 'None')}\n\n"
+        f"### 6. Test Planı\n"
+        f"- Execute simulated release gate checks (/run-gate).\n"
+        f"- Run functional integration tests.\n\n"
+        f"### 7. Rollback Planı\n"
+        f"Discard changes by resetting the files via git or reverting the applied commit."
+    )
 
     return DraftPrResponse(
         patch_code=proposal["patch_code"],
         title=f"Draft PR: {proposal['title']}",
-        description=f"Autonomous Self-Improvement patch.\n\n### Rationale:\n{proposal['rationale']}",
+        description=description,
         risk_level=risk_analysis.get("risk_level", "LOW"),
         affected_files=affected_files,
         potential_side_effects=risk_analysis.get("potential_side_effects", "None expected."),
@@ -180,13 +225,26 @@ async def approve_proposal(
 ):
     """
     Approve an improvement proposal, flagging it as ready_for_human_apply.
+    Prohibits approval if confidence level is LOW or if status is REJECTED.
     """
+    proposal = await repo.get_proposal(proposal_id)
+    if not proposal:
+        raise HTTPException(status_code=404, detail="Proposal not found")
+
+    risk_analysis = proposal.get("risk_analysis") or {}
+    confidence_level = risk_analysis.get("confidence_level")
+
+    if confidence_level == "LOW" or proposal.get("approval_status") == "REJECTED":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Low-confidence proposals cannot be approved."
+        )
+
     actor_id = identity.get("id", "admin")
-    proposal = await repo.approve_proposal(
+    approved = await repo.approve_proposal(
         proposal_id=proposal_id,
         approved_by=actor_id,
         approved_at=datetime.now(timezone.utc)
     )
-    if not proposal:
-        raise HTTPException(status_code=404, detail="Proposal not found")
-    return proposal
+    return approved
+

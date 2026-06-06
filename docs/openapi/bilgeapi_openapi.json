@@ -1881,6 +1881,55 @@
         ]
       }
     },
+    "/v1/improvements/proposals/{proposal_id}/audit-report": {
+      "get": {
+        "tags": [
+          "Improvements"
+        ],
+        "summary": "Get Audit Report",
+        "description": "Retrieve the generated self-improvement markdown audit report.",
+        "operationId": "get_audit_report_v1_improvements_proposals__proposal_id__audit_report_get",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Proposal Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/improvements/{proposal_id}/draft-pr": {
       "post": {
         "tags": [
@@ -1987,7 +2036,7 @@
           "Improvements"
         ],
         "summary": "Approve Proposal",
-        "description": "Approve an improvement proposal, flagging it as ready_for_human_apply.",
+        "description": "Approve an improvement proposal, flagging it as ready_for_human_apply.\nProhibits approval if confidence level is LOW or if status is REJECTED.",
         "operationId": "approve_proposal_v1_improvements__proposal_id__approve_post",
         "security": [
           {

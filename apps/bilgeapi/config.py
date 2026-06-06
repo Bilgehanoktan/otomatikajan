@@ -378,4 +378,22 @@ class Settings:
     def BILGEAPI_TEAMS_WEBHOOK_URL(self, value):
         os.environ["BILGEAPI_TEAMS_WEBHOOK_URL"] = str(value)
 
+    @property
+    def BILGEAPI_SEARCH_PROVIDER(self) -> str:
+        return os.getenv("BILGEAPI_SEARCH_PROVIDER", "mock").lower()
+
+    @BILGEAPI_SEARCH_PROVIDER.setter
+    def BILGEAPI_SEARCH_PROVIDER(self, value):
+        os.environ["BILGEAPI_SEARCH_PROVIDER"] = str(value)
+
+    @property
+    def BILGEAPI_SERPER_API_KEY(self) -> str:
+        return os.getenv("BILGEAPI_SERPER_API_KEY", os.getenv("SERPER_API_KEY", ""))
+
+    @BILGEAPI_SERPER_API_KEY.setter
+    def BILGEAPI_SERPER_API_KEY(self, value):
+        os.environ["BILGEAPI_SERPER_API_KEY"] = str(value)
+
+
 settings = Settings()
+

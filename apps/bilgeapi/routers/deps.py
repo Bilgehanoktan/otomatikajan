@@ -18,7 +18,7 @@ from apps.bilgeapi.services.risk import RiskScoringService
 from apps.bilgeapi.services.webhook import WebhookDeliveryService
 from apps.bilgeapi.services.release import BilgeAPIReleaseGate
 from apps.bilgeapi.services.api_key import ApiKeyService
-from apps.bilgeapi.services.research import WebResearchAdapter, MockSearchProvider
+from apps.bilgeapi.services.research import WebResearchAdapter, MockSearchProvider, WebSearchProvider, SerperSearchProvider
 from apps.bilgeapi.services.improvement import ImprovementProposalEngine, ReleaseGateSimulator
 
 
@@ -105,15 +105,20 @@ async def get_improvement_repository(db: AsyncSession = Depends(get_db)) -> Impr
     return PostgresImprovementRepository(db)
 
 
-def get_web_search_provider() -> MockSearchProvider:
+def get_web_search_provider() -> WebSearchProvider:
+    from apps.bilgeapi.config import settings
+    provider_name = settings.BILGEAPI_SEARCH_PROVIDER
+    if provider_name == "serper":
+        return SerperSearchProvider()
     return MockSearchProvider()
 
 
 def get_web_research_adapter(
-    provider: MockSearchProvider = Depends(get_web_search_provider),
+    provider: WebSearchProvider = Depends(get_web_search_provider),
     repo: ResearchRepository = Depends(get_research_repository)
 ) -> WebResearchAdapter:
     return WebResearchAdapter(provider, repo)
+
 
 
 def get_improvement_proposal_engine(

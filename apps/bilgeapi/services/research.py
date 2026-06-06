@@ -2,9 +2,10 @@ import hashlib
 import logging
 import uuid
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any, Optional
 from urllib.parse import urlparse
+import httpx
 
 from apps.bilgeapi.repositories.interface import ResearchRepository
 
@@ -18,9 +19,112 @@ class WebSearchProvider(ABC):
         pass
 
 
+class SerperSearchProvider(WebSearchProvider):
+    async def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
+        from apps.bilgeapi.config import settings
+        
+        api_key = settings.BILGEAPI_SERPER_API_KEY
+        if not api_key:
+            raise ValueError(
+                "Serper API key is missing. Please set BILGEAPI_SERPER_API_KEY or SERPER_API_KEY."
+            )
+            
+        url = "https://google.serper.dev/search"
+        headers = {
+            "X-API-KEY": api_key,
+            "Content-Type": "application/json"
+        }
+        payload = {"q": query, "num": max_results}
+        
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.post(url, headers=headers, json=payload)
+                if response.status_code != 200:
+                    logger.error(f"Serper API returned status code {response.status_code}")
+                    response.raise_for_status()
+                
+                data = response.json()
+                organic = data.get("organic", [])
+                
+                results = []
+                for item in organic[:max_results]:
+                    pub_date = None
+                    date_str = item.get("date", "")
+                    if date_str:
+                        pub_date = self._parse_date_string(date_str)
+                        
+                    results.append({
+                        "url": item.get("link", ""),
+                        "title": item.get("title", ""),
+                        "snippet": item.get("snippet", ""),
+                        "content": item.get("snippet", ""),
+                        "source_type": self._infer_source_type(item.get("link", "")),
+                        "published_at": pub_date,
+                        "is_vendor": False
+                    })
+                return results
+        except Exception as e:
+            logger.error(f"Serper search failed: {e.__class__.__name__}")
+            raise e
+
+    def _infer_source_type(self, url: str) -> str:
+        domain = urlparse(url).netloc.lower()
+        path = urlparse(url).path.lower()
+        if "docs." in domain or "api." in domain or "developer." in domain:
+            return "official_docs"
+        if "github.com" in domain:
+            if "/issues" in path or "/discussions" in path or "/pull" in path:
+                return "maintainer_comment"
+            return "official_github"
+        if "stackoverflow.com" in domain:
+            return "accepted_answer"
+        if "medium.com" in domain or "blog" in domain or "dev.to" in domain:
+            return "blog_medium"
+        return "unknown_forum"
+
+    def _parse_date_string(self, date_str: str) -> Optional[datetime]:
+        import re
+        date_str_clean = date_str.lower().strip()
+        now = datetime.now(timezone.utc)
+        
+        # Match 'X days ago'
+        match_days = re.search(r"(\d+)\s+days?\s+ago", date_str_clean)
+        if match_days:
+            days = int(match_days.group(1))
+            return now - timedelta(days=days)
+            
+        # Match 'X weeks ago'
+        match_weeks = re.search(r"(\d+)\s+weeks?\s+ago", date_str_clean)
+        if match_weeks:
+            weeks = int(match_weeks.group(1))
+            return now - timedelta(weeks=weeks * 7)
+            
+        # Match 'X months ago'
+        match_months = re.search(r"(\d+)\s+months?\s+ago", date_str_clean)
+        if match_months:
+            months = int(match_months.group(1))
+            return now - timedelta(days=months * 30)
+            
+        # Match 'X years ago'
+        match_years = re.search(r"(\d+)\s+years?\s+ago", date_str_clean)
+        if match_years:
+            years = int(match_years.group(1))
+            return now - timedelta(days=years * 365)
+            
+        for fmt in ("%b %d, %Y", "%B %d, %Y", "%d %b %Y", "%d %B %Y"):
+            try:
+                clean_date = re.sub(r"(\d+)(st|nd|rd|th)", r"\1", date_str)
+                dt = datetime.strptime(clean_date, fmt)
+                return dt.replace(tzinfo=timezone.utc)
+            except ValueError:
+                continue
+        return None
+
+
 class MockSearchProvider(WebSearchProvider):
     def __init__(self, custom_results: Optional[List[Dict[str, Any]]] = None):
         self.custom_results = custom_results
+
 
     async def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
         if self.custom_results is not None:
