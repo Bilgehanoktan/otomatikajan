@@ -160,5 +160,17 @@ bilgeapi-test:
 bilgeapi-smoke:
 	python scripts/smoke_bilgeapi.py
 
+bilgeapi-live-smoke:
+	python scripts/bilgeapi_live_smoke.py
+
+bilgeapi-production-smoke:
+	python scripts/verify_bilgeapi_production_hardening.py
+
+bilgeapi-migration-check:
+	python scripts/verify_bilgeapi_migrations.py
+
 bilgeapi-openapi:
 	python scripts/export_bilgeapi_openapi.py
+
+bilgeapi-release:
+	python scripts/run_release_gate.py --run-tests

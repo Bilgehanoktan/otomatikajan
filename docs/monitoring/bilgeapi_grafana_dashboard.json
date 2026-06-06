@@ -1,0 +1,70 @@
+{
+  "title": "BilgeAPI Operations",
+  "tags": ["bilgeapi", "release-gate", "api-keys", "quota"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Release Gate Score",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        { "expr": "bilgeapi_release_gate_score", "legendFormat": "score" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "HTTP Requests",
+      "gridPos": { "x": 6, "y": 0, "w": 9, "h": 6 },
+      "targets": [
+        { "expr": "sum by (status) (rate(bilgeapi_http_requests_total[5m]))", "legendFormat": "{{status}}" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "HTTP Latency p95",
+      "gridPos": { "x": 15, "y": 0, "w": 9, "h": 6 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, path) (rate(bilgeapi_http_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "{{path}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Tenant Requests",
+      "gridPos": { "x": 0, "y": 6, "w": 12, "h": 6 },
+      "targets": [
+        { "expr": "sum by (tenant_id) (rate(bilgeapi_tenant_requests_total[5m]))", "legendFormat": "{{tenant_id}}" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Redis Fallbacks",
+      "gridPos": { "x": 12, "y": 6, "w": 6, "h": 6 },
+      "targets": [
+        { "expr": "increase(bilgeapi_redis_fallback_total[15m])", "legendFormat": "fallbacks" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Webhook Deliveries",
+      "gridPos": { "x": 18, "y": 6, "w": 6, "h": 6 },
+      "targets": [
+        { "expr": "increase(bilgeapi_webhook_deliveries_total[15m])", "legendFormat": "deliveries" },
+        { "expr": "increase(bilgeapi_webhook_dead_letters_total[15m])", "legendFormat": "dead_letters" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Pending Background Tasks",
+      "gridPos": { "x": 0, "y": 12, "w": 6, "h": 4 },
+      "targets": [
+        { "expr": "bilgeapi_background_tasks_pending", "legendFormat": "pending" }
+      ]
+    }
+  ]
+}
