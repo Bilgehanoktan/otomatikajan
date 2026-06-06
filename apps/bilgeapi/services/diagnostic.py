@@ -11,6 +11,14 @@ from apps.bilgeapi.services.audit import AuditService
 
 logger = logging.getLogger("bilgeapi.diagnostic")
 
+background_tasks: set[asyncio.Task] = set()
+
+
+def _track_task(task: asyncio.Task) -> None:
+    background_tasks.add(task)
+    task.add_done_callback(background_tasks.discard)
+
+
 class DiagnosticService:
     def __init__(
         self,
@@ -47,7 +55,8 @@ class DiagnosticService:
         )
 
         # Trigger background processing task
-        asyncio.create_task(self._process_diagnostic(diag_run.diagnostic_id, incident_id))
+        task = asyncio.create_task(self._process_diagnostic(diag_run.diagnostic_id, incident_id))
+        _track_task(task)
         
         return diag_run
 
