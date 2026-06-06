@@ -398,6 +398,8 @@ make bilgeapi-smoke
 | `BILGEAPI_RATE_LIMIT_RPS` | Hayır | `10` | İstek/saniye limiti |
 | `BILGEAPI_WEBHOOK_URL` | Hayır | - | Varsayılan webhook URL |
 | `BILGEAPI_ALLOW_PRIVATE_WEBHOOKS` | Hayır | `false` | Özel ağ webhook'ları (prod: kapalı) |
+| `BILGEAPI_METRICS_PUBLIC` | Hayır | `true` | Prometheus metrikleri public mi (prod: false olmalı) |
+| `BILGEAPI_RELEASE_MIN_COVERAGE` | Hayır | `80.0` | Minimum test coverage yüzdesi |
 
 ### Operasyonel Komutlar
 
@@ -407,6 +409,7 @@ make bilgeapi-build     # Docker image oluştur
 make bilgeapi-test      # Unit + integration testler
 make bilgeapi-smoke     # Smoke test (sağlık, auth, endpoint doğrulaması)
 make bilgeapi-openapi   # OpenAPI spec export
+make bilgeapi-release   # Sürüm kabul denetimi (release gate) çalıştır
 ```
 
 ### Production Dağıtım
@@ -414,6 +417,7 @@ make bilgeapi-openapi   # OpenAPI spec export
 - BilgeAPI production'da `bilgeapi.${APP_DOMAIN}` subdomain'i ile Traefik arkasında çalışır.
 - `docker-compose.prod.yml` içinde `restart: unless-stopped` ile yapılandırılmıştır.
 - Startup validation: eksik veya default secret'lar production'da servis başlamasını engeller.
+- **Sürüm Kabul Kapısı (Release Gate):** Sürümlerden önce `make bilgeapi-release` (veya `python scripts/run_release_gate.py --env production`) çalıştırılarak test coverage, DB migrasyon güncelliği ve güvenlik/secret kuralları otomatik doğrulanmalıdır. Blocker bulunursa exit code 1 dönülerek sürüm engellenir.
 
 > **Multi-replica notu:** Tek instance deployment'ta startup migration (`alembic upgrade head`) kabul edilebilir. Multi-replica production'da migration ayrı bir one-off job olarak çalıştırılmalıdır (ör. `docker compose run --rm bilgeapi alembic -c alembic.ini upgrade head`).
 
