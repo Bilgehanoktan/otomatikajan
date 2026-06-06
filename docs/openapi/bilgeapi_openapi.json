@@ -2080,6 +2080,112 @@
           }
         }
       }
+    },
+    "/v1/improvements/proposals/{proposal_id}/draft-pr/create": {
+      "post": {
+        "tags": [
+          "Improvements"
+        ],
+        "summary": "Create Draft Pr Endpoint",
+        "description": "Trigger Safe Draft PR creation for an approved, gate-passed proposal.\nAdmin permission (bilgeapi.admin) is required.",
+        "operationId": "create_draft_pr_endpoint_v1_improvements_proposals__proposal_id__draft_pr_create_post",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Proposal Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrDraftResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/improvements/proposals/{proposal_id}/draft-prs": {
+      "get": {
+        "tags": [
+          "Improvements"
+        ],
+        "summary": "List Draft Prs Endpoint",
+        "description": "Get the list of draft PRs created for a specific proposal.",
+        "operationId": "list_draft_prs_endpoint_v1_improvements_proposals__proposal_id__draft_prs_get",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Proposal Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PrDraftResponse"
+                  },
+                  "title": "Response List Draft Prs Endpoint V1 Improvements Proposals  Proposal Id  Draft Prs Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3219,6 +3325,119 @@
           "created_at"
         ],
         "title": "IncidentResponse"
+      },
+      "PrDraftResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "proposal_id": {
+            "type": "string",
+            "title": "Proposal Id"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "github_pr_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Github Pr Url"
+          },
+          "branch_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch Name"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          },
+          "evidence_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Hash"
+          },
+          "risk_level": {
+            "type": "string",
+            "title": "Risk Level"
+          },
+          "risk_flags": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Flags"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "proposal_id",
+          "provider",
+          "status",
+          "title",
+          "body",
+          "risk_level",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "PrDraftResponse"
       },
       "ProposalResponse": {
         "properties": {

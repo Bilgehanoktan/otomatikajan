@@ -13,7 +13,8 @@ from apps.bilgeapi.repositories.interface import (
     ReleaseCheckRepository,
     ApiKeyRepository,
     ResearchRepository,
-    ImprovementRepository
+    ImprovementRepository,
+    PrDraftRepository
 )
 from apps.bilgeapi.schemas.incident import IncidentCreate, IncidentResponse
 from apps.bilgeapi.schemas.diagnostic import DiagnosticResult, DiagnosticStatus
@@ -34,6 +35,7 @@ class MemoryRepositoriesContainer:
         self.research_requests: Dict[str, Dict[str, Any]] = {}
         self.research_evidences: Dict[str, Dict[str, Any]] = {}
         self.improvement_proposals: Dict[str, Dict[str, Any]] = {}
+        self.pr_drafts: Dict[str, Dict[str, Any]] = {}
         self._lock = asyncio.Lock()
 
     def clear_all(self):
@@ -49,6 +51,7 @@ class MemoryRepositoriesContainer:
         self.research_requests.clear()
         self.research_evidences.clear()
         self.improvement_proposals.clear()
+        self.pr_drafts.clear()
 
 memory_repositories = MemoryRepositoriesContainer()
 
@@ -476,5 +479,53 @@ class InMemoryImprovementRepository(ImprovementRepository):
                 key=lambda x: x.get("created_at") or datetime.min.replace(tzinfo=timezone.utc),
                 reverse=True
             )
+
+
+class InMemoryPrDraftRepository(PrDraftRepository):
+    async def create_pr_draft(self, draft_data: Dict[str, Any]) -> Dict[str, Any]:
+        async with memory_repositories._lock:
+            draft_id = f"prd_{uuid.uuid4().hex[:8]}"
+            response = {
+                "id": draft_id,
+                "proposal_id": draft_data["proposal_id"],
+                "provider": draft_data["provider"],
+                "status": draft_data.get("status", "PENDING"),
+                "github_pr_url": draft_data.get("github_pr_url"),
+                "branch_name": draft_data.get("branch_name"),
+                "title": draft_data["title"],
+                "body": draft_data["body"],
+                "evidence_hash": draft_data.get("evidence_hash"),
+                "risk_level": draft_data.get("risk_level", "LOW"),
+                "risk_flags": draft_data.get("risk_flags"),
+                "created_by": draft_data.get("created_by"),
+                "created_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc),
+            }
+            memory_repositories.pr_drafts[draft_id] = response
+            return response
+
+    async def get_pr_draft(self, draft_id: str) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            return memory_repositories.pr_drafts.get(draft_id)
+
+    async def list_pr_drafts_by_proposal(self, proposal_id: str) -> List[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            return sorted(
+                [d for d in memory_repositories.pr_drafts.values() if d["proposal_id"] == proposal_id],
+                key=lambda x: x.get("created_at") or datetime.min.replace(tzinfo=timezone.utc),
+                reverse=True
+            )
+
+    async def update_pr_draft_status(self, draft_id: str, status: str, github_pr_url: Optional[str] = None, error_message: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            item = memory_repositories.pr_drafts.get(draft_id)
+            if not item:
+                return None
+            item["status"] = status
+            if github_pr_url is not None:
+                item["github_pr_url"] = github_pr_url
+            item["updated_at"] = datetime.now(timezone.utc)
+            return item
+
 
 

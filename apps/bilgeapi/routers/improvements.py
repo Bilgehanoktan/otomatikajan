@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import List
+from typing import List, Any
 from fastapi import APIRouter, Depends, HTTPException, status, Response
 
 from apps.bilgeapi.auth import require_permission
@@ -9,12 +9,15 @@ from apps.bilgeapi.services.improvement import ImprovementProposalEngine, Releas
 from apps.bilgeapi.schemas.improvements import (
     ResearchCreate, ResearchResponse, EvidenceResponse, ProposalResponse, DraftPrResponse
 )
+from apps.bilgeapi.schemas.pr_draft import PrDraftResponse
 from apps.bilgeapi.routers.deps import (
     get_research_repository,
     get_improvement_repository,
     get_web_research_adapter,
     get_improvement_proposal_engine,
-    get_release_gate_simulator
+    get_release_gate_simulator,
+    get_pr_draft_service,
+    get_pr_draft_repository
 )
 
 router = APIRouter(prefix="/v1/improvements", tags=["Improvements"])
@@ -247,4 +250,40 @@ async def approve_proposal(
         approved_at=datetime.now(timezone.utc)
     )
     return approved
+
+
+@router.post("/proposals/{proposal_id}/draft-pr/create", response_model=PrDraftResponse)
+async def create_draft_pr_endpoint(
+    proposal_id: str,
+    identity: dict = Depends(require_permission("bilgeapi.admin")),
+    service: Any = Depends(get_pr_draft_service)
+):
+    """
+    Trigger Safe Draft PR creation for an approved, gate-passed proposal.
+    Admin permission (bilgeapi.admin) is required.
+    """
+    actor_id = identity.get("id", "admin")
+    try:
+        pr_draft = await service.create_draft_pr(proposal_id=proposal_id, actor_id=actor_id)
+        return pr_draft
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.get("/proposals/{proposal_id}/draft-prs", response_model=List[PrDraftResponse])
+async def list_draft_prs_endpoint(
+    proposal_id: str,
+    _identity: dict = Depends(require_permission("bilgeapi.incident.write")),
+    repo: Any = Depends(get_pr_draft_repository)
+):
+    """
+    Get the list of draft PRs created for a specific proposal.
+    """
+    try:
+        return await repo.list_pr_drafts_by_proposal(proposal_id)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
 

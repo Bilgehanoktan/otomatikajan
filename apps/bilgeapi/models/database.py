@@ -209,3 +209,25 @@ class ImprovementProposalModel(Base):
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
 
     research = relationship("ResearchRequestModel", back_populates="proposals")
+
+
+class PrDraftModel(Base):
+    __tablename__ = "bilgeapi_pr_drafts"
+
+    id = Column(String(64), primary_key=True)
+    proposal_id = Column(String(64), ForeignKey("bilgeapi_improvement_proposals.id"), nullable=False, index=True)
+    provider = Column(String(32), nullable=False)
+    status = Column(String(32), default="PENDING", nullable=False, index=True) # PENDING, COMPLETED, FAILED, BLOCKED
+    github_pr_url = Column(String(512), nullable=True)
+    branch_name = Column(String(256), nullable=True)
+    title = Column(String(256), nullable=False)
+    body = Column(Text, nullable=False)
+    evidence_hash = Column(String(64), nullable=True)
+    risk_level = Column(String(32), nullable=False) # LOW, MEDIUM, HIGH
+    risk_flags = Column(SmartJSON(), nullable=True)
+    created_by = Column(String(64), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
+
+    proposal = relationship("ImprovementProposalModel")
+

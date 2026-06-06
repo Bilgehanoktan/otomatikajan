@@ -199,3 +199,22 @@ class ImprovementRepository(ABC):
     async def list_proposals(self) -> List[Dict[str, Any]]:
         pass
 
+
+class PrDraftRepository(ABC):
+    @abstractmethod
+    async def create_pr_draft(self, draft_data: Dict[str, Any]) -> Dict[str, Any]:
+        pass
+
+    @abstractmethod
+    async def get_pr_draft(self, draft_id: str) -> Optional[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def list_pr_drafts_by_proposal(self, proposal_id: str) -> List[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def update_pr_draft_status(self, draft_id: str, status: str, github_pr_url: Optional[str] = None, error_message: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        pass
+
+

@@ -394,6 +394,55 @@ class Settings:
     def BILGEAPI_SERPER_API_KEY(self, value):
         os.environ["BILGEAPI_SERPER_API_KEY"] = str(value)
 
+    @property
+    def BILGEAPI_PR_PROVIDER(self) -> str:
+        return os.getenv("BILGEAPI_PR_PROVIDER", "mock").lower()
+
+    @BILGEAPI_PR_PROVIDER.setter
+    def BILGEAPI_PR_PROVIDER(self, value):
+        os.environ["BILGEAPI_PR_PROVIDER"] = str(value)
+
+    @property
+    def BILGEAPI_GITHUB_TOKEN(self) -> str:
+        return os.getenv("BILGEAPI_GITHUB_TOKEN", "")
+
+    @BILGEAPI_GITHUB_TOKEN.setter
+    def BILGEAPI_GITHUB_TOKEN(self, value):
+        os.environ["BILGEAPI_GITHUB_TOKEN"] = str(value)
+
+    @property
+    def BILGEAPI_GITHUB_OWNER(self) -> str:
+        return os.getenv("BILGEAPI_GITHUB_OWNER", "")
+
+    @BILGEAPI_GITHUB_OWNER.setter
+    def BILGEAPI_GITHUB_OWNER(self, value):
+        os.environ["BILGEAPI_GITHUB_OWNER"] = str(value)
+
+    @property
+    def BILGEAPI_GITHUB_REPO(self) -> str:
+        return os.getenv("BILGEAPI_GITHUB_REPO", "")
+
+    @BILGEAPI_GITHUB_REPO.setter
+    def BILGEAPI_GITHUB_REPO(self, value):
+        os.environ["BILGEAPI_GITHUB_REPO"] = str(value)
+
+    @property
+    def BILGEAPI_GITHUB_BASE_BRANCH(self) -> str:
+        return os.getenv("BILGEAPI_GITHUB_BASE_BRANCH", "main")
+
+    @BILGEAPI_GITHUB_BASE_BRANCH.setter
+    def BILGEAPI_GITHUB_BASE_BRANCH(self, value):
+        os.environ["BILGEAPI_GITHUB_BASE_BRANCH"] = str(value)
+
+    @property
+    def BILGEAPI_ALLOW_REAL_DRAFT_PR(self) -> bool:
+        raw = os.getenv("BILGEAPI_ALLOW_REAL_DRAFT_PR", "false").lower()
+        return raw in ("1", "true", "yes", "on")
+
+    @BILGEAPI_ALLOW_REAL_DRAFT_PR.setter
+    def BILGEAPI_ALLOW_REAL_DRAFT_PR(self, value):
+        os.environ["BILGEAPI_ALLOW_REAL_DRAFT_PR"] = str(value).lower()
+
 
 settings = Settings()
 

@@ -1,3 +1,4 @@
+from typing import Any
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from libs.db.session import get_db
@@ -5,12 +6,14 @@ from libs.db.session import get_db
 from apps.bilgeapi.repositories.interface import (
     IncidentRepository, DiagnosticRepository, FindingRepository,
     RecommendationRepository, RepairRequestRepository, AuditRepository, WebhookDeliveryRepository,
-    ReleaseCheckRepository, ApiKeyRepository, ResearchRepository, ImprovementRepository
+    ReleaseCheckRepository, ApiKeyRepository, ResearchRepository, ImprovementRepository,
+    PrDraftRepository
 )
 from apps.bilgeapi.repositories.postgres import (
     PostgresIncidentRepository, PostgresDiagnosticRepository, PostgresFindingRepository,
     PostgresRecommendationRepository, PostgresRepairRequestRepository, PostgresAuditRepository, PostgresWebhookDeliveryRepository,
-    PostgresReleaseCheckRepository, PostgresApiKeyRepository, PostgresResearchRepository, PostgresImprovementRepository
+    PostgresReleaseCheckRepository, PostgresApiKeyRepository, PostgresResearchRepository, PostgresImprovementRepository,
+    PostgresPrDraftRepository
 )
 from apps.bilgeapi.services.audit import AuditService
 from apps.bilgeapi.services.diagnostic import DiagnosticService
@@ -20,6 +23,7 @@ from apps.bilgeapi.services.release import BilgeAPIReleaseGate
 from apps.bilgeapi.services.api_key import ApiKeyService
 from apps.bilgeapi.services.research import WebResearchAdapter, MockSearchProvider, WebSearchProvider, SerperSearchProvider
 from apps.bilgeapi.services.improvement import ImprovementProposalEngine, ReleaseGateSimulator
+from apps.bilgeapi.adapters.github_pr import BaseGitHubPrAdapter
 
 
 def get_risk_scoring_service() -> RiskScoringService:
@@ -132,5 +136,41 @@ def get_release_gate_simulator(
     repo: ImprovementRepository = Depends(get_improvement_repository)
 ) -> ReleaseGateSimulator:
     return ReleaseGateSimulator(repo)
+
+
+async def get_pr_draft_repository(db: AsyncSession = Depends(get_db)) -> PrDraftRepository:
+    # Check if we should return in-memory repo for testing
+    # In standard app context, we return postgres repository
+    from apps.bilgeapi.config import settings
+    # We can default to postgres, but if testing overrides or settings suggest, we can instantiate InMemory. 
+    # Actually, we can return PostgresPrDraftRepository(db) as default, just like get_improvement_repository.
+    return PostgresPrDraftRepository(db)
+
+
+def get_github_pr_adapter() -> BaseGitHubPrAdapter:
+    from apps.bilgeapi.config import settings
+    from apps.bilgeapi.adapters.github_pr import MockGitHubPrAdapter, GitHubDraftPrAdapter
+    
+    provider_name = settings.BILGEAPI_PR_PROVIDER
+    if provider_name == "github":
+        return GitHubDraftPrAdapter(
+            token=settings.BILGEAPI_GITHUB_TOKEN,
+            owner=settings.BILGEAPI_GITHUB_OWNER,
+            repo=settings.BILGEAPI_GITHUB_REPO,
+            base_branch=settings.BILGEAPI_GITHUB_BASE_BRANCH,
+            allow_real=settings.BILGEAPI_ALLOW_REAL_DRAFT_PR
+        )
+    return MockGitHubPrAdapter()
+
+
+def get_pr_draft_service(
+    pr_draft_repo: PrDraftRepository = Depends(get_pr_draft_repository),
+    proposal_repo: ImprovementRepository = Depends(get_improvement_repository),
+    github_adapter: BaseGitHubPrAdapter = Depends(get_github_pr_adapter),
+    audit_service: AuditService = Depends(get_audit_service)
+) -> Any:
+    from apps.bilgeapi.services.pr_draft import PrDraftService
+    return PrDraftService(pr_draft_repo, proposal_repo, github_adapter, audit_service)
+
 
 

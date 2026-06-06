@@ -6,7 +6,8 @@ from sqlalchemy import select, desc
 from apps.bilgeapi.repositories.interface import (
     IncidentRepository, DiagnosticRepository, FindingRepository,
     RecommendationRepository, RepairRequestRepository, AuditRepository, WebhookDeliveryRepository,
-    ReleaseCheckRepository, ApiKeyRepository, ResearchRepository, ImprovementRepository
+    ReleaseCheckRepository, ApiKeyRepository, ResearchRepository, ImprovementRepository,
+    PrDraftRepository
 )
 from apps.bilgeapi.schemas.incident import IncidentCreate, IncidentResponse
 from apps.bilgeapi.schemas.diagnostic import DiagnosticResult, DiagnosticStatus
@@ -15,7 +16,8 @@ from apps.bilgeapi.schemas.audit import AuditEvent
 from apps.bilgeapi.models.database import (
     IncidentModel, DiagnosticRunModel, FindingModel, RecommendationModel,
     RepairRequestModel, AuditEventModel, WebhookDeliveryModel, ReleaseCheckModel,
-    ApiKeyModel, ResearchRequestModel, ResearchEvidenceModel, ImprovementProposalModel
+    ApiKeyModel, ResearchRequestModel, ResearchEvidenceModel, ImprovementProposalModel,
+    PrDraftModel
 )
 
 class PostgresIncidentRepository(IncidentRepository):
@@ -833,3 +835,74 @@ class PostgresImprovementRepository(ImprovementRepository):
         res = await self.db.execute(select(ImprovementProposalModel).order_by(desc(ImprovementProposalModel.created_at)))
         models = res.scalars().all()
         return [self._proposal_to_dict(m) for m in models]
+
+
+class PostgresPrDraftRepository(PrDraftRepository):
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    def _draft_to_dict(self, model: PrDraftModel) -> Dict[str, Any]:
+        return {
+            "id": model.id,
+            "proposal_id": model.proposal_id,
+            "provider": model.provider,
+            "status": model.status,
+            "github_pr_url": model.github_pr_url,
+            "branch_name": model.branch_name,
+            "title": model.title,
+            "body": model.body,
+            "evidence_hash": model.evidence_hash,
+            "risk_level": model.risk_level,
+            "risk_flags": model.risk_flags,
+            "created_by": model.created_by,
+            "created_at": model.created_at,
+            "updated_at": model.updated_at,
+        }
+
+    async def create_pr_draft(self, draft_data: Dict[str, Any]) -> Dict[str, Any]:
+        draft_id = f"prd_{uuid.uuid4().hex[:8]}"
+        model = PrDraftModel(
+            id=draft_id,
+            proposal_id=draft_data["proposal_id"],
+            provider=draft_data["provider"],
+            status=draft_data.get("status", "PENDING"),
+            github_pr_url=draft_data.get("github_pr_url"),
+            branch_name=draft_data.get("branch_name"),
+            title=draft_data["title"],
+            body=draft_data["body"],
+            evidence_hash=draft_data.get("evidence_hash"),
+            risk_level=draft_data.get("risk_level", "LOW"),
+            risk_flags=draft_data.get("risk_flags"),
+            created_by=draft_data.get("created_by")
+        )
+        self.db.add(model)
+        await self.db.commit()
+        await self.db.refresh(model)
+        return self._draft_to_dict(model)
+
+    async def get_pr_draft(self, draft_id: str) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(select(PrDraftModel).where(PrDraftModel.id == draft_id))
+        model = res.scalar_one_or_none()
+        return self._draft_to_dict(model) if model else None
+
+    async def list_pr_drafts_by_proposal(self, proposal_id: str) -> List[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(PrDraftModel)
+            .where(PrDraftModel.proposal_id == proposal_id)
+            .order_by(desc(PrDraftModel.created_at))
+        )
+        models = res.scalars().all()
+        return [self._draft_to_dict(m) for m in models]
+
+    async def update_pr_draft_status(self, draft_id: str, status: str, github_pr_url: Optional[str] = None, error_message: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(select(PrDraftModel).where(PrDraftModel.id == draft_id))
+        model = res.scalar_one_or_none()
+        if not model:
+            return None
+        model.status = status
+        if github_pr_url is not None:
+            model.github_pr_url = github_pr_url
+        await self.db.commit()
+        await self.db.refresh(model)
+        return self._draft_to_dict(model)
+
