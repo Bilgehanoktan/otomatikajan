@@ -47,7 +47,7 @@ Plaintext key is shown once. Store it in a secrets manager now.
   "last_used_at": null,
   "quota_daily": null,
   "quota_monthly": null,
-  "plaintext_key": "blg_live_ToYW1...[REDACTED]"
+  "plaintext_key": "[REDACTED_SECRET]"
 }
 ```
 
