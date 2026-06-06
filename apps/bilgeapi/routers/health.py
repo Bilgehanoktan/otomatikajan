@@ -77,8 +77,12 @@ def _get_memory_info() -> dict:
 def _get_db_pool_info() -> dict:
     """Get SQLAlchemy engine connection pool statistics."""
     try:
-        from libs.db.session import get_engine
-        engine = get_engine()
+        import libs.db.session as db_session
+
+        engine = getattr(db_session, "_engine", None)
+        if engine is None:
+            return {"status": "not_initialized"}
+
         pool = engine.pool
         return {
             "pool_size": getattr(pool, "size", lambda: None)()

@@ -1,5 +1,6 @@
 import os
 import secrets
+from typing import Optional
 
 class Settings:
     @property
@@ -378,4 +379,3 @@ class Settings:
         os.environ["BILGEAPI_TEAMS_WEBHOOK_URL"] = str(value)
 
 settings = Settings()
-

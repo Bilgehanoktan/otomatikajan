@@ -6,7 +6,7 @@ from sqlalchemy import select, desc
 from apps.bilgeapi.repositories.interface import (
     IncidentRepository, DiagnosticRepository, FindingRepository,
     RecommendationRepository, RepairRequestRepository, AuditRepository, WebhookDeliveryRepository,
-    ReleaseCheckRepository
+    ReleaseCheckRepository, ApiKeyRepository
 )
 from apps.bilgeapi.schemas.incident import IncidentCreate, IncidentResponse
 from apps.bilgeapi.schemas.diagnostic import DiagnosticResult, DiagnosticStatus
@@ -14,7 +14,8 @@ from apps.bilgeapi.schemas.repair import RepairRequestCreate, RepairRequestRespo
 from apps.bilgeapi.schemas.audit import AuditEvent
 from apps.bilgeapi.models.database import (
     IncidentModel, DiagnosticRunModel, FindingModel, RecommendationModel,
-    RepairRequestModel, AuditEventModel, WebhookDeliveryModel, ReleaseCheckModel
+    RepairRequestModel, AuditEventModel, WebhookDeliveryModel, ReleaseCheckModel,
+    ApiKeyModel
 )
 
 class PostgresIncidentRepository(IncidentRepository):
@@ -555,3 +556,100 @@ class PostgresReleaseCheckRepository(ReleaseCheckRepository):
         models = res.scalars().all()
         return [self._to_dict(m) for m in models]
 
+
+class PostgresApiKeyRepository(ApiKeyRepository):
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    def _to_dict(self, model: ApiKeyModel) -> Dict[str, Any]:
+        return {
+            "id": model.id,
+            "key_hash": model.key_hash,
+            "key_prefix": model.key_prefix,
+            "key_fingerprint": model.key_fingerprint,
+            "role": model.role,
+            "description": model.description,
+            "tenant_id": model.tenant_id,
+            "is_active": model.is_active,
+            "created_by": model.created_by,
+            "revoked_by": model.revoked_by,
+            "revoke_reason": model.revoke_reason,
+            "expires_at": model.expires_at,
+            "created_at": model.created_at,
+            "revoked_at": model.revoked_at,
+            "last_used_at": model.last_used_at,
+            "quota_daily": model.quota_daily,
+            "quota_monthly": model.quota_monthly
+        }
+
+    async def create(self, key_data: Dict[str, Any]) -> Dict[str, Any]:
+        model = ApiKeyModel(
+            id=key_data.get("id") or f"key_{uuid.uuid4().hex[:8]}",
+            key_hash=key_data["key_hash"],
+            key_prefix=key_data["key_prefix"],
+            key_fingerprint=key_data["key_fingerprint"],
+            role=key_data["role"],
+            description=key_data.get("description"),
+            tenant_id=key_data.get("tenant_id"),
+            is_active=key_data.get("is_active", True),
+            created_by=key_data.get("created_by"),
+            expires_at=key_data.get("expires_at"),
+            created_at=key_data.get("created_at") or datetime.now(timezone.utc),
+            quota_daily=key_data.get("quota_daily"),
+            quota_monthly=key_data.get("quota_monthly")
+        )
+        self.db.add(model)
+        await self.db.commit()
+        await self.db.refresh(model)
+        return self._to_dict(model)
+
+    async def get(self, key_id: str) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(select(ApiKeyModel).where(ApiKeyModel.id == key_id))
+        model = res.scalar_one_or_none()
+        if not model:
+            return None
+        return self._to_dict(model)
+
+    async def get_by_hash(self, key_hash: str) -> Optional[Dict[str, Any]]:
+        # High efficiency indexed lookup
+        res = await self.db.execute(select(ApiKeyModel).where(ApiKeyModel.key_hash == key_hash))
+        model = res.scalar_one_or_none()
+        if not model:
+            return None
+        return self._to_dict(model)
+
+    async def list_all(self) -> List[Dict[str, Any]]:
+        res = await self.db.execute(select(ApiKeyModel).order_by(desc(ApiKeyModel.created_at)))
+        models = res.scalars().all()
+        return [self._to_dict(m) for m in models]
+
+    async def revoke(self, key_id: str, revoked_by: str, reason: str) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(select(ApiKeyModel).where(ApiKeyModel.id == key_id))
+        model = res.scalar_one_or_none()
+        if not model:
+            return None
+        model.is_active = False
+        model.revoked_by = revoked_by
+        model.revoke_reason = reason
+        model.revoked_at = datetime.now(timezone.utc)
+        await self.db.commit()
+        await self.db.refresh(model)
+        return self._to_dict(model)
+
+    async def update_last_used(self, key_id: str, last_used: datetime) -> None:
+        res = await self.db.execute(select(ApiKeyModel).where(ApiKeyModel.id == key_id))
+        model = res.scalar_one_or_none()
+        if model:
+            model.last_used_at = last_used
+            await self.db.commit()
+
+    async def update_quota(self, key_id: str, quota_daily: Optional[int], quota_monthly: Optional[int]) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(select(ApiKeyModel).where(ApiKeyModel.id == key_id))
+        model = res.scalar_one_or_none()
+        if not model:
+            return None
+        model.quota_daily = quota_daily
+        model.quota_monthly = quota_monthly
+        await self.db.commit()
+        await self.db.refresh(model)
+        return self._to_dict(model)

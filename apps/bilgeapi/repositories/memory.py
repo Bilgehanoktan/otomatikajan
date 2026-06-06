@@ -10,7 +10,8 @@ from apps.bilgeapi.repositories.interface import (
     RepairRequestRepository,
     AuditRepository,
     WebhookDeliveryRepository,
-    ReleaseCheckRepository
+    ReleaseCheckRepository,
+    ApiKeyRepository
 )
 from apps.bilgeapi.schemas.incident import IncidentCreate, IncidentResponse
 from apps.bilgeapi.schemas.diagnostic import DiagnosticResult, DiagnosticStatus
@@ -27,6 +28,7 @@ class MemoryRepositoriesContainer:
         self.audit_events: List[AuditEvent] = []
         self.webhook_deliveries: List[Dict[str, Any]] = []
         self.release_checks: List[Dict[str, Any]] = []
+        self.api_keys: Dict[str, Dict[str, Any]] = {}
         self._lock = asyncio.Lock()
 
     def clear_all(self):
@@ -38,6 +40,7 @@ class MemoryRepositoriesContainer:
         self.audit_events.clear()
         self.webhook_deliveries.clear()
         self.release_checks.clear()
+        self.api_keys.clear()
 
 memory_repositories = MemoryRepositoriesContainer()
 
@@ -274,4 +277,66 @@ class InMemoryReleaseCheckRepository(ReleaseCheckRepository):
                 reverse=True
             )
             return sorted_checks[:limit]
+
+
+class InMemoryApiKeyRepository(ApiKeyRepository):
+    async def create(self, key_data: Dict[str, Any]) -> Dict[str, Any]:
+        async with memory_repositories._lock:
+            key_data = key_data.copy()
+            if "id" not in key_data:
+                key_data["id"] = f"key_{uuid.uuid4().hex[:8]}"
+            if "created_at" not in key_data:
+                key_data["created_at"] = datetime.now(timezone.utc)
+            if "is_active" not in key_data:
+                key_data["is_active"] = True
+            
+            memory_repositories.api_keys[key_data["id"]] = key_data
+            return key_data
+
+    async def get(self, key_id: str) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            return memory_repositories.api_keys.get(key_id)
+
+    async def get_by_hash(self, key_hash: str) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            for item in memory_repositories.api_keys.values():
+                if item.get("key_hash") == key_hash:
+                    return item
+            return None
+
+    async def list_all(self) -> List[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            # Sort by created_at desc
+            return sorted(
+                memory_repositories.api_keys.values(),
+                key=lambda d: d.get("created_at") or datetime.min.replace(tzinfo=timezone.utc),
+                reverse=True
+            )
+
+    async def revoke(self, key_id: str, revoked_by: str, reason: str) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            item = memory_repositories.api_keys.get(key_id)
+            if not item:
+                return None
+            item["is_active"] = False
+            item["revoked_by"] = revoked_by
+            item["revoke_reason"] = reason
+            item["revoked_at"] = datetime.now(timezone.utc)
+            return item
+
+    async def update_last_used(self, key_id: str, last_used: datetime) -> None:
+        async with memory_repositories._lock:
+            item = memory_repositories.api_keys.get(key_id)
+            if item:
+                item["last_used_at"] = last_used
+
+    async def update_quota(self, key_id: str, quota_daily: Optional[int], quota_monthly: Optional[int]) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            item = memory_repositories.api_keys.get(key_id)
+            if not item:
+                return None
+            item["quota_daily"] = quota_daily
+            item["quota_monthly"] = quota_monthly
+            return item
+
 

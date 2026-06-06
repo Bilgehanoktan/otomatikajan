@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from datetime import datetime
 from typing import List, Optional, Dict, Any
 from apps.bilgeapi.schemas.incident import IncidentCreate, IncidentResponse
 from apps.bilgeapi.schemas.diagnostic import DiagnosticResult, DiagnosticStatus
@@ -118,5 +119,35 @@ class ReleaseCheckRepository(ABC):
 
     @abstractmethod
     async def list_checks(self, limit: int = 20) -> List[Dict[str, Any]]:
+        pass
+
+
+class ApiKeyRepository(ABC):
+    @abstractmethod
+    async def create(self, key_data: Dict[str, Any]) -> Dict[str, Any]:
+        pass
+
+    @abstractmethod
+    async def get(self, key_id: str) -> Optional[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def get_by_hash(self, key_hash: str) -> Optional[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def list_all(self) -> List[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def revoke(self, key_id: str, revoked_by: str, reason: str) -> Optional[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def update_last_used(self, key_id: str, last_used: datetime) -> None:
+        pass
+
+    @abstractmethod
+    async def update_quota(self, key_id: str, quota_daily: Optional[int], quota_monthly: Optional[int]) -> Optional[Dict[str, Any]]:
         pass
 

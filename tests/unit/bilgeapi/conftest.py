@@ -34,7 +34,8 @@ def test_client():
         get_recommendation_repository,
         get_repair_repository,
         get_audit_repository,
-        get_webhook_repository
+        get_webhook_repository,
+        get_api_key_repository
     )
     from apps.bilgeapi.repositories.memory import (
         InMemoryIncidentRepository,
@@ -44,6 +45,7 @@ def test_client():
         InMemoryRepairRequestRepository,
         InMemoryAuditRepository,
         InMemoryWebhookDeliveryRepository,
+        InMemoryApiKeyRepository,
         memory_repositories
     )
     
@@ -58,6 +60,7 @@ def test_client():
     app.dependency_overrides[get_repair_repository] = lambda: InMemoryRepairRequestRepository()
     app.dependency_overrides[get_audit_repository] = lambda: InMemoryAuditRepository()
     app.dependency_overrides[get_webhook_repository] = lambda: InMemoryWebhookDeliveryRepository()
+    app.dependency_overrides[get_api_key_repository] = lambda: InMemoryApiKeyRepository()
     
     with TestClient(app) as client:
         yield client
@@ -75,7 +78,8 @@ def test_client_real_auth():
         get_recommendation_repository,
         get_repair_repository,
         get_audit_repository,
-        get_webhook_repository
+        get_webhook_repository,
+        get_api_key_repository
     )
     from apps.bilgeapi.repositories.memory import (
         InMemoryIncidentRepository,
@@ -85,6 +89,7 @@ def test_client_real_auth():
         InMemoryRepairRequestRepository,
         InMemoryAuditRepository,
         InMemoryWebhookDeliveryRepository,
+        InMemoryApiKeyRepository,
         memory_repositories
     )
     
@@ -98,6 +103,7 @@ def test_client_real_auth():
     app.dependency_overrides[get_repair_repository] = lambda: InMemoryRepairRequestRepository()
     app.dependency_overrides[get_audit_repository] = lambda: InMemoryAuditRepository()
     app.dependency_overrides[get_webhook_repository] = lambda: InMemoryWebhookDeliveryRepository()
+    app.dependency_overrides[get_api_key_repository] = lambda: InMemoryApiKeyRepository()
     
     with TestClient(app) as client:
         yield client

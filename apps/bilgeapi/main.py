@@ -13,7 +13,7 @@ from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from apps.bilgeapi.config import settings
-from apps.bilgeapi.routers import health, catalog, incidents, audit, diagnostics, repairs, release, adapters
+from apps.bilgeapi.routers import health, catalog, incidents, audit, diagnostics, repairs, release, adapters, admin_api_keys
 from apps.bilgeapi.routers import metrics as metrics_router
 from apps.bilgeapi.startup import validate_production_config
 
@@ -66,9 +66,128 @@ try:
     )
     _PROMETHEUS_AVAILABLE = True
 except ImportError:
-    _PROMETHEUS_AVAILABLE = False
-    REDIS_FALLBACK_COUNT = None
-    TENANT_REQUESTS = None
+    class _FallbackRegistry:
+        def __init__(self):
+            self.samples = {}
+            self.types = {}
+
+        def register(self, name: str, metric_type: str) -> None:
+            self.types.setdefault(name, metric_type)
+
+        def add(self, name: str, labels: dict, amount: float) -> None:
+            key = (name, tuple(sorted(labels.items())))
+            self.samples[key] = self.samples.get(key, 0.0) + amount
+
+        def set(self, name: str, labels: dict, value: float) -> None:
+            self.samples[(name, tuple(sorted(labels.items())))] = float(value)
+
+        def get_sample_value(self, name: str, labels: dict | None = None):
+            label_items = tuple(sorted((labels or {}).items()))
+            return self.samples.get((name, label_items))
+
+        def render(self) -> bytes:
+            lines = []
+            for name, metric_type in self.types.items():
+                lines.append(f"# HELP {name} Fallback metric for {name}")
+                lines.append(f"# TYPE {name} {metric_type}")
+                matching = [(labels, value) for (sample_name, labels), value in self.samples.items() if sample_name == name]
+                if not matching:
+                    matching = [(tuple(), 0.0)]
+                for labels, value in matching:
+                    if labels:
+                        label_text = ",".join(f'{k}="{v}"' for k, v in labels)
+                        lines.append(f"{name}{{{label_text}}} {value}")
+                    else:
+                        lines.append(f"{name} {value}")
+            return ("\n".join(lines) + "\n").encode("utf-8")
+
+    class _FallbackMetricChild:
+        def __init__(self, registry: _FallbackRegistry, name: str, labels: dict):
+            self.registry = registry
+            self.name = name
+            self.labels_map = labels
+
+        def inc(self, amount: float = 1.0) -> None:
+            self.registry.add(self.name, self.labels_map, amount)
+
+        def observe(self, amount: float) -> None:
+            self.registry.add(self.name, self.labels_map, amount)
+
+        def set(self, value: float) -> None:
+            self.registry.set(self.name, self.labels_map, value)
+
+    class _FallbackMetric:
+        def __init__(self, name: str, _description: str, labelnames=None, metric_type: str = "gauge", **_kwargs):
+            self.name = name
+            self.labelnames = list(labelnames or [])
+            self.registry = _FALLBACK_REGISTRY
+            self.registry.register(name, metric_type)
+
+        def labels(self, *labelvalues, **labelkwargs):
+            labels = dict(labelkwargs)
+            for index, value in enumerate(labelvalues):
+                if index < len(self.labelnames):
+                    labels[self.labelnames[index]] = value
+            return _FallbackMetricChild(self.registry, self.name, labels)
+
+        def inc(self, amount: float = 1.0) -> None:
+            self.registry.add(self.name, {}, amount)
+
+        def observe(self, amount: float) -> None:
+            self.registry.add(self.name, {}, amount)
+
+        def set(self, value: float) -> None:
+            self.registry.set(self.name, {}, value)
+
+    _FALLBACK_REGISTRY = _FallbackRegistry()
+
+    def _fallback_generate_latest(registry=None):
+        return (registry or _FALLBACK_REGISTRY).render()
+
+    import types
+    _fallback_prometheus = types.ModuleType("prometheus_client")
+    _fallback_prometheus.REGISTRY = _FALLBACK_REGISTRY
+    _fallback_prometheus.CONTENT_TYPE_LATEST = "text/plain; version=0.0.4"
+    _fallback_prometheus.generate_latest = _fallback_generate_latest
+    _fallback_prometheus.Counter = lambda name, description, labelnames=None, **kwargs: _FallbackMetric(
+        name, description, labelnames, metric_type="counter", **kwargs
+    )
+    _fallback_prometheus.Histogram = lambda name, description, labelnames=None, **kwargs: _FallbackMetric(
+        name, description, labelnames, metric_type="histogram", **kwargs
+    )
+    _fallback_prometheus.Gauge = lambda name, description, labelnames=None, **kwargs: _FallbackMetric(
+        name, description, labelnames, metric_type="gauge", **kwargs
+    )
+    sys.modules.setdefault("prometheus_client", _fallback_prometheus)
+
+    Counter = _fallback_prometheus.Counter
+    Histogram = _fallback_prometheus.Histogram
+    Gauge = _fallback_prometheus.Gauge
+    REQUEST_COUNT = Counter(
+        "bilgeapi_http_requests_total",
+        "Total HTTP requests",
+        ["method", "path", "status"],
+    )
+    REQUEST_DURATION = Histogram(
+        "bilgeapi_http_request_duration_seconds",
+        "HTTP request latency in seconds",
+        ["method", "path"],
+    )
+    WEBHOOK_DELIVERIES = Counter("bilgeapi_webhook_deliveries_total", "Total webhook deliveries dispatched")
+    WEBHOOK_DEAD_LETTERS = Counter("bilgeapi_webhook_dead_letters_total", "Total webhook deliveries moved to dead-letter")
+    REPAIR_REQUESTS = Counter("bilgeapi_repair_requests_total", "Total repair requests created")
+    RELEASE_GATE_SCORE = Gauge("bilgeapi_release_gate_score", "Latest release gate score")
+    BACKGROUND_TASKS_PENDING = Gauge("bilgeapi_background_tasks_pending", "Number of pending background dispatch tasks")
+    REDIS_FALLBACK_COUNT = Counter(
+        "bilgeapi_redis_fallback_total",
+        "Total number of Redis connection failures forcing in-memory rate limit fallback",
+    )
+    TENANT_REQUESTS = Counter(
+        "bilgeapi_tenant_requests_total",
+        "Total requests processed per tenant",
+        ["tenant_id"],
+    )
+    _PROMETHEUS_AVAILABLE = True
 
 # ── Path sanitization for Prometheus labels ───────────────────────────────────
 _UUID_RE = re.compile(
@@ -141,8 +260,10 @@ async def lifespan(app: FastAPI):
             logger.warning(f"Error stopping JobQueue: {e}")
             
     try:
-        from apps.bilgeapi.services.webhook import background_tasks
-        pending = [t for t in background_tasks if not t.done()]
+        from apps.bilgeapi.services.webhook import background_tasks as webhook_background_tasks
+        from apps.bilgeapi.services.diagnostic import background_tasks as diagnostic_background_tasks
+        managed_background_tasks = set(webhook_background_tasks) | set(diagnostic_background_tasks)
+        pending = [t for t in managed_background_tasks if not t.done()]
         if pending:
             timeout = settings.BILGEAPI_SHUTDOWN_TIMEOUT_S
             logger.info(f"Waiting for {len(pending)} pending background tasks (timeout={timeout}s)...")
@@ -353,7 +474,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
             
         client_ip = request.client.host if request.client else "unknown"
-        if request.headers.get("x-test-clear-limits") == "true":
+        if settings.APP_ENV != "production" and request.headers.get("x-test-clear-limits") == "true":
             self.history[client_ip] = deque()
             redis_client = self._get_redis_client()
             if redis_client:
@@ -469,7 +590,7 @@ def extract_tenant_id(request: Request) -> str:
             
     # 3. Try X-Tenant-ID header (fallback/dev/trusted gateway only)
     x_tenant_id = request.headers.get("X-Tenant-ID")
-    if x_tenant_id:
+    if x_tenant_id and settings.APP_ENV != "production":
         return x_tenant_id
         
     return "anonymous"
@@ -477,9 +598,15 @@ def extract_tenant_id(request: Request) -> str:
 
 class UsageMeteringMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+
         tenant_id = "anonymous"
         try:
-            tenant_id = extract_tenant_id(request)
+            identity = getattr(request.state, "identity", None)
+            if isinstance(identity, dict) and identity.get("tenant_id"):
+                tenant_id = str(identity["tenant_id"])
+            else:
+                tenant_id = extract_tenant_id(request)
         except Exception as e:
             logger.warning(f"Error extracting tenant ID: {e}")
             
@@ -492,8 +619,6 @@ class UsageMeteringMiddleware(BaseHTTPMiddleware):
         # Mask credentials in logs
         path = sanitize_path(request.url.path)
         logger.info(f"[METERING] Tenant: {tenant_id} | Path: {path} | Method: {request.method}")
-        
-        response = await call_next(request)
         return response
 
 app.add_middleware(UsageMeteringMiddleware)
@@ -509,6 +634,7 @@ app.include_router(diagnostics.router)
 app.include_router(repairs.router)
 app.include_router(release.router)
 app.include_router(adapters.router)
+app.include_router(admin_api_keys.router)
 
 
 # ── Custom OpenAPI Generator ──────────────────────────────────────────────────

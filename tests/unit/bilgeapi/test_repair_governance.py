@@ -206,7 +206,8 @@ def test_admin_approve_and_reject_flow(monkeypatch, test_client_real_auth):
     admin_app = test_client_real_auth.post(f"/v1/repair-requests/{rep_id}/approve", headers={"X-API-Key": "admin_key"})
     assert admin_app.status_code == 200
     assert admin_app.json()["approval_status"] == "APPROVED"
-    assert admin_app.json()["approved_by"] == "api_key_admin_ke"
+    assert admin_app.json()["approved_by"].startswith("api_key_")
+    assert "admin_key" not in admin_app.json()["approved_by"]
     assert admin_app.json()["approved_at"] is not None
 
 def test_dispatch_constraints(monkeypatch, test_client_real_auth):

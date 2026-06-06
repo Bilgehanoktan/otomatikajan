@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Text, DateTime, Float, ForeignKey, Boolean
+from sqlalchemy import Column, String, Text, DateTime, Float, ForeignKey, Boolean, Integer
 from sqlalchemy.orm import relationship
 from libs.db.base import Base, SmartJSON
 
@@ -133,3 +133,25 @@ class ReleaseCheckModel(Base):
     environment = Column(String(64), nullable=True)
     triggered_by = Column(String(64), nullable=True)
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+
+
+class ApiKeyModel(Base):
+    __tablename__ = "bilgeapi_api_keys"
+
+    id = Column(String(64), primary_key=True)
+    key_hash = Column(String(64), nullable=False, unique=True, index=True)
+    key_prefix = Column(String(16), nullable=False)
+    key_fingerprint = Column(String(16), nullable=False)
+    role = Column(String(32), nullable=False, index=True)
+    description = Column(Text, nullable=True)
+    tenant_id = Column(String(64), nullable=True, index=True)
+    is_active = Column(Boolean, default=True, nullable=False, index=True)
+    created_by = Column(String(64), nullable=True)
+    revoked_by = Column(String(64), nullable=True)
+    revoke_reason = Column(Text, nullable=True)
+    expires_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+    revoked_at = Column(DateTime(timezone=True), nullable=True)
+    last_used_at = Column(DateTime(timezone=True), nullable=True)
+    quota_daily = Column(Integer, nullable=True)
+    quota_monthly = Column(Integer, nullable=True)

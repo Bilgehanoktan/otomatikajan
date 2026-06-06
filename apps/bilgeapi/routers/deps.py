@@ -5,18 +5,19 @@ from libs.db.session import get_db
 from apps.bilgeapi.repositories.interface import (
     IncidentRepository, DiagnosticRepository, FindingRepository,
     RecommendationRepository, RepairRequestRepository, AuditRepository, WebhookDeliveryRepository,
-    ReleaseCheckRepository
+    ReleaseCheckRepository, ApiKeyRepository
 )
 from apps.bilgeapi.repositories.postgres import (
     PostgresIncidentRepository, PostgresDiagnosticRepository, PostgresFindingRepository,
     PostgresRecommendationRepository, PostgresRepairRequestRepository, PostgresAuditRepository, PostgresWebhookDeliveryRepository,
-    PostgresReleaseCheckRepository
+    PostgresReleaseCheckRepository, PostgresApiKeyRepository
 )
 from apps.bilgeapi.services.audit import AuditService
 from apps.bilgeapi.services.diagnostic import DiagnosticService
 from apps.bilgeapi.services.risk import RiskScoringService
 from apps.bilgeapi.services.webhook import WebhookDeliveryService
 from apps.bilgeapi.services.release import BilgeAPIReleaseGate
+from apps.bilgeapi.services.api_key import ApiKeyService
 
 def get_risk_scoring_service() -> RiskScoringService:
     return RiskScoringService()
@@ -45,8 +46,17 @@ async def get_webhook_repository(db: AsyncSession = Depends(get_db)) -> WebhookD
 async def get_release_repository(db: AsyncSession = Depends(get_db)) -> ReleaseCheckRepository:
     return PostgresReleaseCheckRepository(db)
 
+async def get_api_key_repository(db: AsyncSession = Depends(get_db)) -> ApiKeyRepository:
+    return PostgresApiKeyRepository(db)
+
 def get_audit_service(repo: AuditRepository = Depends(get_audit_repository)) -> AuditService:
     return AuditService(repo)
+
+def get_api_key_service(
+    repo: ApiKeyRepository = Depends(get_api_key_repository),
+    audit_service: AuditService = Depends(get_audit_service)
+) -> ApiKeyService:
+    return ApiKeyService(repo, audit_service)
 
 def get_webhook_service(
     webhook_repo: WebhookDeliveryRepository = Depends(get_webhook_repository),
