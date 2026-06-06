@@ -47,7 +47,7 @@ Plaintext key is shown once. Store it in a secrets manager now.
   "last_used_at": null,
   "quota_daily": null,
   "quota_monthly": null,
-  "plaintext_key": "blg_live_ToYW1ej_FKM5JZ8U4X_HLa9GySA_BtqbQ0jP7u59abQ"
+  "plaintext_key": "blg_live_ToYW1...[REDACTED]"
 }
 ```
 
@@ -110,7 +110,7 @@ python scripts/bilgeapi_api_key_admin.py --admin-api-key dev-test-key-001 quota-
 Oluşturulan DB-backed API key ile istek atılarak quota tüketimi doğrulandı:
 
 ```powershell
-python scripts/bilgeapi_live_smoke.py --base-url http://127.0.0.1:8100 --api-key blg_live_ToYW1ej_FKM5JZ8U4X_HLa9GySA_BtqbQ0jP7u59abQ
+python scripts/bilgeapi_live_smoke.py --base-url http://127.0.0.1:8100 --api-key [REDACTED_SECRET]
 ```
 
 İstek sonrası kota kullanımının arttığı teyit edildi:
