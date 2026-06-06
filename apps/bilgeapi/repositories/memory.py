@@ -11,7 +11,9 @@ from apps.bilgeapi.repositories.interface import (
     AuditRepository,
     WebhookDeliveryRepository,
     ReleaseCheckRepository,
-    ApiKeyRepository
+    ApiKeyRepository,
+    ResearchRepository,
+    ImprovementRepository
 )
 from apps.bilgeapi.schemas.incident import IncidentCreate, IncidentResponse
 from apps.bilgeapi.schemas.diagnostic import DiagnosticResult, DiagnosticStatus
@@ -29,6 +31,9 @@ class MemoryRepositoriesContainer:
         self.webhook_deliveries: List[Dict[str, Any]] = []
         self.release_checks: List[Dict[str, Any]] = []
         self.api_keys: Dict[str, Dict[str, Any]] = {}
+        self.research_requests: Dict[str, Dict[str, Any]] = {}
+        self.research_evidences: Dict[str, Dict[str, Any]] = {}
+        self.improvement_proposals: Dict[str, Dict[str, Any]] = {}
         self._lock = asyncio.Lock()
 
     def clear_all(self):
@@ -41,6 +46,9 @@ class MemoryRepositoriesContainer:
         self.webhook_deliveries.clear()
         self.release_checks.clear()
         self.api_keys.clear()
+        self.research_requests.clear()
+        self.research_evidences.clear()
+        self.improvement_proposals.clear()
 
 memory_repositories = MemoryRepositoriesContainer()
 
@@ -338,5 +346,135 @@ class InMemoryApiKeyRepository(ApiKeyRepository):
             item["quota_daily"] = quota_daily
             item["quota_monthly"] = quota_monthly
             return item
+
+
+class InMemoryResearchRepository(ResearchRepository):
+    async def create_request(self, request_data: Dict[str, Any]) -> Dict[str, Any]:
+        async with memory_repositories._lock:
+            req_id = f"res_{uuid.uuid4().hex[:8]}"
+            response = {
+                "id": req_id,
+                "incident_id": request_data["incident_id"],
+                "query": request_data["query"],
+                "status": request_data.get("status", "PENDING"),
+                "error_message": request_data.get("error_message"),
+                "tenant_id": request_data.get("tenant_id"),
+                "created_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc),
+            }
+            memory_repositories.research_requests[req_id] = response
+            return response
+
+    async def get_request(self, request_id: str) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            return memory_repositories.research_requests.get(request_id)
+
+    async def update_request_status(self, request_id: str, status: str, error_message: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            item = memory_repositories.research_requests.get(request_id)
+            if not item:
+                return None
+            item["status"] = status
+            if error_message is not None:
+                item["error_message"] = error_message
+            item["updated_at"] = datetime.now(timezone.utc)
+            return item
+
+    async def create_evidence(self, evidence_data: Dict[str, Any]) -> Dict[str, Any]:
+        async with memory_repositories._lock:
+            ev_id = f"evd_{uuid.uuid4().hex[:8]}"
+            response = {
+                "id": ev_id,
+                "research_id": evidence_data["research_id"],
+                "source_url": evidence_data["source_url"],
+                "source_domain": evidence_data["source_domain"],
+                "title": evidence_data.get("title"),
+                "snippet": evidence_data.get("snippet"),
+                "raw_content_summary": evidence_data.get("raw_content_summary"),
+                "content_hash": evidence_data["content_hash"],
+                "trust_score": evidence_data["trust_score"],
+                "retrieved_at": datetime.now(timezone.utc),
+            }
+            memory_repositories.research_evidences[ev_id] = response
+            return response
+
+    async def list_evidences(self, research_id: str) -> List[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            evidences = [
+                e for e in memory_repositories.research_evidences.values()
+                if e["research_id"] == research_id
+            ]
+            return sorted(evidences, key=lambda x: x["trust_score"], reverse=True)
+
+    async def get_tenant_daily_research_count(self, tenant_id: str, day: datetime) -> int:
+        async with memory_repositories._lock:
+            count = 0
+            for r in memory_repositories.research_requests.values():
+                created = r.get("created_at")
+                if r.get("tenant_id") == tenant_id and created:
+                    if created.year == day.year and created.month == day.month and created.day == day.day:
+                        count += 1
+            return count
+
+
+class InMemoryImprovementRepository(ImprovementRepository):
+    async def create_proposal(self, proposal_data: Dict[str, Any]) -> Dict[str, Any]:
+        async with memory_repositories._lock:
+            prop_id = f"prp_{uuid.uuid4().hex[:8]}"
+            response = {
+                "id": prop_id,
+                "research_id": proposal_data["research_id"],
+                "title": proposal_data["title"],
+                "rationale": proposal_data["rationale"],
+                "patch_code": proposal_data["patch_code"],
+                "risk_analysis": proposal_data.get("risk_analysis"),
+                "gate_status": proposal_data.get("gate_status", "DRAFT"),
+                "gate_score": proposal_data.get("gate_score"),
+                "approval_status": proposal_data.get("approval_status", "REVIEW_REQUIRED"),
+                "approved_by": None,
+                "approved_at": None,
+                "ready_for_human_apply": proposal_data.get("ready_for_human_apply", False),
+                "created_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc),
+            }
+            memory_repositories.improvement_proposals[prop_id] = response
+            return response
+
+    async def get_proposal(self, proposal_id: str) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            return memory_repositories.improvement_proposals.get(proposal_id)
+
+    async def update_proposal_gate(self, proposal_id: str, gate_status: str, gate_score: Optional[float] = None, risk_analysis: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            item = memory_repositories.improvement_proposals.get(proposal_id)
+            if not item:
+                return None
+            item["gate_status"] = gate_status
+            if gate_score is not None:
+                item["gate_score"] = gate_score
+            if risk_analysis is not None:
+                item["risk_analysis"] = risk_analysis
+            item["updated_at"] = datetime.now(timezone.utc)
+            return item
+
+    async def approve_proposal(self, proposal_id: str, approved_by: str, approved_at: datetime) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            item = memory_repositories.improvement_proposals.get(proposal_id)
+            if not item:
+                return None
+            item["approval_status"] = "APPROVED"
+            item["approved_by"] = approved_by
+            item["approved_at"] = approved_at
+            item["ready_for_human_apply"] = True
+            item["updated_at"] = datetime.now(timezone.utc)
+            return item
+
+    async def list_proposals(self) -> List[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            return sorted(
+                memory_repositories.improvement_proposals.values(),
+                key=lambda x: x.get("created_at") or datetime.min.replace(tzinfo=timezone.utc),
+                reverse=True
+            )
 
 

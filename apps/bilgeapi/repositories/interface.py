@@ -151,3 +151,51 @@ class ApiKeyRepository(ABC):
     async def update_quota(self, key_id: str, quota_daily: Optional[int], quota_monthly: Optional[int]) -> Optional[Dict[str, Any]]:
         pass
 
+
+class ResearchRepository(ABC):
+    @abstractmethod
+    async def create_request(self, request_data: Dict[str, Any]) -> Dict[str, Any]:
+        pass
+
+    @abstractmethod
+    async def get_request(self, request_id: str) -> Optional[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def update_request_status(self, request_id: str, status: str, error_message: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def create_evidence(self, evidence_data: Dict[str, Any]) -> Dict[str, Any]:
+        pass
+
+    @abstractmethod
+    async def list_evidences(self, research_id: str) -> List[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def get_tenant_daily_research_count(self, tenant_id: str, day: datetime) -> int:
+        pass
+
+
+class ImprovementRepository(ABC):
+    @abstractmethod
+    async def create_proposal(self, proposal_data: Dict[str, Any]) -> Dict[str, Any]:
+        pass
+
+    @abstractmethod
+    async def get_proposal(self, proposal_id: str) -> Optional[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def update_proposal_gate(self, proposal_id: str, gate_status: str, gate_score: Optional[float] = None, risk_analysis: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def approve_proposal(self, proposal_id: str, approved_by: str, approved_at: datetime) -> Optional[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def list_proposals(self) -> List[Dict[str, Any]]:
+        pass
+

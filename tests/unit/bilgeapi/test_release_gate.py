@@ -667,12 +667,23 @@ class TestReleaseGatePhase11:
                     assert len(res["blockers"]) == 0
 
     async def test_check_test_and_coverage_sqlite(self):
+        import sys
+        from unittest.mock import MagicMock
+        
         repo = InMemoryReleaseCheckRepository()
         gate = BilgeAPIReleaseGate(repo)
+
+        # Mock coverage package if not present in sys.modules
+        if "coverage" not in sys.modules:
+            mock_module = MagicMock()
+            sys.modules["coverage"] = mock_module
+        else:
+            mock_module = sys.modules["coverage"]
 
         # Mock coverage package and load
         mock_cov = MagicMock()
         mock_cov.report.return_value = 82.34
+        mock_module.Coverage.return_value = mock_cov
         
         with patch("os.path.exists", side_effect=lambda p: p == ".coverage"):
             with patch("coverage.Coverage", return_value=mock_cov):
@@ -680,6 +691,7 @@ class TestReleaseGatePhase11:
                 assert res["coverage_pct"] == 82.34
                 assert res["source"] == ".coverage"
                 assert len(res["blockers"]) == 0
+
 
     async def test_check_test_and_coverage_txt(self):
         repo = InMemoryReleaseCheckRepository()

@@ -155,3 +155,57 @@ class ApiKeyModel(Base):
     last_used_at = Column(DateTime(timezone=True), nullable=True)
     quota_daily = Column(Integer, nullable=True)
     quota_monthly = Column(Integer, nullable=True)
+
+
+class ResearchRequestModel(Base):
+    __tablename__ = "bilgeapi_research_requests"
+
+    id = Column(String(64), primary_key=True)
+    incident_id = Column(String(64), nullable=False, index=True)
+    query = Column(String(256), nullable=False)
+    status = Column(String(32), default="PENDING", nullable=False, index=True) # PENDING, RUNNING, COMPLETED, FAILED
+    error_message = Column(Text, nullable=True)
+    tenant_id = Column(String(64), nullable=True, index=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
+
+    evidences = relationship("ResearchEvidenceModel", back_populates="research", cascade="all, delete-orphan", lazy="selectin")
+    proposals = relationship("ImprovementProposalModel", back_populates="research", cascade="all, delete-orphan", lazy="selectin")
+
+
+class ResearchEvidenceModel(Base):
+    __tablename__ = "bilgeapi_research_evidences"
+
+    id = Column(String(64), primary_key=True)
+    research_id = Column(String(64), ForeignKey("bilgeapi_research_requests.id"), nullable=False, index=True)
+    source_url = Column(String(512), nullable=False)
+    source_domain = Column(String(128), nullable=False, index=True)
+    title = Column(String(256), nullable=True)
+    snippet = Column(Text, nullable=True)
+    raw_content_summary = Column(Text, nullable=True)
+    content_hash = Column(String(64), nullable=False)
+    trust_score = Column(Float, nullable=False)
+    retrieved_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+    research = relationship("ResearchRequestModel", back_populates="evidences")
+
+
+class ImprovementProposalModel(Base):
+    __tablename__ = "bilgeapi_improvement_proposals"
+
+    id = Column(String(64), primary_key=True)
+    research_id = Column(String(64), ForeignKey("bilgeapi_research_requests.id"), nullable=False, index=True)
+    title = Column(String(256), nullable=False)
+    rationale = Column(Text, nullable=False)
+    patch_code = Column(Text, nullable=False)
+    risk_analysis = Column(SmartJSON(), nullable=True)
+    gate_status = Column(String(32), default="DRAFT", nullable=False, index=True) # DRAFT, GATE_RUNNING, GATE_PASSED, GATE_FAILED
+    gate_score = Column(Float, nullable=True)
+    approval_status = Column(String(32), default="REVIEW_REQUIRED", nullable=False, index=True) # REVIEW_REQUIRED, APPROVED, REJECTED
+    approved_by = Column(String(64), nullable=True)
+    approved_at = Column(DateTime(timezone=True), nullable=True)
+    ready_for_human_apply = Column(Boolean, default=False, nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
+
+    research = relationship("ResearchRequestModel", back_populates="proposals")

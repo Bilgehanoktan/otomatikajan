@@ -5,12 +5,12 @@ from libs.db.session import get_db
 from apps.bilgeapi.repositories.interface import (
     IncidentRepository, DiagnosticRepository, FindingRepository,
     RecommendationRepository, RepairRequestRepository, AuditRepository, WebhookDeliveryRepository,
-    ReleaseCheckRepository, ApiKeyRepository
+    ReleaseCheckRepository, ApiKeyRepository, ResearchRepository, ImprovementRepository
 )
 from apps.bilgeapi.repositories.postgres import (
     PostgresIncidentRepository, PostgresDiagnosticRepository, PostgresFindingRepository,
     PostgresRecommendationRepository, PostgresRepairRequestRepository, PostgresAuditRepository, PostgresWebhookDeliveryRepository,
-    PostgresReleaseCheckRepository, PostgresApiKeyRepository
+    PostgresReleaseCheckRepository, PostgresApiKeyRepository, PostgresResearchRepository, PostgresImprovementRepository
 )
 from apps.bilgeapi.services.audit import AuditService
 from apps.bilgeapi.services.diagnostic import DiagnosticService
@@ -18,6 +18,9 @@ from apps.bilgeapi.services.risk import RiskScoringService
 from apps.bilgeapi.services.webhook import WebhookDeliveryService
 from apps.bilgeapi.services.release import BilgeAPIReleaseGate
 from apps.bilgeapi.services.api_key import ApiKeyService
+from apps.bilgeapi.services.research import WebResearchAdapter, MockSearchProvider
+from apps.bilgeapi.services.improvement import ImprovementProposalEngine, ReleaseGateSimulator
+
 
 def get_risk_scoring_service() -> RiskScoringService:
     return RiskScoringService()
@@ -92,4 +95,37 @@ def get_release_gate_service(
     repo: ReleaseCheckRepository = Depends(get_release_repository)
 ) -> BilgeAPIReleaseGate:
     return BilgeAPIReleaseGate(repo)
+
+
+async def get_research_repository(db: AsyncSession = Depends(get_db)) -> ResearchRepository:
+    return PostgresResearchRepository(db)
+
+
+async def get_improvement_repository(db: AsyncSession = Depends(get_db)) -> ImprovementRepository:
+    return PostgresImprovementRepository(db)
+
+
+def get_web_search_provider() -> MockSearchProvider:
+    return MockSearchProvider()
+
+
+def get_web_research_adapter(
+    provider: MockSearchProvider = Depends(get_web_search_provider),
+    repo: ResearchRepository = Depends(get_research_repository)
+) -> WebResearchAdapter:
+    return WebResearchAdapter(provider, repo)
+
+
+def get_improvement_proposal_engine(
+    research_repo: ResearchRepository = Depends(get_research_repository),
+    improvement_repo: ImprovementRepository = Depends(get_improvement_repository)
+) -> ImprovementProposalEngine:
+    return ImprovementProposalEngine(research_repo, improvement_repo)
+
+
+def get_release_gate_simulator(
+    repo: ImprovementRepository = Depends(get_improvement_repository)
+) -> ReleaseGateSimulator:
+    return ReleaseGateSimulator(repo)
+
 

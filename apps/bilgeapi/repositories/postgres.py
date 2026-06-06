@@ -6,7 +6,7 @@ from sqlalchemy import select, desc
 from apps.bilgeapi.repositories.interface import (
     IncidentRepository, DiagnosticRepository, FindingRepository,
     RecommendationRepository, RepairRequestRepository, AuditRepository, WebhookDeliveryRepository,
-    ReleaseCheckRepository, ApiKeyRepository
+    ReleaseCheckRepository, ApiKeyRepository, ResearchRepository, ImprovementRepository
 )
 from apps.bilgeapi.schemas.incident import IncidentCreate, IncidentResponse
 from apps.bilgeapi.schemas.diagnostic import DiagnosticResult, DiagnosticStatus
@@ -15,7 +15,7 @@ from apps.bilgeapi.schemas.audit import AuditEvent
 from apps.bilgeapi.models.database import (
     IncidentModel, DiagnosticRunModel, FindingModel, RecommendationModel,
     RepairRequestModel, AuditEventModel, WebhookDeliveryModel, ReleaseCheckModel,
-    ApiKeyModel
+    ApiKeyModel, ResearchRequestModel, ResearchEvidenceModel, ImprovementProposalModel
 )
 
 class PostgresIncidentRepository(IncidentRepository):
@@ -653,3 +653,183 @@ class PostgresApiKeyRepository(ApiKeyRepository):
         await self.db.commit()
         await self.db.refresh(model)
         return self._to_dict(model)
+
+
+class PostgresResearchRepository(ResearchRepository):
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    def _request_to_dict(self, model: ResearchRequestModel) -> Dict[str, Any]:
+        return {
+            "id": model.id,
+            "incident_id": model.incident_id,
+            "query": model.query,
+            "status": model.status,
+            "error_message": model.error_message,
+            "tenant_id": model.tenant_id,
+            "created_at": model.created_at,
+            "updated_at": model.updated_at,
+        }
+
+    def _evidence_to_dict(self, model: ResearchEvidenceModel) -> Dict[str, Any]:
+        return {
+            "id": model.id,
+            "research_id": model.research_id,
+            "source_url": model.source_url,
+            "source_domain": model.source_domain,
+            "title": model.title,
+            "snippet": model.snippet,
+            "raw_content_summary": model.raw_content_summary,
+            "content_hash": model.content_hash,
+            "trust_score": model.trust_score,
+            "retrieved_at": model.retrieved_at,
+        }
+
+    async def create_request(self, request_data: Dict[str, Any]) -> Dict[str, Any]:
+        req_id = f"res_{uuid.uuid4().hex[:8]}"
+        model = ResearchRequestModel(
+            id=req_id,
+            incident_id=request_data["incident_id"],
+            query=request_data["query"],
+            status=request_data.get("status", "PENDING"),
+            error_message=request_data.get("error_message"),
+            tenant_id=request_data.get("tenant_id"),
+        )
+        self.db.add(model)
+        await self.db.commit()
+        await self.db.refresh(model)
+        return self._request_to_dict(model)
+
+    async def get_request(self, request_id: str) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(select(ResearchRequestModel).where(ResearchRequestModel.id == request_id))
+        model = res.scalar_one_or_none()
+        return self._request_to_dict(model) if model else None
+
+    async def update_request_status(self, request_id: str, status: str, error_message: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(select(ResearchRequestModel).where(ResearchRequestModel.id == request_id))
+        model = res.scalar_one_or_none()
+        if not model:
+            return None
+        model.status = status
+        if error_message is not None:
+            model.error_message = error_message
+        await self.db.commit()
+        await self.db.refresh(model)
+        return self._request_to_dict(model)
+
+    async def create_evidence(self, evidence_data: Dict[str, Any]) -> Dict[str, Any]:
+        ev_id = f"evd_{uuid.uuid4().hex[:8]}"
+        model = ResearchEvidenceModel(
+            id=ev_id,
+            research_id=evidence_data["research_id"],
+            source_url=evidence_data["source_url"],
+            source_domain=evidence_data["source_domain"],
+            title=evidence_data.get("title"),
+            snippet=evidence_data.get("snippet"),
+            raw_content_summary=evidence_data.get("raw_content_summary"),
+            content_hash=evidence_data["content_hash"],
+            trust_score=evidence_data["trust_score"],
+        )
+        self.db.add(model)
+        await self.db.commit()
+        await self.db.refresh(model)
+        return self._evidence_to_dict(model)
+
+    async def list_evidences(self, research_id: str) -> List[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(ResearchEvidenceModel)
+            .where(ResearchEvidenceModel.research_id == research_id)
+            .order_by(desc(ResearchEvidenceModel.trust_score))
+        )
+        models = res.scalars().all()
+        return [self._evidence_to_dict(m) for m in models]
+
+    async def get_tenant_daily_research_count(self, tenant_id: str, day: datetime) -> int:
+        start_of_day = datetime(day.year, day.month, day.day, 0, 0, 0, tzinfo=timezone.utc)
+        end_of_day = datetime(day.year, day.month, day.day, 23, 59, 59, tzinfo=timezone.utc)
+        res = await self.db.execute(
+            select(ResearchRequestModel)
+            .where(ResearchRequestModel.tenant_id == tenant_id)
+            .where(ResearchRequestModel.created_at >= start_of_day)
+            .where(ResearchRequestModel.created_at <= end_of_day)
+        )
+        return len(res.scalars().all())
+
+
+class PostgresImprovementRepository(ImprovementRepository):
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    def _proposal_to_dict(self, model: ImprovementProposalModel) -> Dict[str, Any]:
+        return {
+            "id": model.id,
+            "research_id": model.research_id,
+            "title": model.title,
+            "rationale": model.rationale,
+            "patch_code": model.patch_code,
+            "risk_analysis": model.risk_analysis,
+            "gate_status": model.gate_status,
+            "gate_score": model.gate_score,
+            "approval_status": model.approval_status,
+            "approved_by": model.approved_by,
+            "approved_at": model.approved_at,
+            "ready_for_human_apply": model.ready_for_human_apply,
+            "created_at": model.created_at,
+            "updated_at": model.updated_at,
+        }
+
+    async def create_proposal(self, proposal_data: Dict[str, Any]) -> Dict[str, Any]:
+        prop_id = f"prp_{uuid.uuid4().hex[:8]}"
+        model = ImprovementProposalModel(
+            id=prop_id,
+            research_id=proposal_data["research_id"],
+            title=proposal_data["title"],
+            rationale=proposal_data["rationale"],
+            patch_code=proposal_data["patch_code"],
+            risk_analysis=proposal_data.get("risk_analysis"),
+            gate_status=proposal_data.get("gate_status", "DRAFT"),
+            gate_score=proposal_data.get("gate_score"),
+            approval_status=proposal_data.get("approval_status", "REVIEW_REQUIRED"),
+            ready_for_human_apply=proposal_data.get("ready_for_human_apply", False),
+        )
+        self.db.add(model)
+        await self.db.commit()
+        await self.db.refresh(model)
+        return self._proposal_to_dict(model)
+
+    async def get_proposal(self, proposal_id: str) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(select(ImprovementProposalModel).where(ImprovementProposalModel.id == proposal_id))
+        model = res.scalar_one_or_none()
+        return self._proposal_to_dict(model) if model else None
+
+    async def update_proposal_gate(self, proposal_id: str, gate_status: str, gate_score: Optional[float] = None, risk_analysis: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(select(ImprovementProposalModel).where(ImprovementProposalModel.id == proposal_id))
+        model = res.scalar_one_or_none()
+        if not model:
+            return None
+        model.gate_status = gate_status
+        if gate_score is not None:
+            model.gate_score = gate_score
+        if risk_analysis is not None:
+            model.risk_analysis = risk_analysis
+        await self.db.commit()
+        await self.db.refresh(model)
+        return self._proposal_to_dict(model)
+
+    async def approve_proposal(self, proposal_id: str, approved_by: str, approved_at: datetime) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(select(ImprovementProposalModel).where(ImprovementProposalModel.id == proposal_id))
+        model = res.scalar_one_or_none()
+        if not model:
+            return None
+        model.approval_status = "APPROVED"
+        model.approved_by = approved_by
+        model.approved_at = approved_at
+        model.ready_for_human_apply = True
+        await self.db.commit()
+        await self.db.refresh(model)
+        return self._proposal_to_dict(model)
+
+    async def list_proposals(self) -> List[Dict[str, Any]]:
+        res = await self.db.execute(select(ImprovementProposalModel).order_by(desc(ImprovementProposalModel.created_at)))
+        models = res.scalars().all()
+        return [self._proposal_to_dict(m) for m in models]

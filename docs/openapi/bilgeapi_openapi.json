@@ -1588,6 +1588,449 @@
           }
         }
       }
+    },
+    "/v1/improvements/research": {
+      "post": {
+        "tags": [
+          "Improvements"
+        ],
+        "summary": "Create Research",
+        "description": "Start research on an incident query. Enforces tenant-based daily quota limit of 5 requests.",
+        "operationId": "create_research_v1_improvements_research_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResearchCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/improvements/research/{research_id}": {
+      "get": {
+        "tags": [
+          "Improvements"
+        ],
+        "summary": "Get Research",
+        "description": "Retrieve a research request.",
+        "operationId": "get_research_v1_improvements_research__research_id__get",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "research_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Research Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/improvements/research/{research_id}/evidences": {
+      "get": {
+        "tags": [
+          "Improvements"
+        ],
+        "summary": "List Evidences",
+        "description": "List graded research evidences for a request.",
+        "operationId": "list_evidences_v1_improvements_research__research_id__evidences_get",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "research_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Research Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EvidenceResponse"
+                  },
+                  "title": "Response List Evidences V1 Improvements Research  Research Id  Evidences Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/improvements/{research_id}/proposal": {
+      "post": {
+        "tags": [
+          "Improvements"
+        ],
+        "summary": "Create Proposal",
+        "description": "Generate an improvement proposal and patch draft based on a research request.",
+        "operationId": "create_proposal_v1_improvements__research_id__proposal_post",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "research_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Research Id"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/improvements/proposals/{proposal_id}": {
+      "get": {
+        "tags": [
+          "Improvements"
+        ],
+        "summary": "Get Proposal",
+        "description": "Retrieve an improvement proposal.",
+        "operationId": "get_proposal_v1_improvements_proposals__proposal_id__get",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Proposal Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/improvements/proposals": {
+      "get": {
+        "tags": [
+          "Improvements"
+        ],
+        "summary": "List Proposals",
+        "description": "List all improvement proposals.",
+        "operationId": "list_proposals_v1_improvements_proposals_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProposalResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Proposals V1 Improvements Proposals Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/improvements/{proposal_id}/draft-pr": {
+      "post": {
+        "tags": [
+          "Improvements"
+        ],
+        "summary": "Create Draft Pr",
+        "description": "Generate draft PR metadata and patch details. Prohibits auto-applying or merging.",
+        "operationId": "create_draft_pr_v1_improvements__proposal_id__draft_pr_post",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Proposal Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftPrResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/improvements/{proposal_id}/run-gate": {
+      "post": {
+        "tags": [
+          "Improvements"
+        ],
+        "summary": "Run Gate",
+        "description": "Run simulated gate impact checks on the proposal.",
+        "operationId": "run_gate_v1_improvements__proposal_id__run_gate_post",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Proposal Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/improvements/{proposal_id}/approve": {
+      "post": {
+        "tags": [
+          "Improvements"
+        ],
+        "summary": "Approve Proposal",
+        "description": "Approve an improvement proposal, flagging it as ready_for_human_apply.",
+        "operationId": "approve_proposal_v1_improvements__proposal_id__approve_post",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Proposal Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2425,6 +2868,129 @@
         ],
         "title": "DispatchStatus"
       },
+      "DraftPrResponse": {
+        "properties": {
+          "patch_code": {
+            "type": "string",
+            "title": "Patch Code"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "risk_level": {
+            "type": "string",
+            "title": "Risk Level"
+          },
+          "affected_files": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Affected Files"
+          },
+          "potential_side_effects": {
+            "type": "string",
+            "title": "Potential Side Effects"
+          },
+          "mitigation_plan": {
+            "type": "string",
+            "title": "Mitigation Plan"
+          }
+        },
+        "type": "object",
+        "required": [
+          "patch_code",
+          "title",
+          "description",
+          "risk_level",
+          "affected_files",
+          "potential_side_effects",
+          "mitigation_plan"
+        ],
+        "title": "DraftPrResponse"
+      },
+      "EvidenceResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "research_id": {
+            "type": "string",
+            "title": "Research Id"
+          },
+          "source_url": {
+            "type": "string",
+            "title": "Source Url"
+          },
+          "source_domain": {
+            "type": "string",
+            "title": "Source Domain"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "snippet": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snippet"
+          },
+          "raw_content_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Content Summary"
+          },
+          "content_hash": {
+            "type": "string",
+            "title": "Content Hash"
+          },
+          "trust_score": {
+            "type": "number",
+            "title": "Trust Score"
+          },
+          "retrieved_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Retrieved At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "research_id",
+          "source_url",
+          "source_domain",
+          "content_hash",
+          "trust_score",
+          "retrieved_at"
+        ],
+        "title": "EvidenceResponse"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -2604,6 +3170,112 @@
           "created_at"
         ],
         "title": "IncidentResponse"
+      },
+      "ProposalResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "research_id": {
+            "type": "string",
+            "title": "Research Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "rationale": {
+            "type": "string",
+            "title": "Rationale"
+          },
+          "patch_code": {
+            "type": "string",
+            "title": "Patch Code"
+          },
+          "risk_analysis": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Analysis"
+          },
+          "gate_status": {
+            "type": "string",
+            "title": "Gate Status"
+          },
+          "gate_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gate Score"
+          },
+          "approval_status": {
+            "type": "string",
+            "title": "Approval Status"
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved By"
+          },
+          "approved_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved At"
+          },
+          "ready_for_human_apply": {
+            "type": "boolean",
+            "title": "Ready For Human Apply"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "research_id",
+          "title",
+          "rationale",
+          "patch_code",
+          "gate_status",
+          "approval_status",
+          "ready_for_human_apply",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ProposalResponse"
       },
       "ReleaseCheckCreate": {
         "properties": {
@@ -2941,6 +3613,88 @@
           "updated_at"
         ],
         "title": "RepairRequestResponse"
+      },
+      "ResearchCreate": {
+        "properties": {
+          "incident_id": {
+            "type": "string",
+            "title": "Incident Id",
+            "description": "ID of the associated incident"
+          },
+          "query": {
+            "type": "string",
+            "title": "Query",
+            "description": "Search query for research"
+          }
+        },
+        "type": "object",
+        "required": [
+          "incident_id",
+          "query"
+        ],
+        "title": "ResearchCreate"
+      },
+      "ResearchResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "incident_id": {
+            "type": "string",
+            "title": "Incident Id"
+          },
+          "query": {
+            "type": "string",
+            "title": "Query"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "tenant_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenant Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "incident_id",
+          "query",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ResearchResponse"
       },
       "Severity": {
         "type": "string",
