@@ -38,7 +38,8 @@ def test_client():
         get_api_key_repository,
         get_research_repository,
         get_improvement_repository,
-        get_pr_draft_repository
+        get_pr_draft_repository,
+        get_pr_verification_repository
     )
     from apps.bilgeapi.repositories.memory import (
         InMemoryIncidentRepository,
@@ -52,6 +53,7 @@ def test_client():
         InMemoryResearchRepository,
         InMemoryImprovementRepository,
         InMemoryPrDraftRepository,
+        InMemoryPrVerificationRepository,
         memory_repositories
     )
     
@@ -70,6 +72,7 @@ def test_client():
     app.dependency_overrides[get_research_repository] = lambda: InMemoryResearchRepository()
     app.dependency_overrides[get_improvement_repository] = lambda: InMemoryImprovementRepository()
     app.dependency_overrides[get_pr_draft_repository] = lambda: InMemoryPrDraftRepository()
+    app.dependency_overrides[get_pr_verification_repository] = lambda: InMemoryPrVerificationRepository()
     
     with TestClient(app) as client:
         yield client
@@ -92,7 +95,8 @@ def test_client_real_auth():
         get_api_key_repository,
         get_research_repository,
         get_improvement_repository,
-        get_pr_draft_repository
+        get_pr_draft_repository,
+        get_pr_verification_repository
     )
     from apps.bilgeapi.repositories.memory import (
         InMemoryIncidentRepository,
@@ -106,6 +110,7 @@ def test_client_real_auth():
         InMemoryResearchRepository,
         InMemoryImprovementRepository,
         InMemoryPrDraftRepository,
+        InMemoryPrVerificationRepository,
         memory_repositories
     )
     
@@ -123,6 +128,7 @@ def test_client_real_auth():
     app.dependency_overrides[get_research_repository] = lambda: InMemoryResearchRepository()
     app.dependency_overrides[get_improvement_repository] = lambda: InMemoryImprovementRepository()
     app.dependency_overrides[get_pr_draft_repository] = lambda: InMemoryPrDraftRepository()
+    app.dependency_overrides[get_pr_verification_repository] = lambda: InMemoryPrVerificationRepository()
     
     with TestClient(app) as client:
         yield client

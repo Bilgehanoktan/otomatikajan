@@ -56,7 +56,7 @@ def upgrade() -> None:
     sa.Column('title', sa.String(length=256), nullable=False),
     sa.Column('rationale', sa.Text(), nullable=False),
     sa.Column('patch_code', sa.Text(), nullable=False),
-    sa.Column('risk_analysis', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+    sa.Column('risk_analysis', postgresql.JSONB(astext_type=sa.Text()).with_variant(sa.JSON(), 'sqlite'), nullable=True),
     sa.Column('gate_status', sa.String(length=32), nullable=False),
     sa.Column('gate_score', sa.Float(), nullable=True),
     sa.Column('approval_status', sa.String(length=32), nullable=False),

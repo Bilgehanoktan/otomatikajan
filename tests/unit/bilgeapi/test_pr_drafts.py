@@ -205,3 +205,98 @@ def test_improvements_pr_draft_endpoints(test_client):
     prs = resp_list.json()
     assert len(prs) == 1
     assert prs[0]["id"] == data["id"]
+
+
+@pytest.mark.asyncio
+async def test_github_draft_pr_adapter():
+    adapter = GitHubDraftPrAdapter(
+        token="test-token",
+        owner="test-owner",
+        repo="test-repo",
+        base_branch="main",
+        allow_real=True
+    )
+
+    mock_response_ref = MagicMock()
+    mock_response_ref.status_code = 200
+    mock_response_ref.json.return_value = {"object": {"sha": "base_commit_sha"}}
+
+    mock_response_ref_create = MagicMock()
+    mock_response_ref_create.status_code = 201
+
+    mock_response_content_get = MagicMock()
+    mock_response_content_get.status_code = 404
+
+    mock_response_content_put = MagicMock()
+    mock_response_content_put.status_code = 201
+
+    mock_response_pr = MagicMock()
+    mock_response_pr.status_code = 201
+    mock_response_pr.json.return_value = {"html_url": "https://github.com/test-owner/test-repo/pull/42"}
+
+    with patch("httpx.AsyncClient.get") as mock_get, \
+         patch("httpx.AsyncClient.post") as mock_post, \
+         patch("httpx.AsyncClient.put") as mock_put:
+        
+        mock_get.side_effect = [mock_response_ref, mock_response_content_get]
+        mock_post.side_effect = [mock_response_ref_create, mock_response_pr]
+        mock_put.return_value = mock_response_content_put
+
+        url = await adapter.create_draft_pr(
+            title="Optimized query",
+            body="Review fixes",
+            branch_name="bilgeapi-patch-123",
+            patch_code="diff --git ...",
+            affected_files=["apps/bilgeapi/main.py"]
+        )
+
+        assert url == "https://github.com/test-owner/test-repo/pull/42"
+
+
+@pytest.mark.asyncio
+async def test_github_draft_pr_adapter_disabled():
+    adapter = GitHubDraftPrAdapter(
+        token="test-token",
+        owner="test-owner",
+        repo="test-repo",
+        base_branch="main",
+        allow_real=False
+    )
+    url = await adapter.create_draft_pr(
+        title="Optimized query",
+        body="Review fixes",
+        branch_name="bilgeapi-patch-123",
+        patch_code="diff --git ...",
+        affected_files=["apps/bilgeapi/main.py"]
+    )
+    assert "pull/mock" in url
+
+
+@pytest.mark.asyncio
+async def test_pr_draft_service_exception_handling():
+    pr_draft_repo = InMemoryPrDraftRepository()
+    proposal_repo = InMemoryImprovementRepository()
+    audit_repo = InMemoryAuditRepository()
+    audit_service = AuditService(audit_repo)
+    
+    adapter = MagicMock()
+    adapter.create_draft_pr.side_effect = Exception("GitHub API failure")
+
+    service = PrDraftService(pr_draft_repo, proposal_repo, adapter, audit_service)
+
+    prop = await proposal_repo.create_proposal({
+        "research_id": "res_fail_db",
+        "title": "Fix something",
+        "rationale": "High-level improvements",
+        "patch_code": "diff --git a/apps/bilgeapi/main.py b/apps/bilgeapi/main.py",
+        "risk_analysis": {"confidence_level": "HIGH", "confidence_score": 90.0},
+        "gate_status": "GATE_PASSED",
+        "approval_status": "APPROVED",
+    })
+
+    with pytest.raises(Exception, match="GitHub API failure"):
+        await service.create_draft_pr(prop["id"], "admin")
+
+    events = await audit_repo.list_recent()
+    assert any(e.event_type == "PR_DRAFT_FAILED" and e.entity_id == prop["id"] for e in events)
+

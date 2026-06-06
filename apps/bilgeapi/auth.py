@@ -24,6 +24,7 @@ ROLE_PERMISSIONS = {
         "bilgeapi.incident.read",
         "bilgeapi.incident.write",
         "bilgeapi.diagnostic.run",
+        "bilgeapi.operator",
     ],
     "AUDIT_OBSERVER": [
         "bilgeapi.incident.read",
