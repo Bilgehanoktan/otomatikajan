@@ -37,6 +37,7 @@ import {
     Search,
     FlaskConical,
     DollarSign,
+    KeyRound,
     GraduationCap
 } from "lucide-react";
 
@@ -72,6 +73,7 @@ const icons: Record<string, React.ReactNode> = {
     "governance/audit": <Eye size={20} />,
     axiology: <Search size={20} />,
     "repair-lab": <FlaskConical size={20} />,
+    "bilgeapi-ops": <KeyRound size={20} />,
     "meeting-room": <Boxes size={20} />,
     fleet: <Rocket size={20} />,
     identity: <Fingerprint size={20} />,
@@ -103,7 +105,7 @@ const SidebarContent = () => {
     const groups = [
         {
             title: t("groups.operations"),
-            items: ["dashboard", "workflows", "fleet", "mcp-hub", "governance/lineage", "governance/signoffs", "governance/validations", "governance/incidents"]
+            items: ["dashboard", "workflows", "fleet", "bilgeapi-ops", "mcp-hub", "governance/lineage", "governance/signoffs", "governance/validations", "governance/incidents"]
         },
         {
             title: t("groups.governance"),

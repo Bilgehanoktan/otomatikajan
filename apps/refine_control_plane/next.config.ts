@@ -10,6 +10,11 @@ const backendOrigin = (
     : (process.env.BACKEND_ORIGIN || process.env.NEXT_PUBLIC_BACKEND_ORIGIN || process.env.NEXT_PUBLIC_API_URL)) ||
   'http://127.0.0.1:8000'
 ).replace(/\/api\/v1\/?$/, '');
+const bilgeapiOrigin = (
+  process.env.BILGEAPI_ORIGIN ||
+  process.env.NEXT_PUBLIC_BILGEAPI_ORIGIN ||
+  'http://127.0.0.1:8100'
+).replace(/\/$/, '');
 
 const nextConfig: NextConfig = {
   // output: 'export', // Comment out for local dev if routing is needed
@@ -33,6 +38,10 @@ const nextConfig: NextConfig = {
       {
         source: '/api/v1/:path*',
         destination: `${backendOrigin}/api/v1/:path*`,
+      },
+      {
+        source: '/bilgeapi/:path*',
+        destination: `${bilgeapiOrigin}/:path*`,
       },
       {
         source: '/docs',

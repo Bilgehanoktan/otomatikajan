@@ -29,7 +29,8 @@ import {
   ShieldOff, 
   Zap,
   Boxes,
-  ShieldCheck
+  ShieldCheck,
+  KeyRound
 } from "lucide-react";
 import { useRefineI18nProvider } from "@/i18n/refine-adapter";
 
@@ -302,6 +303,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
               name: "repair-lab",
               list: "/repair-lab",
               meta: { label: "resources_repairLab", icon: <FlaskConical className="w-4 h-4" /> },
+            },
+            {
+              name: "bilgeapi-ops",
+              list: "/bilgeapi-ops",
+              meta: { label: "BilgeAPI Ops", icon: <KeyRound className="w-4 h-4" /> },
             },
             {
               name: "meeting-room",

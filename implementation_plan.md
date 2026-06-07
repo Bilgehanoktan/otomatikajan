@@ -1,3 +1,83 @@
+# Implementation Plan - BilgeAPI Faz 27: Admin UI / Ops Console
+
+Bu faz, Faz 14-26 arasinda kurulan BilgeAPI operasyon altyapisini tek bir operator panelinden yonetilebilir hale getirir.
+
+## Goal
+
+`apps/refine_control_plane` icinde `/bilgeapi-ops` route'u olusturularak su alanlar tek yuzeye tasinir:
+
+- API Keys
+- Quotas
+- Research Requests
+- Improvement Proposals
+- Draft PRs
+- Sandbox Verifications
+- Reviewer Feedback
+- Patch Revisions
+- Release Gate Status
+- Audit Trail
+
+## Architecture
+
+```text
+apps/refine_control_plane /bilgeapi-ops
+  -> Next rewrite /bilgeapi/*
+  -> BilgeAPI http://127.0.0.1:8100/*
+  -> Existing DB-backed BilgeAPI services
+```
+
+Backend'e yeni davranis eklemek bu fazin ana hedefi degildir. Mevcut endpoint'ler client aggregation ile panele baglanir.
+
+## Proposed Changes
+
+1. `apps/refine_control_plane/next.config.ts`
+   - `/bilgeapi/:path*` rewrite eklenir.
+   - Varsayilan hedef `http://127.0.0.1:8100`.
+
+2. `apps/refine_control_plane/src/lib/bilgeapiOpsClient.ts`
+   - BilgeAPI admin/operator API client katmani.
+   - `X-API-Key` header destegi.
+   - API key create/list/revoke/quota usage.
+   - research/proposal/draft-pr/verification/feedback/revision/release/audit client fonksiyonlari.
+   - `plaintext_key` sadece create response icin tutulur, action log tarafinda redakte edilir.
+
+3. `apps/refine_control_plane/src/app/bilgeapi-ops/page.tsx`
+   - Dashboard summary.
+   - API key create/revoke/quota paneli.
+   - Research/evidence/proposal paneli.
+   - Draft PR + sandbox verification paneli.
+   - Reviewer feedback + patch revision paneli.
+   - Release gate + audit trail paneli.
+
+4. Navigation
+   - `apps/refine_control_plane/src/app/providers.tsx` icinde resource kaydi.
+   - `apps/refine_control_plane/src/components/Sidebar.tsx` icinde `bilgeapi-ops` menu entry.
+
+## Safety Rules
+
+- UI merge/deploy/apply yapmaz.
+- Draft PR ve patch revision akislari sadece mevcut BilgeAPI endpoint'lerini tetikler.
+- Plaintext API key listelerde, audit/action log'da veya quota ekraninda gosterilmez.
+- BilgeAPI operator key browser session scope'unda tutulur; clear aksiyonu ile silinir.
+
+## Verification Plan
+
+- Static contract test:
+  `py -3.13 -m pytest tests/unit/bilgeapi/test_phase27_ops_console_static.py -q`
+- Frontend build:
+  `npm run build` in `apps/refine_control_plane`
+- BilgeAPI regression:
+  `py -3.13 -m pytest tests/unit/bilgeapi tests/integration/bilgeapi --cov=apps/bilgeapi --cov-report=xml --cov-report=term-missing -q`
+- OpenAPI export:
+  `py -3.13 scripts/export_bilgeapi_openapi.py`
+- Release gate:
+  `py -3.13 scripts/run_release_gate.py`
+- Docker/live smoke:
+  `docker compose up -d bilgeapi`
+  `py -3.13 scripts/smoke_bilgeapi.py --base-url http://127.0.0.1:8100 --api-key dev-test-key-001`
+
+---
+
 # Implementation Plan — Phase 32: External Repo Intake & Governance
 
 This plan outlines the integration of external developer-agent repositories and utilities (`SWE-agent`, `SWE-ReX`, `PR-Agent/Qodo`, `Stagehand`, `OpenHands`, and architectural patterns from `GitHub Copilot`) into the Sovereign AGI self-repair and governance pipeline.
@@ -182,4 +262,3 @@ Transition the `approval_gate` taskflow step from a passive wait state into a st
 4. **Testing Suites**:
    * Create `tests/repair/test_human_gate_decision.py` for validation constraints and audit logging.
    * Create `tests/integration/test_repair_lab_human_gate_api.py` for endpoint contract validation.
-
