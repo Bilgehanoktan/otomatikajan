@@ -11,6 +11,9 @@ from apps.bilgeapi.schemas.improvements import (
 )
 from apps.bilgeapi.schemas.pr_draft import PrDraftResponse
 from apps.bilgeapi.schemas.pr_verification import PrVerificationResponse, PrReviewReportResponse
+from apps.bilgeapi.schemas.pr_revision import (
+    ReviewerFeedbackRequest, ReviewerFeedbackResponse, PatchRevisionRequest, PatchRevisionResponse
+)
 from apps.bilgeapi.routers.deps import (
     get_research_repository,
     get_improvement_repository,
@@ -20,7 +23,11 @@ from apps.bilgeapi.routers.deps import (
     get_pr_draft_service,
     get_pr_draft_repository,
     get_pr_verification_service,
-    get_pr_verification_repository
+    get_pr_verification_repository,
+    get_reviewer_feedback_service,
+    get_patch_revision_engine,
+    get_pr_review_feedback_repository,
+    get_patch_revision_repository
 )
 
 router = APIRouter(prefix="/v1/improvements", tags=["Improvements"])
@@ -356,5 +363,107 @@ async def get_pr_review_report_endpoint(
         raise
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.post("/pr-drafts/{pr_draft_id}/feedback", response_model=ReviewerFeedbackResponse, status_code=status.HTTP_201_CREATED)
+async def create_feedback_endpoint(
+    pr_draft_id: str,
+    body: ReviewerFeedbackRequest,
+    identity: dict = Depends(require_permission("bilgeapi.operator")),
+    service: Any = Depends(get_reviewer_feedback_service)
+):
+    """
+    Add reviewer feedback to a Draft PR. Operator or Admin.
+    """
+    actor_id = identity.get("id", "operator")
+    try:
+        fb = await service.add_feedback(
+            pr_draft_id=pr_draft_id,
+            comment=body.comment,
+            reviewer_id=body.reviewer_id,
+            actor_id=actor_id
+        )
+        return fb
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.get("/pr-drafts/{pr_draft_id}/feedback", response_model=List[ReviewerFeedbackResponse])
+async def list_feedback_endpoint(
+    pr_draft_id: str,
+    _identity: dict = Depends(require_permission("bilgeapi.operator")),
+    repo: Any = Depends(get_pr_review_feedback_repository)
+):
+    """
+    List all reviewer feedback for a Draft PR. Operator or Admin.
+    """
+    try:
+        feedbacks = await repo.list_feedback_by_pr_draft(pr_draft_id)
+        return feedbacks
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.post("/pr-drafts/{pr_draft_id}/revisions", response_model=PatchRevisionResponse, status_code=status.HTTP_201_CREATED)
+async def create_revision_endpoint(
+    pr_draft_id: str,
+    body: PatchRevisionRequest,
+    identity: dict = Depends(require_permission("bilgeapi.admin")),
+    service: Any = Depends(get_patch_revision_engine)
+):
+    """
+    Create a new patch revision for a Draft PR. Admin-only.
+    """
+    actor_id = identity.get("id", "admin")
+    try:
+        rev = await service.create_revision(
+            pr_draft_id=pr_draft_id,
+            feedback_id=body.feedback_id,
+            revised_patch_code=body.revised_patch_code,
+            actor_id=actor_id
+        )
+        return rev
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.get("/pr-drafts/{pr_draft_id}/revisions", response_model=List[PatchRevisionResponse])
+async def list_revisions_endpoint(
+    pr_draft_id: str,
+    _identity: dict = Depends(require_permission("bilgeapi.operator")),
+    repo: Any = Depends(get_patch_revision_repository)
+):
+    """
+    List all patch revisions for a Draft PR. Operator or Admin.
+    """
+    try:
+        revisions = await repo.list_revisions_by_pr_draft(pr_draft_id)
+        return revisions
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.post("/revisions/{revision_id}/verify", response_model=PrVerificationResponse, status_code=status.HTTP_201_CREATED)
+async def verify_revision_endpoint(
+    revision_id: str,
+    identity: dict = Depends(require_permission("bilgeapi.admin")),
+    service: Any = Depends(get_pr_verification_service)
+):
+    """
+    Trigger Sandbox verification and PR Review Gate scoring for a specific patch revision. Admin-only.
+    """
+    actor_id = identity.get("id", "admin")
+    try:
+        verification = await service.verify_revision(revision_id=revision_id, actor_id=actor_id)
+        return verification
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
 
 

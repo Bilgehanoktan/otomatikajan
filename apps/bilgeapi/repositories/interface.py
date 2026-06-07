@@ -231,5 +231,49 @@ class PrVerificationRepository(ABC):
     async def list_verifications_by_proposal(self, proposal_id: str) -> List[Dict[str, Any]]:
         pass
 
+    @abstractmethod
+    async def get_verification_by_revision(self, revision_id: str) -> Optional[Dict[str, Any]]:
+        pass
+
+
+class PrReviewFeedbackRepository(ABC):
+    @abstractmethod
+    async def create_feedback(self, feedback_data: Dict[str, Any]) -> Dict[str, Any]:
+        pass
+
+    @abstractmethod
+    async def get_feedback(self, feedback_id: str) -> Optional[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def list_feedback_by_pr_draft(self, pr_draft_id: str) -> List[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def update_feedback_status(self, feedback_id: str, status: str) -> Optional[Dict[str, Any]]:
+        pass
+
+
+class PatchRevisionRepository(ABC):
+    @abstractmethod
+    async def create_revision(self, revision_data: Dict[str, Any]) -> Dict[str, Any]:
+        pass
+
+    @abstractmethod
+    async def get_revision(self, revision_id: str) -> Optional[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def get_latest_revision_number(self, pr_draft_id: str) -> int:
+        pass
+
+    @abstractmethod
+    async def list_revisions_by_pr_draft(self, pr_draft_id: str) -> List[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def update_verification_status(self, revision_id: str, status: str) -> Optional[Dict[str, Any]]:
+        pass
+
 
 

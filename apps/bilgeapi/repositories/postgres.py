@@ -2,12 +2,12 @@ from datetime import datetime, timezone
 import uuid
 from typing import List, Optional, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, func
 from apps.bilgeapi.repositories.interface import (
     IncidentRepository, DiagnosticRepository, FindingRepository,
     RecommendationRepository, RepairRequestRepository, AuditRepository, WebhookDeliveryRepository,
     ReleaseCheckRepository, ApiKeyRepository, ResearchRepository, ImprovementRepository,
-    PrDraftRepository, PrVerificationRepository
+    PrDraftRepository, PrVerificationRepository, PrReviewFeedbackRepository, PatchRevisionRepository
 )
 from apps.bilgeapi.schemas.incident import IncidentCreate, IncidentResponse
 from apps.bilgeapi.schemas.diagnostic import DiagnosticResult, DiagnosticStatus
@@ -17,7 +17,7 @@ from apps.bilgeapi.models.database import (
     IncidentModel, DiagnosticRunModel, FindingModel, RecommendationModel,
     RepairRequestModel, AuditEventModel, WebhookDeliveryModel, ReleaseCheckModel,
     ApiKeyModel, ResearchRequestModel, ResearchEvidenceModel, ImprovementProposalModel,
-    PrDraftModel, PrVerificationModel
+    PrDraftModel, PrVerificationModel, PrReviewFeedbackModel, PatchRevisionModel
 )
 
 class PostgresIncidentRepository(IncidentRepository):
@@ -916,6 +916,7 @@ class PostgresPrVerificationRepository(PrVerificationRepository):
             "id": model.id,
             "pr_draft_id": model.pr_draft_id,
             "proposal_id": model.proposal_id,
+            "revision_id": model.revision_id,
             "status": model.status,
             "review_score": model.review_score,
             "review_decision": model.review_decision,
@@ -938,6 +939,7 @@ class PostgresPrVerificationRepository(PrVerificationRepository):
             id=ver_id,
             pr_draft_id=verification_data["pr_draft_id"],
             proposal_id=verification_data["proposal_id"],
+            revision_id=verification_data.get("revision_id"),
             status=verification_data.get("status", "PENDING"),
             review_score=verification_data["review_score"],
             review_decision=verification_data["review_decision"],
@@ -974,5 +976,147 @@ class PostgresPrVerificationRepository(PrVerificationRepository):
         )
         models = res.scalars().all()
         return [self._verification_to_dict(m) for m in models]
+
+    async def get_verification_by_revision(self, revision_id: str) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(PrVerificationModel)
+            .where(PrVerificationModel.revision_id == revision_id)
+            .order_by(desc(PrVerificationModel.created_at))
+            .limit(1)
+        )
+        model = res.scalar_one_or_none()
+        return self._verification_to_dict(model) if model else None
+
+
+class PostgresPrReviewFeedbackRepository(PrReviewFeedbackRepository):
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    def _feedback_to_dict(self, model: PrReviewFeedbackModel) -> Dict[str, Any]:
+        return {
+            "id": model.id,
+            "pr_draft_id": model.pr_draft_id,
+            "reviewer_id": model.reviewer_id,
+            "comment": model.comment,
+            "status": model.status,
+            "created_at": model.created_at,
+            "updated_at": model.updated_at,
+        }
+
+    async def create_feedback(self, feedback_data: Dict[str, Any]) -> Dict[str, Any]:
+        fb_id = f"pfb_{uuid.uuid4().hex[:8]}"
+        model = PrReviewFeedbackModel(
+            id=fb_id,
+            pr_draft_id=feedback_data["pr_draft_id"],
+            reviewer_id=feedback_data["reviewer_id"],
+            comment=feedback_data["comment"],
+            status=feedback_data.get("status", "PENDING")
+        )
+        self.db.add(model)
+        await self.db.commit()
+        await self.db.refresh(model)
+        return self._feedback_to_dict(model)
+
+    async def get_feedback(self, feedback_id: str) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(PrReviewFeedbackModel).where(PrReviewFeedbackModel.id == feedback_id)
+        )
+        model = res.scalar_one_or_none()
+        return self._feedback_to_dict(model) if model else None
+
+    async def list_feedback_by_pr_draft(self, pr_draft_id: str) -> List[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(PrReviewFeedbackModel)
+            .where(PrReviewFeedbackModel.pr_draft_id == pr_draft_id)
+            .order_by(desc(PrReviewFeedbackModel.created_at))
+        )
+        models = res.scalars().all()
+        return [self._feedback_to_dict(m) for m in models]
+
+    async def update_feedback_status(self, feedback_id: str, status: str) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(PrReviewFeedbackModel).where(PrReviewFeedbackModel.id == feedback_id)
+        )
+        model = res.scalar_one_or_none()
+        if not model:
+            return None
+        model.status = status
+        await self.db.commit()
+        await self.db.refresh(model)
+        return self._feedback_to_dict(model)
+
+
+class PostgresPatchRevisionRepository(PatchRevisionRepository):
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    def _revision_to_dict(self, model: PatchRevisionModel) -> Dict[str, Any]:
+        return {
+            "id": model.id,
+            "pr_draft_id": model.pr_draft_id,
+            "feedback_id": model.feedback_id,
+            "revision_number": model.revision_number,
+            "revised_patch_code": model.revised_patch_code,
+            "risk_analysis": model.risk_analysis,
+            "risk_level": model.risk_level,
+            "verification_status": model.verification_status,
+            "created_by": model.created_by,
+            "created_at": model.created_at,
+            "updated_at": model.updated_at,
+        }
+
+    async def create_revision(self, revision_data: Dict[str, Any]) -> Dict[str, Any]:
+        rev_id = f"prev_{uuid.uuid4().hex[:8]}"
+        model = PatchRevisionModel(
+            id=rev_id,
+            pr_draft_id=revision_data["pr_draft_id"],
+            feedback_id=revision_data.get("feedback_id"),
+            revision_number=revision_data["revision_number"],
+            revised_patch_code=revision_data["revised_patch_code"],
+            risk_analysis=revision_data.get("risk_analysis"),
+            risk_level=revision_data.get("risk_level", "LOW"),
+            verification_status=revision_data.get("verification_status", "PENDING"),
+            created_by=revision_data.get("created_by")
+        )
+        self.db.add(model)
+        await self.db.commit()
+        await self.db.refresh(model)
+        return self._revision_to_dict(model)
+
+    async def get_revision(self, revision_id: str) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(PatchRevisionModel).where(PatchRevisionModel.id == revision_id)
+        )
+        model = res.scalar_one_or_none()
+        return self._revision_to_dict(model) if model else None
+
+    async def get_latest_revision_number(self, pr_draft_id: str) -> int:
+        res = await self.db.execute(
+            select(func.coalesce(func.max(PatchRevisionModel.revision_number), 0))
+            .where(PatchRevisionModel.pr_draft_id == pr_draft_id)
+        )
+        return res.scalar_one()
+
+    async def list_revisions_by_pr_draft(self, pr_draft_id: str) -> List[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(PatchRevisionModel)
+            .where(PatchRevisionModel.pr_draft_id == pr_draft_id)
+            .order_by(desc(PatchRevisionModel.revision_number))
+        )
+        models = res.scalars().all()
+        return [self._revision_to_dict(m) for m in models]
+
+    async def update_verification_status(self, revision_id: str, status: str) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(PatchRevisionModel).where(PatchRevisionModel.id == revision_id)
+        )
+        model = res.scalar_one_or_none()
+        if not model:
+            return None
+        model.verification_status = status
+        await self.db.commit()
+        await self.db.refresh(model)
+        return self._revision_to_dict(model)
+
 
 

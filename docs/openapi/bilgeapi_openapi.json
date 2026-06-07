@@ -2339,6 +2339,285 @@
           }
         }
       }
+    },
+    "/v1/improvements/pr-drafts/{pr_draft_id}/feedback": {
+      "post": {
+        "tags": [
+          "Improvements"
+        ],
+        "summary": "Create Feedback Endpoint",
+        "description": "Add reviewer feedback to a Draft PR. Operator or Admin.",
+        "operationId": "create_feedback_endpoint_v1_improvements_pr_drafts__pr_draft_id__feedback_post",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pr_draft_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Pr Draft Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewerFeedbackRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewerFeedbackResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Improvements"
+        ],
+        "summary": "List Feedback Endpoint",
+        "description": "List all reviewer feedback for a Draft PR. Operator or Admin.",
+        "operationId": "list_feedback_endpoint_v1_improvements_pr_drafts__pr_draft_id__feedback_get",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pr_draft_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Pr Draft Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReviewerFeedbackResponse"
+                  },
+                  "title": "Response List Feedback Endpoint V1 Improvements Pr Drafts  Pr Draft Id  Feedback Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/improvements/pr-drafts/{pr_draft_id}/revisions": {
+      "post": {
+        "tags": [
+          "Improvements"
+        ],
+        "summary": "Create Revision Endpoint",
+        "description": "Create a new patch revision for a Draft PR. Admin-only.",
+        "operationId": "create_revision_endpoint_v1_improvements_pr_drafts__pr_draft_id__revisions_post",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pr_draft_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Pr Draft Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchRevisionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PatchRevisionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Improvements"
+        ],
+        "summary": "List Revisions Endpoint",
+        "description": "List all patch revisions for a Draft PR. Operator or Admin.",
+        "operationId": "list_revisions_endpoint_v1_improvements_pr_drafts__pr_draft_id__revisions_get",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pr_draft_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Pr Draft Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PatchRevisionResponse"
+                  },
+                  "title": "Response List Revisions Endpoint V1 Improvements Pr Drafts  Pr Draft Id  Revisions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/improvements/revisions/{revision_id}/verify": {
+      "post": {
+        "tags": [
+          "Improvements"
+        ],
+        "summary": "Verify Revision Endpoint",
+        "description": "Trigger Sandbox verification and PR Review Gate scoring for a specific patch revision. Admin-only.",
+        "operationId": "verify_revision_endpoint_v1_improvements_revisions__revision_id__verify_post",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "revision_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Revision Id"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrVerificationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2997,7 +3276,6 @@
           "before_state": {
             "anyOf": [
               {
-                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -3009,7 +3287,6 @@
           "after_state": {
             "anyOf": [
               {
-                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -3019,7 +3296,6 @@
             "title": "After State"
           },
           "metadata": {
-            "additionalProperties": true,
             "type": "object",
             "title": "Metadata"
           },
@@ -3373,7 +3649,6 @@
             "title": "Tags"
           },
           "metadata": {
-            "additionalProperties": true,
             "type": "object",
             "title": "Metadata"
           }
@@ -3451,7 +3726,6 @@
             "title": "Tags"
           },
           "metadata": {
-            "additionalProperties": true,
             "type": "object",
             "title": "Metadata"
           },
@@ -3478,6 +3752,107 @@
           "created_at"
         ],
         "title": "IncidentResponse"
+      },
+      "PatchRevisionRequest": {
+        "properties": {
+          "feedback_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feedback Id"
+          },
+          "revised_patch_code": {
+            "type": "string",
+            "title": "Revised Patch Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "revised_patch_code"
+        ],
+        "title": "PatchRevisionRequest"
+      },
+      "PatchRevisionResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "pr_draft_id": {
+            "type": "string",
+            "title": "Pr Draft Id"
+          },
+          "feedback_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feedback Id"
+          },
+          "revision_number": {
+            "type": "integer",
+            "title": "Revision Number"
+          },
+          "revised_patch_code": {
+            "type": "string",
+            "title": "Revised Patch Code"
+          },
+          "risk_analysis": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Analysis"
+          },
+          "risk_level": {
+            "type": "string",
+            "title": "Risk Level"
+          },
+          "verification_status": {
+            "type": "string",
+            "title": "Verification Status"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "pr_draft_id",
+          "revision_number",
+          "revised_patch_code",
+          "risk_level",
+          "verification_status",
+          "created_by",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "PatchRevisionResponse"
       },
       "PrDraftResponse": {
         "properties": {
@@ -3650,6 +4025,17 @@
             "type": "string",
             "title": "Proposal Id"
           },
+          "revision_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision Id"
+          },
           "status": {
             "type": "string",
             "title": "Status"
@@ -3795,7 +4181,6 @@
           "risk_analysis": {
             "anyOf": [
               {
-                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -3938,7 +4323,6 @@
           },
           "smoke_trace": {
             "items": {
-              "additionalProperties": true,
               "type": "object"
             },
             "type": "array",
@@ -4295,6 +4679,69 @@
         ],
         "title": "ResearchResponse"
       },
+      "ReviewerFeedbackRequest": {
+        "properties": {
+          "comment": {
+            "type": "string",
+            "title": "Comment"
+          },
+          "reviewer_id": {
+            "type": "string",
+            "title": "Reviewer Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "comment",
+          "reviewer_id"
+        ],
+        "title": "ReviewerFeedbackRequest"
+      },
+      "ReviewerFeedbackResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "pr_draft_id": {
+            "type": "string",
+            "title": "Pr Draft Id"
+          },
+          "reviewer_id": {
+            "type": "string",
+            "title": "Reviewer Id"
+          },
+          "comment": {
+            "type": "string",
+            "title": "Comment"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "pr_draft_id",
+          "reviewer_id",
+          "comment",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ReviewerFeedbackResponse"
+      },
       "Severity": {
         "type": "string",
         "enum": [
@@ -4328,13 +4775,6 @@
           "type": {
             "type": "string",
             "title": "Error Type"
-          },
-          "input": {
-            "title": "Input"
-          },
-          "ctx": {
-            "type": "object",
-            "title": "Context"
           }
         },
         "type": "object",
@@ -4421,7 +4861,6 @@
           "payload": {
             "anyOf": [
               {
-                "additionalProperties": true,
                 "type": "object"
               },
               {

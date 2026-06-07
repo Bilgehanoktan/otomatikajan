@@ -7,13 +7,13 @@ from apps.bilgeapi.repositories.interface import (
     IncidentRepository, DiagnosticRepository, FindingRepository,
     RecommendationRepository, RepairRequestRepository, AuditRepository, WebhookDeliveryRepository,
     ReleaseCheckRepository, ApiKeyRepository, ResearchRepository, ImprovementRepository,
-    PrDraftRepository, PrVerificationRepository
+    PrDraftRepository, PrVerificationRepository, PrReviewFeedbackRepository, PatchRevisionRepository
 )
 from apps.bilgeapi.repositories.postgres import (
     PostgresIncidentRepository, PostgresDiagnosticRepository, PostgresFindingRepository,
     PostgresRecommendationRepository, PostgresRepairRequestRepository, PostgresAuditRepository, PostgresWebhookDeliveryRepository,
     PostgresReleaseCheckRepository, PostgresApiKeyRepository, PostgresResearchRepository, PostgresImprovementRepository,
-    PostgresPrDraftRepository, PostgresPrVerificationRepository
+    PostgresPrDraftRepository, PostgresPrVerificationRepository, PostgresPrReviewFeedbackRepository, PostgresPatchRevisionRepository
 )
 from apps.bilgeapi.services.audit import AuditService
 from apps.bilgeapi.services.diagnostic import DiagnosticService
@@ -177,12 +177,21 @@ async def get_pr_verification_repository(db: AsyncSession = Depends(get_db)) -> 
     return PostgresPrVerificationRepository(db)
 
 
+async def get_pr_review_feedback_repository(db: AsyncSession = Depends(get_db)) -> PrReviewFeedbackRepository:
+    return PostgresPrReviewFeedbackRepository(db)
+
+
+async def get_patch_revision_repository(db: AsyncSession = Depends(get_db)) -> PatchRevisionRepository:
+    return PostgresPatchRevisionRepository(db)
+
+
 def get_pr_verification_service(
     verification_repo: PrVerificationRepository = Depends(get_pr_verification_repository),
     pr_draft_repo: PrDraftRepository = Depends(get_pr_draft_repository),
     proposal_repo: ImprovementRepository = Depends(get_improvement_repository),
     research_repo: ResearchRepository = Depends(get_research_repository),
-    audit_service: AuditService = Depends(get_audit_service)
+    audit_service: AuditService = Depends(get_audit_service),
+    revision_repo: PatchRevisionRepository = Depends(get_patch_revision_repository)
 ) -> Any:
     from apps.bilgeapi.services.pr_verification import PrVerificationService
     return PrVerificationService(
@@ -190,8 +199,28 @@ def get_pr_verification_service(
         pr_draft_repo=pr_draft_repo,
         proposal_repo=proposal_repo,
         research_repo=research_repo,
-        audit_service=audit_service
+        audit_service=audit_service,
+        revision_repo=revision_repo
     )
+
+
+def get_reviewer_feedback_service(
+    feedback_repo: PrReviewFeedbackRepository = Depends(get_pr_review_feedback_repository),
+    pr_draft_repo: PrDraftRepository = Depends(get_pr_draft_repository),
+    audit_service: AuditService = Depends(get_audit_service)
+) -> Any:
+    from apps.bilgeapi.services.patch_revision import ReviewerFeedbackService
+    return ReviewerFeedbackService(feedback_repo, pr_draft_repo, audit_service)
+
+
+def get_patch_revision_engine(
+    revision_repo: PatchRevisionRepository = Depends(get_patch_revision_repository),
+    pr_draft_repo: PrDraftRepository = Depends(get_pr_draft_repository),
+    audit_service: AuditService = Depends(get_audit_service)
+) -> Any:
+    from apps.bilgeapi.services.patch_revision import PatchRevisionEngine
+    return PatchRevisionEngine(revision_repo, pr_draft_repo, audit_service)
+
 
 
 

@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Text, DateTime, Float, ForeignKey, Boolean, Integer
+from sqlalchemy import Column, String, Text, DateTime, Float, ForeignKey, Boolean, Integer, UniqueConstraint
 from sqlalchemy.orm import relationship
 from libs.db.base import Base, SmartJSON
 
@@ -238,6 +238,7 @@ class PrVerificationModel(Base):
     id = Column(String(64), primary_key=True)
     pr_draft_id = Column(String(64), ForeignKey("bilgeapi_pr_drafts.id"), nullable=False, index=True)
     proposal_id = Column(String(64), ForeignKey("bilgeapi_improvement_proposals.id"), nullable=False, index=True)
+    revision_id = Column(String(64), ForeignKey("bilgeapi_patch_revisions.id"), nullable=True, index=True)
     status = Column(String(32), default="PENDING", nullable=False, index=True) # PENDING, REVIEW_READY, NEEDS_HUMAN_CAUTION, NEEDS_REVISION, BLOCKED
     review_score = Column(Float, nullable=False)
     review_decision = Column(String(32), nullable=False) # REVIEW_READY, NEEDS_HUMAN_CAUTION, NEEDS_REVISION, BLOCKED
@@ -255,5 +256,40 @@ class PrVerificationModel(Base):
 
     pr_draft = relationship("PrDraftModel")
     proposal = relationship("ImprovementProposalModel")
+    revision = relationship("PatchRevisionModel")
+
+
+class PrReviewFeedbackModel(Base):
+    __tablename__ = "bilgeapi_pr_review_feedbacks"
+
+    id = Column(String(64), primary_key=True)
+    pr_draft_id = Column(String(64), ForeignKey("bilgeapi_pr_drafts.id"), nullable=False, index=True)
+    reviewer_id = Column(String(64), nullable=False)
+    comment = Column(Text, nullable=False)
+    status = Column(String(32), default="PENDING", nullable=False, index=True) # PENDING, RESOLVED, SUPERSEDED
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
+
+    pr_draft = relationship("PrDraftModel")
+
+
+class PatchRevisionModel(Base):
+    __tablename__ = "bilgeapi_patch_revisions"
+    __table_args__ = (UniqueConstraint('pr_draft_id', 'revision_number', name='uq_pr_draft_revision'),)
+
+    id = Column(String(64), primary_key=True)
+    pr_draft_id = Column(String(64), ForeignKey("bilgeapi_pr_drafts.id"), nullable=False, index=True)
+    feedback_id = Column(String(64), ForeignKey("bilgeapi_pr_review_feedbacks.id"), nullable=True, index=True)
+    revision_number = Column(Integer, nullable=False)
+    revised_patch_code = Column(Text, nullable=False)
+    risk_analysis = Column(SmartJSON(), nullable=True)
+    risk_level = Column(String(32), default="LOW", nullable=False) # LOW, MEDIUM, HIGH
+    verification_status = Column(String(32), default="PENDING", nullable=False, index=True) # PENDING, VERIFIED, FAILED
+    created_by = Column(String(64), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
+
+    pr_draft = relationship("PrDraftModel")
+    feedback = relationship("PrReviewFeedbackModel")
 
 

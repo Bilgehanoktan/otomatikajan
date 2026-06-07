@@ -15,7 +15,9 @@ from apps.bilgeapi.repositories.interface import (
     ResearchRepository,
     ImprovementRepository,
     PrDraftRepository,
-    PrVerificationRepository
+    PrVerificationRepository,
+    PrReviewFeedbackRepository,
+    PatchRevisionRepository
 )
 from apps.bilgeapi.schemas.incident import IncidentCreate, IncidentResponse
 from apps.bilgeapi.schemas.diagnostic import DiagnosticResult, DiagnosticStatus
@@ -38,6 +40,8 @@ class MemoryRepositoriesContainer:
         self.improvement_proposals: Dict[str, Dict[str, Any]] = {}
         self.pr_drafts: Dict[str, Dict[str, Any]] = {}
         self.pr_verifications: Dict[str, Dict[str, Any]] = {}
+        self.pr_review_feedbacks: Dict[str, Dict[str, Any]] = {}
+        self.patch_revisions: Dict[str, Dict[str, Any]] = {}
         self._lock = asyncio.Lock()
 
     def clear_all(self):
@@ -55,6 +59,8 @@ class MemoryRepositoriesContainer:
         self.improvement_proposals.clear()
         self.pr_drafts.clear()
         self.pr_verifications.clear()
+        self.pr_review_feedbacks.clear()
+        self.patch_revisions.clear()
 
 memory_repositories = MemoryRepositoriesContainer()
 
@@ -539,6 +545,7 @@ class InMemoryPrVerificationRepository(PrVerificationRepository):
                 "id": ver_id,
                 "pr_draft_id": verification_data["pr_draft_id"],
                 "proposal_id": verification_data["proposal_id"],
+                "revision_id": verification_data.get("revision_id"),
                 "status": verification_data.get("status", "PENDING"),
                 "review_score": verification_data["review_score"],
                 "review_decision": verification_data["review_decision"],
@@ -578,6 +585,117 @@ class InMemoryPrVerificationRepository(PrVerificationRepository):
                 key=lambda x: x.get("created_at") or datetime.min.replace(tzinfo=timezone.utc),
                 reverse=True
             )
+
+    async def get_verification_by_revision(self, revision_id: str) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            verifications = [
+                v for v in memory_repositories.pr_verifications.values()
+                if v.get("revision_id") == revision_id
+            ]
+            if not verifications:
+                return None
+            return sorted(
+                verifications,
+                key=lambda x: x.get("created_at") or datetime.min.replace(tzinfo=timezone.utc),
+                reverse=True
+            )[0]
+
+
+class InMemoryPrReviewFeedbackRepository(PrReviewFeedbackRepository):
+    async def create_feedback(self, feedback_data: Dict[str, Any]) -> Dict[str, Any]:
+        async with memory_repositories._lock:
+            fb_id = f"pfb_{uuid.uuid4().hex[:8]}"
+            response = {
+                "id": fb_id,
+                "pr_draft_id": feedback_data["pr_draft_id"],
+                "reviewer_id": feedback_data["reviewer_id"],
+                "comment": feedback_data["comment"],
+                "status": feedback_data.get("status", "PENDING"),
+                "created_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc)
+            }
+            memory_repositories.pr_review_feedbacks[fb_id] = response
+            return response
+
+    async def get_feedback(self, feedback_id: str) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            return memory_repositories.pr_review_feedbacks.get(feedback_id)
+
+    async def list_feedback_by_pr_draft(self, pr_draft_id: str) -> List[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            feedbacks = [
+                fb for fb in memory_repositories.pr_review_feedbacks.values()
+                if fb["pr_draft_id"] == pr_draft_id
+            ]
+            return sorted(
+                feedbacks,
+                key=lambda x: x.get("created_at") or datetime.min.replace(tzinfo=timezone.utc),
+                reverse=True
+            )
+
+    async def update_feedback_status(self, feedback_id: str, status: str) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            fb = memory_repositories.pr_review_feedbacks.get(feedback_id)
+            if not fb:
+                return None
+            fb["status"] = status
+            fb["updated_at"] = datetime.now(timezone.utc)
+            return fb
+
+
+class InMemoryPatchRevisionRepository(PatchRevisionRepository):
+    async def create_revision(self, revision_data: Dict[str, Any]) -> Dict[str, Any]:
+        async with memory_repositories._lock:
+            rev_id = f"prev_{uuid.uuid4().hex[:8]}"
+            response = {
+                "id": rev_id,
+                "pr_draft_id": revision_data["pr_draft_id"],
+                "feedback_id": revision_data.get("feedback_id"),
+                "revision_number": revision_data["revision_number"],
+                "revised_patch_code": revision_data["revised_patch_code"],
+                "risk_analysis": revision_data.get("risk_analysis"),
+                "risk_level": revision_data.get("risk_level", "LOW"),
+                "verification_status": revision_data.get("verification_status", "PENDING"),
+                "created_by": revision_data.get("created_by"),
+                "created_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc)
+            }
+            memory_repositories.patch_revisions[rev_id] = response
+            return response
+
+    async def get_revision(self, revision_id: str) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            return memory_repositories.patch_revisions.get(revision_id)
+
+    async def get_latest_revision_number(self, pr_draft_id: str) -> int:
+        async with memory_repositories._lock:
+            revs = [
+                r["revision_number"] for r in memory_repositories.patch_revisions.values()
+                if r["pr_draft_id"] == pr_draft_id
+            ]
+            return max(revs) if revs else 0
+
+    async def list_revisions_by_pr_draft(self, pr_draft_id: str) -> List[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            revisions = [
+                r for r in memory_repositories.patch_revisions.values()
+                if r["pr_draft_id"] == pr_draft_id
+            ]
+            return sorted(
+                revisions,
+                key=lambda x: x["revision_number"],
+                reverse=True
+            )
+
+    async def update_verification_status(self, revision_id: str, status: str) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            r = memory_repositories.patch_revisions.get(revision_id)
+            if not r:
+                return None
+            r["verification_status"] = status
+            r["updated_at"] = datetime.now(timezone.utc)
+            return r
+
 
 
 

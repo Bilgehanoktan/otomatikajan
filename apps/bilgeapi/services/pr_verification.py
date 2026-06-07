@@ -6,7 +6,8 @@ from apps.bilgeapi.repositories.interface import (
     PrVerificationRepository,
     PrDraftRepository,
     ImprovementRepository,
-    ResearchRepository
+    ResearchRepository,
+    PatchRevisionRepository
 )
 from apps.bilgeapi.services.audit import AuditService
 
@@ -200,13 +201,15 @@ class PrVerificationService:
         pr_draft_repo: PrDraftRepository,
         proposal_repo: ImprovementRepository,
         research_repo: ResearchRepository,
-        audit_service: AuditService
+        audit_service: AuditService,
+        revision_repo: Optional[PatchRevisionRepository] = None
     ):
         self.verification_repo = verification_repo
         self.pr_draft_repo = pr_draft_repo
         self.proposal_repo = proposal_repo
         self.research_repo = research_repo
         self.audit_service = audit_service
+        self.revision_repo = revision_repo
         self.analyzer = SandboxPatchAnalyzer()
         self.scorer = PrReviewGateScorer()
 
@@ -393,3 +396,131 @@ Risk Level: **{risk_level}**
 ```
 """
         return report
+
+    async def verify_revision(self, revision_id: str, actor_id: str) -> Dict[str, Any]:
+        if not self.revision_repo:
+            raise ValueError("Revision repository not configured")
+
+        # Log start
+        await self.audit_service.log_event(
+            event_type="PATCH_REVISION_VERIFICATION_STARTED",
+            actor_id=actor_id,
+            actor_type="user",
+            entity_type="patch_revision",
+            entity_id=revision_id,
+            metadata={"msg": f"Verification started for Patch Revision {revision_id}"}
+        )
+
+        revision = await self.revision_repo.get_revision(revision_id)
+        if not revision:
+            await self.audit_service.log_event(
+                event_type="PATCH_REVISION_VERIFICATION_FAILED",
+                actor_id=actor_id,
+                actor_type="user",
+                entity_type="patch_revision",
+                entity_id=revision_id,
+                metadata={"error": "Patch Revision not found"}
+            )
+            raise ValueError("Patch Revision not found")
+
+        pr_draft_id = revision["pr_draft_id"]
+        pr_draft = await self.pr_draft_repo.get_pr_draft(pr_draft_id)
+        if not pr_draft:
+            raise ValueError("PR Draft not found")
+
+        proposal_id = pr_draft["proposal_id"]
+        proposal = await self.proposal_repo.get_proposal(proposal_id)
+        if not proposal:
+            raise ValueError("Proposal not found")
+
+        # Fetch evidences
+        research_id = proposal.get("research_id")
+        evidences = []
+        if research_id:
+            evidences = await self.research_repo.list_evidences(research_id)
+
+        # Analyze patch code of the revision (instead of proposal)
+        revised_patch_code = revision["revised_patch_code"]
+        analysis = self.analyzer.analyze_patch(revised_patch_code)
+
+        # Score the PR review
+        scoring = self.scorer.calculate_score(analysis, proposal, evidences)
+
+        # Generate test plan
+        test_plan = []
+        if analysis["test_files"]:
+            test_plan.append("Run existing unit/integration tests found in diff.")
+        else:
+            test_plan.append("WARNING: No tests found in diff. Create a new test case for the change.")
+        
+        if scoring["risk_level"] == "HIGH":
+            test_plan.append("CRITICAL: Manual operator inspection of security/configuration changes is mandatory.")
+        test_plan.append("Verify endpoint behaviors against OpenAPI definitions.")
+
+        # Generate rollback plan
+        rollback_plan = f"git checkout {pr_draft.get('branch_name', 'main')}\n"
+        if pr_draft.get("github_pr_url"):
+            rollback_plan += f"Close Draft PR: {pr_draft['github_pr_url']}\n"
+        rollback_plan += "Revert code patch locally if applied."
+
+        # Generate markdown report
+        report_markdown = self._generate_report(
+            pr_draft_id=pr_draft_id,
+            proposal_id=proposal_id,
+            review_score=scoring["score"],
+            review_decision=scoring["review_decision"],
+            risk_level=scoring["risk_level"],
+            analysis=analysis,
+            scoring_breakdown=scoring["breakdown"],
+            test_plan=test_plan,
+            rollback_plan=rollback_plan
+        )
+
+        status = scoring["review_decision"]
+
+        # Create verification record
+        verification_data = {
+            "pr_draft_id": pr_draft_id,
+            "proposal_id": proposal_id,
+            "revision_id": revision_id,
+            "status": status,
+            "review_score": scoring["score"],
+            "review_decision": scoring["review_decision"],
+            "risk_level": scoring["risk_level"],
+            "risk_flags": analysis["risky_files"],
+            "affected_files": analysis["affected_files"],
+            "mutation_detected": analysis["mutation_commands_detected"],
+            "test_files_present": len(analysis["test_files"]) > 0,
+            "patch_size_lines": analysis["patch_size_lines"],
+            "test_plan": test_plan,
+            "rollback_plan": rollback_plan,
+            "verification_report": report_markdown
+        }
+
+        verification = await self.verification_repo.create_verification(verification_data)
+
+        # Update verification_status on revision
+        if scoring["review_decision"] in ["REVIEW_READY", "NEEDS_HUMAN_CAUTION"]:
+            ver_status = "VERIFIED"
+        else:
+            ver_status = "FAILED"
+
+        await self.revision_repo.update_verification_status(revision_id, ver_status)
+
+        # Log completion
+        await self.audit_service.log_event(
+            event_type="PATCH_REVISION_VERIFIED" if ver_status == "VERIFIED" else "PATCH_REVISION_VERIFICATION_FAILED",
+            actor_id=actor_id,
+            actor_type="user",
+            entity_type="patch_revision",
+            entity_id=revision_id,
+            metadata={
+                "score": scoring["score"],
+                "decision": scoring["review_decision"],
+                "risk_level": scoring["risk_level"],
+                "verification_status": ver_status
+            }
+        )
+
+        return verification
+

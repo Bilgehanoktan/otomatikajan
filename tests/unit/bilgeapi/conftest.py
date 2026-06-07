@@ -39,7 +39,9 @@ def test_client():
         get_research_repository,
         get_improvement_repository,
         get_pr_draft_repository,
-        get_pr_verification_repository
+        get_pr_verification_repository,
+        get_pr_review_feedback_repository,
+        get_patch_revision_repository
     )
     from apps.bilgeapi.repositories.memory import (
         InMemoryIncidentRepository,
@@ -54,6 +56,8 @@ def test_client():
         InMemoryImprovementRepository,
         InMemoryPrDraftRepository,
         InMemoryPrVerificationRepository,
+        InMemoryPrReviewFeedbackRepository,
+        InMemoryPatchRevisionRepository,
         memory_repositories
     )
     
@@ -73,6 +77,8 @@ def test_client():
     app.dependency_overrides[get_improvement_repository] = lambda: InMemoryImprovementRepository()
     app.dependency_overrides[get_pr_draft_repository] = lambda: InMemoryPrDraftRepository()
     app.dependency_overrides[get_pr_verification_repository] = lambda: InMemoryPrVerificationRepository()
+    app.dependency_overrides[get_pr_review_feedback_repository] = lambda: InMemoryPrReviewFeedbackRepository()
+    app.dependency_overrides[get_patch_revision_repository] = lambda: InMemoryPatchRevisionRepository()
     
     with TestClient(app) as client:
         yield client
@@ -96,7 +102,9 @@ def test_client_real_auth():
         get_research_repository,
         get_improvement_repository,
         get_pr_draft_repository,
-        get_pr_verification_repository
+        get_pr_verification_repository,
+        get_pr_review_feedback_repository,
+        get_patch_revision_repository
     )
     from apps.bilgeapi.repositories.memory import (
         InMemoryIncidentRepository,
@@ -111,6 +119,8 @@ def test_client_real_auth():
         InMemoryImprovementRepository,
         InMemoryPrDraftRepository,
         InMemoryPrVerificationRepository,
+        InMemoryPrReviewFeedbackRepository,
+        InMemoryPatchRevisionRepository,
         memory_repositories
     )
     
@@ -129,6 +139,8 @@ def test_client_real_auth():
     app.dependency_overrides[get_improvement_repository] = lambda: InMemoryImprovementRepository()
     app.dependency_overrides[get_pr_draft_repository] = lambda: InMemoryPrDraftRepository()
     app.dependency_overrides[get_pr_verification_repository] = lambda: InMemoryPrVerificationRepository()
+    app.dependency_overrides[get_pr_review_feedback_repository] = lambda: InMemoryPrReviewFeedbackRepository()
+    app.dependency_overrides[get_patch_revision_repository] = lambda: InMemoryPatchRevisionRepository()
     
     with TestClient(app) as client:
         yield client
