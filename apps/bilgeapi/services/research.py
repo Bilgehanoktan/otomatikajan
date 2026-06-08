@@ -307,9 +307,25 @@ class SourceTrustScorer:
 
 
 class WebResearchAdapter:
-    def __init__(self, provider: WebSearchProvider, repo: ResearchRepository):
+    def __init__(self, provider: WebSearchProvider, repo: ResearchRepository, ledger_service: Optional[Any] = None):
         self.provider = provider
         self.repo = repo
+        self.ledger_service = ledger_service
+
+    async def _append_ledger_event(self, *, request_id: str, event_type: str, payload: Dict[str, Any]) -> None:
+        if not self.ledger_service:
+            return
+        try:
+            await self.ledger_service.append_event(
+                chain_id=f"chain_{request_id}",
+                event_type=event_type,
+                entity_type="research_request",
+                entity_id=request_id,
+                actor_id=payload.get("tenant_id") or "system",
+                payload=payload,
+            )
+        except Exception as exc:
+            logger.warning("Review ledger append failed for research:%s: %s", request_id, exc)
 
     async def run_research(self, request_id: str) -> List[Dict[str, Any]]:
         """
@@ -405,10 +421,24 @@ class WebResearchAdapter:
                 ev = await self.repo.create_evidence(evidence_data)
                 saved_evidences.append(ev)
 
-            await self.repo.update_request_status(request_id, "COMPLETED")
+            updated = await self.repo.update_request_status(request_id, "COMPLETED")
+            await self._append_ledger_event(
+                request_id=request_id,
+                event_type="RESEARCH_COMPLETED",
+                payload={
+                    "request": updated or req,
+                    "evidence_ids": [item["id"] for item in saved_evidences],
+                    "evidence_count": len(saved_evidences),
+                },
+            )
             return saved_evidences
 
         except Exception as e:
             logger.error(f"Error executing research request {request_id}: {e}", exc_info=True)
-            await self.repo.update_request_status(request_id, "FAILED", error_message=str(e))
+            failed = await self.repo.update_request_status(request_id, "FAILED", error_message=str(e))
+            await self._append_ledger_event(
+                request_id=request_id,
+                event_type="RESEARCH_FAILED",
+                payload={"request": failed or req, "error": str(e)},
+            )
             raise e

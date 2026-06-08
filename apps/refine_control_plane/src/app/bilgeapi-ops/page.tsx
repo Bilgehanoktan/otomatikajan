@@ -34,6 +34,9 @@ import {
   ProposalRecord,
   QuotaUsage,
   ResearchRecord,
+  ReviewLedgerEntryRecord,
+  ReviewLedgerExportRecord,
+  ReviewLedgerVerifyRecord,
   ReviewerFeedbackRecord,
   approveProposal,
   createBilgeApiKey,
@@ -42,6 +45,8 @@ import {
   createProposal,
   createResearchRequest,
   createReviewerFeedback,
+  exportReviewLedgerChain,
+  getReviewLedgerChain,
   getProposalAuditReport,
   listPatchRevisions,
   listResearchEvidences,
@@ -54,9 +59,10 @@ import {
   updateApiKeyQuota,
   verifyDraftPr,
   verifyPatchRevision,
+  verifyReviewLedgerChain,
 } from "@/lib/bilgeapiOpsClient";
 
-type OpsTab = "dashboard" | "keys" | "research" | "prs" | "revisions" | "audit";
+type OpsTab = "dashboard" | "keys" | "research" | "prs" | "revisions" | "ledger" | "audit";
 
 type ActionLog = {
   id: string;
@@ -72,6 +78,7 @@ const tabs: Array<{ id: OpsTab; label: string; icon: LucideIcon }> = [
   { id: "research", label: "Research", icon: Search },
   { id: "prs", label: "Draft PRs", icon: GitPullRequestDraft },
   { id: "revisions", label: "Revisions", icon: RotateCcw },
+  { id: "ledger", label: "Ledger", icon: ClipboardCheck },
   { id: "audit", label: "Audit", icon: ClipboardCheck },
 ];
 
@@ -122,6 +129,10 @@ export default function BilgeAPIOpsConsole() {
   const [feedback, setFeedback] = React.useState<ReviewerFeedbackRecord[]>([]);
   const [revisions, setRevisions] = React.useState<PatchRevisionRecord[]>([]);
   const [lastVerification, setLastVerification] = React.useState<PrVerificationRecord | null>(null);
+  const [ledgerChainId, setLedgerChainId] = React.useState("");
+  const [ledgerEntries, setLedgerEntries] = React.useState<ReviewLedgerEntryRecord[]>([]);
+  const [ledgerVerification, setLedgerVerification] = React.useState<ReviewLedgerVerifyRecord | null>(null);
+  const [ledgerExport, setLedgerExport] = React.useState<ReviewLedgerExportRecord | null>(null);
 
   const [keyForm, setKeyForm] = React.useState({
     role: "OPERATOR",
@@ -183,6 +194,7 @@ export default function BilgeAPIOpsConsole() {
   const drafts = snapshot?.drafts ?? [];
   const verifications = snapshot?.verifications ?? [];
   const auditEvents = snapshot?.auditEvents ?? [];
+  const ledgerRecent = snapshot?.ledgerRecent ?? [];
   const releaseLatest = snapshot?.releaseLatest ?? null;
 
   const quotaRows = apiKeys.map((key) => ({
@@ -214,6 +226,7 @@ export default function BilgeAPIOpsConsole() {
 
   async function loadDraftContext(draftId: string) {
     setSelectedDraftId(draftId);
+    setLedgerChainId(`chain_${draftId}`);
     const [nextFeedback, nextRevisions] = await Promise.all([
       listReviewerFeedback(apiKey, draftId).catch(() => []),
       listPatchRevisions(apiKey, draftId).catch(() => []),
@@ -321,6 +334,7 @@ export default function BilgeAPIOpsConsole() {
             <Metric label="PR Draft Review" value={pendingDraftCount} icon={<GitPullRequestDraft size={16} />} tone="violet" />
             <Metric label="Needs Caution" value={cautionCount} icon={<AlertTriangle size={16} />} tone={cautionCount ? "amber" : "gray"} />
             <Metric label="Audit Events" value={auditEvents.length} icon={<ClipboardCheck size={16} />} tone="green" />
+            <Metric label="Ledger Entries" value={ledgerRecent.length} icon={<ClipboardCheck size={16} />} tone="violet" />
           </div>
 
           <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
@@ -575,6 +589,84 @@ export default function BilgeAPIOpsConsole() {
         </div>
       ) : null}
 
+      {activeTab === "ledger" ? (
+        <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
+          <Panel title="Immutable Review Ledger" icon={<ClipboardCheck size={16} />}>
+            <FormGrid>
+              <input
+                className={inputClass}
+                value={ledgerChainId}
+                onChange={(event) => setLedgerChainId(event.target.value)}
+                placeholder="chain_id, e.g. chain_prd_123"
+              />
+              <button
+                className={secondaryButtonClass}
+                onClick={() =>
+                  ledgerChainId &&
+                  void runAction("ledger_chain", getReviewLedgerChain(apiKey, ledgerChainId), (value) => {
+                    setLedgerEntries(value.entries);
+                    setLedgerVerification(null);
+                    setLedgerExport(null);
+                  })
+                }
+              >
+                <Eye size={15} />
+                Load
+              </button>
+              <button
+                className={primaryButtonClass}
+                onClick={() =>
+                  ledgerChainId &&
+                  void runAction("ledger_verify", verifyReviewLedgerChain(apiKey, ledgerChainId), (value) => setLedgerVerification(value))
+                }
+              >
+                <Play size={15} />
+                Verify
+              </button>
+              <button
+                className={secondaryButtonClass}
+                onClick={() =>
+                  ledgerChainId &&
+                  void runAction("ledger_export", exportReviewLedgerChain(apiKey, ledgerChainId), (value) => setLedgerExport(value))
+                }
+              >
+                <FileText size={15} />
+                Export
+              </button>
+            </FormGrid>
+            {ledgerVerification ? (
+              <div className={`mt-4 rounded-lg border p-4 ${ledgerVerification.valid ? "border-emerald-300/20 bg-emerald-300/10" : "border-rose-300/20 bg-rose-300/10"}`}>
+                <div className="text-xs font-black uppercase tracking-widest text-white">
+                  {ledgerVerification.valid ? "Chain verified" : "Chain broken"}
+                </div>
+                <div className="mt-2 text-xs text-gray-300">
+                  {ledgerVerification.entry_count} entries / head {ledgerVerification.head_hash || "-"}
+                </div>
+              </div>
+            ) : null}
+            <LedgerEntryList entries={ledgerEntries.length ? ledgerEntries : ledgerRecent} />
+          </Panel>
+          <Panel title="Ledger Export Preview" icon={<FileText size={16} />}>
+            {ledgerExport ? (
+              <pre className="max-h-[560px] overflow-auto rounded-lg border border-white/10 bg-black/40 p-4 text-xs text-gray-300">
+                {ledgerExport.content}
+              </pre>
+            ) : (
+              <CompactTable
+                headers={["Chain", "Seq", "Event", "Hash"]}
+                rows={ledgerRecent.map((entry) => [
+                  entry.chain_id,
+                  entry.sequence_no,
+                  entry.event_type,
+                  entry.event_hash.slice(0, 12),
+                ])}
+                empty="No ledger entry loaded"
+              />
+            )}
+          </Panel>
+        </div>
+      ) : null}
+
       {activeTab === "audit" ? (
         <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
           <Panel title="Audit Trail" icon={<ClipboardCheck size={16} />}>
@@ -680,6 +772,34 @@ function EmptyState({ text }: { text: string }) {
   return (
     <div className="rounded-lg border border-white/10 bg-white/[0.02] p-6 text-center text-xs font-bold uppercase tracking-widest text-gray-500">
       {text}
+    </div>
+  );
+}
+
+function LedgerEntryList({ entries }: { entries: ReviewLedgerEntryRecord[] }) {
+  if (entries.length === 0) return <EmptyState text="No immutable ledger entry loaded" />;
+  return (
+    <div className="mt-4 space-y-3">
+      {entries.map((entry) => (
+        <div key={entry.id} className="rounded-lg border border-white/10 bg-black/20 p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-mono text-xs font-black text-white">{entry.chain_id}</span>
+            <span className="rounded border border-cyan-300/20 bg-cyan-300/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-cyan-100">
+              #{entry.sequence_no}
+            </span>
+            <span className={`rounded border px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${statusTone(entry.event_type)}`}>
+              {entry.event_type}
+            </span>
+          </div>
+          <div className="mt-2 grid gap-2 text-xs text-gray-500 md:grid-cols-2">
+            <span>{entry.entity_type}:{entry.entity_id}</span>
+            <span className="font-mono">hash {entry.event_hash.slice(0, 16)}</span>
+          </div>
+          <pre className="mt-3 max-h-40 overflow-auto rounded-lg border border-white/10 bg-black/40 p-3 text-xs text-gray-300">
+            {JSON.stringify(entry.payload_summary || {}, null, 2)}
+          </pre>
+        </div>
+      ))}
     </div>
   );
 }

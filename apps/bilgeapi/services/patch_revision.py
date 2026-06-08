@@ -1,13 +1,32 @@
+import logging
 from typing import List, Optional, Dict, Any
 from apps.bilgeapi.repositories.interface import PrReviewFeedbackRepository, PatchRevisionRepository, PrDraftRepository
 from apps.bilgeapi.services.pr_verification import SandboxPatchAnalyzer
 from apps.bilgeapi.services.audit import AuditService
 
+logger = logging.getLogger(__name__)
+
 class ReviewerFeedbackService:
-    def __init__(self, feedback_repo: PrReviewFeedbackRepository, pr_draft_repo: PrDraftRepository, audit_service: AuditService):
+    def __init__(self, feedback_repo: PrReviewFeedbackRepository, pr_draft_repo: PrDraftRepository, audit_service: AuditService, ledger_service: Optional[Any] = None):
         self.feedback_repo = feedback_repo
         self.pr_draft_repo = pr_draft_repo
         self.audit_service = audit_service
+        self.ledger_service = ledger_service
+
+    async def _append_ledger_event(self, *, chain_id: str, event_type: str, entity_type: str, entity_id: str, actor_id: str, payload: Dict[str, Any]) -> None:
+        if not self.ledger_service:
+            return
+        try:
+            await self.ledger_service.append_event(
+                chain_id=chain_id,
+                event_type=event_type,
+                entity_type=entity_type,
+                entity_id=entity_id,
+                actor_id=actor_id,
+                payload=payload,
+            )
+        except Exception as exc:
+            logger.warning("Review ledger append failed for %s:%s: %s", entity_type, entity_id, exc)
 
     async def add_feedback(self, pr_draft_id: str, comment: str, reviewer_id: str, actor_id: str) -> Dict[str, Any]:
         pr_draft = await self.pr_draft_repo.get_pr_draft(pr_draft_id)
@@ -29,6 +48,14 @@ class ReviewerFeedbackService:
             entity_type="pr_draft",
             entity_id=pr_draft_id,
             metadata={"feedback_id": fb["id"], "reviewer_id": reviewer_id}
+        )
+        await self._append_ledger_event(
+            chain_id=f"chain_{pr_draft_id}",
+            event_type="PR_REVIEW_FEEDBACK_ADDED",
+            entity_type="pr_review_feedback",
+            entity_id=fb["id"],
+            actor_id=actor_id,
+            payload=fb
         )
         return fb
 
@@ -60,15 +87,39 @@ class ReviewerFeedbackService:
             entity_id=fb["pr_draft_id"],
             metadata={"feedback_id": feedback_id, "old_status": current_status, "new_status": new_status}
         )
+        await self._append_ledger_event(
+            chain_id=f"chain_{fb['pr_draft_id']}",
+            event_type="PR_REVIEW_FEEDBACK_UPDATED",
+            entity_type="pr_review_feedback",
+            entity_id=feedback_id,
+            actor_id=actor_id,
+            payload={"before": fb, "after": updated}
+        )
         return updated
 
 
 class PatchRevisionEngine:
-    def __init__(self, revision_repo: PatchRevisionRepository, pr_draft_repo: PrDraftRepository, audit_service: AuditService):
+    def __init__(self, revision_repo: PatchRevisionRepository, pr_draft_repo: PrDraftRepository, audit_service: AuditService, ledger_service: Optional[Any] = None):
         self.revision_repo = revision_repo
         self.pr_draft_repo = pr_draft_repo
         self.audit_service = audit_service
+        self.ledger_service = ledger_service
         self.analyzer = SandboxPatchAnalyzer()
+
+    async def _append_ledger_event(self, *, chain_id: str, event_type: str, entity_type: str, entity_id: str, actor_id: str, payload: Dict[str, Any]) -> None:
+        if not self.ledger_service:
+            return
+        try:
+            await self.ledger_service.append_event(
+                chain_id=chain_id,
+                event_type=event_type,
+                entity_type=entity_type,
+                entity_id=entity_id,
+                actor_id=actor_id,
+                payload=payload,
+            )
+        except Exception as exc:
+            logger.warning("Review ledger append failed for %s:%s: %s", entity_type, entity_id, exc)
 
     async def create_revision(self, pr_draft_id: str, feedback_id: Optional[str], revised_patch_code: str, actor_id: str) -> Dict[str, Any]:
         pr_draft = await self.pr_draft_repo.get_pr_draft(pr_draft_id)
@@ -108,6 +159,14 @@ class PatchRevisionEngine:
             entity_type="pr_draft",
             entity_id=pr_draft_id,
             metadata={"revision_id": rev["id"], "revision_number": next_num}
+        )
+        await self._append_ledger_event(
+            chain_id=f"chain_{pr_draft_id}",
+            event_type="PATCH_REVISION_CREATED",
+            entity_type="patch_revision",
+            entity_id=rev["id"],
+            actor_id=actor_id,
+            payload=rev
         )
         return rev
 

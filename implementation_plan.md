@@ -1,3 +1,79 @@
+# Implementation Plan - BilgeAPI Faz 28: Immutable Review Ledger + Evidence Chain Sealing
+
+Bu faz, Faz 22-27 arasinda kurulan self-improvement, Draft PR, sandbox verification, feedback, revision ve Ops Console akisini kriptografik olarak izlenebilir ve tamper-evident bir denetim zinciriyle muhurlenir.
+
+## Goal
+
+`bilgeapi_review_ledger_entries` append-only tablosu ve `ReviewLedgerService` uzerinden her kritik review/improvement olayi hash-chain olarak saklanir:
+
+```text
+previous_hash + canonical(redacted_payload) + event metadata -> event_hash
+```
+
+Bu sayede reviewer feedback, patch revision, verification ve proposal olaylari sirali, export edilebilir ve verifier tarafindan tekrar hesaplanabilir hale gelir.
+
+## Proposed Changes
+
+1. `apps/bilgeapi/models/database.py`
+   - `ReviewLedgerEntryModel` eklenir.
+   - `chain_id + sequence_no` unique constraint ile zincir sira butunlugu korunur.
+   - `payload_summary` yalnizca redacted payload tutar; plaintext secret tutulmaz.
+
+2. `apps/bilgeapi/services/review_ledger.py`
+   - `PayloadRedactor`: `plaintext_key`, `api_key`, `token`, `secret`, `authorization`, `github_token`, `webhook_secret`, `password`, `raw_content` alanlarini recursive redakte eder.
+   - `CanonicalPayloadHasher`: sirali JSON canonicalization ve SHA-256 hash hesaplar.
+   - `ReviewLedgerService`: append-only event yazar.
+   - `ReviewLedgerVerifier`: sequence, previous hash, payload hash ve event hash butunlugunu dogrular.
+
+3. Repository ve schemas
+   - `ReviewLedgerRepository` interface.
+   - `PostgresReviewLedgerRepository` ve `InMemoryReviewLedgerRepository`.
+   - `ReviewLedgerEntryResponse`, `ReviewLedgerChainResponse`, `ReviewLedgerVerifyResponse`, `ReviewLedgerAppendRequest`, `ReviewLedgerExportResponse`.
+
+4. API endpoints
+   - `GET /v1/review-ledger/recent`
+   - `GET /v1/review-ledger/chains/{chain_id}`
+   - `GET /v1/review-ledger/chains/{chain_id}/verify`
+   - `GET /v1/review-ledger/chains/{chain_id}/export`
+   - `POST /v1/review-ledger/events`
+
+5. Lifecycle integration
+   - `RESEARCH_COMPLETED`, `RESEARCH_FAILED`
+   - `PROPOSAL_CREATED`
+   - `PR_DRAFT_CREATED`, `PR_DRAFT_FAILED`
+   - `PR_VERIFICATION_COMPLETED`, `PR_VERIFICATION_BLOCKED`
+   - `PR_REVIEW_FEEDBACK_ADDED`, `PR_REVIEW_FEEDBACK_UPDATED`
+   - `PATCH_REVISION_CREATED`, `PATCH_REVISION_VERIFIED`
+
+6. Ops Console
+   - `/bilgeapi-ops` icinde `Immutable Review Ledger` tab'i.
+   - Recent ledger list, chain load, verify, export ve payload preview.
+
+## Safety Rules
+
+- Ledger payloadlari append edilmeden once recursive redaction'dan gecirilir.
+- Ledger failure core workflow'u kirmamalidir; lifecycle entegrasyonlari best-effort loglar.
+- Export edilen rapor redacted payload uzerinden uretilir.
+- Operator chain okuyabilir ve verify edebilir; export/manual append admin yetkisi gerektirir.
+
+## Verification Plan
+
+- Target tests:
+  `py -3.13 -m pytest tests/unit/bilgeapi/test_review_ledger.py tests/unit/bilgeapi/test_phase27_ops_console_static.py -q`
+- Regression:
+  `py -3.13 -m pytest tests/unit/bilgeapi tests/integration/bilgeapi --cov=apps/bilgeapi --cov-report=xml --cov-report=term-missing -q`
+- OpenAPI:
+  `py -3.13 scripts/export_bilgeapi_openapi.py`
+- Frontend build:
+  `cmd /c npm.cmd run build` in `apps/refine_control_plane`
+- Docker/release:
+  `docker compose build bilgeapi`
+  `docker compose up -d bilgeapi`
+  `py -3.13 scripts/run_release_gate.py`
+  `py -3.13 scripts/smoke_bilgeapi.py --base-url http://127.0.0.1:8100 --api-key dev-test-key-001`
+
+---
+
 # Implementation Plan - BilgeAPI Faz 27: Admin UI / Ops Console
 
 Bu faz, Faz 14-26 arasinda kurulan BilgeAPI operasyon altyapisini tek bir operator panelinden yonetilebilir hale getirir.

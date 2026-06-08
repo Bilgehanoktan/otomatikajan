@@ -29,9 +29,12 @@ class BilgeAPIReleaseGate:
         "apps.bilgeapi.services.webhook",
         "apps.bilgeapi.services.audit",
         "apps.bilgeapi.services.diagnostic",
+        "apps.bilgeapi.services.review_ledger",
         "apps.bilgeapi.models.database",
         "apps.bilgeapi.repositories.postgres",
         "apps.bilgeapi.repositories.memory",
+        "apps.bilgeapi.routers.review_ledger",
+        "apps.bilgeapi.schemas.review_ledger",
     ]
 
     REQUIRED_ENDPOINTS = [
@@ -45,6 +48,7 @@ class BilgeAPIReleaseGate:
         "/v1/repair-requests",
         "/v1/audit-events",
         "/v1/webhook-deliveries",
+        "/v1/review-ledger/recent",
     ]
 
     def __init__(self, repo: ReleaseCheckRepository):

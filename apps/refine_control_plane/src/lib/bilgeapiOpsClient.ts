@@ -162,6 +162,37 @@ export type AuditEventRecord = {
   created_at: string;
 };
 
+export type ReviewLedgerEntryRecord = {
+  id: string;
+  chain_id: string;
+  sequence_no: number;
+  event_type: string;
+  entity_type: string;
+  entity_id: string;
+  actor_id?: string | null;
+  previous_hash?: string | null;
+  payload_hash: string;
+  event_hash: string;
+  payload_summary?: Record<string, unknown> | null;
+  created_at: string;
+};
+
+export type ReviewLedgerVerifyRecord = {
+  chain_id: string;
+  valid: boolean;
+  entry_count: number;
+  head_hash?: string | null;
+  issues: Array<Record<string, unknown>>;
+};
+
+export type ReviewLedgerExportRecord = {
+  chain_id: string;
+  format: string;
+  valid: boolean;
+  entry_count: number;
+  content: string;
+};
+
 export type OpsSnapshot = {
   apiKeys: ApiKeyRecord[];
   quotaUsage: QuotaUsage[];
@@ -170,6 +201,7 @@ export type OpsSnapshot = {
   verifications: PrVerificationRecord[];
   releaseLatest: ReleaseCheckRecord | null;
   auditEvents: AuditEventRecord[];
+  ledgerRecent: ReviewLedgerEntryRecord[];
   errors: string[];
 };
 
@@ -404,6 +436,22 @@ export async function listAuditEvents(apiKey: string): Promise<AuditEventRecord[
   return bilgeApiFetch<AuditEventRecord[]>(apiKey, "/v1/audit-events?limit=10");
 }
 
+export async function listReviewLedgerRecent(apiKey: string): Promise<ReviewLedgerEntryRecord[]> {
+  return bilgeApiFetch<ReviewLedgerEntryRecord[]>(apiKey, "/v1/review-ledger/recent?limit=20");
+}
+
+export async function getReviewLedgerChain(apiKey: string, chainId: string): Promise<{ chain_id: string; entries: ReviewLedgerEntryRecord[] }> {
+  return bilgeApiFetch<{ chain_id: string; entries: ReviewLedgerEntryRecord[] }>(apiKey, `/v1/review-ledger/chains/${encodeURIComponent(chainId)}`);
+}
+
+export async function verifyReviewLedgerChain(apiKey: string, chainId: string): Promise<ReviewLedgerVerifyRecord> {
+  return bilgeApiFetch<ReviewLedgerVerifyRecord>(apiKey, `/v1/review-ledger/chains/${encodeURIComponent(chainId)}/verify`);
+}
+
+export async function exportReviewLedgerChain(apiKey: string, chainId: string): Promise<ReviewLedgerExportRecord> {
+  return bilgeApiFetch<ReviewLedgerExportRecord>(apiKey, `/v1/review-ledger/chains/${encodeURIComponent(chainId)}/export`);
+}
+
 export async function loadBilgeApiOpsSnapshot(apiKey: string): Promise<OpsSnapshot> {
   const errors: string[] = [];
 
@@ -427,6 +475,7 @@ export async function loadBilgeApiOpsSnapshot(apiKey: string): Promise<OpsSnapsh
 
   const releaseLatest = await settle("release_latest", getLatestReleaseCheck(apiKey), errors);
   const auditEvents = (await settle("audit_events", listAuditEvents(apiKey), errors)) || [];
+  const ledgerRecent = (await settle("review_ledger", listReviewLedgerRecent(apiKey), errors)) || [];
 
   return {
     apiKeys,
@@ -436,6 +485,7 @@ export async function loadBilgeApiOpsSnapshot(apiKey: string): Promise<OpsSnapsh
     verifications,
     releaseLatest,
     auditEvents,
+    ledgerRecent,
     errors,
   };
 }

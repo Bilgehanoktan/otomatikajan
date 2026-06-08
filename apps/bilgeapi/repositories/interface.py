@@ -276,4 +276,23 @@ class PatchRevisionRepository(ABC):
         pass
 
 
+class ReviewLedgerRepository(ABC):
+    @abstractmethod
+    async def append_entry(self, entry_data: Dict[str, Any]) -> Dict[str, Any]:
+        pass
 
+    @abstractmethod
+    async def get_entry(self, entry_id: str) -> Optional[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def get_latest_entry(self, chain_id: str) -> Optional[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def list_by_chain(self, chain_id: str) -> List[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def list_recent(self, limit: int = 50) -> List[Dict[str, Any]]:
+        pass

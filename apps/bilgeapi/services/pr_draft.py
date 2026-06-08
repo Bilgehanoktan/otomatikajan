@@ -111,12 +111,14 @@ class PrDraftService:
         pr_draft_repo: PrDraftRepository,
         proposal_repo: ImprovementRepository,
         github_adapter: BaseGitHubPrAdapter,
-        audit_service: AuditService
+        audit_service: AuditService,
+        ledger_service: Optional[Any] = None
     ):
         self.pr_draft_repo = pr_draft_repo
         self.proposal_repo = proposal_repo
         self.github_adapter = github_adapter
         self.audit_service = audit_service
+        self.ledger_service = ledger_service
         self.risk_analyzer = PatchRiskAnalyzer()
 
     async def _write_audit_event(self, event_type: str, proposal_id: str, actor_id: str, metadata: Dict[str, Any] = None):
@@ -128,6 +130,21 @@ class PrDraftService:
             entity_id=proposal_id,
             metadata=metadata or {}
         )
+
+    async def _write_ledger_event(self, event_type: str, pr_draft_id: str, proposal_id: str, actor_id: str, payload: Dict[str, Any]):
+        if not self.ledger_service:
+            return
+        try:
+            await self.ledger_service.append_event(
+                chain_id=f"chain_{pr_draft_id}",
+                event_type=event_type,
+                entity_type="pr_draft",
+                entity_id=pr_draft_id,
+                actor_id=actor_id,
+                payload={"proposal_id": proposal_id, **payload},
+            )
+        except Exception as exc:
+            logger.warning("Review ledger append failed for pr_draft:%s: %s", pr_draft_id, exc)
 
     async def create_draft_pr(self, proposal_id: str, actor_id: str) -> Dict[str, Any]:
         await self._write_audit_event("PR_DRAFT_REQUESTED", proposal_id, actor_id)
@@ -218,6 +235,10 @@ class PrDraftService:
                 "github_pr_url": pr_url,
                 "risk_level": risk_level
             })
+            await self._write_ledger_event("PR_DRAFT_CREATED", db_draft["id"], proposal_id, actor_id, {
+                "draft": updated_draft,
+                "risk_analysis": analysis_result
+            })
 
             return updated_draft
 
@@ -229,6 +250,10 @@ class PrDraftService:
             )
             await self._write_audit_event("PR_DRAFT_FAILED", proposal_id, actor_id, {
                 "pr_draft_id": db_draft["id"],
+                "error": str(e)
+            })
+            await self._write_ledger_event("PR_DRAFT_FAILED", db_draft["id"], proposal_id, actor_id, {
+                "draft": db_draft,
                 "error": str(e)
             })
             raise e

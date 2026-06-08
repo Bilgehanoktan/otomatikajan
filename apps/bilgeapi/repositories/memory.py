@@ -17,7 +17,8 @@ from apps.bilgeapi.repositories.interface import (
     PrDraftRepository,
     PrVerificationRepository,
     PrReviewFeedbackRepository,
-    PatchRevisionRepository
+    PatchRevisionRepository,
+    ReviewLedgerRepository
 )
 from apps.bilgeapi.schemas.incident import IncidentCreate, IncidentResponse
 from apps.bilgeapi.schemas.diagnostic import DiagnosticResult, DiagnosticStatus
@@ -42,6 +43,7 @@ class MemoryRepositoriesContainer:
         self.pr_verifications: Dict[str, Dict[str, Any]] = {}
         self.pr_review_feedbacks: Dict[str, Dict[str, Any]] = {}
         self.patch_revisions: Dict[str, Dict[str, Any]] = {}
+        self.review_ledger_entries: Dict[str, Dict[str, Any]] = {}
         self._lock = asyncio.Lock()
 
     def clear_all(self):
@@ -61,6 +63,7 @@ class MemoryRepositoriesContainer:
         self.pr_verifications.clear()
         self.pr_review_feedbacks.clear()
         self.patch_revisions.clear()
+        self.review_ledger_entries.clear()
 
 memory_repositories = MemoryRepositoriesContainer()
 
@@ -697,5 +700,46 @@ class InMemoryPatchRevisionRepository(PatchRevisionRepository):
             return r
 
 
+class InMemoryReviewLedgerRepository(ReviewLedgerRepository):
+    async def append_entry(self, entry_data: Dict[str, Any]) -> Dict[str, Any]:
+        async with memory_repositories._lock:
+            entry = entry_data.copy()
+            if "id" not in entry:
+                entry["id"] = f"rle_{uuid.uuid4().hex[:8]}"
+            if "created_at" not in entry:
+                entry["created_at"] = datetime.now(timezone.utc)
+            memory_repositories.review_ledger_entries[entry["id"]] = entry
+            return entry
 
+    async def get_entry(self, entry_id: str) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            return memory_repositories.review_ledger_entries.get(entry_id)
+
+    async def get_latest_entry(self, chain_id: str) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            entries = [
+                entry for entry in memory_repositories.review_ledger_entries.values()
+                if entry["chain_id"] == chain_id
+            ]
+            if not entries:
+                return None
+            return sorted(entries, key=lambda item: item["sequence_no"], reverse=True)[0]
+
+    async def list_by_chain(self, chain_id: str) -> List[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            return sorted(
+                [
+                    entry for entry in memory_repositories.review_ledger_entries.values()
+                    if entry["chain_id"] == chain_id
+                ],
+                key=lambda item: item["sequence_no"]
+            )
+
+    async def list_recent(self, limit: int = 50) -> List[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            return sorted(
+                memory_repositories.review_ledger_entries.values(),
+                key=lambda item: item.get("created_at") or datetime.min.replace(tzinfo=timezone.utc),
+                reverse=True
+            )[:limit]
 

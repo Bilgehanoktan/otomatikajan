@@ -28,11 +28,17 @@ def test_phase27_bilgeapi_ops_console_route_and_proxy_exist():
     assert "createPatchRevision" in page_text
     assert "verifyPatchRevision" in page_text
     assert "getProposalAuditReport" in page_text
+    assert "Immutable Review Ledger" in page_text
+    assert "verifyReviewLedgerChain" in page_text
+    assert "exportReviewLedgerChain" in page_text
 
     assert "BILGEAPI_PROXY_BASE" in client_text
     assert "plaintext_key" in client_text
     assert "redactPlaintextKey" in client_text
     assert "X-API-Key" in client_text
+    assert "listReviewLedgerRecent" in client_text
+    assert "verifyReviewLedgerChain" in client_text
+    assert "exportReviewLedgerChain" in client_text
 
     assert "bilgeapiOrigin" in config_text
     assert "source: '/bilgeapi/:path*'" in config_text

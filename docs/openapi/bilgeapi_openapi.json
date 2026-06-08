@@ -2618,6 +2618,262 @@
           }
         }
       }
+    },
+    "/v1/review-ledger/recent": {
+      "get": {
+        "tags": [
+          "Review Ledger"
+        ],
+        "summary": "List Recent Ledger Entries",
+        "operationId": "list_recent_ledger_entries_v1_review_ledger_recent_get",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 25,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReviewLedgerEntryResponse"
+                  },
+                  "title": "Response List Recent Ledger Entries V1 Review Ledger Recent Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/review-ledger/chains/{chain_id}": {
+      "get": {
+        "tags": [
+          "Review Ledger"
+        ],
+        "summary": "Get Ledger Chain",
+        "operationId": "get_ledger_chain_v1_review_ledger_chains__chain_id__get",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "chain_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Chain Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewLedgerChainResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/review-ledger/chains/{chain_id}/verify": {
+      "get": {
+        "tags": [
+          "Review Ledger"
+        ],
+        "summary": "Verify Ledger Chain",
+        "operationId": "verify_ledger_chain_v1_review_ledger_chains__chain_id__verify_get",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "chain_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Chain Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewLedgerVerifyResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/review-ledger/chains/{chain_id}/export": {
+      "get": {
+        "tags": [
+          "Review Ledger"
+        ],
+        "summary": "Export Ledger Chain",
+        "operationId": "export_ledger_chain_v1_review_ledger_chains__chain_id__export_get",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "chain_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Chain Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewLedgerExportResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/review-ledger/events": {
+      "post": {
+        "tags": [
+          "Review Ledger"
+        ],
+        "summary": "Append Ledger Event",
+        "operationId": "append_ledger_event_v1_review_ledger_events_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewLedgerAppendRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewLedgerEntryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -4678,6 +4934,233 @@
           "updated_at"
         ],
         "title": "ResearchResponse"
+      },
+      "ReviewLedgerAppendRequest": {
+        "properties": {
+          "chain_id": {
+            "type": "string",
+            "title": "Chain Id"
+          },
+          "event_type": {
+            "type": "string",
+            "title": "Event Type"
+          },
+          "entity_type": {
+            "type": "string",
+            "title": "Entity Type"
+          },
+          "entity_id": {
+            "type": "string",
+            "title": "Entity Id"
+          },
+          "actor_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Id"
+          },
+          "payload": {
+            "type": "object",
+            "title": "Payload",
+            "default": {}
+          }
+        },
+        "type": "object",
+        "required": [
+          "chain_id",
+          "event_type",
+          "entity_type",
+          "entity_id"
+        ],
+        "title": "ReviewLedgerAppendRequest"
+      },
+      "ReviewLedgerChainResponse": {
+        "properties": {
+          "chain_id": {
+            "type": "string",
+            "title": "Chain Id"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewLedgerEntryResponse"
+            },
+            "type": "array",
+            "title": "Entries"
+          }
+        },
+        "type": "object",
+        "required": [
+          "chain_id",
+          "entries"
+        ],
+        "title": "ReviewLedgerChainResponse"
+      },
+      "ReviewLedgerEntryResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "chain_id": {
+            "type": "string",
+            "title": "Chain Id"
+          },
+          "sequence_no": {
+            "type": "integer",
+            "title": "Sequence No"
+          },
+          "event_type": {
+            "type": "string",
+            "title": "Event Type"
+          },
+          "entity_type": {
+            "type": "string",
+            "title": "Entity Type"
+          },
+          "entity_id": {
+            "type": "string",
+            "title": "Entity Id"
+          },
+          "actor_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Id"
+          },
+          "previous_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Hash"
+          },
+          "payload_hash": {
+            "type": "string",
+            "title": "Payload Hash"
+          },
+          "event_hash": {
+            "type": "string",
+            "title": "Event Hash"
+          },
+          "payload_summary": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payload Summary"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "chain_id",
+          "sequence_no",
+          "event_type",
+          "entity_type",
+          "entity_id",
+          "payload_hash",
+          "event_hash",
+          "created_at"
+        ],
+        "title": "ReviewLedgerEntryResponse"
+      },
+      "ReviewLedgerExportResponse": {
+        "properties": {
+          "chain_id": {
+            "type": "string",
+            "title": "Chain Id"
+          },
+          "format": {
+            "type": "string",
+            "title": "Format"
+          },
+          "valid": {
+            "type": "boolean",
+            "title": "Valid"
+          },
+          "entry_count": {
+            "type": "integer",
+            "title": "Entry Count"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          }
+        },
+        "type": "object",
+        "required": [
+          "chain_id",
+          "format",
+          "valid",
+          "entry_count",
+          "content"
+        ],
+        "title": "ReviewLedgerExportResponse"
+      },
+      "ReviewLedgerVerifyResponse": {
+        "properties": {
+          "chain_id": {
+            "type": "string",
+            "title": "Chain Id"
+          },
+          "valid": {
+            "type": "boolean",
+            "title": "Valid"
+          },
+          "entry_count": {
+            "type": "integer",
+            "title": "Entry Count"
+          },
+          "head_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Head Hash"
+          },
+          "issues": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Issues",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "chain_id",
+          "valid",
+          "entry_count"
+        ],
+        "title": "ReviewLedgerVerifyResponse"
       },
       "ReviewerFeedbackRequest": {
         "properties": {

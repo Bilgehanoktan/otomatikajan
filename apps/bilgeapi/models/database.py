@@ -293,3 +293,19 @@ class PatchRevisionModel(Base):
     feedback = relationship("PrReviewFeedbackModel")
 
 
+class ReviewLedgerEntryModel(Base):
+    __tablename__ = "bilgeapi_review_ledger_entries"
+    __table_args__ = (UniqueConstraint("chain_id", "sequence_no", name="uq_review_ledger_chain_sequence"),)
+
+    id = Column(String(64), primary_key=True)
+    chain_id = Column(String(128), nullable=False, index=True)
+    sequence_no = Column(Integer, nullable=False)
+    event_type = Column(String(64), nullable=False, index=True)
+    entity_type = Column(String(64), nullable=False, index=True)
+    entity_id = Column(String(64), nullable=False, index=True)
+    actor_id = Column(String(64), nullable=True, index=True)
+    previous_hash = Column(String(64), nullable=True)
+    payload_hash = Column(String(64), nullable=False)
+    event_hash = Column(String(64), nullable=False, unique=True, index=True)
+    payload_summary = Column(SmartJSON(), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)

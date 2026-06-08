@@ -9,9 +9,25 @@ logger = logging.getLogger("bilgeapi.improvement")
 
 
 class ImprovementProposalEngine:
-    def __init__(self, research_repo: ResearchRepository, improvement_repo: ImprovementRepository):
+    def __init__(self, research_repo: ResearchRepository, improvement_repo: ImprovementRepository, ledger_service: Optional[Any] = None):
         self.research_repo = research_repo
         self.improvement_repo = improvement_repo
+        self.ledger_service = ledger_service
+
+    async def _append_ledger_event(self, *, research_id: str, event_type: str, entity_type: str, entity_id: str, payload: Dict[str, Any]) -> None:
+        if not self.ledger_service:
+            return
+        try:
+            await self.ledger_service.append_event(
+                chain_id=f"chain_{research_id}",
+                event_type=event_type,
+                entity_type=entity_type,
+                entity_id=entity_id,
+                actor_id="system",
+                payload=payload,
+            )
+        except Exception as exc:
+            logger.warning("Review ledger append failed for %s:%s: %s", entity_type, entity_id, exc)
 
     async def generate_proposal(self, research_id: str) -> Dict[str, Any]:
         """
@@ -131,6 +147,18 @@ class ImprovementProposalEngine:
         }
 
         proposal = await self.improvement_repo.create_proposal(proposal_data)
+        await self._append_ledger_event(
+            research_id=research_id,
+            event_type="PROPOSAL_CREATED",
+            entity_type="improvement_proposal",
+            entity_id=proposal["id"],
+            payload={
+                "proposal": proposal,
+                "evidence_count": len(reliable_evidences),
+                "confidence_score": confidence_score,
+                "confidence_level": confidence_level,
+            }
+        )
         return proposal
 
 

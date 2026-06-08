@@ -7,7 +7,8 @@ from apps.bilgeapi.repositories.interface import (
     IncidentRepository, DiagnosticRepository, FindingRepository,
     RecommendationRepository, RepairRequestRepository, AuditRepository, WebhookDeliveryRepository,
     ReleaseCheckRepository, ApiKeyRepository, ResearchRepository, ImprovementRepository,
-    PrDraftRepository, PrVerificationRepository, PrReviewFeedbackRepository, PatchRevisionRepository
+    PrDraftRepository, PrVerificationRepository, PrReviewFeedbackRepository, PatchRevisionRepository,
+    ReviewLedgerRepository
 )
 from apps.bilgeapi.schemas.incident import IncidentCreate, IncidentResponse
 from apps.bilgeapi.schemas.diagnostic import DiagnosticResult, DiagnosticStatus
@@ -17,7 +18,8 @@ from apps.bilgeapi.models.database import (
     IncidentModel, DiagnosticRunModel, FindingModel, RecommendationModel,
     RepairRequestModel, AuditEventModel, WebhookDeliveryModel, ReleaseCheckModel,
     ApiKeyModel, ResearchRequestModel, ResearchEvidenceModel, ImprovementProposalModel,
-    PrDraftModel, PrVerificationModel, PrReviewFeedbackModel, PatchRevisionModel
+    PrDraftModel, PrVerificationModel, PrReviewFeedbackModel, PatchRevisionModel,
+    ReviewLedgerEntryModel
 )
 
 class PostgresIncidentRepository(IncidentRepository):
@@ -1119,4 +1121,75 @@ class PostgresPatchRevisionRepository(PatchRevisionRepository):
         return self._revision_to_dict(model)
 
 
+class PostgresReviewLedgerRepository(ReviewLedgerRepository):
+    def __init__(self, db: AsyncSession):
+        self.db = db
 
+    def _entry_to_dict(self, model: ReviewLedgerEntryModel) -> Dict[str, Any]:
+        return {
+            "id": model.id,
+            "chain_id": model.chain_id,
+            "sequence_no": model.sequence_no,
+            "event_type": model.event_type,
+            "entity_type": model.entity_type,
+            "entity_id": model.entity_id,
+            "actor_id": model.actor_id,
+            "previous_hash": model.previous_hash,
+            "payload_hash": model.payload_hash,
+            "event_hash": model.event_hash,
+            "payload_summary": model.payload_summary,
+            "created_at": model.created_at,
+        }
+
+    async def append_entry(self, entry_data: Dict[str, Any]) -> Dict[str, Any]:
+        model = ReviewLedgerEntryModel(
+            id=entry_data.get("id", f"rle_{uuid.uuid4().hex[:8]}"),
+            chain_id=entry_data["chain_id"],
+            sequence_no=entry_data["sequence_no"],
+            event_type=entry_data["event_type"],
+            entity_type=entry_data["entity_type"],
+            entity_id=entry_data["entity_id"],
+            actor_id=entry_data.get("actor_id"),
+            previous_hash=entry_data.get("previous_hash"),
+            payload_hash=entry_data["payload_hash"],
+            event_hash=entry_data["event_hash"],
+            payload_summary=entry_data.get("payload_summary"),
+            created_at=entry_data.get("created_at") or datetime.now(timezone.utc),
+        )
+        self.db.add(model)
+        await self.db.commit()
+        await self.db.refresh(model)
+        return self._entry_to_dict(model)
+
+    async def get_entry(self, entry_id: str) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(select(ReviewLedgerEntryModel).where(ReviewLedgerEntryModel.id == entry_id))
+        model = res.scalar_one_or_none()
+        return self._entry_to_dict(model) if model else None
+
+    async def get_latest_entry(self, chain_id: str) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(ReviewLedgerEntryModel)
+            .where(ReviewLedgerEntryModel.chain_id == chain_id)
+            .order_by(desc(ReviewLedgerEntryModel.sequence_no))
+            .limit(1)
+        )
+        model = res.scalar_one_or_none()
+        return self._entry_to_dict(model) if model else None
+
+    async def list_by_chain(self, chain_id: str) -> List[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(ReviewLedgerEntryModel)
+            .where(ReviewLedgerEntryModel.chain_id == chain_id)
+            .order_by(ReviewLedgerEntryModel.sequence_no)
+        )
+        models = res.scalars().all()
+        return [self._entry_to_dict(model) for model in models]
+
+    async def list_recent(self, limit: int = 50) -> List[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(ReviewLedgerEntryModel)
+            .order_by(desc(ReviewLedgerEntryModel.created_at))
+            .limit(limit)
+        )
+        models = res.scalars().all()
+        return [self._entry_to_dict(model) for model in models]

@@ -7,13 +7,15 @@ from apps.bilgeapi.repositories.interface import (
     IncidentRepository, DiagnosticRepository, FindingRepository,
     RecommendationRepository, RepairRequestRepository, AuditRepository, WebhookDeliveryRepository,
     ReleaseCheckRepository, ApiKeyRepository, ResearchRepository, ImprovementRepository,
-    PrDraftRepository, PrVerificationRepository, PrReviewFeedbackRepository, PatchRevisionRepository
+    PrDraftRepository, PrVerificationRepository, PrReviewFeedbackRepository, PatchRevisionRepository,
+    ReviewLedgerRepository
 )
 from apps.bilgeapi.repositories.postgres import (
     PostgresIncidentRepository, PostgresDiagnosticRepository, PostgresFindingRepository,
     PostgresRecommendationRepository, PostgresRepairRequestRepository, PostgresAuditRepository, PostgresWebhookDeliveryRepository,
     PostgresReleaseCheckRepository, PostgresApiKeyRepository, PostgresResearchRepository, PostgresImprovementRepository,
-    PostgresPrDraftRepository, PostgresPrVerificationRepository, PostgresPrReviewFeedbackRepository, PostgresPatchRevisionRepository
+    PostgresPrDraftRepository, PostgresPrVerificationRepository, PostgresPrReviewFeedbackRepository, PostgresPatchRevisionRepository,
+    PostgresReviewLedgerRepository
 )
 from apps.bilgeapi.services.audit import AuditService
 from apps.bilgeapi.services.diagnostic import DiagnosticService
@@ -109,6 +111,24 @@ async def get_improvement_repository(db: AsyncSession = Depends(get_db)) -> Impr
     return PostgresImprovementRepository(db)
 
 
+async def get_review_ledger_repository(db: AsyncSession = Depends(get_db)) -> ReviewLedgerRepository:
+    return PostgresReviewLedgerRepository(db)
+
+
+def get_review_ledger_service(
+    repo: ReviewLedgerRepository = Depends(get_review_ledger_repository)
+) -> Any:
+    from apps.bilgeapi.services.review_ledger import ReviewLedgerService
+    return ReviewLedgerService(repo)
+
+
+def get_review_ledger_verifier(
+    repo: ReviewLedgerRepository = Depends(get_review_ledger_repository)
+) -> Any:
+    from apps.bilgeapi.services.review_ledger import ReviewLedgerVerifier
+    return ReviewLedgerVerifier(repo)
+
+
 def get_web_search_provider() -> WebSearchProvider:
     from apps.bilgeapi.config import settings
     provider_name = settings.BILGEAPI_SEARCH_PROVIDER
@@ -119,17 +139,19 @@ def get_web_search_provider() -> WebSearchProvider:
 
 def get_web_research_adapter(
     provider: WebSearchProvider = Depends(get_web_search_provider),
-    repo: ResearchRepository = Depends(get_research_repository)
+    repo: ResearchRepository = Depends(get_research_repository),
+    ledger_service: Any = Depends(get_review_ledger_service)
 ) -> WebResearchAdapter:
-    return WebResearchAdapter(provider, repo)
+    return WebResearchAdapter(provider, repo, ledger_service)
 
 
 
 def get_improvement_proposal_engine(
     research_repo: ResearchRepository = Depends(get_research_repository),
-    improvement_repo: ImprovementRepository = Depends(get_improvement_repository)
+    improvement_repo: ImprovementRepository = Depends(get_improvement_repository),
+    ledger_service: Any = Depends(get_review_ledger_service)
 ) -> ImprovementProposalEngine:
-    return ImprovementProposalEngine(research_repo, improvement_repo)
+    return ImprovementProposalEngine(research_repo, improvement_repo, ledger_service)
 
 
 def get_release_gate_simulator(
@@ -167,10 +189,11 @@ def get_pr_draft_service(
     pr_draft_repo: PrDraftRepository = Depends(get_pr_draft_repository),
     proposal_repo: ImprovementRepository = Depends(get_improvement_repository),
     github_adapter: BaseGitHubPrAdapter = Depends(get_github_pr_adapter),
-    audit_service: AuditService = Depends(get_audit_service)
+    audit_service: AuditService = Depends(get_audit_service),
+    ledger_service: Any = Depends(get_review_ledger_service)
 ) -> Any:
     from apps.bilgeapi.services.pr_draft import PrDraftService
-    return PrDraftService(pr_draft_repo, proposal_repo, github_adapter, audit_service)
+    return PrDraftService(pr_draft_repo, proposal_repo, github_adapter, audit_service, ledger_service)
 
 
 async def get_pr_verification_repository(db: AsyncSession = Depends(get_db)) -> PrVerificationRepository:
@@ -191,7 +214,8 @@ def get_pr_verification_service(
     proposal_repo: ImprovementRepository = Depends(get_improvement_repository),
     research_repo: ResearchRepository = Depends(get_research_repository),
     audit_service: AuditService = Depends(get_audit_service),
-    revision_repo: PatchRevisionRepository = Depends(get_patch_revision_repository)
+    revision_repo: PatchRevisionRepository = Depends(get_patch_revision_repository),
+    ledger_service: Any = Depends(get_review_ledger_service)
 ) -> Any:
     from apps.bilgeapi.services.pr_verification import PrVerificationService
     return PrVerificationService(
@@ -200,27 +224,26 @@ def get_pr_verification_service(
         proposal_repo=proposal_repo,
         research_repo=research_repo,
         audit_service=audit_service,
-        revision_repo=revision_repo
+        revision_repo=revision_repo,
+        ledger_service=ledger_service
     )
 
 
 def get_reviewer_feedback_service(
     feedback_repo: PrReviewFeedbackRepository = Depends(get_pr_review_feedback_repository),
     pr_draft_repo: PrDraftRepository = Depends(get_pr_draft_repository),
-    audit_service: AuditService = Depends(get_audit_service)
+    audit_service: AuditService = Depends(get_audit_service),
+    ledger_service: Any = Depends(get_review_ledger_service)
 ) -> Any:
     from apps.bilgeapi.services.patch_revision import ReviewerFeedbackService
-    return ReviewerFeedbackService(feedback_repo, pr_draft_repo, audit_service)
+    return ReviewerFeedbackService(feedback_repo, pr_draft_repo, audit_service, ledger_service)
 
 
 def get_patch_revision_engine(
     revision_repo: PatchRevisionRepository = Depends(get_patch_revision_repository),
     pr_draft_repo: PrDraftRepository = Depends(get_pr_draft_repository),
-    audit_service: AuditService = Depends(get_audit_service)
+    audit_service: AuditService = Depends(get_audit_service),
+    ledger_service: Any = Depends(get_review_ledger_service)
 ) -> Any:
     from apps.bilgeapi.services.patch_revision import PatchRevisionEngine
-    return PatchRevisionEngine(revision_repo, pr_draft_repo, audit_service)
-
-
-
-
+    return PatchRevisionEngine(revision_repo, pr_draft_repo, audit_service, ledger_service)

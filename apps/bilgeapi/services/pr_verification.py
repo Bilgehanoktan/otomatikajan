@@ -1,3 +1,4 @@
+import logging
 import uuid
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
@@ -10,6 +11,8 @@ from apps.bilgeapi.repositories.interface import (
     PatchRevisionRepository
 )
 from apps.bilgeapi.services.audit import AuditService
+
+logger = logging.getLogger(__name__)
 
 
 class SandboxPatchAnalyzer:
@@ -202,7 +205,8 @@ class PrVerificationService:
         proposal_repo: ImprovementRepository,
         research_repo: ResearchRepository,
         audit_service: AuditService,
-        revision_repo: Optional[PatchRevisionRepository] = None
+        revision_repo: Optional[PatchRevisionRepository] = None,
+        ledger_service: Optional[Any] = None
     ):
         self.verification_repo = verification_repo
         self.pr_draft_repo = pr_draft_repo
@@ -210,8 +214,24 @@ class PrVerificationService:
         self.research_repo = research_repo
         self.audit_service = audit_service
         self.revision_repo = revision_repo
+        self.ledger_service = ledger_service
         self.analyzer = SandboxPatchAnalyzer()
         self.scorer = PrReviewGateScorer()
+
+    async def _append_ledger_event(self, *, chain_id: str, event_type: str, entity_type: str, entity_id: str, actor_id: str, payload: Dict[str, Any]) -> None:
+        if not self.ledger_service:
+            return
+        try:
+            await self.ledger_service.append_event(
+                chain_id=chain_id,
+                event_type=event_type,
+                entity_type=entity_type,
+                entity_id=entity_id,
+                actor_id=actor_id,
+                payload=payload,
+            )
+        except Exception as exc:
+            logger.warning("Review ledger append failed for %s:%s: %s", entity_type, entity_id, exc)
 
     async def verify_pr_draft(self, pr_draft_id: str, actor_id: str) -> Dict[str, Any]:
         # Log start
@@ -342,6 +362,19 @@ class PrVerificationService:
             metadata={
                 "score": scoring["score"],
                 "decision": scoring["review_decision"]
+            }
+        )
+
+        await self._append_ledger_event(
+            chain_id=f"chain_{pr_draft_id}",
+            event_type=event_type,
+            entity_type="pr_verification",
+            entity_id=verification["id"],
+            actor_id=actor_id,
+            payload={
+                "verification": verification,
+                "analysis": analysis,
+                "scoring": scoring
             }
         )
 
@@ -522,5 +555,19 @@ Risk Level: **{risk_level}**
             }
         )
 
-        return verification
+        await self._append_ledger_event(
+            chain_id=f"chain_{pr_draft_id}",
+            event_type="PATCH_REVISION_VERIFIED" if ver_status == "VERIFIED" else "PATCH_REVISION_VERIFICATION_FAILED",
+            entity_type="patch_revision",
+            entity_id=revision_id,
+            actor_id=actor_id,
+            payload={
+                "revision": revision,
+                "verification": verification,
+                "verification_status": ver_status,
+                "analysis": analysis,
+                "scoring": scoring
+            }
+        )
 
+        return verification

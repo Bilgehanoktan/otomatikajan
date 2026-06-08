@@ -41,7 +41,10 @@ def test_client():
         get_pr_draft_repository,
         get_pr_verification_repository,
         get_pr_review_feedback_repository,
-        get_patch_revision_repository
+        get_patch_revision_repository,
+        get_review_ledger_repository,
+        get_review_ledger_service,
+        get_review_ledger_verifier
     )
     from apps.bilgeapi.repositories.memory import (
         InMemoryIncidentRepository,
@@ -58,6 +61,7 @@ def test_client():
         InMemoryPrVerificationRepository,
         InMemoryPrReviewFeedbackRepository,
         InMemoryPatchRevisionRepository,
+        InMemoryReviewLedgerRepository,
         memory_repositories
     )
     
@@ -79,6 +83,15 @@ def test_client():
     app.dependency_overrides[get_pr_verification_repository] = lambda: InMemoryPrVerificationRepository()
     app.dependency_overrides[get_pr_review_feedback_repository] = lambda: InMemoryPrReviewFeedbackRepository()
     app.dependency_overrides[get_patch_revision_repository] = lambda: InMemoryPatchRevisionRepository()
+    app.dependency_overrides[get_review_ledger_repository] = lambda: InMemoryReviewLedgerRepository()
+    app.dependency_overrides[get_review_ledger_service] = lambda: __import__(
+        "apps.bilgeapi.services.review_ledger",
+        fromlist=["ReviewLedgerService"]
+    ).ReviewLedgerService(InMemoryReviewLedgerRepository())
+    app.dependency_overrides[get_review_ledger_verifier] = lambda: __import__(
+        "apps.bilgeapi.services.review_ledger",
+        fromlist=["ReviewLedgerVerifier"]
+    ).ReviewLedgerVerifier(InMemoryReviewLedgerRepository())
     
     with TestClient(app) as client:
         yield client
@@ -104,7 +117,10 @@ def test_client_real_auth():
         get_pr_draft_repository,
         get_pr_verification_repository,
         get_pr_review_feedback_repository,
-        get_patch_revision_repository
+        get_patch_revision_repository,
+        get_review_ledger_repository,
+        get_review_ledger_service,
+        get_review_ledger_verifier
     )
     from apps.bilgeapi.repositories.memory import (
         InMemoryIncidentRepository,
@@ -121,6 +137,7 @@ def test_client_real_auth():
         InMemoryPrVerificationRepository,
         InMemoryPrReviewFeedbackRepository,
         InMemoryPatchRevisionRepository,
+        InMemoryReviewLedgerRepository,
         memory_repositories
     )
     
@@ -141,10 +158,17 @@ def test_client_real_auth():
     app.dependency_overrides[get_pr_verification_repository] = lambda: InMemoryPrVerificationRepository()
     app.dependency_overrides[get_pr_review_feedback_repository] = lambda: InMemoryPrReviewFeedbackRepository()
     app.dependency_overrides[get_patch_revision_repository] = lambda: InMemoryPatchRevisionRepository()
+    app.dependency_overrides[get_review_ledger_repository] = lambda: InMemoryReviewLedgerRepository()
+    app.dependency_overrides[get_review_ledger_service] = lambda: __import__(
+        "apps.bilgeapi.services.review_ledger",
+        fromlist=["ReviewLedgerService"]
+    ).ReviewLedgerService(InMemoryReviewLedgerRepository())
+    app.dependency_overrides[get_review_ledger_verifier] = lambda: __import__(
+        "apps.bilgeapi.services.review_ledger",
+        fromlist=["ReviewLedgerVerifier"]
+    ).ReviewLedgerVerifier(InMemoryReviewLedgerRepository())
     
     with TestClient(app) as client:
         yield client
         
     app.dependency_overrides.clear()
-
-

@@ -1,40 +1,59 @@
-# Faz 27 - Admin UI / Ops Console - Task List
+# Faz 28 - Immutable Review Ledger + Evidence Chain Sealing - Task List
 
 ## Planning
-- [x] Add Faz 27 scope to `implementation_plan.md`.
-- [x] Create this `task.md` checklist.
+- [x] Review pasted Faz 28 requirements.
+- [x] Add TDD tests for redaction, hash-chain verification, endpoint RBAC, and Phase 26 lifecycle event integration.
 
-## Frontend Routing & Proxy
-- [x] Add `/bilgeapi/:path*` rewrite in `apps/refine_control_plane/next.config.ts`.
-- [x] Create `/bilgeapi-ops` route in `apps/refine_control_plane/src/app/bilgeapi-ops/page.tsx`.
-- [x] Register `bilgeapi-ops` resource in `apps/refine_control_plane/src/app/providers.tsx`.
-- [x] Add `bilgeapi-ops` to `apps/refine_control_plane/src/components/Sidebar.tsx`.
+## Database & Models
+- [x] Add `ReviewLedgerEntryModel` to `apps/bilgeapi/models/database.py`.
+- [x] Create Alembic migration `f28a0b1c2d3e_add_review_ledger_entries.py`.
+- [x] Keep JSON payload storage SQLite/Postgres compatible.
 
-## BilgeAPI Client Layer
-- [x] Create `apps/refine_control_plane/src/lib/bilgeapiOpsClient.ts`.
-- [x] Support `X-API-Key` authenticated requests.
-- [x] Support API key create/list/revoke/quota usage.
-- [x] Support research, proposal, draft PR, verification, feedback and patch revision calls.
-- [x] Support release gate and audit event reads.
-- [x] Redact plaintext API key in local action logs.
+## Schemas
+- [x] Create `apps/bilgeapi/schemas/review_ledger.py`.
+- [x] Add response schemas for entries, chains, verification, append, and export payloads.
 
-## Ops Console Panels
-- [x] Dashboard summary widget set.
-- [x] API key management panel.
-- [x] Quota monitoring panel.
-- [x] Research and proposal panel.
-- [x] Draft PR and sandbox verification panel.
-- [x] Reviewer feedback and patch revision panel.
-- [x] Release gate status widget.
-- [x] Audit trail panel.
+## Repositories
+- [x] Add `ReviewLedgerRepository` interface.
+- [x] Implement `InMemoryReviewLedgerRepository`.
+- [x] Implement `PostgresReviewLedgerRepository`.
+
+## Services
+- [x] Implement `PayloadRedactor`.
+- [x] Implement `CanonicalPayloadHasher`.
+- [x] Implement `ReviewLedgerService`.
+- [x] Implement `ReviewLedgerVerifier`.
+
+## API Endpoints
+- [x] Add `apps/bilgeapi/routers/review_ledger.py`.
+- [x] Register router in `apps/bilgeapi/main.py`.
+- [x] Add endpoints:
+  - [x] `GET /v1/review-ledger/recent`
+  - [x] `GET /v1/review-ledger/chains/{chain_id}`
+  - [x] `GET /v1/review-ledger/chains/{chain_id}/verify`
+  - [x] `GET /v1/review-ledger/chains/{chain_id}/export`
+  - [x] `POST /v1/review-ledger/events`
+
+## Lifecycle Integration
+- [x] Add ledger events for research completion/failure.
+- [x] Add ledger events for proposal creation.
+- [x] Add ledger events for draft PR creation/failure.
+- [x] Add ledger events for sandbox verification.
+- [x] Add ledger events for reviewer feedback.
+- [x] Add ledger events for patch revision creation and verification.
+
+## Ops Console
+- [x] Extend `apps/refine_control_plane/src/lib/bilgeapiOpsClient.ts` with review-ledger types and API functions.
+- [x] Add Immutable Review Ledger tab to `/bilgeapi-ops`.
+- [x] Add chain load, verify, export, recent ledger list, and payload preview UI.
+- [x] Extend static UI contract test.
 
 ## Verification
-- [x] Add static contract test for Faz 27 UI wiring.
-- [x] Run static contract test.
-- [x] Run frontend build.
-- [x] Verify `/bilgeapi-ops` route over local frontend dev server.
-- [x] Run BilgeAPI regression suite.
-- [x] Re-export OpenAPI schema.
+- [x] Run target Phase 28 tests.
+- [x] Run BilgeAPI unit/integration regression with coverage.
+- [x] Export OpenAPI schema.
+- [x] Run frontend production build.
+- [x] Rebuild/recreate BilgeAPI Docker container and apply migrations.
 - [x] Run release gate.
-- [x] Verify Docker/live smoke.
-- [x] Commit Faz 27 changes without unrelated staged files.
+- [x] Run live smoke test.
+- [x] Commit Faz 28 changes without unrelated staged files.
