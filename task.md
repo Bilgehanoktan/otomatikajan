@@ -1,59 +1,63 @@
-# Faz 28 - Immutable Review Ledger + Evidence Chain Sealing - Task List
+# Faz 29 - AI-Assisted Patch Revision Suggestions - Task List
 
 ## Planning
-- [x] Review pasted Faz 28 requirements.
-- [x] Add TDD tests for redaction, hash-chain verification, endpoint RBAC, and Phase 26 lifecycle event integration.
+- [x] Review pasted Faz 29 requirements.
+- [x] Clean and update `implementation_plan.md`.
+- [x] Add TDD tests for provider guardrails, redaction, prompt hashing, sandbox verification, ledger events, RBAC, and Ops Console contract.
 
-## Database & Models
-- [x] Add `ReviewLedgerEntryModel` to `apps/bilgeapi/models/database.py`.
-- [x] Create Alembic migration `f28a0b1c2d3e_add_review_ledger_entries.py`.
-- [x] Keep JSON payload storage SQLite/Postgres compatible.
+## Configuration
+- [x] Add `BILGEAPI_AI_PATCH_PROVIDER`.
+- [x] Add `BILGEAPI_ALLOW_REAL_AI_PATCH`.
+- [x] Add `BILGEAPI_AI_PATCH_MODEL`.
+- [x] Add `BILGEAPI_AI_PATCH_MAX_CONTEXT_CHARS`.
+- [x] Add `BILGEAPI_AI_PATCH_MAX_OUTPUT_CHARS`.
+
+## Database & Migration
+- [x] Add `AIPatchSuggestionModel`.
+- [x] Add nullable `PrVerificationModel.ai_suggestion_id`.
+- [x] Create Alembic migration for `bilgeapi_ai_patch_suggestions` and verification FK/index.
 
 ## Schemas
-- [x] Create `apps/bilgeapi/schemas/review_ledger.py`.
-- [x] Add response schemas for entries, chains, verification, append, and export payloads.
+- [x] Create `apps/bilgeapi/schemas/ai_patch_suggestion.py`.
 
 ## Repositories
-- [x] Add `ReviewLedgerRepository` interface.
-- [x] Implement `InMemoryReviewLedgerRepository`.
-- [x] Implement `PostgresReviewLedgerRepository`.
+- [x] Add `AIPatchSuggestionRepository` interface.
+- [x] Implement `InMemoryAIPatchSuggestionRepository`.
+- [x] Implement `PostgresAIPatchSuggestionRepository`.
 
-## Services
-- [x] Implement `PayloadRedactor`.
-- [x] Implement `CanonicalPayloadHasher`.
-- [x] Implement `ReviewLedgerService`.
-- [x] Implement `ReviewLedgerVerifier`.
+## Provider & Services
+- [x] Create `apps/bilgeapi/adapters/ai_patch_provider.py`.
+- [x] Implement `MockAIPatchProvider`.
+- [x] Implement guarded `OpenAIPatchProvider` and `LocalAIPatchProvider`.
+- [x] Create `apps/bilgeapi/services/ai_patch_suggestion.py`.
+- [x] Implement redacted context builder.
+- [x] Implement deterministic `prompt_hash`.
+- [x] Enforce context/output size limits.
+- [x] Implement generate, verify, accept, reject, and list flows.
+
+## Verification Integration
+- [x] Add `PrVerificationService.verify_ai_suggestion`.
+- [x] Attach verification results to suggestions.
+- [x] Preserve HIGH-risk downgrade rule.
+- [x] Write AI suggestion events to immutable review ledger.
 
 ## API Endpoints
-- [x] Add `apps/bilgeapi/routers/review_ledger.py`.
-- [x] Register router in `apps/bilgeapi/main.py`.
-- [x] Add endpoints:
-  - [x] `GET /v1/review-ledger/recent`
-  - [x] `GET /v1/review-ledger/chains/{chain_id}`
-  - [x] `GET /v1/review-ledger/chains/{chain_id}/verify`
-  - [x] `GET /v1/review-ledger/chains/{chain_id}/export`
-  - [x] `POST /v1/review-ledger/events`
-
-## Lifecycle Integration
-- [x] Add ledger events for research completion/failure.
-- [x] Add ledger events for proposal creation.
-- [x] Add ledger events for draft PR creation/failure.
-- [x] Add ledger events for sandbox verification.
-- [x] Add ledger events for reviewer feedback.
-- [x] Add ledger events for patch revision creation and verification.
+- [x] Add `POST /v1/improvements/pr-drafts/{pr_draft_id}/ai-suggestions`.
+- [x] Add `GET /v1/improvements/pr-drafts/{pr_draft_id}/ai-suggestions`.
+- [x] Add `GET /v1/improvements/ai-suggestions/{suggestion_id}`.
+- [x] Add `POST /v1/improvements/ai-suggestions/{suggestion_id}/verify`.
+- [x] Add `POST /v1/improvements/ai-suggestions/{suggestion_id}/accept-for-review`.
+- [x] Add `POST /v1/improvements/ai-suggestions/{suggestion_id}/reject`.
 
 ## Ops Console
-- [x] Extend `apps/refine_control_plane/src/lib/bilgeapiOpsClient.ts` with review-ledger types and API functions.
-- [x] Add Immutable Review Ledger tab to `/bilgeapi-ops`.
-- [x] Add chain load, verify, export, recent ledger list, and payload preview UI.
+- [x] Add AI suggestion client methods.
+- [x] Add `AI Patch Suggestions` panel to `/bilgeapi-ops`.
 - [x] Extend static UI contract test.
 
-## Verification
-- [x] Run target Phase 28 tests.
+## Release Gate & Verification
+- [x] Update release gate module/endpoint checks.
+- [x] Run target Faz 29 tests.
 - [x] Run BilgeAPI unit/integration regression with coverage.
 - [x] Export OpenAPI schema.
 - [x] Run frontend production build.
-- [x] Rebuild/recreate BilgeAPI Docker container and apply migrations.
 - [x] Run release gate.
-- [x] Run live smoke test.
-- [x] Commit Faz 28 changes without unrelated staged files.

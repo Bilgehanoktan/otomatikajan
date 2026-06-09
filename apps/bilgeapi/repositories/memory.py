@@ -18,7 +18,8 @@ from apps.bilgeapi.repositories.interface import (
     PrVerificationRepository,
     PrReviewFeedbackRepository,
     PatchRevisionRepository,
-    ReviewLedgerRepository
+    ReviewLedgerRepository,
+    AIPatchSuggestionRepository
 )
 from apps.bilgeapi.schemas.incident import IncidentCreate, IncidentResponse
 from apps.bilgeapi.schemas.diagnostic import DiagnosticResult, DiagnosticStatus
@@ -44,6 +45,7 @@ class MemoryRepositoriesContainer:
         self.pr_review_feedbacks: Dict[str, Dict[str, Any]] = {}
         self.patch_revisions: Dict[str, Dict[str, Any]] = {}
         self.review_ledger_entries: Dict[str, Dict[str, Any]] = {}
+        self.ai_patch_suggestions: Dict[str, Dict[str, Any]] = {}
         self._lock = asyncio.Lock()
 
     def clear_all(self):
@@ -64,6 +66,7 @@ class MemoryRepositoriesContainer:
         self.pr_review_feedbacks.clear()
         self.patch_revisions.clear()
         self.review_ledger_entries.clear()
+        self.ai_patch_suggestions.clear()
 
 memory_repositories = MemoryRepositoriesContainer()
 
@@ -549,6 +552,7 @@ class InMemoryPrVerificationRepository(PrVerificationRepository):
                 "pr_draft_id": verification_data["pr_draft_id"],
                 "proposal_id": verification_data["proposal_id"],
                 "revision_id": verification_data.get("revision_id"),
+                "ai_suggestion_id": verification_data.get("ai_suggestion_id"),
                 "status": verification_data.get("status", "PENDING"),
                 "review_score": verification_data["review_score"],
                 "review_decision": verification_data["review_decision"],
@@ -594,6 +598,20 @@ class InMemoryPrVerificationRepository(PrVerificationRepository):
             verifications = [
                 v for v in memory_repositories.pr_verifications.values()
                 if v.get("revision_id") == revision_id
+            ]
+            if not verifications:
+                return None
+            return sorted(
+                verifications,
+                key=lambda x: x.get("created_at") or datetime.min.replace(tzinfo=timezone.utc),
+                reverse=True
+            )[0]
+
+    async def get_verification_by_ai_suggestion(self, suggestion_id: str) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            verifications = [
+                v for v in memory_repositories.pr_verifications.values()
+                if v.get("ai_suggestion_id") == suggestion_id
             ]
             if not verifications:
                 return None
@@ -743,3 +761,68 @@ class InMemoryReviewLedgerRepository(ReviewLedgerRepository):
                 reverse=True
             )[:limit]
 
+
+class InMemoryAIPatchSuggestionRepository(AIPatchSuggestionRepository):
+    async def create_suggestion(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        async with memory_repositories._lock:
+            suggestion_id = data.get("id", f"ais_{uuid.uuid4().hex[:8]}")
+            now = datetime.now(timezone.utc)
+            suggestion = {
+                "id": suggestion_id,
+                "pr_draft_id": data["pr_draft_id"],
+                "feedback_id": data.get("feedback_id"),
+                "revision_id": data.get("revision_id"),
+                "provider": data.get("provider", "mock"),
+                "model_name": data.get("model_name"),
+                "prompt_hash": data["prompt_hash"],
+                "context_summary": data.get("context_summary"),
+                "suggested_patch_code": data["suggested_patch_code"],
+                "rationale": data.get("rationale"),
+                "risk_notes": data.get("risk_notes"),
+                "risk_level": data.get("risk_level", "LOW"),
+                "verification_id": data.get("verification_id"),
+                "status": data.get("status", "GENERATED"),
+                "created_by": data.get("created_by"),
+                "created_at": data.get("created_at") or now,
+                "updated_at": data.get("updated_at") or now,
+            }
+            memory_repositories.ai_patch_suggestions[suggestion_id] = suggestion
+            return suggestion
+
+    async def get_suggestion(self, suggestion_id: str) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            return memory_repositories.ai_patch_suggestions.get(suggestion_id)
+
+    async def list_suggestions_by_pr_draft(self, pr_draft_id: str) -> List[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            suggestions = [
+                item for item in memory_repositories.ai_patch_suggestions.values()
+                if item["pr_draft_id"] == pr_draft_id
+            ]
+            return sorted(suggestions, key=lambda item: item["created_at"], reverse=True)
+
+    async def update_suggestion_status(self, suggestion_id: str, status: str) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            suggestion = memory_repositories.ai_patch_suggestions.get(suggestion_id)
+            if not suggestion:
+                return None
+            suggestion["status"] = status
+            suggestion["updated_at"] = datetime.now(timezone.utc)
+            return suggestion
+
+    async def attach_verification(
+        self,
+        suggestion_id: str,
+        verification_id: str,
+        risk_level: str,
+        status: str,
+    ) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            suggestion = memory_repositories.ai_patch_suggestions.get(suggestion_id)
+            if not suggestion:
+                return None
+            suggestion["verification_id"] = verification_id
+            suggestion["risk_level"] = risk_level
+            suggestion["status"] = status
+            suggestion["updated_at"] = datetime.now(timezone.utc)
+            return suggestion

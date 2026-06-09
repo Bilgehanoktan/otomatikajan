@@ -8,6 +8,7 @@ class PrVerificationResponse(BaseModel):
     pr_draft_id: str
     proposal_id: str
     revision_id: Optional[str] = None
+    ai_suggestion_id: Optional[str] = None
     status: str
     review_score: float
     review_decision: str

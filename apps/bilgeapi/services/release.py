@@ -30,11 +30,14 @@ class BilgeAPIReleaseGate:
         "apps.bilgeapi.services.audit",
         "apps.bilgeapi.services.diagnostic",
         "apps.bilgeapi.services.review_ledger",
+        "apps.bilgeapi.services.ai_patch_suggestion",
+        "apps.bilgeapi.adapters.ai_patch_provider",
         "apps.bilgeapi.models.database",
         "apps.bilgeapi.repositories.postgres",
         "apps.bilgeapi.repositories.memory",
         "apps.bilgeapi.routers.review_ledger",
         "apps.bilgeapi.schemas.review_ledger",
+        "apps.bilgeapi.schemas.ai_patch_suggestion",
     ]
 
     REQUIRED_ENDPOINTS = [
@@ -49,6 +52,7 @@ class BilgeAPIReleaseGate:
         "/v1/audit-events",
         "/v1/webhook-deliveries",
         "/v1/review-ledger/recent",
+        "/v1/improvements/ai-suggestions/{suggestion_id}",
     ]
 
     def __init__(self, repo: ReleaseCheckRepository):
@@ -170,6 +174,16 @@ class BilgeAPIReleaseGate:
         # Metrics Privacy Check
         if is_production and settings.BILGEAPI_METRICS_PUBLIC:
             blockers.append("BILGEAPI_METRICS_PUBLIC must be disabled (false) in production.")
+
+        # AI Patch Provider Guardrails
+        if settings.BILGEAPI_AI_PATCH_PROVIDER != "mock" and not settings.BILGEAPI_ALLOW_REAL_AI_PATCH:
+            msg = "BILGEAPI_AI_PATCH_PROVIDER is real but BILGEAPI_ALLOW_REAL_AI_PATCH is disabled; AI patch generation will be blocked."
+            if is_production:
+                blockers.append(msg)
+            else:
+                warnings.append(msg)
+        if is_production and settings.BILGEAPI_ALLOW_REAL_AI_PATCH:
+            warnings.append("Real AI patch provider is enabled in production; verify prompt redaction and sandbox gates before use.")
 
         return {
             "blockers": blockers,

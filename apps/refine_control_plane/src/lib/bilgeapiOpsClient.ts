@@ -135,6 +135,26 @@ export type PatchRevisionRecord = {
   updated_at: string;
 };
 
+export type AIPatchSuggestionRecord = {
+  id: string;
+  pr_draft_id: string;
+  feedback_id?: string | null;
+  revision_id?: string | null;
+  provider: string;
+  model_name?: string | null;
+  prompt_hash: string;
+  context_summary?: Record<string, unknown> | null;
+  suggested_patch_code: string;
+  rationale?: string | null;
+  risk_notes?: string | null;
+  risk_level: string;
+  verification_id?: string | null;
+  status: string;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type ReleaseCheckRecord = {
   id: string;
   status: string;
@@ -199,6 +219,7 @@ export type OpsSnapshot = {
   proposals: ProposalRecord[];
   drafts: PrDraftRecord[];
   verifications: PrVerificationRecord[];
+  aiSuggestions: AIPatchSuggestionRecord[];
   releaseLatest: ReleaseCheckRecord | null;
   auditEvents: AuditEventRecord[];
   ledgerRecent: ReviewLedgerEntryRecord[];
@@ -417,6 +438,46 @@ export async function verifyPatchRevision(apiKey: string, revisionId: string): P
   });
 }
 
+export async function createAiPatchSuggestion(
+  apiKey: string,
+  draftId: string,
+  instruction: string,
+  feedback_id?: string | null,
+  revision_id?: string | null,
+): Promise<AIPatchSuggestionRecord> {
+  return bilgeApiFetch<AIPatchSuggestionRecord>(apiKey, `/v1/improvements/pr-drafts/${encodeURIComponent(draftId)}/ai-suggestions`, {
+    method: "POST",
+    body: JSON.stringify({ instruction, feedback_id: feedback_id || null, revision_id: revision_id || null }),
+  });
+}
+
+export async function listAiPatchSuggestions(apiKey: string, draftId: string): Promise<AIPatchSuggestionRecord[]> {
+  return bilgeApiFetch<AIPatchSuggestionRecord[]>(apiKey, `/v1/improvements/pr-drafts/${encodeURIComponent(draftId)}/ai-suggestions`);
+}
+
+export async function getAiPatchSuggestion(apiKey: string, suggestionId: string): Promise<AIPatchSuggestionRecord> {
+  return bilgeApiFetch<AIPatchSuggestionRecord>(apiKey, `/v1/improvements/ai-suggestions/${encodeURIComponent(suggestionId)}`);
+}
+
+export async function verifyAiPatchSuggestion(apiKey: string, suggestionId: string): Promise<PrVerificationRecord> {
+  return bilgeApiFetch<PrVerificationRecord>(apiKey, `/v1/improvements/ai-suggestions/${encodeURIComponent(suggestionId)}/verify`, {
+    method: "POST",
+  });
+}
+
+export async function acceptAiPatchSuggestionForReview(apiKey: string, suggestionId: string): Promise<{ id: string; status: string; updated_at: string }> {
+  return bilgeApiFetch<{ id: string; status: string; updated_at: string }>(apiKey, `/v1/improvements/ai-suggestions/${encodeURIComponent(suggestionId)}/accept-for-review`, {
+    method: "POST",
+  });
+}
+
+export async function rejectAiPatchSuggestion(apiKey: string, suggestionId: string, reason?: string | null): Promise<{ id: string; status: string; reason?: string | null; updated_at: string }> {
+  return bilgeApiFetch<{ id: string; status: string; reason?: string | null; updated_at: string }>(apiKey, `/v1/improvements/ai-suggestions/${encodeURIComponent(suggestionId)}/reject`, {
+    method: "POST",
+    body: JSON.stringify({ reason: reason || null }),
+  });
+}
+
 export async function getProposalAuditReport(apiKey: string, proposalId: string): Promise<string> {
   return bilgeApiText(apiKey, `/v1/improvements/proposals/${encodeURIComponent(proposalId)}/audit-report`);
 }
@@ -472,6 +533,10 @@ export async function loadBilgeApiOpsSnapshot(apiKey: string): Promise<OpsSnapsh
     drafts.slice(0, 20).map((draft) => settle(`verification:${draft.id}`, getDraftVerification(apiKey, draft.id), errors)),
   );
   const verifications = verificationGroups.filter((item): item is PrVerificationRecord => Boolean(item));
+  const aiSuggestionGroups = await Promise.all(
+    drafts.slice(0, 20).map((draft) => settle(`ai_suggestions:${draft.id}`, listAiPatchSuggestions(apiKey, draft.id), errors)),
+  );
+  const aiSuggestions = aiSuggestionGroups.flatMap((group) => group || []);
 
   const releaseLatest = await settle("release_latest", getLatestReleaseCheck(apiKey), errors);
   const auditEvents = (await settle("audit_events", listAuditEvents(apiKey), errors)) || [];
@@ -483,6 +548,7 @@ export async function loadBilgeApiOpsSnapshot(apiKey: string): Promise<OpsSnapsh
     proposals,
     drafts,
     verifications,
+    aiSuggestions,
     releaseLatest,
     auditEvents,
     ledgerRecent,

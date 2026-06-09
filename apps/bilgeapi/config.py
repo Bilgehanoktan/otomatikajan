@@ -443,6 +443,46 @@ class Settings:
     def BILGEAPI_ALLOW_REAL_DRAFT_PR(self, value):
         os.environ["BILGEAPI_ALLOW_REAL_DRAFT_PR"] = str(value).lower()
 
+    @property
+    def BILGEAPI_AI_PATCH_PROVIDER(self) -> str:
+        return os.getenv("BILGEAPI_AI_PATCH_PROVIDER", "mock").lower()
+
+    @BILGEAPI_AI_PATCH_PROVIDER.setter
+    def BILGEAPI_AI_PATCH_PROVIDER(self, value):
+        os.environ["BILGEAPI_AI_PATCH_PROVIDER"] = str(value)
+
+    @property
+    def BILGEAPI_ALLOW_REAL_AI_PATCH(self) -> bool:
+        raw = os.getenv("BILGEAPI_ALLOW_REAL_AI_PATCH", "false").lower()
+        return raw in ("1", "true", "yes", "on")
+
+    @BILGEAPI_ALLOW_REAL_AI_PATCH.setter
+    def BILGEAPI_ALLOW_REAL_AI_PATCH(self, value):
+        os.environ["BILGEAPI_ALLOW_REAL_AI_PATCH"] = str(value).lower()
+
+    @property
+    def BILGEAPI_AI_PATCH_MODEL(self) -> str:
+        return os.getenv("BILGEAPI_AI_PATCH_MODEL", "gpt-4.1-mini")
+
+    @BILGEAPI_AI_PATCH_MODEL.setter
+    def BILGEAPI_AI_PATCH_MODEL(self, value):
+        os.environ["BILGEAPI_AI_PATCH_MODEL"] = str(value)
+
+    @property
+    def BILGEAPI_AI_PATCH_MAX_CONTEXT_CHARS(self) -> int:
+        return int(os.getenv("BILGEAPI_AI_PATCH_MAX_CONTEXT_CHARS", "12000"))
+
+    @BILGEAPI_AI_PATCH_MAX_CONTEXT_CHARS.setter
+    def BILGEAPI_AI_PATCH_MAX_CONTEXT_CHARS(self, value):
+        os.environ["BILGEAPI_AI_PATCH_MAX_CONTEXT_CHARS"] = str(value)
+
+    @property
+    def BILGEAPI_AI_PATCH_MAX_OUTPUT_CHARS(self) -> int:
+        return int(os.getenv("BILGEAPI_AI_PATCH_MAX_OUTPUT_CHARS", "8000"))
+
+    @BILGEAPI_AI_PATCH_MAX_OUTPUT_CHARS.setter
+    def BILGEAPI_AI_PATCH_MAX_OUTPUT_CHARS(self, value):
+        os.environ["BILGEAPI_AI_PATCH_MAX_OUTPUT_CHARS"] = str(value)
+
 
 settings = Settings()
-

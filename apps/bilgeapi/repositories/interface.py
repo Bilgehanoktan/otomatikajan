@@ -235,6 +235,10 @@ class PrVerificationRepository(ABC):
     async def get_verification_by_revision(self, revision_id: str) -> Optional[Dict[str, Any]]:
         pass
 
+    @abstractmethod
+    async def get_verification_by_ai_suggestion(self, suggestion_id: str) -> Optional[Dict[str, Any]]:
+        pass
+
 
 class PrReviewFeedbackRepository(ABC):
     @abstractmethod
@@ -295,4 +299,32 @@ class ReviewLedgerRepository(ABC):
 
     @abstractmethod
     async def list_recent(self, limit: int = 50) -> List[Dict[str, Any]]:
+        pass
+
+
+class AIPatchSuggestionRepository(ABC):
+    @abstractmethod
+    async def create_suggestion(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        pass
+
+    @abstractmethod
+    async def get_suggestion(self, suggestion_id: str) -> Optional[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def list_suggestions_by_pr_draft(self, pr_draft_id: str) -> List[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def update_suggestion_status(self, suggestion_id: str, status: str) -> Optional[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def attach_verification(
+        self,
+        suggestion_id: str,
+        verification_id: str,
+        risk_level: str,
+        status: str,
+    ) -> Optional[Dict[str, Any]]:
         pass

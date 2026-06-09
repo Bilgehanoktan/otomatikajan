@@ -44,7 +44,9 @@ def test_client():
         get_patch_revision_repository,
         get_review_ledger_repository,
         get_review_ledger_service,
-        get_review_ledger_verifier
+        get_review_ledger_verifier,
+        get_ai_patch_suggestion_repository,
+        get_ai_patch_provider
     )
     from apps.bilgeapi.repositories.memory import (
         InMemoryIncidentRepository,
@@ -62,6 +64,7 @@ def test_client():
         InMemoryPrReviewFeedbackRepository,
         InMemoryPatchRevisionRepository,
         InMemoryReviewLedgerRepository,
+        InMemoryAIPatchSuggestionRepository,
         memory_repositories
     )
     
@@ -84,6 +87,11 @@ def test_client():
     app.dependency_overrides[get_pr_review_feedback_repository] = lambda: InMemoryPrReviewFeedbackRepository()
     app.dependency_overrides[get_patch_revision_repository] = lambda: InMemoryPatchRevisionRepository()
     app.dependency_overrides[get_review_ledger_repository] = lambda: InMemoryReviewLedgerRepository()
+    app.dependency_overrides[get_ai_patch_suggestion_repository] = lambda: InMemoryAIPatchSuggestionRepository()
+    app.dependency_overrides[get_ai_patch_provider] = lambda: __import__(
+        "apps.bilgeapi.adapters.ai_patch_provider",
+        fromlist=["MockAIPatchProvider"]
+    ).MockAIPatchProvider()
     app.dependency_overrides[get_review_ledger_service] = lambda: __import__(
         "apps.bilgeapi.services.review_ledger",
         fromlist=["ReviewLedgerService"]
@@ -120,7 +128,9 @@ def test_client_real_auth():
         get_patch_revision_repository,
         get_review_ledger_repository,
         get_review_ledger_service,
-        get_review_ledger_verifier
+        get_review_ledger_verifier,
+        get_ai_patch_suggestion_repository,
+        get_ai_patch_provider
     )
     from apps.bilgeapi.repositories.memory import (
         InMemoryIncidentRepository,
@@ -138,6 +148,7 @@ def test_client_real_auth():
         InMemoryPrReviewFeedbackRepository,
         InMemoryPatchRevisionRepository,
         InMemoryReviewLedgerRepository,
+        InMemoryAIPatchSuggestionRepository,
         memory_repositories
     )
     
@@ -159,6 +170,11 @@ def test_client_real_auth():
     app.dependency_overrides[get_pr_review_feedback_repository] = lambda: InMemoryPrReviewFeedbackRepository()
     app.dependency_overrides[get_patch_revision_repository] = lambda: InMemoryPatchRevisionRepository()
     app.dependency_overrides[get_review_ledger_repository] = lambda: InMemoryReviewLedgerRepository()
+    app.dependency_overrides[get_ai_patch_suggestion_repository] = lambda: InMemoryAIPatchSuggestionRepository()
+    app.dependency_overrides[get_ai_patch_provider] = lambda: __import__(
+        "apps.bilgeapi.adapters.ai_patch_provider",
+        fromlist=["MockAIPatchProvider"]
+    ).MockAIPatchProvider()
     app.dependency_overrides[get_review_ledger_service] = lambda: __import__(
         "apps.bilgeapi.services.review_ledger",
         fromlist=["ReviewLedgerService"]

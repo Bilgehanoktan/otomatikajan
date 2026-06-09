@@ -14,6 +14,12 @@ from apps.bilgeapi.schemas.pr_verification import PrVerificationResponse, PrRevi
 from apps.bilgeapi.schemas.pr_revision import (
     ReviewerFeedbackRequest, ReviewerFeedbackResponse, PatchRevisionRequest, PatchRevisionResponse
 )
+from apps.bilgeapi.schemas.ai_patch_suggestion import (
+    AIPatchSuggestionDecisionRequest,
+    AIPatchSuggestionDecisionResponse,
+    AIPatchSuggestionRequest,
+    AIPatchSuggestionResponse,
+)
 from apps.bilgeapi.routers.deps import (
     get_research_repository,
     get_improvement_repository,
@@ -27,7 +33,9 @@ from apps.bilgeapi.routers.deps import (
     get_reviewer_feedback_service,
     get_patch_revision_engine,
     get_pr_review_feedback_repository,
-    get_patch_revision_repository
+    get_patch_revision_repository,
+    get_ai_patch_suggestion_repository,
+    get_ai_patch_suggestion_service,
 )
 
 router = APIRouter(prefix="/v1/improvements", tags=["Improvements"])
@@ -465,5 +473,110 @@ async def verify_revision_endpoint(
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
+
+@router.post("/pr-drafts/{pr_draft_id}/ai-suggestions", response_model=AIPatchSuggestionResponse, status_code=status.HTTP_201_CREATED)
+async def create_ai_patch_suggestion_endpoint(
+    pr_draft_id: str,
+    body: AIPatchSuggestionRequest,
+    identity: dict = Depends(require_permission("bilgeapi.admin")),
+    service: Any = Depends(get_ai_patch_suggestion_service),
+):
+    actor_id = identity.get("id", "admin")
+    try:
+        return await service.generate_suggestion(
+            pr_draft_id=pr_draft_id,
+            feedback_id=body.feedback_id,
+            revision_id=body.revision_id,
+            instruction=body.instruction,
+            actor_id=actor_id,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.get("/pr-drafts/{pr_draft_id}/ai-suggestions", response_model=List[AIPatchSuggestionResponse])
+async def list_ai_patch_suggestions_endpoint(
+    pr_draft_id: str,
+    _identity: dict = Depends(require_permission("bilgeapi.operator")),
+    service: Any = Depends(get_ai_patch_suggestion_service),
+):
+    try:
+        return await service.list_suggestions(pr_draft_id)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.get("/ai-suggestions/{suggestion_id}", response_model=AIPatchSuggestionResponse)
+async def get_ai_patch_suggestion_endpoint(
+    suggestion_id: str,
+    _identity: dict = Depends(require_permission("bilgeapi.operator")),
+    repo: Any = Depends(get_ai_patch_suggestion_repository),
+):
+    suggestion = await repo.get_suggestion(suggestion_id)
+    if not suggestion:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="AI Patch Suggestion not found")
+    return suggestion
+
+
+@router.post("/ai-suggestions/{suggestion_id}/verify", response_model=PrVerificationResponse, status_code=status.HTTP_201_CREATED)
+async def verify_ai_patch_suggestion_endpoint(
+    suggestion_id: str,
+    identity: dict = Depends(require_permission("bilgeapi.admin")),
+    service: Any = Depends(get_ai_patch_suggestion_service),
+):
+    actor_id = identity.get("id", "admin")
+    try:
+        return await service.verify_suggestion(suggestion_id, actor_id=actor_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.post("/ai-suggestions/{suggestion_id}/accept-for-review", response_model=AIPatchSuggestionDecisionResponse)
+async def accept_ai_patch_suggestion_endpoint(
+    suggestion_id: str,
+    identity: dict = Depends(require_permission("bilgeapi.admin")),
+    service: Any = Depends(get_ai_patch_suggestion_service),
+):
+    actor_id = identity.get("id", "admin")
+    try:
+        updated = await service.accept_for_review(suggestion_id, actor_id=actor_id)
+        return AIPatchSuggestionDecisionResponse(
+            id=updated["id"],
+            status=updated["status"],
+            reason=None,
+            updated_at=updated["updated_at"],
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.post("/ai-suggestions/{suggestion_id}/reject", response_model=AIPatchSuggestionDecisionResponse)
+async def reject_ai_patch_suggestion_endpoint(
+    suggestion_id: str,
+    body: AIPatchSuggestionDecisionRequest,
+    identity: dict = Depends(require_permission("bilgeapi.admin")),
+    service: Any = Depends(get_ai_patch_suggestion_service),
+):
+    actor_id = identity.get("id", "admin")
+    try:
+        updated = await service.reject_suggestion(suggestion_id, reason=body.reason, actor_id=actor_id)
+        return AIPatchSuggestionDecisionResponse(
+            id=updated["id"],
+            status=updated["status"],
+            reason=body.reason,
+            updated_at=updated["updated_at"],
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 

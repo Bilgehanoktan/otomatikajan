@@ -8,7 +8,8 @@ from apps.bilgeapi.repositories.interface import (
     RecommendationRepository, RepairRequestRepository, AuditRepository, WebhookDeliveryRepository,
     ReleaseCheckRepository, ApiKeyRepository, ResearchRepository, ImprovementRepository,
     PrDraftRepository, PrVerificationRepository, PrReviewFeedbackRepository, PatchRevisionRepository,
-    ReviewLedgerRepository
+    ReviewLedgerRepository,
+    AIPatchSuggestionRepository
 )
 from apps.bilgeapi.schemas.incident import IncidentCreate, IncidentResponse
 from apps.bilgeapi.schemas.diagnostic import DiagnosticResult, DiagnosticStatus
@@ -19,7 +20,7 @@ from apps.bilgeapi.models.database import (
     RepairRequestModel, AuditEventModel, WebhookDeliveryModel, ReleaseCheckModel,
     ApiKeyModel, ResearchRequestModel, ResearchEvidenceModel, ImprovementProposalModel,
     PrDraftModel, PrVerificationModel, PrReviewFeedbackModel, PatchRevisionModel,
-    ReviewLedgerEntryModel
+    ReviewLedgerEntryModel, AIPatchSuggestionModel
 )
 
 class PostgresIncidentRepository(IncidentRepository):
@@ -919,6 +920,7 @@ class PostgresPrVerificationRepository(PrVerificationRepository):
             "pr_draft_id": model.pr_draft_id,
             "proposal_id": model.proposal_id,
             "revision_id": model.revision_id,
+            "ai_suggestion_id": model.ai_suggestion_id,
             "status": model.status,
             "review_score": model.review_score,
             "review_decision": model.review_decision,
@@ -942,6 +944,7 @@ class PostgresPrVerificationRepository(PrVerificationRepository):
             pr_draft_id=verification_data["pr_draft_id"],
             proposal_id=verification_data["proposal_id"],
             revision_id=verification_data.get("revision_id"),
+            ai_suggestion_id=verification_data.get("ai_suggestion_id"),
             status=verification_data.get("status", "PENDING"),
             review_score=verification_data["review_score"],
             review_decision=verification_data["review_decision"],
@@ -983,6 +986,16 @@ class PostgresPrVerificationRepository(PrVerificationRepository):
         res = await self.db.execute(
             select(PrVerificationModel)
             .where(PrVerificationModel.revision_id == revision_id)
+            .order_by(desc(PrVerificationModel.created_at))
+            .limit(1)
+        )
+        model = res.scalar_one_or_none()
+        return self._verification_to_dict(model) if model else None
+
+    async def get_verification_by_ai_suggestion(self, suggestion_id: str) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(PrVerificationModel)
+            .where(PrVerificationModel.ai_suggestion_id == suggestion_id)
             .order_by(desc(PrVerificationModel.created_at))
             .limit(1)
         )
@@ -1193,3 +1206,93 @@ class PostgresReviewLedgerRepository(ReviewLedgerRepository):
         )
         models = res.scalars().all()
         return [self._entry_to_dict(model) for model in models]
+
+
+class PostgresAIPatchSuggestionRepository(AIPatchSuggestionRepository):
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    def _suggestion_to_dict(self, model: AIPatchSuggestionModel) -> Dict[str, Any]:
+        return {
+            "id": model.id,
+            "pr_draft_id": model.pr_draft_id,
+            "feedback_id": model.feedback_id,
+            "revision_id": model.revision_id,
+            "provider": model.provider,
+            "model_name": model.model_name,
+            "prompt_hash": model.prompt_hash,
+            "context_summary": model.context_summary,
+            "suggested_patch_code": model.suggested_patch_code,
+            "rationale": model.rationale,
+            "risk_notes": model.risk_notes,
+            "risk_level": model.risk_level,
+            "verification_id": model.verification_id,
+            "status": model.status,
+            "created_by": model.created_by,
+            "created_at": model.created_at,
+            "updated_at": model.updated_at,
+        }
+
+    async def create_suggestion(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        model = AIPatchSuggestionModel(
+            id=data.get("id", f"ais_{uuid.uuid4().hex[:8]}"),
+            pr_draft_id=data["pr_draft_id"],
+            feedback_id=data.get("feedback_id"),
+            revision_id=data.get("revision_id"),
+            provider=data.get("provider", "mock"),
+            model_name=data.get("model_name"),
+            prompt_hash=data["prompt_hash"],
+            context_summary=data.get("context_summary"),
+            suggested_patch_code=data["suggested_patch_code"],
+            rationale=data.get("rationale"),
+            risk_notes=data.get("risk_notes"),
+            risk_level=data.get("risk_level", "LOW"),
+            verification_id=data.get("verification_id"),
+            status=data.get("status", "GENERATED"),
+            created_by=data.get("created_by"),
+        )
+        self.db.add(model)
+        await self.db.commit()
+        await self.db.refresh(model)
+        return self._suggestion_to_dict(model)
+
+    async def get_suggestion(self, suggestion_id: str) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(select(AIPatchSuggestionModel).where(AIPatchSuggestionModel.id == suggestion_id))
+        model = res.scalar_one_or_none()
+        return self._suggestion_to_dict(model) if model else None
+
+    async def list_suggestions_by_pr_draft(self, pr_draft_id: str) -> List[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(AIPatchSuggestionModel)
+            .where(AIPatchSuggestionModel.pr_draft_id == pr_draft_id)
+            .order_by(desc(AIPatchSuggestionModel.created_at))
+        )
+        return [self._suggestion_to_dict(model) for model in res.scalars().all()]
+
+    async def update_suggestion_status(self, suggestion_id: str, status: str) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(select(AIPatchSuggestionModel).where(AIPatchSuggestionModel.id == suggestion_id))
+        model = res.scalar_one_or_none()
+        if not model:
+            return None
+        model.status = status
+        await self.db.commit()
+        await self.db.refresh(model)
+        return self._suggestion_to_dict(model)
+
+    async def attach_verification(
+        self,
+        suggestion_id: str,
+        verification_id: str,
+        risk_level: str,
+        status: str,
+    ) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(select(AIPatchSuggestionModel).where(AIPatchSuggestionModel.id == suggestion_id))
+        model = res.scalar_one_or_none()
+        if not model:
+            return None
+        model.verification_id = verification_id
+        model.risk_level = risk_level
+        model.status = status
+        await self.db.commit()
+        await self.db.refresh(model)
+        return self._suggestion_to_dict(model)

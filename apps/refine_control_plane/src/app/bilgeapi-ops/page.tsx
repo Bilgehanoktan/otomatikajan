@@ -24,6 +24,7 @@ import {
   Trash2,
 } from "lucide-react";
 import {
+  AIPatchSuggestionRecord,
   ApiKeyCreateResponse,
   ApiKeyRecord,
   EvidenceRecord,
@@ -38,17 +39,21 @@ import {
   ReviewLedgerExportRecord,
   ReviewLedgerVerifyRecord,
   ReviewerFeedbackRecord,
+  acceptAiPatchSuggestionForReview,
   approveProposal,
   createBilgeApiKey,
+  createAiPatchSuggestion,
   createDraftPr,
   createPatchRevision,
   createProposal,
   createResearchRequest,
   createReviewerFeedback,
   exportReviewLedgerChain,
+  getAiPatchSuggestion,
   getReviewLedgerChain,
   getProposalAuditReport,
   listPatchRevisions,
+  listAiPatchSuggestions,
   listResearchEvidences,
   listReviewerFeedback,
   loadBilgeApiOpsSnapshot,
@@ -57,12 +62,14 @@ import {
   runProposalGate,
   runReleaseReadiness,
   updateApiKeyQuota,
+  rejectAiPatchSuggestion,
   verifyDraftPr,
+  verifyAiPatchSuggestion,
   verifyPatchRevision,
   verifyReviewLedgerChain,
 } from "@/lib/bilgeapiOpsClient";
 
-type OpsTab = "dashboard" | "keys" | "research" | "prs" | "revisions" | "ledger" | "audit";
+type OpsTab = "dashboard" | "keys" | "research" | "prs" | "revisions" | "ai" | "ledger" | "audit";
 
 type ActionLog = {
   id: string;
@@ -78,6 +85,7 @@ const tabs: Array<{ id: OpsTab; label: string; icon: LucideIcon }> = [
   { id: "research", label: "Research", icon: Search },
   { id: "prs", label: "Draft PRs", icon: GitPullRequestDraft },
   { id: "revisions", label: "Revisions", icon: RotateCcw },
+  { id: "ai", label: "AI Suggestions", icon: Terminal },
   { id: "ledger", label: "Ledger", icon: ClipboardCheck },
   { id: "audit", label: "Audit", icon: ClipboardCheck },
 ];
@@ -128,6 +136,9 @@ export default function BilgeAPIOpsConsole() {
   const [selectedDraftId, setSelectedDraftId] = React.useState("");
   const [feedback, setFeedback] = React.useState<ReviewerFeedbackRecord[]>([]);
   const [revisions, setRevisions] = React.useState<PatchRevisionRecord[]>([]);
+  const [aiSuggestions, setAiSuggestions] = React.useState<AIPatchSuggestionRecord[]>([]);
+  const [selectedAiSuggestionId, setSelectedAiSuggestionId] = React.useState("");
+  const [selectedAiSuggestion, setSelectedAiSuggestion] = React.useState<AIPatchSuggestionRecord | null>(null);
   const [lastVerification, setLastVerification] = React.useState<PrVerificationRecord | null>(null);
   const [ledgerChainId, setLedgerChainId] = React.useState("");
   const [ledgerEntries, setLedgerEntries] = React.useState<ReviewLedgerEntryRecord[]>([]);
@@ -151,6 +162,12 @@ export default function BilgeAPIOpsConsole() {
     feedback_id: "",
     revised_patch_code:
       "diff --git a/apps/bilgeapi/main.py b/apps/bilgeapi/main.py\n--- a/apps/bilgeapi/main.py\n+++ b/apps/bilgeapi/main.py\n@@\n+# revised patch placeholder\n",
+  });
+  const [aiForm, setAiForm] = React.useState({
+    feedback_id: "",
+    revision_id: "",
+    instruction: "Reduce reviewer risk, keep patch scoped, and add tests.",
+    reject_reason: "",
   });
 
   React.useEffect(() => {
@@ -193,6 +210,7 @@ export default function BilgeAPIOpsConsole() {
   const proposals = snapshot?.proposals ?? [];
   const drafts = snapshot?.drafts ?? [];
   const verifications = snapshot?.verifications ?? [];
+  const snapshotAiSuggestions = snapshot?.aiSuggestions ?? [];
   const auditEvents = snapshot?.auditEvents ?? [];
   const ledgerRecent = snapshot?.ledgerRecent ?? [];
   const releaseLatest = snapshot?.releaseLatest ?? null;
@@ -227,12 +245,14 @@ export default function BilgeAPIOpsConsole() {
   async function loadDraftContext(draftId: string) {
     setSelectedDraftId(draftId);
     setLedgerChainId(`chain_${draftId}`);
-    const [nextFeedback, nextRevisions] = await Promise.all([
+    const [nextFeedback, nextRevisions, nextAiSuggestions] = await Promise.all([
       listReviewerFeedback(apiKey, draftId).catch(() => []),
       listPatchRevisions(apiKey, draftId).catch(() => []),
+      listAiPatchSuggestions(apiKey, draftId).catch(() => []),
     ]);
     setFeedback(nextFeedback);
     setRevisions(nextRevisions);
+    setAiSuggestions(nextAiSuggestions);
   }
 
   return (
@@ -585,6 +605,118 @@ export default function BilgeAPIOpsConsole() {
               revisions={revisions}
               onVerify={(id) => void runAction("verify_revision", verifyPatchRevision(apiKey, id), (value) => setLastVerification(value))}
             />
+          </Panel>
+        </div>
+      ) : null}
+
+      {activeTab === "ai" ? (
+        <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
+          <Panel title="AI Patch Suggestions" icon={<Terminal size={16} />}>
+            <FormGrid>
+              <input className={inputClass} value={selectedDraftId} onChange={(event) => setSelectedDraftId(event.target.value)} placeholder="pr_draft_id" />
+              <input className={inputClass} value={aiForm.feedback_id} onChange={(event) => setAiForm({ ...aiForm, feedback_id: event.target.value })} placeholder="feedback_id optional" />
+              <input className={inputClass} value={aiForm.revision_id} onChange={(event) => setAiForm({ ...aiForm, revision_id: event.target.value })} placeholder="revision_id optional" />
+              <textarea className={`${inputClass} min-h-24 md:col-span-2`} value={aiForm.instruction} onChange={(event) => setAiForm({ ...aiForm, instruction: event.target.value })} placeholder="human reviewer instruction" />
+              <button
+                className={primaryButtonClass}
+                onClick={() =>
+                  selectedDraftId &&
+                  void runAction(
+                    "create_ai_suggestion",
+                    createAiPatchSuggestion(apiKey, selectedDraftId, aiForm.instruction, aiForm.feedback_id || null, aiForm.revision_id || null),
+                    async (value) => {
+                      setSelectedAiSuggestionId(value.id);
+                      setSelectedAiSuggestion(value);
+                      setAiSuggestions(await listAiPatchSuggestions(apiKey, selectedDraftId).catch(() => []));
+                    },
+                  )
+                }
+              >
+                <Save size={15} />
+                Generate
+              </button>
+              <button
+                className={secondaryButtonClass}
+                onClick={() => selectedDraftId && void runAction("load_ai_suggestions", listAiPatchSuggestions(apiKey, selectedDraftId), (value) => setAiSuggestions(value))}
+              >
+                <RefreshCw size={15} />
+                Load
+              </button>
+            </FormGrid>
+            <CompactTable
+              headers={["ID", "Status", "Risk", "Provider", "Hash"]}
+              rows={(aiSuggestions.length ? aiSuggestions : snapshotAiSuggestions).map((item) => [
+                item.id,
+                item.status,
+                item.risk_level,
+                item.provider,
+                item.prompt_hash.slice(0, 12),
+              ])}
+              empty="No AI suggestion loaded"
+            />
+          </Panel>
+          <Panel title="AI Suggestion Review Gate" icon={<ShieldCheck size={16} />}>
+            <FormGrid>
+              <input className={inputClass} value={selectedAiSuggestionId} onChange={(event) => setSelectedAiSuggestionId(event.target.value)} placeholder="ai_suggestion_id" />
+              <button
+                className={secondaryButtonClass}
+                onClick={() =>
+                  selectedAiSuggestionId &&
+                  void runAction("get_ai_suggestion", getAiPatchSuggestion(apiKey, selectedAiSuggestionId), (value) => setSelectedAiSuggestion(value))
+                }
+              >
+                <Eye size={15} />
+                Load
+              </button>
+              <button
+                className={primaryButtonClass}
+                onClick={() =>
+                  selectedAiSuggestionId &&
+                  void runAction("verify_ai_suggestion", verifyAiPatchSuggestion(apiKey, selectedAiSuggestionId), (value) => setLastVerification(value))
+                }
+              >
+                <Play size={15} />
+                Verify
+              </button>
+              <button
+                className={secondaryButtonClass}
+                onClick={() =>
+                  selectedAiSuggestionId &&
+                  void runAction("accept_ai_suggestion", acceptAiPatchSuggestionForReview(apiKey, selectedAiSuggestionId), async () => {
+                    if (selectedDraftId) setAiSuggestions(await listAiPatchSuggestions(apiKey, selectedDraftId).catch(() => []));
+                  })
+                }
+              >
+                <CheckCircle2 size={15} />
+                Accept
+              </button>
+              <input className={inputClass} value={aiForm.reject_reason} onChange={(event) => setAiForm({ ...aiForm, reject_reason: event.target.value })} placeholder="reject reason optional" />
+              <button
+                className={secondaryButtonClass}
+                onClick={() =>
+                  selectedAiSuggestionId &&
+                  void runAction("reject_ai_suggestion", rejectAiPatchSuggestion(apiKey, selectedAiSuggestionId, aiForm.reject_reason || null), async () => {
+                    if (selectedDraftId) setAiSuggestions(await listAiPatchSuggestions(apiKey, selectedDraftId).catch(() => []));
+                  })
+                }
+              >
+                <ShieldOff size={15} />
+                Reject
+              </button>
+            </FormGrid>
+            {selectedAiSuggestion ? (
+              <div className="mt-4 space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  <span className={`rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-widest ${statusTone(selectedAiSuggestion.status)}`}>{selectedAiSuggestion.status}</span>
+                  <span className={`rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-widest ${statusTone(selectedAiSuggestion.risk_level)}`}>{selectedAiSuggestion.risk_level}</span>
+                </div>
+                <pre className="max-h-[420px] overflow-auto rounded-lg border border-white/10 bg-black/40 p-4 text-xs text-gray-300">
+                  {selectedAiSuggestion.suggested_patch_code}
+                </pre>
+              </div>
+            ) : (
+              <EmptyState text="Load or generate an AI suggestion" />
+            )}
           </Panel>
         </div>
       ) : null}

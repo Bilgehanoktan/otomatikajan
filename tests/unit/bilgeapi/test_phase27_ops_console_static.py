@@ -31,6 +31,11 @@ def test_phase27_bilgeapi_ops_console_route_and_proxy_exist():
     assert "Immutable Review Ledger" in page_text
     assert "verifyReviewLedgerChain" in page_text
     assert "exportReviewLedgerChain" in page_text
+    assert "AI Patch Suggestions" in page_text
+    assert "createAiPatchSuggestion" in page_text
+    assert "verifyAiPatchSuggestion" in page_text
+    assert "acceptAiPatchSuggestionForReview" in page_text
+    assert "rejectAiPatchSuggestion" in page_text
 
     assert "BILGEAPI_PROXY_BASE" in client_text
     assert "plaintext_key" in client_text
@@ -39,6 +44,12 @@ def test_phase27_bilgeapi_ops_console_route_and_proxy_exist():
     assert "listReviewLedgerRecent" in client_text
     assert "verifyReviewLedgerChain" in client_text
     assert "exportReviewLedgerChain" in client_text
+    assert "AIPatchSuggestionRecord" in client_text
+    assert "createAiPatchSuggestion" in client_text
+    assert "listAiPatchSuggestions" in client_text
+    assert "verifyAiPatchSuggestion" in client_text
+    assert "acceptAiPatchSuggestionForReview" in client_text
+    assert "rejectAiPatchSuggestion" in client_text
 
     assert "bilgeapiOrigin" in config_text
     assert "source: '/bilgeapi/:path*'" in config_text

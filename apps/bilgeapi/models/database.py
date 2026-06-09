@@ -239,6 +239,7 @@ class PrVerificationModel(Base):
     pr_draft_id = Column(String(64), ForeignKey("bilgeapi_pr_drafts.id"), nullable=False, index=True)
     proposal_id = Column(String(64), ForeignKey("bilgeapi_improvement_proposals.id"), nullable=False, index=True)
     revision_id = Column(String(64), ForeignKey("bilgeapi_patch_revisions.id"), nullable=True, index=True)
+    ai_suggestion_id = Column(String(64), ForeignKey("bilgeapi_ai_patch_suggestions.id"), nullable=True, index=True)
     status = Column(String(32), default="PENDING", nullable=False, index=True) # PENDING, REVIEW_READY, NEEDS_HUMAN_CAUTION, NEEDS_REVISION, BLOCKED
     review_score = Column(Float, nullable=False)
     review_decision = Column(String(32), nullable=False) # REVIEW_READY, NEEDS_HUMAN_CAUTION, NEEDS_REVISION, BLOCKED
@@ -257,6 +258,7 @@ class PrVerificationModel(Base):
     pr_draft = relationship("PrDraftModel")
     proposal = relationship("ImprovementProposalModel")
     revision = relationship("PatchRevisionModel")
+    ai_suggestion = relationship("AIPatchSuggestionModel", foreign_keys=[ai_suggestion_id])
 
 
 class PrReviewFeedbackModel(Base):
@@ -309,3 +311,30 @@ class ReviewLedgerEntryModel(Base):
     event_hash = Column(String(64), nullable=False, unique=True, index=True)
     payload_summary = Column(SmartJSON(), nullable=True)
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+
+
+class AIPatchSuggestionModel(Base):
+    __tablename__ = "bilgeapi_ai_patch_suggestions"
+
+    id = Column(String(64), primary_key=True)
+    pr_draft_id = Column(String(64), ForeignKey("bilgeapi_pr_drafts.id"), nullable=False, index=True)
+    feedback_id = Column(String(64), ForeignKey("bilgeapi_pr_review_feedbacks.id"), nullable=True, index=True)
+    revision_id = Column(String(64), ForeignKey("bilgeapi_patch_revisions.id"), nullable=True, index=True)
+    provider = Column(String(32), default="mock", nullable=False)
+    model_name = Column(String(128), nullable=True)
+    prompt_hash = Column(String(128), nullable=False, index=True)
+    context_summary = Column(SmartJSON(), nullable=True)
+    suggested_patch_code = Column(Text, nullable=False)
+    rationale = Column(Text, nullable=True)
+    risk_notes = Column(Text, nullable=True)
+    risk_level = Column(String(32), default="LOW", nullable=False, index=True)
+    verification_id = Column(String(64), ForeignKey("bilgeapi_pr_verifications.id"), nullable=True, index=True)
+    status = Column(String(32), default="GENERATED", nullable=False, index=True)
+    created_by = Column(String(64), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
+
+    pr_draft = relationship("PrDraftModel")
+    feedback = relationship("PrReviewFeedbackModel")
+    revision = relationship("PatchRevisionModel")
+    verification = relationship("PrVerificationModel", foreign_keys=[verification_id])

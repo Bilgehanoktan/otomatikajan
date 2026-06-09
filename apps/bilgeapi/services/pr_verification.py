@@ -8,7 +8,8 @@ from apps.bilgeapi.repositories.interface import (
     PrDraftRepository,
     ImprovementRepository,
     ResearchRepository,
-    PatchRevisionRepository
+    PatchRevisionRepository,
+    AIPatchSuggestionRepository
 )
 from apps.bilgeapi.services.audit import AuditService
 
@@ -206,6 +207,7 @@ class PrVerificationService:
         research_repo: ResearchRepository,
         audit_service: AuditService,
         revision_repo: Optional[PatchRevisionRepository] = None,
+        ai_suggestion_repo: Optional[AIPatchSuggestionRepository] = None,
         ledger_service: Optional[Any] = None
     ):
         self.verification_repo = verification_repo
@@ -214,6 +216,7 @@ class PrVerificationService:
         self.research_repo = research_repo
         self.audit_service = audit_service
         self.revision_repo = revision_repo
+        self.ai_suggestion_repo = ai_suggestion_repo
         self.ledger_service = ledger_service
         self.analyzer = SandboxPatchAnalyzer()
         self.scorer = PrReviewGateScorer()
@@ -565,6 +568,128 @@ Risk Level: **{risk_level}**
                 "revision": revision,
                 "verification": verification,
                 "verification_status": ver_status,
+                "analysis": analysis,
+                "scoring": scoring
+            }
+        )
+
+        return verification
+
+    async def verify_ai_suggestion(self, suggestion_id: str, actor_id: str) -> Dict[str, Any]:
+        if not self.ai_suggestion_repo:
+            raise ValueError("AI suggestion repository not configured")
+
+        await self.audit_service.log_event(
+            event_type="AI_PATCH_SUGGESTION_VERIFICATION_STARTED",
+            actor_id=actor_id,
+            actor_type="user",
+            entity_type="ai_patch_suggestion",
+            entity_id=suggestion_id,
+            metadata={"msg": f"Verification started for AI Patch Suggestion {suggestion_id}"}
+        )
+
+        suggestion = await self.ai_suggestion_repo.get_suggestion(suggestion_id)
+        if not suggestion:
+            await self.audit_service.log_event(
+                event_type="AI_PATCH_SUGGESTION_VERIFICATION_FAILED",
+                actor_id=actor_id,
+                actor_type="user",
+                entity_type="ai_patch_suggestion",
+                entity_id=suggestion_id,
+                metadata={"error": "AI Patch Suggestion not found"}
+            )
+            raise ValueError("AI Patch Suggestion not found")
+
+        pr_draft_id = suggestion["pr_draft_id"]
+        pr_draft = await self.pr_draft_repo.get_pr_draft(pr_draft_id)
+        if not pr_draft:
+            raise ValueError("PR Draft not found")
+
+        proposal_id = pr_draft["proposal_id"]
+        proposal = await self.proposal_repo.get_proposal(proposal_id)
+        if not proposal:
+            raise ValueError("Proposal not found")
+
+        research_id = proposal.get("research_id")
+        evidences = []
+        if research_id:
+            evidences = await self.research_repo.list_evidences(research_id)
+
+        analysis = self.analyzer.analyze_patch(suggestion["suggested_patch_code"])
+        scoring = self.scorer.calculate_score(analysis, proposal, evidences)
+
+        test_plan = []
+        if analysis["test_files"]:
+            test_plan.append("Run existing unit/integration tests found in AI suggestion diff.")
+        else:
+            test_plan.append("WARNING: No tests found in AI suggestion diff. Create a new test case for the change.")
+        if scoring["risk_level"] == "HIGH":
+            test_plan.append("CRITICAL: Manual operator inspection of security/configuration changes is mandatory.")
+        test_plan.append("Verify endpoint behaviors against OpenAPI definitions.")
+
+        rollback_plan = f"Discard AI suggestion {suggestion_id}; do not apply patch.\n"
+        rollback_plan += f"Review Draft PR only: {pr_draft.get('github_pr_url') or pr_draft_id}\n"
+
+        report_markdown = self._generate_report(
+            pr_draft_id=pr_draft_id,
+            proposal_id=proposal_id,
+            review_score=scoring["score"],
+            review_decision=scoring["review_decision"],
+            risk_level=scoring["risk_level"],
+            analysis=analysis,
+            scoring_breakdown=scoring["breakdown"],
+            test_plan=test_plan,
+            rollback_plan=rollback_plan
+        )
+
+        status = scoring["review_decision"]
+        verification_data = {
+            "pr_draft_id": pr_draft_id,
+            "proposal_id": proposal_id,
+            "revision_id": suggestion.get("revision_id"),
+            "ai_suggestion_id": suggestion_id,
+            "status": status,
+            "review_score": scoring["score"],
+            "review_decision": scoring["review_decision"],
+            "risk_level": scoring["risk_level"],
+            "risk_flags": analysis["risky_files"],
+            "affected_files": analysis["affected_files"],
+            "mutation_detected": analysis["mutation_commands_detected"],
+            "test_files_present": len(analysis["test_files"]) > 0,
+            "patch_size_lines": analysis["patch_size_lines"],
+            "test_plan": test_plan,
+            "rollback_plan": rollback_plan,
+            "verification_report": report_markdown
+        }
+        verification = await self.verification_repo.create_verification(verification_data)
+
+        event_type = "AI_PATCH_SUGGESTION_VERIFIED"
+        if scoring["review_decision"] == "BLOCKED":
+            event_type = "AI_PATCH_SUGGESTION_BLOCKED"
+
+        await self.audit_service.log_event(
+            event_type=event_type,
+            actor_id=actor_id,
+            actor_type="user",
+            entity_type="ai_patch_suggestion",
+            entity_id=suggestion_id,
+            metadata={
+                "score": scoring["score"],
+                "decision": scoring["review_decision"],
+                "risk_level": scoring["risk_level"],
+                "verification_id": verification["id"]
+            }
+        )
+
+        await self._append_ledger_event(
+            chain_id=f"chain_{pr_draft_id}",
+            event_type=event_type,
+            entity_type="ai_patch_suggestion",
+            entity_id=suggestion_id,
+            actor_id=actor_id,
+            payload={
+                "suggestion": suggestion,
+                "verification": verification,
                 "analysis": analysis,
                 "scoring": scoring
             }
