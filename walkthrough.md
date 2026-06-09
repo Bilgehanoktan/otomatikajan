@@ -1,187 +1,119 @@
-# Walkthrough - BilgeAPI Faz 29: AI-Assisted Patch Revision Suggestions
+# Walkthrough - BilgeAPI Faz 30: v1.1 Final Release Seal
 
-Bu dokuman, Faz 29 kapsaminda eklenen AI destekli patch suggestion akisini, emniyet sinirlarini ve dogrulama kanitlarini ozetler.
+Bu dokuman, Faz 30 kapsaminda BilgeAPI v1.1.0 release seal icin uretilen final kanitlari ve release kararini ozetler.
 
 ## Ozet
 
-Faz 29 ile BilgeAPI, reviewer feedback, mevcut patch revision, sandbox verification ve Faz 28 immutable review ledger baglamini kullanarak AI patch suggestion uretebilir hale geldi.
-
-Temel guvenlik cizgisi korunur:
+Faz 30 yeni runtime ozelligi eklemez. Ama Faz 14-29 arasinda gelisen BilgeAPI v1.1 hattini denetlenebilir release paketine donusturur:
 
 ```text
-AI onerir.
-Sandbox dogrular.
-Ledger muhurlenir.
-Insan karar verir.
-Sistem otomatik uygulamaz.
+Baseline commit -> Verification evidence -> OpenAPI freeze -> Changelog -> Checksum manifest -> Final commit -> Annotated tag
 ```
 
-## Yapilan Degisiklikler
+## Release Baseline
 
-### 1. Configuration
+- Baseline commit: `2069a36864270244c3714ead9c2efdc0d7ee12ea`
+- Release tag: `bilgeapi-v1.1.0`
+- Migration head: `a29c4f83b2d1`
 
-`apps/bilgeapi/config.py` icine su guardrail ayarlari eklendi:
+## Uretilen Artefact'ler
 
-- `BILGEAPI_AI_PATCH_PROVIDER`
-- `BILGEAPI_ALLOW_REAL_AI_PATCH`
-- `BILGEAPI_AI_PATCH_MODEL`
-- `BILGEAPI_AI_PATCH_MAX_CONTEXT_CHARS`
-- `BILGEAPI_AI_PATCH_MAX_OUTPUT_CHARS`
-
-Default provider `mock`, real provider flag default `false`.
-
-### 2. Database & Migration
-
-`apps/bilgeapi/models/database.py`:
-
-- `AIPatchSuggestionModel`
-- `PrVerificationModel.ai_suggestion_id`
-
-Migration:
-
-- `libs/db/migrations/alembic/versions/a29c4f83b2d1_add_ai_patch_suggestions.py`
-- Container current head: `a29c4f83b2d1 (head)`
-
-### 3. Provider, Service, Repository
-
-Yeni dosyalar:
-
-- `apps/bilgeapi/adapters/ai_patch_provider.py`
-- `apps/bilgeapi/services/ai_patch_suggestion.py`
-- `apps/bilgeapi/schemas/ai_patch_suggestion.py`
-
-Repository katmani:
-
-- `AIPatchSuggestionRepository`
-- `InMemoryAIPatchSuggestionRepository`
-- `PostgresAIPatchSuggestionRepository`
-
-Servis akisi:
-
-- Redacted context olusturur.
-- Deterministik `prompt_hash` hesaplar.
-- Output size limitini enforce eder.
-- `SandboxPatchAnalyzer` ile risk analizi yapar.
-- Suggestion'i DB'ye `GENERATED` olarak kaydeder.
-- Verification sonrasi status'u `VERIFIED`, `NEEDS_REVISION` veya `BLOCKED` yapar.
-- Accept/reject kararlari ledger'a yazilir.
-
-### 4. Verification Integration
-
-`PrVerificationService.verify_ai_suggestion` eklendi.
-
-AI suggestion patch kodu mevcut Faz 25 scorer ile dogrulanir. HIGH risk suggestion score yuksek olsa bile `REVIEW_READY` olamaz; en fazla `NEEDS_HUMAN_CAUTION` olur.
-
-### 5. API Endpoints
-
-`apps/bilgeapi/routers/improvements.py` icine endpointler eklendi:
-
-- `POST /v1/improvements/pr-drafts/{pr_draft_id}/ai-suggestions`
-- `GET /v1/improvements/pr-drafts/{pr_draft_id}/ai-suggestions`
-- `GET /v1/improvements/ai-suggestions/{suggestion_id}`
-- `POST /v1/improvements/ai-suggestions/{suggestion_id}/verify`
-- `POST /v1/improvements/ai-suggestions/{suggestion_id}/accept-for-review`
-- `POST /v1/improvements/ai-suggestions/{suggestion_id}/reject`
-
-RBAC:
-
-- Generate/verify/accept/reject: `bilgeapi.admin`
-- List/read: `bilgeapi.operator`
-
-### 6. Ops Console
-
-`apps/refine_control_plane` icinde:
-
-- AI suggestion client methodlari eklendi.
-- `/bilgeapi-ops` icine `AI Patch Suggestions` paneli eklendi.
-- Generate, load, verify, accept, reject ve patch preview akislari eklendi.
+- `docs/openapi/bilgeapi_openapi.v1.1.0.json`
+- `docs/releases/bilgeapi_v1.1.0_workspace_audit.md`
+- `docs/releases/bilgeapi_v1.1.0_changelog.md`
+- `docs/releases/bilgeapi_v1.1.0/release_summary.md`
+- `docs/releases/bilgeapi_v1.1.0/checksum_manifest.sha256`
 
 ## Dogrulama Sonuclari
 
-### Target Tests
+### Backend Regression
+
+Komut:
 
 ```powershell
-py -3.13 -m pytest tests/unit/bilgeapi/test_ai_patch_suggestion.py tests/unit/bilgeapi/test_phase27_ops_console_static.py -q --tb=short --color=no
+python -m pytest tests/unit/bilgeapi tests/integration/bilgeapi --cov=apps/bilgeapi --cov-report=term-missing
 ```
 
 Sonuc:
 
-```text
-7 passed
-```
+- `206 passed`
+- Coverage: `80.80%`
 
-### Full Regression + Coverage
+Kanıt:
 
-```powershell
-py -3.13 -m pytest tests/unit/bilgeapi tests/integration/bilgeapi --cov=apps/bilgeapi --cov-report=xml --cov-report=term-missing -q --tb=short --color=no
-```
+- `docs/releases/bilgeapi_v1.1.0/backend_regression.txt`
 
-Sonuc:
-
-```text
-206 passed
-Total coverage: 82.46%
-```
-
-### OpenAPI
-
-```powershell
-py -3.13 scripts/export_bilgeapi_openapi.py
-```
+### Migration Audit
 
 Sonuc:
 
-```text
-Successfully exported OpenAPI schema to docs/openapi/bilgeapi_openapi.json
-```
+- Single head: `yes`
+- Current matches head: `yes`
+- Head/current: `a29c4f83b2d1 (head)`
 
-### Frontend Build
+Kanıt:
 
-```powershell
-cmd /c npm.cmd run build
-```
-
-Sonuc:
-
-```text
-Compiled successfully
-Route included: /bilgeapi-ops
-```
-
-### Frontend Route
-
-```text
-GET http://127.0.0.1:3100/bilgeapi-ops -> HTTP 200
-```
-
-### Docker & Smoke
-
-```powershell
-docker compose build bilgeapi
-docker compose up -d bilgeapi
-py -3.13 scripts/smoke_bilgeapi.py --base-url http://127.0.0.1:8100 --api-key dev-test-key-001
-```
-
-Sonuc:
-
-```text
-bilgeapi container: healthy
-Smoke: 6/6 passed - ALL PASSED
-OpenAPI AI suggestion path: present
-```
+- `docs/releases/bilgeapi_v1.1.0/migration_audit.txt`
+- `docs/releases/bilgeapi_v1.1.0/container_alembic_current.txt`
 
 ### Release Gate
 
-Local ve container release gate sonuclari:
+Sonuc:
 
-```text
-Score: 100.00
-Status: PASSED
-Warnings: 0
-Blockers: 0
-Release Decision: GO (PASSED)
-```
+- Score: `100.00`
+- Status: `PASSED`
+- Warnings: `0`
+- Blockers: `0`
+- Decision: `GO (PASSED)`
 
-## Sonuc
+Kanıt:
 
-Faz 29 uygulanmis, test edilmis ve runtime/container ortaminda dogrulanmistir. AI patch suggestion akisi sadece insan review'una taslak uretir; otomatik apply, branch, commit, merge, deploy veya migration apply yapmaz.
+- `docs/releases/bilgeapi_v1.1.0/release_gate.txt`
+
+### Docker & Smoke
+
+Sonuc:
+
+- `docker compose build bilgeapi`: PASS
+- `bilgeapi` container: `healthy`
+- Smoke: `6/6 passed`
+- `/health`: HTTP 200
+- `/v1/review-ledger/recent`: HTTP 200
+
+Kanıt:
+
+- `docs/releases/bilgeapi_v1.1.0/docker_build.txt`
+- `docs/releases/bilgeapi_v1.1.0/docker_ps_final.txt`
+- `docs/releases/bilgeapi_v1.1.0/docker_smoke.txt`
+- `docs/releases/bilgeapi_v1.1.0/endpoint_smoke.txt`
+
+### Frontend / Ops Console
+
+Sonuc:
+
+- `cmd /c npm.cmd run build`: PASS
+- Build output includes `/bilgeapi-ops`
+- Route smoke: HTTP 200
+- Source contract contains `Immutable Review Ledger`
+- Source contract contains `AI Patch Suggestions`
+
+Kanıt:
+
+- `docs/releases/bilgeapi_v1.1.0/frontend_build.txt`
+- `docs/releases/bilgeapi_v1.1.0/frontend_smoke.txt`
+- `docs/releases/bilgeapi_v1.1.0/frontend_panel_text_check.txt`
+
+## Workspace Audit
+
+Workspace genelinde unrelated dirty/staged dosyalar bulunuyor. Faz 30 release commit'i sadece release artefact'lerini explicit path ile stage etmelidir.
+
+Kanıt:
+
+- `docs/releases/bilgeapi_v1.1.0_workspace_audit.md`
+- `docs/releases/bilgeapi_v1.1.0/git_status_release.txt`
+- `docs/releases/bilgeapi_v1.1.0/git_diff_name_only.txt`
+- `docs/releases/bilgeapi_v1.1.0/git_diff_cached_name_only.txt`
+
+## Release Karari
+
+BilgeAPI v1.1.0 icin release gate ve regression kanitlari gecmistir. Final commit ve annotated tag sonrasi release muhurlenmis kabul edilir.

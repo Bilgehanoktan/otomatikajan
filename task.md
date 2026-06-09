@@ -1,63 +1,120 @@
-# Faz 29 - AI-Assisted Patch Revision Suggestions - Task List
+# Faz 30 - v1.1 Final Release Seal - Task List
 
 ## Planning
-- [x] Review pasted Faz 29 requirements.
-- [x] Clean and update `implementation_plan.md`.
-- [x] Add TDD tests for provider guardrails, redaction, prompt hashing, sandbox verification, ledger events, RBAC, and Ops Console contract.
 
-## Configuration
-- [x] Add `BILGEAPI_AI_PATCH_PROVIDER`.
-- [x] Add `BILGEAPI_ALLOW_REAL_AI_PATCH`.
-- [x] Add `BILGEAPI_AI_PATCH_MODEL`.
-- [x] Add `BILGEAPI_AI_PATCH_MAX_CONTEXT_CHARS`.
-- [x] Add `BILGEAPI_AI_PATCH_MAX_OUTPUT_CHARS`.
+- [x] Add Faz 30 scope to `implementation_plan.md`.
+- [x] Create/update this `task.md` checklist.
+- [x] Confirm release baseline commit: `2069a368`.
+- [x] Confirm release tag name: `bilgeapi-v1.1.0`.
 
-## Database & Migration
-- [x] Add `AIPatchSuggestionModel`.
-- [x] Add nullable `PrVerificationModel.ai_suggestion_id`.
-- [x] Create Alembic migration for `bilgeapi_ai_patch_suggestions` and verification FK/index.
+## Workspace Cleanliness
 
-## Schemas
-- [x] Create `apps/bilgeapi/schemas/ai_patch_suggestion.py`.
+- [x] Run `git status --short`.
+- [x] Run `git diff --name-only`.
+- [x] Run `git diff --cached --name-only`.
+- [x] Identify unrelated dirty/staged files.
+- [x] Exclude unrelated files from release commit.
+- [x] Create `docs/releases/bilgeapi_v1.1.0_workspace_audit.md`.
 
-## Repositories
-- [x] Add `AIPatchSuggestionRepository` interface.
-- [x] Implement `InMemoryAIPatchSuggestionRepository`.
-- [x] Implement `PostgresAIPatchSuggestionRepository`.
+## OpenAPI Freeze
 
-## Provider & Services
-- [x] Create `apps/bilgeapi/adapters/ai_patch_provider.py`.
-- [x] Implement `MockAIPatchProvider`.
-- [x] Implement guarded `OpenAIPatchProvider` and `LocalAIPatchProvider`.
-- [x] Create `apps/bilgeapi/services/ai_patch_suggestion.py`.
-- [x] Implement redacted context builder.
-- [x] Implement deterministic `prompt_hash`.
-- [x] Enforce context/output size limits.
-- [x] Implement generate, verify, accept, reject, and list flows.
+- [x] Run `py -3.13 scripts/export_bilgeapi_openapi.py`.
+- [x] Create `docs/openapi/bilgeapi_openapi.v1.1.0.json`.
+- [x] Validate frozen OpenAPI JSON.
+- [x] Confirm `/v1/improvements/*` endpoints exist.
+- [x] Confirm `/v1/review-ledger/*` endpoints exist.
+- [x] Confirm `/health` exists.
 
-## Verification Integration
-- [x] Add `PrVerificationService.verify_ai_suggestion`.
-- [x] Attach verification results to suggestions.
-- [x] Preserve HIGH-risk downgrade rule.
-- [x] Write AI suggestion events to immutable review ledger.
+## Changelog
 
-## API Endpoints
-- [x] Add `POST /v1/improvements/pr-drafts/{pr_draft_id}/ai-suggestions`.
-- [x] Add `GET /v1/improvements/pr-drafts/{pr_draft_id}/ai-suggestions`.
-- [x] Add `GET /v1/improvements/ai-suggestions/{suggestion_id}`.
-- [x] Add `POST /v1/improvements/ai-suggestions/{suggestion_id}/verify`.
-- [x] Add `POST /v1/improvements/ai-suggestions/{suggestion_id}/accept-for-review`.
-- [x] Add `POST /v1/improvements/ai-suggestions/{suggestion_id}/reject`.
+- [x] Create `docs/releases/bilgeapi_v1.1.0_changelog.md`.
+- [x] Document Added features from Faz 14-29.
+- [x] Document Security guarantees.
+- [x] Document Verification evidence.
+- [x] Document known exclusions/unrelated dirty files.
 
-## Ops Console
-- [x] Add AI suggestion client methods.
-- [x] Add `AI Patch Suggestions` panel to `/bilgeapi-ops`.
-- [x] Extend static UI contract test.
+## Release Evidence Bundle
 
-## Release Gate & Verification
-- [x] Update release gate module/endpoint checks.
-- [x] Run target Faz 29 tests.
-- [x] Run BilgeAPI unit/integration regression with coverage.
-- [x] Export OpenAPI schema.
-- [x] Run frontend production build.
-- [x] Run release gate.
+- [x] Create `docs/releases/bilgeapi_v1.1.0/`.
+- [x] Save backend regression output.
+- [x] Save coverage summary.
+- [x] Save release gate output.
+- [x] Save Docker smoke output.
+- [x] Save frontend build output.
+- [x] Save migration current/head output.
+- [x] Save git status release output.
+- [x] Save OpenAPI freeze check output.
+- [x] Create `release_summary.md`.
+
+## Backend Regression
+
+- [x] Run full BilgeAPI unit/integration regression.
+- [x] Confirm test count is at least `206 passed`.
+- [x] Confirm coverage >= 80%.
+- [x] Save output into release evidence bundle.
+
+## Migration Audit
+
+- [x] Run `py -3.13 scripts/verify_bilgeapi_migrations.py`.
+- [x] Run container `alembic current`.
+- [x] Confirm current/head is `a29c4f83b2d1`.
+- [x] Save output into release evidence bundle.
+
+## Release Gate
+
+- [x] Run `py -3.13 scripts/run_release_gate.py`.
+- [x] Confirm `Score: 100.00`.
+- [x] Confirm `Status: PASSED`.
+- [x] Confirm `Warnings: 0`.
+- [x] Confirm `Blockers: 0`.
+- [x] Confirm `Decision: GO`.
+- [x] Save output into release evidence bundle.
+
+## Docker & Smoke
+
+- [x] Run `docker compose build bilgeapi`.
+- [x] Run `docker compose up -d bilgeapi`.
+- [x] Confirm `bilgeapi` container is healthy.
+- [x] Run `scripts/smoke_bilgeapi.py`.
+- [x] Confirm `6/6 passed`.
+- [x] Smoke `GET /v1/review-ledger/recent`.
+- [x] Smoke `GET /health`.
+- [x] Save output into release evidence bundle.
+
+## Frontend / Ops Console
+
+- [x] Run `cmd /c npm.cmd run build` in `apps/refine_control_plane`.
+- [x] Confirm `/bilgeapi-ops` route is generated.
+- [x] Smoke `GET http://127.0.0.1:3100/bilgeapi-ops`.
+- [x] Confirm Ops Console UI renders.
+- [x] Confirm `Immutable Review Ledger` panel text exists.
+- [x] Confirm `AI Patch Suggestions` panel text exists.
+- [x] Save output into release evidence bundle.
+
+## Checksum Manifest
+
+- [x] Generate SHA-256 checksums for release evidence files.
+- [x] Save `docs/releases/bilgeapi_v1.1.0/checksum_manifest.sha256`.
+- [x] Verify manifest can be regenerated consistently.
+
+## Final Commit
+
+- [x] Stage only Faz 30 release files.
+- [x] Commit: `chore: seal BilgeAPI v1.1.0 release`.
+- [x] Confirm no unrelated files entered the commit.
+
+## Final Tag
+
+- [x] Create annotated tag: `bilgeapi-v1.1.0`.
+- [x] Verify tag exists.
+- [x] Verify tag points to final release commit.
+- [x] Record tag hash in final release output.
+
+## Final Seal
+
+- [x] Confirm `git status` for Faz 30 target files is clean.
+- [x] Confirm OpenAPI frozen file exists.
+- [x] Confirm release evidence bundle exists.
+- [x] Confirm release gate evidence exists.
+- [x] Confirm final tag exists.
+- [x] Update `walkthrough.md` with Faz 30 final release summary.
