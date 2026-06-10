@@ -40,6 +40,11 @@ def test_phase27_bilgeapi_ops_console_route_and_proxy_exist():
     assert "runEmergencyRecovery" in page_text
     assert "remediation" in page_text
     assert "Emergency Recovery (Liveness Only)" in page_text
+    assert "Governor Findings" in page_text
+    assert "Forbidden Governor Actions" in page_text
+    assert "acknowledgeFinding" in page_text
+    assert "dismissFinding" in page_text
+    assert "watchdogStatus" in page_text
 
     assert "BILGEAPI_PROXY_BASE" in client_text
     assert "plaintext_key" in client_text
@@ -58,6 +63,10 @@ def test_phase27_bilgeapi_ops_console_route_and_proxy_exist():
     assert "RemediationAttemptRecord" in client_text
     assert "triggerRemediation" in client_text
     assert "runEmergencyRecovery" in client_text
+    assert "acknowledgeFinding" in client_text
+    assert "dismissFinding" in client_text
+    assert "WatchdogStatusRecord" in client_text
+    assert "SystemFindingRecord" in client_text
 
     assert "bilgeapiOrigin" in config_text
     assert "source: '/bilgeapi/:path*'" in config_text

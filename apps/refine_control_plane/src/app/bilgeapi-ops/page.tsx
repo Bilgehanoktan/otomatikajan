@@ -73,9 +73,13 @@ import {
   disableRemediationRunbook,
   triggerRemediation,
   runEmergencyRecovery,
+  acknowledgeFinding,
+  dismissFinding,
+  runWatchdogScan,
 } from "@/lib/bilgeapiOpsClient";
 
-type OpsTab = "dashboard" | "keys" | "research" | "prs" | "revisions" | "ai" | "remediation" | "ledger" | "audit";
+
+type OpsTab = "dashboard" | "keys" | "research" | "prs" | "revisions" | "ai" | "governor" | "remediation" | "ledger" | "audit";
 
 type ActionLog = {
   id: string;
@@ -92,6 +96,7 @@ const tabs: Array<{ id: OpsTab; label: string; icon: LucideIcon }> = [
   { id: "prs", label: "Draft PRs", icon: GitPullRequestDraft },
   { id: "revisions", label: "Revisions", icon: RotateCcw },
   { id: "ai", label: "AI Suggestions", icon: Terminal },
+  { id: "governor", label: "Governor", icon: AlertTriangle },
   { id: "remediation", label: "Self-Healing", icon: ShieldCheck },
   { id: "ledger", label: "Ledger", icon: ClipboardCheck },
   { id: "audit", label: "Audit", icon: ClipboardCheck },
@@ -231,6 +236,9 @@ export default function BilgeAPIOpsConsole() {
   const releaseLatest = snapshot?.releaseLatest ?? null;
   const remediationRunbooks = snapshot?.remediationRunbooks ?? [];
   const remediationAttempts = snapshot?.remediationAttempts ?? [];
+  const systemFindings = snapshot?.systemFindings ?? [];
+  const watchdogStatus = snapshot?.watchdogStatus ?? null;
+
 
   const quotaRows = apiKeys.map((key) => ({
     key,
@@ -813,6 +821,170 @@ export default function BilgeAPIOpsConsole() {
               />
             )}
           </Panel>
+        </div>
+      ) : null}
+
+      {activeTab === "governor" ? (
+        <div className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-3">
+            <Metric
+              label="Watchdog Status"
+              value={watchdogStatus?.enabled ? "ENABLED / ACTIVE" : "DISABLED"}
+              icon={<ShieldCheck size={20} />}
+              tone={watchdogStatus?.enabled ? "green" : "rose"}
+            />
+            <Metric
+              label="Open Findings"
+              value={watchdogStatus?.open_findings ?? 0}
+              icon={<AlertTriangle size={20} />}
+              tone={(watchdogStatus?.open_findings ?? 0) > 0 ? "amber" : "gray"}
+            />
+            <Metric
+              label="High / Critical Findings"
+              value={watchdogStatus?.high_or_critical_findings ?? 0}
+              icon={<AlertTriangle size={20} />}
+              tone={(watchdogStatus?.high_or_critical_findings ?? 0) > 0 ? "rose" : "gray"}
+            />
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
+            <Panel title="Governor Findings" icon={<AlertTriangle size={16} />}>
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-xs text-gray-400">
+                  Active threats, vulnerability findings, and anomalies detected by Acting Governor.
+                </p>
+                <button
+                  onClick={() => void runAction("run_watchdog_scan", runWatchdogScan(apiKey))}
+                  className={primaryButtonClass}
+                >
+                  <Play size={14} />
+                  Run Scan Now
+                </button>
+              </div>
+
+              <div className="mt-4 overflow-x-auto rounded-lg border border-white/10">
+                <table className="w-full min-w-[640px] border-collapse text-left text-xs">
+                  <thead className="bg-white/5 text-[10px] uppercase tracking-widest text-gray-500">
+                    <tr>
+                      <th className="px-3 py-2 font-black">Finding ID</th>
+                      <th className="px-3 py-2 font-black">Source</th>
+                      <th className="px-3 py-2 font-black">Title</th>
+                      <th className="px-3 py-2 font-black">Severity</th>
+                      <th className="px-3 py-2 font-black">Risk Score</th>
+                      <th className="px-3 py-2 font-black">Status</th>
+                      <th className="px-3 py-2 font-black">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {systemFindings.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="px-3 py-4 text-center text-gray-500 font-bold uppercase tracking-widest">
+                          No system findings registered
+                        </td>
+                      </tr>
+                    ) : (
+                      systemFindings.map((finding) => (
+                        <tr key={finding.id} className="border-t border-white/5">
+                          <td className="px-3 py-2 font-mono text-cyan-200">{finding.id}</td>
+                          <td className="px-3 py-2">
+                            <span className="text-gray-400">{finding.source_type}</span>
+                            <span className="ml-1 text-[10px] font-mono text-gray-500">({finding.source_id.slice(0, 12)})</span>
+                          </td>
+                          <td className="px-3 py-2">
+                            <div className="font-bold text-gray-200">{finding.title}</div>
+                            <div className="text-[10px] text-gray-500 truncate max-w-xs">{finding.description}</div>
+                          </td>
+                          <td className="px-3 py-2">
+                            <span className={`rounded border px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${statusTone(finding.severity)}`}>
+                              {finding.severity}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 font-mono text-white">{finding.risk_score}</td>
+                          <td className="px-3 py-2">
+                            <span className={`rounded border px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${statusTone(finding.status)}`}>
+                              {finding.status}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2">
+                            <div className="flex gap-2">
+                              {finding.status === "OPEN" && (
+                                <>
+                                  <button
+                                    onClick={() => void runAction(`ack_finding_${finding.id}`, acknowledgeFinding(apiKey, finding.id))}
+                                    className="rounded border border-emerald-300/20 bg-emerald-300/10 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-100"
+                                  >
+                                    Acknowledge
+                                  </button>
+                                  <button
+                                    onClick={() => void runAction(`dismiss_finding_${finding.id}`, dismissFinding(apiKey, finding.id))}
+                                    className="rounded border border-rose-300/20 bg-rose-300/10 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-rose-100"
+                                  >
+                                    Dismiss
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </Panel>
+
+            <div className="space-y-6">
+              <Panel title="Forbidden Governor Actions" icon={<Lock size={16} />}>
+                <p className="mb-4 text-xs text-gray-400">
+                  The following operations are restricted by security policy and cannot be executed automatically by the Governor:
+                </p>
+                <div className="space-y-2 text-xs">
+                  {[
+                    { action: "auto_merge", desc: "Automatic merging of PR branches to master/main" },
+                    { action: "auto_deploy", desc: "Automatic deployment of patched builds to production" },
+                    { action: "auto_revoke_key", desc: "Automatic revocation of API keys without operator sign-off" },
+                    { action: "production_migration_apply", desc: "Direct execution of schema migrations on production DB" },
+                    { action: "branch_push", desc: "Direct git pushes bypassing pull requests" },
+                    { action: "production_config_change", desc: "Altering live environment variables without human gate" },
+                  ].map(({ action, desc }) => (
+                    <div key={action} className="flex items-center justify-between rounded border border-rose-400/10 bg-rose-400/5 p-2.5">
+                      <div>
+                        <span className="font-mono font-bold text-rose-300">{action}</span>
+                        <p className="mt-0.5 text-[10px] text-gray-500">{desc}</p>
+                      </div>
+                      <span className="rounded border border-rose-300/20 bg-rose-300/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-rose-100">
+                        FORBIDDEN
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </Panel>
+
+              <Panel title="Governance Audit Status" icon={<ShieldCheck size={16} />}>
+                <div className="space-y-4 text-xs text-gray-400">
+                  <div className="flex justify-between border-b border-white/5 pb-2">
+                    <span>Watchdog Enabled</span>
+                    <span className="font-bold text-emerald-400">{watchdogStatus?.enabled ? "YES" : "NO"}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-white/5 pb-2">
+                    <span>Risk Threshold</span>
+                    <span className="font-mono font-bold text-white">{watchdogStatus?.risk_threshold ?? 70}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-white/5 pb-2">
+                    <span>Auto Finding Creation</span>
+                    <span className="font-bold text-emerald-400">{watchdogStatus?.auto_finding ? "ENABLED" : "DISABLED"}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-white/5 pb-2">
+                    <span>Human Gate Required</span>
+                    <span className="font-bold text-amber-400">{watchdogStatus?.human_gate_required ? "YES" : "NO"}</span>
+                  </div>
+                  <p className="text-[10px] text-gray-500">
+                    All watchdog findings trigger an entry in the review ledger. Actions that breach safety limits are routed to the human operator gate.
+                  </p>
+                </div>
+              </Panel>
+            </div>
+          </div>
         </div>
       ) : null}
 
