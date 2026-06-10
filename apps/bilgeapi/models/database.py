@@ -418,3 +418,24 @@ class RemediationAttemptModel(Base):
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
 
+
+class BilgeAPIBridgeMappingModel(Base):
+    __tablename__ = "bilgeapi_bridge_mappings"
+    __table_args__ = (
+        UniqueConstraint("source_type", "source_id", name="uq_bilgeapi_bridge_source"),
+    )
+
+    id = Column(String(64), primary_key=True)
+    source_type = Column(String(64), nullable=False, index=True)
+    source_id = Column(String(128), nullable=False, index=True)
+    bilgeapi_finding_id = Column(String(64), nullable=True, index=True)
+    bilgeapi_research_id = Column(String(64), nullable=True, index=True)
+    bilgeapi_proposal_id = Column(String(64), nullable=True, index=True)
+    bilgeapi_pr_draft_id = Column(String(64), nullable=True, index=True)
+    bilgeapi_verification_id = Column(String(64), nullable=True, index=True)
+    bilgeapi_ledger_chain_id = Column(String(128), nullable=True, index=True)
+    status = Column(String(32), default="INIT", nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
+
+
