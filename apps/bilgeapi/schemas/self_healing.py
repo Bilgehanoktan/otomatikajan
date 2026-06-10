@@ -52,3 +52,30 @@ class RunbookEnableDisableRequest(BaseModel):
 class EmergencyRecoveryRequest(BaseModel):
     finding_id: str
     action_type: str
+
+
+class FindingIntakeRequest(BaseModel):
+    source_type: str
+    source_id: str
+    title: str
+    description: str
+    severity: str  # LOW, MEDIUM, HIGH, CRITICAL
+    evidence_summary: Optional[Dict[str, Any]] = None
+    recommended_action: Optional[str] = None
+    tenant_id: Optional[str] = None
+
+
+class RecoveryEventReport(BaseModel):
+    event_type: str
+    timestamp: str
+    service_name: str
+    attempt_no: int
+    output: Optional[str] = None
+    error: Optional[str] = None
+    status: str
+
+
+class ExternalRecoveryReportRequest(BaseModel):
+    events: List[RecoveryEventReport]
+
+

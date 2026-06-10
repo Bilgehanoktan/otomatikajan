@@ -69,7 +69,10 @@ class BilgeAPIReleaseGate:
         "/v1/watchdog/runbooks/{runbook_id}/enable",
         "/v1/watchdog/runbooks/{runbook_id}/disable",
         "/v1/watchdog/emergency-recovery/run",
+        "/v1/watchdog/findings/intake",
+        "/v1/watchdog/external-recovery/report",
     ]
+
 
     def __init__(self, repo: ReleaseCheckRepository):
         self.repo = repo
