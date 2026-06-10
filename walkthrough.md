@@ -1,174 +1,42 @@
-# Walkthrough — BilgeAPI Faz 31A: Acting Governor / Watchdog Core
+# Phase 31F: Governor Operations Hardening & E2E Seal — Walkthrough
 
-## Özet
+Bu aşamada (Faz 31F), Faz 31CDE ile geliştirilen **Watchdog**, **Supervisor**, **Platform Bridge** ve **Command Center** bileşenlerinin uçtan uca (E2E) güvenilirliğini doğrulamak amacıyla hardening (sertleştirme) çalışmaları tamamlanmış ve tüm kontroller başarıyla mühürlenmiştir.
 
-Faz 31A kapsamında BilgeAPI'ye read-only Acting Governor / Watchdog çekirdeği eklendi. Sistem artık release gate, review ledger ve güvenli konfigürasyon sinyallerini manuel olarak tarayabiliyor, risk puanı hesaplıyor, dedupe edilen `SystemFinding` kayıtları üretiyor ve lifecycle işlemlerini immutable review ledger üzerinde kanıtlıyor.
+---
 
-Bu fazda otomatik merge, deploy, API key revoke, production migration apply, branch push veya production config değişikliği yoktur.
+## 1. Uygulanan Değişiklikler ve Güvenlik Önlemleri
 
-## Yapılan Değişiklikler
+Tüm testler ve doğrulamalar kullanıcı tarafından onaylanan güvenlik sınırlarına sadık kalınarak uygulanmıştır:
 
-### 1. Config
+1. **Uçtan Uca Entegrasyon Testi (`verify_governor_e2e.py`)**:
+   - `BilgeAPIBridge` aracılığıyla ilk sinyal gönderilmiş, `SystemFinding` oluşumu ve veritabanı mapping tablosunda (`bilgeapi_bridge_mappings`) tam olarak **1 mapping** kaydının yerleştiği onaylanmıştır.
+   - İkinci gönderim doğrudan HTTP üzerinden yapılmış ve sunucu tarafı mükerrer bulgu algılaması (idempotency) tetiklenerek ledger'a `SYSTEM_FINDING_DEDUPED` logunun yazıldığı kanıtlanmıştır.
 
-`apps/bilgeapi/config.py` dosyasına watchdog ayarları eklendi:
+2. **Tahribatsız Supervisor Doğrulaması (`verify_supervisor_recovery.py`)**:
+   - Supervisor canlandırma döngüsü, geçersiz port kullanılarak simüle edilmiş ve **docker container'ı durdurulmadan (mock/dry-run mode)** spool dosyasına yazma yeteneği sınanmıştır.
+   - Gerçek BilgeAPI URL'sine dönüldüğünde spooled olayların başarıyla review ledger'a aktarıldığı (flush) ve spool dosyasının temizlendiği kanıtlanmıştır.
 
-- `BILGEAPI_WATCHDOG_ENABLED`
-- `BILGEAPI_WATCHDOG_RISK_THRESHOLD`
-- `BILGEAPI_WATCHDOG_AUTO_FINDING`
-- `BILGEAPI_WATCHDOG_HUMAN_GATE_REQUIRED`
+3. **İzole Zincirde Ledger Bozulma Koruması (`verify_ledger_corruption_block.py`)**:
+   - Ana DB verilerine dokunulmadan, tamamen benzersiz bir test ledger zinciri (`chain_id` test) oluşturulmuştur.
+   - DB üzerinde sequence veya hash bütünlüğü bozulmuş ve `BilgeAPIHumanGateVerifier.assert_approval_allowed` fonksiyonunun onay kararlarını bloke ederek `ValueError` fırlattığı doğrulanmıştır.
+   - Test sonrasında tüm test zinciri veritabanından tamamen silinerek cleanup yapılmıştır.
 
-Varsayılan çalışma modu güvenlidir: watchdog disabled ve yalnızca manual-run endpoint üzerinden çalışır.
+4. **Eşzamanlılık Testleri (`test_bilgeapi_idempotency_live.py`)**:
+   - `NullPool` kullanılarak izole aiosqlite bağlantılarıyla yapılan paralel testlerde `uq_bilgeapi_bridge_source` benzersizlik kısıtının mükerrer kayıtları başarıyla engellediği pytest ile kanıtlanmıştır.
 
-### 2. Database & Repository
+---
 
-`apps/bilgeapi/models/database.py` dosyasına `SystemFindingModel` eklendi. Yeni tablo:
+## 2. Test ve Doğrulama Sonuçları
 
-- `bilgeapi_system_findings`
-- deterministic `source_hash`
-- `occurrence_count`
-- lifecycle timestamp alanları
-- BilgeAPI research/proposal/PR/verification/ledger bağlantı alanları
+Tüm adımlar `verify_phase31_hardening_evidence.py` orkestratör scripti ile tek seferde koşturulmuş ve **100/100 Skor** ile **PASSED (RELEASE DECISION: GO)** durumuna ulaşılmıştır:
 
-Migration:
+- **E2E Signal Intake Smoke**: `PASSED`
+- **Supervisor Spool & Flush Proof**: `PASSED`
+- **Ledger Corruption Human Gate Block**: `PASSED`
+- **Pytest Integration Tests**: `PASSED` (2/2 Passed)
+- **6/6 Smoke Tests**: `PASSED` (HTTP 200 checks for health, docs, openapi, catalog, incidents, auth enforcement)
+- **Docker BilgeAPI Health**: `HEALTHY`
+- **OpenAPI Schema Export**: `PASSED` (Successfully exported to `docs/openapi/bilgeapi_openapi.json`)
+- **Refine Frontend Static Build**: `PASSED` (Build succeeded in Next.js Turbopack)
 
-- `libs/db/migrations/alembic/versions/b31a0f1e2d3c_add_bilgeapi_system_findings.py`
-
-Migration hem SQLite fallback hem local PostgreSQL geliştirme DB üzerinde uygulandı:
-
-```powershell
-py -3.13 -m alembic upgrade head
-```
-
-### 3. Watchdog Services
-
-Yeni servis:
-
-- `apps/bilgeapi/services/system_watchdog.py`
-
-Eklenen sınıflar:
-
-- `SystemSignalCollector`
-- `SystemRiskScorer`
-- `SystemFindingService`
-- `WatchdogEvidenceBuilder`
-- `ActingGovernorPolicy`
-- `SystemWatchdogService`
-
-Güvenlik sınırı:
-
-- `ActingGovernorPolicy.FORBIDDEN_ACTIONS` içinde `auto_merge`, `auto_deploy`, `auto_revoke_key`, `production_migration_apply`, `branch_push`, `production_config_change` sabit olarak yasaklandı.
-- Production ortamında `BILGEAPI_WATCHDOG_HUMAN_GATE_REQUIRED=false` kabul edilmez.
-- `DISMISSED` ve `RESOLVED` terminal statüdür; implicit reopen yapılmaz.
-
-### 4. API Endpoints
-
-Yeni router:
-
-- `apps/bilgeapi/routers/system_watchdog.py`
-
-Endpointler:
-
-- `POST /v1/watchdog/run`
-- `GET /v1/watchdog/status`
-- `GET /v1/watchdog/findings`
-- `GET /v1/watchdog/findings/{finding_id}`
-- `POST /v1/watchdog/findings/{finding_id}/acknowledge`
-- `POST /v1/watchdog/findings/{finding_id}/dismiss`
-
-RBAC:
-
-- `run`, `acknowledge`, `dismiss`: `bilgeapi.admin`
-- `status`, `findings`, `finding detail`: `bilgeapi.operator`
-
-### 5. Release Gate Integration
-
-`apps/bilgeapi/services/release.py` içindeki required module ve endpoint listeleri watchdog modül ve endpointleriyle güncellendi.
-
-Release gate sonucu:
-
-```text
-Score: 100.00
-Status: PASSED
-Warnings: 0
-Blockers: 0
-Decision: GO (PASSED)
-```
-
-## Doğrulama Sonuçları
-
-### Faz 31A Unit Tests
-
-```powershell
-py -3.13 -m pytest tests/unit/bilgeapi/test_system_watchdog.py -v
-```
-
-Sonuç:
-
-```text
-9 passed
-```
-
-### BilgeAPI Unit Regression
-
-```powershell
-py -3.13 -m pytest tests/unit/bilgeapi -q
-```
-
-Sonuç:
-
-```text
-passed
-```
-
-### Unit + Integration + Coverage
-
-```powershell
-py -3.13 -m pytest tests/unit/bilgeapi tests/integration/bilgeapi --cov=apps/bilgeapi --cov-report=xml --cov-report=term-missing
-```
-
-Sonuç:
-
-```text
-215 passed
-Total coverage: 82.33%
-```
-
-### Docker & Smoke
-
-```powershell
-docker compose build bilgeapi
-docker compose up -d bilgeapi
-py -3.13 scripts/smoke_bilgeapi.py --base-url http://127.0.0.1:8100 --api-key dev-test-key-001
-```
-
-Sonuç:
-
-```text
-bilgeapi: healthy
-Smoke: 6/6 passed - ALL PASSED
-```
-
-### Live Watchdog Endpoint Smoke
-
-```text
-GET /v1/watchdog/status -> HTTP 200
-POST /v1/watchdog/run -> HTTP 200
-```
-
-Varsayılan disabled durumda safe no-op dönmektedir:
-
-```json
-{
-  "status": "DISABLED",
-  "enabled": false,
-  "findings_created": 0,
-  "forbidden_actions": [
-    "auto_merge",
-    "auto_deploy",
-    "auto_revoke_key",
-    "production_migration_apply",
-    "branch_push",
-    "production_config_change"
-  ]
-}
-```
+Detaylı çıktıların tamamı [bilgeapi_phase31_hardening_evidence.md](file:///e:/ai_company_faz12.1/docs/evidence/bilgeapi_phase31_hardening_evidence.md) kanıt raporu altında kayıt altına alınmıştır.
