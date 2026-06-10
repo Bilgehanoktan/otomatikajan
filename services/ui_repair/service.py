@@ -433,7 +433,7 @@ class UIRepairService:
         diag_id = f"ui_fail_{case.route.replace('/', '_').strip('_') or 'root'}"
         cast(Any, case).linked_runtime_diagnostic_id = diag_id
 
-    async def trigger_autonomous_repair(self, case_id: str) -> Dict[str, Any]:
+    async def trigger_autonomous_repair(self, case_id: str, simulate_status: Optional[str] = None) -> Dict[str, Any]:
         """Hand-off to the Stagehand/SWE-Agent orchestrator."""
         
         # Phase 15: Governance Policy Evaluation Hook
@@ -468,7 +468,7 @@ class UIRepairService:
         # Trigger the orchestrator in the background
         import asyncio
         case_uuid = UUID(str(case.id))
-        asyncio.create_task(self._run_repair_task(case_uuid))
+        asyncio.create_task(self._run_repair_task(case_uuid, simulate_status))
         
         return {
             "status": "success", 
@@ -476,14 +476,14 @@ class UIRepairService:
             "case_id": str(case.id)
         }
 
-    async def _run_repair_task(self, case_id: UUID):
+    async def _run_repair_task(self, case_id: UUID, simulate_status: Optional[str] = None):
         """Internal task to run the full repair cycle using the Phase 4 orchestrator."""
         from .repair_orchestrator import UIRepairOrchestrator
         from libs.db.session import AsyncSessionLocal
         
         async with AsyncSessionLocal() as db:
             orch = UIRepairOrchestrator(db)
-            await orch.run_repair_cycle(case_id)
+            await orch.run_repair_cycle(case_id, simulate_status=simulate_status)
 
     async def get_attempt_logs(self, case_id: str) -> List[Dict[str, Any]]:
         """Fetches all repair attempts for a case."""
@@ -563,9 +563,82 @@ class UIRepairService:
         if not case or not gov:
             return {"status": "error", "message": "Case or Approval record not found."}
 
+        # Central Enforcements for Phase 32A (Apply Gate)
+        from .repair_orchestrator import is_path_allowed, calculate_sha256
+        from libs.db.models.ui_repair_models import UIRepairPRReview, UIRepairVerifierRun
+        
+        stmt_attempt = select(UIRepairAttempt).where(UIRepairAttempt.id == attempt_id)
+        attempt_obj = (await self.db.execute(stmt_attempt)).scalar_one_or_none()
+        if not attempt_obj:
+            return {"status": "error", "message": "Repair attempt not found."}
+        attempt = cast(Any, attempt_obj)
+
+        # 1. PR Review Status Check
+        stmt_review = select(UIRepairPRReview).where(UIRepairPRReview.attempt_id == attempt_id)
+        review = (await self.db.execute(stmt_review)).scalar_one_or_none()
+        if not review:
+            return {"status": "error", "message": "Apply Gate blocked: PR review not found. PRReview is mandatory."}
+            
+        if review.status not in {"APPROVED", "PASSED"}:
+            _log.error(f"Apply Gate blocked: PR Review status is {review.status}. Expected APPROVED or PASSED.")
+            return {"status": "error", "message": f"Apply Gate blocked: PR Review status is {review.status}."}
+            
+        # 2. Verifier Run Status Check
+        stmt_verifier = select(UIRepairVerifierRun).where(UIRepairVerifierRun.attempt_id == attempt_id)
+        verifier = (await self.db.execute(stmt_verifier)).scalar_one_or_none()
+        if not verifier:
+            return {"status": "error", "message": "Apply Gate blocked: Verifier run not found. VerifierMesh is mandatory."}
+            
+        if verifier.status != "PASSED":
+            _log.error(f"Apply Gate blocked: Verifier run status is {verifier.status}. Expected PASSED.")
+            return {"status": "error", "message": f"Apply Gate blocked: Verifier run status is {verifier.status}."}
+
+        # 3. Path Allowlist Check
+        target_file = getattr(case, "suspected_area", "") or (attempt.suspected_files_json[0] if attempt.suspected_files_json else "")
+        if not target_file and review.changed_files_json:
+            target_file = review.changed_files_json[0]
+            
+        if not target_file or not is_path_allowed(target_file):
+            _log.error(f"Apply Gate blocked: File path {target_file} is outside UI Repair allowlist.")
+            return {"status": "error", "message": "Apply Gate blocked: Target file path is blocked or outside allowlist."}
+
+        # 4. AuditGate Security Check
+        patch_path = attempt.patch_path
+        patch_content = ""
+        if patch_path and os.path.exists(patch_path):
+            try:
+                with open(patch_path, "r", encoding="utf-8") as f:
+                    patch_content = f.read()
+            except Exception as ex:
+                _log.warning(f"Apply Gate: Failed to read patch file: {ex}")
+                
+        from services.orchestration.agi.security.audit_gate import audit_gate
+        is_safe = await audit_gate.verify_self_patch(
+            file_path=target_file,
+            new_content=patch_content,
+            reason=f"Apply check UI Repair case {case.id} on route {case.route}"
+        )
+        if not is_safe:
+            _log.error("Apply Gate blocked: Patch failed AuditGate safety check.")
+            return {"status": "error", "message": "Apply Gate blocked: Patch failed AuditGate safety check."}
+
+        # 5. Patch Identity (Hash matching)
+        reviewed_patch_hash = (review.describe_output_json or {}).get("reviewed_patch_hash")
+        verified_patch_hash = (verifier.result_summary_json or {}).get("verified_patch_hash")
+        applied_patch_hash = calculate_sha256(patch_path) if patch_path else ""
+        file_manifest_hash = (review.describe_output_json or {}).get("file_manifest_hash") or (verifier.result_summary_json or {}).get("file_manifest_hash")
+        
+        if not reviewed_patch_hash or not verified_patch_hash or not applied_patch_hash:
+            _log.error(f"Apply Gate blocked: One of the patch hashes is missing. Reviewed: {reviewed_patch_hash}, Verified: {verified_patch_hash}, Applied: {applied_patch_hash}")
+            return {"status": "error", "message": "Apply Gate blocked: Patch identity check failed (missing hash)."}
+            
+        if reviewed_patch_hash != verified_patch_hash or reviewed_patch_hash != applied_patch_hash:
+            _log.error(f"Apply Gate blocked: Patch hash mismatch. Reviewed: {reviewed_patch_hash}, Verified: {verified_patch_hash}, Applied: {applied_patch_hash}")
+            return {"status": "error", "message": "Apply Gate blocked: Patch identity check failed (hash mismatch)."}
+
         # 0. Cognitive Integrity Hard Gate
         from .cognitive_integrity_guard import CognitiveIntegrityGuard
-        from .schemas import UICognitiveOutputType
+        from libs.db.models.ui_repair_models import UICognitiveOutputType
         
         stmt_attempt = select(UIRepairAttempt).where(UIRepairAttempt.id == attempt_id)
         attempt = (await self.db.execute(stmt_attempt)).scalar_one_or_none()
@@ -605,29 +678,44 @@ class UIRepairService:
             case_id=case.id,
             attempt_id=UUID(attempt_id),
             pr_url=case.pr_url,
-            status=result["status"],
-            apply_mode=result["apply_mode"],
-            merge_commit_sha=result["merge_commit_sha"],
-            rollback_snapshot_path=result["rollback_snapshot_path"],
-            applied_at=result["applied_at"],
+            status=result.get("status", "FAILED"),
+            apply_mode=result.get("apply_mode", "GIT_APPLY"),
+            merge_commit_sha=result.get("merge_commit_sha"),
+            rollback_snapshot_path=result.get("rollback_snapshot_path"),
+            applied_at=result.get("applied_at") or datetime.now(timezone.utc),
             applied_by=operator_name
         )
         self.db.add(apply_rec)
         
         # 4. Close Case
-        if result["status"] == "SUCCESS":
+        if result.get("status") == "SUCCESS":
             cast(Any, case).status = UIRepairStatus.RESOLVED.value
         else:
             cast(Any, case).status = UIRepairStatus.REPAIR_FAILED.value
             
         evidence = UIRepairEvidenceWriter(self.db)
+        payload = {
+            **result,
+            "patch_hash": applied_patch_hash,
+            "applied_patch_hash": applied_patch_hash,
+            "reviewed_patch_hash": reviewed_patch_hash,
+            "verified_patch_hash": verified_patch_hash,
+            "file_manifest_hash": file_manifest_hash
+        }
+        json_payload = {}
+        for k, v in payload.items():
+            if isinstance(v, datetime):
+                json_payload[k] = v.isoformat()
+            else:
+                json_payload[k] = v
+
         await evidence.log_event(
             case_id=UUID(str(case.id)),
             attempt_id=UUID(attempt_id),
             event_type="REPAIR_APPLIED",
-            status=result["status"],
-            message=f"Repair applied by {operator_name}. Commit: {result['merge_commit_sha']}",
-            payload=result
+            status=result.get("status", "FAILED"),
+            message=f"Repair applied by {operator_name}. Commit: {result.get('merge_commit_sha', 'N/A')}",
+            payload=json_payload
         )
         
         await self.db.commit()

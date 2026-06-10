@@ -205,6 +205,35 @@ class AuditGate:
                 pass
         return {}
 
+    def _run_static_audit(self, file_path: str, new_content: str) -> bool:
+        """Determinisitc static safety check for fail-closed fallback."""
+        normalized = file_path.replace("\\", "/").strip("/")
+        
+        # 1. Protected paths check
+        protected_files = [
+            "config.py", "db/session.py", "core/agi/security/audit_gate.py",
+            ".env", "docker-compose.yml", "libs/db/", "migrations/",
+            "services/orchestration/agi/security/", "services/repair/human_gate.py",
+            "apps/bilgeapi/config.py"
+        ]
+        if any(p in normalized for p in protected_files):
+            _log.error(f"[STATIC AUDIT] Protected file modification attempted: {file_path}")
+            return False
+
+        # 2. Forbidden command check
+        forbidden = ["os.remove", "os.rmdir", "shutil.rmtree", "eval(", "exec("]
+        for word in forbidden:
+            if word in new_content:
+                _log.error(f"[STATIC AUDIT] Forbidden command detected: {word}")
+                return False
+
+        # 3. Patch size/risk check
+        if len(new_content) > 50000 or new_content.count("\n") > 1000:
+            _log.error("[STATIC AUDIT] Patch size too large for automatic safety verification.")
+            return False
+
+        return True
+
     async def verify_self_patch(self, file_path: str, new_content: str, reason: str = "") -> bool:
         """
         [Phase 38] Otonom öz-yama (Self-Patching) güvenliğini denetler.
@@ -212,18 +241,10 @@ class AuditGate:
         """
         _log.info(f"Self-Patch Denetleniyor: {file_path}")
         
-        # 1. Koruma Listesi (Protected Files)
-        protected_files = ["config.py", "db/session.py", "core/agi/security/audit_gate.py"]
-        if any(p in file_path for p in protected_files):
-            _log.error(f"Audit: Kritik dosya koruma altında! Yama REDDEDİLDİ: {file_path}")
+        # Run static checks first
+        if not self._run_static_audit(file_path, new_content):
+            _log.error(f"Audit: Static checks failed. Patch REJECTED: {file_path}")
             return False
-
-        # 2. Yasaklı Komut Taraması
-        forbidden = ["os.remove", "os.rmdir", "shutil.rmtree", "eval(", "exec("]
-        for word in forbidden:
-            if word in new_content:
-                _log.error(f"Audit: Yasaklı komut tespit edildi ({word})! Yama REDDEDİLDİ.")
-                return False
 
         # 3. Neural Kritik (LLM)
         prompt = f"""
@@ -244,6 +265,18 @@ class AuditGate:
         """
         
         try:
+            # Check if model orchestrator is configured/online
+            is_placeholder = False
+            if hasattr(self.model_orch, "providers"):
+                openai_p = self.model_orch.providers.get("openai")
+                gemini_p = self.model_orch.providers.get("gemini")
+                if (openai_p and openai_p.is_placeholder_key()) and (gemini_p and gemini_p.is_placeholder_key()):
+                    is_placeholder = True
+            
+            if is_placeholder:
+                _log.warning("Audit: Model orchestrator offline/using placeholder keys. Falling back to static audit (BLOCKED, fail-closed, Human Gate required).")
+                return False
+
             # Phase 35: Shadow Backup Integration
             from services.orchestration.agi.security.backup_service import backup_service
             
@@ -252,6 +285,13 @@ class AuditGate:
                 prompt=prompt,
                 system_prompt="Kendi kodunu iyileştiren bir AGI'nin güvenlik denetçisisin."
             )
+            
+            # Here we parse the LLM decision
+            audit_data = self._parse_json_from_response(response.content)
+            if not audit_data.get("is_safe", False):
+                _log.warning(f"[AUDIT] Neural check rejected patch: {audit_data.get('reason')}")
+                return False
+
             # Burada projedeki mevcut testleri çalıştırıyoruz.
             test_proc = subprocess.run(["pytest", "-q", "--maxfail=1"], capture_output=True, text=True, timeout=30)
             
@@ -264,7 +304,8 @@ class AuditGate:
             return True
 
         except Exception as e:
-            _log.error(f"Audit verify_self_patch hatası: {e}")
+            _log.error(f"Audit verify_self_patch hatası: {e}. Falling back to static audit (BLOCKED, fail-closed, Human Gate required).")
+            # Fallback to static checks (which already passed at the top of the function)
             return False
 
     async def verify_evolution_patch(self, opportunity: Any, patch: str, filename: str) -> bool:

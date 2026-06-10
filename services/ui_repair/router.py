@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, Query, Body, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from uuid import UUID
@@ -260,15 +260,31 @@ async def resolve_case(case_id: str, db: AsyncSession = Depends(get_db)):
     return {"status": "success"}
 
 @router.post("/cases/{case_id}/repair")
-async def trigger_autonomous_repair(case_id: str, db: AsyncSession = Depends(get_db)):
+async def trigger_autonomous_repair(
+    case_id: str, 
+    db: AsyncSession = Depends(get_db),
+    x_bilgeapi_test_simulate_pr_review: Optional[str] = Header(None)
+):
     """Triggers the autonomous repair hand-off for a specific case."""
     from services.ui_repair.runtime_guard import check_runtime_dependencies
     guard = await check_runtime_dependencies(require_docker=True)
     if guard["status"] == "degraded":
         return guard
 
+    # Test simulation boundary
+    simulate_status = None
+    if x_bilgeapi_test_simulate_pr_review:
+        import os
+        test_mode = os.getenv("BILGEAPI_UI_REPAIR_TEST_MODE", "false").lower() == "true"
+        if not test_mode:
+            raise HTTPException(
+                status_code=403, 
+                detail="Test simulation mode (X-BilgeAPI-Test-Simulate-PR-Review) is not allowed in production."
+            )
+        simulate_status = x_bilgeapi_test_simulate_pr_review
+
     svc = UIRepairService(db)
-    return await svc.trigger_autonomous_repair(case_id)
+    return await svc.trigger_autonomous_repair(case_id, simulate_status=simulate_status)
 
 @router.get("/cases/{case_id}/attempts")
 async def get_case_attempts(case_id: str, db: AsyncSession = Depends(get_db)):

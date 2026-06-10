@@ -1,3 +1,6 @@
+import os
+import fnmatch
+import hashlib
 from typing import Dict, Any, Optional, cast
 from uuid import UUID
 from datetime import datetime
@@ -17,6 +20,48 @@ from services.observability.logging import get_logger
 
 _log = get_logger("ui_repair_orchestrator")
 
+def is_path_allowed(file_path: str) -> bool:
+    """Allowed paths check according to Phase 32A security requirements."""
+    normalized = file_path.replace("\\", "/").strip("/")
+    
+    # 1. Blocked paths (denylist)
+    blocked_patterns = [
+        ".env",
+        "docker-compose.yml",
+        "libs/db/**",
+        "migrations/**",
+        "apps/bilgeapi/config.py",
+        "services/orchestration/agi/security/**",
+        "services/repair/human_gate.py"
+    ]
+    for pattern in blocked_patterns:
+        if fnmatch.fnmatch(normalized, pattern) or fnmatch.fnmatch(normalized, f"*/{pattern}"):
+            return False
+            
+    # 2. Allowed paths (allowlist)
+    allowed_patterns = [
+        "apps/refine_control_plane/src/**",
+        "tests/ui_repair/**",
+        "artifacts/ui_repair/**"
+    ]
+    for pattern in allowed_patterns:
+        if fnmatch.fnmatch(normalized, pattern):
+            return True
+            
+    return False
+
+def calculate_sha256(filepath_or_content: str | bytes) -> str:
+    """Helper to calculate SHA256 hashes of files or content."""
+    if isinstance(filepath_or_content, str):
+        if os.path.exists(filepath_or_content):
+            try:
+                with open(filepath_or_content, "rb") as f:
+                    return hashlib.sha256(f.read()).hexdigest()
+            except Exception:
+                pass
+        return hashlib.sha256(filepath_or_content.encode("utf-8")).hexdigest()
+    return hashlib.sha256(filepath_or_content).hexdigest()
+
 class UIRepairOrchestrator:
     """
     Phase 4: Hardened Orchestrator for UI Repair.
@@ -32,7 +77,7 @@ class UIRepairOrchestrator:
         self.governance = GovernanceAdapter()
         self.evidence = UIRepairEvidenceWriter(db)
 
-    async def run_repair_cycle(self, case_id: UUID) -> Dict[str, Any]:
+    async def run_repair_cycle(self, case_id: UUID, simulate_status: Optional[str] = None) -> Dict[str, Any]:
         """
         Executes the full autonomous repair cycle.
         """
@@ -92,6 +137,47 @@ class UIRepairOrchestrator:
             
             repair_result = await self.openswe.generate_repair(str(case.id), diagnostic)
             
+            # --- Phase 32A Allowlist Path Checking & Hashing ---
+            target_file = repair_result.get("target_file", "")
+            patch_path = repair_result.get("patch_path", "")
+            
+            # 1. Path allowlist/denylist verification
+            if repair_result.get("success") and not is_path_allowed(target_file):
+                _log.warning(f"AuditGate: File path {target_file} is BLOCKED for UI Repair.")
+                repair_result["success"] = False
+                repair_result["error"] = f"AuditGate: File path {target_file} is BLOCKED."
+            
+            # 2. AuditGate verify self patch check
+            if repair_result.get("success"):
+                patch_content = ""
+                if patch_path and os.path.exists(patch_path):
+                    try:
+                        with open(patch_path, "r", encoding="utf-8") as f:
+                            patch_content = f.read()
+                    except Exception as ex:
+                        _log.warning(f"AuditGate: Failed to read patch file: {ex}")
+                
+                from services.orchestration.agi.security.audit_gate import audit_gate
+                is_safe = await audit_gate.verify_self_patch(
+                    file_path=target_file,
+                    new_content=patch_content,
+                    reason=f"UI Repair case {case.id} on route {case.route}"
+                )
+                if not is_safe:
+                    _log.warning(f"AuditGate: Patch for {target_file} failed safety validation.")
+                    repair_result["success"] = False
+                    repair_result["error"] = "AuditGate: Patch failed safety validation."
+
+            # Calculate and record patch hash
+            if repair_result.get("success"):
+                patch_hash = calculate_sha256(patch_path)
+                repair_result["patch_hash"] = patch_hash
+                
+                # Store in attempt's stagehand_summary_json
+                summary = dict(attempt.stagehand_summary_json or {})
+                summary["patch_hash"] = patch_hash
+                attempt.stagehand_summary_json = summary
+                
             await self.evidence.record_open_swe_result(attempt_obj, repair_result)
             
             if repair_result.get("success"):
@@ -106,14 +192,24 @@ class UIRepairOrchestrator:
                 attempt.status = RepairAttemptStatus.REVIEW_RUNNING.value
                 await self.db.commit()
                 
-                review_res = await self.pr_agent.run_review_pipeline(str(case.pr_url), str(case.id))
+                review_res = await self.pr_agent.run_review_pipeline(
+                    str(case.pr_url), 
+                    str(case.id), 
+                    simulate_status=simulate_status, 
+                    patch_hash=repair_result.get("patch_hash")
+                )
                 await self.evidence.record_pr_review(attempt_obj, review_res)
                 
                 # Phase 5: Verifier Mesh Gate
                 attempt.status = RepairAttemptStatus.VERIFIER_RUNNING.value
                 await self.db.commit()
                 
-                verifier_res = await self.verifier.run_verification_gates(str(case.pr_url), str(case.id))
+                verifier_res = await self.verifier.run_verification_gates(
+                    str(case.pr_url), 
+                    str(case.id), 
+                    self.db, 
+                    patch_hash=repair_result.get("patch_hash")
+                )
                 await self.evidence.record_verifier_run(attempt_obj, verifier_res)
                 
                 # Phase 5: Risk Classification & Governance Policy
@@ -129,9 +225,13 @@ class UIRepairOrchestrator:
                 )
                 await self.evidence.record_governance_request(attempt_obj, gov_res)
                 
-                # Transition to WAITING_GOVERNANCE
-                case.status = UIRepairStatus.WAITING_GOVERNANCE.value
-                attempt.status = RepairAttemptStatus.WAITING_GOVERNANCE.value
+                # Transition based on PR review status
+                if review_res.get("status") == "BLOCKED":
+                    case.status = UIRepairStatus.MANUAL_REVIEW_REQUIRED.value
+                    attempt.status = "BLOCKED"
+                else:
+                    case.status = UIRepairStatus.WAITING_GOVERNANCE.value
+                    attempt.status = RepairAttemptStatus.WAITING_GOVERNANCE.value
             else:
                 attempt.status = RepairAttemptStatus.FAILED.value
                 case.status = UIRepairStatus.REPAIR_FAILED.value
