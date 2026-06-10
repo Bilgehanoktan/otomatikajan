@@ -1,119 +1,174 @@
-# Walkthrough - BilgeAPI Faz 30: v1.1 Final Release Seal
+# Walkthrough — BilgeAPI Faz 31A: Acting Governor / Watchdog Core
 
-Bu dokuman, Faz 30 kapsaminda BilgeAPI v1.1.0 release seal icin uretilen final kanitlari ve release kararini ozetler.
+## Özet
 
-## Ozet
+Faz 31A kapsamında BilgeAPI'ye read-only Acting Governor / Watchdog çekirdeği eklendi. Sistem artık release gate, review ledger ve güvenli konfigürasyon sinyallerini manuel olarak tarayabiliyor, risk puanı hesaplıyor, dedupe edilen `SystemFinding` kayıtları üretiyor ve lifecycle işlemlerini immutable review ledger üzerinde kanıtlıyor.
 
-Faz 30 yeni runtime ozelligi eklemez. Ama Faz 14-29 arasinda gelisen BilgeAPI v1.1 hattini denetlenebilir release paketine donusturur:
+Bu fazda otomatik merge, deploy, API key revoke, production migration apply, branch push veya production config değişikliği yoktur.
 
-```text
-Baseline commit -> Verification evidence -> OpenAPI freeze -> Changelog -> Checksum manifest -> Final commit -> Annotated tag
-```
+## Yapılan Değişiklikler
 
-## Release Baseline
+### 1. Config
 
-- Baseline commit: `2069a36864270244c3714ead9c2efdc0d7ee12ea`
-- Release tag: `bilgeapi-v1.1.0`
-- Migration head: `a29c4f83b2d1`
+`apps/bilgeapi/config.py` dosyasına watchdog ayarları eklendi:
 
-## Uretilen Artefact'ler
+- `BILGEAPI_WATCHDOG_ENABLED`
+- `BILGEAPI_WATCHDOG_RISK_THRESHOLD`
+- `BILGEAPI_WATCHDOG_AUTO_FINDING`
+- `BILGEAPI_WATCHDOG_HUMAN_GATE_REQUIRED`
 
-- `docs/openapi/bilgeapi_openapi.v1.1.0.json`
-- `docs/releases/bilgeapi_v1.1.0_workspace_audit.md`
-- `docs/releases/bilgeapi_v1.1.0_changelog.md`
-- `docs/releases/bilgeapi_v1.1.0/release_summary.md`
-- `docs/releases/bilgeapi_v1.1.0/checksum_manifest.sha256`
+Varsayılan çalışma modu güvenlidir: watchdog disabled ve yalnızca manual-run endpoint üzerinden çalışır.
 
-## Dogrulama Sonuclari
+### 2. Database & Repository
 
-### Backend Regression
+`apps/bilgeapi/models/database.py` dosyasına `SystemFindingModel` eklendi. Yeni tablo:
 
-Komut:
+- `bilgeapi_system_findings`
+- deterministic `source_hash`
+- `occurrence_count`
+- lifecycle timestamp alanları
+- BilgeAPI research/proposal/PR/verification/ledger bağlantı alanları
+
+Migration:
+
+- `libs/db/migrations/alembic/versions/b31a0f1e2d3c_add_bilgeapi_system_findings.py`
+
+Migration hem SQLite fallback hem local PostgreSQL geliştirme DB üzerinde uygulandı:
 
 ```powershell
-python -m pytest tests/unit/bilgeapi tests/integration/bilgeapi --cov=apps/bilgeapi --cov-report=term-missing
+py -3.13 -m alembic upgrade head
 ```
 
-Sonuc:
+### 3. Watchdog Services
 
-- `206 passed`
-- Coverage: `80.80%`
+Yeni servis:
 
-Kanıt:
+- `apps/bilgeapi/services/system_watchdog.py`
 
-- `docs/releases/bilgeapi_v1.1.0/backend_regression.txt`
+Eklenen sınıflar:
 
-### Migration Audit
+- `SystemSignalCollector`
+- `SystemRiskScorer`
+- `SystemFindingService`
+- `WatchdogEvidenceBuilder`
+- `ActingGovernorPolicy`
+- `SystemWatchdogService`
 
-Sonuc:
+Güvenlik sınırı:
 
-- Single head: `yes`
-- Current matches head: `yes`
-- Head/current: `a29c4f83b2d1 (head)`
+- `ActingGovernorPolicy.FORBIDDEN_ACTIONS` içinde `auto_merge`, `auto_deploy`, `auto_revoke_key`, `production_migration_apply`, `branch_push`, `production_config_change` sabit olarak yasaklandı.
+- Production ortamında `BILGEAPI_WATCHDOG_HUMAN_GATE_REQUIRED=false` kabul edilmez.
+- `DISMISSED` ve `RESOLVED` terminal statüdür; implicit reopen yapılmaz.
 
-Kanıt:
+### 4. API Endpoints
 
-- `docs/releases/bilgeapi_v1.1.0/migration_audit.txt`
-- `docs/releases/bilgeapi_v1.1.0/container_alembic_current.txt`
+Yeni router:
 
-### Release Gate
+- `apps/bilgeapi/routers/system_watchdog.py`
 
-Sonuc:
+Endpointler:
 
-- Score: `100.00`
-- Status: `PASSED`
-- Warnings: `0`
-- Blockers: `0`
-- Decision: `GO (PASSED)`
+- `POST /v1/watchdog/run`
+- `GET /v1/watchdog/status`
+- `GET /v1/watchdog/findings`
+- `GET /v1/watchdog/findings/{finding_id}`
+- `POST /v1/watchdog/findings/{finding_id}/acknowledge`
+- `POST /v1/watchdog/findings/{finding_id}/dismiss`
 
-Kanıt:
+RBAC:
 
-- `docs/releases/bilgeapi_v1.1.0/release_gate.txt`
+- `run`, `acknowledge`, `dismiss`: `bilgeapi.admin`
+- `status`, `findings`, `finding detail`: `bilgeapi.operator`
+
+### 5. Release Gate Integration
+
+`apps/bilgeapi/services/release.py` içindeki required module ve endpoint listeleri watchdog modül ve endpointleriyle güncellendi.
+
+Release gate sonucu:
+
+```text
+Score: 100.00
+Status: PASSED
+Warnings: 0
+Blockers: 0
+Decision: GO (PASSED)
+```
+
+## Doğrulama Sonuçları
+
+### Faz 31A Unit Tests
+
+```powershell
+py -3.13 -m pytest tests/unit/bilgeapi/test_system_watchdog.py -v
+```
+
+Sonuç:
+
+```text
+9 passed
+```
+
+### BilgeAPI Unit Regression
+
+```powershell
+py -3.13 -m pytest tests/unit/bilgeapi -q
+```
+
+Sonuç:
+
+```text
+passed
+```
+
+### Unit + Integration + Coverage
+
+```powershell
+py -3.13 -m pytest tests/unit/bilgeapi tests/integration/bilgeapi --cov=apps/bilgeapi --cov-report=xml --cov-report=term-missing
+```
+
+Sonuç:
+
+```text
+215 passed
+Total coverage: 82.33%
+```
 
 ### Docker & Smoke
 
-Sonuc:
+```powershell
+docker compose build bilgeapi
+docker compose up -d bilgeapi
+py -3.13 scripts/smoke_bilgeapi.py --base-url http://127.0.0.1:8100 --api-key dev-test-key-001
+```
 
-- `docker compose build bilgeapi`: PASS
-- `bilgeapi` container: `healthy`
-- Smoke: `6/6 passed`
-- `/health`: HTTP 200
-- `/v1/review-ledger/recent`: HTTP 200
+Sonuç:
 
-Kanıt:
+```text
+bilgeapi: healthy
+Smoke: 6/6 passed - ALL PASSED
+```
 
-- `docs/releases/bilgeapi_v1.1.0/docker_build.txt`
-- `docs/releases/bilgeapi_v1.1.0/docker_ps_final.txt`
-- `docs/releases/bilgeapi_v1.1.0/docker_smoke.txt`
-- `docs/releases/bilgeapi_v1.1.0/endpoint_smoke.txt`
+### Live Watchdog Endpoint Smoke
 
-### Frontend / Ops Console
+```text
+GET /v1/watchdog/status -> HTTP 200
+POST /v1/watchdog/run -> HTTP 200
+```
 
-Sonuc:
+Varsayılan disabled durumda safe no-op dönmektedir:
 
-- `cmd /c npm.cmd run build`: PASS
-- Build output includes `/bilgeapi-ops`
-- Route smoke: HTTP 200
-- Source contract contains `Immutable Review Ledger`
-- Source contract contains `AI Patch Suggestions`
-
-Kanıt:
-
-- `docs/releases/bilgeapi_v1.1.0/frontend_build.txt`
-- `docs/releases/bilgeapi_v1.1.0/frontend_smoke.txt`
-- `docs/releases/bilgeapi_v1.1.0/frontend_panel_text_check.txt`
-
-## Workspace Audit
-
-Workspace genelinde unrelated dirty/staged dosyalar bulunuyor. Faz 30 release commit'i sadece release artefact'lerini explicit path ile stage etmelidir.
-
-Kanıt:
-
-- `docs/releases/bilgeapi_v1.1.0_workspace_audit.md`
-- `docs/releases/bilgeapi_v1.1.0/git_status_release.txt`
-- `docs/releases/bilgeapi_v1.1.0/git_diff_name_only.txt`
-- `docs/releases/bilgeapi_v1.1.0/git_diff_cached_name_only.txt`
-
-## Release Karari
-
-BilgeAPI v1.1.0 icin release gate ve regression kanitlari gecmistir. Final commit ve annotated tag sonrasi release muhurlenmis kabul edilir.
+```json
+{
+  "status": "DISABLED",
+  "enabled": false,
+  "findings_created": 0,
+  "forbidden_actions": [
+    "auto_merge",
+    "auto_deploy",
+    "auto_revoke_key",
+    "production_migration_apply",
+    "branch_push",
+    "production_config_change"
+  ]
+}
+```

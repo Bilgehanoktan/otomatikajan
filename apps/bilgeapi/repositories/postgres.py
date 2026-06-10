@@ -9,7 +9,7 @@ from apps.bilgeapi.repositories.interface import (
     ReleaseCheckRepository, ApiKeyRepository, ResearchRepository, ImprovementRepository,
     PrDraftRepository, PrVerificationRepository, PrReviewFeedbackRepository, PatchRevisionRepository,
     ReviewLedgerRepository,
-    AIPatchSuggestionRepository
+    AIPatchSuggestionRepository, SystemFindingRepository
 )
 from apps.bilgeapi.schemas.incident import IncidentCreate, IncidentResponse
 from apps.bilgeapi.schemas.diagnostic import DiagnosticResult, DiagnosticStatus
@@ -20,7 +20,7 @@ from apps.bilgeapi.models.database import (
     RepairRequestModel, AuditEventModel, WebhookDeliveryModel, ReleaseCheckModel,
     ApiKeyModel, ResearchRequestModel, ResearchEvidenceModel, ImprovementProposalModel,
     PrDraftModel, PrVerificationModel, PrReviewFeedbackModel, PatchRevisionModel,
-    ReviewLedgerEntryModel, AIPatchSuggestionModel
+    ReviewLedgerEntryModel, AIPatchSuggestionModel, SystemFindingModel
 )
 
 class PostgresIncidentRepository(IncidentRepository):
@@ -1255,6 +1255,163 @@ class PostgresAIPatchSuggestionRepository(AIPatchSuggestionRepository):
         await self.db.commit()
         await self.db.refresh(model)
         return self._suggestion_to_dict(model)
+
+
+class PostgresSystemFindingRepository(SystemFindingRepository):
+    TERMINAL_STATUSES = {"DISMISSED", "RESOLVED"}
+
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    def _finding_to_dict(self, model: SystemFindingModel) -> Dict[str, Any]:
+        return {
+            "id": model.id,
+            "tenant_id": model.tenant_id,
+            "source_type": model.source_type,
+            "source_id": model.source_id,
+            "source_hash": model.source_hash,
+            "title": model.title,
+            "description": model.description,
+            "severity": model.severity,
+            "risk_score": model.risk_score,
+            "status": model.status,
+            "evidence_summary": model.evidence_summary,
+            "recommended_action": model.recommended_action,
+            "human_gate_payload": model.human_gate_payload,
+            "occurrence_count": model.occurrence_count,
+            "first_seen_at": model.first_seen_at,
+            "last_seen_at": model.last_seen_at,
+            "acknowledged_by": model.acknowledged_by,
+            "acknowledged_at": model.acknowledged_at,
+            "dismissed_by": model.dismissed_by,
+            "dismissed_at": model.dismissed_at,
+            "resolved_by": model.resolved_by,
+            "resolved_at": model.resolved_at,
+            "bilgeapi_research_id": model.bilgeapi_research_id,
+            "bilgeapi_proposal_id": model.bilgeapi_proposal_id,
+            "bilgeapi_pr_draft_id": model.bilgeapi_pr_draft_id,
+            "bilgeapi_verification_id": model.bilgeapi_verification_id,
+            "bilgeapi_ledger_chain_id": model.bilgeapi_ledger_chain_id,
+            "created_by": model.created_by,
+            "correlation_id": model.correlation_id,
+            "created_at": model.created_at,
+            "updated_at": model.updated_at,
+        }
+
+    async def create_finding(self, finding_data: Dict[str, Any]) -> Dict[str, Any]:
+        now = datetime.now(timezone.utc)
+        model = SystemFindingModel(
+            id=finding_data.get("id", f"sf_{uuid.uuid4().hex[:8]}"),
+            tenant_id=finding_data.get("tenant_id"),
+            source_type=finding_data["source_type"],
+            source_id=finding_data["source_id"],
+            source_hash=finding_data["source_hash"],
+            title=finding_data["title"],
+            description=finding_data["description"],
+            severity=finding_data["severity"],
+            risk_score=finding_data["risk_score"],
+            status=finding_data.get("status", "OPEN"),
+            evidence_summary=finding_data.get("evidence_summary"),
+            recommended_action=finding_data.get("recommended_action"),
+            human_gate_payload=finding_data.get("human_gate_payload"),
+            occurrence_count=finding_data.get("occurrence_count", 1),
+            first_seen_at=finding_data.get("first_seen_at") or now,
+            last_seen_at=finding_data.get("last_seen_at") or now,
+            bilgeapi_research_id=finding_data.get("bilgeapi_research_id"),
+            bilgeapi_proposal_id=finding_data.get("bilgeapi_proposal_id"),
+            bilgeapi_pr_draft_id=finding_data.get("bilgeapi_pr_draft_id"),
+            bilgeapi_verification_id=finding_data.get("bilgeapi_verification_id"),
+            bilgeapi_ledger_chain_id=finding_data.get("bilgeapi_ledger_chain_id"),
+            created_by=finding_data.get("created_by"),
+            correlation_id=finding_data.get("correlation_id"),
+        )
+        self.db.add(model)
+        await self.db.commit()
+        await self.db.refresh(model)
+        return self._finding_to_dict(model)
+
+    async def get_finding(self, finding_id: str) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(select(SystemFindingModel).where(SystemFindingModel.id == finding_id))
+        model = res.scalar_one_or_none()
+        return self._finding_to_dict(model) if model else None
+
+    async def get_open_by_source_hash(self, source_hash: str) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(SystemFindingModel)
+            .where(SystemFindingModel.source_hash == source_hash)
+            .where(SystemFindingModel.status.notin_(self.TERMINAL_STATUSES))
+            .order_by(desc(SystemFindingModel.created_at))
+            .limit(1)
+        )
+        model = res.scalar_one_or_none()
+        return self._finding_to_dict(model) if model else None
+
+    async def get_by_source_hash(self, source_hash: str) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(SystemFindingModel)
+            .where(SystemFindingModel.source_hash == source_hash)
+            .order_by(desc(SystemFindingModel.created_at))
+            .limit(1)
+        )
+        model = res.scalar_one_or_none()
+        return self._finding_to_dict(model) if model else None
+
+    async def list_findings(
+        self,
+        status: Optional[str] = None,
+        severity: Optional[str] = None,
+        limit: int = 50,
+    ) -> List[Dict[str, Any]]:
+        stmt = select(SystemFindingModel)
+        if status:
+            stmt = stmt.where(SystemFindingModel.status == status)
+        if severity:
+            stmt = stmt.where(SystemFindingModel.severity == severity)
+        stmt = stmt.order_by(desc(SystemFindingModel.created_at)).limit(limit)
+        res = await self.db.execute(stmt)
+        return [self._finding_to_dict(model) for model in res.scalars().all()]
+
+    async def increment_occurrence(
+        self,
+        finding_id: str,
+        evidence_summary: Optional[Dict[str, Any]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(select(SystemFindingModel).where(SystemFindingModel.id == finding_id))
+        model = res.scalar_one_or_none()
+        if not model or model.status in self.TERMINAL_STATUSES:
+            return None
+        model.occurrence_count += 1
+        model.last_seen_at = datetime.now(timezone.utc)
+        if evidence_summary is not None:
+            model.evidence_summary = evidence_summary
+        await self.db.commit()
+        await self.db.refresh(model)
+        return self._finding_to_dict(model)
+
+    async def update_status(
+        self,
+        finding_id: str,
+        status: str,
+        actor_id: str,
+    ) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(select(SystemFindingModel).where(SystemFindingModel.id == finding_id))
+        model = res.scalar_one_or_none()
+        if not model:
+            return None
+        now = datetime.now(timezone.utc)
+        model.status = status
+        if status == "ACKNOWLEDGED":
+            model.acknowledged_by = actor_id
+            model.acknowledged_at = now
+        elif status == "DISMISSED":
+            model.dismissed_by = actor_id
+            model.dismissed_at = now
+        elif status == "RESOLVED":
+            model.resolved_by = actor_id
+            model.resolved_at = now
+        await self.db.commit()
+        await self.db.refresh(model)
+        return self._finding_to_dict(model)
 
     async def get_suggestion(self, suggestion_id: str) -> Optional[Dict[str, Any]]:
         res = await self.db.execute(select(AIPatchSuggestionModel).where(AIPatchSuggestionModel.id == suggestion_id))

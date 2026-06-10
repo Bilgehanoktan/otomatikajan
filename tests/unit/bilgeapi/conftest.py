@@ -35,6 +35,7 @@ def test_client():
         get_repair_repository,
         get_audit_repository,
         get_webhook_repository,
+        get_release_repository,
         get_api_key_repository,
         get_research_repository,
         get_improvement_repository,
@@ -46,7 +47,8 @@ def test_client():
         get_review_ledger_service,
         get_review_ledger_verifier,
         get_ai_patch_suggestion_repository,
-        get_ai_patch_provider
+        get_ai_patch_provider,
+        get_system_finding_repository
     )
     from apps.bilgeapi.repositories.memory import (
         InMemoryIncidentRepository,
@@ -56,6 +58,7 @@ def test_client():
         InMemoryRepairRequestRepository,
         InMemoryAuditRepository,
         InMemoryWebhookDeliveryRepository,
+        InMemoryReleaseCheckRepository,
         InMemoryApiKeyRepository,
         InMemoryResearchRepository,
         InMemoryImprovementRepository,
@@ -65,6 +68,7 @@ def test_client():
         InMemoryPatchRevisionRepository,
         InMemoryReviewLedgerRepository,
         InMemoryAIPatchSuggestionRepository,
+        InMemorySystemFindingRepository,
         memory_repositories
     )
     
@@ -79,6 +83,7 @@ def test_client():
     app.dependency_overrides[get_repair_repository] = lambda: InMemoryRepairRequestRepository()
     app.dependency_overrides[get_audit_repository] = lambda: InMemoryAuditRepository()
     app.dependency_overrides[get_webhook_repository] = lambda: InMemoryWebhookDeliveryRepository()
+    app.dependency_overrides[get_release_repository] = lambda: InMemoryReleaseCheckRepository()
     app.dependency_overrides[get_api_key_repository] = lambda: InMemoryApiKeyRepository()
     app.dependency_overrides[get_research_repository] = lambda: InMemoryResearchRepository()
     app.dependency_overrides[get_improvement_repository] = lambda: InMemoryImprovementRepository()
@@ -88,6 +93,7 @@ def test_client():
     app.dependency_overrides[get_patch_revision_repository] = lambda: InMemoryPatchRevisionRepository()
     app.dependency_overrides[get_review_ledger_repository] = lambda: InMemoryReviewLedgerRepository()
     app.dependency_overrides[get_ai_patch_suggestion_repository] = lambda: InMemoryAIPatchSuggestionRepository()
+    app.dependency_overrides[get_system_finding_repository] = lambda: InMemorySystemFindingRepository()
     app.dependency_overrides[get_ai_patch_provider] = lambda: __import__(
         "apps.bilgeapi.adapters.ai_patch_provider",
         fromlist=["MockAIPatchProvider"]
@@ -119,6 +125,7 @@ def test_client_real_auth():
         get_repair_repository,
         get_audit_repository,
         get_webhook_repository,
+        get_release_repository,
         get_api_key_repository,
         get_research_repository,
         get_improvement_repository,
@@ -130,7 +137,8 @@ def test_client_real_auth():
         get_review_ledger_service,
         get_review_ledger_verifier,
         get_ai_patch_suggestion_repository,
-        get_ai_patch_provider
+        get_ai_patch_provider,
+        get_system_finding_repository
     )
     from apps.bilgeapi.repositories.memory import (
         InMemoryIncidentRepository,
@@ -140,6 +148,7 @@ def test_client_real_auth():
         InMemoryRepairRequestRepository,
         InMemoryAuditRepository,
         InMemoryWebhookDeliveryRepository,
+        InMemoryReleaseCheckRepository,
         InMemoryApiKeyRepository,
         InMemoryResearchRepository,
         InMemoryImprovementRepository,
@@ -149,6 +158,7 @@ def test_client_real_auth():
         InMemoryPatchRevisionRepository,
         InMemoryReviewLedgerRepository,
         InMemoryAIPatchSuggestionRepository,
+        InMemorySystemFindingRepository,
         memory_repositories
     )
     
@@ -162,6 +172,7 @@ def test_client_real_auth():
     app.dependency_overrides[get_repair_repository] = lambda: InMemoryRepairRequestRepository()
     app.dependency_overrides[get_audit_repository] = lambda: InMemoryAuditRepository()
     app.dependency_overrides[get_webhook_repository] = lambda: InMemoryWebhookDeliveryRepository()
+    app.dependency_overrides[get_release_repository] = lambda: InMemoryReleaseCheckRepository()
     app.dependency_overrides[get_api_key_repository] = lambda: InMemoryApiKeyRepository()
     app.dependency_overrides[get_research_repository] = lambda: InMemoryResearchRepository()
     app.dependency_overrides[get_improvement_repository] = lambda: InMemoryImprovementRepository()
@@ -171,6 +182,7 @@ def test_client_real_auth():
     app.dependency_overrides[get_patch_revision_repository] = lambda: InMemoryPatchRevisionRepository()
     app.dependency_overrides[get_review_ledger_repository] = lambda: InMemoryReviewLedgerRepository()
     app.dependency_overrides[get_ai_patch_suggestion_repository] = lambda: InMemoryAIPatchSuggestionRepository()
+    app.dependency_overrides[get_system_finding_repository] = lambda: InMemorySystemFindingRepository()
     app.dependency_overrides[get_ai_patch_provider] = lambda: __import__(
         "apps.bilgeapi.adapters.ai_patch_provider",
         fromlist=["MockAIPatchProvider"]

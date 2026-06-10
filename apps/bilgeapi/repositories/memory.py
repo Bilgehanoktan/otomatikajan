@@ -19,7 +19,8 @@ from apps.bilgeapi.repositories.interface import (
     PrReviewFeedbackRepository,
     PatchRevisionRepository,
     ReviewLedgerRepository,
-    AIPatchSuggestionRepository
+    AIPatchSuggestionRepository,
+    SystemFindingRepository
 )
 from apps.bilgeapi.schemas.incident import IncidentCreate, IncidentResponse
 from apps.bilgeapi.schemas.diagnostic import DiagnosticResult, DiagnosticStatus
@@ -46,6 +47,7 @@ class MemoryRepositoriesContainer:
         self.patch_revisions: Dict[str, Dict[str, Any]] = {}
         self.review_ledger_entries: Dict[str, Dict[str, Any]] = {}
         self.ai_patch_suggestions: Dict[str, Dict[str, Any]] = {}
+        self.system_findings: Dict[str, Dict[str, Any]] = {}
         self._lock = asyncio.Lock()
 
     def clear_all(self):
@@ -67,6 +69,7 @@ class MemoryRepositoriesContainer:
         self.patch_revisions.clear()
         self.review_ledger_entries.clear()
         self.ai_patch_suggestions.clear()
+        self.system_findings.clear()
 
 memory_repositories = MemoryRepositoriesContainer()
 
@@ -826,3 +829,138 @@ class InMemoryAIPatchSuggestionRepository(AIPatchSuggestionRepository):
             suggestion["status"] = status
             suggestion["updated_at"] = datetime.now(timezone.utc)
             return suggestion
+
+
+class InMemorySystemFindingRepository(SystemFindingRepository):
+    TERMINAL_STATUSES = {"DISMISSED", "RESOLVED"}
+
+    async def create_finding(self, finding_data: Dict[str, Any]) -> Dict[str, Any]:
+        async with memory_repositories._lock:
+            now = datetime.now(timezone.utc)
+            finding_id = finding_data.get("id", f"sf_{uuid.uuid4().hex[:8]}")
+            finding = {
+                "id": finding_id,
+                "tenant_id": finding_data.get("tenant_id"),
+                "source_type": finding_data["source_type"],
+                "source_id": finding_data["source_id"],
+                "source_hash": finding_data["source_hash"],
+                "title": finding_data["title"],
+                "description": finding_data["description"],
+                "severity": finding_data["severity"],
+                "risk_score": finding_data["risk_score"],
+                "status": finding_data.get("status", "OPEN"),
+                "evidence_summary": finding_data.get("evidence_summary"),
+                "recommended_action": finding_data.get("recommended_action"),
+                "human_gate_payload": finding_data.get("human_gate_payload"),
+                "occurrence_count": finding_data.get("occurrence_count", 1),
+                "first_seen_at": finding_data.get("first_seen_at") or now,
+                "last_seen_at": finding_data.get("last_seen_at") or now,
+                "acknowledged_by": finding_data.get("acknowledged_by"),
+                "acknowledged_at": finding_data.get("acknowledged_at"),
+                "dismissed_by": finding_data.get("dismissed_by"),
+                "dismissed_at": finding_data.get("dismissed_at"),
+                "resolved_by": finding_data.get("resolved_by"),
+                "resolved_at": finding_data.get("resolved_at"),
+                "bilgeapi_research_id": finding_data.get("bilgeapi_research_id"),
+                "bilgeapi_proposal_id": finding_data.get("bilgeapi_proposal_id"),
+                "bilgeapi_pr_draft_id": finding_data.get("bilgeapi_pr_draft_id"),
+                "bilgeapi_verification_id": finding_data.get("bilgeapi_verification_id"),
+                "bilgeapi_ledger_chain_id": finding_data.get("bilgeapi_ledger_chain_id"),
+                "created_by": finding_data.get("created_by"),
+                "correlation_id": finding_data.get("correlation_id"),
+                "created_at": finding_data.get("created_at") or now,
+                "updated_at": finding_data.get("updated_at") or now,
+            }
+            memory_repositories.system_findings[finding_id] = finding
+            return finding
+
+    async def get_finding(self, finding_id: str) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            return memory_repositories.system_findings.get(finding_id)
+
+    async def get_open_by_source_hash(self, source_hash: str) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            matches = [
+                finding for finding in memory_repositories.system_findings.values()
+                if finding.get("source_hash") == source_hash
+                and finding.get("status") not in self.TERMINAL_STATUSES
+            ]
+            if not matches:
+                return None
+            return sorted(
+                matches,
+                key=lambda item: item.get("created_at") or datetime.min.replace(tzinfo=timezone.utc),
+                reverse=True,
+            )[0]
+
+    async def get_by_source_hash(self, source_hash: str) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            matches = [
+                finding for finding in memory_repositories.system_findings.values()
+                if finding.get("source_hash") == source_hash
+            ]
+            if not matches:
+                return None
+            return sorted(
+                matches,
+                key=lambda item: item.get("created_at") or datetime.min.replace(tzinfo=timezone.utc),
+                reverse=True,
+            )[0]
+
+    async def list_findings(
+        self,
+        status: Optional[str] = None,
+        severity: Optional[str] = None,
+        limit: int = 50,
+    ) -> List[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            findings = list(memory_repositories.system_findings.values())
+            if status:
+                findings = [finding for finding in findings if finding.get("status") == status]
+            if severity:
+                findings = [finding for finding in findings if finding.get("severity") == severity]
+            return sorted(
+                findings,
+                key=lambda item: item.get("created_at") or datetime.min.replace(tzinfo=timezone.utc),
+                reverse=True,
+            )[:limit]
+
+    async def increment_occurrence(
+        self,
+        finding_id: str,
+        evidence_summary: Optional[Dict[str, Any]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            finding = memory_repositories.system_findings.get(finding_id)
+            if not finding or finding.get("status") in self.TERMINAL_STATUSES:
+                return None
+            finding["occurrence_count"] = int(finding.get("occurrence_count") or 0) + 1
+            finding["last_seen_at"] = datetime.now(timezone.utc)
+            finding["updated_at"] = datetime.now(timezone.utc)
+            if evidence_summary is not None:
+                finding["evidence_summary"] = evidence_summary
+            return finding
+
+    async def update_status(
+        self,
+        finding_id: str,
+        status: str,
+        actor_id: str,
+    ) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            finding = memory_repositories.system_findings.get(finding_id)
+            if not finding:
+                return None
+            now = datetime.now(timezone.utc)
+            finding["status"] = status
+            finding["updated_at"] = now
+            if status == "ACKNOWLEDGED":
+                finding["acknowledged_by"] = actor_id
+                finding["acknowledged_at"] = now
+            elif status == "DISMISSED":
+                finding["dismissed_by"] = actor_id
+                finding["dismissed_at"] = now
+            elif status == "RESOLVED":
+                finding["resolved_by"] = actor_id
+                finding["resolved_at"] = now
+            return finding

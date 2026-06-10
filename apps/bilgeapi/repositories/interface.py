@@ -328,3 +328,47 @@ class AIPatchSuggestionRepository(ABC):
         status: str,
     ) -> Optional[Dict[str, Any]]:
         pass
+
+
+class SystemFindingRepository(ABC):
+    @abstractmethod
+    async def create_finding(self, finding_data: Dict[str, Any]) -> Dict[str, Any]:
+        pass
+
+    @abstractmethod
+    async def get_finding(self, finding_id: str) -> Optional[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def get_open_by_source_hash(self, source_hash: str) -> Optional[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def get_by_source_hash(self, source_hash: str) -> Optional[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def list_findings(
+        self,
+        status: Optional[str] = None,
+        severity: Optional[str] = None,
+        limit: int = 50,
+    ) -> List[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def increment_occurrence(
+        self,
+        finding_id: str,
+        evidence_summary: Optional[Dict[str, Any]] = None,
+    ) -> Optional[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def update_status(
+        self,
+        finding_id: str,
+        status: str,
+        actor_id: str,
+    ) -> Optional[Dict[str, Any]]:
+        pass

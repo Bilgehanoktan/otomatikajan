@@ -484,5 +484,40 @@ class Settings:
     def BILGEAPI_AI_PATCH_MAX_OUTPUT_CHARS(self, value):
         os.environ["BILGEAPI_AI_PATCH_MAX_OUTPUT_CHARS"] = str(value)
 
+    @property
+    def BILGEAPI_WATCHDOG_ENABLED(self) -> bool:
+        raw = os.getenv("BILGEAPI_WATCHDOG_ENABLED", "false").lower()
+        return raw in ("1", "true", "yes", "on")
+
+    @BILGEAPI_WATCHDOG_ENABLED.setter
+    def BILGEAPI_WATCHDOG_ENABLED(self, value):
+        os.environ["BILGEAPI_WATCHDOG_ENABLED"] = str(value).lower()
+
+    @property
+    def BILGEAPI_WATCHDOG_RISK_THRESHOLD(self) -> int:
+        return int(os.getenv("BILGEAPI_WATCHDOG_RISK_THRESHOLD", "70"))
+
+    @BILGEAPI_WATCHDOG_RISK_THRESHOLD.setter
+    def BILGEAPI_WATCHDOG_RISK_THRESHOLD(self, value):
+        os.environ["BILGEAPI_WATCHDOG_RISK_THRESHOLD"] = str(value)
+
+    @property
+    def BILGEAPI_WATCHDOG_AUTO_FINDING(self) -> bool:
+        raw = os.getenv("BILGEAPI_WATCHDOG_AUTO_FINDING", "true").lower()
+        return raw in ("1", "true", "yes", "on")
+
+    @BILGEAPI_WATCHDOG_AUTO_FINDING.setter
+    def BILGEAPI_WATCHDOG_AUTO_FINDING(self, value):
+        os.environ["BILGEAPI_WATCHDOG_AUTO_FINDING"] = str(value).lower()
+
+    @property
+    def BILGEAPI_WATCHDOG_HUMAN_GATE_REQUIRED(self) -> bool:
+        raw = os.getenv("BILGEAPI_WATCHDOG_HUMAN_GATE_REQUIRED", "true").lower()
+        return raw in ("1", "true", "yes", "on")
+
+    @BILGEAPI_WATCHDOG_HUMAN_GATE_REQUIRED.setter
+    def BILGEAPI_WATCHDOG_HUMAN_GATE_REQUIRED(self, value):
+        os.environ["BILGEAPI_WATCHDOG_HUMAN_GATE_REQUIRED"] = str(value).lower()
+
 
 settings = Settings()

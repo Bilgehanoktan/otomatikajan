@@ -8,14 +8,14 @@ from apps.bilgeapi.repositories.interface import (
     RecommendationRepository, RepairRequestRepository, AuditRepository, WebhookDeliveryRepository,
     ReleaseCheckRepository, ApiKeyRepository, ResearchRepository, ImprovementRepository,
     PrDraftRepository, PrVerificationRepository, PrReviewFeedbackRepository, PatchRevisionRepository,
-    ReviewLedgerRepository, AIPatchSuggestionRepository
+    ReviewLedgerRepository, AIPatchSuggestionRepository, SystemFindingRepository
 )
 from apps.bilgeapi.repositories.postgres import (
     PostgresIncidentRepository, PostgresDiagnosticRepository, PostgresFindingRepository,
     PostgresRecommendationRepository, PostgresRepairRequestRepository, PostgresAuditRepository, PostgresWebhookDeliveryRepository,
     PostgresReleaseCheckRepository, PostgresApiKeyRepository, PostgresResearchRepository, PostgresImprovementRepository,
     PostgresPrDraftRepository, PostgresPrVerificationRepository, PostgresPrReviewFeedbackRepository, PostgresPatchRevisionRepository,
-    PostgresReviewLedgerRepository, PostgresAIPatchSuggestionRepository
+    PostgresReviewLedgerRepository, PostgresAIPatchSuggestionRepository, PostgresSystemFindingRepository
 )
 from apps.bilgeapi.services.audit import AuditService
 from apps.bilgeapi.services.diagnostic import DiagnosticService
@@ -104,6 +104,10 @@ def get_release_gate_service(
     return BilgeAPIReleaseGate(repo)
 
 
+async def get_system_finding_repository(db: AsyncSession = Depends(get_db)) -> SystemFindingRepository:
+    return PostgresSystemFindingRepository(db)
+
+
 async def get_research_repository(db: AsyncSession = Depends(get_db)) -> ResearchRepository:
     return PostgresResearchRepository(db)
 
@@ -128,6 +132,35 @@ def get_review_ledger_verifier(
 ) -> Any:
     from apps.bilgeapi.services.review_ledger import ReviewLedgerVerifier
     return ReviewLedgerVerifier(repo)
+
+
+def get_system_finding_service(
+    repo: SystemFindingRepository = Depends(get_system_finding_repository),
+    ledger_service: Any = Depends(get_review_ledger_service),
+) -> Any:
+    from apps.bilgeapi.services.system_watchdog import SystemFindingService
+    return SystemFindingService(repo=repo, ledger_service=ledger_service)
+
+
+def get_system_signal_collector(
+    release_repo: ReleaseCheckRepository = Depends(get_release_repository),
+    ledger_repo: ReviewLedgerRepository = Depends(get_review_ledger_repository),
+) -> Any:
+    from apps.bilgeapi.services.system_watchdog import SystemSignalCollector
+    return SystemSignalCollector(release_repo=release_repo, ledger_repo=ledger_repo)
+
+
+def get_system_watchdog_service(
+    finding_service: Any = Depends(get_system_finding_service),
+    collector: Any = Depends(get_system_signal_collector),
+    ledger_service: Any = Depends(get_review_ledger_service),
+) -> Any:
+    from apps.bilgeapi.services.system_watchdog import SystemWatchdogService
+    return SystemWatchdogService(
+        finding_service=finding_service,
+        collector=collector,
+        ledger_service=ledger_service,
+    )
 
 
 def get_web_search_provider() -> WebSearchProvider:

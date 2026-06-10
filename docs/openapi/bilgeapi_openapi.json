@@ -3196,6 +3196,303 @@
           }
         ]
       }
+    },
+    "/v1/watchdog/run": {
+      "post": {
+        "tags": [
+          "System Watchdog"
+        ],
+        "summary": "Run Watchdog Scan",
+        "operationId": "run_watchdog_scan_v1_watchdog_run_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchdogRunResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/watchdog/status": {
+      "get": {
+        "tags": [
+          "System Watchdog"
+        ],
+        "summary": "Get Watchdog Status",
+        "operationId": "get_watchdog_status_v1_watchdog_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchdogStatusResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/watchdog/findings": {
+      "get": {
+        "tags": [
+          "System Watchdog"
+        ],
+        "summary": "List Watchdog Findings",
+        "operationId": "list_watchdog_findings_v1_watchdog_findings_get",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "severity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Severity"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SystemFindingResponse"
+                  },
+                  "title": "Response List Watchdog Findings V1 Watchdog Findings Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/watchdog/findings/{finding_id}": {
+      "get": {
+        "tags": [
+          "System Watchdog"
+        ],
+        "summary": "Get Watchdog Finding",
+        "operationId": "get_watchdog_finding_v1_watchdog_findings__finding_id__get",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "finding_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Finding Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemFindingResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/watchdog/findings/{finding_id}/acknowledge": {
+      "post": {
+        "tags": [
+          "System Watchdog"
+        ],
+        "summary": "Acknowledge Watchdog Finding",
+        "operationId": "acknowledge_watchdog_finding_v1_watchdog_findings__finding_id__acknowledge_post",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "finding_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Finding Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemFindingResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/watchdog/findings/{finding_id}/dismiss": {
+      "post": {
+        "tags": [
+          "System Watchdog"
+        ],
+        "summary": "Dismiss Watchdog Finding",
+        "operationId": "dismiss_watchdog_finding_v1_watchdog_findings__finding_id__dismiss_post",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "finding_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Finding Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemFindingResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -5799,6 +6096,278 @@
         ],
         "title": "Severity"
       },
+      "SystemFindingResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "tenant_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenant Id"
+          },
+          "source_type": {
+            "type": "string",
+            "title": "Source Type"
+          },
+          "source_id": {
+            "type": "string",
+            "title": "Source Id"
+          },
+          "source_hash": {
+            "type": "string",
+            "title": "Source Hash"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "severity": {
+            "type": "string",
+            "title": "Severity"
+          },
+          "risk_score": {
+            "type": "number",
+            "title": "Risk Score"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "evidence_summary": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Summary"
+          },
+          "recommended_action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommended Action"
+          },
+          "human_gate_payload": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Human Gate Payload"
+          },
+          "occurrence_count": {
+            "type": "integer",
+            "title": "Occurrence Count"
+          },
+          "first_seen_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "First Seen At"
+          },
+          "last_seen_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Last Seen At"
+          },
+          "acknowledged_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acknowledged By"
+          },
+          "acknowledged_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acknowledged At"
+          },
+          "dismissed_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dismissed By"
+          },
+          "dismissed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dismissed At"
+          },
+          "resolved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved By"
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved At"
+          },
+          "bilgeapi_research_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bilgeapi Research Id"
+          },
+          "bilgeapi_proposal_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bilgeapi Proposal Id"
+          },
+          "bilgeapi_pr_draft_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bilgeapi Pr Draft Id"
+          },
+          "bilgeapi_verification_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bilgeapi Verification Id"
+          },
+          "bilgeapi_ledger_chain_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bilgeapi Ledger Chain Id"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          },
+          "correlation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Correlation Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "source_type",
+          "source_id",
+          "source_hash",
+          "title",
+          "description",
+          "severity",
+          "risk_score",
+          "status",
+          "occurrence_count",
+          "first_seen_at",
+          "last_seen_at",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "SystemFindingResponse"
+      },
       "ValidationError": {
         "properties": {
           "loc": {
@@ -5831,6 +6400,123 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "WatchdogRunResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "correlation_id": {
+            "type": "string",
+            "title": "Correlation Id"
+          },
+          "signals_seen": {
+            "type": "integer",
+            "title": "Signals Seen"
+          },
+          "findings_created": {
+            "type": "integer",
+            "title": "Findings Created"
+          },
+          "findings_deduped": {
+            "type": "integer",
+            "title": "Findings Deduped"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/SystemFindingResponse"
+            },
+            "type": "array",
+            "title": "Findings"
+          },
+          "forbidden_actions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Forbidden Actions"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "enabled",
+          "correlation_id",
+          "signals_seen",
+          "findings_created",
+          "findings_deduped"
+        ],
+        "title": "WatchdogRunResponse"
+      },
+      "WatchdogStatusResponse": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "risk_threshold": {
+            "type": "integer",
+            "title": "Risk Threshold"
+          },
+          "auto_finding": {
+            "type": "boolean",
+            "title": "Auto Finding"
+          },
+          "human_gate_required": {
+            "type": "boolean",
+            "title": "Human Gate Required"
+          },
+          "open_findings": {
+            "type": "integer",
+            "title": "Open Findings",
+            "default": 0
+          },
+          "high_or_critical_findings": {
+            "type": "integer",
+            "title": "High Or Critical Findings",
+            "default": 0
+          },
+          "last_scan_correlation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Scan Correlation Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled",
+          "status",
+          "risk_threshold",
+          "auto_finding",
+          "human_gate_required"
+        ],
+        "title": "WatchdogStatusResponse"
       },
       "WebhookDeliveryResponse": {
         "properties": {

@@ -338,3 +338,42 @@ class AIPatchSuggestionModel(Base):
     feedback = relationship("PrReviewFeedbackModel")
     revision = relationship("PatchRevisionModel")
     verification = relationship("PrVerificationModel", foreign_keys=[verification_id])
+
+
+class SystemFindingModel(Base):
+    __tablename__ = "bilgeapi_system_findings"
+    __table_args__ = (
+        UniqueConstraint("source_hash", name="uq_bilgeapi_system_findings_source_hash"),
+    )
+
+    id = Column(String(64), primary_key=True)
+    tenant_id = Column(String(64), nullable=True, index=True)
+    source_type = Column(String(64), nullable=False, index=True)
+    source_id = Column(String(128), nullable=False, index=True)
+    source_hash = Column(String(64), nullable=False, unique=True, index=True)
+    title = Column(String(256), nullable=False)
+    description = Column(Text, nullable=False)
+    severity = Column(String(32), nullable=False, index=True)
+    risk_score = Column(Float, nullable=False)
+    status = Column(String(32), default="OPEN", nullable=False, index=True)
+    evidence_summary = Column(SmartJSON(), nullable=True)
+    recommended_action = Column(Text, nullable=True)
+    human_gate_payload = Column(SmartJSON(), nullable=True)
+    occurrence_count = Column(Integer, default=1, nullable=False)
+    first_seen_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+    last_seen_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+    acknowledged_by = Column(String(64), nullable=True)
+    acknowledged_at = Column(DateTime(timezone=True), nullable=True)
+    dismissed_by = Column(String(64), nullable=True)
+    dismissed_at = Column(DateTime(timezone=True), nullable=True)
+    resolved_by = Column(String(64), nullable=True)
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
+    bilgeapi_research_id = Column(String(64), nullable=True, index=True)
+    bilgeapi_proposal_id = Column(String(64), nullable=True, index=True)
+    bilgeapi_pr_draft_id = Column(String(64), nullable=True, index=True)
+    bilgeapi_verification_id = Column(String(64), nullable=True, index=True)
+    bilgeapi_ledger_chain_id = Column(String(128), nullable=True, index=True)
+    created_by = Column(String(64), nullable=True)
+    correlation_id = Column(String(128), nullable=True, index=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)

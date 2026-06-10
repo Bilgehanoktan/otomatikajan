@@ -31,13 +31,16 @@ class BilgeAPIReleaseGate:
         "apps.bilgeapi.services.diagnostic",
         "apps.bilgeapi.services.review_ledger",
         "apps.bilgeapi.services.ai_patch_suggestion",
+        "apps.bilgeapi.services.system_watchdog",
         "apps.bilgeapi.adapters.ai_patch_provider",
         "apps.bilgeapi.models.database",
         "apps.bilgeapi.repositories.postgres",
         "apps.bilgeapi.repositories.memory",
         "apps.bilgeapi.routers.review_ledger",
+        "apps.bilgeapi.routers.system_watchdog",
         "apps.bilgeapi.schemas.review_ledger",
         "apps.bilgeapi.schemas.ai_patch_suggestion",
+        "apps.bilgeapi.schemas.system_watchdog",
     ]
 
     REQUIRED_ENDPOINTS = [
@@ -53,6 +56,9 @@ class BilgeAPIReleaseGate:
         "/v1/webhook-deliveries",
         "/v1/review-ledger/recent",
         "/v1/improvements/ai-suggestions/{suggestion_id}",
+        "/v1/watchdog/run",
+        "/v1/watchdog/status",
+        "/v1/watchdog/findings",
     ]
 
     def __init__(self, repo: ReleaseCheckRepository):

@@ -1,137 +1,69 @@
-# Implementation Plan - BilgeAPI Faz 30: v1.1 Final Release Seal
-
-Bu faz, Faz 14-29 arasinda olusan BilgeAPI v1.1 gelistirme hattini final release olarak muhurlenir hale getirir. Faz 30 yeni runtime ozelligi eklemez; release kaniti, OpenAPI freeze, changelog, workspace audit, checksum manifest, final commit ve tag uretir.
+# Implementation Plan — BilgeAPI (Faz 31A: Acting Governor / Watchdog Core)
 
 ## Goal
 
-BilgeAPI v1.1.0 icin tekrarlanabilir ve denetlenebilir release paketi olusturmak:
+Faz 31A, BilgeAPI v1.1.0 sonrası sisteme read-only Acting Governor / Watchdog çekirdeği ekler. Bu katman sadece sistem sinyallerini toplar, risk puanlar, `SystemFinding` üretir, finding lifecycle durumlarını yönetir ve immutable review ledger üzerinde kanıt bırakır.
 
-```text
-Baseline commit -> Verification evidence -> OpenAPI freeze -> Changelog -> Checksum manifest -> Final commit -> Annotated tag
-```
+Bu fazda sistem kesinlikle aşağıdaki işlemleri yapmaz:
 
-## Release Baseline
+- `auto_merge`
+- `auto_deploy`
+- `auto_revoke_key`
+- `production_migration_apply`
+- `branch_push`
+- `production_config_change`
 
-- Baseline commit: `2069a368`
-- Final tag: `bilgeapi-v1.1.0`
-- Migration head: `a29c4f83b2d1`
-- Minimum coverage: `80%`
-- Release gate target: `Score: 100.00`, `Status: PASSED`, `Warnings: 0`, `Blockers: 0`, `Decision: GO`
+## Scope
 
-## Safety Rules
+### Database
 
-- Faz 30 release commit'ine unrelated dirty/staged dosyalar dahil edilmeyecek.
-- Runtime database files, `.coverage`, `coverage.xml`, `pytest_output.txt`, `__pycache__`, generated local state ve eski staged dosyalar release commit'ine alinmayacak.
-- Release dosyalari explicit path ile stage edilecek.
-- Docker, smoke, frontend ve migration kontrolleri gecmezse final tag olusturulmayacak.
-- Docker daemon veya external runtime erisilemiyorsa durum release evidence icinde acikca `BLOCKED/NOT VERIFIED` olarak kaydedilecek.
+- `SystemFindingModel` eklendi.
+- Deterministik `source_hash` dedupe anahtarı kullanılır.
+- `DISMISSED` ve `RESOLVED` terminal durumdur; implicit reopen yapılmaz.
 
-## Proposed Changes
+### Config
 
-### 1. Workspace Audit
+- `BILGEAPI_WATCHDOG_ENABLED`
+- `BILGEAPI_WATCHDOG_RISK_THRESHOLD`
+- `BILGEAPI_WATCHDOG_AUTO_FINDING`
+- `BILGEAPI_WATCHDOG_HUMAN_GATE_REQUIRED`
 
-`docs/releases/bilgeapi_v1.1.0_workspace_audit.md` olusturulacak.
+Faz 31A sadece manual run destekler: `POST /v1/watchdog/run`.
 
-Icerik:
+### Services
 
-- `git status --short`
-- `git diff --name-only`
-- `git diff --cached --name-only`
-- unrelated dirty/staged dosya karari
-- release commit'e dahil edilecek dosya listesi
+- `SystemSignalCollector`
+- `SystemRiskScorer`
+- `SystemFindingService`
+- `WatchdogEvidenceBuilder`
+- `ActingGovernorPolicy`
+- `SystemWatchdogService`
 
-### 2. OpenAPI Freeze
+### API
 
-`py -3.13 scripts/export_bilgeapi_openapi.py` calistirilacak ve guncel spec su dosyaya kopyalanacak:
+- `POST /v1/watchdog/run`
+- `GET /v1/watchdog/status`
+- `GET /v1/watchdog/findings`
+- `GET /v1/watchdog/findings/{finding_id}`
+- `POST /v1/watchdog/findings/{finding_id}/acknowledge`
+- `POST /v1/watchdog/findings/{finding_id}/dismiss`
 
-- `docs/openapi/bilgeapi_openapi.v1.1.0.json`
+### Ledger Events
 
-Freeze kontrolu:
+- `WATCHDOG_SCAN_STARTED`
+- `WATCHDOG_SCAN_COMPLETED`
+- `SYSTEM_FINDING_CREATED`
+- `SYSTEM_FINDING_DEDUPED`
+- `SYSTEM_FINDING_ACKNOWLEDGED`
+- `SYSTEM_FINDING_DISMISSED`
 
-- JSON parse edilebilir olmali.
-- `/v1/improvements/*` endpointleri bulunmali.
-- `/v1/review-ledger/*` endpointleri bulunmali.
-- `/health` endpointi bulunmali.
+## Verification Plan
 
-### 3. Release Documentation
-
-`docs/releases/bilgeapi_v1.1.0_changelog.md` olusturulacak.
-
-Kapsam:
-
-- Faz 14-29 arasi eklenen ozellikler
-- security guarantees
-- verification evidence
-- known exclusions / unrelated dirty files
-
-### 4. Evidence Bundle
-
-`docs/releases/bilgeapi_v1.1.0/` klasoru olusturulacak.
-
-Kaydedilecek dosyalar:
-
-- `backend_regression.txt`
-- `migration_audit.txt`
-- `release_gate.txt`
-- `docker_build.txt`
-- `docker_smoke.txt`
-- `frontend_build.txt`
-- `frontend_smoke.txt`
-- `git_status_release.txt`
-- `openapi_freeze_check.txt`
-- `release_summary.md`
-- `checksum_manifest.sha256`
-
-### 5. Verification
-
-Calistirilacak kontroller:
-
-```powershell
-py -3.13 scripts/export_bilgeapi_openapi.py
-py -3.13 -m pytest tests/unit/bilgeapi tests/integration/bilgeapi --cov=apps/bilgeapi --cov-report=term-missing
-py -3.13 scripts/verify_bilgeapi_migrations.py
-docker compose exec worker alembic current
-py -3.13 scripts/run_release_gate.py
-docker compose build bilgeapi
-docker compose up -d bilgeapi
-py -3.13 scripts/smoke_bilgeapi.py --base-url http://127.0.0.1:8100 --api-key dev-test-key-001
-cmd /c npm.cmd run build
-```
-
-Frontend build `apps/refine_control_plane` altinda calistirilir.
-
-### 6. Final Commit & Tag
-
-Sadece Faz 30 release dosyalari stage edilecek:
-
-- `implementation_plan.md`
-- `task.md`
-- `walkthrough.md`
-- `docs/openapi/bilgeapi_openapi.v1.1.0.json`
-- `docs/releases/bilgeapi_v1.1.0_workspace_audit.md`
-- `docs/releases/bilgeapi_v1.1.0_changelog.md`
-- `docs/releases/bilgeapi_v1.1.0/**`
-
-Commit:
-
-```powershell
-git commit -m "chore: seal BilgeAPI v1.1.0 release"
-```
-
-Annotated tag:
-
-```powershell
-git tag -a bilgeapi-v1.1.0 -m "BilgeAPI v1.1.0 final release"
-```
-
-## Done Criteria
-
-- [x] Baseline commit `2069a368` confirmed.
-- [x] OpenAPI v1.1.0 freeze exists and validates.
-- [x] Release evidence bundle exists.
-- [x] Changelog exists.
-- [x] Workspace audit exists.
-- [x] Regression, migration, release gate, Docker smoke and frontend evidence are recorded.
-- [x] Checksum manifest generated.
-- [x] Final release commit created with only Faz 30 release files.
-- [x] Annotated tag `bilgeapi-v1.1.0` points to final release commit.
+1. `py -3.13 -m pytest tests/unit/bilgeapi/test_system_watchdog.py -v`
+2. `py -3.13 -m pytest tests/unit/bilgeapi -q`
+3. `py -3.13 -m pytest tests/unit/bilgeapi tests/integration/bilgeapi --cov=apps/bilgeapi --cov-report=xml --cov-report=term-missing`
+4. `py -3.13 scripts/export_bilgeapi_openapi.py`
+5. `py -3.13 scripts/run_release_gate.py`
+6. `docker compose build bilgeapi`
+7. `docker compose up -d bilgeapi`
+8. `py -3.13 scripts/smoke_bilgeapi.py --base-url http://127.0.0.1:8100 --api-key dev-test-key-001`
