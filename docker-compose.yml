@@ -343,7 +343,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/ai_company
       BILGEAPI_DATABASE_URL: postgresql+asyncpg://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/ai_company
       BILGEAPI_AUTH_MODE: ${BILGEAPI_AUTH_MODE:-api_key}
-      BILGEAPI_STATIC_KEYS: ${BILGEAPI_STATIC_KEYS:-dev-test-key-001}
+      BILGEAPI_STATIC_KEYS: ${BILGEAPI_STATIC_KEYS:-dev-test-key-001:ADMIN}
       BILGEAPI_RATE_LIMIT_RPS: "50"
       PYTHONPATH: /app
       DOCKER_CONTAINER: "true"
@@ -363,6 +363,9 @@ services:
         limits:
           memory: 512M
           cpus: "0.25"
+    volumes:
+      - .:/app
+      - runtime_data:/app/runtime/data
 
 volumes:
   pgdata:
