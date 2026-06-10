@@ -8,14 +8,16 @@ from apps.bilgeapi.repositories.interface import (
     RecommendationRepository, RepairRequestRepository, AuditRepository, WebhookDeliveryRepository,
     ReleaseCheckRepository, ApiKeyRepository, ResearchRepository, ImprovementRepository,
     PrDraftRepository, PrVerificationRepository, PrReviewFeedbackRepository, PatchRevisionRepository,
-    ReviewLedgerRepository, AIPatchSuggestionRepository, SystemFindingRepository
+    ReviewLedgerRepository, AIPatchSuggestionRepository, SystemFindingRepository,
+    RemediationRunbookRepository, RemediationAttemptRepository
 )
 from apps.bilgeapi.repositories.postgres import (
     PostgresIncidentRepository, PostgresDiagnosticRepository, PostgresFindingRepository,
     PostgresRecommendationRepository, PostgresRepairRequestRepository, PostgresAuditRepository, PostgresWebhookDeliveryRepository,
     PostgresReleaseCheckRepository, PostgresApiKeyRepository, PostgresResearchRepository, PostgresImprovementRepository,
     PostgresPrDraftRepository, PostgresPrVerificationRepository, PostgresPrReviewFeedbackRepository, PostgresPatchRevisionRepository,
-    PostgresReviewLedgerRepository, PostgresAIPatchSuggestionRepository, PostgresSystemFindingRepository
+    PostgresReviewLedgerRepository, PostgresAIPatchSuggestionRepository, PostgresSystemFindingRepository,
+    PostgresRemediationRunbookRepository, PostgresRemediationAttemptRepository
 )
 from apps.bilgeapi.services.audit import AuditService
 from apps.bilgeapi.services.diagnostic import DiagnosticService
@@ -353,3 +355,35 @@ def get_ai_patch_suggestion_service(
         verification_service=verification_service,
         ledger_service=ledger_service,
     )
+
+
+async def get_remediation_runbook_repository(db: AsyncSession = Depends(get_db)) -> RemediationRunbookRepository:
+    return PostgresRemediationRunbookRepository(db)
+
+
+async def get_remediation_attempt_repository(db: AsyncSession = Depends(get_db)) -> RemediationAttemptRepository:
+    return PostgresRemediationAttemptRepository(db)
+
+
+def get_self_healing_executor(
+    finding_repo: SystemFindingRepository = Depends(get_system_finding_repository),
+    runbook_repo: RemediationRunbookRepository = Depends(get_remediation_runbook_repository),
+    attempt_repo: RemediationAttemptRepository = Depends(get_remediation_attempt_repository),
+    ledger_service: Any = Depends(get_review_ledger_service)
+) -> Any:
+    from apps.bilgeapi.services.self_healing import SelfHealingExecutor
+    return SelfHealingExecutor(
+        finding_repo=finding_repo,
+        runbook_repo=runbook_repo,
+        attempt_repo=attempt_repo,
+        ledger_service=ledger_service
+    )
+
+
+def get_emergency_recovery_service(
+    executor: Any = Depends(get_self_healing_executor),
+    ledger_service: Any = Depends(get_review_ledger_service)
+) -> Any:
+    from apps.bilgeapi.services.self_healing import EmergencyRecoveryService
+    return EmergencyRecoveryService(executor=executor, ledger_service=ledger_service)
+

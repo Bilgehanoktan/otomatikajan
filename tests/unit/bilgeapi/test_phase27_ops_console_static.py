@@ -36,6 +36,10 @@ def test_phase27_bilgeapi_ops_console_route_and_proxy_exist():
     assert "verifyAiPatchSuggestion" in page_text
     assert "acceptAiPatchSuggestionForReview" in page_text
     assert "rejectAiPatchSuggestion" in page_text
+    assert "triggerRemediation" in page_text
+    assert "runEmergencyRecovery" in page_text
+    assert "remediation" in page_text
+    assert "Emergency Recovery (Liveness Only)" in page_text
 
     assert "BILGEAPI_PROXY_BASE" in client_text
     assert "plaintext_key" in client_text
@@ -50,6 +54,10 @@ def test_phase27_bilgeapi_ops_console_route_and_proxy_exist():
     assert "verifyAiPatchSuggestion" in client_text
     assert "acceptAiPatchSuggestionForReview" in client_text
     assert "rejectAiPatchSuggestion" in client_text
+    assert "RemediationRunbookRecord" in client_text
+    assert "RemediationAttemptRecord" in client_text
+    assert "triggerRemediation" in client_text
+    assert "runEmergencyRecovery" in client_text
 
     assert "bilgeapiOrigin" in config_text
     assert "source: '/bilgeapi/:path*'" in config_text

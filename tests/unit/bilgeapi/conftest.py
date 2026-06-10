@@ -48,7 +48,9 @@ def test_client():
         get_review_ledger_verifier,
         get_ai_patch_suggestion_repository,
         get_ai_patch_provider,
-        get_system_finding_repository
+        get_system_finding_repository,
+        get_remediation_runbook_repository,
+        get_remediation_attempt_repository
     )
     from apps.bilgeapi.repositories.memory import (
         InMemoryIncidentRepository,
@@ -69,6 +71,8 @@ def test_client():
         InMemoryReviewLedgerRepository,
         InMemoryAIPatchSuggestionRepository,
         InMemorySystemFindingRepository,
+        InMemoryRemediationRunbookRepository,
+        InMemoryRemediationAttemptRepository,
         memory_repositories
     )
     
@@ -94,6 +98,8 @@ def test_client():
     app.dependency_overrides[get_review_ledger_repository] = lambda: InMemoryReviewLedgerRepository()
     app.dependency_overrides[get_ai_patch_suggestion_repository] = lambda: InMemoryAIPatchSuggestionRepository()
     app.dependency_overrides[get_system_finding_repository] = lambda: InMemorySystemFindingRepository()
+    app.dependency_overrides[get_remediation_runbook_repository] = lambda: InMemoryRemediationRunbookRepository()
+    app.dependency_overrides[get_remediation_attempt_repository] = lambda: InMemoryRemediationAttemptRepository()
     app.dependency_overrides[get_ai_patch_provider] = lambda: __import__(
         "apps.bilgeapi.adapters.ai_patch_provider",
         fromlist=["MockAIPatchProvider"]
@@ -138,7 +144,9 @@ def test_client_real_auth():
         get_review_ledger_verifier,
         get_ai_patch_suggestion_repository,
         get_ai_patch_provider,
-        get_system_finding_repository
+        get_system_finding_repository,
+        get_remediation_runbook_repository,
+        get_remediation_attempt_repository
     )
     from apps.bilgeapi.repositories.memory import (
         InMemoryIncidentRepository,
@@ -159,6 +167,8 @@ def test_client_real_auth():
         InMemoryReviewLedgerRepository,
         InMemoryAIPatchSuggestionRepository,
         InMemorySystemFindingRepository,
+        InMemoryRemediationRunbookRepository,
+        InMemoryRemediationAttemptRepository,
         memory_repositories
     )
     
@@ -183,6 +193,8 @@ def test_client_real_auth():
     app.dependency_overrides[get_review_ledger_repository] = lambda: InMemoryReviewLedgerRepository()
     app.dependency_overrides[get_ai_patch_suggestion_repository] = lambda: InMemoryAIPatchSuggestionRepository()
     app.dependency_overrides[get_system_finding_repository] = lambda: InMemorySystemFindingRepository()
+    app.dependency_overrides[get_remediation_runbook_repository] = lambda: InMemoryRemediationRunbookRepository()
+    app.dependency_overrides[get_remediation_attempt_repository] = lambda: InMemoryRemediationAttemptRepository()
     app.dependency_overrides[get_ai_patch_provider] = lambda: __import__(
         "apps.bilgeapi.adapters.ai_patch_provider",
         fromlist=["MockAIPatchProvider"]

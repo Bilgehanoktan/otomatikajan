@@ -1,0 +1,54 @@
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+from pydantic import BaseModel, Field
+
+
+class RemediationRunbookResponse(BaseModel):
+    id: str
+    name: str
+    action_type: str
+    severity_allowed: str
+    requires_human_gate: bool
+    enabled: bool
+    execution_mode: str
+    max_attempts: int
+    cooldown_seconds: int
+    safety_notes: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class RemediationAttemptResponse(BaseModel):
+    id: str
+    finding_id: str
+    runbook_id: Optional[str] = None
+    action_type: str
+    status: str
+    attempt_no: int
+    before_health: Optional[Dict[str, Any]] = None
+    after_health: Optional[Dict[str, Any]] = None
+    output_summary: Optional[str] = None
+    error_message: Optional[str] = None
+    policy_decision: Optional[Dict[str, Any]] = None
+    forbidden_actions_checked: Optional[List[str]] = None
+    ledger_chain_id: Optional[str] = None
+    created_by: Optional[str] = None
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class RunbookEnableDisableRequest(BaseModel):
+    pass
+
+
+class EmergencyRecoveryRequest(BaseModel):
+    finding_id: str
+    action_type: str

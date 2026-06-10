@@ -39,6 +39,8 @@ import {
   ReviewLedgerExportRecord,
   ReviewLedgerVerifyRecord,
   ReviewerFeedbackRecord,
+  RemediationRunbookRecord,
+  RemediationAttemptRecord,
   acceptAiPatchSuggestionForReview,
   approveProposal,
   createBilgeApiKey,
@@ -67,9 +69,13 @@ import {
   verifyAiPatchSuggestion,
   verifyPatchRevision,
   verifyReviewLedgerChain,
+  enableRemediationRunbook,
+  disableRemediationRunbook,
+  triggerRemediation,
+  runEmergencyRecovery,
 } from "@/lib/bilgeapiOpsClient";
 
-type OpsTab = "dashboard" | "keys" | "research" | "prs" | "revisions" | "ai" | "ledger" | "audit";
+type OpsTab = "dashboard" | "keys" | "research" | "prs" | "revisions" | "ai" | "remediation" | "ledger" | "audit";
 
 type ActionLog = {
   id: string;
@@ -86,6 +92,7 @@ const tabs: Array<{ id: OpsTab; label: string; icon: LucideIcon }> = [
   { id: "prs", label: "Draft PRs", icon: GitPullRequestDraft },
   { id: "revisions", label: "Revisions", icon: RotateCcw },
   { id: "ai", label: "AI Suggestions", icon: Terminal },
+  { id: "remediation", label: "Self-Healing", icon: ShieldCheck },
   { id: "ledger", label: "Ledger", icon: ClipboardCheck },
   { id: "audit", label: "Audit", icon: ClipboardCheck },
 ];
@@ -169,6 +176,14 @@ export default function BilgeAPIOpsConsole() {
     instruction: "Reduce reviewer risk, keep patch scoped, and add tests.",
     reject_reason: "",
   });
+  const [remediationForm, setRemediationForm] = React.useState({
+    finding_id: "",
+    runbook_id: "",
+  });
+  const [emergencyForm, setEmergencyForm] = React.useState({
+    finding_id: "",
+    action_type: "restart_stateless_service",
+  });
 
   React.useEffect(() => {
     const saved = sessionStorage.getItem("bilgeapi_ops_api_key");
@@ -214,6 +229,8 @@ export default function BilgeAPIOpsConsole() {
   const auditEvents = snapshot?.auditEvents ?? [];
   const ledgerRecent = snapshot?.ledgerRecent ?? [];
   const releaseLatest = snapshot?.releaseLatest ?? null;
+  const remediationRunbooks = snapshot?.remediationRunbooks ?? [];
+  const remediationAttempts = snapshot?.remediationAttempts ?? [];
 
   const quotaRows = apiKeys.map((key) => ({
     key,
@@ -795,6 +812,189 @@ export default function BilgeAPIOpsConsole() {
                 empty="No ledger entry loaded"
               />
             )}
+          </Panel>
+        </div>
+      ) : null}
+
+      {activeTab === "remediation" ? (
+        <div className="space-y-6">
+          <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
+            <Panel title="Trigger Remediation" icon={<ShieldCheck size={16} />}>
+              <FormGrid>
+                <input
+                  className={inputClass}
+                  value={remediationForm.finding_id}
+                  onChange={(event) => setRemediationForm({ ...remediationForm, finding_id: event.target.value })}
+                  placeholder="finding_id (e.g. fnd_a1b2c3d4)"
+                />
+                <select
+                  className={inputClass}
+                  value={remediationForm.runbook_id}
+                  onChange={(event) => setRemediationForm({ ...remediationForm, runbook_id: event.target.value })}
+                >
+                  <option value="">Select Runbook</option>
+                  {remediationRunbooks.map((rb) => (
+                    <option key={rb.id} value={rb.id}>
+                      {rb.name} ({rb.action_type})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  className={primaryButtonClass}
+                  onClick={() =>
+                    remediationForm.finding_id &&
+                    remediationForm.runbook_id &&
+                    void runAction(
+                      "trigger_remediation",
+                      triggerRemediation(apiKey, remediationForm.finding_id, remediationForm.runbook_id)
+                    )
+                  }
+                >
+                  <Play size={15} />
+                  Execute Remediation
+                </button>
+              </FormGrid>
+            </Panel>
+
+            <Panel title="Emergency Recovery (Liveness Only)" icon={<AlertTriangle size={16} />}>
+              <FormGrid>
+                <input
+                  className={inputClass}
+                  value={emergencyForm.finding_id}
+                  onChange={(event) => setEmergencyForm({ ...emergencyForm, finding_id: event.target.value })}
+                  placeholder="finding_id (CRITICAL only)"
+                />
+                <select
+                  className={inputClass}
+                  value={emergencyForm.action_type}
+                  onChange={(event) => setEmergencyForm({ ...emergencyForm, action_type: event.target.value })}
+                >
+                  <option value="restart_stateless_service">Restart Stateless API Service</option>
+                  <option value="restart_worker">Restart Worker Service</option>
+                </select>
+                <button
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-300/20 bg-rose-300/10 px-4 py-2 text-xs font-black uppercase tracking-widest text-rose-100 hover:bg-rose-300/15"
+                  onClick={() =>
+                    emergencyForm.finding_id &&
+                    void runAction(
+                      "emergency_recovery",
+                      runEmergencyRecovery(apiKey, emergencyForm.finding_id, emergencyForm.action_type)
+                    )
+                  }
+                >
+                  <Play size={15} />
+                  Run Emergency Recovery
+                </button>
+              </FormGrid>
+            </Panel>
+          </div>
+
+          <Panel title="Remediation Runbooks" icon={<ListChecks size={16} />}>
+            <div className="mt-4 overflow-x-auto rounded-lg border border-white/10">
+              <table className="w-full min-w-[640px] border-collapse text-left text-xs">
+                <thead className="bg-white/5 text-[10px] uppercase tracking-widest text-gray-500">
+                  <tr>
+                    <th className="px-3 py-2 font-black">Name</th>
+                    <th className="px-3 py-2 font-black">Action Type</th>
+                    <th className="px-3 py-2 font-black">Severity</th>
+                    <th className="px-3 py-2 font-black">Mode</th>
+                    <th className="px-3 py-2 font-black">Human Gate</th>
+                    <th className="px-3 py-2 font-black">Status</th>
+                    <th className="px-3 py-2 font-black">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {remediationRunbooks.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-3 py-4 text-center text-gray-500 font-bold uppercase tracking-widest">
+                        No runbook loaded
+                      </td>
+                    </tr>
+                  ) : (
+                    remediationRunbooks.map((rb) => (
+                      <tr key={rb.id} className="border-t border-white/5">
+                        <td className="px-3 py-2 text-gray-200 font-bold">{rb.name}</td>
+                        <td className="px-3 py-2 font-mono text-cyan-200">{rb.action_type}</td>
+                        <td className="px-3 py-2">{rb.severity_allowed}</td>
+                        <td className="px-3 py-2 text-gray-400">{rb.execution_mode}</td>
+                        <td className="px-3 py-2">
+                          <span className={`rounded border px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${rb.requires_human_gate ? "border-amber-300/20 bg-amber-300/10 text-amber-100" : "border-emerald-300/20 bg-emerald-300/10 text-emerald-100"}`}>
+                            {rb.requires_human_gate ? "REQUIRED" : "NO"}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2">
+                          <span className={`rounded border px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${rb.enabled ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100" : "border-rose-300/20 bg-rose-300/10 text-rose-100"}`}>
+                            {rb.enabled ? "enabled" : "disabled"}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2">
+                          {rb.enabled ? (
+                            <button
+                              onClick={() => void runAction(`disable_runbook_${rb.id}`, disableRemediationRunbook(apiKey, rb.id))}
+                              className="rounded border border-rose-300/20 bg-rose-300/10 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-rose-100"
+                            >
+                              Disable
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => void runAction(`enable_runbook_${rb.id}`, enableRemediationRunbook(apiKey, rb.id))}
+                              className="rounded border border-emerald-300/20 bg-emerald-300/10 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-100"
+                            >
+                              Enable
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Panel>
+
+          <Panel title="Remediation Attempts History" icon={<ClipboardCheck size={16} />}>
+            <div className="mt-4 overflow-x-auto rounded-lg border border-white/10">
+              <table className="w-full min-w-[640px] border-collapse text-left text-xs">
+                <thead className="bg-white/5 text-[10px] uppercase tracking-widest text-gray-500">
+                  <tr>
+                    <th className="px-3 py-2 font-black">Attempt ID</th>
+                    <th className="px-3 py-2 font-black">Finding ID</th>
+                    <th className="px-3 py-2 font-black">Action</th>
+                    <th className="px-3 py-2 font-black">Status</th>
+                    <th className="px-3 py-2 font-black">No</th>
+                    <th className="px-3 py-2 font-black">Output / Error</th>
+                    <th className="px-3 py-2 font-black">Completed</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {remediationAttempts.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-3 py-4 text-center text-gray-500 font-bold uppercase tracking-widest">
+                        No attempt registered
+                      </td>
+                    </tr>
+                  ) : (
+                    remediationAttempts.map((att) => (
+                      <tr key={att.id} className="border-t border-white/5">
+                        <td className="px-3 py-2 font-mono text-cyan-200">{att.id}</td>
+                        <td className="px-3 py-2 font-mono">{att.finding_id}</td>
+                        <td className="px-3 py-2 text-gray-300">{att.action_type}</td>
+                        <td className="px-3 py-2">
+                          <span className={`rounded border px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${statusTone(att.status)}`}>
+                            {att.status}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2">{att.attempt_no}</td>
+                        <td className="px-3 py-2 max-w-xs truncate text-gray-400" title={att.error_message || att.output_summary || ""}>
+                          {att.error_message || att.output_summary || "-"}
+                        </td>
+                        <td className="px-3 py-2 text-gray-500">{compactDate(att.completed_at || att.created_at)}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </Panel>
         </div>
       ) : null}

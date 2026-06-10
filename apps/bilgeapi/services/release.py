@@ -32,15 +32,18 @@ class BilgeAPIReleaseGate:
         "apps.bilgeapi.services.review_ledger",
         "apps.bilgeapi.services.ai_patch_suggestion",
         "apps.bilgeapi.services.system_watchdog",
+        "apps.bilgeapi.services.self_healing",
         "apps.bilgeapi.adapters.ai_patch_provider",
         "apps.bilgeapi.models.database",
         "apps.bilgeapi.repositories.postgres",
         "apps.bilgeapi.repositories.memory",
         "apps.bilgeapi.routers.review_ledger",
         "apps.bilgeapi.routers.system_watchdog",
+        "apps.bilgeapi.routers.self_healing",
         "apps.bilgeapi.schemas.review_ledger",
         "apps.bilgeapi.schemas.ai_patch_suggestion",
         "apps.bilgeapi.schemas.system_watchdog",
+        "apps.bilgeapi.schemas.self_healing",
     ]
 
     REQUIRED_ENDPOINTS = [
@@ -59,6 +62,13 @@ class BilgeAPIReleaseGate:
         "/v1/watchdog/run",
         "/v1/watchdog/status",
         "/v1/watchdog/findings",
+        "/v1/watchdog/remediations",
+        "/v1/watchdog/remediations/{attempt_id}",
+        "/v1/watchdog/findings/{finding_id}/remediate",
+        "/v1/watchdog/runbooks",
+        "/v1/watchdog/runbooks/{runbook_id}/enable",
+        "/v1/watchdog/runbooks/{runbook_id}/disable",
+        "/v1/watchdog/emergency-recovery/run",
     ]
 
     def __init__(self, repo: ReleaseCheckRepository):

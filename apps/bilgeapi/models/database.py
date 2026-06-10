@@ -377,3 +377,44 @@ class SystemFindingModel(Base):
     correlation_id = Column(String(128), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
+
+
+class RemediationRunbookModel(Base):
+    __tablename__ = "bilgeapi_remediation_runbooks"
+
+    id = Column(String(64), primary_key=True)
+    name = Column(String(128), nullable=False, unique=True)
+    action_type = Column(String(64), nullable=False)
+    severity_allowed = Column(String(32), nullable=False)
+    requires_human_gate = Column(Boolean, default=True, nullable=False)
+    enabled = Column(Boolean, default=False, nullable=False)
+    execution_mode = Column(String(32), default="MANUAL", nullable=False)
+    max_attempts = Column(Integer, default=2, nullable=False)
+    cooldown_seconds = Column(Integer, default=300, nullable=False)
+    safety_notes = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
+
+
+class RemediationAttemptModel(Base):
+    __tablename__ = "bilgeapi_remediation_attempts"
+
+    id = Column(String(64), primary_key=True)
+    finding_id = Column(String(64), ForeignKey("bilgeapi_system_findings.id"), nullable=False, index=True)
+    runbook_id = Column(String(64), ForeignKey("bilgeapi_remediation_runbooks.id"), nullable=True, index=True)
+    action_type = Column(String(64), nullable=False)
+    status = Column(String(32), default="PENDING", nullable=False, index=True)
+    attempt_no = Column(Integer, default=1, nullable=False)
+    before_health = Column(SmartJSON(), nullable=True)
+    after_health = Column(SmartJSON(), nullable=True)
+    output_summary = Column(Text, nullable=True)
+    error_message = Column(Text, nullable=True)
+    policy_decision = Column(SmartJSON(), nullable=True)
+    forbidden_actions_checked = Column(SmartJSON(), nullable=True)
+    ledger_chain_id = Column(String(128), nullable=True, index=True)
+    created_by = Column(String(64), nullable=True)
+    started_at = Column(DateTime(timezone=True), nullable=True)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
+

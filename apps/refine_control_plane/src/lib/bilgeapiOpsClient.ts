@@ -213,6 +213,42 @@ export type ReviewLedgerExportRecord = {
   content: string;
 };
 
+export type RemediationRunbookRecord = {
+  id: string;
+  name: string;
+  action_type: string;
+  severity_allowed: string;
+  requires_human_gate: boolean;
+  enabled: boolean;
+  execution_mode: string;
+  max_attempts: number;
+  cooldown_seconds: number;
+  safety_notes?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type RemediationAttemptRecord = {
+  id: string;
+  finding_id: string;
+  runbook_id?: string | null;
+  action_type: string;
+  status: string;
+  attempt_no: number;
+  before_health?: Record<string, unknown> | null;
+  after_health?: Record<string, unknown> | null;
+  output_summary?: string | null;
+  error_message?: string | null;
+  policy_decision?: Record<string, unknown> | null;
+  forbidden_actions_checked?: string[] | null;
+  ledger_chain_id?: string | null;
+  created_by?: string | null;
+  started_at?: string | null;
+  completed_at?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type OpsSnapshot = {
   apiKeys: ApiKeyRecord[];
   quotaUsage: QuotaUsage[];
@@ -223,6 +259,8 @@ export type OpsSnapshot = {
   releaseLatest: ReleaseCheckRecord | null;
   auditEvents: AuditEventRecord[];
   ledgerRecent: ReviewLedgerEntryRecord[];
+  remediationRunbooks: RemediationRunbookRecord[];
+  remediationAttempts: RemediationAttemptRecord[];
   errors: string[];
 };
 
@@ -513,6 +551,45 @@ export async function exportReviewLedgerChain(apiKey: string, chainId: string): 
   return bilgeApiFetch<ReviewLedgerExportRecord>(apiKey, `/v1/review-ledger/chains/${encodeURIComponent(chainId)}/export`);
 }
 
+export async function listRemediationAttempts(apiKey: string, findingId?: string): Promise<RemediationAttemptRecord[]> {
+  const path = findingId ? `/v1/watchdog/remediations?finding_id=${encodeURIComponent(findingId)}` : "/v1/watchdog/remediations";
+  return bilgeApiFetch<RemediationAttemptRecord[]>(apiKey, path);
+}
+
+export async function getRemediationAttempt(apiKey: string, attemptId: string): Promise<RemediationAttemptRecord> {
+  return bilgeApiFetch<RemediationAttemptRecord>(apiKey, `/v1/watchdog/remediations/${encodeURIComponent(attemptId)}`);
+}
+
+export async function triggerRemediation(apiKey: string, findingId: string, runbookId: string): Promise<RemediationAttemptRecord> {
+  return bilgeApiFetch<RemediationAttemptRecord>(apiKey, `/v1/watchdog/findings/${encodeURIComponent(findingId)}/remediate`, {
+    method: "POST",
+    body: JSON.stringify({ runbook_id: runbookId }),
+  });
+}
+
+export async function listRemediationRunbooks(apiKey: string): Promise<RemediationRunbookRecord[]> {
+  return bilgeApiFetch<RemediationRunbookRecord[]>(apiKey, "/v1/watchdog/runbooks");
+}
+
+export async function enableRemediationRunbook(apiKey: string, runbookId: string): Promise<RemediationRunbookRecord> {
+  return bilgeApiFetch<RemediationRunbookRecord>(apiKey, `/v1/watchdog/runbooks/${encodeURIComponent(runbookId)}/enable`, {
+    method: "POST",
+  });
+}
+
+export async function disableRemediationRunbook(apiKey: string, runbookId: string): Promise<RemediationRunbookRecord> {
+  return bilgeApiFetch<RemediationRunbookRecord>(apiKey, `/v1/watchdog/runbooks/${encodeURIComponent(runbookId)}/disable`, {
+    method: "POST",
+  });
+}
+
+export async function runEmergencyRecovery(apiKey: string, findingId: string, actionType: string): Promise<RemediationAttemptRecord> {
+  return bilgeApiFetch<RemediationAttemptRecord>(apiKey, "/v1/watchdog/emergency-recovery/run", {
+    method: "POST",
+    body: JSON.stringify({ finding_id: findingId, action_type: actionType }),
+  });
+}
+
 export async function loadBilgeApiOpsSnapshot(apiKey: string): Promise<OpsSnapshot> {
   const errors: string[] = [];
 
@@ -541,6 +618,8 @@ export async function loadBilgeApiOpsSnapshot(apiKey: string): Promise<OpsSnapsh
   const releaseLatest = await settle("release_latest", getLatestReleaseCheck(apiKey), errors);
   const auditEvents = (await settle("audit_events", listAuditEvents(apiKey), errors)) || [];
   const ledgerRecent = (await settle("review_ledger", listReviewLedgerRecent(apiKey), errors)) || [];
+  const remediationRunbooks = (await settle("remediation_runbooks", listRemediationRunbooks(apiKey), errors)) || [];
+  const remediationAttempts = (await settle("remediation_attempts", listRemediationAttempts(apiKey), errors)) || [];
 
   return {
     apiKeys,
@@ -552,6 +631,8 @@ export async function loadBilgeApiOpsSnapshot(apiKey: string): Promise<OpsSnapsh
     releaseLatest,
     auditEvents,
     ledgerRecent,
+    remediationRunbooks,
+    remediationAttempts,
     errors,
   };
 }

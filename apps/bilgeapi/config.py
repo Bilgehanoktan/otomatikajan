@@ -519,5 +519,88 @@ class Settings:
     def BILGEAPI_WATCHDOG_HUMAN_GATE_REQUIRED(self, value):
         os.environ["BILGEAPI_WATCHDOG_HUMAN_GATE_REQUIRED"] = str(value).lower()
 
+    @property
+    def BILGEAPI_SELF_HEALING_ENABLED(self) -> bool:
+        raw = os.getenv("BILGEAPI_SELF_HEALING_ENABLED", "false").lower()
+        return raw in ("1", "true", "yes", "on")
+
+    @BILGEAPI_SELF_HEALING_ENABLED.setter
+    def BILGEAPI_SELF_HEALING_ENABLED(self, value):
+        os.environ["BILGEAPI_SELF_HEALING_ENABLED"] = str(value).lower()
+
+    @property
+    def BILGEAPI_SELF_HEALING_SAFE_MODE(self) -> bool:
+        raw = os.getenv("BILGEAPI_SELF_HEALING_SAFE_MODE", "true").lower()
+        return raw in ("1", "true", "yes", "on")
+
+    @BILGEAPI_SELF_HEALING_SAFE_MODE.setter
+    def BILGEAPI_SELF_HEALING_SAFE_MODE(self, value):
+        os.environ["BILGEAPI_SELF_HEALING_SAFE_MODE"] = str(value).lower()
+
+    @property
+    def BILGEAPI_SELF_HEALING_MAX_ATTEMPTS(self) -> int:
+        return int(os.getenv("BILGEAPI_SELF_HEALING_MAX_ATTEMPTS", "2"))
+
+    @BILGEAPI_SELF_HEALING_MAX_ATTEMPTS.setter
+    def BILGEAPI_SELF_HEALING_MAX_ATTEMPTS(self, value):
+        os.environ["BILGEAPI_SELF_HEALING_MAX_ATTEMPTS"] = str(value)
+
+    @property
+    def BILGEAPI_SELF_HEALING_COOLDOWN_SECONDS(self) -> int:
+        return int(os.getenv("BILGEAPI_SELF_HEALING_COOLDOWN_SECONDS", "300"))
+
+    @BILGEAPI_SELF_HEALING_COOLDOWN_SECONDS.setter
+    def BILGEAPI_SELF_HEALING_COOLDOWN_SECONDS(self, value):
+        os.environ["BILGEAPI_SELF_HEALING_COOLDOWN_SECONDS"] = str(value)
+
+    @property
+    def BILGEAPI_SELF_HEALING_ALLOWED_ACTIONS(self) -> list[str]:
+        raw = os.getenv("BILGEAPI_SELF_HEALING_ALLOWED_ACTIONS", "")
+        if not raw:
+            return [
+                "restart_stateless_service",
+                "restart_worker",
+                "retry_failed_job",
+                "retry_stuck_taskflow_run",
+                "rerun_smoke_test",
+                "rerun_release_gate",
+                "clear_local_cache"
+            ]
+        return [a.strip() for a in raw.split(",") if a.strip()]
+
+    @BILGEAPI_SELF_HEALING_ALLOWED_ACTIONS.setter
+    def BILGEAPI_SELF_HEALING_ALLOWED_ACTIONS(self, value):
+        if isinstance(value, list):
+            os.environ["BILGEAPI_SELF_HEALING_ALLOWED_ACTIONS"] = ",".join(value)
+        else:
+            os.environ["BILGEAPI_SELF_HEALING_ALLOWED_ACTIONS"] = str(value)
+
+    @property
+    def BILGEAPI_EMERGENCY_RECOVERY_ENABLED(self) -> bool:
+        raw = os.getenv("BILGEAPI_EMERGENCY_RECOVERY_ENABLED", "false").lower()
+        return raw in ("1", "true", "yes", "on")
+
+    @BILGEAPI_EMERGENCY_RECOVERY_ENABLED.setter
+    def BILGEAPI_EMERGENCY_RECOVERY_ENABLED(self, value):
+        os.environ["BILGEAPI_EMERGENCY_RECOVERY_ENABLED"] = str(value).lower()
+
+    @property
+    def BILGEAPI_HUMAN_GATE_REQUIRED_FOR_HIGH(self) -> bool:
+        raw = os.getenv("BILGEAPI_HUMAN_GATE_REQUIRED_FOR_HIGH", "true").lower()
+        return raw in ("1", "true", "yes", "on")
+
+    @BILGEAPI_HUMAN_GATE_REQUIRED_FOR_HIGH.setter
+    def BILGEAPI_HUMAN_GATE_REQUIRED_FOR_HIGH(self, value):
+        os.environ["BILGEAPI_HUMAN_GATE_REQUIRED_FOR_HIGH"] = str(value).lower()
+
+    @property
+    def BILGEAPI_HUMAN_GATE_REQUIRED_FOR_CRITICAL(self) -> bool:
+        raw = os.getenv("BILGEAPI_HUMAN_GATE_REQUIRED_FOR_CRITICAL", "true").lower()
+        return raw in ("1", "true", "yes", "on")
+
+    @BILGEAPI_HUMAN_GATE_REQUIRED_FOR_CRITICAL.setter
+    def BILGEAPI_HUMAN_GATE_REQUIRED_FOR_CRITICAL(self, value):
+        os.environ["BILGEAPI_HUMAN_GATE_REQUIRED_FOR_CRITICAL"] = str(value).lower()
+
 
 settings = Settings()
