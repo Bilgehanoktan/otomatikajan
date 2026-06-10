@@ -588,9 +588,10 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         pass
     except Exception as exc:
-        logger.debug("WebSocket handler error: %s", exc)
+        logger.exception("WebSocket handler error:")
     finally:
         manager.disconnect(websocket)
+
 
 
 @router.get("/db/diagnose")

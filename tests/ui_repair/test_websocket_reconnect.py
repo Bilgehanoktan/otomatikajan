@@ -7,6 +7,9 @@ def test_websocket_reconnect(page: Page):
     E2E Playwright test validating UI auto-reconnect behaviors under connection losses.
     Simulates a total network blackout and restores it cleanly.
     """
+    # Listen to console events
+    page.on("console", lambda msg: print(f"[Browser Console] {msg.type}: {msg.text}"))
+
     # Inject a monkeypatch script to track created WebSocket instances
     page.add_init_script("""
         window.activeWebSockets = [];
@@ -93,6 +96,16 @@ def test_websocket_reconnect(page: Page):
             break
         time.sleep(0.5)
         
+    ws_states = page.evaluate("""
+        window.activeWebSockets.map(ws => ({
+            url: ws.url,
+            readyState: ws.readyState,
+        }))
+    """)
+    print("[E2E Test] WS states in browser:", ws_states)
+
     reconnected_status_text = status_badge.inner_text()
     print(f"[E2E Test] Reconnected WebSocket Status: {reconnected_status_text}")
     assert reconnected, "WebSocket connection failed to re-establish stable state within timeout."
+
+
