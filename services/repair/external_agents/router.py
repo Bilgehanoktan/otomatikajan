@@ -11,6 +11,7 @@ from services.auth.jwt_auth import get_current_identity, require_permission
 from services.repair.external_agents.agent_sandbox_executor import AgentSandboxExecutor
 from services.repair.external_agents.agent_ledger_reporter import AgentLedgerReporter
 from services.repair.external_agents.agent_promotion_gate import AgentPromotionGate
+from services.repair.external_agents.agent_policy_simulator import AgentPolicySimulator
 
 router = APIRouter(tags=["Agent Capabilities & Sandbox"])
 
@@ -295,3 +296,82 @@ async def execute_promotion(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Execution failed: {e}")
+
+
+# Policy Simulation Schemas
+class SimulateRunRequest(BaseModel):
+    agent_key: str
+    action_type: str
+    target_paths: List[str]
+    cost: float
+    network_request: bool
+
+class SimulatePromotionRequest(BaseModel):
+    promotion_id: str
+
+class PolicySimulationResponseSchema(BaseModel):
+    decision: str
+    risk_level: str
+    risk_score: float
+    reasons: List[str]
+    required_permissions: List[str]
+    blocked_actions: List[str]
+    ledger_context: Dict[str, Any]
+    simulation_result_hash: Optional[str] = None
+
+# Policy Simulation Endpoints
+@router.post("/policy/simulate-run", response_model=PolicySimulationResponseSchema, summary="Simulate policy checks for starting an agent execution run")
+async def simulate_run(
+    req: SimulateRunRequest,
+    db: AsyncSession = Depends(get_db),
+    identity: Dict[str, Any] = Depends(require_permission("agents.read"))
+):
+    try:
+        res = await AgentPolicySimulator.simulate_agent_run(
+            db=db,
+            agent_key=req.agent_key,
+            action_type=req.action_type,
+            target_paths=req.target_paths,
+            cost=req.cost,
+            network_request=req.network_request
+        )
+        return res
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/policy/simulate-promotion", response_model=PolicySimulationResponseSchema, summary="Simulate policy checks for executing a promotion request")
+async def simulate_promotion(
+    req: SimulatePromotionRequest,
+    db: AsyncSession = Depends(get_db),
+    identity: Dict[str, Any] = Depends(require_permission("agents.read"))
+):
+    try:
+        res = await AgentPolicySimulator.simulate_promotion(db, req.promotion_id)
+        # Store simulation result and hash in database (32E requirement)
+        stmt = select(AgentArtifactPromotionModel).where(AgentArtifactPromotionModel.promotion_id == req.promotion_id)
+        res_db = await db.execute(stmt)
+        promo = res_db.scalars().first()
+        if promo:
+            if not promo.verification_details:
+                promo.verification_details = {}
+            promo.verification_details["simulation_result"] = res
+            promo.verification_details["simulation_result_hash"] = res.get("simulation_result_hash")
+            
+            from sqlalchemy.orm.attributes import flag_modified
+            flag_modified(promo, "verification_details")
+            await db.commit()
+            
+        return res
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/policy/rules", summary="Get current static policy rules allowlist and blocklist configurations")
+async def get_policy_rules(
+    identity: Dict[str, Any] = Depends(require_permission("agents.read"))
+):
+    from services.repair.external_agents.agent_promotion_gate import AgentPromotionGate
+    return {
+        "allowlist_patterns": AgentPromotionGate.ALLOWLIST_PATTERNS,
+        "blocklist_patterns": AgentPromotionGate.BLOCKLIST_PATTERNS
+    }
+

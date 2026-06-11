@@ -348,6 +348,19 @@ class AgentPromotionGate:
         if promo.status != "APPROVED":
             raise ValueError(f"Cannot execute promotion request in status '{promo.status}'. Must be 'APPROVED'.")
 
+        # Policy simulation check (32E requirement)
+        sim_hash_saved = (promo.verification_details or {}).get("simulation_result_hash")
+        if not sim_hash_saved:
+            raise ValueError("simulate_promotion result is required before execute_promotion.")
+
+        from services.repair.external_agents.agent_policy_simulator import AgentPolicySimulator
+        sim_fresh = await AgentPolicySimulator.simulate_promotion(db, promotion_id)
+        if sim_fresh["simulation_result_hash"] != sim_hash_saved:
+            raise ValueError("Policy simulation result mismatch: promotion state modified after simulation.")
+
+        if sim_fresh["decision"] == "BLOCK":
+            raise ValueError("Policy simulation blocked this promotion: decision is BLOCK.")
+
         # Hash integrity check
         if not (promo.artifact_hash == promo.verified_artifact_hash == promo.approved_artifact_hash):
             promo.status = "PROMOTION_FAILED"
