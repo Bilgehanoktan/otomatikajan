@@ -1,174 +1,113 @@
-# Walkthrough — Unified Faz 31/32 Autonomous Governance
+# Walkthrough — Faz 32B: External Agent Capability Registry & Sandbox
 
 ## Özet
 
-Bu çalışma Faz 31 ve Faz 32 hattını tek bir güvenli otonom yönetim akışı olarak doğruladı ve eksik bağlantı noktalarını kapattı.
+Faz 32B, dış ajanların ana sisteme kontrolsüz erişmesini engelleyen capability registry, policy engine, sandbox executor ve redacted ledger hattını tamamlar.
 
-Birleşik akış:
+Çalışma akışı:
 
 ```text
-Signals -> Watchdog -> Findings -> Ledger -> Policy -> Controlled Remediation -> Evidence -> Operator Review
+Agent request
+-> Capability registry
+-> Policy engine
+-> Sandbox executor
+-> Redacted run ledger
+-> AgentRunModel audit trail
 ```
 
-Sistem artık şu yetenekleri aynı runtime yüzeyinde birleştiriyor:
+Bu fazdaki kritik güvenlik kararı: dış ajanlar serbest komut çalıştırmaz ve ana repo üzerinde doğrudan kontrolsüz işlem yapmaz.
 
-- Watchdog scan ve risk scoring.
-- Deterministik finding dedupe ve lifecycle.
-- Immutable ledger/audit kanıtı.
-- Policy kontrollü remediation runbook/attempt kayıtları.
-- Forbidden action ve human gate sınırları.
-- Emergency recovery için yalnızca liveness recovery allowlist.
-- UI repair / external recovery raporlarının governor hattına aktarımı.
+## Doğrulanan Bileşenler
 
-## Güvenlik Sınırları
+### Database Models
 
-Otonom yönetim hattı bilinçli olarak aşağıdaki işlemleri yapmaz:
+`libs/db/models/repair_models.py` içinde şu modeller vardır:
 
-- `auto_merge`
-- `auto_deploy`
-- `auto_revoke_key`
-- `production_migration_apply`
-- `migration_downgrade`
-- `branch_push`
-- `production_config_change`
-- `database_delete`
-- `secret_rotation`
-- `force_push`
+- `AgentCapabilityModel`
+- `AgentRunModel`
 
-`SelfHealingExecutor` shell komutu çalıştırmaz; sadece kod içinde tanımlı kontrollü action handlerları simüle/çalıştırır.
+### Migration
 
-## Uygulanan Birleştirme
-
-### Router Bağlantısı
-
-`apps/bilgeapi/main.py` içinde hem `system_watchdog` hem de `self_healing` routerları kayıtlıdır.
-
-### Release Gate Bağlantısı
-
-`apps/bilgeapi/services/release.py` içinde watchdog ve self-healing modül/endpoint kontrolleri release gate kapsamındadır.
-
-Doğrulanan endpoint aileleri:
-
-- `/v1/watchdog/run`
-- `/v1/watchdog/status`
-- `/v1/watchdog/findings`
-- `/v1/watchdog/remediations`
-- `/v1/watchdog/runbooks`
-- `/v1/watchdog/emergency-recovery/run`
-- `/v1/watchdog/findings/intake`
-- `/v1/watchdog/external-recovery/report`
-
-### Migration Durumu
-
-Local SQLite fallback DB, Alembic head revizyonuna yükseltildi:
+Faz 32B kapanış kontrolünde eksik olan Alembic migration tamamlandı:
 
 ```text
-007f130e456e (head)
+libs/db/migrations/alembic/versions/32b9c1d4e5f6_add_repair_agent_capability_tables.py
 ```
 
-`scripts/verify_bilgeapi_migrations.py` sonucu:
+Bu migration şu tabloları oluşturur:
+
+- `repair_agent_capabilities`
+- `repair_agent_runs`
+
+Migration table-existence check içerir ve JSON alanlarını SQLite/Postgres uyumlu tanımlar.
+
+### Services
+
+Faz 32B servisleri:
+
+- `services/repair/external_agents/agent_capability_registry.py`
+- `services/repair/external_agents/agent_policy_engine.py`
+- `services/repair/external_agents/agent_sandbox_executor.py`
+- `services/repair/external_agents/agent_ledger_reporter.py`
+
+### Router
+
+`services/repair/external_agents/router.py` external agent capability ve run endpointlerini sağlar.
+
+`services/workflow_api/main.py` içinde router kaydı bulunur ve default capability registry startup sırasında initialize edilir.
+
+## Güvenlik Özeti
+
+Kapatılan riskler:
+
+- Serbest shell execution engellenir.
+- Ajanın repo dışına kaçması canonical path validation ile engellenir.
+- Network policy default olarak kapalıdır.
+- Agent output `stdout` / `stderr` redaction ve truncation sürecinden geçer.
+- Agent run kayıtları `AgentRunModel` ve ledger reporter ile izlenebilir hale gelir.
+
+## Kapanış Kontrolleri
+
+Faz 32B kapanışı için çalıştırılması gereken doğrulamalar:
+
+```powershell
+py -3.13 -m pytest tests/repair/test_agent_registry_sandbox_phase32b.py -v
+py -3.13 -c "import services.workflow_api.main; print('workflow api import ok')"
+py -3.13 scripts/verify_bilgeapi_migrations.py
+git show --name-only --stat HEAD
+git tag --points-at HEAD
+```
+
+Çalıştırılan doğrulamalar:
 
 ```text
+py -3.13 -m pytest tests/repair/test_agent_registry_sandbox_phase32b.py -v
+Result: 6 passed
+
+py -3.13 -c "import services.workflow_api.main; print('workflow api import ok')"
+Result: workflow api import ok
+
+py -3.13 scripts/verify_bilgeapi_migrations.py
 Single head: yes
 Current matches head: yes
 Overall: PASS
+Head/current: 32b9c1d4e5f6
 ```
 
-## Test Sonuçları
+Önceki test timeout nedeni sandbox’ın tüm repo kopyasını almasıydı. `AgentSandboxExecutor` artık minimal sandbox copy kullanır:
 
-### Hedef Testler
+- `run_tests` için sadece gerekli top-level kaynaklar kopyalanır.
+- `inspect_repo` için hedef dosya/dizin kopyalanır.
+- `generate_patch` ve `browser_check` için gereksiz runtime/cache/artifact ağacı taşınmaz.
 
-```powershell
-py -3.13 -m pytest tests/unit/bilgeapi/test_system_watchdog.py tests/unit/bilgeapi/test_self_healing.py -v
-```
+Bu değişiklik Faz 32B’nin güvenlik sınırını değiştirmez; ana repo hâlâ doğrudan mutate edilmez.
 
-Sonuç:
+## Sonraki Faz Önerisi
+
+Faz 32C için doğru yön:
 
 ```text
-20 passed
+Agent Output Verification & Promotion Gate
 ```
 
-### Full BilgeAPI Regression
-
-```powershell
-py -3.13 -m pytest tests/unit/bilgeapi tests/integration/bilgeapi --cov=apps/bilgeapi --cov-report=xml --cov-report=term-missing
-```
-
-Sonuç:
-
-```text
-235 passed
-Total coverage: 82.57%
-```
-
-## Release Gate
-
-```powershell
-py -3.13 scripts/run_release_gate.py
-```
-
-Sonuç:
-
-```text
-Score: 100.00
-Status: PASSED
-Warnings: 0
-Blockers: 0
-Release Decision: GO (PASSED)
-```
-
-## OpenAPI
-
-```powershell
-py -3.13 scripts/export_bilgeapi_openapi.py
-```
-
-Sonuç:
-
-```text
-Successfully exported OpenAPI schema to: E:\ai_company_faz12.1\docs\openapi\bilgeapi_openapi.json
-```
-
-OpenAPI içinde `/v1/watchdog/*` endpointleri doğrulandı.
-
-## Docker ve Smoke
-
-Docker build:
-
-```powershell
-docker compose build --progress=plain bilgeapi
-```
-
-Sonuç:
-
-```text
-Image ai_company_faz121-bilgeapi Built
-```
-
-Container restart:
-
-```powershell
-docker compose up -d bilgeapi
-```
-
-Health:
-
-```text
-Up (healthy)
-```
-
-Smoke:
-
-```powershell
-$env:PYTHONUTF8='1'; py -3.13 scripts/smoke_bilgeapi.py --base-url http://127.0.0.1:8100 --api-key dev-test-key-001
-```
-
-Sonuç:
-
-```text
-Result: 6/6 passed - ALL PASSED
-```
-
-## Çalışma Alanı Notu
-
-Workspace içinde bu fazdan bağımsız çok sayıda önceden kalmış dirty/generated dosya vardır. Commit sırasında yalnızca bu birleşik doğrulama ve router bağlantısı için ilgili dosyalar stage edilmelidir.
+32B ajanı güvenli sandbox içinde çalıştırır. 32C ise ajan çıktısının hash, artifact manifest, patch diff verification, VerifierMesh routing, human gate ve ledger proof üzerinden promote edilip edilemeyeceğini denetlemelidir.

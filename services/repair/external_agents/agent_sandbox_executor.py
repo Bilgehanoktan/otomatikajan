@@ -42,9 +42,61 @@ def _ignore_for_sandbox(_: str, names: List[str]) -> set[str]:
             "project_outputs",
             "reports",
             "benchmarks",
+            "runtime",
+            "docs",
+            "repair_outputs",
+            "coverage_html_report",
+            "htmlcov",
         }
         or name.endswith(".pyc")
+        or name.endswith(".db")
+        or name.endswith(".db-shm")
+        or name.endswith(".db-wal")
+        or name.endswith(".rar")
+        or name in {".coverage", "coverage.xml", "pytest_output.txt"}
     }
+
+def _copy_path_into_sandbox(source: Path, destination_root: Path) -> None:
+    if not source.exists():
+        return
+
+    relative = source.relative_to(REPO_ROOT)
+    destination = destination_root / relative
+    destination.parent.mkdir(parents=True, exist_ok=True)
+
+    if source.is_dir():
+        if destination.exists():
+            return
+        shutil.copytree(source, destination, ignore=_ignore_for_sandbox)
+    else:
+        shutil.copy2(source, destination)
+
+
+def _prepare_sandbox_workspace(
+    sandbox_workspace: Path,
+    command_handler: str,
+    target_paths: List[str],
+) -> None:
+    """Create a minimal sandbox copy instead of copying the whole repository."""
+    sandbox_workspace.mkdir(parents=True, exist_ok=True)
+
+    seed_paths = set(target_paths or [])
+    if command_handler == "run_tests":
+        seed_paths.update({"tests", "services", "libs", "apps", "pytest.ini"})
+    elif command_handler == "inspect_repo":
+        seed_paths.update(target_paths or [])
+    elif command_handler in {"generate_patch", "browser_check"}:
+        seed_paths.update({"pytest.ini"})
+
+    for raw_path in sorted(seed_paths):
+        if not raw_path:
+            continue
+        source = (REPO_ROOT / raw_path).resolve()
+        try:
+            source.relative_to(REPO_ROOT)
+        except ValueError:
+            continue
+        _copy_path_into_sandbox(source, sandbox_workspace)
 
 class PredefinedHandlers:
     @staticmethod
@@ -108,8 +160,10 @@ class AgentSandboxExecutor:
         temp_root = Path(tempfile.mkdtemp(prefix="agent-sandbox-"))
         sandbox_workspace = temp_root / "workspace"
         
-        # Populate copy of workspace
-        shutil.copytree(REPO_ROOT, sandbox_workspace, ignore=_ignore_for_sandbox)
+        # Populate a minimal sandbox copy. Copying the whole repository can pull
+        # runtime DB files, cache folders and frontend build artifacts into each
+        # agent run, which makes tests and safe executions unnecessarily slow.
+        _prepare_sandbox_workspace(sandbox_workspace, command_handler, target_paths)
 
         # Create Ledger record
         run_record = await AgentLedgerReporter.create_run_record(

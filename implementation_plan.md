@@ -1,102 +1,98 @@
-# Implementation Plan — BilgeAPI Unified Autonomous Governance
+# Implementation Plan — Faz 32B: External Agent Capability Registry & Sandbox
 
 ## Amaç
 
-Bu plan Faz 31 ve Faz 32 hattını tek bir güvenli işletim mimarisinde birleştirir:
+Faz 32B, dış ajanların sisteme kontrolsüz erişmesini engelleyen capability registry, policy engine, sandbox executor ve ledger kayıt hattını tamamlar.
+
+Hedef akış:
 
 ```text
-Signals -> Watchdog -> Findings -> Ledger -> Policy -> Controlled Remediation -> Evidence -> Operator Review
+Agent request -> Capability registry -> Policy engine -> Sandbox executor -> Redacted run ledger -> AgentRunModel audit trail
 ```
 
-Sistem kendi kendini izler, risk puanlar, finding üretir, remediation önerir ve izinli read-only / kontrollü aksiyonları policy üzerinden çalıştırır. Kritik sınır korunur: sistem `merge`, `deploy`, `branch push`, `production migration apply`, `API key revoke`, `secret rotation`, `force push` veya production config değişikliği yapmaz.
+Bu faz dış ajanı doğrudan ana repo üzerinde serbest çalıştırmaz. Ajan isteği önce capability kaydı ve policy kurallarından geçer; ardından sadece izinli handler ve sandbox sınırları içinde yürütülür.
 
-## Birleşen Fazlar
+## Güvenlik Sınırları
 
-### Faz 31A — Acting Governor / Watchdog Core
+- Default ajanlar disabled gelir.
+- Default sandbox modu `read-only`.
+- `requires_human_approval` default `true`.
+- `shell=True` kullanılmaz.
+- Komut çalıştırma handler allowlist mantığına bağlıdır.
+- Canonical path validation repo dışına kaçışı engeller.
+- Network policy default `disabled`.
+- `stdout` / `stderr` redaction ve truncation uygulanır.
+- Her run ledger/audit trail üzerinde izlenebilir.
 
-- `SystemFindingModel` ile sistem bulguları kalıcı hale gelir.
-- `SystemWatchdogService`, `SystemSignalCollector`, `SystemRiskScorer`, `SystemFindingService`, `WatchdogEvidenceBuilder` ve `ActingGovernorPolicy` çalışır.
-- Finding dedupe deterministik `source_hash` ile yapılır.
-- Terminal statüler (`DISMISSED`, `RESOLVED`) implicit reopen yapmaz.
-- Endpointler:
-  - `POST /v1/watchdog/run`
-  - `GET /v1/watchdog/status`
-  - `GET /v1/watchdog/findings`
-  - `GET /v1/watchdog/findings/{finding_id}`
-  - `POST /v1/watchdog/findings/{finding_id}/acknowledge`
-  - `POST /v1/watchdog/findings/{finding_id}/dismiss`
+## Kapsam
 
-### Faz 31B+ — Controlled Self-Healing
+### Database Models
 
-- `RemediationRunbookModel` ve `RemediationAttemptModel` ile runbook ve attempt kayıtları tutulur.
-- `SelfHealingPolicy` forbidden action listesini enforce eder:
-  - `auto_merge`
-  - `auto_deploy`
-  - `auto_revoke_key`
-  - `production_migration_apply`
-  - `migration_downgrade`
-  - `branch_push`
-  - `production_config_change`
-  - `database_delete`
-  - `secret_rotation`
-  - `force_push`
-- `SelfHealingExecutor` sadece allowlisted handler çalıştırır; shell komutu çalıştırmaz.
-- `EmergencyRecoveryService` yalnızca `CRITICAL` severity ve liveness recovery action için çalışır.
-- Endpointler:
-  - `GET /v1/watchdog/remediations`
-  - `GET /v1/watchdog/remediations/{attempt_id}`
-  - `POST /v1/watchdog/findings/{finding_id}/remediate`
-  - `GET /v1/watchdog/runbooks`
-  - `POST /v1/watchdog/runbooks/{runbook_id}/enable`
-  - `POST /v1/watchdog/runbooks/{runbook_id}/disable`
-  - `POST /v1/watchdog/emergency-recovery/run`
-  - `POST /v1/watchdog/findings/intake`
-  - `POST /v1/watchdog/external-recovery/report`
+`libs/db/models/repair_models.py` içinde:
 
-### Faz 32 — UI Repair Governance Bridge
+- `AgentCapabilityModel`
+  - `repair_agent_capabilities`
+  - `agent_key`, `agent_name`, `enabled`, `risk_level`
+  - `allowed_directories`, `blocked_directories`
+  - `allowed_commands`, `blocked_commands`
+  - `sandbox_mode`, `network_policy`, `allowed_domains`
+  - `requires_human_approval`
 
-- UI repair ve external agent patch akışları governor policy hattına bağlanır.
-- `AuditGate`, `VerifierMesh`, review gate, patch identity hash ve evidence hash kontrolleri korunur.
-- UI onarım tarafında HTTP `200` tek başına yeterli kabul edilmez; browser/page audit ve console/page error kontrolleri gerekir.
+- `AgentRunModel`
+  - `repair_agent_runs`
+  - `run_id`, `agent_key`, `status`, `workspace_path`
+  - `input_parameters`, `commands_executed`, `policy_violations`
+  - `stdout`, `stderr`, `cost`, hash alanları, `ledger_chain_id`
 
-## Güvenlik Kararları
+### Migration
 
-- `BILGEAPI_SELF_HEALING_ENABLED=false` varsayılanda self-healing no-op / blocked davranır.
-- `BILGEAPI_SELF_HEALING_SAFE_MODE=true` varsayılanda sadece `BILGEAPI_SELF_HEALING_ALLOWED_ACTIONS` içindeki actionlar değerlendirilebilir.
-- `BILGEAPI_EMERGENCY_RECOVERY_ENABLED=false` varsayılanda emergency recovery kapalıdır.
-- `HIGH` severity finding için human gate gerekir.
-- `CRITICAL` severity finding için sadece liveness recovery actionları emergency modda değerlendirilebilir.
-- Ledger payloadlarında secret, token ve API key sızıntısı yapılmaz.
+Yeni Alembic migration:
 
-## Uygulama Adımları
+```text
+libs/db/migrations/alembic/versions/32b9c1d4e5f6_add_repair_agent_capability_tables.py
+```
 
-1. Watchdog ve self-healing routerlarının `apps/bilgeapi/main.py` içine kayıtlı olduğunu doğrula.
-2. Release gate `REQUIRED_MODULES` ve `REQUIRED_ENDPOINTS` listelerinde watchdog/self-healing modüllerini ve endpointlerini doğrula.
-3. Migration zincirinde `SystemFindingModel`, `RemediationRunbookModel` ve `RemediationAttemptModel` tablolarını doğrula.
-4. Unit/integration testleri çalıştır ve coverage >= 80% olduğunu doğrula.
-5. OpenAPI şemasını export et.
-6. Release gate scorecard çalıştır.
-7. Docker build/up ve smoke test ile runtime davranışı doğrula.
-8. Sadece bu birleşik fazla ilgili plan, walkthrough ve gerekiyorsa kod dosyalarını stage/commit et.
+Oluşturulan tablolar:
+
+- `repair_agent_capabilities`
+- `repair_agent_runs`
+
+Migration idempotent table-existence check içerir ve JSON alanları SQLite/Postgres uyumlu tanımlar.
+
+### Services
+
+- `services/repair/external_agents/agent_capability_registry.py`
+- `services/repair/external_agents/agent_policy_engine.py`
+- `services/repair/external_agents/agent_sandbox_executor.py`
+- `services/repair/external_agents/agent_ledger_reporter.py`
+
+### API
+
+`services/repair/external_agents/router.py`:
+
+- `GET /capabilities`
+- `GET /capabilities/{agent_key}`
+- `POST /capabilities/{agent_key}/enable`
+- `POST /capabilities/{agent_key}/disable`
+- `POST /runs`
+- `GET /runs`
+- `GET /runs/{run_id}`
+
+Router `services/workflow_api/main.py` üzerinden kayıtlıdır.
 
 ## Doğrulama Planı
 
 ```powershell
-py -3.13 -m pytest tests/unit/bilgeapi/test_system_watchdog.py tests/unit/bilgeapi/test_self_healing.py -v
-py -3.13 -m pytest tests/unit/bilgeapi tests/integration/bilgeapi --cov=apps/bilgeapi --cov-report=xml --cov-report=term-missing
-py -3.13 scripts/export_bilgeapi_openapi.py
-py -3.13 scripts/run_release_gate.py
-docker compose build bilgeapi
-docker compose up -d bilgeapi
-$env:PYTHONUTF8='1'; py -3.13 scripts/smoke_bilgeapi.py --base-url http://127.0.0.1:8100 --api-key dev-test-key-001
+py -3.13 -m pytest tests/repair/test_agent_registry_sandbox_phase32b.py -v
+py -3.13 -c "import services.workflow_api.main; print('workflow api import ok')"
+$env:DATABASE_URL='sqlite+aiosqlite:///runtime/data/cortex_local_v2.db'; py -3.13 -c "import os, sys; os.environ['DATABASE_URL']='sqlite+aiosqlite:///runtime/data/cortex_local_v2.db'; from alembic.config import main; sys.argv=['alembic','upgrade','head']; main()"
+py -3.13 scripts/verify_bilgeapi_migrations.py
 ```
 
 ## Kabul Kriterleri
 
-- Watchdog + self-healing hedef testleri geçer.
-- BilgeAPI unit/integration suite geçer.
-- Coverage >= 80%.
-- Release gate `Score: 100.00`, `Status: PASSED`, `Decision: GO`.
-- `/v1/watchdog/*` endpointleri OpenAPI içinde görünür.
-- Docker smoke `6/6 passed`.
-- Kirli workspace içinde ilgisiz dosyalar release commitine dahil edilmez.
+- `AgentCapabilityModel` ve `AgentRunModel` için gerçek DB migration vardır.
+- Faz 32B testleri geçer.
+- External agent router import edilir.
+- Tag son Faz 32B kapanış commit’i üzerinde durur.
+- `implementation_plan.md`, `task.md`, `walkthrough.md` Faz 32B’ye özel içerik taşır.
