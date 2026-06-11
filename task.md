@@ -34,6 +34,7 @@
 
 ## Git
 
-- [ ] Stage only Faz 32B fix files.
-- [ ] Commit migration and documentation cleanup.
+- [x] Stage only Faz 32B fix files.
+- [x] Commit migration and documentation cleanup.
 - [ ] Move/update `bilgeapi-phase32b-agent-sandbox` tag to final Faz 32B fix commit.
+  - Blocked in this run: `git tag -f bilgeapi-phase32b-agent-sandbox` requires `.git/refs/tags` write access and escalation was rejected by the approval reviewer.
