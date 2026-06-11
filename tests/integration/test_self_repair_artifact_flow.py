@@ -35,7 +35,7 @@ async def test_full_self_repair_artifact_flow_and_api():
         "trace_id": "trace-intflow-99",
         "error_type": "unit_test_failure",
         "summary": "FastAPI router integration failing.",
-        "failed_command": "pytest tests/integration",
+        "failed_command": "pytest tests/unit/test_repair_lab_improvements.py",
         "failed_test": "test_routing",
         "traceback": "Traceback (most recent call last):\n  File 'test_routing.py', line 12\nAssertionError"
     }

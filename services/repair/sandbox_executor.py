@@ -26,7 +26,25 @@ def _ignore_for_sandbox(_: str, names: list[str]) -> set[str]:
     return {
         name
         for name in names
-        if name in {".git", ".venv", "node_modules", ".next", "__pycache__", ".pytest_cache", "repair_outputs"}
+        if name in {
+            ".git",
+            ".venv",
+            "node_modules",
+            ".next",
+            "__pycache__",
+            ".pytest_cache",
+            "repair_outputs",
+            ".legacy_archive",
+            ".backup",
+            ".codex",
+            ".nx",
+            ".playwright-browsers",
+            "brain",
+            "scratch",
+            "tmp",
+            "tmp_test_outputs",
+            "workspace",
+        }
         or name.endswith(".pyc")
     }
 

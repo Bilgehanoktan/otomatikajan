@@ -352,3 +352,28 @@ class AgentRunModel(Base):
     created_by        = Column(String(64), nullable=True)
     created_at        = Column(DateTime(timezone=True), default=_utcnow, nullable=False)
 
+
+class AgentArtifactPromotionModel(Base):
+    __tablename__ = "repair_agent_promotions"
+
+    id                     = Column(GUID, primary_key=True, default=uuid.uuid4)
+    promotion_id           = Column(String(64), unique=True, nullable=False, index=True)
+    run_id                 = Column(String(64), nullable=False, index=True)
+    artifact_type          = Column(String(32), nullable=False) # patch | source_file | test_file
+    sandbox_artifact_path  = Column(String(512), nullable=False)
+    target_repo_path       = Column(String(512), nullable=False)
+    artifact_hash          = Column(String(128), nullable=False)
+    manifest_hash          = Column(String(128), nullable=True)
+    verified_artifact_hash = Column(String(128), nullable=True)
+    approved_artifact_hash = Column(String(128), nullable=True)
+    promoted_artifact_hash = Column(String(128), nullable=True)
+    target_path_hash       = Column(String(128), nullable=True)
+    status                 = Column(String(32), default="PENDING_VERIFICATION", nullable=False, index=True)
+    verification_score     = Column(Float, default=0.0, nullable=False)
+    verification_details   = Column(SmartJSON(), default=dict)
+    approved_by            = Column(String(128), nullable=True)
+    approved_at            = Column(DateTime(timezone=True), nullable=True)
+    promoted_at            = Column(DateTime(timezone=True), nullable=True)
+    ledger_event_hash      = Column(String(128), nullable=True, index=True)
+    created_at             = Column(DateTime(timezone=True), default=_utcnow, nullable=False)
+

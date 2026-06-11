@@ -6,10 +6,11 @@ from sqlalchemy import select
 from pydantic import BaseModel, Field
 
 from libs.db.session import get_db
-from libs.db.models.repair_models import AgentCapabilityModel, AgentRunModel
+from libs.db.models.repair_models import AgentCapabilityModel, AgentRunModel, AgentArtifactPromotionModel
 from services.auth.jwt_auth import get_current_identity, require_permission
 from services.repair.external_agents.agent_sandbox_executor import AgentSandboxExecutor
 from services.repair.external_agents.agent_ledger_reporter import AgentLedgerReporter
+from services.repair.external_agents.agent_promotion_gate import AgentPromotionGate
 
 router = APIRouter(tags=["Agent Capabilities & Sandbox"])
 
@@ -170,3 +171,127 @@ async def get_run(
     if not run:
         raise HTTPException(status_code=404, detail=f"Agent run record '{run_id}' not found.")
     return run
+
+
+# Promotion Pydantic Schemas
+class PromotionCreateRequest(BaseModel):
+    run_id: str = Field(..., example="run-12345")
+    artifact_type: str = Field(..., example="patch")
+    sandbox_artifact_path: str = Field(..., example="/tmp/agent-sandbox/workspace/patch.diff")
+    target_repo_path: str = Field(..., example="apps/refine_control_plane/src/App.tsx")
+
+class PromotionResponse(BaseModel):
+    promotion_id: str
+    run_id: str
+    artifact_type: str
+    sandbox_artifact_path: str
+    target_repo_path: str
+    artifact_hash: str
+    manifest_hash: Optional[str] = None
+    verified_artifact_hash: Optional[str] = None
+    approved_artifact_hash: Optional[str] = None
+    promoted_artifact_hash: Optional[str] = None
+    target_path_hash: Optional[str] = None
+    status: str
+    verification_score: float
+    verification_details: Dict[str, Any]
+    approved_by: Optional[str] = None
+    approved_at: Optional[Any] = None
+    promoted_at: Optional[Any] = None
+    ledger_event_hash: Optional[str] = None
+    created_at: Any
+
+    class Config:
+        from_attributes = True
+
+# Promotion Router Endpoints
+@router.post("/promotions", response_model=PromotionResponse, status_code=status.HTTP_201_CREATED, summary="Create a promotion request for an agent sandbox artifact")
+async def create_promotion(
+    req: PromotionCreateRequest,
+    db: AsyncSession = Depends(get_db),
+    identity: Dict[str, Any] = Depends(require_permission("agents.promotions.create"))
+):
+    actor = identity.get("email") or identity.get("name") or "operator"
+    try:
+        promo = await AgentPromotionGate.create_promotion_request(
+            db=db,
+            run_id=req.run_id,
+            artifact_type=req.artifact_type,
+            sandbox_artifact_path=req.sandbox_artifact_path,
+            target_repo_path=req.target_repo_path,
+            created_by=actor
+        )
+        return promo
+    except (ValueError, FileNotFoundError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Promotion request creation failed: {e}")
+
+@router.get("/promotions", response_model=List[PromotionResponse], summary="List all agent promotions")
+async def list_promotions(
+    db: AsyncSession = Depends(get_db),
+    identity: Dict[str, Any] = Depends(require_permission("agents.promotions.read"))
+):
+    stmt = select(AgentArtifactPromotionModel).order_by(AgentArtifactPromotionModel.created_at.desc())
+    res = await db.execute(stmt)
+    return res.scalars().all()
+
+@router.get("/promotions/{promotion_id}", response_model=PromotionResponse, summary="Get details of a specific promotion request")
+async def get_promotion(
+    promotion_id: str,
+    db: AsyncSession = Depends(get_db),
+    identity: Dict[str, Any] = Depends(require_permission("agents.promotions.read"))
+):
+    stmt = select(AgentArtifactPromotionModel).where(AgentArtifactPromotionModel.promotion_id == promotion_id)
+    res = await db.execute(stmt)
+    promo = res.scalars().first()
+    if not promo:
+        raise HTTPException(status_code=404, detail=f"Promotion request '{promotion_id}' not found.")
+    return promo
+
+@router.post("/promotions/{promotion_id}/approve", summary="Approve a verified promotion request")
+async def approve_promotion(
+    promotion_id: str,
+    db: AsyncSession = Depends(get_db),
+    identity: Dict[str, Any] = Depends(require_permission("agents.promotions.approve"))
+):
+    actor = identity.get("email") or identity.get("name") or "operator"
+    try:
+        await AgentPromotionGate.approve_promotion(db, promotion_id, actor)
+        return {"status": "success", "message": f"Promotion request '{promotion_id}' approved."}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Approve failed: {e}")
+
+@router.post("/promotions/{promotion_id}/reject", summary="Reject a promotion request")
+async def reject_promotion(
+    promotion_id: str,
+    db: AsyncSession = Depends(get_db),
+    identity: Dict[str, Any] = Depends(require_permission("agents.promotions.approve"))
+):
+    actor = identity.get("email") or identity.get("name") or "operator"
+    try:
+        await AgentPromotionGate.reject_promotion(db, promotion_id, actor)
+        return {"status": "success", "message": f"Promotion request '{promotion_id}' rejected."}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Reject failed: {e}")
+
+@router.post("/promotions/{promotion_id}/execute", summary="Execute and integrate approved promotion")
+async def execute_promotion(
+    promotion_id: str,
+    db: AsyncSession = Depends(get_db),
+    identity: Dict[str, Any] = Depends(require_permission("agents.promotions.execute"))
+):
+    actor = identity.get("email") or identity.get("name") or "operator"
+    try:
+        success, msg = await AgentPromotionGate.execute_promotion(db, promotion_id, actor)
+        if not success:
+            raise HTTPException(status_code=400, detail=msg)
+        return {"status": "success", "message": msg}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Execution failed: {e}")
