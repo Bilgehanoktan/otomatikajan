@@ -39,6 +39,8 @@ def register_routers(app: FastAPI):
     from services.workflow_api.ceo_router import router as ceo_bridge_router
     from services.ui_repair.router import router as ui_repair_router
     from services.workflow_api.project_factory_router import router as project_factory_router
+    from services.workflow_api.free_web_api_router import router as free_web_api_router
+    from services.repair.external_agents.router import router as agents_router
     
     api_v1 = APIRouter(prefix="/api/v1")
 
@@ -97,6 +99,8 @@ def register_routers(app: FastAPI):
     api_v1.include_router(mcp_router, prefix="/mcp")
     api_v1.include_router(ui_repair_router, prefix="/ui-repair")
     api_v1.include_router(project_factory_router, prefix="/project-factory")
+    api_v1.include_router(free_web_api_router, prefix="/free-web-apis")
+    api_v1.include_router(agents_router, prefix="/agents")
     
     # 8.1 Aliases for Refine Compatibility
     api_v1.include_router(governance_router, prefix="/axiology", tags=["Compatibility"]) # Alias for /axiology

@@ -298,3 +298,57 @@ class UIRepairPRFinding(Base):
     message         = Column(Text, nullable=False)
     suggestion      = Column(Text, nullable=True)
     created_at      = Column(DateTime(timezone=True), default=_utcnow, nullable=False)
+
+
+# ── Phase 32B: External Agent Capability Registry & Sandbox ──
+
+class AgentCapabilityModel(Base):
+    __tablename__ = "repair_agent_capabilities"
+
+    id                       = Column(GUID, primary_key=True, default=uuid.uuid4)
+    agent_key                = Column(String(64), unique=True, nullable=False, index=True)
+    agent_name               = Column(String(128), nullable=False)
+    description              = Column(Text, default="")
+    enabled                  = Column(Boolean, default=False, nullable=False)
+    risk_level               = Column(String(32), default="medium", nullable=False) # low|medium|high|critical
+    allowed_directories      = Column(SmartJSON(), default=list)
+    blocked_directories      = Column(SmartJSON(), default=list)
+    allowed_commands         = Column(SmartJSON(), default=list)
+    blocked_commands         = Column(SmartJSON(), default=list)
+    sandbox_mode             = Column(String(32), default="read-only", nullable=False) # read-only|workspace-write|full-sandbox
+    max_cost_limit           = Column(Float, default=10.0, nullable=False)
+    requires_human_approval = Column(Boolean, default=True, nullable=False)
+    network_policy           = Column(String(32), default="disabled", nullable=False) # disabled|restricted|allowed
+    allowed_domains          = Column(SmartJSON(), default=list)
+    created_at               = Column(DateTime(timezone=True), default=_utcnow, nullable=False)
+    updated_at               = Column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow, nullable=False)
+
+
+class AgentRunModel(Base):
+    __tablename__ = "repair_agent_runs"
+
+    id                = Column(GUID, primary_key=True, default=uuid.uuid4)
+    run_id            = Column(String(64), unique=True, nullable=False, index=True)
+    agent_key         = Column(String(64), nullable=False, index=True)
+    status            = Column(String(32), default="PENDING", nullable=False) # PENDING|RUNNING|COMPLETED|FAILED|BLOCKED
+    workspace_path    = Column(String(512), nullable=True)
+    input_parameters  = Column(SmartJSON(), default=dict)
+    commands_executed = Column(SmartJSON(), default=list)
+    policy_violations = Column(SmartJSON(), default=list)
+    exit_code         = Column(Integer, nullable=True)
+    stdout            = Column(Text, default="")
+    stderr            = Column(Text, default="")
+    cost              = Column(Float, default=0.0, nullable=False)
+    started_at        = Column(DateTime(timezone=True), nullable=True)
+    completed_at      = Column(DateTime(timezone=True), nullable=True)
+    timeout_seconds   = Column(Integer, default=300, nullable=False)
+    sandbox_mode      = Column(String(32), nullable=False)
+    network_policy    = Column(String(32), nullable=False)
+    input_hash        = Column(String(128), nullable=True)
+    command_hash      = Column(String(128), nullable=True)
+    output_hash       = Column(String(128), nullable=True)
+    workspace_hash    = Column(String(128), nullable=True)
+    ledger_chain_id   = Column(String(128), nullable=True, index=True)
+    created_by        = Column(String(64), nullable=True)
+    created_at        = Column(DateTime(timezone=True), default=_utcnow, nullable=False)
+

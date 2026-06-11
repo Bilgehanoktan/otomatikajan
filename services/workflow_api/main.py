@@ -32,6 +32,7 @@ from services.workflow_api.ceo_router import router as ceo_bridge_router
 from services.workflow_api.project_factory_router import router as project_factory_router
 from services.workflow_api.mcp_router import router as mcp_router
 from services.workflow_api.debate_router import router as debate_router
+from services.repair.external_agents.router import router as agents_router
 
 from contextlib import asynccontextmanager
 
@@ -51,6 +52,15 @@ async def lifespan(app: FastAPI):
     # Startup actions
     await init_db()
     print("Database Initialized.")
+
+    try:
+        from libs.db.session import AsyncSessionLocal
+        from services.repair.external_agents.agent_capability_registry import AgentCapabilityRegistry
+        async with AsyncSessionLocal() as db:
+            await AgentCapabilityRegistry.initialize_defaults(db)
+        print("Agent Capability Registry Initialized (Phase 32B).")
+    except Exception as exc:
+        print(f"Failed to seed Agent Capability Registry: {exc}")
 
     try:
         from libs.db.session import is_db_degraded
@@ -147,6 +157,7 @@ app.include_router(project_factory_router, prefix="/api/v1/project-factory")
 app.include_router(mcp_router, prefix="/api/v1/mcp")
 app.include_router(debate_router, prefix="/api/v1/debate")
 app.include_router(free_web_api_router, prefix="/api/v1/free-web-apis")
+app.include_router(agents_router, prefix="/api/v1/agents")
 
 @app.websocket("/ws/events")
 async def websocket_route(websocket: WebSocket):
