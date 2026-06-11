@@ -1,39 +1,53 @@
-# Faz 31F — Governor Operations Hardening & E2E Seal — Task List
+# Unified Faz 31/32 — Autonomous Governance Task List
 
-## Safety Checks & Constraints
-- [x] Ledger corruption test uses isolated test chain or transaction rollback.
-- [x] Supervisor recovery verification defaults to mock/dry-run mode.
-- [x] Real container stop/restart requires explicit destructive flag.
-- [x] Idempotency verification checks DB mapping count.
-- [x] Evidence report includes release gate, smoke, OpenAPI and frontend build outputs.
-- [x] Faz 31F does not add new runtime capability.
+## Repo Reality Check
 
-## Milestone 1 — E2E Smoke & Bridge Idempotency Live Verifications (Gate 1)
-- [x] Create `scripts/ops/verify_governor_e2e.py` implementing E2E finding intake, ledger append, and database mapping check.
-- [x] Implement database idempotency mapping verification (no duplicate findings, count = 1 in mappings).
-- [x] Create `tests/integration/test_bilgeapi_idempotency_live.py` verifying database constraints on concurrent/duplicate signals.
-- [x] Verify Gate 1: Run E2E and idempotency tests, confirm they pass.
-- [x] Commit Gate 1: `feat: add governor e2e and idempotency verification`
+- [x] Confirm `system_watchdog` router is included in `apps/bilgeapi/main.py`.
+- [x] Confirm `self_healing` router is included in `apps/bilgeapi/main.py`.
+- [x] Confirm release gate requires watchdog/self-healing modules.
+- [x] Confirm release gate requires watchdog/self-healing endpoints.
+- [x] Confirm OpenAPI includes `/v1/watchdog/*` endpoints.
 
-## Milestone 2 — Supervisor Recovery & Ledger Corruption Dry-Runs (Gate 2)
-- [x] Create `scripts/ops/verify_supervisor_recovery.py` with mock health/recovery checks (no destructive container restarts by default).
-- [x] Add explicit `--destructive-real-restart-test` flag to supervisor recovery test script.
-- [x] Create `scripts/ops/verify_ledger_corruption_block.py` using isolated test chain or transaction rollback to test corrupted ledger blocks.
-- [x] Verify Gate 2: Run supervisor recovery and ledger corruption scripts, confirm they pass.
-- [x] Commit Gate 2: `feat: add supervisor recovery and ledger corruption dry-run verification`
+## Watchdog Core
 
-## Milestone 3 — Docker Smoke Test & Release Evidence Pack (Gate 3)
-- [x] Create `scripts/ops/verify_phase31_hardening_evidence.py` to orchestrate all checks and export a comprehensive markdown report.
-- [x] Run the evidence script and generate `docs/evidence/bilgeapi_phase31_hardening_evidence.md` with:
-  - pytest targets and coverage outputs
-  - Docker bilgeapi healthy check status
-  - 6/6 smoke tests status
-  - Release gate scorecard output (Score 100 / PASSED / GO)
-  - OpenAPI schema export status
-  - Refine frontend static build status
-- [x] Verify Gate 3: Confirm evidence report compiles and accurately documents all outputs.
-- [x] Commit Gate 3: `feat: add phase 31f operations evidence reporter`
+- [x] Verify `SystemFindingModel` exists.
+- [x] Verify finding dedupe and lifecycle tests pass.
+- [x] Verify risk scorer tests pass.
+- [x] Verify watchdog admin/operator RBAC tests pass.
 
-## Final Seal (Final Gate)
-- [x] Ensure no new runtime capabilities or destructiveness was introduced in Faz 31F.
-- [x] Final tag and seal commit.
+## Controlled Self-Healing
+
+- [x] Verify remediation runbook and attempt models exist.
+- [x] Verify self-healing config flags exist.
+- [x] Verify forbidden actions are blocked by `SelfHealingPolicy`.
+- [x] Verify `HIGH` risk findings require human gate.
+- [x] Verify `CRITICAL` emergency recovery is limited to liveness recovery actions.
+- [x] Verify self-healing executor uses controlled handlers and does not run shell commands.
+
+## Regression
+
+- [x] Run targeted watchdog/self-healing tests:
+  `py -3.13 -m pytest tests/unit/bilgeapi/test_system_watchdog.py tests/unit/bilgeapi/test_self_healing.py -v`
+- [x] Run full BilgeAPI unit/integration regression with coverage:
+  `py -3.13 -m pytest tests/unit/bilgeapi tests/integration/bilgeapi --cov=apps/bilgeapi --cov-report=xml --cov-report=term-missing`
+- [x] Confirm target coverage is >= 80%.
+
+## Release Verification
+
+- [x] Export OpenAPI:
+  `py -3.13 scripts/export_bilgeapi_openapi.py`
+- [x] Run release gate:
+  `py -3.13 scripts/run_release_gate.py`
+- [x] Build BilgeAPI Docker image:
+  `docker compose build bilgeapi`
+- [x] Restart BilgeAPI container:
+  `docker compose up -d bilgeapi`
+- [x] Run smoke test:
+  `$env:PYTHONUTF8='1'; py -3.13 scripts/smoke_bilgeapi.py --base-url http://127.0.0.1:8100 --api-key dev-test-key-001`
+
+## Documentation & Commit
+
+- [x] Rewrite `implementation_plan.md` as the unified Faz 31/32 plan.
+- [x] Update `walkthrough.md` with verified outputs.
+- [ ] Stage only relevant files.
+- [ ] Commit with a scoped message.

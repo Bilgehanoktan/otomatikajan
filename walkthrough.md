@@ -1,42 +1,174 @@
-# Phase 31F: Governor Operations Hardening & E2E Seal — Walkthrough
+# Walkthrough — Unified Faz 31/32 Autonomous Governance
 
-Bu aşamada (Faz 31F), Faz 31CDE ile geliştirilen **Watchdog**, **Supervisor**, **Platform Bridge** ve **Command Center** bileşenlerinin uçtan uca (E2E) güvenilirliğini doğrulamak amacıyla hardening (sertleştirme) çalışmaları tamamlanmış ve tüm kontroller başarıyla mühürlenmiştir.
+## Özet
 
----
+Bu çalışma Faz 31 ve Faz 32 hattını tek bir güvenli otonom yönetim akışı olarak doğruladı ve eksik bağlantı noktalarını kapattı.
 
-## 1. Uygulanan Değişiklikler ve Güvenlik Önlemleri
+Birleşik akış:
 
-Tüm testler ve doğrulamalar kullanıcı tarafından onaylanan güvenlik sınırlarına sadık kalınarak uygulanmıştır:
+```text
+Signals -> Watchdog -> Findings -> Ledger -> Policy -> Controlled Remediation -> Evidence -> Operator Review
+```
 
-1. **Uçtan Uca Entegrasyon Testi (`verify_governor_e2e.py`)**:
-   - `BilgeAPIBridge` aracılığıyla ilk sinyal gönderilmiş, `SystemFinding` oluşumu ve veritabanı mapping tablosunda (`bilgeapi_bridge_mappings`) tam olarak **1 mapping** kaydının yerleştiği onaylanmıştır.
-   - İkinci gönderim doğrudan HTTP üzerinden yapılmış ve sunucu tarafı mükerrer bulgu algılaması (idempotency) tetiklenerek ledger'a `SYSTEM_FINDING_DEDUPED` logunun yazıldığı kanıtlanmıştır.
+Sistem artık şu yetenekleri aynı runtime yüzeyinde birleştiriyor:
 
-2. **Tahribatsız Supervisor Doğrulaması (`verify_supervisor_recovery.py`)**:
-   - Supervisor canlandırma döngüsü, geçersiz port kullanılarak simüle edilmiş ve **docker container'ı durdurulmadan (mock/dry-run mode)** spool dosyasına yazma yeteneği sınanmıştır.
-   - Gerçek BilgeAPI URL'sine dönüldüğünde spooled olayların başarıyla review ledger'a aktarıldığı (flush) ve spool dosyasının temizlendiği kanıtlanmıştır.
+- Watchdog scan ve risk scoring.
+- Deterministik finding dedupe ve lifecycle.
+- Immutable ledger/audit kanıtı.
+- Policy kontrollü remediation runbook/attempt kayıtları.
+- Forbidden action ve human gate sınırları.
+- Emergency recovery için yalnızca liveness recovery allowlist.
+- UI repair / external recovery raporlarının governor hattına aktarımı.
 
-3. **İzole Zincirde Ledger Bozulma Koruması (`verify_ledger_corruption_block.py`)**:
-   - Ana DB verilerine dokunulmadan, tamamen benzersiz bir test ledger zinciri (`chain_id` test) oluşturulmuştur.
-   - DB üzerinde sequence veya hash bütünlüğü bozulmuş ve `BilgeAPIHumanGateVerifier.assert_approval_allowed` fonksiyonunun onay kararlarını bloke ederek `ValueError` fırlattığı doğrulanmıştır.
-   - Test sonrasında tüm test zinciri veritabanından tamamen silinerek cleanup yapılmıştır.
+## Güvenlik Sınırları
 
-4. **Eşzamanlılık Testleri (`test_bilgeapi_idempotency_live.py`)**:
-   - `NullPool` kullanılarak izole aiosqlite bağlantılarıyla yapılan paralel testlerde `uq_bilgeapi_bridge_source` benzersizlik kısıtının mükerrer kayıtları başarıyla engellediği pytest ile kanıtlanmıştır.
+Otonom yönetim hattı bilinçli olarak aşağıdaki işlemleri yapmaz:
 
----
+- `auto_merge`
+- `auto_deploy`
+- `auto_revoke_key`
+- `production_migration_apply`
+- `migration_downgrade`
+- `branch_push`
+- `production_config_change`
+- `database_delete`
+- `secret_rotation`
+- `force_push`
 
-## 2. Test ve Doğrulama Sonuçları
+`SelfHealingExecutor` shell komutu çalıştırmaz; sadece kod içinde tanımlı kontrollü action handlerları simüle/çalıştırır.
 
-Tüm adımlar `verify_phase31_hardening_evidence.py` orkestratör scripti ile tek seferde koşturulmuş ve **100/100 Skor** ile **PASSED (RELEASE DECISION: GO)** durumuna ulaşılmıştır:
+## Uygulanan Birleştirme
 
-- **E2E Signal Intake Smoke**: `PASSED`
-- **Supervisor Spool & Flush Proof**: `PASSED`
-- **Ledger Corruption Human Gate Block**: `PASSED`
-- **Pytest Integration Tests**: `PASSED` (2/2 Passed)
-- **6/6 Smoke Tests**: `PASSED` (HTTP 200 checks for health, docs, openapi, catalog, incidents, auth enforcement)
-- **Docker BilgeAPI Health**: `HEALTHY`
-- **OpenAPI Schema Export**: `PASSED` (Successfully exported to `docs/openapi/bilgeapi_openapi.json`)
-- **Refine Frontend Static Build**: `PASSED` (Build succeeded in Next.js Turbopack)
+### Router Bağlantısı
 
-Detaylı çıktıların tamamı [bilgeapi_phase31_hardening_evidence.md](file:///e:/ai_company_faz12.1/docs/evidence/bilgeapi_phase31_hardening_evidence.md) kanıt raporu altında kayıt altına alınmıştır.
+`apps/bilgeapi/main.py` içinde hem `system_watchdog` hem de `self_healing` routerları kayıtlıdır.
+
+### Release Gate Bağlantısı
+
+`apps/bilgeapi/services/release.py` içinde watchdog ve self-healing modül/endpoint kontrolleri release gate kapsamındadır.
+
+Doğrulanan endpoint aileleri:
+
+- `/v1/watchdog/run`
+- `/v1/watchdog/status`
+- `/v1/watchdog/findings`
+- `/v1/watchdog/remediations`
+- `/v1/watchdog/runbooks`
+- `/v1/watchdog/emergency-recovery/run`
+- `/v1/watchdog/findings/intake`
+- `/v1/watchdog/external-recovery/report`
+
+### Migration Durumu
+
+Local SQLite fallback DB, Alembic head revizyonuna yükseltildi:
+
+```text
+007f130e456e (head)
+```
+
+`scripts/verify_bilgeapi_migrations.py` sonucu:
+
+```text
+Single head: yes
+Current matches head: yes
+Overall: PASS
+```
+
+## Test Sonuçları
+
+### Hedef Testler
+
+```powershell
+py -3.13 -m pytest tests/unit/bilgeapi/test_system_watchdog.py tests/unit/bilgeapi/test_self_healing.py -v
+```
+
+Sonuç:
+
+```text
+20 passed
+```
+
+### Full BilgeAPI Regression
+
+```powershell
+py -3.13 -m pytest tests/unit/bilgeapi tests/integration/bilgeapi --cov=apps/bilgeapi --cov-report=xml --cov-report=term-missing
+```
+
+Sonuç:
+
+```text
+235 passed
+Total coverage: 82.57%
+```
+
+## Release Gate
+
+```powershell
+py -3.13 scripts/run_release_gate.py
+```
+
+Sonuç:
+
+```text
+Score: 100.00
+Status: PASSED
+Warnings: 0
+Blockers: 0
+Release Decision: GO (PASSED)
+```
+
+## OpenAPI
+
+```powershell
+py -3.13 scripts/export_bilgeapi_openapi.py
+```
+
+Sonuç:
+
+```text
+Successfully exported OpenAPI schema to: E:\ai_company_faz12.1\docs\openapi\bilgeapi_openapi.json
+```
+
+OpenAPI içinde `/v1/watchdog/*` endpointleri doğrulandı.
+
+## Docker ve Smoke
+
+Docker build:
+
+```powershell
+docker compose build --progress=plain bilgeapi
+```
+
+Sonuç:
+
+```text
+Image ai_company_faz121-bilgeapi Built
+```
+
+Container restart:
+
+```powershell
+docker compose up -d bilgeapi
+```
+
+Health:
+
+```text
+Up (healthy)
+```
+
+Smoke:
+
+```powershell
+$env:PYTHONUTF8='1'; py -3.13 scripts/smoke_bilgeapi.py --base-url http://127.0.0.1:8100 --api-key dev-test-key-001
+```
+
+Sonuç:
+
+```text
+Result: 6/6 passed - ALL PASSED
+```
+
+## Çalışma Alanı Notu
+
+Workspace içinde bu fazdan bağımsız çok sayıda önceden kalmış dirty/generated dosya vardır. Commit sırasında yalnızca bu birleşik doğrulama ve router bağlantısı için ilgili dosyalar stage edilmelidir.
