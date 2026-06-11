@@ -1227,6 +1227,17 @@ export default function BilgeAPIOpsConsole() {
             <div className="space-y-2">
               {actionLog.length === 0 ? <EmptyState text="No local action yet" /> : null}
               {actionLog.map((item) => (
+                <div key={item.id} className="flex flex-col gap-1 border-b border-white/5 pb-2 last:border-0 last:pb-0">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-white text-xs">{item.label}</span>
+                    <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium border ${
+                      item.status === "OK" ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-300" : "border-rose-500/20 bg-rose-500/10 text-rose-300"
+                    }`}>
+                      {item.status}
+                    </span>
+                  </div>
+                  {item.detail && <p className="text-[11px] text-gray-400 break-all">{item.detail}</p>}
+                </div>
               ))}
             </div>
           </Panel>

@@ -174,6 +174,13 @@ async def test_promotion_execution_hash_mismatch(test_db_session, tmp_path):
     )
     await AgentPromotionGate.approve_promotion(test_db_session, promo.promotion_id, "admin")
 
+    # Policy simulation is required before execute_promotion (Phase 32E)
+    from services.repair.external_agents.agent_policy_simulator import AgentPolicySimulator
+    sim_res = await AgentPolicySimulator.simulate_promotion(test_db_session, promo.promotion_id)
+    promo.verification_details["simulation_result"] = sim_res
+    promo.verification_details["simulation_result_hash"] = sim_res["simulation_result_hash"]
+    await test_db_session.commit()
+
     # Modify the sandbox file after approval to trigger hash mismatch
     sandbox_file.write_text("val = 999", encoding="utf-8")
 
@@ -197,6 +204,13 @@ async def test_promotion_execution_no_direct_mutation_by_default(test_db_session
         target_repo_path=target_rel_path
     )
     await AgentPromotionGate.approve_promotion(test_db_session, promo.promotion_id, "admin")
+
+    # Policy simulation is required before execute_promotion (Phase 32E)
+    from services.repair.external_agents.agent_policy_simulator import AgentPolicySimulator
+    sim_res = await AgentPolicySimulator.simulate_promotion(test_db_session, promo.promotion_id)
+    promo.verification_details["simulation_result"] = sim_res
+    promo.verification_details["simulation_result_hash"] = sim_res["simulation_result_hash"]
+    await test_db_session.commit()
 
     # Ensure environment variable is false/unset by default
     if "BILGEAPI_AGENT_PROMOTION_APPLY_TO_REPO" in os.environ:
@@ -258,6 +272,12 @@ async def test_promotion_gate_api_endpoints(test_api_client, test_db_session, tm
     # Verify approved state
     response = await test_api_client.get(f"/api/v1/agents/promotions/{promo_id}")
     assert response.json()["status"] == "APPROVED"
+
+    # Simulate policy check via API before execute (Phase 32E)
+    response = await test_api_client.post("/api/v1/agents/policy/simulate-promotion", json={"promotion_id": promo_id})
+    assert response.status_code == 200
+    assert response.json()["decision"] == "ALLOW"
+    assert response.json()["simulation_result_hash"] is not None
 
     # 5. POST /promotions/{promotion_id}/execute (Execute)
     response = await test_api_client.post(f"/api/v1/agents/promotions/{promo_id}/execute")
