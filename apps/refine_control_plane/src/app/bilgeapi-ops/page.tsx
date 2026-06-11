@@ -41,6 +41,10 @@ import {
   ReviewerFeedbackRecord,
   RemediationRunbookRecord,
   RemediationAttemptRecord,
+  AgentCapabilityRecord,
+  AgentRunRecord,
+  AgentPromotionRecord,
+  AgentPolicySimulationResponse,
   acceptAiPatchSuggestionForReview,
   approveProposal,
   createBilgeApiKey,
@@ -76,10 +80,21 @@ import {
   acknowledgeFinding,
   dismissFinding,
   runWatchdogScan,
+  listAgentCapabilities,
+  listAgentRuns,
+  listAgentPromotions,
+  getAgentPromotion,
+  approveAgentPromotion,
+  rejectAgentPromotion,
+  executeAgentPromotion,
+  simulateAgentPromotion,
+  enableAgent,
+  disableAgent,
 } from "@/lib/bilgeapiOpsClient";
 
 
-type OpsTab = "dashboard" | "keys" | "research" | "prs" | "revisions" | "ai" | "governor" | "remediation" | "ledger" | "audit";
+
+type OpsTab = "dashboard" | "keys" | "research" | "prs" | "revisions" | "ai" | "governor" | "remediation" | "ledger" | "audit" | "agents";
 
 type ActionLog = {
   id: string;
@@ -100,6 +115,7 @@ const tabs: Array<{ id: OpsTab; label: string; icon: LucideIcon }> = [
   { id: "remediation", label: "Self-Healing", icon: ShieldCheck },
   { id: "ledger", label: "Ledger", icon: ClipboardCheck },
   { id: "audit", label: "Audit", icon: ClipboardCheck },
+  { id: "agents", label: "Agents", icon: Terminal },
 ];
 
 function asNumberOrNull(value: string): number | null {
@@ -156,6 +172,10 @@ export default function BilgeAPIOpsConsole() {
   const [ledgerEntries, setLedgerEntries] = React.useState<ReviewLedgerEntryRecord[]>([]);
   const [ledgerVerification, setLedgerVerification] = React.useState<ReviewLedgerVerifyRecord | null>(null);
   const [ledgerExport, setLedgerExport] = React.useState<ReviewLedgerExportRecord | null>(null);
+  const [selectedAgentPromoId, setSelectedAgentPromoId] = React.useState("");
+  const [selectedAgentPromo, setSelectedAgentPromo] = React.useState<AgentPromotionRecord | null>(null);
+  const [promoSimulationResult, setPromoSimulationResult] = React.useState<AgentPolicySimulationResponse | null>(null);
+  const [simulatingPromo, setSimulatingPromo] = React.useState(false);
 
   const [keyForm, setKeyForm] = React.useState({
     role: "OPERATOR",
@@ -238,6 +258,9 @@ export default function BilgeAPIOpsConsole() {
   const remediationAttempts = snapshot?.remediationAttempts ?? [];
   const systemFindings = snapshot?.systemFindings ?? [];
   const watchdogStatus = snapshot?.watchdogStatus ?? null;
+  const agentPromotions = snapshot?.agentPromotions ?? [];
+  const agentRuns = snapshot?.agentRuns ?? [];
+  const agentCapabilities = snapshot?.agentCapabilities ?? [];
 
 
   const quotaRows = apiKeys.map((key) => ({
@@ -278,6 +301,23 @@ export default function BilgeAPIOpsConsole() {
     setFeedback(nextFeedback);
     setRevisions(nextRevisions);
     setAiSuggestions(nextAiSuggestions);
+  }
+
+  async function loadPromotionContext(promoId: string) {
+    setSelectedAgentPromoId(promoId);
+    setPromoSimulationResult(null);
+    setSimulatingPromo(true);
+    try {
+      const promo = await getAgentPromotion(apiKey, promoId);
+      setSelectedAgentPromo(promo);
+      
+      const sim = await simulateAgentPromotion(apiKey, promoId);
+      setPromoSimulationResult(sim);
+    } catch (error) {
+      record("load_promotion", "ERR", error instanceof Error ? error.message : String(error));
+    } finally {
+      setSimulatingPromo(false);
+    }
   }
 
   return (
@@ -380,6 +420,9 @@ export default function BilgeAPIOpsConsole() {
             <Metric label="Needs Caution" value={cautionCount} icon={<AlertTriangle size={16} />} tone={cautionCount ? "amber" : "gray"} />
             <Metric label="Audit Events" value={auditEvents.length} icon={<ClipboardCheck size={16} />} tone="green" />
             <Metric label="Ledger Entries" value={ledgerRecent.length} icon={<ClipboardCheck size={16} />} tone="violet" />
+            <Metric label="Agent Capabilities" value={agentCapabilities.length} icon={<Terminal size={16} />} tone="cyan" />
+            <Metric label="Agent Sandbox Runs" value={agentRuns.length} icon={<Activity size={16} />} tone="green" />
+            <Metric label="Agent Promotions" value={agentPromotions.length} icon={<ClipboardCheck size={16} />} tone="violet" />
           </div>
 
           <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
@@ -1184,13 +1227,284 @@ export default function BilgeAPIOpsConsole() {
             <div className="space-y-2">
               {actionLog.length === 0 ? <EmptyState text="No local action yet" /> : null}
               {actionLog.map((item) => (
-                <div key={item.id} className={`rounded-lg border p-3 text-xs ${item.status === "OK" ? "border-emerald-300/20 bg-emerald-300/10" : "border-rose-300/20 bg-rose-300/10"}`}>
-                  <div className="font-black uppercase tracking-widest text-white">{item.label}</div>
-                  <div className="mt-1 text-gray-300">{item.detail}</div>
-                </div>
               ))}
             </div>
           </Panel>
+        </div>
+      ) : null}
+
+      {activeTab === "agents" ? (
+        <div className="space-y-6">
+          <div className="grid gap-4 xl:grid-cols-[1fr_1.4fr]">
+            
+            {/* Left side: Capabilities list and Runs list */}
+            <div className="space-y-6">
+              
+              <Panel title="Agent Capabilities" icon={<Terminal size={16} />}>
+                <div className="space-y-3">
+                  {agentCapabilities.length === 0 ? (
+                    <EmptyState text="No agent capability loaded" />
+                  ) : (
+                    agentCapabilities.map((cap) => (
+                      <div key={cap.agent_key} className="rounded-lg border border-white/10 bg-black/20 p-4">
+                        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-mono text-sm font-black text-cyan-200">{cap.agent_key}</span>
+                              <span className={`rounded border px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${cap.enabled ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100" : "border-rose-300/20 bg-rose-300/10 text-rose-100"}`}>
+                                {cap.enabled ? "enabled" : "disabled"}
+                              </span>
+                              <span className="rounded border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-gray-300">
+                                {cap.sandbox_mode}
+                              </span>
+                            </div>
+                            <div className="mt-2 text-xs font-bold text-gray-200">{cap.agent_name}</div>
+                            <div className="mt-1 text-[10px] text-gray-500">{cap.description}</div>
+                          </div>
+                          <div className="flex gap-2">
+                            {cap.enabled ? (
+                              <button
+                                onClick={() => void runAction(`disable_agent_${cap.agent_key}`, disableAgent(apiKey, cap.agent_key))}
+                                className="rounded border border-rose-300/20 bg-rose-300/10 px-3 py-2 text-xs font-black uppercase tracking-widest text-rose-100 hover:bg-rose-300/15"
+                              >
+                                Disable
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => void runAction(`enable_agent_${cap.agent_key}`, enableAgent(apiKey, cap.agent_key))}
+                                className="rounded border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-xs font-black uppercase tracking-widest text-emerald-100 hover:bg-emerald-300/15"
+                              >
+                                Enable
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </Panel>
+
+              <Panel title="Recent Sandbox Runs" icon={<Activity size={16} />}>
+                <div className="space-y-3">
+                  {agentRuns.length === 0 ? (
+                    <EmptyState text="No agent run loaded" />
+                  ) : (
+                    agentRuns.slice(0, 15).map((run) => (
+                      <div key={run.run_id} className="rounded-lg border border-white/10 bg-black/20 p-4 text-xs">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="font-mono font-black text-white">{run.run_id}</span>
+                          <span className={`rounded border px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${statusTone(run.status)}`}>
+                            {run.status}
+                          </span>
+                        </div>
+                        <div className="mt-2 grid grid-cols-2 gap-2 text-gray-400">
+                          <div>Agent: <span className="text-gray-200">{run.agent_key}</span></div>
+                          <div>Cost: <span className="text-gray-200">${run.cost.toFixed(4)}</span></div>
+                          <div>Mode: <span className="text-gray-200">{run.sandbox_mode}</span></div>
+                          <div>Net: <span className="text-gray-200">{run.network_policy}</span></div>
+                        </div>
+                        {run.ledger_chain_id && (
+                          <div className="mt-2 text-[10px] text-gray-500 font-mono">Ledger Chain: {run.ledger_chain_id}</div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </Panel>
+
+            </div>
+
+            {/* Right side: Promotion Requests & Detail Panel */}
+            <div className="space-y-6">
+              
+              <Panel title="Promotion Requests" icon={<ClipboardCheck size={16} />}>
+                <div className="space-y-3">
+                  {agentPromotions.length === 0 ? (
+                    <EmptyState text="No promotion request registered" />
+                  ) : (
+                    agentPromotions.map((promo) => (
+                      <button
+                        key={promo.promotion_id}
+                        onClick={() => void loadPromotionContext(promo.promotion_id)}
+                        className={`w-full rounded-lg border p-4 text-left hover:border-cyan-300/20 ${selectedAgentPromoId === promo.promotion_id ? "border-cyan-300/30 bg-cyan-300/5" : "border-white/10 bg-black/20"}`}
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="font-mono text-sm font-black text-white">{promo.promotion_id}</span>
+                          <span className={`rounded border px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${statusTone(promo.status)}`}>
+                            {promo.status}
+                          </span>
+                        </div>
+                        <div className="mt-2 text-xs text-gray-400">Target Path: <span className="font-mono text-gray-200">{promo.target_repo_path}</span></div>
+                        <div className="mt-1 text-xs text-gray-400">Run: <span className="font-mono text-gray-300">{promo.run_id}</span></div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </Panel>
+
+              {selectedAgentPromo && (
+                <Panel title="Promotion Detail & Review Gate" icon={<ShieldCheck size={16} />}>
+                  <div className="space-y-4 text-xs">
+                    
+                    <div className="grid grid-cols-2 gap-4 rounded-lg border border-white/5 bg-black/30 p-3">
+                      <div>
+                        <div className="text-[10px] font-black uppercase tracking-widest text-gray-500">Status</div>
+                        <span className={`inline-block mt-1 rounded border px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${statusTone(selectedAgentPromo.status)}`}>
+                          {selectedAgentPromo.status}
+                        </span>
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-black uppercase tracking-widest text-gray-500">Verification Score</div>
+                        <span className={`inline-block mt-1 font-mono font-bold ${selectedAgentPromo.verification_score >= 1.0 ? "text-emerald-400" : "text-rose-400"}`}>
+                          {selectedAgentPromo.verification_score >= 1.0 ? "1.0 (PASSED)" : `${selectedAgentPromo.verification_score} (FAILED)`}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 rounded border border-white/5 bg-black/10 p-3 font-mono">
+                      <div><span className="text-gray-500">Target Path : </span><span className="text-cyan-200">{selectedAgentPromo.target_repo_path}</span></div>
+                      <div><span className="text-gray-500">Artifact Type: </span><span className="text-white">{selectedAgentPromo.artifact_type}</span></div>
+                      <div><span className="text-gray-500">Artifact Hash: </span><span className="text-gray-400">{selectedAgentPromo.artifact_hash.slice(0, 16)}...</span></div>
+                      <div><span className="text-gray-500">Manifest Hash : </span><span className="text-gray-400">{selectedAgentPromo.manifest_hash ? `${selectedAgentPromo.manifest_hash.slice(0, 16)}...` : "-"}</span></div>
+                      <div><span className="text-gray-500">Verified Hash : </span><span className="text-gray-400">{selectedAgentPromo.verified_artifact_hash ? `${selectedAgentPromo.verified_artifact_hash.slice(0, 16)}...` : "-"}</span></div>
+                      <div><span className="text-gray-500">Approved Hash : </span><span className="text-gray-400">{selectedAgentPromo.approved_artifact_hash ? `${selectedAgentPromo.approved_artifact_hash.slice(0, 16)}...` : "-"}</span></div>
+                      <div><span className="text-gray-500">Promoted Hash : </span><span className="text-gray-400">{selectedAgentPromo.promoted_artifact_hash ? `${selectedAgentPromo.promoted_artifact_hash.slice(0, 16)}...` : "-"}</span></div>
+                      <div><span className="text-gray-500">Ledger Hash   : </span><span className="text-gray-400">{selectedAgentPromo.ledger_event_hash ? `${selectedAgentPromo.ledger_event_hash.slice(0, 16)}...` : "-"}</span></div>
+                    </div>
+
+                    {/* Policy Simulation / Governance Preview (32E) */}
+                    <div>
+                      <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-gray-400">Governance dry-run simulation & risk preview</div>
+                      {simulatingPromo ? (
+                        <div className="rounded border border-white/5 bg-black/20 p-4 text-center text-gray-500">Simulating policy rules...</div>
+                      ) : promoSimulationResult ? (
+                        <div className={`rounded-lg border p-4 space-y-3 ${
+                          promoSimulationResult.decision === "BLOCK"
+                            ? "border-rose-400/20 bg-rose-400/10"
+                            : promoSimulationResult.decision === "HUMAN_GATE_REQUIRED"
+                            ? "border-amber-400/20 bg-amber-400/10"
+                            : "border-emerald-400/20 bg-emerald-400/10"
+                        }`}>
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold uppercase tracking-wider">Decision: {promoSimulationResult.decision}</span>
+                            <span className={`rounded border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest ${
+                              promoSimulationResult.risk_level === "CRITICAL"
+                                ? "border-rose-400/20 bg-rose-400/10 text-rose-200"
+                                : promoSimulationResult.risk_level === "HIGH"
+                                ? "border-amber-400/20 bg-amber-400/10 text-amber-200"
+                                : "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
+                            }`}>
+                              Risk: {promoSimulationResult.risk_level} ({promoSimulationResult.risk_score.toFixed(1)})
+                            </span>
+                          </div>
+                          {promoSimulationResult.reasons.length > 0 && (
+                            <div className="space-y-1">
+                              <div className="text-[10px] font-black uppercase tracking-widest opacity-75">Analysis / Reasons:</div>
+                              <ul className="list-disc list-inside space-y-1 text-gray-300">
+                                {promoSimulationResult.reasons.map((r, i) => <li key={i}>{r}</li>)}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="rounded border border-white/5 bg-black/20 p-4 text-center text-gray-500">No simulation preview loaded</div>
+                      )}
+                    </div>
+
+                    {/* Verification details */}
+                    {selectedAgentPromo.verification_details && Object.keys(selectedAgentPromo.verification_details).length > 0 && (
+                      <div className="space-y-1">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Verifier Reports:</div>
+                        <pre className="max-h-40 overflow-auto rounded border border-white/5 bg-black/40 p-3 font-mono text-xs text-rose-300">
+                          {JSON.stringify(selectedAgentPromo.verification_details, null, 2)}
+                        </pre>
+                      </div>
+                    )}
+
+                    {/* UI Actions (Approve, Reject, Execute) */}
+                    <div className="mt-4 flex flex-wrap gap-2 pt-2 border-t border-white/5">
+                      
+                      {selectedAgentPromo.status === "PENDING_APPROVAL" && (
+                        <>
+                          <button
+                            onClick={() => void runAction(
+                              "approve_promotion",
+                              approveAgentPromotion(apiKey, selectedAgentPromo.promotion_id),
+                              () => loadPromotionContext(selectedAgentPromo.promotion_id)
+                            )}
+                            className="inline-flex items-center gap-2 rounded-lg border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-xs font-black uppercase tracking-widest text-emerald-100 hover:bg-emerald-300/15"
+                          >
+                            <CheckCircle2 size={14} />
+                            Approve
+                          </button>
+                          
+                          <button
+                            onClick={() => void runAction(
+                              "reject_promotion",
+                              rejectAgentPromotion(apiKey, selectedAgentPromo.promotion_id),
+                              () => loadPromotionContext(selectedAgentPromo.promotion_id)
+                            )}
+                            className="inline-flex items-center gap-2 rounded-lg border border-rose-300/20 bg-rose-300/10 px-3 py-2 text-xs font-black uppercase tracking-widest text-rose-100 hover:bg-rose-300/15"
+                          >
+                            <ShieldOff size={14} />
+                            Reject
+                          </button>
+                        </>
+                      )}
+
+                      {/* Execute promotion button with all critical safety checks */}
+                      {(() => {
+                        const isApproved = selectedAgentPromo.status === "APPROVED";
+                        const isSimulationDone = promoSimulationResult !== null;
+                        const isSimAllowed = promoSimulationResult?.decision === "ALLOW" || promoSimulationResult?.decision === "HUMAN_GATE_REQUIRED";
+                        const isHashValid = selectedAgentPromo.artifact_hash === selectedAgentPromo.verified_artifact_hash &&
+                                            selectedAgentPromo.artifact_hash === selectedAgentPromo.approved_artifact_hash;
+                        const isVerifierPassed = selectedAgentPromo.verification_score >= 1.0;
+                        const isLedgerValid = !!selectedAgentPromo.ledger_event_hash;
+
+                        const executeDisabled = !isApproved || !isSimulationDone || !isSimAllowed || !isHashValid || !isVerifierPassed || !isLedgerValid;
+
+                        return (
+                          <div className="w-full space-y-2">
+                            <button
+                              disabled={executeDisabled}
+                              onClick={() => void runAction(
+                                "execute_promotion",
+                                executeAgentPromotion(apiKey, selectedAgentPromo.promotion_id),
+                                () => loadPromotionContext(selectedAgentPromo.promotion_id)
+                              )}
+                              className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-cyan-300/20 bg-cyan-300/10 px-4 py-2.5 text-xs font-black uppercase tracking-widest text-cyan-100 hover:bg-cyan-300/15 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              <Play size={14} />
+                              Execute Integration
+                            </button>
+                            
+                            {/* Execution blocker warnings */}
+                            {executeDisabled && (
+                              <div className="rounded border border-rose-400/10 bg-rose-400/5 p-2 text-[10px] text-rose-300 space-y-1">
+                                <span className="font-bold uppercase tracking-wider block">Safety Gate Restrictions (Execute Blocked):</span>
+                                {!isApproved && <div>• Request status must be APPROVED (Current: {selectedAgentPromo.status})</div>}
+                                {!isSimulationDone && <div>• Governance policy dry-run simulation is required</div>}
+                                {isSimulationDone && !isSimAllowed && <div>• Policy simulator decision is BLOCK</div>}
+                                {!isHashValid && <div>• Integrity check failed: lifecycle hashes mismatch</div>}
+                                {!isVerifierPassed && <div>• Static verifier score must be 1.0 (Current: {selectedAgentPromo.verification_score})</div>}
+                                {!isLedgerValid && <div>• Ledger event audit proof must be verified and logged</div>}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+
+                    </div>
+
+                  </div>
+                </Panel>
+              )}
+
+            </div>
+
+          </div>
         </div>
       ) : null}
     </div>

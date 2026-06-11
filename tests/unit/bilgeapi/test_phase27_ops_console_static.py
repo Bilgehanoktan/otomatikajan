@@ -45,6 +45,11 @@ def test_phase27_bilgeapi_ops_console_route_and_proxy_exist():
     assert "acknowledgeFinding" in page_text
     assert "dismissFinding" in page_text
     assert "watchdogStatus" in page_text
+    assert "Agent Capabilities" in page_text
+    assert "Recent Sandbox Runs" in page_text
+    assert "Promotion Requests" in page_text
+    assert "Execute Integration" in page_text
+    assert "listAgentPromotions" in page_text
 
     assert "BILGEAPI_PROXY_BASE" in client_text
     assert "plaintext_key" in client_text
@@ -67,6 +72,18 @@ def test_phase27_bilgeapi_ops_console_route_and_proxy_exist():
     assert "dismissFinding" in client_text
     assert "WatchdogStatusRecord" in client_text
     assert "SystemFindingRecord" in client_text
+    assert "AgentCapabilityRecord" in client_text
+    assert "AgentRunRecord" in client_text
+    assert "AgentPromotionRecord" in client_text
+    assert "listAgentCapabilities" in client_text
+    assert "listAgentRuns" in client_text
+    assert "listAgentPromotions" in client_text
+    assert "approveAgentPromotion" in client_text
+    assert "rejectAgentPromotion" in client_text
+    assert "executeAgentPromotion" in client_text
+    assert "simulateAgentPromotion" in client_text
+    assert "enableAgent" in client_text
+    assert "disableAgent" in client_text
 
     assert "bilgeapiOrigin" in config_text
     assert "source: '/bilgeapi/:path*'" in config_text

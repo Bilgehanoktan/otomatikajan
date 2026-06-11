@@ -249,6 +249,51 @@ export type RemediationAttemptRecord = {
   updated_at: string;
 };
 
+export type SystemFindingRecord = {
+  id: string;
+  tenant_id?: string | null;
+  source_type: string;
+  source_id: string;
+  source_hash: string;
+  title: string;
+  description: string;
+  severity: string;
+  risk_score: number;
+  status: string;
+  evidence_summary?: Record<string, unknown> | null;
+  recommended_action?: string | null;
+  human_gate_payload?: Record<string, unknown> | null;
+  occurrence_count: number;
+  first_seen_at: string;
+  last_seen_at: string;
+  acknowledged_by?: string | null;
+  acknowledged_at?: string | null;
+  dismissed_by?: string | null;
+  dismissed_at?: string | null;
+  resolved_by?: string | null;
+  resolved_at?: string | null;
+  bilgeapi_research_id?: string | null;
+  bilgeapi_proposal_id?: string | null;
+  bilgeapi_pr_draft_id?: string | null;
+  bilgeapi_verification_id?: string | null;
+  bilgeapi_ledger_chain_id?: string | null;
+  created_by?: string | null;
+  correlation_id?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type WatchdogStatusRecord = {
+  enabled: boolean;
+  status: string;
+  risk_threshold: number;
+  auto_finding: boolean;
+  human_gate_required: boolean;
+  open_findings: number;
+  high_or_critical_findings: number;
+  last_scan_correlation_id?: string | null;
+};
+
 export type OpsSnapshot = {
   apiKeys: ApiKeyRecord[];
   quotaUsage: QuotaUsage[];
@@ -261,8 +306,14 @@ export type OpsSnapshot = {
   ledgerRecent: ReviewLedgerEntryRecord[];
   remediationRunbooks: RemediationRunbookRecord[];
   remediationAttempts: RemediationAttemptRecord[];
+  systemFindings: SystemFindingRecord[];
+  watchdogStatus: WatchdogStatusRecord | null;
+  agentPromotions: AgentPromotionRecord[];
+  agentRuns: AgentRunRecord[];
+  agentCapabilities: AgentCapabilityRecord[];
   errors: string[];
 };
+
 
 type JsonValue = Record<string, unknown> | Array<unknown>;
 
@@ -590,6 +641,33 @@ export async function runEmergencyRecovery(apiKey: string, findingId: string, ac
   });
 }
 
+export async function listWatchdogFindings(apiKey: string, status?: string): Promise<SystemFindingRecord[]> {
+  const path = status ? `/v1/watchdog/findings?status=${encodeURIComponent(status)}` : "/v1/watchdog/findings";
+  return bilgeApiFetch<SystemFindingRecord[]>(apiKey, path);
+}
+
+export async function acknowledgeFinding(apiKey: string, findingId: string): Promise<SystemFindingRecord> {
+  return bilgeApiFetch<SystemFindingRecord>(apiKey, `/v1/watchdog/findings/${encodeURIComponent(findingId)}/acknowledge`, {
+    method: "POST",
+  });
+}
+
+export async function dismissFinding(apiKey: string, findingId: string): Promise<SystemFindingRecord> {
+  return bilgeApiFetch<SystemFindingRecord>(apiKey, `/v1/watchdog/findings/${encodeURIComponent(findingId)}/dismiss`, {
+    method: "POST",
+  });
+}
+
+export async function getWatchdogStatus(apiKey: string): Promise<WatchdogStatusRecord> {
+  return bilgeApiFetch<WatchdogStatusRecord>(apiKey, "/v1/watchdog/status");
+}
+
+export async function runWatchdogScan(apiKey: string): Promise<any> {
+  return bilgeApiFetch<any>(apiKey, "/v1/watchdog/run", {
+    method: "POST",
+  });
+}
+
 export async function loadBilgeApiOpsSnapshot(apiKey: string): Promise<OpsSnapshot> {
   const errors: string[] = [];
 
@@ -620,6 +698,12 @@ export async function loadBilgeApiOpsSnapshot(apiKey: string): Promise<OpsSnapsh
   const ledgerRecent = (await settle("review_ledger", listReviewLedgerRecent(apiKey), errors)) || [];
   const remediationRunbooks = (await settle("remediation_runbooks", listRemediationRunbooks(apiKey), errors)) || [];
   const remediationAttempts = (await settle("remediation_attempts", listRemediationAttempts(apiKey), errors)) || [];
+  const systemFindings = (await settle("system_findings", listWatchdogFindings(apiKey), errors)) || [];
+  const watchdogStatus = await settle("watchdog_status", getWatchdogStatus(apiKey), errors);
+
+  const agentPromotions = (await settle("agent_promotions", listAgentPromotions(apiKey), errors)) || [];
+  const agentRuns = (await settle("agent_runs", listAgentRuns(apiKey), errors)) || [];
+  const agentCapabilities = (await settle("agent_capabilities", listAgentCapabilities(apiKey), errors)) || [];
 
   return {
     apiKeys,
@@ -633,6 +717,150 @@ export async function loadBilgeApiOpsSnapshot(apiKey: string): Promise<OpsSnapsh
     ledgerRecent,
     remediationRunbooks,
     remediationAttempts,
+    systemFindings,
+    watchdogStatus,
+    agentPromotions,
+    agentRuns,
+    agentCapabilities,
     errors,
   };
 }
+
+export type AgentCapabilityRecord = {
+  agent_key: string;
+  agent_name: string;
+  description: string;
+  enabled: boolean;
+  risk_level: string;
+  sandbox_mode: string;
+  max_cost_limit: number;
+  requires_human_approval: boolean;
+  network_policy: string;
+  allowed_domains: string[];
+  allowed_directories: string[];
+  blocked_directories: string[];
+  allowed_commands: string[];
+  blocked_commands: string[];
+};
+
+export type AgentRunRecord = {
+  run_id: string;
+  agent_key: string;
+  status: string;
+  workspace_path?: string | null;
+  exit_code?: number | null;
+  cost: number;
+  started_at?: string | null;
+  completed_at?: string | null;
+  sandbox_mode: string;
+  network_policy: string;
+  ledger_chain_id?: string | null;
+};
+
+export type AgentPromotionRecord = {
+  promotion_id: string;
+  run_id: string;
+  artifact_type: string;
+  sandbox_artifact_path: string;
+  target_repo_path: string;
+  artifact_hash: string;
+  manifest_hash?: string | null;
+  verified_artifact_hash?: string | null;
+  approved_artifact_hash?: string | null;
+  promoted_artifact_hash?: string | null;
+  target_path_hash?: string | null;
+  status: string;
+  verification_score: number;
+  verification_details: Record<string, any>;
+  approved_by?: string | null;
+  approved_at?: string | null;
+  promoted_at?: string | null;
+  ledger_event_hash?: string | null;
+  created_at: string;
+};
+
+export type AgentPolicySimulationResponse = {
+  decision: "ALLOW" | "BLOCK" | "HUMAN_GATE_REQUIRED";
+  risk_level: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  risk_score: number;
+  reasons: string[];
+  required_permissions: string[];
+  blocked_actions: string[];
+  ledger_context: Record<string, any>;
+  simulation_result_hash?: string | null;
+};
+
+export async function listAgentCapabilities(apiKey: string): Promise<AgentCapabilityRecord[]> {
+  return bilgeApiFetch<AgentCapabilityRecord[]>(apiKey, "/v1/agents/capabilities");
+}
+
+export async function listAgentRuns(apiKey: string): Promise<AgentRunRecord[]> {
+  return bilgeApiFetch<AgentRunRecord[]>(apiKey, "/v1/agents/runs");
+}
+
+export async function getAgentRun(apiKey: string, runId: string): Promise<AgentRunRecord> {
+  return bilgeApiFetch<AgentRunRecord>(apiKey, `/v1/agents/runs/${encodeURIComponent(runId)}`);
+}
+
+export async function listAgentPromotions(apiKey: string): Promise<AgentPromotionRecord[]> {
+  return bilgeApiFetch<AgentPromotionRecord[]>(apiKey, "/v1/agents/promotions");
+}
+
+export async function getAgentPromotion(apiKey: string, promotionId: string): Promise<AgentPromotionRecord> {
+  return bilgeApiFetch<AgentPromotionRecord>(apiKey, `/v1/agents/promotions/${encodeURIComponent(promotionId)}`);
+}
+
+export async function approveAgentPromotion(apiKey: string, promotionId: string): Promise<{ status: string; message: string }> {
+  return bilgeApiFetch<{ status: string; message: string }>(apiKey, `/v1/agents/promotions/${encodeURIComponent(promotionId)}/approve`, {
+    method: "POST"
+  });
+}
+
+export async function rejectAgentPromotion(apiKey: string, promotionId: string): Promise<{ status: string; message: string }> {
+  return bilgeApiFetch<{ status: string; message: string }>(apiKey, `/v1/agents/promotions/${encodeURIComponent(promotionId)}/reject`, {
+    method: "POST"
+  });
+}
+
+export async function executeAgentPromotion(apiKey: string, promotionId: string): Promise<{ status: string; message: string }> {
+  return bilgeApiFetch<{ status: string; message: string }>(apiKey, `/v1/agents/promotions/${encodeURIComponent(promotionId)}/execute`, {
+    method: "POST"
+  });
+}
+
+export async function simulateAgentPromotion(apiKey: string, promotionId: string): Promise<AgentPolicySimulationResponse> {
+  return bilgeApiFetch<AgentPolicySimulationResponse>(apiKey, `/v1/agents/policy/simulate-promotion`, {
+    method: "POST",
+    body: JSON.stringify({ promotion_id: promotionId })
+  });
+}
+
+export async function simulateAgentRun(
+  apiKey: string,
+  body: {
+    agent_key: string;
+    action_type: string;
+    target_paths: string[];
+    cost: number;
+    network_request: boolean;
+  }
+): Promise<AgentPolicySimulationResponse> {
+  return bilgeApiFetch<AgentPolicySimulationResponse>(apiKey, `/v1/agents/policy/simulate-run`, {
+    method: "POST",
+    body: JSON.stringify(body)
+  });
+}
+
+export async function enableAgent(apiKey: string, agentKey: string): Promise<{ status: string; message: string }> {
+  return bilgeApiFetch<{ status: string; message: string }>(apiKey, `/v1/agents/capabilities/${encodeURIComponent(agentKey)}/enable`, {
+    method: "POST"
+  });
+}
+
+export async function disableAgent(apiKey: string, agentKey: string): Promise<{ status: string; message: string }> {
+  return bilgeApiFetch<{ status: string; message: string }>(apiKey, `/v1/agents/capabilities/${encodeURIComponent(agentKey)}/disable`, {
+    method: "POST"
+  });
+}
+
+
