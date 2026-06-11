@@ -49,5 +49,5 @@
 
 - [x] Rewrite `implementation_plan.md` as the unified Faz 31/32 plan.
 - [x] Update `walkthrough.md` with verified outputs.
-- [ ] Stage only relevant files.
-- [ ] Commit with a scoped message.
+- [x] Stage only relevant files.
+- [x] Commit with a scoped message.
