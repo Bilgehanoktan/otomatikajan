@@ -273,3 +273,106 @@ async def test_pr_verification_api_endpoints(monkeypatch, test_client_real_auth)
     resp_rep = test_client_real_auth.get(f"/v1/improvements/pr-drafts/{draft['id']}/review-report", headers=op_headers)
     assert resp_rep.status_code == 200
     assert "report_markdown" in resp_rep.json()
+
+
+def test_sandbox_patch_analyzer_security_threats():
+    analyzer = SandboxPatchAnalyzer()
+
+    # Case 1: eval/exec/shell=True
+    eval_patch = "+++ b/apps/bilgeapi/main.py\n+eval('1+1')\n"
+    res = analyzer.analyze_patch(eval_patch)
+    assert res["has_blocked_patterns"] is True
+
+    # Case 2: Destructive DB migration
+    migration_patch = "+++ b/apps/bilgeapi/migrations/v1.py\n+op.drop_table('users')\n"
+    res = analyzer.analyze_patch(migration_patch)
+    assert res["has_destructive_migration"] is True
+
+    # Case 3: Private IP request
+    ip_patch = "+++ b/apps/bilgeapi/main.py\n+requests.get('http://127.0.0.1:8500')\n"
+    res = analyzer.analyze_patch(ip_patch)
+    assert res["has_private_ip_request"] is True
+
+    # Case 4: Force push
+    push_patch = "+++ b/apps/bilgeapi/main.py\n+git push --force origin main\n"
+    res = analyzer.analyze_patch(push_patch)
+    assert res["has_force_push"] is True
+
+    # Case 5: Secret logging
+    secret_patch = "+++ b/apps/bilgeapi/main.py\n+logger.info(f'The secret is {api_key}')\n"
+    res = analyzer.analyze_patch(secret_patch)
+    assert res["has_secret_logging"] is True
+
+
+def test_pr_gate_scorer_auto_blocked():
+    scorer = PrReviewGateScorer()
+    
+    # Proposal high confidence but dangerous pattern detected
+    analysis = {
+        "affected_files": ["apps/bilgeapi/main.py"],
+        "risky_files": [],
+        "test_files": [],
+        "patch_size_lines": 10,
+        "mutation_commands_detected": False,
+        "has_blocked_patterns": True  # auto-blocked
+    }
+    proposal = {"risk_analysis": {"confidence_level": "HIGH"}}
+    res = scorer.calculate_score(analysis, proposal, [])
+    assert res["review_decision"] == "BLOCKED"
+    assert res["score"] < 50.0
+    assert "Dangerous pattern (eval/exec/shell=True)" in res["blocked_reasons"]
+
+
+def test_sandbox_patch_analyzer_ui_files():
+    analyzer = SandboxPatchAnalyzer()
+
+    # Case 1: HTML file modified
+    ui_patch = "+++ b/apps/cms/templates/index.html\n+<h1>Welcome</h1>\n"
+    res = analyzer.analyze_patch(ui_patch)
+    assert "apps/cms/templates/index.html" in res["ui_files"]
+
+    # Case 2: TSX component modified
+    tsx_patch = "+++ b/frontend/src/components/Button.tsx\n+const Button = () => <button>Click</button>\n"
+    res = analyzer.analyze_patch(tsx_patch)
+    assert "frontend/src/components/Button.tsx" in res["ui_files"]
+
+    # Case 3: Python/Backend file - not UI file
+    backend_patch = "+++ b/apps/bilgeapi/auth.py\n+def check_auth(): pass\n"
+    res = analyzer.analyze_patch(backend_patch)
+    assert len(res["ui_files"]) == 0
+
+
+def test_pr_gate_scorer_ui_visual_evidence():
+    scorer = PrReviewGateScorer()
+
+    proposal = {"risk_analysis": {"confidence_level": "HIGH"}}
+
+    # Scenario 1: UI changed, NO visual evidence -> BLOCKED
+    analysis_ui = {
+        "affected_files": ["frontend/src/components/Button.tsx"],
+        "risky_files": [],
+        "test_files": [],
+        "ui_files": ["frontend/src/components/Button.tsx"],
+        "patch_size_lines": 10,
+        "mutation_commands_detected": False
+    }
+
+    res_no_evidence = scorer.calculate_score(analysis_ui, proposal, [])
+    assert res_no_evidence["review_decision"] == "BLOCKED"
+    assert any("UI modifications detected without browser-testing" in reason for reason in res_no_evidence["blocked_reasons"])
+
+    # Scenario 2: UI changed, WITH visual evidence -> Passes (NEEDS_HUMAN_CAUTION because of missing test files)
+    evidences = [
+        {
+            "title": "Playwright Visual Test Run",
+            "snippet": "Screenshot matches. Trace saved to trace.zip",
+            "source_url": "https://ci.company.internal/playwright/trace",
+            "trust_score": 85.0
+        }
+    ]
+
+    res_with_evidence = scorer.calculate_score(analysis_ui, proposal, evidences)
+    assert res_with_evidence["review_decision"] != "BLOCKED"
+    assert len(res_with_evidence["blocked_reasons"]) == 0
+
+

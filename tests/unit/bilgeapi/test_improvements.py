@@ -442,3 +442,141 @@ def test_endpoints_block_low_confidence(test_client):
     finally:
         # Clear dependency override
         app.dependency_overrides.pop(get_web_search_provider, None)
+
+
+@pytest.mark.asyncio
+async def test_improvement_required_skills_evidence_check():
+    research_repo = InMemoryResearchRepository()
+    improvement_repo = InMemoryImprovementRepository()
+    engine = ImprovementProposalEngine(research_repo, improvement_repo)
+
+    # 1. Query with security keyword
+    req = await research_repo.create_request({
+        "incident_id": "inc_sec_check",
+        "query": "fix database auth password bypass",
+        "tenant_id": "tenant_1"
+    })
+
+    # Add 3 reliable evidences without security keywords
+    for i in range(3):
+        await research_repo.create_evidence({
+            "research_id": req["id"],
+            "source_url": f"https://docs.python.org/3/{i}",
+            "source_domain": "docs.python.org",
+            "title": f"general programming tip {i}",
+            "snippet": "completely irrelevant content about memory caching and variables",
+            "content_hash": f"hash_sec_missing_{i}",
+            "trust_score": 90.0
+        })
+
+    # Proposal should require security-and-hardening, but it is missing
+    proposal = await engine.generate_proposal(req["id"])
+    assert "security-and-hardening" in proposal["risk_analysis"]["required_skills"]
+    assert "security-and-hardening" not in proposal["risk_analysis"]["satisfied_skills"]
+    assert proposal["risk_analysis"]["evidence_check_passed"] is False
+    assert proposal["approval_status"] == "REVIEW_REQUIRED"
+
+    # 2. Add evidence with security keywords
+    req_success = await research_repo.create_request({
+        "incident_id": "inc_sec_success",
+        "query": "fix database auth password bypass",
+        "tenant_id": "tenant_1"
+    })
+    for i in range(2):
+        await research_repo.create_evidence({
+            "research_id": req_success["id"],
+            "source_url": f"https://docs.python.org/3/{i}",
+            "source_domain": "docs.python.org",
+            "title": f"general programming tip {i}",
+            "snippet": "nothing related to security or auth or password",
+            "content_hash": f"hash_sec_succ_{i}",
+            "trust_score": 90.0
+        })
+    # Add third evidence with security keyword
+    await research_repo.create_evidence({
+        "research_id": req_success["id"],
+        "source_url": "https://docs.python.org/3/sec",
+        "source_domain": "docs.python.org",
+        "title": "security guide",
+        "snippet": "How to secure database authentication and password check",
+        "content_hash": "hash_sec_succ_3",
+        "trust_score": 95.0
+    })
+
+    proposal_success = await engine.generate_proposal(req_success["id"])
+    assert "security-and-hardening" in proposal_success["risk_analysis"]["required_skills"]
+    assert "security-and-hardening" in proposal_success["risk_analysis"]["satisfied_skills"]
+    assert proposal_success["risk_analysis"]["evidence_check_passed"] is True
+
+
+@pytest.mark.asyncio
+async def test_adversarial_review_scenarios():
+    research_repo = InMemoryResearchRepository()
+    improvement_repo = InMemoryImprovementRepository()
+    engine = ImprovementProposalEngine(research_repo, improvement_repo)
+
+    # Helper to generate a dummy proposal
+    req = await research_repo.create_request({
+        "incident_id": "inc_adv",
+        "query": "gc memory management",
+        "tenant_id": "tenant_1"
+    })
+    for i in range(3):
+        await research_repo.create_evidence({
+            "research_id": req["id"],
+            "source_url": f"https://docs.python.org/{i}",
+            "source_domain": "docs.python.org",
+            "title": "gc guides",
+            "snippet": "gc leaks",
+            "content_hash": f"hash_adv_{i}",
+            "trust_score": 90.0
+        })
+    proposal = await engine.generate_proposal(req["id"])
+    proposal_id = proposal["id"]
+
+    # Scenario 1: Happy path (no issues)
+    # Patch code is standard print
+    await improvement_repo.update_proposal_gate(
+        proposal_id=proposal_id,
+        gate_status="DRAFT",
+        risk_analysis={},
+        approval_status="APPROVED"
+    )
+    # We update patch_code directly in memory store for testing convenience
+    from apps.bilgeapi.repositories.memory import memory_repositories
+    memory_repositories.improvement_proposals[proposal_id]["patch_code"] = "def add(a, b):\n    return a + b"
+    
+    rev = await engine.run_adversarial_review(proposal_id)
+    assert rev["risk_detected"] is False
+    assert len(rev["doubts"]) == 0
+    assert rev["risk_score_increment"] == 0.0
+
+    # Scenario 2: Function signature modified
+    memory_repositories.improvement_proposals[proposal_id]["patch_code"] = "-def old_func(a, b):\n+def new_func(a, b, c):"
+    rev = await engine.run_adversarial_review(proposal_id)
+    assert rev["risk_detected"] is True
+    assert any("Function signature modified" in d for d in rev["doubts"])
+    assert rev["risk_score_increment"] == 30.0
+
+    # Scenario 3: Missing try-except block on IO/DB calls
+    memory_repositories.improvement_proposals[proposal_id]["patch_code"] = "httpx.get('url')"
+    rev = await engine.run_adversarial_review(proposal_id)
+    assert rev["risk_detected"] is True
+    assert any("Network/DB operations detected without try-except" in d for d in rev["doubts"])
+    assert rev["risk_score_increment"] == 25.0
+
+    # Scenario 4: N+1 query loop
+    memory_repositories.improvement_proposals[proposal_id]["patch_code"] = "for x in items:\n    db.execute('select 1')"
+    rev = await engine.run_adversarial_review(proposal_id)
+    assert rev["risk_detected"] is True
+    assert any("Database operation detected inside loop" in d for d in rev["doubts"])
+    assert rev["risk_score_increment"] == 45.0
+
+    # Scenario 5: Security modification
+    memory_repositories.improvement_proposals[proposal_id]["patch_code"] = "+++ b/apps/bilgeapi/auth.py\n+new_security_rule()"
+    rev = await engine.run_adversarial_review(proposal_id)
+    assert rev["risk_detected"] is True
+    assert any("Security configuration or middleware modified" in d for d in rev["doubts"])
+    assert rev["risk_score_increment"] == 35.0
+
+

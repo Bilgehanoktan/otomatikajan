@@ -1,0 +1,18 @@
+{
+  "selected/spec-driven-development": "16041b4b6149c0e99d7323f8c1e2104ddca2819bf46f78c402a8f0458938e344",
+  "selected/planning-and-task-breakdown": "d9dc9a1bea50a0bb2b5c51ed59833b65969b5b0bda2c8dacefb5560275443a35",
+  "selected/api-and-interface-design": "293db2903b41316a5109a1e0ce3e1740eeafae31735bc1f9143dafbfd1187363",
+  "selected/test-driven-development": "6c60e193d77a6c52eb3d9a7ca774f1801b9f798ec34f075720e0425a8094f50e",
+  "selected/security-and-hardening": "8fed058a520281384ed1bbfddbfb3d2b12479459231c67ae0d1f0d765bb52f95",
+  "selected/code-review-and-quality": "7587de5eff9eccd098f0d3b57b6d86ee18df680a7bbbef03710de7c1a4e67263",
+  "selected/observability-and-instrumentation": "0f6b1602d65e3eacbbd555ac51bb12f78e053dda008896d3dcfc192960710ee4",
+  "selected/documentation-and-adrs": "7fed35f9c5b95d8e3623ad24d78d209c3267ab62d7157fc03954c76a7e58adf4",
+  "selected/incremental-implementation": "5f16adf542330dfadb8b9a9c6d7ec45e4196bd1db9a67d4407e9dc07e6e29e41",
+  "bilgeapi/bilgeapi-repair-request-safety": "e088404b798bfcd27a2272791d871f6aafae671ed18417ae138143f4a49885e1",
+  "bilgeapi/bilgeapi-diagnostic-state-machine": "2f21bd11be67e0817b7595b106707cc3c24361a235790460e8ba0fc55785a804",
+  "bilgeapi/bilgeapi-webhook-security": "e8bce0428abb8635dd9d7cfc5fa8c658679bcabe326709e9e3d1664d5ee1b62b",
+  "bilgeapi/bilgeapi-audit-ledger": "02ebe52371e411eb08a70a4e8245b6e7013754d7afc1065f02978f2100c31bf0",
+  "bilgeapi/bilgeapi-self-healing-policy": "1ac8591cf4a0757e56c0dcd94133b02d2e15443be097b7c54827fbe32766fedd",
+  "bilgeapi/bilgeapi-pr-verification-gate": "30fe1da27f073a4919db4579609c286b7815eaf9c91d7e98d849cdb07a38b6e7",
+  "bilgeapi/bilgeapi-skill-integrity": "70e5fe875f31375351ecec9b45ceabf82bab0b39523aaf22e433a6e8887a66ea"
+}

@@ -1,6 +1,6 @@
 import pytest
 from datetime import datetime, timezone, timedelta
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 from apps.bilgeapi.config import settings
 from apps.bilgeapi.services.self_healing import (
@@ -509,3 +509,65 @@ async def test_self_healing_endpoints_rbac(monkeypatch, test_client_real_auth):
     )
     assert resp.status_code == 200
     assert resp.json()["status"] == "SUCCEEDED"
+
+
+@pytest.mark.asyncio
+async def test_self_healing_skill_gating(monkeypatch):
+    monkeypatch.setattr(settings, "BILGEAPI_SELF_HEALING_ENABLED", True)
+    monkeypatch.setattr(settings, "BILGEAPI_SELF_HEALING_SAFE_MODE", False)
+
+    finding_repo = InMemorySystemFindingRepository()
+    runbook_repo = InMemoryRemediationRunbookRepository()
+    attempt_repo = InMemoryRemediationAttemptRepository()
+    ledger_repo = InMemoryReviewLedgerRepository()
+    ledger_service = ReviewLedgerService(ledger_repo)
+
+    finding = await finding_repo.create_finding({
+        "tenant_id": "t1",
+        "source_type": "worker",
+        "source_id": "w1",
+        "source_hash": "h1",
+        "title": "Worker Stuck",
+        "description": "Worker stuck",
+        "severity": "MEDIUM",
+        "risk_score": 30.0,
+        "status": "OPEN",
+    })
+
+    runbook = await runbook_repo.create_runbook({
+        "name": "Restart Worker",
+        "action_type": "restart_worker",
+        "severity_allowed": "MEDIUM",
+        "requires_human_gate": False,
+        "enabled": True,
+        "execution_mode": "AUTO_SAFE",
+        "max_attempts": 2,
+        "cooldown_seconds": 0
+    })
+
+    # Mock SkillCheckService
+    mock_check_service = AsyncMock()
+    
+    executor = SelfHealingExecutor(
+        finding_repo=finding_repo,
+        runbook_repo=runbook_repo,
+        attempt_repo=attempt_repo,
+        ledger_service=ledger_service,
+        skill_check_service=mock_check_service
+    )
+
+    # 1. Skill check returns BLOCKED
+    mock_check_service.check_patch.return_value = MagicMock(
+        status="BLOCKED",
+        checks=[MagicMock(reason="Forbidden git action detected")]
+    )
+    attempt = await executor.execute_remediation(finding["id"], runbook["id"], "test-actor")
+    assert attempt["status"] == "HUMAN_GATE_REQUIRED"
+    assert "blocked by skill check" in attempt["error_message"]
+
+    # 2. Skill check raises exception (Fail-closed)
+    mock_check_service.check_patch.side_effect = Exception("Registry corruption")
+    attempt_fail = await executor.execute_remediation(finding["id"], runbook["id"], "test-actor")
+    assert attempt_fail["status"] == "HUMAN_GATE_REQUIRED"
+    assert "fail-closed" in attempt_fail["error_message"]
+
