@@ -3,6 +3,7 @@
 Generated at: `2026-06-12T19:50:00Z`
 Target Release Version: `v1.2.0`
 Phase: **Phase 34C — Production Human Gate, Deploy & Monitoring Seal**
+Deployment Scope: **Local Production-Mode Simulation (External Public Production pending / out-of-scope)**
 
 ---
 
