@@ -3965,6 +3965,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "type": "object",
                   "title": "Response Intake Finding V1 Watchdog Findings Intake Post"
                 }
@@ -4184,6 +4185,7 @@
           "context_summary": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -4927,6 +4929,7 @@
           "before_state": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -4938,6 +4941,7 @@
           "after_state": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -4947,6 +4951,7 @@
             "title": "After State"
           },
           "metadata": {
+            "additionalProperties": true,
             "type": "object",
             "title": "Metadata"
           },
@@ -5285,6 +5290,7 @@
           "evidence_summary": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -5400,6 +5406,7 @@
             "title": "Tags"
           },
           "metadata": {
+            "additionalProperties": true,
             "type": "object",
             "title": "Metadata"
           }
@@ -5477,6 +5484,7 @@
             "title": "Tags"
           },
           "metadata": {
+            "additionalProperties": true,
             "type": "object",
             "title": "Metadata"
           },
@@ -5560,6 +5568,7 @@
           "risk_analysis": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -5943,6 +5952,7 @@
           "risk_analysis": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -6140,6 +6150,7 @@
           },
           "smoke_trace": {
             "items": {
+              "additionalProperties": true,
               "type": "object"
             },
             "type": "array",
@@ -6253,6 +6264,7 @@
           "before_health": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -6264,6 +6276,7 @@
           "after_health": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -6297,6 +6310,7 @@
           "policy_decision": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -6786,6 +6800,7 @@
             "title": "Actor Id"
           },
           "payload": {
+            "additionalProperties": true,
             "type": "object",
             "title": "Payload",
             "default": {}
@@ -6880,6 +6895,7 @@
           "payload_summary": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -6968,6 +6984,7 @@
           },
           "issues": {
             "items": {
+              "additionalProperties": true,
               "type": "object"
             },
             "type": "array",
@@ -7198,6 +7215,7 @@
           "evidence_summary": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -7220,6 +7238,7 @@
           "human_gate_payload": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -7441,6 +7460,13 @@
           "type": {
             "type": "string",
             "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
           }
         },
         "type": "object",
@@ -7644,6 +7670,7 @@
           "payload": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {

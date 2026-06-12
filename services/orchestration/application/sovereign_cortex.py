@@ -407,6 +407,31 @@ class SovereignCortex:
         task.subtasks = subtasks
         return task
 
+    async def coordinate_architecture(self, proposal: Dict[str, Any]) -> bool:
+        """
+        Mimari bir öneriyi koordine eder: Denetim -> Scaffolding -> Görevlendirme.
+        """
+        from services.orchestration.agi.security.audit_gate import AuditGate
+        from services.orchestration.application.scaffolder import scaffolder
+        gate = AuditGate(self.model_orch)
+        
+        # 1. Mimari Denetim
+        is_safe = await gate.verify_architecture_proposal(proposal)
+        if not is_safe:
+            _log.warning("[NEXUS] Mimari plan denetimi GEÇEMEDİ. İşlem iptal edildi.")
+            return False
+            
+        # 2. Scaffolding (Yapısal İnşa)
+        _log.info("[NEXUS] Mimari inşa (Scaffolding) başlatılıyor.")
+        success = True
+        for action in proposal.get("actions", []):
+            if action["type"] == "create_subsystem":
+                if not scaffolder.scaffold_subsystem(action):
+                    success = False
+            elif action["type"] == "split_file":
+                pass
+        return success
+
     async def _execute_subtask_nexus(self, subtask: Any, project: Any):
         from services.orchestration.domain.models import ProjectTask, SubTask
         

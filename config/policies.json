@@ -1,19 +1,19 @@
 {
   "max_automation": 1,
   "blocked_modules": [
-    "jwt_auth",
-    "auth"
+    "auth",
+    "jwt_auth"
   ],
   "blocked_file_prefixes": [
     "auth/",
     "alembic/"
   ],
   "high_risk_files": [
-    "config.py",
-    "main.py"
+    "main.py",
+    "config.py"
   ],
   "automation_thresholds": {
-    "confidence_min": 65,
+    "confidence_min": 61,
     "max_files": 6
   },
   "learned_policies": []

@@ -1,6 +1,6 @@
 # BilgeAPI Phase 18 Migration Verification
 
-- Database URL source: `argument`
+- Database URL source: `libs.config`
 - Single head: `yes`
 - Current matches head: `yes`
 - Overall: `PASS`
