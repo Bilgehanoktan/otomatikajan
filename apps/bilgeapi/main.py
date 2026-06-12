@@ -13,7 +13,7 @@ from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from apps.bilgeapi.config import settings
-from apps.bilgeapi.routers import health, catalog, incidents, audit, diagnostics, repairs, release, adapters, admin_api_keys, improvements, review_ledger, system_watchdog, self_healing
+from apps.bilgeapi.routers import health, catalog, incidents, audit, diagnostics, repairs, release, adapters, admin_api_keys, improvements, review_ledger, system_watchdog, self_healing, system_runtime
 from apps.bilgeapi.routers import metrics as metrics_router
 from apps.bilgeapi.startup import validate_production_config
 
@@ -670,6 +670,7 @@ app.include_router(improvements.router)
 app.include_router(review_ledger.router)
 app.include_router(system_watchdog.router)
 app.include_router(self_healing.router)
+app.include_router(system_runtime.router)
 
 
 # ── Custom OpenAPI Generator ──────────────────────────────────────────────────

@@ -1,6 +1,15 @@
 import os
 import secrets
 from typing import Optional
+from enum import Enum
+
+class AutonomyMode(str, Enum):
+    OFF = "OFF"
+    OBSERVE_ONLY = "OBSERVE_ONLY"
+    DIAGNOSE_ONLY = "DIAGNOSE_ONLY"
+    SAFE_AUTONOMY = "SAFE_AUTONOMY"
+    SUPERVISED_AUTONOMY = "SUPERVISED_AUTONOMY"
+    POLICY_BOUND_AUTONOMY = "POLICY_BOUND_AUTONOMY"
 
 class Settings:
     @property
@@ -92,6 +101,20 @@ class Settings:
     @BILGEAPI_VERSION.setter
     def BILGEAPI_VERSION(self, value):
         os.environ["BILGEAPI_VERSION"] = str(value)
+
+    @property
+    def BILGEAPI_AUTONOMY_MODE(self) -> str:
+        mode = os.getenv("BILGEAPI_AUTONOMY_MODE", "").upper()
+        if not mode:
+            return "OBSERVE_ONLY" if self.APP_ENV == "production" else "SAFE_AUTONOMY"
+        try:
+            return AutonomyMode(mode).value
+        except ValueError:
+            return "OBSERVE_ONLY" if self.APP_ENV == "production" else "SAFE_AUTONOMY"
+
+    @BILGEAPI_AUTONOMY_MODE.setter
+    def BILGEAPI_AUTONOMY_MODE(self, value):
+        os.environ["BILGEAPI_AUTONOMY_MODE"] = str(value).upper()
 
     @property
     def BILGEAPI_WEBHOOK_SECRET(self) -> str:
