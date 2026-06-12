@@ -5,11 +5,13 @@ Exposes system runtime, release metadata, and autonomy mode configuration.
 import os
 import sys
 import logging
-from typing import Dict, Any
-from fastapi import APIRouter, Depends, Request
+from typing import Dict, Any, Optional
+from fastapi import APIRouter, Depends, Request, HTTPException
 
 from apps.bilgeapi.config import settings, AutonomyMode
 from apps.bilgeapi.auth import require_permission
+from apps.bilgeapi.schemas.autonomy import AutonomyDecisionRequest, AutonomyDecisionResponse
+from apps.bilgeapi.routers.deps import get_autonomy_decision_service
 
 logger = logging.getLogger("bilgeapi.system_runtime")
 
@@ -95,3 +97,24 @@ async def get_autonomy_mode_registry(
         "human_gate_required_actions": blocked_actions,
         "auto_merge_policy": "auto_draft_pr_only"
     }
+
+
+@router.post("/autonomy/decide", response_model=AutonomyDecisionResponse)
+async def evaluate_autonomy_eligibility(
+    request: AutonomyDecisionRequest,
+    decision_engine: Any = Depends(get_autonomy_decision_service),
+    identity: dict = Depends(require_permission("bilgeapi.admin"))
+):
+    """
+    Evaluates incident classification, risk score, otonomi eligibility limits
+    and maps required human gates. Logs the decision to the DB.
+    """
+    try:
+        decision = await decision_engine.decide(request.incident_id, request.action_type)
+        return decision
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error executing autonomy decision: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error executing autonomy decision")
+

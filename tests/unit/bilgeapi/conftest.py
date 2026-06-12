@@ -50,7 +50,8 @@ def test_client():
         get_ai_patch_provider,
         get_system_finding_repository,
         get_remediation_runbook_repository,
-        get_remediation_attempt_repository
+        get_remediation_attempt_repository,
+        get_autonomy_decision_repository
     )
     from apps.bilgeapi.repositories.memory import (
         InMemoryIncidentRepository,
@@ -73,6 +74,7 @@ def test_client():
         InMemorySystemFindingRepository,
         InMemoryRemediationRunbookRepository,
         InMemoryRemediationAttemptRepository,
+        InMemoryAutonomyDecisionRepository,
         memory_repositories
     )
     
@@ -100,6 +102,7 @@ def test_client():
     app.dependency_overrides[get_system_finding_repository] = lambda: InMemorySystemFindingRepository()
     app.dependency_overrides[get_remediation_runbook_repository] = lambda: InMemoryRemediationRunbookRepository()
     app.dependency_overrides[get_remediation_attempt_repository] = lambda: InMemoryRemediationAttemptRepository()
+    app.dependency_overrides[get_autonomy_decision_repository] = lambda: InMemoryAutonomyDecisionRepository()
     app.dependency_overrides[get_ai_patch_provider] = lambda: __import__(
         "apps.bilgeapi.adapters.ai_patch_provider",
         fromlist=["MockAIPatchProvider"]
@@ -146,7 +149,8 @@ def test_client_real_auth():
         get_ai_patch_provider,
         get_system_finding_repository,
         get_remediation_runbook_repository,
-        get_remediation_attempt_repository
+        get_remediation_attempt_repository,
+        get_autonomy_decision_repository
     )
     from apps.bilgeapi.repositories.memory import (
         InMemoryIncidentRepository,
@@ -169,6 +173,7 @@ def test_client_real_auth():
         InMemorySystemFindingRepository,
         InMemoryRemediationRunbookRepository,
         InMemoryRemediationAttemptRepository,
+        InMemoryAutonomyDecisionRepository,
         memory_repositories
     )
     
@@ -195,6 +200,7 @@ def test_client_real_auth():
     app.dependency_overrides[get_system_finding_repository] = lambda: InMemorySystemFindingRepository()
     app.dependency_overrides[get_remediation_runbook_repository] = lambda: InMemoryRemediationRunbookRepository()
     app.dependency_overrides[get_remediation_attempt_repository] = lambda: InMemoryRemediationAttemptRepository()
+    app.dependency_overrides[get_autonomy_decision_repository] = lambda: InMemoryAutonomyDecisionRepository()
     app.dependency_overrides[get_ai_patch_provider] = lambda: __import__(
         "apps.bilgeapi.adapters.ai_patch_provider",
         fromlist=["MockAIPatchProvider"]

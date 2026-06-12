@@ -421,3 +421,18 @@ class RemediationAttemptRepository(ABC):
     async def update_attempt(self, attempt_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         pass
 
+
+class AutonomyDecisionRepository(ABC):
+    @abstractmethod
+    async def create(self, decision: Dict[str, Any]) -> Dict[str, Any]:
+        pass
+
+    @abstractmethod
+    async def get(self, decision_id: str) -> Optional[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def list_by_incident(self, incident_id: str) -> List[Dict[str, Any]]:
+        pass
+
+

@@ -439,3 +439,22 @@ class BilgeAPIBridgeMappingModel(Base):
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
 
 
+class AutonomyDecisionModel(Base):
+    __tablename__ = "bilgeapi_autonomy_decisions"
+
+    id = Column(String(64), primary_key=True)
+    incident_id = Column(String(64), ForeignKey("bilgeapi_incidents.id"), nullable=False, index=True)
+    correlation_id = Column(String(64), nullable=False, index=True)
+    classification = Column(String(64), nullable=False)
+    risk_score = Column(Float, nullable=False)
+    risk_level = Column(String(32), nullable=False, index=True)
+    active_autonomy_mode = Column(String(64), nullable=False)
+    eligibility = Column(String(32), nullable=False, index=True)
+    action_type = Column(String(64), nullable=True)
+    decision_reason = Column(Text, nullable=False)
+    requires_human_gate = Column(Boolean, default=False, nullable=False)
+    human_gate_type = Column(String(64), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+
+
+

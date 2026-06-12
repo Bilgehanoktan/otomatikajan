@@ -122,7 +122,7 @@ async def create_repair_request_from_diagnostic(
         entity_type="repair_request",
         entity_id=created_req.id,
         correlation_id=incident.correlation_id,
-        after_state=created_req.model_dump()
+        after_state=created_req.model_dump(mode="json")
     )
 
     await audit_service.log_event(

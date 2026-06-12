@@ -1,139 +1,169 @@
-============================= test session starts ==============================
-platform linux -- Python 3.12.13, pytest-9.0.3, pluggy-1.6.0
-rootdir: /app
-configfile: pytest.ini (WARNING: ignoring pytest config in pyproject.toml!)
-plugins: mock-3.14.0, playwright-0.7.2, asyncio-1.3.0, langsmith-0.8.8, base-url-2.1.0, anyio-4.13.0
-asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
-collected 176 items
+============================= test session starts =============================
+platform win32 -- Python 3.13.13, pytest-8.3.5, pluggy-1.6.0
+rootdir: E:\ai_company_faz12.1
+configfile: pytest.ini
+plugins: anyio-4.12.1, langsmith-0.7.6, asyncio-0.25.3, base-url-2.1.0, cov-7.0.0, mock-3.14.0, playwright-0.7.2
+asyncio: mode=Mode.AUTO, asyncio_default_fixture_loop_scope=function
+collected 276 items
 
-tests/unit/bilgeapi/test_adapters.py .........                           [  5%]
-tests/unit/bilgeapi/test_auth_rbac.py .....                              [  7%]
-tests/unit/bilgeapi/test_db_api_keys.py .....                            [ 10%]
-tests/unit/bilgeapi/test_diagnostic_flow.py ...                          [ 12%]
-tests/unit/bilgeapi/test_enterprise.py ......                            [ 15%]
-tests/unit/bilgeapi/test_health_catalog.py ..                            [ 17%]
-tests/unit/bilgeapi/test_improvements.py .........                       [ 22%]
-tests/unit/bilgeapi/test_incident_flow.py ..........                     [ 27%]
-tests/unit/bilgeapi/test_observability.py .............................. [ 44%]
-..                                                                       [ 46%]
-tests/unit/bilgeapi/test_quotas.py ............................          [ 61%]
-tests/unit/bilgeapi/test_release_gate.py .............................   [ 78%]
-tests/unit/bilgeapi/test_repair_governance.py .........                  [ 83%]
-tests/unit/bilgeapi/test_startup_validation.py ..........                [ 89%]
-tests/unit/bilgeapi/test_webhook_delivery.py ...................         [100%]
+tests\unit\bilgeapi\test_adapters.py .........                           [  3%]
+tests\unit\bilgeapi\test_ai_patch_suggestion.py .....                    [  5%]
+tests\unit\bilgeapi\test_auth_rbac.py .....                              [  6%]
+tests\unit\bilgeapi\test_autonomy_decision.py ....                       [  8%]
+tests\unit\bilgeapi\test_db_api_keys.py .....                            [ 10%]
+tests\unit\bilgeapi\test_diagnostic_flow.py ...                          [ 11%]
+tests\unit\bilgeapi\test_enterprise.py ......                            [ 13%]
+tests\unit\bilgeapi\test_external_recovery_supervisor.py ........        [ 16%]
+tests\unit\bilgeapi\test_hardening.py ......s....                        [ 20%]
+tests\unit\bilgeapi\test_health_catalog.py ..                            [ 21%]
+tests\unit\bilgeapi\test_health_version.py ..                            [ 21%]
+tests\unit\bilgeapi\test_improvements.py ...........                     [ 25%]
+tests\unit\bilgeapi\test_incident_flow.py ..........                     [ 29%]
+tests\unit\bilgeapi\test_observability.py .............................. [ 40%]
+..                                                                       [ 40%]
+tests\unit\bilgeapi\test_patch_revision.py ....                          [ 42%]
+tests\unit\bilgeapi\test_phase27_ops_console_static.py ..                [ 43%]
+tests\unit\bilgeapi\test_pr_drafts.py ........                           [ 46%]
+tests\unit\bilgeapi\test_pr_verification.py ........                     [ 48%]
+tests\unit\bilgeapi\test_quotas.py ............................          [ 59%]
+tests\unit\bilgeapi\test_release_gate.py .............................   [ 69%]
+tests\unit\bilgeapi\test_repair_governance.py .........                  [ 72%]
+tests\unit\bilgeapi\test_review_ledger.py ....                           [ 74%]
+tests\unit\bilgeapi\test_self_healing.py ............                    [ 78%]
+tests\unit\bilgeapi\test_skills_catalog.py .....                         [ 80%]
+tests\unit\bilgeapi\test_skills_check.py .......                         [ 82%]
+tests\unit\bilgeapi\test_skills_router.py ...                            [ 84%]
+tests\unit\bilgeapi\test_startup_validation.py ..........                [ 87%]
+tests\unit\bilgeapi\test_system_runtime.py ......                        [ 89%]
+tests\unit\bilgeapi\test_system_watchdog.py .........                    [ 93%]
+tests\unit\bilgeapi\test_webhook_delivery.py ...................         [100%]
 
-=============================== warnings summary ===============================
-../usr/local/lib/python3.12/site-packages/fastapi/testclient.py:1
-  /usr/local/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
-    from starlette.testclient import TestClient as TestClient  # noqa
+============================== warnings summary ===============================
+C:\Users\B¦LGEHAN\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\pydantic\_internal\_config.py:295: 14 warnings
+  C:\Users\B¦LGEHAN\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\pydantic\_internal\_config.py:295: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.10/migration/
+    warnings.warn(DEPRECATION_MESSAGE, DeprecationWarning)
 
-apps/bilgeapi/schemas/release.py:8
-  /app/apps/bilgeapi/schemas/release.py:8: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
-    class ReleaseCheckResponse(BaseModel):
-
-apps/bilgeapi/schemas/api_key.py:15
-  /app/apps/bilgeapi/schemas/api_key.py:15: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
-    class ApiKeyResponse(BaseModel):
-
-apps/bilgeapi/schemas/improvements.py:11
-  /app/apps/bilgeapi/schemas/improvements.py:11: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
-    class ResearchResponse(BaseModel):
-
-apps/bilgeapi/schemas/improvements.py:25
-  /app/apps/bilgeapi/schemas/improvements.py:25: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
-    class EvidenceResponse(BaseModel):
-
-apps/bilgeapi/schemas/improvements.py:41
-  /app/apps/bilgeapi/schemas/improvements.py:41: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
-    class ProposalResponse(BaseModel):
+tests/unit/bilgeapi/test_adapters.py: 9 warnings
+tests/unit/bilgeapi/test_ai_patch_suggestion.py: 5 warnings
+tests/unit/bilgeapi/test_enterprise.py: 1 warning
+tests/unit/bilgeapi/test_hardening.py: 6 warnings
+tests/unit/bilgeapi/test_improvements.py: 7 warnings
+tests/unit/bilgeapi/test_incident_flow.py: 1 warning
+tests/unit/bilgeapi/test_patch_revision.py: 4 warnings
+tests/unit/bilgeapi/test_pr_drafts.py: 5 warnings
+tests/unit/bilgeapi/test_pr_verification.py: 2 warnings
+tests/unit/bilgeapi/test_quotas.py: 19 warnings
+tests/unit/bilgeapi/test_release_gate.py: 29 warnings
+tests/unit/bilgeapi/test_review_ledger.py: 3 warnings
+tests/unit/bilgeapi/test_self_healing.py: 7 warnings
+tests/unit/bilgeapi/test_skills_catalog.py: 4 warnings
+tests/unit/bilgeapi/test_skills_check.py: 7 warnings
+tests/unit/bilgeapi/test_system_watchdog.py: 6 warnings
+tests/unit/bilgeapi/test_webhook_delivery.py: 3 warnings
+  C:\Users\B¦LGEHAN\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\pytest_asyncio\plugin.py:867: DeprecationWarning: The event_loop fixture provided by pytest-asyncio has been redefined in
+  E:\ai_company_faz12.1\tests\conftest.py:4
+  Replacing the event_loop fixture with a custom implementation is deprecated
+  and will lead to errors in the future.
+  If you want to request an asyncio event loop with a scope other than function
+  scope, use the "loop_scope" argument to the asyncio mark when marking the tests.
+  If you want to return different types of event loops, use the event_loop_policy
+  fixture.
+  
+    warnings.warn(
 
 tests/unit/bilgeapi/test_auth_rbac.py::test_jwt_rbac
-  /usr/local/lib/python3.12/site-packages/jwt/api_jwt.py:147: InsecureKeyLengthWarning: The HMAC key is 27 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  C:\Users\B¦LGEHAN\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\jwt\api_jwt.py:153: InsecureKeyLengthWarning: The HMAC key is 27 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
     return self._jws.encode(
 
 tests/unit/bilgeapi/test_auth_rbac.py::test_jwt_rbac
-  /usr/local/lib/python3.12/site-packages/jwt/api_jwt.py:368: InsecureKeyLengthWarning: The HMAC key is 27 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  C:\Users\B¦LGEHAN\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\jwt\api_jwt.py:371: InsecureKeyLengthWarning: The HMAC key is 27 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
     decoded = self.decode_complete(
 
 tests/unit/bilgeapi/test_auth_rbac.py::test_rate_limiting
 tests/unit/bilgeapi/test_webhook_delivery.py::test_webhook_test_endpoint_rbac_restricted
-  /usr/local/lib/python3.12/site-packages/jwt/api_jwt.py:147: InsecureKeyLengthWarning: The HMAC key is 6 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  C:\Users\B¦LGEHAN\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\jwt\api_jwt.py:153: InsecureKeyLengthWarning: The HMAC key is 6 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
     return self._jws.encode(
 
 tests/unit/bilgeapi/test_auth_rbac.py::test_rate_limiting
 tests/unit/bilgeapi/test_webhook_delivery.py::test_webhook_test_endpoint_rbac_restricted
-  /usr/local/lib/python3.12/site-packages/jwt/api_jwt.py:368: InsecureKeyLengthWarning: The HMAC key is 6 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  C:\Users\B¦LGEHAN\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\jwt\api_jwt.py:371: InsecureKeyLengthWarning: The HMAC key is 6 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
     decoded = self.decode_complete(
 
 tests/unit/bilgeapi/test_enterprise.py::test_jwt_key_rotation
-  /usr/local/lib/python3.12/site-packages/jwt/api_jwt.py:147: InsecureKeyLengthWarning: The HMAC key is 20 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  C:\Users\B¦LGEHAN\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\jwt\api_jwt.py:153: InsecureKeyLengthWarning: The HMAC key is 20 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
     return self._jws.encode(
 
+tests/unit/bilgeapi/test_release_gate.py::TestReleaseGate::test_release_router_endpoints
+  C:\Users\B¦LGEHAN\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\alembic\config.py:612: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
 tests/unit/bilgeapi/test_release_gate.py::TestReleaseGate::test_postgres_repo_create_check
-  /app/apps/bilgeapi/repositories/postgres.py:543: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+  E:\ai_company_faz12.1\apps\bilgeapi\repositories\postgres.py:551: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
     self.db.add(model)
   Enable tracemalloc to get traceback where the object was allocated.
   See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
 
 tests/unit/bilgeapi/test_release_gate.py::TestReleaseGate::test_postgres_other_repos
-  /app/apps/bilgeapi/repositories/postgres.py:41: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+  E:\ai_company_faz12.1\apps\bilgeapi\repositories\postgres.py:49: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
     self.db.add(model)
   Enable tracemalloc to get traceback where the object was allocated.
   See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
 
 tests/unit/bilgeapi/test_release_gate.py::TestReleaseGate::test_postgres_other_repos
-  /app/apps/bilgeapi/repositories/postgres.py:118: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+  E:\ai_company_faz12.1\apps\bilgeapi\repositories\postgres.py:126: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
     self.db.add(model)
   Enable tracemalloc to get traceback where the object was allocated.
   See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
 
 tests/unit/bilgeapi/test_release_gate.py::TestReleaseGate::test_postgres_other_repos
-  /app/apps/bilgeapi/repositories/postgres.py:166: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+  E:\ai_company_faz12.1\apps\bilgeapi\repositories\postgres.py:174: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
     self.db.add(model)
   Enable tracemalloc to get traceback where the object was allocated.
   See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
 
 tests/unit/bilgeapi/test_release_gate.py::TestReleaseGate::test_postgres_other_repos
-  /app/apps/bilgeapi/repositories/postgres.py:206: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+  E:\ai_company_faz12.1\apps\bilgeapi\repositories\postgres.py:214: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
     self.db.add(model)
   Enable tracemalloc to get traceback where the object was allocated.
   See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
 
 tests/unit/bilgeapi/test_release_gate.py::TestReleaseGate::test_postgres_other_repos
-  /app/apps/bilgeapi/repositories/postgres.py:229: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+  E:\ai_company_faz12.1\apps\bilgeapi\repositories\postgres.py:237: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
     self.db.add(model)
   Enable tracemalloc to get traceback where the object was allocated.
   See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
 
 tests/unit/bilgeapi/test_release_gate.py::TestReleaseGate::test_postgres_other_repos
-  /app/apps/bilgeapi/repositories/postgres.py:263: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+  E:\ai_company_faz12.1\apps\bilgeapi\repositories\postgres.py:271: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
     self.db.add(model)
   Enable tracemalloc to get traceback where the object was allocated.
   See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
 
 tests/unit/bilgeapi/test_release_gate.py::TestReleaseGate::test_postgres_other_repos
-  /app/apps/bilgeapi/repositories/postgres.py:317: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+  E:\ai_company_faz12.1\apps\bilgeapi\repositories\postgres.py:325: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
     self.db.add(model)
   Enable tracemalloc to get traceback where the object was allocated.
   See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
 
 tests/unit/bilgeapi/test_release_gate.py::TestReleaseGate::test_postgres_other_repos
-  /app/apps/bilgeapi/repositories/postgres.py:368: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+  E:\ai_company_faz12.1\apps\bilgeapi\repositories\postgres.py:376: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
     self.db.add(model)
   Enable tracemalloc to get traceback where the object was allocated.
   See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
 
 tests/unit/bilgeapi/test_release_gate.py::TestReleaseGate::test_postgres_other_repos
-  /app/apps/bilgeapi/repositories/postgres.py:425: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+  E:\ai_company_faz12.1\apps\bilgeapi\repositories\postgres.py:433: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
     self.db.add(model)
   Enable tracemalloc to get traceback where the object was allocated.
   See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
 
 tests/unit/bilgeapi/test_release_gate.py::TestReleaseGate::test_postgres_other_repos
-  /app/apps/bilgeapi/repositories/postgres.py:449: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+  E:\ai_company_faz12.1\apps\bilgeapi\repositories\postgres.py:457: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
     self.db.add(model)
   Enable tracemalloc to get traceback where the object was allocated.
   See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-====================== 176 passed, 24 warnings in 21.24s =======================
+=========================== short test summary info ===========================
+SKIPPED [1] tests\unit\bilgeapi\test_hardening.py:168: Symlinks not supported on this platform/user
+================ 275 passed, 1 skipped, 151 warnings in 17.83s ================

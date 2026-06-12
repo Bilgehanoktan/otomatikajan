@@ -30,7 +30,7 @@ async def create_incident(
         entity_type="incident",
         entity_id=created_incident.id,
         correlation_id=created_incident.correlation_id,
-        after_state=created_incident.model_dump()
+        after_state=created_incident.model_dump(mode="json")
     )
     
     return created_incident

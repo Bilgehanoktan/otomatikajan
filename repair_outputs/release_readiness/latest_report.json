@@ -1,8 +1,8 @@
 {
   "status": "BLOCKED",
-  "blocking_count": 27,
+  "blocking_count": 18,
   "warning_count": 0,
-  "checked_at": "2026-06-12T03:30:50.159239+00:00",
+  "checked_at": "2026-06-12T19:44:01.115162+00:00",
   "api_contracts": [
     {
       "surface": "CEO",
@@ -10,12 +10,12 @@
       "method": "GET",
       "owner_module": "services.workflow_api.ceo_router",
       "required_auth": true,
-      "expected_status": "missing",
+      "expected_status": "active",
       "required_fields": [],
-      "current_status": "missing",
-      "last_checked_at": "2026-06-12T03:30:50.139371+00:00",
+      "current_status": "healthy",
+      "last_checked_at": "2026-06-12T19:44:01.071300+00:00",
       "blocking": true,
-      "notes": "FastAPI route not found in active router"
+      "notes": "Route matches active FastAPI router"
     },
     {
       "surface": "CEO",
@@ -23,12 +23,12 @@
       "method": "GET",
       "owner_module": "services.workflow_api.ceo_router",
       "required_auth": true,
-      "expected_status": "missing",
+      "expected_status": "active",
       "required_fields": [],
-      "current_status": "missing",
-      "last_checked_at": "2026-06-12T03:30:50.139385+00:00",
+      "current_status": "healthy",
+      "last_checked_at": "2026-06-12T19:44:01.071327+00:00",
       "blocking": true,
-      "notes": "FastAPI route not found in active router"
+      "notes": "Route matches active FastAPI router"
     },
     {
       "surface": "CEO",
@@ -36,12 +36,12 @@
       "method": "POST",
       "owner_module": "services.workflow_api.ceo_router",
       "required_auth": true,
-      "expected_status": "missing",
+      "expected_status": "active",
       "required_fields": [],
-      "current_status": "missing",
-      "last_checked_at": "2026-06-12T03:30:50.139390+00:00",
+      "current_status": "healthy",
+      "last_checked_at": "2026-06-12T19:44:01.071332+00:00",
       "blocking": true,
-      "notes": "FastAPI route not found in active router"
+      "notes": "Route matches active FastAPI router"
     },
     {
       "surface": "CEO",
@@ -49,12 +49,12 @@
       "method": "POST",
       "owner_module": "services.workflow_api.ceo_router",
       "required_auth": true,
-      "expected_status": "missing",
+      "expected_status": "active",
       "required_fields": [],
-      "current_status": "missing",
-      "last_checked_at": "2026-06-12T03:30:50.139393+00:00",
+      "current_status": "healthy",
+      "last_checked_at": "2026-06-12T19:44:01.071336+00:00",
       "blocking": true,
-      "notes": "FastAPI route not found in active router"
+      "notes": "Route matches active FastAPI router"
     },
     {
       "surface": "Repair Lab",
@@ -62,12 +62,12 @@
       "method": "GET",
       "owner_module": "services.workflow_api.repair_lab_router",
       "required_auth": true,
-      "expected_status": "missing",
+      "expected_status": "active",
       "required_fields": [],
-      "current_status": "missing",
-      "last_checked_at": "2026-06-12T03:30:50.139397+00:00",
+      "current_status": "healthy",
+      "last_checked_at": "2026-06-12T19:44:01.071340+00:00",
       "blocking": true,
-      "notes": "FastAPI route not found in active router"
+      "notes": "Route matches active FastAPI router"
     },
     {
       "surface": "Repair Lab",
@@ -75,12 +75,12 @@
       "method": "GET",
       "owner_module": "services.workflow_api.repair_lab_router",
       "required_auth": true,
-      "expected_status": "missing",
+      "expected_status": "active",
       "required_fields": [],
-      "current_status": "missing",
-      "last_checked_at": "2026-06-12T03:30:50.139400+00:00",
+      "current_status": "healthy",
+      "last_checked_at": "2026-06-12T19:44:01.071344+00:00",
       "blocking": true,
-      "notes": "FastAPI route not found in active router"
+      "notes": "Route matches active FastAPI router"
     },
     {
       "surface": "Repair Lab",
@@ -88,12 +88,12 @@
       "method": "POST",
       "owner_module": "services.workflow_api.repair_lab_router",
       "required_auth": true,
-      "expected_status": "missing",
+      "expected_status": "active",
       "required_fields": [],
-      "current_status": "missing",
-      "last_checked_at": "2026-06-12T03:30:50.139404+00:00",
+      "current_status": "healthy",
+      "last_checked_at": "2026-06-12T19:44:01.071348+00:00",
       "blocking": true,
-      "notes": "FastAPI route not found in active router"
+      "notes": "Route matches active FastAPI router"
     },
     {
       "surface": "Repair Lab",
@@ -101,12 +101,12 @@
       "method": "GET",
       "owner_module": "services.workflow_api.repair_lab_router",
       "required_auth": true,
-      "expected_status": "missing",
+      "expected_status": "active",
       "required_fields": [],
-      "current_status": "missing",
-      "last_checked_at": "2026-06-12T03:30:50.139407+00:00",
+      "current_status": "healthy",
+      "last_checked_at": "2026-06-12T19:44:01.071351+00:00",
       "blocking": true,
-      "notes": "FastAPI route not found in active router"
+      "notes": "Route matches active FastAPI router"
     },
     {
       "surface": "Repair Lab",
@@ -114,12 +114,12 @@
       "method": "GET",
       "owner_module": "services.workflow_api.repair_lab_router",
       "required_auth": true,
-      "expected_status": "missing",
+      "expected_status": "active",
       "required_fields": [],
-      "current_status": "missing",
-      "last_checked_at": "2026-06-12T03:30:50.139411+00:00",
+      "current_status": "healthy",
+      "last_checked_at": "2026-06-12T19:44:01.071355+00:00",
       "blocking": true,
-      "notes": "FastAPI route not found in active router"
+      "notes": "Route matches active FastAPI router"
     },
     {
       "surface": "Repair Lab",
@@ -127,12 +127,12 @@
       "method": "POST",
       "owner_module": "services.workflow_api.repair_lab_router",
       "required_auth": true,
-      "expected_status": "missing",
+      "expected_status": "active",
       "required_fields": [],
-      "current_status": "missing",
-      "last_checked_at": "2026-06-12T03:30:50.139414+00:00",
+      "current_status": "healthy",
+      "last_checked_at": "2026-06-12T19:44:01.071359+00:00",
       "blocking": true,
-      "notes": "FastAPI route not found in active router"
+      "notes": "Route matches active FastAPI router"
     },
     {
       "surface": "Repair Lab",
@@ -140,12 +140,12 @@
       "method": "GET",
       "owner_module": "services.workflow_api.repair_lab_router",
       "required_auth": true,
-      "expected_status": "missing",
+      "expected_status": "active",
       "required_fields": [],
-      "current_status": "missing",
-      "last_checked_at": "2026-06-12T03:30:50.139417+00:00",
+      "current_status": "healthy",
+      "last_checked_at": "2026-06-12T19:44:01.071363+00:00",
       "blocking": true,
-      "notes": "FastAPI route not found in active router"
+      "notes": "Route matches active FastAPI router"
     },
     {
       "surface": "Repair Lab",
@@ -153,12 +153,12 @@
       "method": "GET",
       "owner_module": "services.workflow_api.repair_lab_router",
       "required_auth": true,
-      "expected_status": "missing",
+      "expected_status": "active",
       "required_fields": [],
-      "current_status": "missing",
-      "last_checked_at": "2026-06-12T03:30:50.139420+00:00",
+      "current_status": "healthy",
+      "last_checked_at": "2026-06-12T19:44:01.071366+00:00",
       "blocking": true,
-      "notes": "FastAPI route not found in active router"
+      "notes": "Route matches active FastAPI router"
     },
     {
       "surface": "Repair Lab",
@@ -166,12 +166,12 @@
       "method": "GET",
       "owner_module": "services.workflow_api.repair_lab_router",
       "required_auth": true,
-      "expected_status": "missing",
+      "expected_status": "active",
       "required_fields": [],
-      "current_status": "missing",
-      "last_checked_at": "2026-06-12T03:30:50.139424+00:00",
+      "current_status": "healthy",
+      "last_checked_at": "2026-06-12T19:44:01.071370+00:00",
       "blocking": true,
-      "notes": "FastAPI route not found in active router"
+      "notes": "Route matches active FastAPI router"
     },
     {
       "surface": "Repair Lab",
@@ -179,12 +179,12 @@
       "method": "GET",
       "owner_module": "services.workflow_api.repair_lab_router",
       "required_auth": true,
-      "expected_status": "missing",
+      "expected_status": "active",
       "required_fields": [],
-      "current_status": "missing",
-      "last_checked_at": "2026-06-12T03:30:50.139427+00:00",
+      "current_status": "healthy",
+      "last_checked_at": "2026-06-12T19:44:01.071374+00:00",
       "blocking": true,
-      "notes": "FastAPI route not found in active router"
+      "notes": "Route matches active FastAPI router"
     },
     {
       "surface": "Repair Lab",
@@ -192,12 +192,12 @@
       "method": "POST",
       "owner_module": "services.workflow_api.repair_lab_router",
       "required_auth": true,
-      "expected_status": "missing",
+      "expected_status": "active",
       "required_fields": [],
-      "current_status": "missing",
-      "last_checked_at": "2026-06-12T03:30:50.139431+00:00",
+      "current_status": "healthy",
+      "last_checked_at": "2026-06-12T19:44:01.071377+00:00",
       "blocking": true,
-      "notes": "FastAPI route not found in active router"
+      "notes": "Route matches active FastAPI router"
     }
   ],
   "artifact_contracts": [
@@ -263,9 +263,9 @@
     },
     {
       "artifact_name": "tournament_result.json",
-      "status": "missing",
-      "blocking": true,
-      "notes": "Required artifact tournament_result.json is missing from run directory."
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Artifact matches matrix schema validation."
     },
     {
       "artifact_name": "human_gate_decision.json",
@@ -293,9 +293,9 @@
     },
     {
       "artifact_name": "artifact_manifest.json",
-      "status": "missing",
-      "blocking": true,
-      "notes": "Required artifact artifact_manifest.json is missing from run directory."
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Artifact matches matrix schema validation."
     },
     {
       "artifact_name": "diagnostic_report.json",
@@ -304,10 +304,1096 @@
       "notes": "Optional artifact diagnostic_report.json is not present."
     }
   ],
-  "frontend_backend_parity": [],
+  "frontend_backend_parity": [
+    {
+      "frontend_call": "/api/v1/ui-repair/cognitive/manual-review/{checkId}/{action}",
+      "normalized_call": "/api/v1/ui-repair/cognitive/manual-review/*/*",
+      "status": "missing",
+      "blocking": true,
+      "notes": "Frontend calls a route that is missing on backend"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/attempts/{attemptId}/detail",
+      "normalized_call": "/api/v1/ui-repair/attempts/*/detail",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/defense/overview",
+      "normalized_call": "/api/v1/ui-repair/security/defense/overview",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/enterprise/overview",
+      "normalized_call": "/api/v1/ui-repair/enterprise/overview",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/health/runtime-diagnostics",
+      "normalized_call": "/api/v1/health/runtime-diagnostics",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/readiness/overview",
+      "normalized_call": "/api/v1/ui-repair/readiness/overview",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/governance/compliance-findings",
+      "normalized_call": "/api/v1/ui-repair/governance/compliance-findings",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/final/audit-pack/generate",
+      "normalized_call": "/api/v1/ui-repair/final/audit-pack/generate",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/cognitive/claims/{checkId}",
+      "normalized_call": "/api/v1/ui-repair/cognitive/claims/*",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/governance/policies",
+      "normalized_call": "/api/v1/ui-repair/governance/policies",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/governance/compliance/audit-bundles",
+      "normalized_call": "/api/v1/governance/compliance/audit-bundles",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/monitoring/config",
+      "normalized_call": "/api/v1/ui-repair/monitoring/config",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/routes",
+      "normalized_call": "/api/v1/ui-repair/routes",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/harness/agents",
+      "normalized_call": "/api/v1/harness/agents",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/pilot/pause",
+      "normalized_call": "/api/v1/ui-repair/pilot/pause",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/advanced-chaos/scenarios/{id}/run",
+      "normalized_call": "/api/v1/ui-repair/advanced-chaos/scenarios/*/run",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/repair-lab/tuning/suggestions/{id}/apply",
+      "normalized_call": "/api/v1/repair-lab/tuning/suggestions/*/apply",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/federation/evidence",
+      "normalized_call": "/api/v1/ui-repair/federation/evidence",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/tools/risk/overview",
+      "normalized_call": "/api/v1/ui-repair/tools/risk/overview",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/red-team/scenarios/generate",
+      "normalized_call": "/api/v1/ui-repair/security/red-team/scenarios/generate",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/identity/audit-events",
+      "normalized_call": "/api/v1/ui-repair/identity/audit-events",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/cases/{caseId}/repair",
+      "normalized_call": "/api/v1/ui-repair/cases/*/repair",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/governance/overrides",
+      "normalized_call": "/api/v1/ui-repair/governance/overrides",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/governance/proposals/{id}/approve",
+      "normalized_call": "/api/v1/governance/proposals/*/approve",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/harness/agents/{selectedAgentName}",
+      "normalized_call": "/api/v1/harness/agents/*",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/cognitive/checks",
+      "normalized_call": "/api/v1/ui-repair/cognitive/checks",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/identity/trust-scores",
+      "normalized_call": "/api/v1/ui-repair/identity/trust-scores",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/pilot/start",
+      "normalized_call": "/api/v1/ui-repair/pilot/start",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/monitoring/runs",
+      "normalized_call": "/api/v1/ui-repair/monitoring/runs",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/remediation/plan/{id}",
+      "normalized_call": "/api/v1/ui-repair/security/remediation/plan/*",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/cases/{caseId}/attempts/{attemptId}/apply",
+      "normalized_call": "/api/v1/ui-repair/cases/*/attempts/*/apply",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/final/release-lock/latest",
+      "normalized_call": "/api/v1/ui-repair/final/release-lock/latest",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/escalations",
+      "normalized_call": "/api/v1/ui-repair/escalations",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/escalations/{id}/resolve",
+      "normalized_call": "/api/v1/ui-repair/escalations/*/resolve",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/proof-pack/generate",
+      "normalized_call": "/api/v1/ui-repair/proof-pack/generate",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/remediation/plan/{findingId}",
+      "normalized_call": "/api/v1/ui-repair/security/remediation/plan/*",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/pilot/metrics/{rolloutId}",
+      "normalized_call": "/api/v1/ui-repair/pilot/metrics/*",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/knowledge/predictions",
+      "normalized_call": "/api/v1/ui-repair/knowledge/predictions",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/mesh/slo/snapshots",
+      "normalized_call": "/api/v1/ui-repair/mesh/slo/snapshots",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/governance/governor/alerts/{id}/resolve",
+      "normalized_call": "/api/v1/governance/governor/alerts/*/resolve",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/governance/evaluations",
+      "normalized_call": "/api/v1/ui-repair/governance/evaluations",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/red-team/scenarios/{scenarioId}/run",
+      "normalized_call": "/api/v1/ui-repair/security/red-team/scenarios/*/run",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/red-team/scenarios",
+      "normalized_call": "/api/v1/ui-repair/security/red-team/scenarios",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/remediation/plans",
+      "normalized_call": "/api/v1/ui-repair/security/remediation/plans",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/finops/recommendations",
+      "normalized_call": "/api/v1/ui-repair/finops/recommendations",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/cases/{caseId}/events",
+      "normalized_call": "/api/v1/ui-repair/cases/*/events",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/federation/overview",
+      "normalized_call": "/api/v1/ui-repair/federation/overview",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/certifications",
+      "normalized_call": "/api/v1/ui-repair/security/certifications",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/red-team/scenarios/{id}/run",
+      "normalized_call": "/api/v1/ui-repair/security/red-team/scenarios/*/run",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/pilot/report/generate",
+      "normalized_call": "/api/v1/ui-repair/pilot/report/generate",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/learning/adaptation-candidates/{id}/apply",
+      "normalized_call": "/api/v1/learning/adaptation-candidates/*/apply",
+      "status": "missing",
+      "blocking": true,
+      "notes": "Frontend calls a route that is missing on backend"
+    },
+    {
+      "frontend_call": "/api/v1/mesh",
+      "normalized_call": "/api/v1/mesh",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/repair-lab/evolution/status",
+      "normalized_call": "/api/v1/repair-lab/evolution/status",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/finops/anomalies/{id}/resolve",
+      "normalized_call": "/api/v1/ui-repair/finops/anomalies/*/resolve",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/defense/proposals/{id}/approve",
+      "normalized_call": "/api/v1/ui-repair/security/defense/proposals/*/approve",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/auth/identity/{id.id}/quarantine",
+      "normalized_call": "/api/v1/auth/identity/{id.id}/quarantine",
+      "status": "missing",
+      "blocking": true,
+      "notes": "Frontend calls a route that is missing on backend"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/red-team/overview",
+      "normalized_call": "/api/v1/ui-repair/security/red-team/overview",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/governance/governor/scan",
+      "normalized_call": "/api/v1/governance/governor/scan",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/enterprise/ga-readiness/latest",
+      "normalized_call": "/api/v1/ui-repair/enterprise/ga-readiness/latest",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/escalations/{id}/ack",
+      "normalized_call": "/api/v1/ui-repair/escalations/*/ack",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/release-gate/evaluate",
+      "normalized_call": "/api/v1/ui-repair/release-gate/evaluate",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/health/runtime-diagnostics/{item.id}/repair",
+      "normalized_call": "/api/v1/health/runtime-diagnostics/{item.id}/repair",
+      "status": "missing",
+      "blocking": true,
+      "notes": "Frontend calls a route that is missing on backend"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/rollout-waves",
+      "normalized_call": "/api/v1/ui-repair/rollout-waves",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/tools/audit",
+      "normalized_call": "/api/v1/ui-repair/tools/audit",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/repair-lab/verifiers",
+      "normalized_call": "/api/v1/repair-lab/verifiers",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/federation/policy-drift",
+      "normalized_call": "/api/v1/ui-repair/federation/policy-drift",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/threat/models/generate",
+      "normalized_call": "/api/v1/ui-repair/security/threat/models/generate",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/chaos/scenarios",
+      "normalized_call": "/api/v1/ui-repair/chaos/scenarios",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/projects",
+      "normalized_call": "/api/v1/ui-repair/projects",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/scan",
+      "normalized_call": "/api/v1/ui-repair/security/scan",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/monitoring/trigger",
+      "normalized_call": "/api/v1/ui-repair/monitoring/trigger",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/chaos/scenarios/{scenarioId}/run",
+      "normalized_call": "/api/v1/ui-repair/chaos/scenarios/*/run",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/finops/overview",
+      "normalized_call": "/api/v1/ui-repair/finops/overview",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/tools/registry",
+      "normalized_call": "/api/v1/ui-repair/tools/registry",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/threat/inventory/scan",
+      "normalized_call": "/api/v1/ui-repair/security/threat/inventory/scan",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/readiness/assess",
+      "normalized_call": "/api/v1/ui-repair/readiness/assess",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/red-team/runs",
+      "normalized_call": "/api/v1/ui-repair/security/red-team/runs",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/knowledge/nodes",
+      "normalized_call": "/api/v1/ui-repair/knowledge/nodes",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/mesh/steering/decisions",
+      "normalized_call": "/api/v1/ui-repair/mesh/steering/decisions",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/projects/{key}/{action}",
+      "normalized_call": "/api/v1/ui-repair/projects/*/*",
+      "status": "missing",
+      "blocking": true,
+      "notes": "Frontend calls a route that is missing on backend"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/finops/anomalies",
+      "normalized_call": "/api/v1/ui-repair/finops/anomalies",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/tools/mcp/servers",
+      "normalized_call": "/api/v1/ui-repair/tools/mcp/servers",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/notifications/deliveries",
+      "normalized_call": "/api/v1/ui-repair/notifications/deliveries",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/runtime-guard/status",
+      "normalized_call": "/api/v1/ui-repair/runtime-guard/status",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/mesh/postmortems",
+      "normalized_call": "/api/v1/ui-repair/mesh/postmortems",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/dashboard/summary",
+      "normalized_call": "/api/v1/ui-repair/dashboard/summary",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/soak/runs",
+      "normalized_call": "/api/v1/ui-repair/soak/runs",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/enterprise/runbook/generate",
+      "normalized_call": "/api/v1/ui-repair/enterprise/runbook/generate",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/final/integration-audit/run",
+      "normalized_call": "/api/v1/ui-repair/final/integration-audit/run",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/federation/clusters",
+      "normalized_call": "/api/v1/ui-repair/federation/clusters",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/tools/provider-health",
+      "normalized_call": "/api/v1/ui-repair/tools/provider-health",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/governance/governor/alerts/{id}/ack",
+      "normalized_call": "/api/v1/governance/governor/alerts/*/ack",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/final/readiness/check",
+      "normalized_call": "/api/v1/ui-repair/final/readiness/check",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/advanced-chaos/runs",
+      "normalized_call": "/api/v1/ui-repair/advanced-chaos/runs",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/controls",
+      "normalized_call": "/api/v1/ui-repair/security/controls",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/threat/assets",
+      "normalized_call": "/api/v1/ui-repair/security/threat/assets",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/defense/proposals/{id}/promote",
+      "normalized_call": "/api/v1/ui-repair/security/defense/proposals/*/promote",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/cases/{caseId}/attempts",
+      "normalized_call": "/api/v1/ui-repair/cases/*/attempts",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/crisis/state",
+      "normalized_call": "/api/v1/ui-repair/crisis/state",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/final/audit-pack/latest",
+      "normalized_call": "/api/v1/ui-repair/final/audit-pack/latest",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/advanced-chaos/scenarios",
+      "normalized_call": "/api/v1/ui-repair/advanced-chaos/scenarios",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/smoke/run",
+      "normalized_call": "/api/v1/ui-repair/smoke/run",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/mcp/config",
+      "normalized_call": "/api/v1/mcp/config",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/remediation/summary",
+      "normalized_call": "/api/v1/ui-repair/security/remediation/summary",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/enterprise/runbook/latest",
+      "normalized_call": "/api/v1/ui-repair/enterprise/runbook/latest",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/remediation/attempts",
+      "normalized_call": "/api/v1/ui-repair/security/remediation/attempts",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/defense/proposals/{id}/apply",
+      "normalized_call": "/api/v1/ui-repair/security/defense/proposals/*/apply",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/soak/start",
+      "normalized_call": "/api/v1/ui-repair/soak/start",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/federation/tenants",
+      "normalized_call": "/api/v1/ui-repair/federation/tenants",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/cognitive/findings/{checkId}",
+      "normalized_call": "/api/v1/ui-repair/cognitive/findings/*",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/defense/report/generate",
+      "normalized_call": "/api/v1/ui-repair/security/defense/report/generate",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/certify",
+      "normalized_call": "/api/v1/ui-repair/security/certify",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/enterprise/sla-slo",
+      "normalized_call": "/api/v1/ui-repair/enterprise/sla-slo",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/auth/identity/{id.id}/recover",
+      "normalized_call": "/api/v1/auth/identity/{id.id}/recover",
+      "status": "missing",
+      "blocking": true,
+      "notes": "Frontend calls a route that is missing on backend"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/defense/optimization/cycle",
+      "normalized_call": "/api/v1/ui-repair/security/defense/optimization/cycle",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/red-team/report/generate",
+      "normalized_call": "/api/v1/ui-repair/security/red-team/report/generate",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/rollout-waves/{id}/start",
+      "normalized_call": "/api/v1/ui-repair/rollout-waves/*/start",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/governance/lineage",
+      "normalized_call": "/api/v1/governance/lineage",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/handover/generate",
+      "normalized_call": "/api/v1/ui-repair/handover/generate",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/cases",
+      "normalized_call": "/api/v1/ui-repair/cases",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/enterprise/ga-readiness/check",
+      "normalized_call": "/api/v1/ui-repair/enterprise/ga-readiness/check",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/governance/governor/alerts/{id}/suppress",
+      "normalized_call": "/api/v1/governance/governor/alerts/*/suppress",
+      "status": "missing",
+      "blocking": true,
+      "notes": "Frontend calls a route that is missing on backend"
+    },
+    {
+      "frontend_call": "/api/v1/auth/identity/keys/generate",
+      "normalized_call": "/api/v1/auth/identity/keys/generate",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/final/smoke-test/run",
+      "normalized_call": "/api/v1/ui-repair/final/smoke-test/run",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/knowledge/overview",
+      "normalized_call": "/api/v1/ui-repair/knowledge/overview",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/rollout-waves/{id}/complete",
+      "normalized_call": "/api/v1/ui-repair/rollout-waves/*/complete",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/chaos/runs",
+      "normalized_call": "/api/v1/ui-repair/chaos/runs",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/threat/summary",
+      "normalized_call": "/api/v1/ui-repair/security/threat/summary",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/projects/health-matrix",
+      "normalized_call": "/api/v1/ui-repair/projects/health-matrix",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/repair-lab/tuning/suggestions",
+      "normalized_call": "/api/v1/repair-lab/tuning/suggestions",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/governance/approvals/{approval.id}/decide",
+      "normalized_call": "/api/v1/governance/approvals/{approval.id}/decide",
+      "status": "missing",
+      "blocking": true,
+      "notes": "Frontend calls a route that is missing on backend"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/mesh/health",
+      "normalized_call": "/api/v1/ui-repair/mesh/health",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/red-team/drift-events",
+      "normalized_call": "/api/v1/ui-repair/security/red-team/drift-events",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/red-team/findings",
+      "normalized_call": "/api/v1/ui-repair/security/red-team/findings",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/final/readiness",
+      "normalized_call": "/api/v1/ui-repair/final/readiness",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/final/integration-audits",
+      "normalized_call": "/api/v1/ui-repair/final/integration-audits",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/final/residual-risks/{riskId}/sign-off",
+      "normalized_call": "/api/v1/ui-repair/final/residual-risks/*/sign-off",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/repair-lab/evolution/feed",
+      "normalized_call": "/api/v1/repair-lab/evolution/feed",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/red-team/run-suite",
+      "normalized_call": "/api/v1/ui-repair/security/red-team/run-suite",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/proof-pack",
+      "normalized_call": "/api/v1/ui-repair/proof-pack",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/pilot/operator-actions",
+      "normalized_call": "/api/v1/ui-repair/pilot/operator-actions",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/red-team/report/latest",
+      "normalized_call": "/api/v1/ui-repair/security/red-team/report/latest",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/threat/attack-paths",
+      "normalized_call": "/api/v1/ui-repair/security/threat/attack-paths",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/evolution/state",
+      "normalized_call": "/api/v1/evolution/state",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/health/evolution",
+      "normalized_call": "/api/v1/health/evolution",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/defense/patterns",
+      "normalized_call": "/api/v1/ui-repair/security/defense/patterns",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/posture",
+      "normalized_call": "/api/v1/ui-repair/security/posture",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/crisis/update",
+      "normalized_call": "/api/v1/ui-repair/crisis/update",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/defense/report/latest",
+      "normalized_call": "/api/v1/ui-repair/security/defense/report/latest",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/findings",
+      "normalized_call": "/api/v1/ui-repair/security/findings",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/identity/registry",
+      "normalized_call": "/api/v1/ui-repair/identity/registry",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/pilot/status",
+      "normalized_call": "/api/v1/ui-repair/pilot/status",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/security/defense/proposals",
+      "normalized_call": "/api/v1/ui-repair/security/defense/proposals",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/finops/recommendations/{id}/status",
+      "normalized_call": "/api/v1/ui-repair/finops/recommendations/*/status",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    },
+    {
+      "frontend_call": "/api/v1/ui-repair/final/residual-risks",
+      "normalized_call": "/api/v1/ui-repair/final/residual-risks",
+      "status": "healthy",
+      "blocking": false,
+      "notes": "Parity confirmed with backend route"
+    }
+  ],
   "recommendations": [
     "Fix missing/invalid contract routes or mismatching hashes before release.",
-    "Enable required API endpoints in the FastAPI router structure.",
+    "Resolve unimplemented backend endpoints that are currently called by Refine Control Plane.",
     "Recompute and realign taskflow manifest signatures, or collect operator sign-offs."
   ]
 }

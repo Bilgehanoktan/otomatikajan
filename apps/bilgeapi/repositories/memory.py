@@ -22,7 +22,8 @@ from apps.bilgeapi.repositories.interface import (
     AIPatchSuggestionRepository,
     SystemFindingRepository,
     RemediationRunbookRepository,
-    RemediationAttemptRepository
+    RemediationAttemptRepository,
+    AutonomyDecisionRepository
 )
 from apps.bilgeapi.schemas.incident import IncidentCreate, IncidentResponse
 from apps.bilgeapi.schemas.diagnostic import DiagnosticResult, DiagnosticStatus
@@ -52,6 +53,7 @@ class MemoryRepositoriesContainer:
         self.system_findings: Dict[str, Dict[str, Any]] = {}
         self.remediation_runbooks: Dict[str, Dict[str, Any]] = {}
         self.remediation_attempts: Dict[str, Dict[str, Any]] = {}
+        self.autonomy_decisions: Dict[str, Dict[str, Any]] = {}
         self._lock = asyncio.Lock()
 
     def clear_all(self):
@@ -76,6 +78,7 @@ class MemoryRepositoriesContainer:
         self.system_findings.clear()
         self.remediation_runbooks.clear()
         self.remediation_attempts.clear()
+        self.autonomy_decisions.clear()
 
 memory_repositories = MemoryRepositoriesContainer()
 
@@ -1084,4 +1087,41 @@ class InMemoryRemediationAttemptRepository(RemediationAttemptRepository):
                 attempt[k] = v
             attempt["updated_at"] = datetime.now(timezone.utc)
             return attempt
+
+
+class InMemoryAutonomyDecisionRepository(AutonomyDecisionRepository):
+    async def create(self, decision: Dict[str, Any]) -> Dict[str, Any]:
+        async with memory_repositories._lock:
+            dec_id = f"dec_{uuid.uuid4().hex[:8]}"
+            now = datetime.now(timezone.utc)
+            item = {
+                "decision_id": dec_id,
+                "incident_id": decision["incident_id"],
+                "correlation_id": decision["correlation_id"],
+                "classification": decision["classification"],
+                "risk_score": decision["risk_score"],
+                "risk_level": decision["risk_level"],
+                "active_autonomy_mode": decision["active_autonomy_mode"],
+                "eligibility": decision["eligibility"],
+                "action_type": decision.get("action_type"),
+                "decision_reason": decision["decision_reason"],
+                "requires_human_gate": decision["requires_human_gate"],
+                "human_gate_type": decision.get("human_gate_type"),
+                "created_at": now
+            }
+            memory_repositories.autonomy_decisions[dec_id] = item
+            return item
+
+    async def get(self, decision_id: str) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            return memory_repositories.autonomy_decisions.get(decision_id)
+
+    async def list_by_incident(self, incident_id: str) -> List[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            matches = [
+                item for item in memory_repositories.autonomy_decisions.values()
+                if item["incident_id"] == incident_id
+            ]
+            return sorted(matches, key=lambda x: x["created_at"], reverse=True)
+
 

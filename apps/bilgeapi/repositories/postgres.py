@@ -10,7 +10,8 @@ from apps.bilgeapi.repositories.interface import (
     PrDraftRepository, PrVerificationRepository, PrReviewFeedbackRepository, PatchRevisionRepository,
     ReviewLedgerRepository,
     AIPatchSuggestionRepository, SystemFindingRepository,
-    RemediationRunbookRepository, RemediationAttemptRepository
+    RemediationRunbookRepository, RemediationAttemptRepository,
+    AutonomyDecisionRepository
 )
 from apps.bilgeapi.schemas.incident import IncidentCreate, IncidentResponse
 from apps.bilgeapi.schemas.diagnostic import DiagnosticResult, DiagnosticStatus
@@ -22,7 +23,7 @@ from apps.bilgeapi.models.database import (
     ApiKeyModel, ResearchRequestModel, ResearchEvidenceModel, ImprovementProposalModel,
     PrDraftModel, PrVerificationModel, PrReviewFeedbackModel, PatchRevisionModel,
     ReviewLedgerEntryModel, AIPatchSuggestionModel, SystemFindingModel,
-    RemediationRunbookModel, RemediationAttemptModel
+    RemediationRunbookModel, RemediationAttemptModel, AutonomyDecisionModel
 )
 
 class PostgresIncidentRepository(IncidentRepository):
@@ -1616,4 +1617,61 @@ class PostgresRemediationAttemptRepository(RemediationAttemptRepository):
         await self.db.commit()
         await self.db.refresh(model)
         return self._to_dict(model)
+
+
+class PostgresAutonomyDecisionRepository(AutonomyDecisionRepository):
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    def _to_dict(self, model: AutonomyDecisionModel) -> Dict[str, Any]:
+        return {
+            "decision_id": model.id,
+            "incident_id": model.incident_id,
+            "correlation_id": model.correlation_id,
+            "classification": model.classification,
+            "risk_score": model.risk_score,
+            "risk_level": model.risk_level,
+            "active_autonomy_mode": model.active_autonomy_mode,
+            "eligibility": model.eligibility,
+            "action_type": model.action_type,
+            "decision_reason": model.decision_reason,
+            "requires_human_gate": model.requires_human_gate,
+            "human_gate_type": model.human_gate_type,
+            "created_at": model.created_at
+        }
+
+    async def create(self, decision: Dict[str, Any]) -> Dict[str, Any]:
+        dec_id = f"dec_{uuid.uuid4().hex[:8]}"
+        model = AutonomyDecisionModel(
+            id=dec_id,
+            incident_id=decision["incident_id"],
+            correlation_id=decision["correlation_id"],
+            classification=decision["classification"],
+            risk_score=decision["risk_score"],
+            risk_level=decision["risk_level"],
+            active_autonomy_mode=decision["active_autonomy_mode"],
+            eligibility=decision["eligibility"],
+            action_type=decision.get("action_type"),
+            decision_reason=decision["decision_reason"],
+            requires_human_gate=decision["requires_human_gate"],
+            human_gate_type=decision.get("human_gate_type")
+        )
+        self.db.add(model)
+        await self.db.commit()
+        await self.db.refresh(model)
+        return self._to_dict(model)
+
+    async def get(self, decision_id: str) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(select(AutonomyDecisionModel).where(AutonomyDecisionModel.id == decision_id))
+        model = res.scalar_one_or_none()
+        return self._to_dict(model) if model else None
+
+    async def list_by_incident(self, incident_id: str) -> List[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(AutonomyDecisionModel)
+            .where(AutonomyDecisionModel.incident_id == incident_id)
+            .order_by(desc(AutonomyDecisionModel.created_at))
+        )
+        return [self._to_dict(m) for m in res.scalars().all()]
+
 

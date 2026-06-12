@@ -4100,6 +4100,56 @@
           }
         ]
       }
+    },
+    "/v1/system/autonomy/decide": {
+      "post": {
+        "tags": [
+          "System Runtime"
+        ],
+        "summary": "Evaluate Autonomy Eligibility",
+        "description": "Evaluates incident classification, risk score, otonomi eligibility limits\nand maps required human gates. Logs the decision to the DB.",
+        "operationId": "evaluate_autonomy_eligibility_v1_system_autonomy_decide_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutonomyDecisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutonomyDecisionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -5029,6 +5079,131 @@
           "created_at"
         ],
         "title": "AuditEvent"
+      },
+      "AutonomyDecisionRequest": {
+        "properties": {
+          "incident_id": {
+            "type": "string",
+            "title": "Incident Id",
+            "description": "ID of the incident to evaluate"
+          },
+          "action_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action Type",
+            "description": "Proposed action type to evaluate eligibility for"
+          }
+        },
+        "type": "object",
+        "required": [
+          "incident_id"
+        ],
+        "title": "AutonomyDecisionRequest"
+      },
+      "AutonomyDecisionResponse": {
+        "properties": {
+          "decision_id": {
+            "type": "string",
+            "title": "Decision Id",
+            "description": "Unique ID of the decision log"
+          },
+          "incident_id": {
+            "type": "string",
+            "title": "Incident Id",
+            "description": "Incident ID evaluated"
+          },
+          "correlation_id": {
+            "type": "string",
+            "title": "Correlation Id",
+            "description": "Correlation ID from the incident"
+          },
+          "classification": {
+            "type": "string",
+            "title": "Classification",
+            "description": "Classified incident kind/anomaly category"
+          },
+          "risk_score": {
+            "type": "number",
+            "title": "Risk Score",
+            "description": "Computed risk score (0.0 to 100.0)"
+          },
+          "risk_level": {
+            "type": "string",
+            "title": "Risk Level",
+            "description": "Computed risk level (LOW, MEDIUM, HIGH, CRITICAL)"
+          },
+          "active_autonomy_mode": {
+            "type": "string",
+            "title": "Active Autonomy Mode",
+            "description": "Active autonomy mode setting at calculation time"
+          },
+          "eligibility": {
+            "type": "string",
+            "title": "Eligibility",
+            "description": "Eligibility decision (AUTO_RUN, WARNING_OPERATOR_REVIEW, HUMAN_GATE_REQUIRED, BLOCKED)"
+          },
+          "requires_human_gate": {
+            "type": "boolean",
+            "title": "Requires Human Gate",
+            "description": "Whether a human gate validation is required"
+          },
+          "human_gate_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Human Gate Type",
+            "description": "Type of human gate required (e.g. remediation_approval)"
+          },
+          "action_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action Type",
+            "description": "Action type evaluated"
+          },
+          "decision_reason": {
+            "type": "string",
+            "title": "Decision Reason",
+            "description": "Detailed explanation of the decision logic"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Decision timestamp"
+          }
+        },
+        "type": "object",
+        "required": [
+          "decision_id",
+          "incident_id",
+          "correlation_id",
+          "classification",
+          "risk_score",
+          "risk_level",
+          "active_autonomy_mode",
+          "eligibility",
+          "requires_human_gate",
+          "decision_reason",
+          "created_at"
+        ],
+        "title": "AutonomyDecisionResponse"
       },
       "DiagnosticResult": {
         "properties": {

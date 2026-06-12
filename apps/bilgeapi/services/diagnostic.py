@@ -51,7 +51,7 @@ class DiagnosticService:
             entity_type="diagnostic",
             entity_id=diag_run.diagnostic_id,
             correlation_id=incident.correlation_id,
-            after_state=diag_run.model_dump()
+            after_state=diag_run.model_dump(mode="json")
         )
 
         # Trigger background processing task
@@ -116,7 +116,7 @@ class DiagnosticService:
                 entity_id=diagnostic_id,
                 correlation_id=incident.correlation_id,
                 before_state={"status": "RUNNING"},
-                after_state=completed_diag.model_dump()
+                after_state=completed_diag.model_dump(mode="json")
             )
 
         except Exception as e:
