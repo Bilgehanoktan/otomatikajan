@@ -217,6 +217,37 @@ async def lifespan(app: FastAPI):
         logger.warning("[LIFECYCLE] services.observability.logging not available, using defaults")
 
     validate_production_config()
+
+    # Initialize Skill Registry
+    app.state.skill_registry_status = "INITIALIZING"
+    try:
+        from libs.db.session import AsyncSessionLocal
+        from apps.bilgeapi.repositories.postgres import PostgresReviewLedgerRepository
+        from apps.bilgeapi.services.review_ledger import ReviewLedgerService
+        from apps.bilgeapi.services.skill_registry import SkillRegistryService
+        import os
+
+        async with AsyncSessionLocal() as db:
+            ledger_repo = PostgresReviewLedgerRepository(db)
+            ledger_service = ReviewLedgerService(ledger_repo)
+            registry = SkillRegistryService(ledger_service=ledger_service)
+            
+            if settings.APP_ENV != "production":
+                if not os.path.exists(registry.manifest_path):
+                    logger.info("[STARTUP] Hash manifest missing in development. Auto-generating manifest...")
+                    registry.generate_manifest()
+                    
+            await registry.initialize_registry()
+            app.state.skill_registry = registry
+            app.state.skill_registry_status = "HEALTHY"
+            logger.info("[STARTUP] Skill Registry initialized successfully.")
+    except Exception as e:
+        logger.error(f"[STARTUP] Skill Registry initialization failed: {e}")
+        app.state.skill_registry_status = "DEGRADED"
+        if settings.APP_ENV == "production":
+            raise RuntimeError(f"Skill registry initialization failure: {e}") from e
+        else:
+            logger.warning("[STARTUP] Non-production: continuing with DEGRADED skill_registry_status.")
     
     if settings.BILGEAPI_DURABLE_QUEUE_ENABLED:
         from libs.queue_abstractions.job_queue import job_queue

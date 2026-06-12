@@ -5,7 +5,7 @@ Public /health (minimal) and admin-only /v1/ops/health (detailed) endpoints.
 import os
 import logging
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from apps.bilgeapi.config import settings
 from apps.bilgeapi.auth import require_permission
 
@@ -15,18 +15,21 @@ router = APIRouter()
 
 
 @router.get("/health", tags=["Health"])
-async def health_check():
+async def health_check(request: Request):
     """Public health check — returns minimal status for load balancers and uptime monitors."""
+    skill_registry_status = getattr(request.app.state, "skill_registry_status", "UNKNOWN")
+    overall_status = "ok" if skill_registry_status == "HEALTHY" else "degraded"
     return {
-        "status": "ok",
+        "status": overall_status,
         "service": "bilgeapi",
         "version": "1.0.0",
         "auth_mode": settings.BILGEAPI_AUTH_MODE,
+        "skill_registry": skill_registry_status,
     }
 
 
 @router.get("/v1/ops/health", tags=["Observability"])
-async def detailed_health(identity: dict = Depends(require_permission("bilgeapi.admin"))):
+async def detailed_health(request: Request, identity: dict = Depends(require_permission("bilgeapi.admin"))):
     """
     Admin-only detailed health check.
     Exposes memory usage, DB connection pool stats, OTel readiness,
@@ -44,8 +47,12 @@ async def detailed_health(identity: dict = Depends(require_permission("bilgeapi.
     # ── Background Tasks ──
     bg_info = _get_background_task_info()
 
+    # ── Skill Registry ──
+    skill_registry_status = getattr(request.app.state, "skill_registry_status", "UNKNOWN")
+    overall_status = "ok" if skill_registry_status == "HEALTHY" else "degraded"
+
     return {
-        "status": "ok",
+        "status": overall_status,
         "service": "bilgeapi",
         "version": "1.0.0",
         "auth_mode": settings.BILGEAPI_AUTH_MODE,
@@ -54,6 +61,7 @@ async def detailed_health(identity: dict = Depends(require_permission("bilgeapi.
         "db": db_info,
         "otel": otel_info,
         "background_tasks": bg_info,
+        "skill_registry": skill_registry_status,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 

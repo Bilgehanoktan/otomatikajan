@@ -1,5 +1,5 @@
 from typing import Any
-from fastapi import Depends
+from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from libs.db.session import get_db
 
@@ -127,6 +127,32 @@ def get_review_ledger_service(
 ) -> Any:
     from apps.bilgeapi.services.review_ledger import ReviewLedgerService
     return ReviewLedgerService(repo)
+
+
+def get_skill_registry(request: Request) -> Any:
+    """
+    Returns the initialized SkillRegistryService from app state.
+    Raises HTTP 503 if the registry was never initialized or initialization failed.
+    This ensures fail-closed behavior: no silent None → AttributeError downstream.
+    """
+    from fastapi import HTTPException, status
+    registry = getattr(request.app.state, "skill_registry", None)
+    if registry is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Skill registry is not available. Service is degraded."
+        )
+    return registry
+
+
+def get_skill_check_service(
+    request: Request,
+    ledger_service: Any = Depends(get_review_ledger_service)
+) -> Any:
+    from apps.bilgeapi.services.skill_check_service import SkillCheckService
+    registry = getattr(request.app.state, "skill_registry", None)
+    return SkillCheckService(registry=registry, ledger_service=ledger_service)
+
 
 
 def get_review_ledger_verifier(
@@ -280,7 +306,8 @@ def get_pr_verification_service(
     audit_service: AuditService = Depends(get_audit_service),
     revision_repo: PatchRevisionRepository = Depends(get_patch_revision_repository),
     ai_suggestion_repo: AIPatchSuggestionRepository = Depends(get_ai_patch_suggestion_repository),
-    ledger_service: Any = Depends(get_review_ledger_service)
+    ledger_service: Any = Depends(get_review_ledger_service),
+    skill_registry: Any = Depends(get_skill_registry)
 ) -> Any:
     from apps.bilgeapi.services.pr_verification import PrVerificationService
     return PrVerificationService(
@@ -291,7 +318,8 @@ def get_pr_verification_service(
         audit_service=audit_service,
         revision_repo=revision_repo,
         ai_suggestion_repo=ai_suggestion_repo,
-        ledger_service=ledger_service
+        ledger_service=ledger_service,
+        skill_registry=skill_registry
     )
 
 
@@ -369,14 +397,16 @@ def get_self_healing_executor(
     finding_repo: SystemFindingRepository = Depends(get_system_finding_repository),
     runbook_repo: RemediationRunbookRepository = Depends(get_remediation_runbook_repository),
     attempt_repo: RemediationAttemptRepository = Depends(get_remediation_attempt_repository),
-    ledger_service: Any = Depends(get_review_ledger_service)
+    ledger_service: Any = Depends(get_review_ledger_service),
+    skill_registry: Any = Depends(get_skill_registry)
 ) -> Any:
     from apps.bilgeapi.services.self_healing import SelfHealingExecutor
     return SelfHealingExecutor(
         finding_repo=finding_repo,
         runbook_repo=runbook_repo,
         attempt_repo=attempt_repo,
-        ledger_service=ledger_service
+        ledger_service=ledger_service,
+        skill_registry=skill_registry
     )
 
 
@@ -386,4 +416,9 @@ def get_emergency_recovery_service(
 ) -> Any:
     from apps.bilgeapi.services.self_healing import EmergencyRecoveryService
     return EmergencyRecoveryService(executor=executor, ledger_service=ledger_service)
+
+
+
+
+
 
