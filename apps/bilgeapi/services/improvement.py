@@ -95,6 +95,41 @@ class ImprovementProposalEngine:
         if confidence_level == "LOW":
             approval_status = "REJECTED"
 
+        # Determine required skills for evidence based on query
+        required_skills = []
+        query_lower = query.lower()
+        if any(k in query_lower for k in ["security", "auth", "secret", "database", "sql", "login", "password", "key", "token"]):
+            required_skills.append("security-and-hardening")
+        if any(k in query_lower for k in ["test", "verify", "mock", "pytest", "unit", "spec", "check"]):
+            required_skills.append("test-driven-development")
+        if any(k in query_lower for k in ["log", "metric", "trace", "audit", "observability", "monitor", "watchdog"]):
+            required_skills.append("observability-and-instrumentation")
+        
+        # Default to security-and-hardening and test-driven-development if none matched
+        if not required_skills:
+            required_skills = ["security-and-hardening", "test-driven-development"]
+
+        # Helper to check if an evidence contains relevant keywords for a skill
+        def has_evidence_for_skill(ev_list: List[Dict[str, Any]], skill: str) -> bool:
+            keywords_map = {
+                "security-and-hardening": ["security", "hardening", "auth", "encrypt", "owasp", "vulnerability", "bypass", "sql", "secret"],
+                "test-driven-development": ["test", "tdd", "pytest", "mock", "unit", "coverage", "assertion"],
+                "observability-and-instrumentation": ["log", "observability", "instrument", "prometheus", "monitor", "tracing", "metric", "ledger"]
+            }
+            skill_kws = keywords_map.get(skill, [])
+            for ev in ev_list:
+                text = ((ev.get("title") or "") + " " + (ev.get("snippet") or "") + " " + (ev.get("raw_content_summary") or "")).lower()
+                if any(kw in text for kw in skill_kws):
+                    return True
+            return False
+
+        satisfied_skills = [s for s in required_skills if has_evidence_for_skill(reliable_evidences, s)]
+        missing_skills = list(set(required_skills) - set(satisfied_skills))
+        evidence_check_passed = len(missing_skills) == 0
+
+        if not evidence_check_passed and approval_status != "REJECTED":
+            approval_status = "REVIEW_REQUIRED"
+
         # Build mock title, rationale, patch based on query
         title = f"Improvement proposal for: {query}"
         
@@ -103,11 +138,15 @@ class ImprovementProposalEngine:
             for e in reliable_evidences
         ])
 
+        checklist_warnings = ""
+        if not evidence_check_passed:
+            checklist_warnings = f"\n\n> [!WARNING]\n> Missing required checklist evidence: {', '.join(missing_skills)}"
+
         rationale = (
             f"Based on our web research regarding '{query}', we analyzed the following sources:\n"
             f"{sources_summary}\n\n"
             f"The primary recommendation is to optimize resource configurations, validate inputs, "
-            f"and add structured logging to prevent silent errors."
+            f"and add structured logging to prevent silent errors.{checklist_warnings}"
         )
 
         patch_code = (
@@ -131,7 +170,11 @@ class ImprovementProposalEngine:
             "mitigation_plan": "Simulated release gate checks verify syntax and boundaries.",
             "confidence_score": confidence_score,
             "confidence_level": confidence_level,
-            "has_official_doc": has_official_doc
+            "has_official_doc": has_official_doc,
+            "required_skills": required_skills,
+            "satisfied_skills": satisfied_skills,
+            "missing_skills": missing_skills,
+            "evidence_check_passed": evidence_check_passed
         }
 
         proposal_data = {
@@ -160,6 +203,82 @@ class ImprovementProposalEngine:
             }
         )
         return proposal
+
+    async def run_adversarial_review(self, proposal_id: str) -> Dict[str, Any]:
+        """
+        Runs doubt-driven adversarial review on a proposal patch.
+        Analyzes the patch for common coding flaws and regressions, generates doubts,
+        appends them to the risk_analysis, and sets the approval status to REVIEW_REQUIRED if risks are detected.
+        """
+        proposal = await self.improvement_repo.get_proposal(proposal_id)
+        if not proposal:
+            raise ValueError(f"Proposal not found: {proposal_id}")
+
+        patch_code = proposal.get("patch_code") or ""
+        risk_analysis = proposal.get("risk_analysis") or {}
+        
+        doubts = []
+        risk_increment = 0.0
+
+        # Doubt 1: Function signature modification
+        def_removed = False
+        for line in patch_code.splitlines():
+            if line.startswith("-") and not line.startswith("---") and "def " in line:
+                def_removed = True
+                break
+        if def_removed:
+            doubts.append("Function signature modified. Potential regression for calling modules.")
+            risk_increment += 30.0
+
+        # Doubt 2: Missing try-except block on network or DB calls
+        has_io = any(x in patch_code for x in ["httpx.", "requests.", "db.execute", "session.execute"])
+        has_try = "try:" in patch_code
+        if has_io and not has_try:
+            doubts.append("Network/DB operations detected without try-except block. Potential unhandled exceptions.")
+            risk_increment += 25.0
+
+        # Doubt 3: N+1 query pattern (loop containing DB execution)
+        has_loop = any(x in patch_code for x in ["for ", "while "])
+        has_db = any(x in patch_code for x in ["db.execute", "session.execute", "self.db.execute"])
+        if has_loop and has_db:
+            doubts.append("Database operation detected inside loop. Potential N+1 query performance bottleneck.")
+            risk_increment += 20.0
+
+        # Doubt 4: Security modification
+        if any(x in patch_code for x in ["auth.py", "config.py", "JWT_SECRET", "require_permission"]):
+            doubts.append("Security configuration or middleware modified. Verification review required.")
+            risk_increment += 35.0
+
+        # Generate adversarial review payload
+        adversarial_review = {
+            "reviewed_at": datetime.now(timezone.utc).isoformat(),
+            "doubts": doubts,
+            "risk_score_increment": risk_increment,
+            "risk_detected": len(doubts) > 0
+        }
+
+        # Update risk analysis
+        updated_risk = risk_analysis.copy()
+        updated_risk["adversarial_review"] = adversarial_review
+
+        # If risk detected, force status to REVIEW_REQUIRED (unless rejected)
+        current_approval = proposal.get("approval_status", "REVIEW_REQUIRED")
+        new_approval = current_approval
+        if len(doubts) > 0 and current_approval != "REJECTED":
+            new_approval = "REVIEW_REQUIRED"
+
+        # Save to repo
+        await self.improvement_repo.update_proposal_gate(
+            proposal_id=proposal_id,
+            gate_status=proposal.get("gate_status", "DRAFT"),
+            gate_score=proposal.get("gate_score"),
+            risk_analysis=updated_risk,
+            approval_status=new_approval
+        )
+
+        return adversarial_review
+
+
 
 
 class ReleaseGateSimulator:

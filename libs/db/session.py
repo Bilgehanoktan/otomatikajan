@@ -286,24 +286,34 @@ async def init_db():
     from libs.db.models.lineage_models import DecisionLineage
     from libs.db.models.repair_models import Base as RepairBase
     from libs.db.models.ui_repair_models import Base as UIRepairBase
+    try:
+        from apps.bilgeapi.models.database import Base as BilgeBase
+    except ImportError:
+        pass
 
     engine = get_engine()
 
-    async with engine.begin() as conn:
-        # All models share the same Base from libs.db.base,
-        # so one create_all would be enough if all are imported.
-        # We keep the explicit calls for clarity and modularity.
-        await conn.run_sync(Base.metadata.create_all)
-        await conn.run_sync(LearningBase.metadata.create_all)
-        await conn.run_sync(GovBase.metadata.create_all)
-        await conn.run_sync(LineageBase.metadata.create_all)
-        await conn.run_sync(CompBase.metadata.create_all)
-        await conn.run_sync(AuthBase.metadata.create_all)
-        await conn.run_sync(RepairBase.metadata.create_all)
-        await conn.run_sync(FederationBase.metadata.create_all)
-        await conn.run_sync(UIRepairBase.metadata.create_all)
-        db_label = "SQLite Fallback" if is_db_degraded() else "PostgreSQL"
-        logger.info(f"OK: Veritabanı tabloları hazır ({db_label}).")
+    if APP_ENV != "production":
+        async with engine.begin() as conn:
+            # All models share the same Base from libs.db.base,
+            # so one create_all would be enough if all are imported.
+            # We keep the explicit calls for clarity and modularity.
+            await conn.run_sync(Base.metadata.create_all)
+            await conn.run_sync(LearningBase.metadata.create_all)
+            await conn.run_sync(GovBase.metadata.create_all)
+            await conn.run_sync(LineageBase.metadata.create_all)
+            await conn.run_sync(CompBase.metadata.create_all)
+            await conn.run_sync(AuthBase.metadata.create_all)
+            await conn.run_sync(RepairBase.metadata.create_all)
+            await conn.run_sync(FederationBase.metadata.create_all)
+            await conn.run_sync(UIRepairBase.metadata.create_all)
+            if "BilgeBase" in locals():
+                await conn.run_sync(BilgeBase.metadata.create_all)
+            db_label = "SQLite Fallback" if is_db_degraded() else "PostgreSQL"
+            logger.info(f"OK: Veritabanı tabloları hazır ({db_label}).")
+    else:
+        logger.info("Production mode: skipping dynamic DDL table creation (metadata.create_all).")
+
 
     # ── Auto-Seeding Phase 1: Critical Identity Seeds (SIF-01 Compliance) ───
     async with AsyncSessionLocal() as db:

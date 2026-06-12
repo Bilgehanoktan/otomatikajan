@@ -9,7 +9,8 @@ from apps.bilgeapi.repositories.interface import (
     ReleaseCheckRepository, ApiKeyRepository, ResearchRepository, ImprovementRepository,
     PrDraftRepository, PrVerificationRepository, PrReviewFeedbackRepository, PatchRevisionRepository,
     ReviewLedgerRepository,
-    AIPatchSuggestionRepository, SystemFindingRepository
+    AIPatchSuggestionRepository, SystemFindingRepository,
+    RemediationRunbookRepository, RemediationAttemptRepository
 )
 from apps.bilgeapi.schemas.incident import IncidentCreate, IncidentResponse
 from apps.bilgeapi.schemas.diagnostic import DiagnosticResult, DiagnosticStatus
@@ -20,7 +21,8 @@ from apps.bilgeapi.models.database import (
     RepairRequestModel, AuditEventModel, WebhookDeliveryModel, ReleaseCheckModel,
     ApiKeyModel, ResearchRequestModel, ResearchEvidenceModel, ImprovementProposalModel,
     PrDraftModel, PrVerificationModel, PrReviewFeedbackModel, PatchRevisionModel,
-    ReviewLedgerEntryModel, AIPatchSuggestionModel, SystemFindingModel
+    ReviewLedgerEntryModel, AIPatchSuggestionModel, SystemFindingModel,
+    RemediationRunbookModel, RemediationAttemptModel
 )
 
 class PostgresIncidentRepository(IncidentRepository):
@@ -807,7 +809,7 @@ class PostgresImprovementRepository(ImprovementRepository):
         model = res.scalar_one_or_none()
         return self._proposal_to_dict(model) if model else None
 
-    async def update_proposal_gate(self, proposal_id: str, gate_status: str, gate_score: Optional[float] = None, risk_analysis: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    async def update_proposal_gate(self, proposal_id: str, gate_status: str, gate_score: Optional[float] = None, risk_analysis: Optional[Dict[str, Any]] = None, approval_status: Optional[str] = None) -> Optional[Dict[str, Any]]:
         res = await self.db.execute(select(ImprovementProposalModel).where(ImprovementProposalModel.id == proposal_id))
         model = res.scalar_one_or_none()
         if not model:
@@ -817,6 +819,8 @@ class PostgresImprovementRepository(ImprovementRepository):
             model.gate_score = gate_score
         if risk_analysis is not None:
             model.risk_analysis = risk_analysis
+        if approval_status is not None:
+            model.approval_status = approval_status
         await self.db.commit()
         await self.db.refresh(model)
         return self._proposal_to_dict(model)
@@ -1453,3 +1457,163 @@ class PostgresSystemFindingRepository(SystemFindingRepository):
         await self.db.commit()
         await self.db.refresh(model)
         return self._suggestion_to_dict(model)
+
+
+class PostgresRemediationRunbookRepository(RemediationRunbookRepository):
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    def _to_dict(self, model: RemediationRunbookModel) -> Dict[str, Any]:
+        return {
+            "id": model.id,
+            "name": model.name,
+            "action_type": model.action_type,
+            "severity_allowed": model.severity_allowed,
+            "requires_human_gate": model.requires_human_gate,
+            "enabled": model.enabled,
+            "execution_mode": model.execution_mode,
+            "max_attempts": model.max_attempts,
+            "cooldown_seconds": model.cooldown_seconds,
+            "safety_notes": model.safety_notes,
+            "created_at": model.created_at,
+            "updated_at": model.updated_at,
+        }
+
+    async def create_runbook(self, runbook_data: Dict[str, Any]) -> Dict[str, Any]:
+        rb_id = f"rbk_{uuid.uuid4().hex[:8]}"
+        model = RemediationRunbookModel(
+            id=rb_id,
+            name=runbook_data["name"],
+            action_type=runbook_data["action_type"],
+            severity_allowed=runbook_data["severity_allowed"],
+            requires_human_gate=runbook_data.get("requires_human_gate", True),
+            enabled=runbook_data.get("enabled", False),
+            execution_mode=runbook_data.get("execution_mode", "MANUAL"),
+            max_attempts=runbook_data.get("max_attempts", 2),
+            cooldown_seconds=runbook_data.get("cooldown_seconds", 300),
+            safety_notes=runbook_data.get("safety_notes"),
+        )
+        self.db.add(model)
+        await self.db.commit()
+        await self.db.refresh(model)
+        return self._to_dict(model)
+
+    async def get_runbook(self, runbook_id: str) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(select(RemediationRunbookModel).where(RemediationRunbookModel.id == runbook_id))
+        model = res.scalar_one_or_none()
+        return self._to_dict(model) if model else None
+
+    async def get_runbook_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(select(RemediationRunbookModel).where(RemediationRunbookModel.name == name))
+        model = res.scalar_one_or_none()
+        return self._to_dict(model) if model else None
+
+    async def list_runbooks(self) -> List[Dict[str, Any]]:
+        res = await self.db.execute(select(RemediationRunbookModel).order_by(RemediationRunbookModel.name))
+        return [self._to_dict(m) for m in res.scalars().all()]
+
+    async def update_runbook_enabled(self, runbook_id: str, enabled: bool) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(select(RemediationRunbookModel).where(RemediationRunbookModel.id == runbook_id))
+        model = res.scalar_one_or_none()
+        if not model:
+            return None
+        model.enabled = enabled
+        await self.db.commit()
+        await self.db.refresh(model)
+        return self._to_dict(model)
+
+
+class PostgresRemediationAttemptRepository(RemediationAttemptRepository):
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    def _to_dict(self, model: RemediationAttemptModel) -> Dict[str, Any]:
+        return {
+            "id": model.id,
+            "finding_id": model.finding_id,
+            "runbook_id": model.runbook_id,
+            "action_type": model.action_type,
+            "status": model.status,
+            "attempt_no": model.attempt_no,
+            "before_health": model.before_health,
+            "after_health": model.after_health,
+            "output_summary": model.output_summary,
+            "error_message": model.error_message,
+            "policy_decision": model.policy_decision,
+            "forbidden_actions_checked": model.forbidden_actions_checked,
+            "ledger_chain_id": model.ledger_chain_id,
+            "created_by": model.created_by,
+            "started_at": model.started_at,
+            "completed_at": model.completed_at,
+            "created_at": model.created_at,
+            "updated_at": model.updated_at,
+        }
+
+    async def create_attempt(self, attempt_data: Dict[str, Any]) -> Dict[str, Any]:
+        att_id = f"att_{uuid.uuid4().hex[:8]}"
+        model = RemediationAttemptModel(
+            id=att_id,
+            finding_id=attempt_data["finding_id"],
+            runbook_id=attempt_data.get("runbook_id"),
+            action_type=attempt_data["action_type"],
+            status=attempt_data.get("status", "PENDING"),
+            attempt_no=attempt_data.get("attempt_no", 1),
+            before_health=attempt_data.get("before_health"),
+            after_health=attempt_data.get("after_health"),
+            output_summary=attempt_data.get("output_summary"),
+            error_message=attempt_data.get("error_message"),
+            policy_decision=attempt_data.get("policy_decision"),
+            forbidden_actions_checked=attempt_data.get("forbidden_actions_checked"),
+            ledger_chain_id=attempt_data.get("ledger_chain_id"),
+            created_by=attempt_data.get("created_by"),
+            started_at=attempt_data.get("started_at"),
+            completed_at=attempt_data.get("completed_at"),
+        )
+        self.db.add(model)
+        await self.db.commit()
+        await self.db.refresh(model)
+        return self._to_dict(model)
+
+    async def get_attempt(self, attempt_id: str) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(select(RemediationAttemptModel).where(RemediationAttemptModel.id == attempt_id))
+        model = res.scalar_one_or_none()
+        return self._to_dict(model) if model else None
+
+    async def list_attempts_by_finding(self, finding_id: str) -> List[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(RemediationAttemptModel)
+            .where(RemediationAttemptModel.finding_id == finding_id)
+            .order_by(desc(RemediationAttemptModel.created_at))
+        )
+        return [self._to_dict(m) for m in res.scalars().all()]
+
+    async def get_latest_attempt_for_finding(self, finding_id: str) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(RemediationAttemptModel)
+            .where(RemediationAttemptModel.finding_id == finding_id)
+            .order_by(desc(RemediationAttemptModel.created_at))
+            .limit(1)
+        )
+        model = res.scalar_one_or_none()
+        return self._to_dict(model) if model else None
+
+    async def list_attempts(self, limit: int = 50) -> List[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(RemediationAttemptModel)
+            .order_by(desc(RemediationAttemptModel.created_at))
+            .limit(limit)
+        )
+        return [self._to_dict(m) for m in res.scalars().all()]
+
+    async def update_attempt(self, attempt_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(select(RemediationAttemptModel).where(RemediationAttemptModel.id == attempt_id))
+        model = res.scalar_one_or_none()
+        if not model:
+            return None
+        for k, v in updates.items():
+            if hasattr(model, k):
+                setattr(model, k, v)
+        await self.db.commit()
+        await self.db.refresh(model)
+        return self._to_dict(model)
+

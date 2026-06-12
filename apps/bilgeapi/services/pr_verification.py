@@ -39,6 +39,14 @@ class SandboxPatchAnalyzer:
         patch_size_lines = 0
         mutation_commands_detected = False
 
+        has_blocked_patterns = False
+        has_destructive_migration = False
+        has_force_push = False
+        has_uncontrolled_subprocess = False
+        has_rbac_bypass = False
+        has_private_ip_request = False
+        has_secret_logging = False
+
         if not patch_code:
             return {
                 "affected_files": affected_files,
@@ -49,6 +57,13 @@ class SandboxPatchAnalyzer:
                 "dependency_files": dependency_files,
                 "patch_size_lines": patch_size_lines,
                 "mutation_commands_detected": mutation_commands_detected,
+                "has_blocked_patterns": has_blocked_patterns,
+                "has_destructive_migration": has_destructive_migration,
+                "has_force_push": has_force_push,
+                "has_uncontrolled_subprocess": has_uncontrolled_subprocess,
+                "has_rbac_bypass": has_rbac_bypass,
+                "has_private_ip_request": has_private_ip_request,
+                "has_secret_logging": has_secret_logging,
             }
 
         # Parse patch code
@@ -66,6 +81,12 @@ class SandboxPatchAnalyzer:
                     if file_path not in affected_files:
                         affected_files.append(file_path)
 
+            # Check removed/modified lines for RBAC bypass
+            if line.startswith("-"):
+                removed_content = line[1:]
+                if "@require_permission" in removed_content or "@auth" in removed_content:
+                    has_rbac_bypass = True
+
             # Count lines changed (+ or - but not diff metadata)
             if (line.startswith("+") and not line.startswith("+++")) or (line.startswith("-") and not line.startswith("---")):
                 patch_size_lines += 1
@@ -76,6 +97,37 @@ class SandboxPatchAnalyzer:
                     for pattern in self.MUTATION_PATTERNS:
                         if pattern in added_content:
                             mutation_commands_detected = True
+
+                    # eval/exec/shell=True
+                    if "eval(" in added_content or "exec(" in added_content or "shell=True" in added_content:
+                        has_blocked_patterns = True
+
+                    if "subprocess.run" in added_content or "subprocess.Popen" in added_content:
+                        has_uncontrolled_subprocess = True
+
+                    if "webhook" in added_content and ("bypass" in added_content or "ignore" in added_content):
+                        has_rbac_bypass = True
+
+                    # Private IP/localhost request detection
+                    import re
+                    private_ip_pattern = r"(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+)"
+                    if re.search(private_ip_pattern, added_content, re.IGNORECASE):
+                        has_private_ip_request = True
+
+                    # Secret logging detection
+                    secret_log_pattern = r"(log|print).*?(api_key|password|token|secret|credential)"
+                    if re.search(secret_log_pattern, added_content, re.IGNORECASE):
+                        has_secret_logging = True
+
+                    # Force push detection
+                    if "force" in added_content and ("push" in added_content or "push -f" in added_content):
+                        has_force_push = True
+
+                    # Destructive migration detection
+                    if "drop table" in added_content.lower() or "drop_table" in added_content.lower() or "drop column" in added_content.lower() or "drop_column" in added_content.lower() or "downgrade" in added_content.lower():
+                        has_destructive_migration = True
+
+        ui_files = []
 
         # Categorize
         for f in affected_files:
@@ -104,6 +156,12 @@ class SandboxPatchAnalyzer:
             if "requirements.txt" in f or "pyproject.toml" in f:
                 dependency_files.append(f)
 
+            # Check UI files
+            is_ui = any(x in f.lower() for x in ["ui/", "/ui", "components/", "frontend/", "apps/cms", "src/pages", "src/app"]) or \
+                    any(f.lower().endswith(ext) for ext in [".html", ".css", ".js", ".ts", ".tsx", ".vue", ".svelte", ".jsx"])
+            if is_ui and "test" not in f.lower() and not f.endswith(".py"):
+                ui_files.append(f)
+
         return {
             "affected_files": affected_files,
             "risky_files": risky_files,
@@ -111,8 +169,16 @@ class SandboxPatchAnalyzer:
             "migration_files": migration_files,
             "deployment_files": deployment_files,
             "dependency_files": dependency_files,
+            "ui_files": ui_files,
             "patch_size_lines": patch_size_lines,
             "mutation_commands_detected": mutation_commands_detected,
+            "has_blocked_patterns": has_blocked_patterns,
+            "has_destructive_migration": has_destructive_migration,
+            "has_force_push": has_force_push,
+            "has_uncontrolled_subprocess": has_uncontrolled_subprocess,
+            "has_rbac_bypass": has_rbac_bypass,
+            "has_private_ip_request": has_private_ip_request,
+            "has_secret_logging": has_secret_logging,
         }
 
 
@@ -169,7 +235,7 @@ class PrReviewGateScorer:
         breakdown["audit_check"] = 10.0
 
         # Risk Level Assessment
-        if len(analysis.get("risky_files", [])) > 0 or analysis.get("mutation_commands_detected", False):
+        if len(analysis.get("risky_files", [])) > 0 or analysis.get("mutation_commands_detected", False) or analysis.get("has_blocked_patterns", False):
             risk_level = "HIGH"
         elif patch_size > 100 or len(analysis.get("affected_files", [])) > 3:
             risk_level = "MEDIUM"
@@ -186,15 +252,59 @@ class PrReviewGateScorer:
         else:
             review_decision = "BLOCKED"
 
-        # Downgrade rule: If risk is HIGH, it cannot be REVIEW_READY
-        if risk_level == "HIGH" and review_decision == "REVIEW_READY":
+        # Apply Automatic BLOCKED rules
+        blocked_reasons = []
+        if analysis.get("has_blocked_patterns"):
+            blocked_reasons.append("Dangerous pattern (eval/exec/shell=True)")
+        if analysis.get("has_destructive_migration"):
+            blocked_reasons.append("Destructive DB migration")
+        if analysis.get("has_force_push"):
+            blocked_reasons.append("Force push or branch manipulation")
+        if analysis.get("has_uncontrolled_subprocess"):
+            blocked_reasons.append("Uncontrolled subprocess")
+        if analysis.get("has_rbac_bypass"):
+            blocked_reasons.append("RBAC or webhook security bypass")
+        if analysis.get("has_private_ip_request"):
+            blocked_reasons.append("Private IP/localhost request")
+        if analysis.get("has_secret_logging"):
+            blocked_reasons.append("Secret logging")
+
+        # Check UI repair visual evidence
+        if analysis.get("ui_files"):
+            has_browser_evidence = False
+            for e in evidences:
+                text = ((e.get("title") or "") + " " + (e.get("snippet") or "") + " " + (e.get("raw_content_summary") or "") + " " + (e.get("source_url") or "")).lower()
+                if any(kw in text for kw in ["playwright", "screenshot", "trace", "console.log", "browser_test", "before/after", "visual"]):
+                    has_browser_evidence = True
+                    break
+            if not has_browser_evidence:
+                blocked_reasons.append("UI modifications detected without browser-testing or visual evidence (Playwright, screenshot, trace)")
+
+        if blocked_reasons:
+            review_decision = "BLOCKED"
+            score = min(score, 49.0)
+
+        # Apply Automatic REVIEW_REQUIRED / NEEDS_HUMAN_CAUTION rules
+        review_required_reasons = []
+        if len(analysis.get("risky_files", [])) > 0:
+            review_required_reasons.append("Sensitive/risky files modified (auth.py/config.py/database.py/self_healing.py)")
+        if patch_size > 100:
+            review_required_reasons.append("Patch size > 100 lines")
+        if len(analysis.get("migration_files", [])) > 0:
+            review_required_reasons.append("Database migration added")
+        if not analysis.get("test_files"):
+            review_required_reasons.append("Missing test files")
+
+        if review_required_reasons and review_decision == "REVIEW_READY":
             review_decision = "NEEDS_HUMAN_CAUTION"
 
         return {
             "score": score,
             "review_decision": review_decision,
             "risk_level": risk_level,
-            "breakdown": breakdown
+            "breakdown": breakdown,
+            "blocked_reasons": blocked_reasons,
+            "review_required_reasons": review_required_reasons
         }
 
 
@@ -208,7 +318,9 @@ class PrVerificationService:
         audit_service: AuditService,
         revision_repo: Optional[PatchRevisionRepository] = None,
         ai_suggestion_repo: Optional[AIPatchSuggestionRepository] = None,
-        ledger_service: Optional[Any] = None
+        ledger_service: Optional[Any] = None,
+        skill_registry: Optional[Any] = None,
+        skill_check_service: Optional[Any] = None
     ):
         self.verification_repo = verification_repo
         self.pr_draft_repo = pr_draft_repo
@@ -220,6 +332,11 @@ class PrVerificationService:
         self.ledger_service = ledger_service
         self.analyzer = SandboxPatchAnalyzer()
         self.scorer = PrReviewGateScorer()
+        self.skill_registry = skill_registry
+        self.skill_check_service = skill_check_service
+        if not self.skill_check_service and self.skill_registry:
+            from apps.bilgeapi.services.skill_check_service import SkillCheckService
+            self.skill_check_service = SkillCheckService(self.skill_registry, self.ledger_service)
 
     async def _append_ledger_event(self, *, chain_id: str, event_type: str, entity_type: str, entity_id: str, actor_id: str, payload: Dict[str, Any]) -> None:
         if not self.ledger_service:
@@ -285,6 +402,41 @@ class PrVerificationService:
         # Score the PR review
         scoring = self.scorer.calculate_score(analysis, proposal, evidences)
 
+        # Run skill checks
+        skill_status = "PASS"
+        skill_report_addition = ""
+        if self.skill_check_service:
+            skill_names = [
+                "bilgeapi-pr-verification-gate",
+                "bilgeapi-repair-request-safety",
+                "bilgeapi-skill-integrity",
+                "security-and-hardening"
+            ]
+            try:
+                skill_res = await self.skill_check_service.check_patch(
+                    target_type="pr_draft",
+                    target_id=pr_draft_id,
+                    skill_names=skill_names,
+                    patch_code=patch_code
+                )
+                skill_status = skill_res.status
+                skill_report_addition = "\n## Skill Check Results\n"
+                for check in skill_res.checks:
+                    icon = "✅" if check.result == "passed" else ("⚠️" if check.result == "review_required" else "❌")
+                    reason_str = f" ({check.reason})" if check.reason else ""
+                    skill_report_addition += f"- {icon} **{check.skill}**: {check.result.upper()}{reason_str}\n"
+            except Exception as exc:
+                logger.error("Skill checks failed during PR verification: %s", exc)
+                skill_status = "BLOCKED"
+                skill_report_addition = f"\n## Skill Check Results\n❌ **Skill Checks Error (Fail-closed)**: {str(exc)}\n"
+
+        if skill_status == "BLOCKED":
+            scoring["review_decision"] = "BLOCKED"
+            scoring["score"] = min(scoring["score"], 49.0)
+        elif skill_status == "REVIEW_REQUIRED":
+            if scoring["review_decision"] == "REVIEW_READY":
+                scoring["review_decision"] = "NEEDS_HUMAN_CAUTION"
+
         # Generate test plan
         test_plan = []
         if analysis["test_files"]:
@@ -312,7 +464,8 @@ class PrVerificationService:
             analysis=analysis,
             scoring_breakdown=scoring["breakdown"],
             test_plan=test_plan,
-            rollback_plan=rollback_plan
+            rollback_plan=rollback_plan,
+            skill_report_addition=skill_report_addition
         )
 
         # Map review decision to DB status
@@ -393,7 +546,8 @@ class PrVerificationService:
         analysis: Dict[str, Any],
         scoring_breakdown: Dict[str, float],
         test_plan: List[str],
-        rollback_plan: str
+        rollback_plan: str,
+        skill_report_addition: str = ""
     ) -> str:
         test_plan_str = "\n".join(f"- {step}" for step in test_plan)
         
@@ -422,7 +576,7 @@ Risk Level: **{risk_level}**
 - Patch Scope Check: +{scoring_breakdown.get('patch_scope', 0.0)} points
 - Rollback Capability Check: +{scoring_breakdown.get('rollback_check', 0.0)} points
 - Audit Trail Check: +{scoring_breakdown.get('audit_check', 0.0)} points
-
+{skill_report_addition}
 ## Suggested Test Plan
 {test_plan_str}
 
@@ -482,6 +636,41 @@ Risk Level: **{risk_level}**
         # Score the PR review
         scoring = self.scorer.calculate_score(analysis, proposal, evidences)
 
+        # Run skill checks
+        skill_status = "PASS"
+        skill_report_addition = ""
+        if self.skill_check_service:
+            skill_names = [
+                "bilgeapi-pr-verification-gate",
+                "bilgeapi-repair-request-safety",
+                "bilgeapi-skill-integrity",
+                "security-and-hardening"
+            ]
+            try:
+                skill_res = await self.skill_check_service.check_patch(
+                    target_type="patch_revision",
+                    target_id=revision_id,
+                    skill_names=skill_names,
+                    patch_code=revised_patch_code
+                )
+                skill_status = skill_res.status
+                skill_report_addition = "\n## Skill Check Results\n"
+                for check in skill_res.checks:
+                    icon = "✅" if check.result == "passed" else ("⚠️" if check.result == "review_required" else "❌")
+                    reason_str = f" ({check.reason})" if check.reason else ""
+                    skill_report_addition += f"- {icon} **{check.skill}**: {check.result.upper()}{reason_str}\n"
+            except Exception as exc:
+                logger.error("Skill checks failed during patch revision verification: %s", exc)
+                skill_status = "BLOCKED"
+                skill_report_addition = f"\n## Skill Check Results\n❌ **Skill Checks Error (Fail-closed)**: {str(exc)}\n"
+
+        if skill_status == "BLOCKED":
+            scoring["review_decision"] = "BLOCKED"
+            scoring["score"] = min(scoring["score"], 49.0)
+        elif skill_status == "REVIEW_REQUIRED":
+            if scoring["review_decision"] == "REVIEW_READY":
+                scoring["review_decision"] = "NEEDS_HUMAN_CAUTION"
+
         # Generate test plan
         test_plan = []
         if analysis["test_files"]:
@@ -509,7 +698,8 @@ Risk Level: **{risk_level}**
             analysis=analysis,
             scoring_breakdown=scoring["breakdown"],
             test_plan=test_plan,
-            rollback_plan=rollback_plan
+            rollback_plan=rollback_plan,
+            skill_report_addition=skill_report_addition
         )
 
         status = scoring["review_decision"]

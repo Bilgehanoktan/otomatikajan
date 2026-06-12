@@ -1,18 +1,18 @@
 # BilgeAPI Phase 18 Migration Verification
 
-- Database URL source: `environment`
+- Database URL source: `argument`
 - Single head: `yes`
 - Current matches head: `yes`
 - Overall: `PASS`
 
 ## alembic heads
 ```text
-5d8a1c2b7e90 (head)
+3b517c6cb58a (head)
 ```
 
 ## alembic current
 ```text
-5d8a1c2b7e90 (head)
-INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
-INFO  [alembic.runtime.migration] Will assume transactional DDL.
+3b517c6cb58a (head)
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
 ```

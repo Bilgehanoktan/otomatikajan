@@ -3,7 +3,7 @@
   "info": {
     "title": "BilgeAPI",
     "description": "Independent Incident Intake, Diagnostic and Repair-Orchestration API",
-    "version": "1.0.0"
+    "version": "1.2.0"
   },
   "paths": {
     "/health": {
@@ -101,6 +101,89 @@
             "BearerAuth": []
           }
         ]
+      }
+    },
+    "/v1/catalog/skills": {
+      "get": {
+        "tags": [
+          "Catalog"
+        ],
+        "summary": "List Skills",
+        "operationId": "list_skills_v1_catalog_skills_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SkillMetadataResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Skills V1 Catalog Skills Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/catalog/skills/{skill_name}": {
+      "get": {
+        "tags": [
+          "Catalog"
+        ],
+        "summary": "Get Skill",
+        "operationId": "get_skill_v1_catalog_skills__skill_name__get",
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "skill_name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Skill Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillMetadataResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/incidents": {
@@ -6972,6 +7055,96 @@
           "LOW"
         ],
         "title": "Severity"
+      },
+      "SkillMetadataResponse": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Unique name of the skill"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "description": "Source of the skill, e.g. external-vendor or bilgeapi-custom"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "Version of the skill"
+          },
+          "license": {
+            "type": "string",
+            "title": "License",
+            "description": "License of the skill",
+            "default": "MIT"
+          },
+          "risk_level": {
+            "type": "string",
+            "title": "Risk Level",
+            "description": "Risk level, e.g. low, medium, high_value_policy",
+            "default": "low"
+          },
+          "allowed_use": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed Use",
+            "description": "Allowed use cases"
+          },
+          "forbidden_use": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Forbidden Use",
+            "description": "Forbidden use cases"
+          },
+          "hash": {
+            "type": "string",
+            "title": "Hash",
+            "description": "SHA-256 hash of the skill markdown file"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "description": "Whether the skill is enabled",
+            "default": true
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Detailed description parsed from the markdown file"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category",
+            "description": "Category of the skill, e.g. Define, Plan, Build, Verify, Review, Ship"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "source",
+          "version",
+          "hash"
+        ],
+        "title": "SkillMetadataResponse"
       },
       "SystemFindingResponse": {
         "properties": {

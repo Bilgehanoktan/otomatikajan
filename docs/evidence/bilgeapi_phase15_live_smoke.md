@@ -1,7 +1,7 @@
 # BilgeAPI Phase 15 Live Smoke Evidence
 
 - Base URL: `http://127.0.0.1:8100`
-- Generated at: `2026-06-06T07:22:17.930143+00:00`
+- Generated at: `2026-06-07T07:28:47.879179+00:00`
 - Authenticated catalog check: `skipped/no key`
 
 | Check | Endpoint | Expected | Actual | Result | Sample |

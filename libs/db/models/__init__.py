@@ -7,3 +7,8 @@ from .learning_models import *
 from .lineage_models import *
 from .repair_models import *
 from .ui_repair_models import *
+
+try:
+    from apps.bilgeapi.models.database import *
+except ImportError:
+    pass

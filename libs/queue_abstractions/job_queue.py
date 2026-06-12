@@ -448,7 +448,10 @@ class CeleryJobQueue(BaseQueueCapabilities):
         }
 
         # Kuyruk eşleştirme — DeerFlow türleri izole kuyruğa
-        from config import QUEUE_DEFAULT, QUEUE_DEERFLOW  # type: ignore
+        try:
+            from libs.config import QUEUE_DEFAULT, QUEUE_DEERFLOW
+        except ImportError:
+            from config import QUEUE_DEFAULT, QUEUE_DEERFLOW  # type: ignore
         _DEERFLOW_JOB_TYPES = {"deerflow_run", "deerflow_plan", "deerflow_research", "deerflow_review", "deerflow_recovery"}
         
         task_name = task_map.get(job_type)
@@ -592,7 +595,10 @@ def _celery_state_to_job(state: str) -> JobStatus:
 
 
 # ── Singleton ─────────────────────────────────────────────
-from config import REDIS_URL, WORKER_CONCURRENCY, QUEUE_BACKEND  # type: ignore
+try:
+    from libs.config import REDIS_URL, WORKER_CONCURRENCY, QUEUE_BACKEND
+except ImportError:
+    from config import REDIS_URL, WORKER_CONCURRENCY, QUEUE_BACKEND  # type: ignore
 
 def create_job_queue():
     backend = (QUEUE_BACKEND or "auto").lower()

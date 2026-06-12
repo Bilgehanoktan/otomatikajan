@@ -20,7 +20,9 @@ from apps.bilgeapi.repositories.interface import (
     PatchRevisionRepository,
     ReviewLedgerRepository,
     AIPatchSuggestionRepository,
-    SystemFindingRepository
+    SystemFindingRepository,
+    RemediationRunbookRepository,
+    RemediationAttemptRepository
 )
 from apps.bilgeapi.schemas.incident import IncidentCreate, IncidentResponse
 from apps.bilgeapi.schemas.diagnostic import DiagnosticResult, DiagnosticStatus
@@ -48,6 +50,8 @@ class MemoryRepositoriesContainer:
         self.review_ledger_entries: Dict[str, Dict[str, Any]] = {}
         self.ai_patch_suggestions: Dict[str, Dict[str, Any]] = {}
         self.system_findings: Dict[str, Dict[str, Any]] = {}
+        self.remediation_runbooks: Dict[str, Dict[str, Any]] = {}
+        self.remediation_attempts: Dict[str, Dict[str, Any]] = {}
         self._lock = asyncio.Lock()
 
     def clear_all(self):
@@ -70,6 +74,8 @@ class MemoryRepositoriesContainer:
         self.review_ledger_entries.clear()
         self.ai_patch_suggestions.clear()
         self.system_findings.clear()
+        self.remediation_runbooks.clear()
+        self.remediation_attempts.clear()
 
 memory_repositories = MemoryRepositoriesContainer()
 
@@ -465,7 +471,7 @@ class InMemoryImprovementRepository(ImprovementRepository):
         async with memory_repositories._lock:
             return memory_repositories.improvement_proposals.get(proposal_id)
 
-    async def update_proposal_gate(self, proposal_id: str, gate_status: str, gate_score: Optional[float] = None, risk_analysis: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    async def update_proposal_gate(self, proposal_id: str, gate_status: str, gate_score: Optional[float] = None, risk_analysis: Optional[Dict[str, Any]] = None, approval_status: Optional[str] = None) -> Optional[Dict[str, Any]]:
         async with memory_repositories._lock:
             item = memory_repositories.improvement_proposals.get(proposal_id)
             if not item:
@@ -475,6 +481,8 @@ class InMemoryImprovementRepository(ImprovementRepository):
                 item["gate_score"] = gate_score
             if risk_analysis is not None:
                 item["risk_analysis"] = risk_analysis
+            if approval_status is not None:
+                item["approval_status"] = approval_status
             item["updated_at"] = datetime.now(timezone.utc)
             return item
 
@@ -964,3 +972,116 @@ class InMemorySystemFindingRepository(SystemFindingRepository):
                 finding["resolved_by"] = actor_id
                 finding["resolved_at"] = now
             return finding
+
+
+class InMemoryRemediationRunbookRepository(RemediationRunbookRepository):
+    async def create_runbook(self, runbook_data: Dict[str, Any]) -> Dict[str, Any]:
+        async with memory_repositories._lock:
+            rb_id = f"rbk_{uuid.uuid4().hex[:8]}"
+            now = datetime.now(timezone.utc)
+            rb = {
+                "id": rb_id,
+                "name": runbook_data["name"],
+                "action_type": runbook_data["action_type"],
+                "severity_allowed": runbook_data["severity_allowed"],
+                "requires_human_gate": runbook_data.get("requires_human_gate", True),
+                "enabled": runbook_data.get("enabled", False),
+                "execution_mode": runbook_data.get("execution_mode", "MANUAL"),
+                "max_attempts": runbook_data.get("max_attempts", 2),
+                "cooldown_seconds": runbook_data.get("cooldown_seconds", 300),
+                "safety_notes": runbook_data.get("safety_notes"),
+                "created_at": now,
+                "updated_at": now,
+            }
+            memory_repositories.remediation_runbooks[rb_id] = rb
+            return rb
+
+    async def get_runbook(self, runbook_id: str) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            return memory_repositories.remediation_runbooks.get(runbook_id)
+
+    async def get_runbook_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            for item in memory_repositories.remediation_runbooks.values():
+                if item.get("name") == name:
+                    return item
+            return None
+
+    async def list_runbooks(self) -> List[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            return sorted(memory_repositories.remediation_runbooks.values(), key=lambda x: x["name"])
+
+    async def update_runbook_enabled(self, runbook_id: str, enabled: bool) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            rb = memory_repositories.remediation_runbooks.get(runbook_id)
+            if not rb:
+                return None
+            rb["enabled"] = enabled
+            rb["updated_at"] = datetime.now(timezone.utc)
+            return rb
+
+
+class InMemoryRemediationAttemptRepository(RemediationAttemptRepository):
+    async def create_attempt(self, attempt_data: Dict[str, Any]) -> Dict[str, Any]:
+        async with memory_repositories._lock:
+            att_id = f"att_{uuid.uuid4().hex[:8]}"
+            now = datetime.now(timezone.utc)
+            attempt = {
+                "id": att_id,
+                "finding_id": attempt_data["finding_id"],
+                "runbook_id": attempt_data.get("runbook_id"),
+                "action_type": attempt_data["action_type"],
+                "status": attempt_data.get("status", "PENDING"),
+                "attempt_no": attempt_data.get("attempt_no", 1),
+                "before_health": attempt_data.get("before_health"),
+                "after_health": attempt_data.get("after_health"),
+                "output_summary": attempt_data.get("output_summary"),
+                "error_message": attempt_data.get("error_message"),
+                "policy_decision": attempt_data.get("policy_decision"),
+                "forbidden_actions_checked": attempt_data.get("forbidden_actions_checked"),
+                "ledger_chain_id": attempt_data.get("ledger_chain_id"),
+                "created_by": attempt_data.get("created_by"),
+                "started_at": attempt_data.get("started_at"),
+                "completed_at": attempt_data.get("completed_at"),
+                "created_at": now,
+                "updated_at": now,
+            }
+            memory_repositories.remediation_attempts[att_id] = attempt
+            return attempt
+
+    async def get_attempt(self, attempt_id: str) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            return memory_repositories.remediation_attempts.get(attempt_id)
+
+    async def list_attempts_by_finding(self, finding_id: str) -> List[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            matches = [
+                item for item in memory_repositories.remediation_attempts.values()
+                if item["finding_id"] == finding_id
+            ]
+            return sorted(matches, key=lambda x: x["created_at"], reverse=True)
+
+    async def get_latest_attempt_for_finding(self, finding_id: str) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            matches = [
+                item for item in memory_repositories.remediation_attempts.values()
+                if item["finding_id"] == finding_id
+            ]
+            if not matches:
+                return None
+            return sorted(matches, key=lambda x: x["created_at"], reverse=True)[0]
+
+    async def list_attempts(self, limit: int = 50) -> List[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            return sorted(memory_repositories.remediation_attempts.values(), key=lambda x: x["created_at"], reverse=True)[:limit]
+
+    async def update_attempt(self, attempt_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        async with memory_repositories._lock:
+            attempt = memory_repositories.remediation_attempts.get(attempt_id)
+            if not attempt:
+                return None
+            for k, v in updates.items():
+                attempt[k] = v
+            attempt["updated_at"] = datetime.now(timezone.utc)
+            return attempt
+

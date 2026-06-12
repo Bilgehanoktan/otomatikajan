@@ -188,7 +188,7 @@ class ImprovementRepository(ABC):
         pass
 
     @abstractmethod
-    async def update_proposal_gate(self, proposal_id: str, gate_status: str, gate_score: Optional[float] = None, risk_analysis: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    async def update_proposal_gate(self, proposal_id: str, gate_status: str, gate_score: Optional[float] = None, risk_analysis: Optional[Dict[str, Any]] = None, approval_status: Optional[str] = None) -> Optional[Dict[str, Any]]:
         pass
 
     @abstractmethod
@@ -372,3 +372,52 @@ class SystemFindingRepository(ABC):
         actor_id: str,
     ) -> Optional[Dict[str, Any]]:
         pass
+
+
+class RemediationRunbookRepository(ABC):
+    @abstractmethod
+    async def create_runbook(self, runbook_data: Dict[str, Any]) -> Dict[str, Any]:
+        pass
+
+    @abstractmethod
+    async def get_runbook(self, runbook_id: str) -> Optional[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def get_runbook_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def list_runbooks(self) -> List[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def update_runbook_enabled(self, runbook_id: str, enabled: bool) -> Optional[Dict[str, Any]]:
+        pass
+
+
+class RemediationAttemptRepository(ABC):
+    @abstractmethod
+    async def create_attempt(self, attempt_data: Dict[str, Any]) -> Dict[str, Any]:
+        pass
+
+    @abstractmethod
+    async def get_attempt(self, attempt_id: str) -> Optional[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def list_attempts_by_finding(self, finding_id: str) -> List[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def get_latest_attempt_for_finding(self, finding_id: str) -> Optional[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def list_attempts(self, limit: int = 50) -> List[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    async def update_attempt(self, attempt_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        pass
+

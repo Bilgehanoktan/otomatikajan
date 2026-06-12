@@ -226,7 +226,9 @@ class SelfHealingExecutor:
         runbook_repo: RemediationRunbookRepository,
         attempt_repo: RemediationAttemptRepository,
         ledger_service: ReviewLedgerService,
-        verifier: RemediationVerifier = None
+        verifier: RemediationVerifier = None,
+        skill_registry: Optional[Any] = None,
+        skill_check_service: Optional[Any] = None
     ):
         self.finding_repo = finding_repo
         self.runbook_repo = runbook_repo
@@ -234,6 +236,11 @@ class SelfHealingExecutor:
         self.ledger_service = ledger_service
         self.policy = SelfHealingPolicy()
         self.verifier = verifier or RemediationVerifier()
+        self.skill_registry = skill_registry
+        self.skill_check_service = skill_check_service
+        if not self.skill_check_service and self.skill_registry:
+            from apps.bilgeapi.services.skill_check_service import SkillCheckService
+            self.skill_check_service = SkillCheckService(self.skill_registry, self.ledger_service)
 
     async def execute_remediation(self, finding_id: str, runbook_id: str, actor_id: str) -> Dict[str, Any]:
         finding = await self.finding_repo.get_finding(finding_id)
@@ -246,6 +253,31 @@ class SelfHealingExecutor:
 
         # 1. Verify if the runbook matches the action allowed in policy
         decision = self.policy.evaluate(finding, runbook)
+
+        # Run skill checks for self healing policy
+        if self.skill_check_service:
+            try:
+                action_type = runbook["action_type"]
+                check_res = await self.skill_check_service.check_patch(
+                    target_type="self_healing_run",
+                    target_id=finding_id,
+                    skill_names=["bilgeapi-self-healing-policy"],
+                    patch_code=action_type
+                )
+                if check_res.status == "BLOCKED":
+                    decision["allowed"] = False
+                    decision["reason"] = f"Remediation blocked by skill check: {check_res.checks[0].reason}"
+                    decision["requires_human_gate"] = True
+                elif check_res.status == "REVIEW_REQUIRED":
+                    decision["allowed"] = False
+                    decision["reason"] = f"Remediation requires human review by skill check: {check_res.checks[0].reason}"
+                    decision["requires_human_gate"] = True
+            except Exception as exc:
+                logger.error("Skill check failed during self-healing: %s", exc)
+                # Fail-closed
+                decision["allowed"] = False
+                decision["reason"] = f"Remediation blocked due to skill check failure (fail-closed): {str(exc)}"
+                decision["requires_human_gate"] = True
         
         # 2. Check runbook cooldown & max attempts from database
         latest = await self.attempt_repo.get_latest_attempt_for_finding(finding_id)

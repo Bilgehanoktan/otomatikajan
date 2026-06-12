@@ -41,6 +41,7 @@ python-frontmatter==1.1.0
 # ── Monitoring (opsiyonel)
 psutil==5.9.0
 nest_asyncio==1.6.0
+prometheus-client>=0.20.0
 
 # ── Telegram & Generative AI
 python-telegram-bot==21.10

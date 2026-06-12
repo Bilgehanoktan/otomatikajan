@@ -119,8 +119,14 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     try:
         validate_production_config()
-        print("✅ BilgeAPI startup validation passed.")
+        try:
+            print("✅ BilgeAPI startup validation passed.")
+        except UnicodeEncodeError:
+            print("[OK] BilgeAPI startup validation passed.")
         sys.exit(0)
     except StartupValidationError as e:
-        print(f"❌ {e}", file=sys.stderr)
+        try:
+            print(f"❌ {e}", file=sys.stderr)
+        except UnicodeEncodeError:
+            print(f"[FAIL] {e}", file=sys.stderr)
         sys.exit(1)
