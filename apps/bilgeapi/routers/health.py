@@ -22,7 +22,7 @@ async def health_check(request: Request):
     return {
         "status": overall_status,
         "service": "bilgeapi",
-        "version": "1.0.0",
+        "version": settings.BILGEAPI_VERSION,
         "auth_mode": settings.BILGEAPI_AUTH_MODE,
         "skill_registry": skill_registry_status,
     }
@@ -54,7 +54,7 @@ async def detailed_health(request: Request, identity: dict = Depends(require_per
     return {
         "status": overall_status,
         "service": "bilgeapi",
-        "version": "1.0.0",
+        "version": settings.BILGEAPI_VERSION,
         "auth_mode": settings.BILGEAPI_AUTH_MODE,
         "environment": settings.APP_ENV,
         "memory": memory_info,

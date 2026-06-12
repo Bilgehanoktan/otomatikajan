@@ -86,6 +86,14 @@ class Settings:
         return os.getenv("APP_ENV", os.getenv("ENVIRONMENT", "development")).lower()
 
     @property
+    def BILGEAPI_VERSION(self) -> str:
+        return os.getenv("BILGEAPI_VERSION", "1.2.0")
+
+    @BILGEAPI_VERSION.setter
+    def BILGEAPI_VERSION(self, value):
+        os.environ["BILGEAPI_VERSION"] = str(value)
+
+    @property
     def BILGEAPI_WEBHOOK_SECRET(self) -> str:
         secret = os.getenv("BILGEAPI_WEBHOOK_SECRET", "webhook_secret")
         if self.APP_ENV == "production" and (not secret or secret == "webhook_secret"):

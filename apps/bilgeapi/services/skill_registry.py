@@ -4,6 +4,7 @@ import json
 import logging
 from typing import Dict, Any, List, Optional
 from apps.bilgeapi.schemas.skills import SkillMetadataResponse
+from apps.bilgeapi.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -282,7 +283,7 @@ class SkillRegistryService:
         self.verified_cache[skill_name] = SkillMetadataResponse(
             name=skill_name,
             source=source,
-            version="1.0.0",
+            version=settings.BILGEAPI_VERSION,
             license="MIT",
             risk_level=risk_level,
             allowed_use=allowed_use,

@@ -640,7 +640,7 @@ class BilgeAPIReleaseGate:
 
         # Gather metadata
         git_sha = os.getenv("BILGEAPI_GIT_SHA", os.getenv("GIT_SHA", "unknown"))
-        app_version = "1.0.0"
+        app_version = settings.BILGEAPI_VERSION
         environment = settings.APP_ENV
 
         check_data = {

@@ -313,7 +313,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="BilgeAPI",
     description="Independent Incident Intake, Diagnostic and Repair-Orchestration API",
-    version="1.0.0",
+    version=settings.BILGEAPI_VERSION,
     lifespan=lifespan,
 )
 
@@ -680,7 +680,7 @@ def custom_openapi():
     from fastapi.openapi.utils import get_openapi
     openapi_schema = get_openapi(
         title="BilgeAPI",
-        version="1.0.0",
+        version=settings.BILGEAPI_VERSION,
         description="Independent Incident Intake, Diagnostic and Repair-Orchestration API",
         routes=app.routes,
     )
