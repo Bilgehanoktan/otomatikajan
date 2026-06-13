@@ -4150,6 +4150,37 @@
           }
         ]
       }
+    },
+    "/v1/system/i18n/test": {
+      "get": {
+        "tags": [
+          "System Runtime"
+        ],
+        "summary": "Test Localization",
+        "description": "Returns localized responses for testing the language pack.",
+        "operationId": "test_localization_v1_system_i18n_test_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Test Localization V1 System I18N Test Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
     }
   },
   "components": {

@@ -12,6 +12,7 @@ from apps.bilgeapi.config import settings, AutonomyMode
 from apps.bilgeapi.auth import require_permission
 from apps.bilgeapi.schemas.autonomy import AutonomyDecisionRequest, AutonomyDecisionResponse
 from apps.bilgeapi.routers.deps import get_autonomy_decision_service
+from apps.bilgeapi.services.i18n import get_locale, i18n_service
 
 logger = logging.getLogger("bilgeapi.system_runtime")
 
@@ -117,4 +118,23 @@ async def evaluate_autonomy_eligibility(
     except Exception as e:
         logger.error(f"Error executing autonomy decision: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error executing autonomy decision")
+
+
+@router.get("/i18n/test", response_model=Dict[str, Any])
+async def test_localization(
+    request: Request,
+    lang: str = Depends(get_locale)
+):
+    """
+    Returns localized responses for testing the language pack.
+    """
+    return {
+        "lang": lang,
+        "welcome_message": i18n_service.translate("welcome_message", lang),
+        "status_healthy": i18n_service.translate("status_healthy", lang),
+        "auth_required": i18n_service.translate("auth_required", lang),
+        "forbidden": i18n_service.translate("forbidden", lang),
+        "not_found": i18n_service.translate("not_found", lang)
+    }
+
 
