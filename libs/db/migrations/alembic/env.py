@@ -19,6 +19,8 @@ except ImportError:
     pass
 
 from libs.db.models.core_models import Base
+import libs.db.models
+
 
 config = context.config
 

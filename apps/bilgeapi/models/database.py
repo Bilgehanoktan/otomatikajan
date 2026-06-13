@@ -457,4 +457,53 @@ class AutonomyDecisionModel(Base):
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
 
 
+class AgentTaskQueueModel(Base):
+    __tablename__ = "bilgeapi_agent_tasks"
+
+    task_id = Column(String(64), primary_key=True)
+    source = Column(String(64), nullable=False)
+    agent_role = Column(String(64), nullable=False)
+    action_type = Column(String(64), nullable=False)
+    payload = Column(SmartJSON(), nullable=True)
+    risk_level = Column(String(32), default="low", nullable=False)
+    priority_score = Column(Float, default=0.0, nullable=False)
+    status = Column(String(32), default="PENDING", nullable=False, index=True)
+    idempotency_key = Column(String(128), unique=True, nullable=True, index=True)
+    attempt_count = Column(Integer, default=0, nullable=False)
+    max_attempts = Column(Integer, default=3, nullable=False)
+    decision_id = Column(String(64), ForeignKey("bilgeapi_autonomy_decisions.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
+
+    lease = relationship("AgentTaskLeaseModel", back_populates="task", uselist=False, cascade="all, delete-orphan")
+    runs = relationship("AgentOrchestrationRunModel", back_populates="task", cascade="all, delete-orphan")
+
+
+class AgentTaskLeaseModel(Base):
+    __tablename__ = "bilgeapi_agent_task_leases"
+
+    id = Column(String(64), primary_key=True, default=lambda: str(uuid.uuid4()))
+    task_id = Column(String(64), ForeignKey("bilgeapi_agent_tasks.task_id"), nullable=False, unique=True, index=True)
+    lease_owner = Column(String(128), nullable=False)
+    lease_expires_at = Column(DateTime(timezone=True), nullable=False)
+    acquired_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+    task = relationship("AgentTaskQueueModel", back_populates="lease")
+
+
+class AgentOrchestrationRunModel(Base):
+    __tablename__ = "bilgeapi_agent_orchestration_runs"
+
+    run_id = Column(String(64), primary_key=True, default=lambda: str(uuid.uuid4()))
+    task_id = Column(String(64), ForeignKey("bilgeapi_agent_tasks.task_id"), nullable=False, index=True)
+    status = Column(String(32), nullable=False)
+    execution_summary = Column(Text, nullable=True)
+    evidence_ledger_hash = Column(String(128), nullable=True)
+    started_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+
+    task = relationship("AgentTaskQueueModel", back_populates="runs")
+
+
+
 
