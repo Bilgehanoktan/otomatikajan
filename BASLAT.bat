@@ -88,6 +88,7 @@ exit /b 0
 :: Backend Port Temizligi
 echo [*] Eski surecler temizleniyor...
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8000 ^| findstr LISTENING') do taskkill /f /pid %%a >nul 2>&1
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8100 ^| findstr LISTENING') do taskkill /f /pid %%a >nul 2>&1
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr :3100 ^| findstr LISTENING') do taskkill /f /pid %%a >nul 2>&1
 call :assert_port_free 8000 "Backend API"
 if errorlevel 1 (
@@ -102,12 +103,25 @@ if errorlevel 1 (
     if "%INTERACTIVE%"=="1" pause
     exit /b 1
 )
+call :assert_port_free 8100 "BilgeAPI"
+if errorlevel 1 (
+    echo [HATA] 8100 portu hala kullanimda. Eski BilgeAPI surecini kapatin.
+    if "%INTERACTIVE%"=="1" pause
+    exit /b 1
+)
 
 echo [*] Lokal mod baslatiliyor...
 start "Backend API" cmd /c "set SOVEREIGN_DOTENV_OVERRIDE=false&& set RUNTIME_PROFILE=local-dev&& set REDIS_ENABLED=false&& set CELERY_ENABLED=false&& set QUEUE_BACKEND=inprocess&& set INPROCESS_JOB_WORKERS_ENABLED=true&& set WORKFLOW_API_RELOAD=false&& set PLAYWRIGHT_BROWSERS_PATH=%USERPROFILE%\.gemini\antigravity\.playwright-browsers&& %PY_CMD% -m services.workflow_api.main"
 call :wait_http "Backend API" "http://127.0.0.1:8000/health" 24
 if errorlevel 1 (
     echo [HATA] Backend API hazir olmadi. Backend API penceresindeki loglari kontrol edin.
+    if "%INTERACTIVE%"=="1" pause
+    exit /b 1
+)
+start "BilgeAPI" cmd /c "set APP_ENV=development&& set RUNTIME_PROFILE=local-dev&& set LOCAL_DEV_DB_STRATEGY=sqlite-fallback&& set DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5433/ai_company&& set BILGEAPI_DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5433/ai_company&& set BILGEAPI_AUTH_MODE=api_key&& set BILGEAPI_STATIC_KEYS=dev-test-key-001:ADMIN&& set BILGEAPI_PORT=8100&& set PYTHONPATH=%PROJECT_ROOT%&& %PY_CMD% -m uvicorn apps.bilgeapi.main:app --reload --host 0.0.0.0 --port 8100 --log-level debug"
+call :wait_http "BilgeAPI" "http://127.0.0.1:8100/health" 30
+if errorlevel 1 (
+    echo [HATA] BilgeAPI hazir olmadi. BilgeAPI penceresindeki loglari kontrol edin.
     if "%INTERACTIVE%"=="1" pause
     exit /b 1
 )
@@ -129,6 +143,7 @@ setlocal enabledelayedexpansion
 :: Port Temizligi (Cakismalari onlemek icin)
 echo [*] Eski surecler temizleniyor...
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8000 ^| findstr LISTENING') do taskkill /f /pid %%a >nul 2>&1
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8100 ^| findstr LISTENING') do taskkill /f /pid %%a >nul 2>&1
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr :3100 ^| findstr LISTENING') do taskkill /f /pid %%a >nul 2>&1
 
 echo [*] Docker mod baslatiliyor...
@@ -194,7 +209,7 @@ if errorlevel 1 (
     goto local_mode
 )
 echo [*] Uygulama servisleri baslatiliyor...
-docker compose -f docker-compose.yml --profile full-stack up -d --build app cms worker deerflow-worker beat telegram-bot
+docker compose -f docker-compose.yml --profile full-stack up -d --build app bilgeapi cms worker deerflow-worker beat telegram-bot
 if errorlevel 1 (
     echo [HATA] docker-compose baslatilamadi! Loglari kontrol edin.
     pause
@@ -203,6 +218,12 @@ if errorlevel 1 (
 call :wait_http "Backend API" "http://127.0.0.1:8000/health" 24
 if errorlevel 1 (
     echo [HATA] Docker Backend API hazir olmadi! Loglari kontrol edin.
+    pause
+    goto local_mode
+)
+call :wait_http "BilgeAPI" "http://127.0.0.1:8100/health" 30
+if errorlevel 1 (
+    echo [HATA] Docker BilgeAPI hazir olmadi! Loglari kontrol edin.
     pause
     goto local_mode
 )
