@@ -832,3 +832,91 @@ class TestReleaseGatePhase11:
 from unittest.mock import mock_open
 
 
+@pytest.mark.asyncio
+class TestReleaseGateAgentShield:
+
+    async def test_check_agentshield_security_clean(self):
+        repo = InMemoryReleaseCheckRepository()
+        gate = BilgeAPIReleaseGate(repo)
+
+        mock_stdout = """{
+            "findings": [],
+            "score": {
+                "grade": "A",
+                "numericScore": 100
+            }
+        }"""
+        
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=0, stdout=mock_stdout, stderr="")
+            res = gate.check_agentshield_security()
+            assert res["score"] == 100.0
+            assert res["grade"] == "A"
+            assert res["findings_count"] == 0
+            assert len(res["blockers"]) == 0
+            assert len(res["warnings"]) == 0
+
+    async def test_check_agentshield_security_with_findings(self):
+        repo = InMemoryReleaseCheckRepository()
+        gate = BilgeAPIReleaseGate(repo)
+
+        mock_stdout = """{
+            "findings": [
+                {
+                    "severity": "high",
+                    "title": "Hook deletes files",
+                    "file": "hooks/session-start.sh",
+                    "line": 10
+                },
+                {
+                    "severity": "low",
+                    "title": "Unobserved skill",
+                    "file": "skills/test.md",
+                    "line": 1
+                }
+            ],
+            "score": {
+                "grade": "C",
+                "numericScore": 75
+            }
+        }"""
+        
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=0, stdout=mock_stdout, stderr="")
+            res = gate.check_agentshield_security()
+            assert res["score"] == 75.0
+            assert res["grade"] == "C"
+            assert res["findings_count"] == 2
+            assert len(res["blockers"]) == 1
+            assert "AgentShield finding [HIGH]: Hook deletes files" in res["blockers"][0]
+            assert len(res["warnings"]) == 1
+            assert "AgentShield finding [LOW]: Unobserved skill" in res["warnings"][0]
+
+    async def test_check_agentshield_security_failure_production(self):
+        _clean_env()
+        os.environ["APP_ENV"] = "production"
+        repo = InMemoryReleaseCheckRepository()
+        gate = BilgeAPIReleaseGate(repo)
+
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="npx not found")
+            res = gate.check_agentshield_security()
+            assert len(res["blockers"]) == 1
+            assert "AgentShield scanner failed to run" in res["blockers"][0]
+            assert len(res["warnings"]) == 0
+
+    async def test_check_agentshield_security_failure_development(self):
+        _clean_env()
+        os.environ["APP_ENV"] = "development"
+        repo = InMemoryReleaseCheckRepository()
+        gate = BilgeAPIReleaseGate(repo)
+
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="npx not found")
+            res = gate.check_agentshield_security()
+            assert len(res["blockers"]) == 0
+            assert len(res["warnings"]) == 1
+            assert "AgentShield scanner failed to run" in res["warnings"][0]
+
+
+

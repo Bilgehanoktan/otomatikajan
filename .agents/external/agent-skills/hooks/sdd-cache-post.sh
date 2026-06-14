@@ -13,9 +13,9 @@
 
 set -euo pipefail
 
-command -v jq   >/dev/null 2>&1 || exit 0
-command -v curl >/dev/null 2>&1 || exit 0
-command -v shasum >/dev/null 2>&1 || command -v sha256sum >/dev/null 2>&1 || exit 0
+command -v jq   >/dev/null || exit 0
+command -v curl >/dev/null || exit 0
+command -v shasum >/dev/null || command -v sha256sum >/dev/null || exit 0
 
 if [ -t 0 ]; then INPUT="{}"; else INPUT=$(cat); fi
 
@@ -65,7 +65,7 @@ dbg "extracted content bytes=${#CONTENT}"
 
 # Must match the pre hook: sha256(URL), first 32 hex chars.
 hash_key() {
-  if command -v shasum >/dev/null 2>&1; then
+  if command -v shasum >/dev/null; then
     printf '%s' "$1" | shasum -a 256 | cut -c1-32
   else
     printf '%s' "$1" | sha256sum | cut -c1-32
@@ -108,7 +108,7 @@ dbg "HEAD etag=$ETAG last_modified=$LAST_MOD"
 
 if [ -z "$ETAG" ] && [ -z "$LAST_MOD" ]; then
   dbg "no validator from origin, removing any stale entry and exit"
-  rm -f "$CACHE_FILE"
+  [ -f "$CACHE_FILE" ] && rm "$CACHE_FILE"
   exit 0
 fi
 
@@ -128,7 +128,7 @@ then
   mv "$TMP" "$CACHE_FILE"
   dbg "wrote cache file $CACHE_FILE"
 else
-  rm -f "$TMP"
+  [ -f "$TMP" ] && rm "$TMP"
   dbg "jq failed, temp cleaned"
 fi
 

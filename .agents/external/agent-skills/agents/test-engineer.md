@@ -1,6 +1,8 @@
 ---
 name: test-engineer
 description: QA engineer specialized in test strategy, test writing, and coverage analysis. Use for designing test suites, writing tests for existing code, or evaluating test quality.
+model: claude-3-5-sonnet-20241022
+tools: ["view_file", "grep_search", "list_dir"]
 ---
 
 # Test Engineer

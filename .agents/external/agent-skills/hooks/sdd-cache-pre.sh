@@ -18,9 +18,9 @@
 set -euo pipefail
 
 # Graceful degradation: if any dependency is missing, let the fetch through.
-command -v jq   >/dev/null 2>&1 || exit 0
-command -v curl >/dev/null 2>&1 || exit 0
-command -v shasum >/dev/null 2>&1 || command -v sha256sum >/dev/null 2>&1 || exit 0
+command -v jq   >/dev/null || exit 0
+command -v curl >/dev/null || exit 0
+command -v shasum >/dev/null || command -v sha256sum >/dev/null || exit 0
 
 if [ -t 0 ]; then INPUT="{}"; else INPUT=$(cat); fi
 
@@ -40,7 +40,7 @@ dbg "url=$URL"
 
 # Cache key is sha256(URL), truncated to 128 bits.
 hash_key() {
-  if command -v shasum >/dev/null 2>&1; then
+  if command -v shasum >/dev/null; then
     printf '%s' "$1" | shasum -a 256 | cut -c1-32
   else
     printf '%s' "$1" | sha256sum | cut -c1-32

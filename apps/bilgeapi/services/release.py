@@ -210,6 +210,79 @@ class BilgeAPIReleaseGate:
             "security_hardened": len(blockers) == 0
         }
 
+    def check_agentshield_security(self) -> Dict[str, Any]:
+        """
+        Runs ecc-agentshield security checks on the `.agents` configuration.
+        """
+        import subprocess
+        import json
+
+        blockers = []
+        warnings = []
+        score = 0.0
+        grade = "F"
+        findings_count = 0
+
+        is_production = settings.APP_ENV == "production"
+
+        try:
+            cmd = "npx ecc-agentshield scan --path .agents --format json"
+            result = subprocess.run(
+                cmd,
+                shell=True,
+                capture_output=True,
+                text=True,
+                check=False
+            )
+
+            if result.returncode != 0 and not result.stdout:
+                err_msg = f"AgentShield scanner failed to run: {result.stderr.strip()}"
+                if is_production:
+                    blockers.append(err_msg)
+                else:
+                    warnings.append(err_msg)
+            else:
+                try:
+                    data = json.loads(result.stdout)
+                    findings = data.get("findings", [])
+                    findings_count = len(findings)
+
+                    score_data = data.get("score", {})
+                    grade = score_data.get("grade", "F")
+                    score = float(score_data.get("numericScore", 0))
+
+                    for finding in findings:
+                        sev = finding.get("severity", "").lower()
+                        title = finding.get("title", "Unknown issue")
+                        file = finding.get("file", "")
+                        line = finding.get("line", "")
+                        msg = f"AgentShield finding [{sev.upper()}]: {title} in {file}:{line}"
+
+                        if sev in ("critical", "high"):
+                            blockers.append(msg)
+                        else:
+                            warnings.append(msg)
+                except Exception as parse_err:
+                    err_msg = f"AgentShield output parsing failed: {str(parse_err)}. Raw: {result.stdout[:200]}"
+                    if is_production:
+                        blockers.append(err_msg)
+                    else:
+                        warnings.append(err_msg)
+        except Exception as e:
+            err_msg = f"Failed to execute AgentShield subprocess: {str(e)}"
+            if is_production:
+                blockers.append(err_msg)
+            else:
+                warnings.append(err_msg)
+
+        return {
+            "score": score,
+            "grade": grade,
+            "findings_count": findings_count,
+            "blockers": blockers,
+            "warnings": warnings,
+        }
+
     async def run_e2e_dry_run(self, dispatcher: Optional[Any] = None) -> List[Dict[str, Any]]:
         """
         Runs an isolated, simulated E2E dry-run of the intake -> diagnostic -> repair -> dispatch flow.
@@ -590,6 +663,11 @@ class BilgeAPIReleaseGate:
         blockers = list(security_res["blockers"])
         warnings = list(security_res["warnings"])
 
+        # AgentShield Security Check
+        agentshield_res = self.check_agentshield_security()
+        blockers.extend(agentshield_res["blockers"])
+        warnings.extend(agentshield_res["warnings"])
+
         # 4. E2E dry-run simulation
         smoke_trace = await self.run_e2e_dry_run()
         dry_run_failed = any(step["status"] == "FAILED" for step in smoke_trace)
@@ -624,6 +702,14 @@ class BilgeAPIReleaseGate:
             "details": f"Head Revision: {migration_res['head_revision']}, Current DB Revision: {migration_res['current_revision']}"
         })
 
+        # AgentShield Security Check
+        smoke_trace.append({
+            "step": 9,
+            "action": "AGENTSHIELD_SECURITY_CHECK",
+            "status": "PASSED" if not agentshield_res["blockers"] else "FAILED",
+            "details": f"Score: {agentshield_res['score']}, Grade: {agentshield_res['grade']}, Findings: {agentshield_res['findings_count']}"
+        })
+
         # 7. Scoring Algorithm
         score = 100.0
         score -= len(warnings) * 5.0
@@ -651,6 +737,7 @@ class BilgeAPIReleaseGate:
             "checked_modules": modules_res,
             "checked_endpoints": {},  # Will be populated by the caller (router)
             "smoke_trace": smoke_trace,
+            "agentshield": agentshield_res,
             "app_version": app_version,
             "git_sha": git_sha,
             "environment": environment,

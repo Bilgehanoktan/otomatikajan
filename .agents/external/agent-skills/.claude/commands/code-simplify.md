@@ -1,7 +1,10 @@
 ---
 description: Simplify code for clarity and maintainability — reduce complexity without changing behavior
+version: 1.0.0
+rollback: "git checkout ."
+observe: "echo 'observe'"
+feedback: "echo 'feedback'"
 ---
-
 Invoke the agent-skills:code-simplification skill.
 
 Simplify recently changed code (or the specified scope) while preserving exact behavior:

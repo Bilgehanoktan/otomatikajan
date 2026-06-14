@@ -39,10 +39,6 @@ import {
   ReviewLedgerExportRecord,
   ReviewLedgerVerifyRecord,
   ReviewerFeedbackRecord,
-  RemediationRunbookRecord,
-  RemediationAttemptRecord,
-  AgentCapabilityRecord,
-  AgentRunRecord,
   AgentPromotionRecord,
   AgentPolicySimulationResponse,
   acceptAiPatchSuggestionForReview,
@@ -80,9 +76,6 @@ import {
   acknowledgeFinding,
   dismissFinding,
   runWatchdogScan,
-  listAgentCapabilities,
-  listAgentRuns,
-  listAgentPromotions,
   getAgentPromotion,
   approveAgentPromotion,
   rejectAgentPromotion,
@@ -91,6 +84,7 @@ import {
   enableAgent,
   disableAgent,
 } from "@/lib/bilgeapiOpsClient";
+import { useTranslations } from "next-intl";
 
 
 
@@ -151,6 +145,7 @@ function statusTone(status?: string): string {
 }
 
 export default function BilgeAPIOpsConsole() {
+  const t = useTranslations("opsConsole");
   const [activeTab, setActiveTab] = React.useState<OpsTab>("dashboard");
   const [apiKey, setApiKey] = React.useState("");
   const [snapshot, setSnapshot] = React.useState<OpsSnapshot | null>(null);
@@ -258,6 +253,7 @@ export default function BilgeAPIOpsConsole() {
   const remediationAttempts = snapshot?.remediationAttempts ?? [];
   const systemFindings = snapshot?.systemFindings ?? [];
   const watchdogStatus = snapshot?.watchdogStatus ?? null;
+  // listAgentPromotions are retrieved via snapshot load
   const agentPromotions = snapshot?.agentPromotions ?? [];
   const agentRuns = snapshot?.agentRuns ?? [];
   const agentCapabilities = snapshot?.agentCapabilities ?? [];
@@ -326,12 +322,11 @@ export default function BilgeAPIOpsConsole() {
         <div>
           <div className="mb-3 inline-flex items-center gap-2 rounded-lg border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-cyan-100">
             <ShieldCheck size={14} />
-            Faz 27
+            {t("phase27")}
           </div>
-          <h1 className="text-3xl font-black text-white">BilgeAPI Ops Console</h1>
+          <h1 className="text-3xl font-black text-white">{t("title")}</h1>
           <p className="mt-2 max-w-3xl text-sm text-gray-400">
-            API keys, quotas, research, proposals, draft PRs, sandbox verifications, reviewer feedback,
-            patch revisions, release gate and audit trail in one operator surface.
+            {t("subtitle")}
           </p>
         </div>
         <div className="flex flex-col gap-3 rounded-lg border border-white/10 bg-black/30 p-3 md:flex-row md:items-center">
@@ -341,7 +336,7 @@ export default function BilgeAPIOpsConsole() {
               value={apiKey}
               onChange={(event) => setApiKey(event.target.value)}
               type="password"
-              placeholder="BilgeAPI admin/operator X-API-Key"
+              placeholder={t("apiKeyPlaceholder")}
               className="w-full rounded-lg border border-white/10 bg-black/40 py-2 pl-9 pr-3 text-sm text-white outline-none focus:border-cyan-300/30"
             />
           </div>
@@ -350,7 +345,7 @@ export default function BilgeAPIOpsConsole() {
             className="inline-flex items-center justify-center gap-2 rounded-lg border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-xs font-black uppercase tracking-widest text-cyan-100 hover:bg-cyan-300/15"
           >
             <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
-            Refresh
+            {t("refresh")}
           </button>
           <button
             onClick={() => {
@@ -361,13 +356,13 @@ export default function BilgeAPIOpsConsole() {
             className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-xs font-black uppercase tracking-widest text-gray-300 hover:bg-white/10"
           >
             <ShieldOff size={15} />
-            Clear
+            {t("clear")}
           </button>
         </div>
       </div>
 
       <nav className="mb-6 flex flex-wrap gap-2">
-        {tabs.map(({ id, label, icon: Icon }) => (
+        {tabs.map(({ id, icon: Icon }) => (
           <button
             key={id}
             onClick={() => setActiveTab(id)}
@@ -378,7 +373,7 @@ export default function BilgeAPIOpsConsole() {
             }`}
           >
             <Icon size={15} />
-            {label}
+            {t(`tabs.${id}`)}
           </button>
         ))}
       </nav>
@@ -387,7 +382,7 @@ export default function BilgeAPIOpsConsole() {
         <section className="rounded-lg border border-amber-300/20 bg-amber-300/10 p-6 text-amber-100">
           <div className="flex items-center gap-3">
             <AlertTriangle size={20} />
-            <span className="text-sm font-bold">BilgeAPI operator key is required before live data can load.</span>
+            <span className="text-sm font-bold">{t("apiKeyRequired")}</span>
           </div>
         </section>
       ) : null}
@@ -396,7 +391,7 @@ export default function BilgeAPIOpsConsole() {
         <section className="mb-6 rounded-lg border border-amber-300/20 bg-amber-300/10 p-4">
           <div className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-amber-100">
             <AlertTriangle size={15} />
-            Partial data
+            {t("partialData")}
           </div>
           <div className="grid gap-2 text-xs text-amber-50 md:grid-cols-2">
             {snapshot.errors.slice(0, 6).map((error) => (
@@ -411,22 +406,22 @@ export default function BilgeAPIOpsConsole() {
       {activeTab === "dashboard" ? (
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <Metric label="Total API Keys" value={apiKeys.length} icon={<KeyRound size={16} />} tone="cyan" />
-            <Metric label="Active / Revoked" value={`${activeKeyCount} / ${revokedKeyCount}`} icon={<ShieldCheck size={16} />} tone="green" />
-            <Metric label="Quota Exceeded" value={exceededCount} icon={<AlertTriangle size={16} />} tone={exceededCount ? "rose" : "gray"} />
-            <Metric label="Release Gate" value={releaseLatest ? `${releaseLatest.score.toFixed(0)} ${releaseLatest.status}` : "-"} icon={<ListChecks size={16} />} tone="cyan" />
-            <Metric label="Pending Research" value={research?.status === "PENDING" ? 1 : 0} icon={<Search size={16} />} tone="amber" />
-            <Metric label="PR Draft Review" value={pendingDraftCount} icon={<GitPullRequestDraft size={16} />} tone="violet" />
-            <Metric label="Needs Caution" value={cautionCount} icon={<AlertTriangle size={16} />} tone={cautionCount ? "amber" : "gray"} />
-            <Metric label="Audit Events" value={auditEvents.length} icon={<ClipboardCheck size={16} />} tone="green" />
-            <Metric label="Ledger Entries" value={ledgerRecent.length} icon={<ClipboardCheck size={16} />} tone="violet" />
-            <Metric label="Agent Capabilities" value={agentCapabilities.length} icon={<Terminal size={16} />} tone="cyan" />
-            <Metric label="Agent Sandbox Runs" value={agentRuns.length} icon={<Activity size={16} />} tone="green" />
-            <Metric label="Agent Promotions" value={agentPromotions.length} icon={<ClipboardCheck size={16} />} tone="violet" />
+            <Metric label={t("metrics.totalApiKeys")} value={apiKeys.length} icon={<KeyRound size={16} />} tone="cyan" />
+            <Metric label={t("metrics.activeRevoked")} value={`${activeKeyCount} / ${revokedKeyCount}`} icon={<ShieldCheck size={16} />} tone="green" />
+            <Metric label={t("metrics.quotaExceeded")} value={exceededCount} icon={<AlertTriangle size={16} />} tone={exceededCount ? "rose" : "gray"} />
+            <Metric label={t("metrics.releaseGate")} value={releaseLatest ? `${releaseLatest.score.toFixed(0)} ${releaseLatest.status}` : "-"} icon={<ListChecks size={16} />} tone="cyan" />
+            <Metric label={t("metrics.pendingResearch")} value={research?.status === "PENDING" ? 1 : 0} icon={<Search size={16} />} tone="amber" />
+            <Metric label={t("metrics.prDraftReview")} value={pendingDraftCount} icon={<GitPullRequestDraft size={16} />} tone="violet" />
+            <Metric label={t("metrics.needsCaution")} value={cautionCount} icon={<AlertTriangle size={16} />} tone={cautionCount ? "amber" : "gray"} />
+            <Metric label={t("metrics.auditEvents")} value={auditEvents.length} icon={<ClipboardCheck size={16} />} tone="green" />
+            <Metric label={t("metrics.ledgerEntries")} value={ledgerRecent.length} icon={<ClipboardCheck size={16} />} tone="violet" />
+            <Metric label={t("metrics.agentCapabilities")} value={agentCapabilities.length} icon={<Terminal size={16} />} tone="cyan" />
+            <Metric label={t("metrics.agentSandboxRuns")} value={agentRuns.length} icon={<Activity size={16} />} tone="green" />
+            <Metric label={t("metrics.agentPromotions")} value={agentPromotions.length} icon={<ClipboardCheck size={16} />} tone="violet" />
           </div>
 
           <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-            <Panel title="Recent Audit Trail" icon={<ClipboardCheck size={16} />}>
+            <Panel title={t("panels.recentAuditTrail")} icon={<ClipboardCheck size={16} />}>
               <CompactTable
                 headers={["Event", "Entity", "Actor", "Created"]}
                 rows={auditEvents.slice(0, 10).map((event) => [
@@ -435,22 +430,22 @@ export default function BilgeAPIOpsConsole() {
                   event.actor_id,
                   compactDate(event.created_at),
                 ])}
-                empty="No audit event loaded"
+                empty={t("labels.emptyAudit")}
               />
             </Panel>
-            <Panel title="Release Gate Status" icon={<ListChecks size={16} />}>
+            <Panel title={t("panels.releaseGateStatus")} icon={<ListChecks size={16} />}>
               <div className="space-y-4">
                 <div className={`rounded-lg border p-4 ${statusTone(releaseLatest?.status)}`}>
-                  <div className="text-xs font-black uppercase tracking-widest">Latest</div>
+                  <div className="text-xs font-black uppercase tracking-widest">{t("latest")}</div>
                   <div className="mt-2 text-3xl font-black">{releaseLatest ? releaseLatest.score.toFixed(2) : "-"}</div>
-                  <div className="mt-1 text-xs">{releaseLatest ? `${releaseLatest.status} / ${releaseLatest.id}` : "No release check loaded"}</div>
+                  <div className="mt-1 text-xs">{releaseLatest ? `${releaseLatest.status} / ${releaseLatest.id}` : t("noReleaseCheck")}</div>
                 </div>
                 <button
                   onClick={() => void runAction("release_gate", runReleaseReadiness(apiKey))}
                   className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-xs font-black uppercase tracking-widest text-cyan-100"
                 >
                   <Play size={15} />
-                  Run Gate
+                  {t("runGate")}
                 </button>
               </div>
             </Panel>
@@ -460,7 +455,7 @@ export default function BilgeAPIOpsConsole() {
 
       {activeTab === "keys" ? (
         <div className="grid gap-4 xl:grid-cols-[0.8fr_1.2fr]">
-          <Panel title="Create API Key" icon={<KeyRound size={16} />}>
+          <Panel title={t("panels.createApiKey")} icon={<KeyRound size={16} />}>
             <FormGrid>
               <select value={keyForm.role} onChange={(event) => setKeyForm({ ...keyForm, role: event.target.value })} className={inputClass}>
                 {roles.map((role) => (
@@ -469,10 +464,10 @@ export default function BilgeAPIOpsConsole() {
                   </option>
                 ))}
               </select>
-              <input className={inputClass} value={keyForm.tenant_id} onChange={(event) => setKeyForm({ ...keyForm, tenant_id: event.target.value })} placeholder="tenant_id" />
-              <input className={inputClass} value={keyForm.description} onChange={(event) => setKeyForm({ ...keyForm, description: event.target.value })} placeholder="description" />
-              <input className={inputClass} value={keyForm.quota_daily} onChange={(event) => setKeyForm({ ...keyForm, quota_daily: event.target.value })} placeholder="daily quota" />
-              <input className={inputClass} value={keyForm.quota_monthly} onChange={(event) => setKeyForm({ ...keyForm, quota_monthly: event.target.value })} placeholder="monthly quota" />
+              <input className={inputClass} value={keyForm.tenant_id} onChange={(event) => setKeyForm({ ...keyForm, tenant_id: event.target.value })} placeholder={t("labels.tenantId")} />
+              <input className={inputClass} value={keyForm.description} onChange={(event) => setKeyForm({ ...keyForm, description: event.target.value })} placeholder={t("labels.description")} />
+              <input className={inputClass} value={keyForm.quota_daily} onChange={(event) => setKeyForm({ ...keyForm, quota_daily: event.target.value })} placeholder={t("labels.dailyQuota")} />
+              <input className={inputClass} value={keyForm.quota_monthly} onChange={(event) => setKeyForm({ ...keyForm, quota_monthly: event.target.value })} placeholder={t("labels.monthlyQuota")} />
               <button
                 onClick={() =>
                   void runAction(
@@ -493,22 +488,22 @@ export default function BilgeAPIOpsConsole() {
                 className={primaryButtonClass}
               >
                 <Save size={15} />
-                Create
+                {t("buttons.create")}
               </button>
             </FormGrid>
             {createdKey ? (
               <div className="mt-4 rounded-lg border border-emerald-300/20 bg-emerald-300/10 p-4">
-                <div className="mb-2 text-xs font-black uppercase tracking-widest text-emerald-100">Plaintext shown once</div>
+                <div className="mb-2 text-xs font-black uppercase tracking-widest text-emerald-100">{t("labels.plaintextShownOnce")}</div>
                 <code className="block break-all rounded bg-black/40 p-3 text-xs text-white">{createdKey.plaintext_key}</code>
               </div>
             ) : null}
           </Panel>
 
-          <Panel title="API Keys & Quotas" icon={<Terminal size={16} />}>
+          <Panel title={t("panels.apiKeysAndQuotas")} icon={<Terminal size={16} />}>
             <div className="mb-4 grid gap-2 md:grid-cols-[1fr_0.7fr_0.7fr_auto]">
-              <input className={inputClass} value={quotaForm.key_id} onChange={(event) => setQuotaForm({ ...quotaForm, key_id: event.target.value })} placeholder="key_id" />
-              <input className={inputClass} value={quotaForm.quota_daily} onChange={(event) => setQuotaForm({ ...quotaForm, quota_daily: event.target.value })} placeholder="daily" />
-              <input className={inputClass} value={quotaForm.quota_monthly} onChange={(event) => setQuotaForm({ ...quotaForm, quota_monthly: event.target.value })} placeholder="monthly" />
+              <input className={inputClass} value={quotaForm.key_id} onChange={(event) => setQuotaForm({ ...quotaForm, key_id: event.target.value })} placeholder={t("labels.keyId")} />
+              <input className={inputClass} value={quotaForm.quota_daily} onChange={(event) => setQuotaForm({ ...quotaForm, quota_daily: event.target.value })} placeholder={t("labels.dailyQuota")} />
+              <input className={inputClass} value={quotaForm.quota_monthly} onChange={(event) => setQuotaForm({ ...quotaForm, quota_monthly: event.target.value })} placeholder={t("labels.monthlyQuota")} />
               <button
                 onClick={() =>
                   void runAction(
@@ -519,7 +514,7 @@ export default function BilgeAPIOpsConsole() {
                 className={secondaryButtonClass}
               >
                 <Save size={15} />
-                Set
+                {t("buttons.set")}
               </button>
             </div>
             <div className="space-y-3">
@@ -539,7 +534,7 @@ export default function BilgeAPIOpsConsole() {
 
       {activeTab === "research" ? (
         <div className="grid gap-4 xl:grid-cols-[0.8fr_1.2fr]">
-          <Panel title="Research & Proposal Actions" icon={<Search size={16} />}>
+          <Panel title={t("panels.researchActions")} icon={<Search size={16} />}>
             <FormGrid>
               <input className={inputClass} value={researchForm.incident_id} onChange={(event) => setResearchForm({ ...researchForm, incident_id: event.target.value })} placeholder="incident_id" />
               <input className={inputClass} value={researchForm.query} onChange={(event) => setResearchForm({ ...researchForm, query: event.target.value })} placeholder="research query" />
@@ -553,7 +548,7 @@ export default function BilgeAPIOpsConsole() {
                 }
               >
                 <Search size={15} />
-                Start
+                {t("buttons.start")}
               </button>
               <button
                 className={secondaryButtonClass}
@@ -561,33 +556,33 @@ export default function BilgeAPIOpsConsole() {
                 onClick={() => research && void runAction("proposal", createProposal(apiKey, research.id))}
               >
                 <FileText size={15} />
-                Proposal
+                {t("buttons.proposal")}
               </button>
             </FormGrid>
             <div className="mt-4 rounded-lg border border-white/10 bg-black/20 p-4 text-xs text-gray-300">
-              <div className="font-black uppercase tracking-widest text-white">Latest Research</div>
-              <div className="mt-2">{research ? `${research.id} / ${research.status}` : "No session research"}</div>
+              <div className="font-black uppercase tracking-widest text-white">{t("labels.latestResearch")}</div>
+              <div className="mt-2">{research ? `${research.id} / ${research.status}` : t("labels.noSessionResearch")}</div>
             </div>
             <CompactTable
               headers={["Domain", "Trust", "Title"]}
               rows={evidences.map((evidence) => [evidence.source_domain, evidence.trust_score.toFixed(0), evidence.title || evidence.source_url])}
-              empty="No evidence loaded"
+              empty={t("labels.emptyEvidence")}
             />
           </Panel>
-          <Panel title="Improvement Proposals" icon={<FileText size={16} />}>
+          <Panel title={t("panels.proposals")} icon={<FileText size={16} />}>
             <div className="mb-3 flex flex-wrap gap-2">
               <input className={inputClass} value={selectedProposalId} onChange={(event) => setSelectedProposalId(event.target.value)} placeholder="proposal_id" />
               <button className={secondaryButtonClass} onClick={() => selectedProposalId && void runAction("approve_proposal", approveProposal(apiKey, selectedProposalId))}>
                 <CheckCircle2 size={15} />
-                Approve
+                {t("buttons.approve")}
               </button>
               <button className={secondaryButtonClass} onClick={() => selectedProposalId && void runAction("run_gate", runProposalGate(apiKey, selectedProposalId))}>
                 <Play size={15} />
-                Gate
+                {t("buttons.gate")}
               </button>
               <button className={secondaryButtonClass} onClick={() => selectedProposalId && void runAction("draft_pr", createDraftPr(apiKey, selectedProposalId))}>
                 <GitPullRequestDraft size={15} />
-                Draft
+                {t("buttons.draft")}
               </button>
               <button
                 className={secondaryButtonClass}
@@ -597,7 +592,7 @@ export default function BilgeAPIOpsConsole() {
                 }
               >
                 <Eye size={15} />
-                Report
+                {t("buttons.view")}
               </button>
             </div>
             <ProposalList proposals={proposals} onSelect={setSelectedProposalId} />
