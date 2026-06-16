@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
@@ -28,6 +28,7 @@ import {
 } from "@ant-design/icons";
 import { useCustom, useCustomMutation } from "@refinedev/core";
 import dayjs from "dayjs";
+import { ensureSession } from "@/lib/auth";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -36,16 +37,58 @@ export default function SnapshotDetailPage() {
   const router = useRouter();
   const { mutate: exportBundle } = useCustomMutation();
   const snapshotId = Array.isArray(id) ? id[0] : id;
+  const [sessionReady, setSessionReady] = useState(false);
+  const [sessionError, setSessionError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    ensureSession()
+      .then((session) => {
+        if (cancelled) return;
+        if (session.kind === "authenticated") {
+          setSessionReady(true);
+          setSessionError(null);
+          return;
+        }
+        setSessionError("Proof snapshot details require an active platform session.");
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSessionError("Proof snapshot details require an active platform session.");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   
   const snapshotQuery = useCustom<any>({
     url: `governance/governor/proof/snapshots/${snapshotId}`,
-    method: "get"
+    method: "get",
+    queryOptions: {
+      enabled: sessionReady && Boolean(snapshotId),
+    },
   });
   const { data, isLoading } = snapshotQuery.query;
 
   const snapshot = data?.data as any;
 
-  if (isLoading) return <Card loading />;
+  if (sessionError) {
+    return (
+      <div style={{ padding: "24px" }}>
+        <Alert
+          message="Platform session required"
+          description={sessionError}
+          type="warning"
+          showIcon
+        />
+      </div>
+    );
+  }
+
+  if (!sessionReady || isLoading) return <Card loading />;
   if (!snapshot) return <Alert message="Snapshot not found" type="error" />;
 
   return (

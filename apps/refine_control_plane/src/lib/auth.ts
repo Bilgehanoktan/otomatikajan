@@ -8,6 +8,12 @@ const DEV_OPERATOR = {
 
 const TOKEN_KEY = "sqv_access_token";
 
+type AuthFetchOptions = RequestInit & {
+  retries?: number;
+  skipAuthRefresh?: boolean;
+  suppressConsoleError?: boolean;
+};
+
 import { 
   AuthIdentity, 
   SessionState, 
@@ -39,14 +45,18 @@ export function getStoredAccessToken(): string | null {
 /**
  * Standardized fetch wrapper for auth-related operations.
  */
-async function authFetch<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
+async function authFetch<T = unknown>(path: string, init: AuthFetchOptions = {}): Promise<T> {
   const url = `${getApiBaseUrl()}${path}`;
   return safeFetchJson<T>(url, init);
 }
 
 export async function fetchCurrentOperator(): Promise<SessionState> {
   try {
-    const payload = await authFetch<AuthIdentity>("/auth/me");
+    const payload = await authFetch<AuthIdentity>("/auth/me", {
+      retries: 0,
+      skipAuthRefresh: true,
+      suppressConsoleError: true,
+    });
     if (payload && (payload.id || payload.email)) {
       if (typeof window !== "undefined") {
         if (payload.role) window.localStorage.setItem("auth", JSON.stringify({ role: payload.role }));
@@ -59,10 +69,10 @@ export async function fetchCurrentOperator(): Promise<SessionState> {
     }
     return { kind: "error", status: 500, detail: "Sunucudan geçersiz kimlik verisi alındı." };
   } catch (error: unknown) {
-    console.warn("[Auth] fetchCurrentOperator hatası:", error);
     if (error && typeof error === "object" && "status" in error && error.status === 401) {
       return { kind: "unauthorized", status: 401 };
     }
+    console.warn("[Auth] fetchCurrentOperator hatası:", error);
     return {
       kind: "network-error",
       error: error instanceof Error ? error : new Error("Kimlik ağına ulaşılamadı."),
@@ -72,6 +82,7 @@ export async function fetchCurrentOperator(): Promise<SessionState> {
 
 let lastAutoLoginTime = 0;
 const AUTO_LOGIN_COOLDOWN = 10000; // 10 seconds
+let autoLoginInFlight: Promise<SessionState> | null = null;
 
 export async function ensureSession(): Promise<SessionState> {
   const current = await fetchCurrentOperator();
@@ -83,17 +94,25 @@ export async function ensureSession(): Promise<SessionState> {
     return current;
   }
 
-  // Prevent rapid-fire automatic login attempts that cause loops
+  if (autoLoginInFlight) {
+    return autoLoginInFlight;
+  }
+
+  // Prevent rapid-fire automatic login attempts that cause loops.
   const now = Date.now();
   if (now - lastAutoLoginTime < AUTO_LOGIN_COOLDOWN) {
-    console.warn("[Auth] Otomatik giriş beklemede (cooldown active).");
+    const cached = getStoredAccessToken();
+    if (cached) {
+      return fetchCurrentOperator();
+    }
+    console.warn("[Auth] Otomatik giris beklemede (cooldown active).");
     return current;
   }
   lastAutoLoginTime = now;
 
-  console.warn("[Auth] Oturum bulunamadı, otomatik giriş deneniyor...");
+  console.warn("[Auth] Oturum bulunamadi, otomatik giris deneniyor...");
 
-  try {
+  autoLoginInFlight = (async () => {
     const payload = await authFetch<{ access_token?: string | null }>("/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -101,22 +120,26 @@ export async function ensureSession(): Promise<SessionState> {
     });
 
     if (payload?.access_token) {
-        storeAccessToken(payload.access_token);
-        console.info("[Auth] Otomatik giriş başarılı.");
-        // We call fetchCurrentOperator one more time to verify the new token
-        return fetchCurrentOperator();
+      storeAccessToken(payload.access_token);
+      console.info("[Auth] Otomatik giris basarili.");
+      return fetchCurrentOperator();
     }
+
+    return current;
+  })();
+
+  try {
+    return await autoLoginInFlight;
   } catch (error) {
-    console.error("[Auth] Otomatik giriş başarısız:", error);
+    console.error("[Auth] Otomatik giris basarisiz:", error);
     return {
       kind: "network-error",
-      error: error instanceof Error ? error : new Error("Otomatik giriş başarısız oldu."),
+      error: error instanceof Error ? error : new Error("Otomatik giris basarisiz oldu."),
     };
+  } finally {
+    autoLoginInFlight = null;
   }
-
-  return current;
 }
-
 export interface AuthActionResult {
   success: boolean;
   redirectTo?: string;

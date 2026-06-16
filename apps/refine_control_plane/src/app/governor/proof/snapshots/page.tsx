@@ -1,8 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import dayjs from "dayjs";
-import { Breadcrumb, Button, Card, Space, Table, Tag, Typography } from "antd";
+import { Alert, Breadcrumb, Button, Card, Space, Table, Tag, Typography } from "antd";
 import {
   FileSearchOutlined,
   HomeOutlined,
@@ -10,6 +11,7 @@ import {
   SafetyCertificateOutlined,
 } from "@ant-design/icons";
 import { useList } from "@refinedev/core";
+import { ensureSession } from "@/lib/auth";
 
 const { Title, Text } = Typography;
 
@@ -24,12 +26,42 @@ interface ProofSnapshotRecord {
 }
 
 export default function ProofSnapshotsPage() {
+  const [sessionReady, setSessionReady] = useState(false);
+  const [sessionError, setSessionError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    ensureSession()
+      .then((session) => {
+        if (cancelled) return;
+        if (session.kind === "authenticated") {
+          setSessionReady(true);
+          setSessionError(null);
+          return;
+        }
+        setSessionError("Proof snapshots require an active platform session.");
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSessionError("Proof snapshots require an active platform session.");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const {
     query: { data, isLoading },
   } = useList<ProofSnapshotRecord>({
     resource: "governance/governor/proof/snapshots",
     pagination: { pageSize: 50 },
     sorters: [{ field: "created_at", order: "desc" }],
+    queryOptions: {
+      enabled: sessionReady,
+    },
   });
 
   const snapshots = data?.data ?? [];
@@ -75,10 +107,19 @@ export default function ProofSnapshotsPage() {
       </div>
 
       <Card>
+        {sessionError && (
+          <Alert
+            type="warning"
+            showIcon
+            message="Platform session required"
+            description={sessionError}
+            style={{ marginBottom: 16 }}
+          />
+        )}
         <Table<ProofSnapshotRecord>
           dataSource={snapshots}
           rowKey="id"
-          loading={isLoading}
+          loading={!sessionError && (!sessionReady || isLoading)}
           pagination={{ pageSize: 20 }}
           size="middle"
           scroll={{ x: 960 }}
