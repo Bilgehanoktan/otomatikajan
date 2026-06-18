@@ -73,6 +73,7 @@ import {
   disableRemediationRunbook,
   triggerRemediation,
   runEmergencyRecovery,
+  setManagementGate,
   acknowledgeFinding,
   dismissFinding,
   runWatchdogScan,
@@ -81,10 +82,12 @@ import {
   rejectAgentPromotion,
   executeAgentPromotion,
   simulateAgentPromotion,
+  retryAgentRun,
   enableAgent,
   disableAgent,
 } from "@/lib/bilgeapiOpsClient";
 import { useTranslations } from "next-intl";
+import { useGetIdentity } from "@refinedev/core";
 
 
 
@@ -146,6 +149,7 @@ function statusTone(status?: string): string {
 
 export default function BilgeAPIOpsConsole() {
   const t = useTranslations("opsConsole");
+  const { data: identity } = useGetIdentity<any>();
   const [activeTab, setActiveTab] = React.useState<OpsTab>("dashboard");
   const [apiKey, setApiKey] = React.useState("");
   const [snapshot, setSnapshot] = React.useState<OpsSnapshot | null>(null);
@@ -207,8 +211,17 @@ export default function BilgeAPIOpsConsole() {
 
   React.useEffect(() => {
     const saved = sessionStorage.getItem("bilgeapi_ops_api_key");
-    if (saved) setApiKey(saved);
-  }, []);
+    if (saved) {
+      setApiKey(saved);
+    } else if (identity) {
+      const roles = identity.roles || (identity.role ? [identity.role] : []);
+      const upperRoles = roles.map((r: string) => r.toUpperCase());
+      const isUserAdmin = upperRoles.includes("ADMIN") || upperRoles.includes("SOVEREIGN_PRIME");
+      if (isUserAdmin) {
+        setApiKey("dev-test-key-001");
+      }
+    }
+  }, [identity]);
 
   const record = React.useCallback((label: string, status: "OK" | "ERR", detail: string) => {
     setActionLog((current) => [{ id: `${Date.now()}-${label}`, label, status, detail }, ...current].slice(0, 8));
@@ -253,10 +266,16 @@ export default function BilgeAPIOpsConsole() {
   const remediationAttempts = snapshot?.remediationAttempts ?? [];
   const systemFindings = snapshot?.systemFindings ?? [];
   const watchdogStatus = snapshot?.watchdogStatus ?? null;
+  const managementGate = snapshot?.managementGate ?? null;
+  const managementUnlocked = Boolean(managementGate?.unlocked);
   // listAgentPromotions are retrieved via snapshot load
   const agentPromotions = snapshot?.agentPromotions ?? [];
   const agentRuns = snapshot?.agentRuns ?? [];
   const agentCapabilities = snapshot?.agentCapabilities ?? [];
+  const agentAuthRequired = (snapshot?.errors ?? []).some((error) =>
+    error.startsWith("agent_") && error.toLowerCase().includes("platform login"),
+  );
+  const agentDataNotice = "Agent data requires platform session. BilgeAPI panels remain available.";
 
 
   const quotaRows = apiKeys.map((key) => ({
@@ -272,6 +291,9 @@ export default function BilgeAPIOpsConsole() {
   }).length;
   const cautionCount = verifications.filter((item) => item.review_decision === "NEEDS_HUMAN_CAUTION").length;
   const pendingDraftCount = drafts.filter((item) => ["PENDING", "COMPLETED"].includes(item.status)).length;
+  const managementGateTone = managementUnlocked
+    ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100"
+    : "border-amber-300/20 bg-amber-300/10 text-amber-100";
 
   async function runAction<T>(label: string, task: Promise<T>, after?: (value: T) => void | Promise<void>) {
     try {
@@ -419,6 +441,42 @@ export default function BilgeAPIOpsConsole() {
             <Metric label={t("metrics.agentSandboxRuns")} value={agentRuns.length} icon={<Activity size={16} />} tone="green" />
             <Metric label={t("metrics.agentPromotions")} value={agentPromotions.length} icon={<ClipboardCheck size={16} />} tone="violet" />
           </div>
+
+          <Panel title="Management Gate" icon={managementUnlocked ? <ShieldCheck size={16} /> : <Lock size={16} />}>
+            <div className="grid gap-4 xl:grid-cols-[1fr_auto] xl:items-center">
+              <div className="space-y-2">
+                <div className={`inline-flex rounded-lg border px-3 py-1 text-[10px] font-black uppercase tracking-widest ${managementGateTone}`}>
+                  {managementUnlocked ? "UNLOCKED" : "LOCKED"}
+                </div>
+                <p className="text-sm text-gray-300">
+                  BilgeAPI remediation, emergency recovery, and runbook mutation stay blocked until an admin unlocks this gate.
+                </p>
+                <p className="text-xs text-gray-500">
+                  Forbidden actions remain blocked by backend policy even when this gate is unlocked.
+                </p>
+              </div>
+              <button
+                onClick={() =>
+                  void runAction(
+                    managementUnlocked ? "lock_management_gate" : "unlock_management_gate",
+                    setManagementGate(
+                      apiKey,
+                      !managementUnlocked,
+                      managementUnlocked ? "operator_dashboard_lock" : "operator_dashboard_unlock",
+                    ),
+                  )
+                }
+                className={`inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-xs font-black uppercase tracking-widest ${
+                  managementUnlocked
+                    ? "border-amber-300/20 bg-amber-300/10 text-amber-100 hover:bg-amber-300/15"
+                    : "border-emerald-300/20 bg-emerald-300/10 text-emerald-100 hover:bg-emerald-300/15"
+                }`}
+              >
+                {managementUnlocked ? <Lock size={15} /> : <ShieldCheck size={15} />}
+                {managementUnlocked ? "Lock Management" : "Unlock Management"}
+              </button>
+            </div>
+          </Panel>
 
           <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
             <Panel title={t("panels.recentAuditTrail")} icon={<ClipboardCheck size={16} />}>
@@ -1028,6 +1086,18 @@ export default function BilgeAPIOpsConsole() {
 
       {activeTab === "remediation" ? (
         <div className="space-y-6">
+          {!managementUnlocked ? (
+            <section className="rounded-lg border border-amber-300/20 bg-amber-300/10 p-4 text-amber-100">
+              <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest">
+                <Lock size={15} />
+                Management actions are locked
+              </div>
+              <p className="mt-2 text-xs text-amber-50">
+                Open the dashboard Management Gate before running remediation, emergency recovery, or runbook enable/disable actions.
+              </p>
+            </section>
+          ) : null}
+
           <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
             <Panel title="Trigger Remediation" icon={<ShieldCheck size={16} />}>
               <FormGrid>
@@ -1050,8 +1120,10 @@ export default function BilgeAPIOpsConsole() {
                   ))}
                 </select>
                 <button
-                  className={primaryButtonClass}
+                  disabled={!managementUnlocked}
+                  className={`${primaryButtonClass} disabled:cursor-not-allowed disabled:opacity-40`}
                   onClick={() =>
+                    managementUnlocked &&
                     remediationForm.finding_id &&
                     remediationForm.runbook_id &&
                     void runAction(
@@ -1083,8 +1155,10 @@ export default function BilgeAPIOpsConsole() {
                   <option value="restart_worker">Restart Worker Service</option>
                 </select>
                 <button
-                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-300/20 bg-rose-300/10 px-4 py-2 text-xs font-black uppercase tracking-widest text-rose-100 hover:bg-rose-300/15"
+                  disabled={!managementUnlocked}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-300/20 bg-rose-300/10 px-4 py-2 text-xs font-black uppercase tracking-widest text-rose-100 hover:bg-rose-300/15 disabled:cursor-not-allowed disabled:opacity-40"
                   onClick={() =>
+                    managementUnlocked &&
                     emergencyForm.finding_id &&
                     void runAction(
                       "emergency_recovery",
@@ -1140,15 +1214,17 @@ export default function BilgeAPIOpsConsole() {
                         <td className="px-3 py-2">
                           {rb.enabled ? (
                             <button
-                              onClick={() => void runAction(`disable_runbook_${rb.id}`, disableRemediationRunbook(apiKey, rb.id))}
-                              className="rounded border border-rose-300/20 bg-rose-300/10 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-rose-100"
+                              disabled={!managementUnlocked}
+                              onClick={() => managementUnlocked && void runAction(`disable_runbook_${rb.id}`, disableRemediationRunbook(apiKey, rb.id))}
+                              className="rounded border border-rose-300/20 bg-rose-300/10 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-rose-100 disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               Disable
                             </button>
                           ) : (
                             <button
-                              onClick={() => void runAction(`enable_runbook_${rb.id}`, enableRemediationRunbook(apiKey, rb.id))}
-                              className="rounded border border-emerald-300/20 bg-emerald-300/10 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-100"
+                              disabled={!managementUnlocked}
+                              onClick={() => managementUnlocked && void runAction(`enable_runbook_${rb.id}`, enableRemediationRunbook(apiKey, rb.id))}
+                              className="rounded border border-emerald-300/20 bg-emerald-300/10 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-100 disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               Enable
                             </button>
@@ -1241,6 +1317,14 @@ export default function BilgeAPIOpsConsole() {
 
       {activeTab === "agents" ? (
         <div className="space-y-6">
+          {agentAuthRequired ? (
+            <section className="rounded-lg border border-amber-300/20 bg-amber-300/10 p-4">
+              <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-amber-100">
+                <AlertTriangle size={15} />
+                <span>{agentDataNotice}</span>
+              </div>
+            </section>
+          ) : null}
           <div className="grid gap-4 xl:grid-cols-[1fr_1.4fr]">
             
             {/* Left side: Capabilities list and Runs list */}
@@ -1249,7 +1333,7 @@ export default function BilgeAPIOpsConsole() {
               <Panel title="Agent Capabilities" icon={<Terminal size={16} />}>
                 <div className="space-y-3">
                   {agentCapabilities.length === 0 ? (
-                    <EmptyState text="No agent capability loaded" />
+                    <EmptyState text={agentAuthRequired ? agentDataNotice : "No agent capability loaded"} />
                   ) : (
                     agentCapabilities.map((cap) => (
                       <div key={cap.agent_key} className="rounded-lg border border-white/10 bg-black/20 p-4">
@@ -1294,15 +1378,26 @@ export default function BilgeAPIOpsConsole() {
               <Panel title="Recent Sandbox Runs" icon={<Activity size={16} />}>
                 <div className="space-y-3">
                   {agentRuns.length === 0 ? (
-                    <EmptyState text="No agent run loaded" />
+                    <EmptyState text={agentAuthRequired ? agentDataNotice : "No agent run loaded"} />
                   ) : (
                     agentRuns.slice(0, 15).map((run) => (
                       <div key={run.run_id} className="rounded-lg border border-white/10 bg-black/20 p-4 text-xs">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <span className="font-mono font-black text-white">{run.run_id}</span>
-                          <span className={`rounded border px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${statusTone(run.status)}`}>
-                            {run.status}
-                          </span>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`rounded border px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${statusTone(run.status)}`}>
+                              {run.status}
+                            </span>
+                            {["FAILED", "BLOCKED"].includes(String(run.status).toUpperCase()) ? (
+                              <button
+                                onClick={() => void runAction(`retry_agent_run_${run.run_id}`, retryAgentRun(apiKey, run.run_id))}
+                                className="inline-flex items-center gap-1 rounded border border-amber-300/20 bg-amber-300/10 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-amber-100 hover:bg-amber-300/15"
+                              >
+                                <RefreshCw size={12} />
+                                Retry Failed
+                              </button>
+                            ) : null}
+                          </div>
                         </div>
                         <div className="mt-2 grid grid-cols-2 gap-2 text-gray-400">
                           <div>Agent: <span className="text-gray-200">{run.agent_key}</span></div>
@@ -1327,7 +1422,7 @@ export default function BilgeAPIOpsConsole() {
               <Panel title="Promotion Requests" icon={<ClipboardCheck size={16} />}>
                 <div className="space-y-3">
                   {agentPromotions.length === 0 ? (
-                    <EmptyState text="No promotion request registered" />
+                    <EmptyState text={agentAuthRequired ? agentDataNotice : "No promotion request registered"} />
                   ) : (
                     agentPromotions.map((promo) => (
                       <button

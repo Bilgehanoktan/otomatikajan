@@ -137,7 +137,7 @@ async def is_db_available() -> bool:
 def get_engine():
     from sqlalchemy import event
     from sqlalchemy.ext.asyncio import create_async_engine
-    global _engine, _last_loop, _DB_DEGRADED, _DB_CHECKED
+    global _engine, _last_loop, _DB_DEGRADED, _DB_CHECKED, _DB_ERROR
     try:
         curr_active_loop = asyncio.get_running_loop()
     except RuntimeError:
