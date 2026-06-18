@@ -406,13 +406,13 @@ class CeleryJobQueue(BaseQueueCapabilities):
             supports_resume=False,
             listing_scope="process_local",
         )
+        self._jobs: dict[str, Job] = {} # CeleryJobQueue needs to track jobs too
         try:
             from tasks.celery_app import celery_app  # type: ignore
             from tasks.project_tasks import run_project_task  # type: ignore
             self._celery = celery_app
             self._run_task = run_project_task
             self._available = True
-            self._jobs: dict[str, Job] = {} # CeleryJobQueue needs to track jobs too
         except ImportError:
             self._available = False
             

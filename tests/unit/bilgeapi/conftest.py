@@ -13,6 +13,8 @@ def setup_test_env():
     os.environ["BILGEAPI_STATIC_KEYS"] = "test_key_1,test_key_2"
     os.environ["BILGEAPI_PORT"] = "8100"
     os.environ["BILGEAPI_RATE_LIMIT_RPS"] = "10000"
+    os.environ["BILGEAPI_DURABLE_QUEUE_ENABLED"] = "false"
+    os.environ["BILGEAPI_MANAGEMENT_ACTIONS_UNLOCKED"] = "true"
     yield
     # Cleanup
     if "BILGEAPI_AUTH_MODE" in os.environ:
@@ -23,6 +25,10 @@ def setup_test_env():
         del os.environ["BILGEAPI_PORT"]
     if "BILGEAPI_RATE_LIMIT_RPS" in os.environ:
         del os.environ["BILGEAPI_RATE_LIMIT_RPS"]
+    if "BILGEAPI_DURABLE_QUEUE_ENABLED" in os.environ:
+        del os.environ["BILGEAPI_DURABLE_QUEUE_ENABLED"]
+    if "BILGEAPI_MANAGEMENT_ACTIONS_UNLOCKED" in os.environ:
+        del os.environ["BILGEAPI_MANAGEMENT_ACTIONS_UNLOCKED"]
 
 @pytest.fixture
 def test_client():
