@@ -1,0 +1,65 @@
+{
+  "graph": {
+    "nodes": {
+      "refine_control_plane": {
+        "name": "refine_control_plane",
+        "type": "app",
+        "data": {
+          "root": "apps/refine_control_plane",
+          "targets": {
+            "lint": {
+              "executor": "nx:run-script",
+              "cache": true,
+              "inputs": [
+                "default"
+              ],
+              "options": {
+                "script": "lint"
+              },
+              "configurations": {}
+            },
+            "build": {
+              "executor": "nx:run-script",
+              "cache": true,
+              "dependsOn": [
+                "^build"
+              ],
+              "inputs": [
+                "production",
+                "^production"
+              ],
+              "options": {
+                "script": "build"
+              },
+              "configurations": {}
+            },
+            "dev": {
+              "executor": "nx:run-script",
+              "options": {
+                "script": "dev"
+              },
+              "configurations": {}
+            },
+            "start": {
+              "executor": "nx:run-script",
+              "options": {
+                "script": "start"
+              },
+              "configurations": {}
+            }
+          },
+          "sourceRoot": "apps/refine_control_plane",
+          "name": "refine_control_plane",
+          "projectType": "application",
+          "implicitDependencies": [],
+          "tags": []
+        }
+      }
+    },
+    "dependencies": {
+      "refine_control_plane": []
+    }
+  },
+  "affectedProjects": [],
+  "criticalPath": []
+}

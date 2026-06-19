@@ -1,0 +1,50 @@
+templates:
+  documentation-pack:
+    type: docs
+    allowed_outputs:
+      - README.md
+      - architecture.md
+      - user_guide.md
+    test_commands: []
+
+  nextjs-basic-app:
+    type: frontend
+    allowed_outputs:
+      - package.json
+      - src/app/page.tsx
+      - src/app/layout.tsx
+    test_commands:
+      - npm run lint
+      - npm run build
+
+  fastapi-service:
+    type: backend
+    allowed_outputs:
+      - main.py
+      - requirements.txt
+      - test_main.py
+    test_commands:
+      - py -3.13 -m pytest
+      - py -3.13 -m compileall
+
+  refine-dashboard:
+    type: frontend
+    allowed_outputs:
+      - package.json
+      - src/app/dashboard/page.tsx
+    test_commands:
+      - npm run lint
+
+  google-sheets-tracker:
+    type: data
+    allowed_outputs:
+      - sheet_schema.json
+      - tracker_instructions.md
+    test_commands: []
+
+  excel-dashboard:
+    type: data
+    allowed_outputs:
+      - excel_template.xlsx
+      - readme_excel.md
+    test_commands: []

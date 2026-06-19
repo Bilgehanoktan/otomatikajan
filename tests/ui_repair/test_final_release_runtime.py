@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import uuid
 
 import pytest
 
@@ -6,9 +7,11 @@ from libs.db.models.ui_repair_models import (
     UIRepairCase,
     UIRouteHealth,
     UIReleaseReadinessCheck,
+    UIFinalAuditPack,
     ReleaseStatus,
 )
 from services.ui_repair.baseline_bootstrap import UIRepairBaselineBootstrapper
+from services.ui_repair.release_lock_manager import ReleaseLockManager
 
 
 @pytest.mark.asyncio
@@ -135,3 +138,50 @@ async def test_bootstrap_baseline_clears_core_release_failures(client, db_sessio
     audit_payload = audit_response.json()
     assert audit_payload["checked_modules_json"]["KnowledgeGraph"] == "PASSED"
     assert audit_payload["checked_modules_json"]["FederationMesh"] == "PASSED"
+
+
+@pytest.mark.asyncio
+async def test_release_lock_requires_passed_audit_pack(db_session):
+    manager = ReleaseLockManager(db_session)
+
+    with pytest.raises(ValueError, match="missing or not in PASSED state"):
+        await manager.create_release_lock("1.1.0", "operator@test.local", uuid.uuid4())
+
+    warning_pack = UIFinalAuditPack(
+        pack_key="PACK-WARNING",
+        status=ReleaseStatus.WARNING,
+        version="1.1.0",
+        summary_json={"warnings": 1},
+    )
+    db_session.add(warning_pack)
+    await db_session.commit()
+
+    with pytest.raises(ValueError, match="missing or not in PASSED state"):
+        await manager.create_release_lock("1.1.0", "operator@test.local", warning_pack.id)
+
+
+@pytest.mark.asyncio
+async def test_release_lock_uses_audit_pack_summary_and_sha(monkeypatch, db_session):
+    monkeypatch.setattr(
+        ReleaseLockManager,
+        "_resolve_commit_sha",
+        staticmethod(lambda: "abc123def456"),
+    )
+    passed_pack = UIFinalAuditPack(
+        pack_key="PACK-PASSED",
+        status=ReleaseStatus.PASSED,
+        version="1.1.0",
+        summary_json={"checks": {"smoke": "passed"}},
+        evidence_hash="pack-hash-1",
+    )
+    db_session.add(passed_pack)
+    await db_session.commit()
+
+    manager = ReleaseLockManager(db_session)
+    lock = await manager.create_release_lock("1.1.0", "operator@test.local", passed_pack.id)
+
+    assert lock.commit_sha == "abc123def456"
+    assert lock.test_summary_json["audit_pack_id"] == str(passed_pack.id)
+    assert lock.test_summary_json["audit_pack_key"] == "PACK-PASSED"
+    assert lock.test_summary_json["summary"] == {"checks": {"smoke": "passed"}}
+    assert lock.evidence_hash.startswith("SHA256:")

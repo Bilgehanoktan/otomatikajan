@@ -1,0 +1,83 @@
+<div class="card runbooks-center">
+    <div class="card-header">
+        <span class="card-title"><i class="fas fa-scroll"></i> Operasyon Runbook'ları</span>
+        <div class="card-actions">
+            <select id="runbook-area-filter" class="input-sm">
+                <option value="">Tüm Alanlar</option>
+                <option value="api">API</option>
+                <option value="worker">Worker</option>
+                <option value="infra">Infra</option>
+            </select>
+        </div>
+    </div>
+    
+    <div class="runbook-grid" id="runbook-list">
+        <div class="loading">Yükleniyor...</div>
+    </div>
+</div>
+
+<style>
+    .runbook-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; margin-top: 15px; }
+    .runbook-card {
+        background: var(--card-bg-alt);
+        border-left: 4px solid var(--border);
+        border-radius: 4px;
+        padding: 15px;
+        position: relative;
+    }
+    .runbook-card.high { border-left-color: var(--orange); }
+    .runbook-card.critical { border-left-color: var(--red); }
+    .runbook-card.low { border-left-color: var(--green); }
+    
+    .runbook-meta { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+    .runbook-area { color: var(--accent); }
+    .runbook-severity { padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.05); }
+    
+    .runbook-title { font-weight: 700; margin-bottom: 5px; }
+    .runbook-steps-count { font-size: 12px; color: var(--muted); }
+</style>
+
+<script>
+    (function() {
+        const RBC = {
+            docs: [],
+            
+            async init() {
+                await this.refresh();
+                document.getElementById('runbook-area-filter').addEventListener('change', () => this.render());
+            },
+            
+            async refresh() {
+                try {
+                    const response = await fetch('http://localhost:3100/api/runbooks');
+                    const data = await response.json();
+                    this.docs = data.docs || [];
+                    this.render();
+                } catch (e) {
+                    document.getElementById('runbook-list').innerHTML = `<div class="error">CMS bağlantı hatası.</div>`;
+                }
+            },
+            
+            render() {
+                const area = document.getElementById('runbook-area-filter').value;
+                const container = document.getElementById('runbook-list');
+                
+                const filtered = area ? this.docs.filter(d => d.systemArea === area) : this.docs;
+                
+                container.innerHTML = filtered.map(d => `
+                    <div class="runbook-card ${d.severity}">
+                        <div class="runbook-meta">
+                            <span class="runbook-area">${d.systemArea}</span>
+                            <span class="runbook-severity">${d.severity}</span>
+                        </div>
+                        <div class="runbook-title">${d.title}</div>
+                        <div class="runbook-steps-count">${(d.steps || []).length} Adım + ${(d.rollbackSteps || []).length} Geri Dönüş</div>
+                    </div>
+                `).join('');
+            }
+        };
+        
+        window.RBC = RBC;
+        RBC.init();
+    })();
+</script>

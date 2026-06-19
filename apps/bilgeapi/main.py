@@ -208,6 +208,7 @@ def sanitize_path(path: str) -> str:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan: validate config on startup, drain tasks on shutdown."""
+    agent_queue_task = None
     # Startup
     try:
         from services.observability.logging import configure_logging
@@ -277,11 +278,40 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(job_queue.start(num_workers=2))
         logger.info("[STARTUP] BilgeAPI JobQueue workers started.")
         
+        # AgentOrchestrationQueue background consumer loop
+        async def _run_agent_queue_consumer():
+            from services.orchestration.application.agent_queue import AgentOrchestrationQueue
+            queue = AgentOrchestrationQueue()
+            logger.info("[STARTUP] BilgeAPI AgentOrchestrationQueue background consumer started.")
+            while True:
+                try:
+                    result = await queue.process_next(context="bilgeapi_background_worker")
+                    if result:
+                        logger.info(f"[AGENT-QUEUE] Processed task: {result['task_id']} with status {result['status']}")
+                        await asyncio.sleep(0.5)
+                    else:
+                        await asyncio.sleep(5.0)
+                except asyncio.CancelledError:
+                    break
+                except Exception as e:
+                    logger.error(f"[AGENT-QUEUE] Error in background consumer: {e}", exc_info=True)
+                    await asyncio.sleep(5.0)
+        
+        agent_queue_task = asyncio.create_task(_run_agent_queue_consumer())
+        
     logger.info("BilgeAPI started successfully.")
     yield
 
     # Shutdown — drain BilgeAPI-managed background tasks
     logger.info("BilgeAPI shutting down — draining background tasks...")
+    if agent_queue_task:
+        logger.info("Stopping BilgeAPI AgentOrchestrationQueue background consumer...")
+        agent_queue_task.cancel()
+        try:
+            await agent_queue_task
+        except asyncio.CancelledError:
+            pass
+
     if settings.BILGEAPI_DURABLE_QUEUE_ENABLED:
         try:
             from libs.queue_abstractions.job_queue import job_queue
@@ -318,6 +348,18 @@ app = FastAPI(
 )
 
 # ── CORS Middleware ───────────────────────────────────────────────────────────
+@app.get("/", include_in_schema=False)
+async def root_index():
+    return {
+        "service": "bilgeapi",
+        "status": "ok",
+        "version": settings.BILGEAPI_VERSION,
+        "health_url": "/health",
+        "docs_url": "/docs",
+        "openapi_url": "/openapi.json",
+    }
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.BILGEAPI_CORS_ALLOWLIST,

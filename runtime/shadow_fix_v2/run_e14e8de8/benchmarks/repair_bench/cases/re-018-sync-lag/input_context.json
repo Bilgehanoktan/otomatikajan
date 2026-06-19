@@ -1,0 +1,1 @@
+{"failure_logs": ["CRITICAL: Database Replication Lag Exceeding Threshold detected in database stack.", "Technology: postgres"], "metrics": {"error_rate": 0.45, "latency_ms": 1200}, "environment": "production-cluster-01"}

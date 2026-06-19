@@ -1,0 +1,4 @@
+{
+  "alert_rate": "250/min",
+  "network_flapping": true
+}

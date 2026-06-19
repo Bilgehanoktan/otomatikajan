@@ -1,0 +1,25 @@
+{
+  "buttons": {
+    "create": "Oluştur",
+    "save": "Kaydet",
+    "delete": "Sil",
+    "edit": "Düzenle",
+    "cancel": "İptal",
+    "refresh": "Yenile",
+    "show": "Göster",
+    "filter": "Filtrele",
+    "clear": "Temizle"
+  },
+  "notifications": {
+    "createSuccess": "Başarıyla oluşturuldu",
+    "createError": "Kayıt oluşturulurken bir hata oluştu",
+    "editSuccess": "Başarıyla güncellendi",
+    "editError": "Kayıt güncellenirken bir hata oluştu",
+    "deleteSuccess": "Başarıyla silindi",
+    "deleteError": "Kayıt silinirken bir hata oluştu"
+  },
+  "table": {
+    "emptyText": "Veri bulunamadı",
+    "actions": "İşlemler"
+  }
+}

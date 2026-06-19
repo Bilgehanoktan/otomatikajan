@@ -1,0 +1,56 @@
+workflow_id: self_repair_audit_v1
+name: self_repair_audit_v1
+description: Audit system health and produce actionable findings without changing source code.
+version: 1
+mode: audit_only
+writes_code: false
+produces_patch: false
+
+trigger:
+  type: manual_or_cron
+
+steps:
+  - id: collect_system_context
+    type: deterministic
+    handler: services.self_repair_audit.audit_orchestrator.collect_system_context_step
+    artifact: system_context.json
+
+  - id: scan_frontend_backend_contracts
+    type: deterministic
+    handler: services.self_repair_audit.audit_orchestrator.scan_api_contracts_step
+    artifact: api_contract_audit.json
+
+  - id: scan_dashboard_health
+    type: deterministic
+    handler: services.self_repair_audit.audit_orchestrator.scan_dashboard_health_step
+    artifact: dashboard_health_audit.json
+
+  - id: scan_dashboard_data_source_contracts
+    type: deterministic
+    handler: services.self_repair_audit.audit_orchestrator.scan_dashboard_data_source_contracts_step
+    artifact: dashboard_data_source_contract_audit.json
+
+  - id: scan_test_and_build_health
+    type: deterministic
+    handler: services.self_repair_audit.audit_orchestrator.scan_test_build_step
+    artifact: test_build_audit.json
+
+  - id: scan_security_guardrails
+    type: deterministic
+    handler: services.self_repair_audit.audit_orchestrator.scan_security_guardrails_step
+    artifact: security_guardrail_audit.json
+
+  - id: scan_project_factory_readiness
+    type: deterministic
+    handler: services.self_repair_audit.audit_orchestrator.scan_project_factory_readiness_step
+    artifact: project_factory_audit.json
+
+  - id: classify_findings
+    type: deterministic
+    handler: services.self_repair_audit.audit_orchestrator.classify_findings_step
+    artifact: classified_findings.json
+
+  - id: create_audit_report
+    type: deterministic
+    handler: services.self_repair_audit.audit_orchestrator.create_audit_report_step
+    artifact: audit_report.json

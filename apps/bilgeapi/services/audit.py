@@ -61,8 +61,12 @@ class AuditService:
             created_at=now
         )
         
-        # Write to repository
-        await self.audit_repo.write(event)
+        # Repository write is best-effort. Audit persistence degradation must not
+        # turn request auth / business flows into 500s.
+        try:
+            await self.audit_repo.write(event)
+        except Exception as e:
+            logger.error(f"Failed to persist audit event to repository: {e}")
         
         # Write to local JSONL log file
         try:

@@ -40,7 +40,9 @@ def validate_production_config() -> list[str]:
     errors: list[str] = []
 
     # 1. Auth Mode (checked first because JWT secret depends on it)
-    auth_mode = os.getenv("BILGEAPI_AUTH_MODE", "disabled").lower()
+    explicit_auth_mode = os.getenv("BILGEAPI_AUTH_MODE")
+    app_env = os.getenv("APP_ENV", os.getenv("ENVIRONMENT", "development")).lower()
+    auth_mode = (explicit_auth_mode.lower() if explicit_auth_mode else ("disabled" if app_env == "test" else "api_key"))
     if is_production and auth_mode == "disabled":
         errors.append(
             "BILGEAPI_AUTH_MODE is 'disabled' in production. "

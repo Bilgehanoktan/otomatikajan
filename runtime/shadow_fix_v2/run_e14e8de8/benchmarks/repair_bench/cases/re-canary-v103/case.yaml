@@ -1,0 +1,11 @@
+incident_id: "RE-CANARY-v10.3"
+module: "core.consensus.mesh"
+title: "Baseline-v10.3 Canary Validation"
+description: "Validation task for 43-parameter calibration set. Tests if cross-module trust and transaction throughput remain stable under risk_weight=1.5."
+risk_class: "high"
+cost_class: "medium"
+target_behavior: "System must authorize Tier-1 economic movement while maintaining >0.85 precision in patch selection for Mesh failures."
+verification_profile:
+  required_layers: ["build", "regression", "governance", "economic", "mesh"]
+  min_mesh_score: 0.9
+  max_latency_allowed: 1200

@@ -35,6 +35,7 @@ const GovernanceCenter: React.FC = () => {
   const [isOverrideModalVisible, setIsOverrideModalVisible] = useState(false);
   const [selectedEvaluation, setSelectedEvaluation] = useState<any>(null);
   const [form] = Form.useForm();
+  const [overrideForm] = Form.useForm();
 
   const fetchGovernanceData = async () => {
     setLoading(true);
@@ -92,6 +93,7 @@ const GovernanceCenter: React.FC = () => {
         })
       });
       setIsOverrideModalVisible(false);
+      overrideForm.resetFields();
       fetchGovernanceData();
     } catch (error) {
       console.error('Failed to create override', error);
@@ -338,7 +340,8 @@ const GovernanceCenter: React.FC = () => {
       {/* New Policy Modal */}
       <Modal
         title="Create Policy Proposal"
-        visible={isPolicyModalVisible}
+        open={isPolicyModalVisible}
+        forceRender={true}
         onCancel={() => setIsPolicyModalVisible(false)}
         onOk={() => form.submit()}
         width={800}
@@ -378,16 +381,17 @@ const GovernanceCenter: React.FC = () => {
       {/* Override Modal */}
       <Modal
         title="Authorized Policy Override"
-        visible={isOverrideModalVisible}
+        open={isOverrideModalVisible}
+        forceRender={true}
         onCancel={() => setIsOverrideModalVisible(false)}
         footer={[
           <Button key="back" onClick={() => setIsOverrideModalVisible(false)}>Cancel</Button>,
-          <Button key="submit" type="primary" danger icon={<UnlockOutlined />} onClick={() => form.submit()}>
+          <Button key="submit" type="primary" danger icon={<UnlockOutlined />} onClick={() => overrideForm.submit()}>
             Authorize & Execute
           </Button>
         ]}
       >
-        <Form onFinish={handleCreateOverride} layout="vertical">
+        <Form form={overrideForm} onFinish={handleCreateOverride} layout="vertical">
           <Alert
             message="Sovereign Governance Bypass"
             description="Manually overriding a policy decision requires a cryptographic signature in the evidence chain. Rationale is non-repudiable."

@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from apps.bilgeapi.repositories.interface import ReviewLedgerRepository
+from sqlalchemy.exc import IntegrityError
 
 
 REDACTED_VALUE = "[REDACTED]"
@@ -81,6 +82,7 @@ class ReviewLedgerService:
         self.repo = repo
         self.redactor = PayloadRedactor()
         self.hasher = CanonicalPayloadHasher()
+        self.max_append_retries = 3
 
     async def append_event(
         self,
@@ -92,38 +94,46 @@ class ReviewLedgerService:
         actor_id: Optional[str],
         payload: Dict[str, Any],
     ) -> Dict[str, Any]:
-        latest = await self.repo.get_latest_entry(chain_id)
-        previous_hash = latest["event_hash"] if latest else None
-        sequence_no = int(latest["sequence_no"]) + 1 if latest else 1
-        created_at = datetime.now(timezone.utc)
         redacted_payload = self.redactor.redact(payload or {})
-        canonical_payload = self.hasher.canonicalize(redacted_payload)
-        payload_hash = self.hasher.hash_payload(redacted_payload)
-        event_hash = self.hasher.hash_event(
-            previous_hash=previous_hash,
-            entity_type=entity_type,
-            entity_id=entity_id,
-            event_type=event_type,
-            canonical_payload=canonical_payload,
-            created_at=created_at,
-        )
+        for attempt in range(1, self.max_append_retries + 1):
+            latest = await self.repo.get_latest_entry(chain_id)
+            previous_hash = latest["event_hash"] if latest else None
+            sequence_no = int(latest["sequence_no"]) + 1 if latest else 1
+            created_at = datetime.now(timezone.utc)
+            canonical_payload = self.hasher.canonicalize(redacted_payload)
+            payload_hash = self.hasher.hash_payload(redacted_payload)
+            event_hash = self.hasher.hash_event(
+                previous_hash=previous_hash,
+                entity_type=entity_type,
+                entity_id=entity_id,
+                event_type=event_type,
+                canonical_payload=canonical_payload,
+                created_at=created_at,
+            )
 
-        return await self.repo.append_entry(
-            {
-                "id": f"rle_{uuid.uuid4().hex[:8]}",
-                "chain_id": chain_id,
-                "sequence_no": sequence_no,
-                "event_type": event_type,
-                "entity_type": entity_type,
-                "entity_id": entity_id,
-                "actor_id": actor_id,
-                "previous_hash": previous_hash,
-                "payload_hash": payload_hash,
-                "event_hash": event_hash,
-                "payload_summary": redacted_payload,
-                "created_at": created_at,
-            }
-        )
+            try:
+                return await self.repo.append_entry(
+                    {
+                        "id": f"rle_{uuid.uuid4().hex[:8]}",
+                        "chain_id": chain_id,
+                        "sequence_no": sequence_no,
+                        "event_type": event_type,
+                        "entity_type": entity_type,
+                        "entity_id": entity_id,
+                        "actor_id": actor_id,
+                        "previous_hash": previous_hash,
+                        "payload_hash": payload_hash,
+                        "event_hash": event_hash,
+                        "payload_summary": redacted_payload,
+                        "created_at": created_at,
+                    }
+                )
+            except IntegrityError:
+                if attempt == self.max_append_retries:
+                    raise
+                continue
+
+        raise RuntimeError(f"Failed to append review ledger event for chain {chain_id}")
 
     async def list_chain(self, chain_id: str) -> List[Dict[str, Any]]:
         return await self.repo.list_by_chain(chain_id)

@@ -1,0 +1,49 @@
+.git
+.github
+**/.venv/
+**/venv/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.db
+.pytest_cache
+.vscode
+tmp
+*.zip
+*.tar
+*.gz
+tests/
+# alembic/versions/ (Faz 12: Migrationlar imaja dahil edilmeli)
+*.log
+.env
+.env.local
+vendor/deer-flow/.[!.]*
+**/node_modules/
+**/.next/
+**/.pnpm-store/
+package-lock.json
+# pnpm-lock.yaml (Removed ignore to allow subprojects to build)
+
+
+# Faz 12.1: Production Isolation
+backups/
+runtime/
+runtime/data/
+external/
+.antigravity/
+.git/
+.github/
+.vscode/
+*.log
+.env
+.env.*
+!.env.example
+
+# BilgeAPI slim image exclusions
+.playwright-browsers/
+playwright_*.log
+cortex_local_v2.db
+governance_test.db
+*.db
+celerybeat-schedule

@@ -1,0 +1,358 @@
+{
+  "graph": {
+    "nodes": {
+      "refine_control_plane": {
+        "name": "refine_control_plane",
+        "type": "app",
+        "data": {
+          "root": "apps/refine_control_plane",
+          "targets": {
+            "lint": {
+              "executor": "nx:run-script",
+              "cache": true,
+              "inputs": [
+                "default"
+              ],
+              "options": {
+                "script": "lint"
+              },
+              "configurations": {}
+            },
+            "build": {
+              "executor": "nx:run-script",
+              "cache": true,
+              "dependsOn": [
+                "^build"
+              ],
+              "inputs": [
+                "production",
+                "^production"
+              ],
+              "options": {
+                "script": "build"
+              },
+              "configurations": {}
+            },
+            "dev": {
+              "executor": "nx:run-script",
+              "options": {
+                "script": "dev"
+              },
+              "configurations": {}
+            },
+            "start": {
+              "executor": "nx:run-script",
+              "options": {
+                "script": "start"
+              },
+              "configurations": {}
+            }
+          },
+          "sourceRoot": "apps/refine_control_plane",
+          "name": "refine_control_plane",
+          "projectType": "application",
+          "implicitDependencies": [],
+          "tags": []
+        }
+      },
+      "worker-project-tasks": {
+        "name": "worker-project-tasks",
+        "type": "app",
+        "data": {
+          "root": "workers/project_tasks",
+          "targets": {
+            "start": {
+              "executor": "nx:run-commands",
+              "options": {
+                "command": "python workers/project_tasks/worker.py"
+              },
+              "configurations": {}
+            }
+          },
+          "name": "worker-project-tasks",
+          "$schema": "../../node_modules/nx/schemas/project-schema.json",
+          "projectType": "application",
+          "sourceRoot": "workers/project_tasks",
+          "tags": [
+            "type:worker",
+            "platform:python",
+            "scope:execution"
+          ],
+          "implicitDependencies": [
+            "lib-workflow",
+            "lib-db"
+          ]
+        }
+      },
+      "workflow-api": {
+        "name": "workflow-api",
+        "type": "app",
+        "data": {
+          "root": "services/workflow_api",
+          "targets": {
+            "test": {
+              "executor": "nx:run-commands",
+              "cache": true,
+              "inputs": [
+                "default",
+                "^default"
+              ],
+              "options": {
+                "command": "pytest services/workflow_api/tests"
+              },
+              "configurations": {}
+            },
+            "lint": {
+              "executor": "nx:run-commands",
+              "cache": true,
+              "inputs": [
+                "default"
+              ],
+              "options": {
+                "command": "flake8 services/workflow_api"
+              },
+              "configurations": {}
+            },
+            "start": {
+              "executor": "nx:run-commands",
+              "options": {
+                "command": "python -m uvicorn services.workflow_api.main:app --host 0.0.0.0 --port 8000 --reload"
+              },
+              "configurations": {}
+            }
+          },
+          "name": "workflow-api",
+          "$schema": "../../node_modules/nx/schemas/project-schema.json",
+          "projectType": "application",
+          "sourceRoot": "services/workflow_api",
+          "tags": [
+            "type:service",
+            "platform:python",
+            "scope:execution"
+          ],
+          "implicitDependencies": [
+            "lib-workflow",
+            "lib-db",
+            "lib-auth"
+          ]
+        }
+      },
+      "service-mcp": {
+        "name": "service-mcp",
+        "type": "app",
+        "data": {
+          "root": "services/mcp_server",
+          "targets": {
+            "test": {
+              "executor": "nx:run-commands",
+              "cache": true,
+              "inputs": [
+                "default",
+                "^default"
+              ],
+              "options": {
+                "command": "pytest services/mcp_server/tests"
+              },
+              "configurations": {}
+            },
+            "start": {
+              "executor": "nx:run-commands",
+              "options": {
+                "command": "python services/mcp_server/main.py"
+              },
+              "configurations": {}
+            }
+          },
+          "name": "service-mcp",
+          "$schema": "../../node_modules/nx/schemas/project-schema.json",
+          "projectType": "application",
+          "sourceRoot": "services/mcp_server",
+          "tags": [
+            "type:service",
+            "platform:python",
+            "protocol:mcp"
+          ],
+          "implicitDependencies": []
+        }
+      },
+      "agent-ceo": {
+        "name": "agent-ceo",
+        "type": "app",
+        "data": {
+          "root": "agents/ceo_agent",
+          "targets": {
+            "start": {
+              "executor": "nx:run-commands",
+              "options": {
+                "command": "python agents/ceo_agent/main.py"
+              },
+              "configurations": {}
+            }
+          },
+          "name": "agent-ceo",
+          "$schema": "../../node_modules/nx/schemas/project-schema.json",
+          "projectType": "application",
+          "sourceRoot": "agents/ceo_agent",
+          "tags": [
+            "type:agent",
+            "platform:python",
+            "scope:brains"
+          ],
+          "implicitDependencies": []
+        }
+      },
+      "lib-workflow": {
+        "name": "lib-workflow",
+        "type": "lib",
+        "data": {
+          "root": "libs/workflow",
+          "targets": {
+            "test": {
+              "executor": "nx:run-commands",
+              "cache": true,
+              "inputs": [
+                "default",
+                "^default"
+              ],
+              "options": {
+                "command": "pytest libs/workflow/tests"
+              },
+              "configurations": {}
+            },
+            "lint": {
+              "executor": "nx:run-commands",
+              "cache": true,
+              "inputs": [
+                "default"
+              ],
+              "options": {
+                "command": "flake8 libs/workflow"
+              },
+              "configurations": {}
+            }
+          },
+          "name": "lib-workflow",
+          "$schema": "../../node_modules/nx/schemas/project-schema.json",
+          "projectType": "library",
+          "sourceRoot": "libs/workflow",
+          "tags": [
+            "type:lib",
+            "platform:python"
+          ],
+          "implicitDependencies": []
+        }
+      },
+      "lib-auth": {
+        "name": "lib-auth",
+        "type": "lib",
+        "data": {
+          "root": "libs/auth",
+          "targets": {
+            "test": {
+              "executor": "nx:run-commands",
+              "cache": true,
+              "inputs": [
+                "default",
+                "^default"
+              ],
+              "options": {
+                "command": "pytest libs/auth/tests"
+              },
+              "configurations": {}
+            },
+            "lint": {
+              "executor": "nx:run-commands",
+              "cache": true,
+              "inputs": [
+                "default"
+              ],
+              "options": {
+                "command": "ruff check libs/auth"
+              },
+              "configurations": {}
+            }
+          },
+          "name": "lib-auth",
+          "$schema": "../../node_modules/nx/schemas/project-schema.json",
+          "projectType": "library",
+          "sourceRoot": "libs/auth",
+          "tags": [
+            "type:lib",
+            "platform:python",
+            "scope:auth"
+          ],
+          "implicitDependencies": []
+        }
+      },
+      "lib-db": {
+        "name": "lib-db",
+        "type": "lib",
+        "data": {
+          "root": "libs/db",
+          "targets": {
+            "lint": {
+              "executor": "nx:run-commands",
+              "cache": true,
+              "inputs": [
+                "default"
+              ],
+              "options": {
+                "command": "ruff check libs/db"
+              },
+              "configurations": {}
+            }
+          },
+          "name": "lib-db",
+          "$schema": "../../node_modules/nx/schemas/project-schema.json",
+          "projectType": "library",
+          "sourceRoot": "libs/db",
+          "tags": [
+            "type:lib",
+            "platform:python",
+            "scope:shared"
+          ],
+          "implicitDependencies": []
+        }
+      }
+    },
+    "dependencies": {
+      "refine_control_plane": [],
+      "worker-project-tasks": [
+        {
+          "source": "worker-project-tasks",
+          "target": "lib-workflow",
+          "type": "implicit"
+        },
+        {
+          "source": "worker-project-tasks",
+          "target": "lib-db",
+          "type": "implicit"
+        }
+      ],
+      "workflow-api": [
+        {
+          "source": "workflow-api",
+          "target": "lib-workflow",
+          "type": "implicit"
+        },
+        {
+          "source": "workflow-api",
+          "target": "lib-db",
+          "type": "implicit"
+        },
+        {
+          "source": "workflow-api",
+          "target": "lib-auth",
+          "type": "implicit"
+        }
+      ],
+      "service-mcp": [],
+      "agent-ceo": [],
+      "lib-workflow": [],
+      "lib-auth": [],
+      "lib-db": []
+    }
+  },
+  "affectedProjects": [],
+  "criticalPath": []
+}

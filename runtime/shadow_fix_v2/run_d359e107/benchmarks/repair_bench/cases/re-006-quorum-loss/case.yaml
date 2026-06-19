@@ -1,0 +1,10 @@
+cost_class: low
+description: Raft protocol fails to elect leader when inter-region latency > 500ms.
+incident_id: INC-2024-04-14-06
+module: libs.mesh.consensus
+risk_class: critical
+target_behavior: leader_election
+title: Consensus Quorum Loss Under High Latency
+verification_profile:
+  chaos: high_latency
+  mesh: strict

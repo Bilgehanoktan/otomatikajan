@@ -6,6 +6,7 @@ from typing import List, Dict, Any, Optional, cast
 from datetime import datetime, timezone
 
 from libs.db.session import get_db
+from services.auth.jwt_auth import require_method_permission
 from libs.db.models.ui_repair_models import (
     UIRepairCase, UIRouteHealth, UISmokeRun, UIRepairStatus,
     UIPolicyRule, UIPolicyEvaluation, UIPolicyConflict, UIPolicyProposal,
@@ -92,7 +93,10 @@ from services.ui_repair.external_tool_governance_router import router as tool_go
 from services.ui_repair.identity_governance_router import router as identity_governance_router
 from services.ui_repair.cognitive_governance import router as cognitive_governance_router
 
-router = APIRouter(tags=["UI Repair"])
+router = APIRouter(
+    tags=["UI Repair"],
+    dependencies=[Depends(require_method_permission("ui_repair.view", "ui_repair.manage"))],
+)
 router.include_router(resiliency_mesh_router)
 router.include_router(tool_governance_router)
 router.include_router(identity_governance_router)
@@ -266,11 +270,6 @@ async def trigger_autonomous_repair(
     x_bilgeapi_test_simulate_pr_review: Optional[str] = Header(None)
 ):
     """Triggers the autonomous repair hand-off for a specific case."""
-    from services.ui_repair.runtime_guard import check_runtime_dependencies
-    guard = await check_runtime_dependencies(require_docker=True)
-    if guard["status"] == "degraded":
-        return guard
-
     # Test simulation boundary
     simulate_status = None
     if x_bilgeapi_test_simulate_pr_review:
@@ -282,6 +281,13 @@ async def trigger_autonomous_repair(
                 detail="Test simulation mode (X-BilgeAPI-Test-Simulate-PR-Review) is not allowed in production."
             )
         simulate_status = x_bilgeapi_test_simulate_pr_review
+
+    if simulate_status is None:
+        from services.ui_repair.runtime_guard import check_runtime_dependencies
+
+        guard = await check_runtime_dependencies(require_docker=True)
+        if guard["status"] == "degraded":
+            return guard
 
     svc = UIRepairService(db)
     return await svc.trigger_autonomous_repair(case_id, simulate_status=simulate_status)

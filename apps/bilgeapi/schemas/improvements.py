@@ -18,8 +18,13 @@ class ResearchResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {
+
+
+        "from_attributes": True
+
+
+    }
 
 
 class EvidenceResponse(BaseModel):
@@ -34,8 +39,13 @@ class EvidenceResponse(BaseModel):
     trust_score: float
     retrieved_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {
+
+
+        "from_attributes": True
+
+
+    }
 
 
 class ProposalResponse(BaseModel):
@@ -54,8 +64,13 @@ class ProposalResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {
+
+
+        "from_attributes": True
+
+
+    }
 
 
 class DraftPrResponse(BaseModel):

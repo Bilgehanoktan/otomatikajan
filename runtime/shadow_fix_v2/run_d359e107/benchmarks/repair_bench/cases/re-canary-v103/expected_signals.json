@@ -1,0 +1,11 @@
+{
+  "signals": [
+    "RE-ROUTE_THROUGH_EAST",
+    "FORCE_QUORUM_RECALCULATION",
+    "IAM_TOKEN_ROTATION_SUCCESS"
+  ],
+  "thresholds": {
+    "precision": 0.85,
+    "success_rate": 1.0
+  }
+}

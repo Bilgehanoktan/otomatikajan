@@ -1,0 +1,68 @@
+<div class="card sovereign-card">
+  <div class="card-header">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="card-title">Sovereign AGI Evolution</span>
+      <span id="sovereign-version" class="badge" style="background:var(--ultraviolet); color:#fff; border:none;">v13.6-RC3</span>
+      <span id="sovereign-dissonance-badge" class="badge" style="background:var(--red); color:#fff; display:none; animation: pulseRed 2s infinite;">ÇELİŞKİ DETEKTÖRÜ</span>
+    </div>
+    <div class="evolution-pulse active"></div>
+  </div>
+  <div style="padding:10px 0;">
+    <div style="font-size:10px; color:var(--muted); margin-bottom:12px; text-transform:uppercase; letter-spacing:0.1em; display:flex; justify-content:space-between;">
+      <span>Provenance Records (Last 5)</span>
+      <span id="sovereign-status-label" style="color:var(--gold);">DREAMING...</span>
+    </div>
+    <div id="sovereign-evolution-logs" class="sovereign-log-container">
+      <div class="loading">Bilişsel izler taranıyor...</div>
+    </div>
+    
+    <div id="sovereign-dissonance-badge-alt" class="badge badge-error" style="display:none; width:100%; text-align:center; margin-bottom:12px; padding:6px; font-weight:800; animation: pulse-red 1s infinite;">
+      ⚠️ ÇELİŞKİ DETEKTÖRÜ (HATA TESPİTİ)
+    </div>
+
+    <!-- Phase 60.5 Reality -->
+    <div style="margin-top:12px; display:flex; justify-content:space-between; align-items:center;">
+      <span style="font-size:11px; color:var(--muted); min-width:100px;">Reality Grounding</span>
+      <div style="flex:1; margin:0 12px; height:6px; background:rgba(255,255,255,0.05); border-radius:3px;">
+        <div id="sovereign-reality-fill" style="width:100%; height:100%; background:var(--gold); border-radius:3px; transition:width 0.4s;"></div>
+      </div>
+      <span id="sovereign-reality-val" style="font-size:11px; color:var(--gold); font-weight:700;">100%</span>
+    </div>
+
+    <!-- Phase 61 Consensus -->
+    <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
+      <span style="font-size:11px; color:var(--muted); min-width:100px;">Consensus Shield</span>
+      <div style="flex:1; margin:0 12px; height:6px; background:rgba(255,255,255,0.05); border-radius:3px;">
+        <div id="sovereign-consensus-fill" style="width:100%; height:100%; background:var(--cyan); border-radius:3px; transition:width 0.4s;"></div>
+      </div>
+      <span id="sovereign-consensus-val" style="font-size:11px; color:var(--cyan); font-weight:700;">100%</span>
+    </div>
+
+    <!-- Phase 62 Traceability -->
+    <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
+      <span style="font-size:11px; color:var(--muted); min-width:100px;">Deep Traceability</span>
+      <div style="flex:1; margin:0 12px; height:6px; background:rgba(255,255,255,0.05); border-radius:3px;">
+        <div id="sovereign-traceability-fill" style="width:100%; height:100%; background:var(--purple); border-radius:3px; transition:width 0.4s;"></div>
+      </div>
+      <span id="sovereign-traceability-val" style="font-size:11px; color:var(--purple); font-weight:700;">100%</span>
+    </div>
+
+    <!-- Phase 65 Cognitive Blackboard -->
+    <div style="margin-top:15px; border-top:1px solid rgba(255,255,255,0.05); padding-top:12px;">
+      <div style="font-size:10px; color:var(--muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.1em; display:flex; justify-content:space-between;">
+        <span>Cognitive Blackboard (Active Discoveries)</span>
+        <div style="display:flex; gap:10px;">
+          <span id="sovereign-reasoning-depth" style="color:var(--cyan); font-weight:700;">DEPTH: 1</span>
+          <span id="sovereign-reasoning-accuracy" style="color:var(--gold); font-weight:700;">ACC: 100%</span>
+        </div>
+      </div>
+      <div id="sovereign-blackboard-container" class="sovereign-log-container" style="background:rgba(0,0,0,0.2); border-radius:4px; height:120px; font-family:'Fira Code', monospace; font-size:11px; padding:10px; border-left:2px solid var(--cyan);">
+        <div class="loading">Düşünce alanı taranıyor...</div>
+      </div>
+    </div>
+  </div>
+  <div class="card-footer" style="padding:8px 0; border-top:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;">
+    <span style="font-size:10px; color:var(--muted);">Deep Traceability: ACTIVE</span>
+    <button class="btn btn-ghost btn-sm" style="font-size:9px; color:var(--gold);" onclick="showPage('monitoring')">Tümünü İncele</button>
+  </div>
+</div>

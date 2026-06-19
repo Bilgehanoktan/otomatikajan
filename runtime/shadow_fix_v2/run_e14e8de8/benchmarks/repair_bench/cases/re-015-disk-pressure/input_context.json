@@ -1,0 +1,1 @@
+{"failure_logs": ["CRITICAL: High Disk Pressure causing IO Throttling detected in storage stack.", "Technology: pv"], "metrics": {"error_rate": 0.45, "latency_ms": 1200}, "environment": "production-cluster-01"}

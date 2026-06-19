@@ -1,0 +1,43 @@
+{
+  "regions": {
+    "eu-central-1": {
+      "latency_from_us-east-1": 84.73919447013398,
+      "last_latency_check": 1777923033.3506746,
+      "updated_at": "2026-05-04T19:30:33.350710",
+      "health_status": "NOMINAL",
+      "health_score": 1.0,
+      "latency_from_source": 85.0,
+      "name": "Frankfurt (Standby)",
+      "latency": 42,
+      "status": "HEALTHY",
+      "load": 0.12
+    },
+    "ap-southeast-1": {
+      "health_score": 0.85,
+      "updated_at": "2026-05-04T19:30:33.377741",
+      "latency_from_us-east-1": 193.2234420130603,
+      "last_latency_check": 1777923033.377716,
+      "health_status": "NOMINAL",
+      "name": "Singapore",
+      "latency": 115,
+      "status": "HEALTHY",
+      "load": 0.08
+    },
+    "us-east-1": {
+      "latency_from_us-east-1": 5.0,
+      "last_latency_check": 1777923033.31761,
+      "updated_at": "2026-05-04T19:30:33.317630",
+      "health_status": "DEGRADED",
+      "health_score": 1.0,
+      "latency_from_source": 1500.0,
+      "manual_trigger": true,
+      "name": "North Virginia (Master)",
+      "latency": 11,
+      "status": "HEALTHY",
+      "load": 0.45,
+      "error": null
+    }
+  },
+  "last_update": "2026-05-04T19:30:33.377753",
+  "version": "1.0"
+}

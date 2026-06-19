@@ -10,13 +10,34 @@ from fastapi import APIRouter, Depends, Request, HTTPException
 
 from apps.bilgeapi.config import settings, AutonomyMode
 from apps.bilgeapi.auth import require_permission
-from apps.bilgeapi.schemas.autonomy import AutonomyDecisionRequest, AutonomyDecisionResponse
+from apps.bilgeapi.schemas.autonomy import (
+    AutonomyDecisionRequest,
+    AutonomyDecisionResponse,
+    ManagementGateResponse,
+    ManagementGateUpdateRequest,
+)
 from apps.bilgeapi.routers.deps import get_autonomy_decision_service
 from apps.bilgeapi.services.i18n import get_locale, i18n_service
+from apps.bilgeapi.services.self_healing import SelfHealingPolicy
 
 logger = logging.getLogger("bilgeapi.system_runtime")
 
 router = APIRouter(prefix="/v1/system", tags=["System Runtime"])
+
+
+def _management_gate_payload(
+    identity: Optional[dict] = None,
+    reason: Optional[str] = None,
+) -> Dict[str, Any]:
+    unlocked = settings.BILGEAPI_MANAGEMENT_ACTIONS_UNLOCKED
+    return {
+        "unlocked": unlocked,
+        "status": "UNLOCKED" if unlocked else "LOCKED",
+        "reason": reason,
+        "forbidden_actions": SelfHealingPolicy.FORBIDDEN_ACTIONS,
+        "human_gate_required": settings.BILGEAPI_WATCHDOG_HUMAN_GATE_REQUIRED,
+        "updated_by": identity.get("id") if identity else None,
+    }
 
 
 @router.get("/release", response_model=Dict[str, Any])
@@ -100,6 +121,29 @@ async def get_autonomy_mode_registry(
     }
 
 
+@router.get("/management-gate", response_model=ManagementGateResponse)
+async def get_management_gate(
+    request: Request,
+    identity: dict = Depends(require_permission("bilgeapi.admin"))
+):
+    """
+    Returns the operator-controlled gate for management actions.
+    """
+    return _management_gate_payload(identity=identity)
+
+
+@router.post("/management-gate", response_model=ManagementGateResponse)
+async def update_management_gate(
+    request: ManagementGateUpdateRequest,
+    identity: dict = Depends(require_permission("bilgeapi.admin"))
+):
+    """
+    Locks or unlocks management actions. Forbidden actions remain blocked by policy.
+    """
+    settings.BILGEAPI_MANAGEMENT_ACTIONS_UNLOCKED = request.unlocked
+    return _management_gate_payload(identity=identity, reason=request.reason)
+
+
 @router.post("/autonomy/decide", response_model=AutonomyDecisionResponse)
 async def evaluate_autonomy_eligibility(
     request: AutonomyDecisionRequest,
@@ -136,5 +180,4 @@ async def test_localization(
         "forbidden": i18n_service.translate("forbidden", lang),
         "not_found": i18n_service.translate("not_found", lang)
     }
-
 

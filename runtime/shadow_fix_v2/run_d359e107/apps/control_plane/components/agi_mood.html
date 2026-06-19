@@ -1,0 +1,44 @@
+<div class="card agi-mood-card">
+  <div class="card-header">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="card-title">AGI Core Status</span>
+      <span id="agi-mood-badge" class="badge" style="background:var(--accent); color:#fff;">NEUTRAL</span>
+    </div>
+    <div class="pulse-ring"></div>
+  </div>
+  <div style="padding:10px 0;">
+    <div class="agi-stat-row">
+      <span class="agi-stat-label">Motivasyon</span>
+      <div class="agi-stat-bar">
+        <div id="agi-motivation-fill" class="agi-stat-fill" style="width: 50%; background: var(--green);"></div>
+      </div>
+      <span id="agi-motivation-val" class="agi-stat-value">50%</span>
+    </div>
+    <div class="agi-stat-row">
+      <span class="agi-stat-label">Dayanıklılık</span>
+      <div class="agi-stat-bar">
+        <div id="agi-resilience-fill" class="agi-stat-fill" style="width: 50%; background: var(--cyan);"></div>
+      </div>
+      <span id="agi-resilience-val" class="agi-stat-value">50%</span>
+    </div>
+    <div class="agi-stat-row">
+      <span class="agi-stat-label">İçsel Stres</span>
+      <div class="agi-stat-bar">
+        <div id="agi-stress-fill" class="agi-stat-fill" style="width: 20%; background: var(--orange);"></div>
+      </div>
+      <span id="agi-stress-val" class="agi-stat-value">20%</span>
+    </div>
+    <div class="agi-stat-row">
+      <span class="agi-stat-label">Metabolik Sağlık</span>
+      <div class="agi-stat-bar">
+        <div id="agi-metabolic-fill" class="agi-stat-fill" style="width: 100%; background: var(--accent);"></div>
+      </div>
+      <span id="agi-metabolic-val" class="agi-stat-value">1.0</span>
+    </div>
+    <div style="margin-top:12px; display:flex; justify-content:space-between; align-items:center;">
+      <span style="font-size:11px; color:var(--muted);">Politika: <b id="agi-persistence-policy" style="color:var(--text); text-transform:uppercase;">BALANCED</b></span>
+      <span style="font-size:11px; color:var(--muted);">Mod: <b id="agi-metabolic-mode" class="badge badge-normal">NORMAL</b></span>
+      <span style="font-size:11px; color:var(--muted);">Enerji: <b id="agi-energy-val" style="color:var(--green);">100%</b></span>
+    </div>
+  </div>
+</div>

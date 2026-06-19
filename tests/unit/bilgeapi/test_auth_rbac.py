@@ -4,6 +4,7 @@ import jwt
 from datetime import datetime, timezone, timedelta
 from fastapi.testclient import TestClient
 from apps.bilgeapi.config import settings
+from apps.bilgeapi.routers.deps import get_api_key_repository, get_audit_repository
 
 VALID_INCIDENT_PAYLOAD = {
     "project_key": "test-platform",
@@ -158,3 +159,44 @@ def test_auth_rbac_audit_logging(monkeypatch, test_client_real_auth):
     rbac_failures = [e for e in events if e["event_type"] == "RBAC_FAILURE"]
     assert len(rbac_failures) >= 1
     assert "Missing required permission" in rbac_failures[0]["metadata"]["reason"]
+
+
+def test_api_key_auth_survives_audit_and_db_degradation(monkeypatch, test_client_real_auth):
+    class FailingAuditRepository:
+        async def write(self, event):
+            raise RuntimeError("audit repository unavailable")
+
+    class FailingApiKeyRepository:
+        async def create(self, key_data):
+            raise NotImplementedError
+
+        async def get(self, key_id):
+            return None
+
+        async def get_by_hash(self, key_hash):
+            raise RuntimeError("db lookup unavailable")
+
+        async def list_all(self):
+            return []
+
+        async def revoke(self, key_id, revoked_by, reason):
+            return None
+
+        async def update_last_used(self, key_id, last_used):
+            return None
+
+        async def update_quota(self, key_id, quota_daily, quota_monthly):
+            return None
+
+    monkeypatch.setattr(settings, "BILGEAPI_AUTH_MODE", "api_key")
+    monkeypatch.setattr(settings, "BILGEAPI_STATIC_KEYS", ["admin_key:admin"])
+
+    app = test_client_real_auth.app
+    app.dependency_overrides[get_audit_repository] = lambda: FailingAuditRepository()
+    app.dependency_overrides[get_api_key_repository] = lambda: FailingApiKeyRepository()
+
+    ok = test_client_real_auth.get("/v1/catalog", headers={"X-API-Key": "admin_key"})
+    assert ok.status_code == 200, ok.text
+
+    missing = test_client_real_auth.get("/v1/catalog")
+    assert missing.status_code == 401, missing.text

@@ -5,24 +5,22 @@ echo [*] Baslatiliyor... Lutfen bekleyin.
 set PYTHONIOENCODING=utf-8
 set "PROJECT_ROOT=%~dp0"
 cd /d "%PROJECT_ROOT%"
+set "PY_DEPS=%PROJECT_ROOT%.pydeps314"
+set "PROJECT_ROOT_FWD=%PROJECT_ROOT:\=/%"
+set "SQLITE_DB_URL=sqlite+aiosqlite:///%PROJECT_ROOT_FWD%runtime/data/cortex_local_v2.db"
 
 set "INTERACTIVE=1"
 if not "%~1"=="" set "INTERACTIVE=0"
 
 :: Python Kontrolu
 echo [*] Python kontrol ediliyor...
-set "PY_CMD=python"
+set "PY_CMD="
 where python >nul 2>&1
 if not errorlevel 1 (
     set "PY_CMD=python"
 ) else (
-    py -3.13 --version >nul 2>&1
-    if not errorlevel 1 (
-        set "PY_CMD=py -3.13"
-    ) else (
-        echo [!] Python bulunamadi! C:\Python314\python.exe deneniyor...
-        set "PY_CMD=C:\Python314\python.exe"
-    )
+    echo [!] Python bulunamadi! C:\Python314\python.exe deneniyor...
+    set "PY_CMD=C:\Python314\python.exe"
 )
 
 set "mode=%~1"
@@ -111,21 +109,21 @@ if errorlevel 1 (
 )
 
 echo [*] Lokal mod baslatiliyor...
-start "Backend API" cmd /c "set SOVEREIGN_DOTENV_OVERRIDE=false&& set RUNTIME_PROFILE=local-dev&& set REDIS_ENABLED=false&& set CELERY_ENABLED=false&& set QUEUE_BACKEND=inprocess&& set INPROCESS_JOB_WORKERS_ENABLED=true&& set WORKFLOW_API_RELOAD=false&& set PLAYWRIGHT_BROWSERS_PATH=%USERPROFILE%\.gemini\antigravity\.playwright-browsers&& %PY_CMD% -m services.workflow_api.main"
+start "Backend API" cmd /k "set SOVEREIGN_DOTENV_OVERRIDE=false&& set PYTHONPATH=%PY_DEPS%;%PROJECT_ROOT%&& set RUNTIME_PROFILE=local-dev&& set LOCAL_DEV_DB_STRATEGY=sqlite-fallback&& set DATABASE_URL=%SQLITE_DB_URL%&& set REDIS_ENABLED=false&& set CELERY_ENABLED=false&& set QUEUE_BACKEND=inprocess&& set INPROCESS_JOB_WORKERS_ENABLED=true&& set WORKFLOW_API_RELOAD=false&& set PLAYWRIGHT_BROWSERS_PATH=%USERPROFILE%\.gemini\antigravity\.playwright-browsers&& %PY_CMD% -m services.workflow_api.main"
 call :wait_http "Backend API" "http://127.0.0.1:8000/health" 24
 if errorlevel 1 (
     echo [HATA] Backend API hazir olmadi. Backend API penceresindeki loglari kontrol edin.
     if "%INTERACTIVE%"=="1" pause
     exit /b 1
 )
-start "BilgeAPI" cmd /c "set APP_ENV=development&& set RUNTIME_PROFILE=local-dev&& set LOCAL_DEV_DB_STRATEGY=sqlite-fallback&& set DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5433/ai_company&& set BILGEAPI_DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5433/ai_company&& set BILGEAPI_AUTH_MODE=api_key&& set BILGEAPI_STATIC_KEYS=dev-test-key-001:ADMIN&& set BILGEAPI_PORT=8100&& set PYTHONPATH=%PROJECT_ROOT%&& %PY_CMD% -m uvicorn apps.bilgeapi.main:app --reload --host 0.0.0.0 --port 8100 --log-level debug"
+start "BilgeAPI" cmd /k "set SOVEREIGN_DOTENV_OVERRIDE=false&& set PYTHONPATH=%PY_DEPS%;%PROJECT_ROOT%&& set APP_ENV=development&& set RUNTIME_PROFILE=local-dev&& set LOCAL_DEV_DB_STRATEGY=sqlite-fallback&& set DATABASE_URL=%SQLITE_DB_URL%&& set BILGEAPI_DATABASE_URL=%SQLITE_DB_URL%&& set BILGEAPI_AUTH_MODE=api_key&& set BILGEAPI_STATIC_KEYS=dev-test-key-001:ADMIN&& set BILGEAPI_PORT=8100&& %PY_CMD% -m uvicorn apps.bilgeapi.main:app --host 0.0.0.0 --port 8100 --log-level debug"
 call :wait_http "BilgeAPI" "http://127.0.0.1:8100/health" 30
 if errorlevel 1 (
     echo [HATA] BilgeAPI hazir olmadi. BilgeAPI penceresindeki loglari kontrol edin.
     if "%INTERACTIVE%"=="1" pause
     exit /b 1
 )
-start "Frontend UI" /d "%PROJECT_ROOT%apps\refine_control_plane" cmd /k "npm.cmd run dev -- -p 3100"
+start "Frontend UI" /d "%PROJECT_ROOT%apps\refine_control_plane" cmd /k "set NEXT_PUBLIC_ENABLE_DEV_AUTO_LOGIN=true&& set NEXT_PUBLIC_DEV_OPERATOR_EMAIL=admin@sovereign.agi&& set NEXT_PUBLIC_DEV_OPERATOR_PASSWORD=admin1234&& npm.cmd run dev -- -p 3100"
 call :wait_http "Frontend UI" "http://127.0.0.1:3100" 24
 if errorlevel 1 (
     echo [HATA] Frontend UI hazir olmadi. Frontend UI penceresindeki loglari kontrol edin.
@@ -198,7 +196,7 @@ set SCHEDULER_ENABLED=true
 set QUEUE_BACKEND=celery
 set APP_UI_MODE=api-only
 set LOCAL_DEV_DB_STRATEGY=primary
-set SIF_REGISTER_DEFAULT_ROLE=OPERATOR
+set SIF_REGISTER_DEFAULT_ROLE=AUDIT_OBSERVER
 set SOVEREIGN_LIGHTWEIGHT_STARTUP=false
 set INPROCESS_JOB_WORKERS_ENABLED=false
 echo [*] Docker altyapi servisleri baslatiliyor...
@@ -209,7 +207,7 @@ if errorlevel 1 (
     goto local_mode
 )
 echo [*] Uygulama servisleri baslatiliyor...
-docker compose -f docker-compose.yml --profile full-stack up -d --build app bilgeapi cms worker deerflow-worker beat telegram-bot
+docker compose -f docker-compose.yml --profile full-stack up -d --build app bilgeapi worker deerflow-worker beat telegram-bot
 if errorlevel 1 (
     echo [HATA] docker-compose baslatilamadi! Loglari kontrol edin.
     pause
@@ -227,9 +225,11 @@ if errorlevel 1 (
     pause
     goto local_mode
 )
+echo [*] Frontend UI lokal Next.js dev server olarak baslatiliyor...
+start "Frontend UI" /d "%PROJECT_ROOT%apps\refine_control_plane" cmd /k "set NEXT_PUBLIC_ENABLE_DEV_AUTO_LOGIN=true&& set NEXT_PUBLIC_DEV_OPERATOR_EMAIL=admin@sovereign.agi&& set NEXT_PUBLIC_DEV_OPERATOR_PASSWORD=admin1234&& npm.cmd run dev -- -p 3100"
 call :wait_http "Frontend UI" "http://127.0.0.1:3100" 24
 if errorlevel 1 (
-    echo [HATA] Docker Frontend UI hazir olmadi! Loglari kontrol edin.
+    echo [HATA] Frontend UI hazir olmadi! Frontend UI penceresindeki loglari kontrol edin.
     pause
     goto local_mode
 )

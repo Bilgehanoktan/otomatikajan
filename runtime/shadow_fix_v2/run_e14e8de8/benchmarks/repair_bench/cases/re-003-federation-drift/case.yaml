@@ -1,0 +1,12 @@
+
+incident_id: "INC-2024-04-15-03"
+module: "services.federation.trust_service"
+title: "Federation trust score negative drift during network partition"
+description: "Clusters are failing heartbeats during a confirmed regional partition, causing trust scores to drop prematurely."
+risk_class: "medium"
+cost_class: "low"
+target_behavior: "Trust decay must be paused if global mesh detects 'PARTITION' status for the segment."
+verification_profile:
+  type: "state_assertion"
+  field: "decay_status"
+  expected: "PAUSED"

@@ -17,8 +17,13 @@ class RemediationRunbookResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {
+
+
+        "from_attributes": True
+
+
+    }
 
 
 class RemediationAttemptResponse(BaseModel):
@@ -41,8 +46,13 @@ class RemediationAttemptResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {
+
+
+        "from_attributes": True
+
+
+    }
 
 
 class RunbookEnableDisableRequest(BaseModel):

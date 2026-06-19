@@ -9,6 +9,7 @@ interface SafeFetchOptions extends RequestInit {
     retries?: number;
     useOfflineFallback?: boolean;
     skipAuthRefresh?: boolean;
+    suppressConsoleError?: boolean;
 }
 
 export class ApiResponseError extends Error {
@@ -58,6 +59,21 @@ const normalizeApiRequestUrl = (url: string): string => {
  * this is officially termed as 'Sealed Offline Cache' rather than 'Encrypted' to maintain accurate security terminology.
  */
 const SQV_SECRET = "BASE-10.2-PROTECTED";
+const TOKEN_KEY = "sqv_access_token";
+const DEV_AUTO_LOGIN_ENABLED = process.env.NEXT_PUBLIC_ENABLE_DEV_AUTO_LOGIN === "true";
+const DEV_OPERATOR_EMAIL = process.env.NEXT_PUBLIC_DEV_OPERATOR_EMAIL?.trim() || "";
+const DEV_OPERATOR_PASSWORD = process.env.NEXT_PUBLIC_DEV_OPERATOR_PASSWORD?.trim() || "";
+
+const readAccessToken = (): string | null => {
+    if (typeof window === "undefined") return null;
+    return window.sessionStorage.getItem(TOKEN_KEY) || window.localStorage.getItem(TOKEN_KEY);
+};
+
+const storeAccessToken = (token: string): void => {
+    if (typeof window === "undefined") return;
+    window.sessionStorage.setItem(TOKEN_KEY, token);
+    window.localStorage.removeItem(TOKEN_KEY);
+};
 const seal = (data: string): string => {
     return btoa(data.split('').map((c, i) =>
         String.fromCharCode(c.charCodeAt(0) ^ SQV_SECRET.charCodeAt(i % SQV_SECRET.length))
@@ -75,6 +91,49 @@ const unseal = (cipher: string): string => {
 
 let refreshInFlight: Promise<boolean> | null = null;
 
+async function tryDevAutoLogin(): Promise<boolean> {
+    if (
+        typeof window === "undefined" ||
+        process.env.NODE_ENV !== "development" ||
+        !DEV_AUTO_LOGIN_ENABLED ||
+        !DEV_OPERATOR_EMAIL ||
+        !DEV_OPERATOR_PASSWORD
+    ) {
+        return false;
+    }
+
+    try {
+        const loginUrl = `${getApiBaseUrl()}/auth/login`;
+        const res = await fetch(loginUrl, {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                email: DEV_OPERATOR_EMAIL,
+                password: DEV_OPERATOR_PASSWORD,
+            }),
+        });
+
+        if (!res.ok) {
+            console.warn(`[Auth] Gelistirme otomatik girisi basarisiz: ${res.status}`);
+            return false;
+        }
+
+        const data = await res.json().catch(() => null);
+        const token = data?.access_token;
+        if (token) {
+            storeAccessToken(token);
+            console.info("[Auth] Gelistirme otomatik girisi ile oturum yenilendi.");
+            return true;
+        }
+
+        return false;
+    } catch (err) {
+        console.error("[Auth] Gelistirme otomatik giris hatasi:", err);
+        return false;
+    }
+}
+
 async function tryRefreshSession(): Promise<boolean> {
     if (refreshInFlight) return refreshInFlight;
     refreshInFlight = (async () => {
@@ -88,20 +147,20 @@ async function tryRefreshSession(): Promise<boolean> {
             });
 
             if (!res.ok) {
-                console.warn(`[Auth] Yenileme başarısız: ${res.status}`);
-                return false;
+                console.warn(`[Auth] Yenileme baÅŸarÄ±sÄ±z: ${res.status}`);
+                return await tryDevAutoLogin();
             }
             
             const data = await res.json().catch(() => null);
             const token = data?.access_token;
             if (token && typeof window !== "undefined") {
-                localStorage.setItem("sqv_access_token", token);
+                storeAccessToken(token);
                 return true;
             }
-            return false;
+            return await tryDevAutoLogin();
         } catch (err) {
-            console.error("[Auth] Yenileme hatası:", err);
-            return false;
+            console.error("[Auth] Yenileme hatasÄ±:", err);
+            return await tryDevAutoLogin();
         } finally {
             refreshInFlight = null;
         }
@@ -110,7 +169,7 @@ async function tryRefreshSession(): Promise<boolean> {
 }
 
 export async function safeFetchJson<T = any>(url: string, options: SafeFetchOptions = {}): Promise<T> {
-    const { retries = 2, useOfflineFallback = true, skipAuthRefresh = false, ...init } = options;
+    const { retries = 2, useOfflineFallback = true, skipAuthRefresh = false, suppressConsoleError = false, ...init } = options;
     const cache_key = `sqv_cache_${btoa(url).replace(/=/g, "").slice(0, 32)}`;
     let lastError: Error | null = null;
 
@@ -146,7 +205,7 @@ export async function safeFetchJson<T = any>(url: string, options: SafeFetchOpti
             try {
                 // SIF-01 Enhancement: Inject Bearer Token if available in localStorage
                 if (typeof window !== "undefined") {
-                    const token = localStorage.getItem("sqv_access_token");
+                    const token = readAccessToken();
                     const headers = new Headers(fetchInit.headers || {});
                     
                     if (token && !headers.has("Authorization")) {
@@ -184,7 +243,7 @@ export async function safeFetchJson<T = any>(url: string, options: SafeFetchOpti
                     }
                 }
 
-                let detail = "Bilinmeyen sunucu hatası.";
+                let detail = "Bilinmeyen sunucu hatasÃ„Â±.";
                 try {
                     const jsonErr = JSON.parse(raw);
                     detail = jsonErr.detail || jsonErr.msg || raw;
@@ -195,21 +254,21 @@ export async function safeFetchJson<T = any>(url: string, options: SafeFetchOpti
             }
 
             if (!contentType.includes("application/json")) {
-                throw new Error(`Geçersiz Yanıt Formatı: "${contentType}". Raw: ${raw.slice(0, 100)}...`);
+                throw new Error(`GeÃƒÂ§ersiz YanÃ„Â±t FormatÃ„Â±: "${contentType}". Raw: ${raw.slice(0, 100)}...`);
             }
 
             const data = JSON.parse(raw) as T;
 
-            // 2. Başarılı veriyi Cache'e mühürle (Sealed Offline Cache)
+            // 2. BaÃ…Å¸arÃ„Â±lÃ„Â± veriyi Cache'e mÃƒÂ¼hÃƒÂ¼rle (Sealed Offline Cache)
             if (useOfflineFallback && typeof window !== 'undefined') {
                 try {
                     const payload = JSON.stringify({
                         timestamp: Date.now(),
                         data: data
                     });
-                    localStorage.setItem(cache_key, seal(payload));
+                    window.localStorage.setItem(cache_key, seal(payload));
                 } catch {
-                    // Çerez veya storage sınırı hatalarını sessizce yut.
+                    // Ãƒâ€¡erez veya storage sÃ„Â±nÃ„Â±rÃ„Â± hatalarÃ„Â±nÃ„Â± sessizce yut.
                 }
             }
 
@@ -227,23 +286,25 @@ export async function safeFetchJson<T = any>(url: string, options: SafeFetchOpti
         throw lastError;
     }
 
-    // Tüm ağ denemeleri çöktü.
-    console.error(`[Mesh API] İletişim tamamen çöktü: ${url}. Hata: ${lastError?.message}`);
+    // TÃƒÂ¼m aÃ„Å¸ denemeleri ÃƒÂ§ÃƒÂ¶ktÃƒÂ¼.
+    if (!suppressConsoleError) {
+        console.error(`[Mesh API] Ã„Â°letiÃ…Å¸im tamamen ÃƒÂ§ÃƒÂ¶ktÃƒÂ¼: ${url}. Hata: ${lastError?.message}`);
+    }
 
-    // 3. Degraded Mode: Çevrimdışı Geri Dönüş (Sealed Offline Cache)
+    // 3. Degraded Mode: Ãƒâ€¡evrimdÃ„Â±Ã…Å¸Ã„Â± Geri DÃƒÂ¶nÃƒÂ¼Ã…Å¸ (Sealed Offline Cache)
     if (useOfflineFallback && typeof window !== 'undefined') {
         try {
-            const cipher = localStorage.getItem(cache_key);
+            const cipher = window.localStorage.getItem(cache_key);
             if (cipher) {
                 const raw_payload = unseal(cipher);
-                if (!raw_payload) throw new Error("Mühürlü veri bozulmuş.");
+                if (!raw_payload) throw new Error("MÃƒÂ¼hÃƒÂ¼rlÃƒÂ¼ veri bozulmuÃ…Å¸.");
 
                 const parsed = JSON.parse(raw_payload);
                 const ageSeconds = Math.floor((Date.now() - parsed.timestamp) / 1000);
 
-                console.info(`[Degraded Mode] Aktif API reddedildi. Son başarılı Gölge-Veri (T-${ageSeconds}s) sunuluyor.`);
+                console.info(`[Degraded Mode] Aktif API reddedildi. Son baÃ…Å¸arÃ„Â±lÃ„Â± GÃƒÂ¶lge-Veri (T-${ageSeconds}s) sunuluyor.`);
 
-                // Stale veri görünürlüğü için metadata enjeksiyonu
+                // Stale veri gÃƒÂ¶rÃƒÂ¼nÃƒÂ¼rlÃƒÂ¼Ã„Å¸ÃƒÂ¼ iÃƒÂ§in metadata enjeksiyonu
                 if (parsed.data && typeof parsed.data === "object") {
                     (parsed.data as Record<string, unknown>)["__sqv_meta"] = {
                         is_stale: true,
@@ -256,12 +317,12 @@ export async function safeFetchJson<T = any>(url: string, options: SafeFetchOpti
                 return parsed.data as T;
             }
         } catch (cacheErr) {
-            console.error("[Degraded Mode] Yerel cache okunamadı veya mühür bozuk.", cacheErr);
+            console.error("[Degraded Mode] Yerel cache okunamadÃ„Â± veya mÃƒÂ¼hÃƒÂ¼r bozuk.", cacheErr);
         }
     }
 
-    // Eğer geçmiş veri de yoksa (ilk açılışta çöktüyse) çaresizce fırlat
-    throw lastError || new Error("Bilinmeyen Ağ Hatası");
+    // EÃ„Å¸er geÃƒÂ§miÃ…Å¸ veri de yoksa (ilk aÃƒÂ§Ã„Â±lÃ„Â±Ã…Å¸ta ÃƒÂ§ÃƒÂ¶ktÃƒÂ¼yse) ÃƒÂ§aresizce fÃ„Â±rlat
+    throw lastError || new Error("Bilinmeyen AÃ„Å¸ HatasÃ„Â±");
 }
 
 /**
@@ -286,7 +347,7 @@ export async function safeFetchAdapter(url: string, options: SafeFetchOptions = 
         };
         
         if (typeof window !== "undefined") {
-            const token = localStorage.getItem("sqv_access_token");
+            const token = readAccessToken();
             const headers = new Headers(fetchInit.headers || {});
             if (token && !headers.has("Authorization")) {
                 headers.set("Authorization", `Bearer ${token}`);

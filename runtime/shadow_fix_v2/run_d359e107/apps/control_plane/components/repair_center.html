@@ -1,0 +1,27 @@
+<div id="page-repair-center" class="page">
+   <div class="stats-grid">
+     <div class="stat-card red"><div class="stat-label">Açık Olaylar</div><div id="rc-open-incidents" class="stat-value">0</div></div>
+     <div class="stat-card orange"><div class="stat-label">Aktif Onarım</div><div id="rc-active-jobs" class="stat-value">0</div></div>
+     <div class="stat-card yellow"><div class="stat-label">Bekleyen Teklifler</div><div id="rc-pending-proposals" class="stat-value">0</div></div>
+     <div class="stat-card green"><div class="stat-label">Başarı Oranı</div><div id="rc-success-rate" class="stat-value">0%</div></div>
+   </div>
+   
+   <div class="grid-2">
+     <div class="card" style="padding:0; overflow:hidden;">
+       <div class="card-header" style="padding:18px 24px;">
+         <span class="card-title">🚨 Kritik Olaylar (Incidents)</span>
+         <button class="btn btn-primary btn-sm" onclick="showRepairIncidentForm()">+ Manuel Kayıt</button>
+       </div>
+       <div id="rc-incidents-table" class="table-wrap" style="border:none; border-radius:0;">
+         <div class="loading">Sistem taranıyor…</div>
+       </div>
+     </div>
+     
+     <div class="card">
+       <div class="card-header"><span class="card-title">🔧 Aktif Onarım İşlemleri</span></div>
+       <div id="rc-jobs-list">
+         <div class="loading">Aktif işlem yok.</div>
+       </div>
+     </div>
+   </div>
+</div>

@@ -1,0 +1,1 @@
+{"failure_logs": ["CRITICAL: Shared CPU Core Performance Degradation detected in compute stack.", "Technology: scheduler"], "metrics": {"error_rate": 0.45, "latency_ms": 1200}, "environment": "production-cluster-01"}

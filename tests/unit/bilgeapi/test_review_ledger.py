@@ -1,4 +1,5 @@
 import pytest
+from sqlalchemy.exc import IntegrityError
 
 from apps.bilgeapi.repositories.memory import (
     InMemoryAuditRepository,
@@ -86,6 +87,35 @@ async def test_review_ledger_append_verify_and_tamper_detection():
 
     assert tampered["valid"] is False
     assert any(issue["type"] == "payload_hash_mismatch" for issue in tampered["issues"])
+
+
+@pytest.mark.asyncio
+async def test_review_ledger_retries_on_sequence_conflict():
+    class _RetryingRepo(InMemoryReviewLedgerRepository):
+        def __init__(self):
+            super().__init__()
+            self.fail_once = True
+
+        async def append_entry(self, entry_data):
+            if self.fail_once:
+                self.fail_once = False
+                raise IntegrityError("insert", {}, Exception("duplicate sequence"))
+            return await super().append_entry(entry_data)
+
+    repo = _RetryingRepo()
+    service = ReviewLedgerService(repo)
+
+    entry = await service.append_event(
+        chain_id="chain_retry",
+        event_type="SKILL_HASH_VERIFIED",
+        entity_type="skill_registry",
+        entity_id="registry",
+        actor_id="system",
+        payload={"hash": "abc123"},
+    )
+
+    assert entry["sequence_no"] == 1
+    assert (await repo.list_by_chain("chain_retry"))[0]["id"] == entry["id"]
 
 
 @pytest.mark.asyncio

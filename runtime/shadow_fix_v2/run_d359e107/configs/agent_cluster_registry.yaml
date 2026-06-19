@@ -1,0 +1,35 @@
+# Sovereign AGI Agent Cluster Registry — Phase 19
+# Registering specialized agent groups and their domain expertise.
+
+clusters:
+  - id: sec-overwatch-v1
+    name: "Security Oversight Cluster"
+    expertise: ["rbac", "vulnerability_scanning", "encryption", "hardening"]
+    autonomy_limit: L4
+    priority: 10
+    daily_token_budget: 500000
+    base_model: "gpt-4o"
+
+  - id: logic-cortex-v1
+    name: "Domain Logic Cluster"
+    expertise: ["backend_refactoring", "workflow_optimization", "bug_diagnosis"]
+    autonomy_limit: L3
+    priority: 5
+    daily_token_budget: 1000000
+    base_model: "gpt-4o"
+
+  - id: ops-reflex-v1
+    name: "Infrastructure & Ops Cluster"
+    expertise: ["scaling", "rollback_execution", "log_analysis", "observability"]
+    autonomy_limit: L4
+    priority: 8
+    daily_token_budget: 300000
+    base_model: "claude-3-5-sonnet"
+
+  - id: cost-guardian-v1
+    name: "Economy & Efficiency Cluster"
+    expertise: ["token_optimization", "model_routing", "budget_enforcement"]
+    autonomy_limit: L2
+    priority: 7
+    daily_token_budget: 100000
+    base_model: "gpt-4o-mini"

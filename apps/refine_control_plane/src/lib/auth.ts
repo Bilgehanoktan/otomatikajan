@@ -1,12 +1,10 @@
 import { getApiBaseUrl } from "@/lib/runtime";
 import { safeFetchJson } from "@/lib/api";
 
-const DEV_OPERATOR = {
-  email: "admin@sovereign.agi",
-  password: "admin1234",
-};
-
 const TOKEN_KEY = "sqv_access_token";
+const DEV_AUTO_LOGIN_ENABLED = process.env.NEXT_PUBLIC_ENABLE_DEV_AUTO_LOGIN === "true";
+const DEV_OPERATOR_EMAIL = process.env.NEXT_PUBLIC_DEV_OPERATOR_EMAIL?.trim() || "";
+const DEV_OPERATOR_PASSWORD = process.env.NEXT_PUBLIC_DEV_OPERATOR_PASSWORD?.trim() || "";
 
 type AuthFetchOptions = RequestInit & {
   retries?: number;
@@ -25,13 +23,15 @@ function storeAccessToken(token?: string | null) {
   if (!token || typeof window === "undefined") {
     return;
   }
-  window.localStorage.setItem(TOKEN_KEY, token);
+  window.sessionStorage.setItem(TOKEN_KEY, token);
+  window.localStorage.removeItem(TOKEN_KEY);
 }
 
 export function clearStoredAccessToken() {
   if (typeof window === "undefined") {
     return;
   }
+  window.sessionStorage.removeItem(TOKEN_KEY);
   window.localStorage.removeItem(TOKEN_KEY);
 }
 
@@ -39,7 +39,17 @@ export function getStoredAccessToken(): string | null {
   if (typeof window === "undefined") {
     return null;
   }
-  return window.localStorage.getItem(TOKEN_KEY);
+  return window.sessionStorage.getItem(TOKEN_KEY) || window.localStorage.getItem(TOKEN_KEY);
+}
+
+function getDevOperatorCredentials(): { email: string; password: string } | null {
+  if (!DEV_AUTO_LOGIN_ENABLED || !DEV_OPERATOR_EMAIL || !DEV_OPERATOR_PASSWORD) {
+    return null;
+  }
+  return {
+    email: DEV_OPERATOR_EMAIL,
+    password: DEV_OPERATOR_PASSWORD,
+  };
 }
 
 /**
@@ -94,6 +104,11 @@ export async function ensureSession(): Promise<SessionState> {
     return current;
   }
 
+  const devCredentials = getDevOperatorCredentials();
+  if (!devCredentials) {
+    return current;
+  }
+
   if (autoLoginInFlight) {
     return autoLoginInFlight;
   }
@@ -116,7 +131,7 @@ export async function ensureSession(): Promise<SessionState> {
     const payload = await authFetch<{ access_token?: string | null }>("/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(DEV_OPERATOR),
+      body: JSON.stringify(devCredentials),
     });
 
     if (payload?.access_token) {

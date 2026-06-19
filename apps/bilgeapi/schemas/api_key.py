@@ -30,8 +30,13 @@ class ApiKeyResponse(BaseModel):
     quota_daily: Optional[int] = None
     quota_monthly: Optional[int] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {
+
+
+        "from_attributes": True
+
+
+    }
 
 class ApiKeyCreateResponse(ApiKeyResponse):
     plaintext_key: str = Field(..., description="Plaintext API key. Only returned once upon creation.")

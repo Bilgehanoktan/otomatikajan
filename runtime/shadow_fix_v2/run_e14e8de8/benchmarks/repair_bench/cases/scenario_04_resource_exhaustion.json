@@ -1,0 +1,13 @@
+{
+  "id": "scenario_04_resource_exhaustion",
+  "title": "K8s Pod Memory Exhaustion (OOMKill Risk)",
+  "incident_type": "resource_exhaustion",
+  "target_component": "ProcessorNode",
+  "initial_state_payload": {
+    "mem_usage_pct": 98,
+    "current_usage_mb": 2040,
+    "limit_mb": 2048,
+    "restarts": 3
+  },
+  "expected_outcome": "REPAIR_SUCCESS"
+}

@@ -1,0 +1,5 @@
+id: re-018-sync-lag
+severity: high
+subsystem: database
+title: Database Replication Lag Exceeding Threshold
+type: incident_replay

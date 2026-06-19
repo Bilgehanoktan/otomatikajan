@@ -174,6 +174,55 @@ async def get_run(
     return run
 
 
+@router.post("/runs/{run_id}/retry", response_model=Dict[str, Any], summary="Retry a failed or blocked agent run")
+async def retry_run(
+    run_id: str,
+    db: AsyncSession = Depends(get_db),
+    identity: Dict[str, Any] = Depends(require_permission("agents.manage"))
+):
+    stmt = select(AgentRunModel).where(AgentRunModel.run_id == run_id)
+    res = await db.execute(stmt)
+    previous_run = res.scalars().first()
+    if not previous_run:
+        raise HTTPException(status_code=404, detail=f"Agent run record '{run_id}' not found.")
+
+    if previous_run.status not in {"FAILED", "BLOCKED"}:
+        raise HTTPException(status_code=400, detail="Only FAILED or BLOCKED agent runs can be retried.")
+
+    input_parameters = previous_run.input_parameters or {}
+    command_handler = input_parameters.get("handler")
+    if not command_handler:
+        raise HTTPException(status_code=400, detail="Original agent run does not contain a command handler for retry.")
+
+    arguments = input_parameters.get("arguments") or {}
+    target_paths = input_parameters.get("target_paths") or []
+    if not isinstance(arguments, dict) or not isinstance(target_paths, list):
+        raise HTTPException(status_code=400, detail="Original agent run input parameters are invalid for retry.")
+
+    retry_run_id = f"run-{uuid.uuid4().hex[:12]}"
+    actor_email = identity.get("email") or identity.get("name") or "operator"
+
+    success, output, workspace_path = await AgentSandboxExecutor.execute_run(
+        db=db,
+        run_id=retry_run_id,
+        agent_key=previous_run.agent_key,
+        command_handler=command_handler,
+        arguments=arguments,
+        target_paths=target_paths,
+        cost=previous_run.cost or 0.01,
+        network_domains=[],
+        created_by=actor_email
+    )
+
+    return {
+        "run_id": retry_run_id,
+        "retried_from_run_id": run_id,
+        "success": success,
+        "output": output,
+        "workspace_path": workspace_path
+    }
+
+
 # Promotion Pydantic Schemas
 class PromotionCreateRequest(BaseModel):
     run_id: str = Field(..., example="run-12345")
@@ -374,4 +423,3 @@ async def get_policy_rules(
         "allowlist_patterns": AgentPromotionGate.ALLOWLIST_PATTERNS,
         "blocklist_patterns": AgentPromotionGate.BLOCKLIST_PATTERNS
     }
-

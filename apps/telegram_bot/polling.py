@@ -22,8 +22,16 @@ ADMIN_IDS = os.getenv("TELEGRAM_ADMIN_IDS", "").split(",")
 
 async def check_auth(update: Update):
     user_id = str(update.effective_user.id)
-    if ALLOWED_IDS and user_id not in ALLOWED_IDS and user_id not in ADMIN_IDS:
-        await update.message.reply_text("⛔ Yetkisiz erişim. Lütfen sistem yöneticisi ile iletişime geçin.")
+    has_allowed = any(uid.strip() for uid in ALLOWED_IDS if uid)
+    has_admin = any(uid.strip() for uid in ADMIN_IDS if uid)
+    
+    if (has_allowed or has_admin) and user_id not in ALLOWED_IDS and user_id not in ADMIN_IDS:
+        await update.message.reply_text(
+            f"⛔ **Yetkisiz Erişim.**\n\n"
+            f"Telegram ID'niz: `{user_id}`\n\n"
+            f"Lütfen bu ID'yi `.env` dosyasındaki `TELEGRAM_ALLOWED_IDS` ve `TELEGRAM_ADMIN_IDS` kısımlarına ekleyip sistemi yeniden başlatın.",
+            parse_mode="Markdown"
+        )
         return False
     return True
 
@@ -51,13 +59,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             resp = await client.post(
                 f"{backend_url}/api/v1/orchestration/planner/analyze",
                 json={"query": text, "user_id": str(update.effective_user.id)},
-                timeout=15.0
+                timeout=60.0
             )
             
             if resp.status_code == 200:
                 data = resp.json()
                 reply = data.get("response", "İşlem tamamlandı.")
-                await update.message.reply_text(reply, parse_mode="Markdown")
+                try:
+                    await update.message.reply_text(reply, parse_mode="Markdown")
+                except Exception as parse_err:
+                    logger.warning(f"Markdown send failed, retrying plain text: {parse_err}")
+                    await update.message.reply_text(reply)
                 return
     except Exception as e:
         logger.error(f"Planner integration failed: {e}")
@@ -74,7 +86,7 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
         import httpx
         backend_url = os.getenv("BACKEND_API_URL", "http://localhost:8000")
         async with httpx.AsyncClient() as client:
-            resp = await client.get(f"{backend_url}/api/v1/health", timeout=5.0)
+            resp = await client.get(f"{backend_url}/health", timeout=5.0)
             if resp.status_code == 200:
                 data = resp.json()
                 health_status = data.get("status", "HEALTHY")

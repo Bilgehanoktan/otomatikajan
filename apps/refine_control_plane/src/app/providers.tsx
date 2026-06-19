@@ -90,8 +90,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
         if (session && session.kind === "authenticated") {
           return {
             id: session.identity.id,
-            name: session.identity.email,
+            name: session.identity.name || session.identity.email,
             email: session.identity.email,
+            role: session.identity.role,
+            roles: session.identity.roles,
             avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${session.identity.email}`,
           };
         }

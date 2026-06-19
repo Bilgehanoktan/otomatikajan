@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 from pydantic import BaseModel, Field
 
 class AutonomyDecisionRequest(BaseModel):
@@ -21,5 +21,24 @@ class AutonomyDecisionResponse(BaseModel):
     decision_reason: str = Field(..., description="Detailed explanation of the decision logic")
     created_at: datetime = Field(..., description="Decision timestamp")
 
-    class Config:
-        from_attributes = True
+    model_config = {
+
+
+        "from_attributes": True
+
+
+    }
+
+
+class ManagementGateUpdateRequest(BaseModel):
+    unlocked: bool = Field(..., description="Whether operator management actions are unlocked")
+    reason: Optional[str] = Field(None, max_length=240, description="Operator reason shown in audit/UI context")
+
+
+class ManagementGateResponse(BaseModel):
+    unlocked: bool = Field(..., description="Whether operator management actions are currently unlocked")
+    status: str = Field(..., description="LOCKED or UNLOCKED")
+    reason: Optional[str] = Field(None, description="Operator reason for the latest transition")
+    forbidden_actions: List[str] = Field(..., description="Actions that remain forbidden even when the gate is unlocked")
+    human_gate_required: bool = Field(..., description="Whether human gate enforcement remains active")
+    updated_by: Optional[str] = Field(None, description="Identity that changed the gate in this response")

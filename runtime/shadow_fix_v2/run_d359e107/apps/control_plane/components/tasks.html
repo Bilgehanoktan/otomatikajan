@@ -1,0 +1,32 @@
+<div id="page-tasks" class="page">
+  <div class="toolbar">
+    <div class="filter-group">
+      <select id="task-filter-status" onchange="loadTasks()">
+        <option value="">Tüm Durumlar</option>
+        <option value="pending">Bekleyen</option>
+        <option value="running">Çalışan</option>
+        <option value="completed">Tamamlanan</option>
+        <option value="error">Hatalı</option>
+      </select>
+      <select id="task-filter-priority" onchange="loadTasks()">
+        <option value="">Tüm Öncelikler</option>
+        <option value="high">Yüksek</option>
+        <option value="medium">Orta</option>
+        <option value="low">Düşük</option>
+      </select>
+    </div>
+    <div style="display:flex; gap:12px;">
+      <input id="task-search" type="text" placeholder="Görevi filtrele..." style="width:240px;" onkeyup="if(event.key==='Enter')loadTasks()">
+      <button class="btn btn-primary" onclick="openModal('modal-create')">+ Yeni Görev</button>
+    </div>
+  </div>
+  
+  <div class="card" style="padding:0; overflow:hidden;">
+    <div class="card-header" style="padding:18px 24px;">
+      <span id="task-count" class="card-title">0 görev</span>
+    </div>
+    <div id="task-table" class="table-wrap" style="border:none; border-radius:0;">
+      <div class="loading">Sistem verileri taranıyor…</div>
+    </div>
+  </div>
+</div>

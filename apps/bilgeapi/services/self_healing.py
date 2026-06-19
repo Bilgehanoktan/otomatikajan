@@ -60,7 +60,18 @@ class SelfHealingPolicy:
                 "forbidden_actions_checked": self.FORBIDDEN_ACTIONS
             }
 
-        # 3. Check safe mode allowlist
+        # 3. Operator management gate must be explicitly unlocked from Ops Console.
+        if not settings.BILGEAPI_MANAGEMENT_ACTIONS_UNLOCKED:
+            return {
+                "allowed": False,
+                "reason": "Management actions are locked by operator gate (BILGEAPI_MANAGEMENT_ACTIONS_UNLOCKED=false).",
+                "action_type": action_type,
+                "execution_mode": execution_mode,
+                "requires_human_gate": True,
+                "forbidden_actions_checked": self.FORBIDDEN_ACTIONS
+            }
+
+        # 4. Check safe mode allowlist
         if settings.BILGEAPI_SELF_HEALING_SAFE_MODE:
             allowed = settings.BILGEAPI_SELF_HEALING_ALLOWED_ACTIONS
             if action_type not in allowed:
@@ -73,12 +84,12 @@ class SelfHealingPolicy:
                     "forbidden_actions_checked": self.FORBIDDEN_ACTIONS
                 }
 
-        # 4. Check severity and human gate rules
-        if severity == "HIGH":
-            # HIGH severity always requires human gate
+        # 5. Check severity and human gate rules
+        if severity == "HIGH" and settings.BILGEAPI_HUMAN_GATE_REQUIRED_FOR_HIGH:
+            # HIGH severity requires human gate
             return {
                 "allowed": False,
-                "reason": "HIGH severity findings always require Human Gate validation.",
+                "reason": "HIGH severity findings require Human Gate validation.",
                 "action_type": action_type,
                 "execution_mode": execution_mode,
                 "requires_human_gate": True,
@@ -88,14 +99,15 @@ class SelfHealingPolicy:
         if severity == "CRITICAL":
             # CRITICAL severity only allows liveness recovery if emergency recovery enabled
             if action_type not in self.LIVENESS_RECOVERY_ACTIONS:
-                return {
-                    "allowed": False,
-                    "reason": f"CRITICAL severity findings only allow liveness recovery actions, not {action_type}.",
-                    "action_type": action_type,
-                    "execution_mode": execution_mode,
-                    "requires_human_gate": True,
-                    "forbidden_actions_checked": self.FORBIDDEN_ACTIONS
-                }
+                if settings.BILGEAPI_HUMAN_GATE_REQUIRED_FOR_CRITICAL:
+                    return {
+                        "allowed": False,
+                        "reason": f"CRITICAL severity findings only allow liveness recovery actions, not {action_type}.",
+                        "action_type": action_type,
+                        "execution_mode": execution_mode,
+                        "requires_human_gate": True,
+                        "forbidden_actions_checked": self.FORBIDDEN_ACTIONS
+                    }
             if not settings.BILGEAPI_EMERGENCY_RECOVERY_ENABLED:
                 return {
                     "allowed": False,

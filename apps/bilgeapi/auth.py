@@ -100,13 +100,22 @@ async def get_current_identity(
         user_agent = request.headers.get("user-agent")
 
         # 1. DB-backed key validation (highest priority)
-        db_key = await api_key_service.validate_key_and_record_use(
-            plaintext_key=api_key,
-            path=request.url.path,
-            method=request.method,
-            ip_address=client_ip,
-            user_agent=user_agent
-        )
+        db_key = None
+        try:
+            db_key = await api_key_service.validate_key_and_record_use(
+                plaintext_key=api_key,
+                path=request.url.path,
+                method=request.method,
+                ip_address=client_ip,
+                user_agent=user_agent
+            )
+        except Exception as exc:
+            logger.error(
+                "DB-backed API key validation failed on %s %s: %s",
+                request.method,
+                request.url.path,
+                exc,
+            )
         if db_key:
             # ── Quota Enforcement (post-auth) ──
             quota_daily = db_key.get("quota_daily")

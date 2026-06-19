@@ -1,0 +1,42 @@
+<div id="page-monitoring" class="page">
+  <div id="monitoring-stats" class="stats-grid"></div>
+  
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header"><span class="card-title">🔥 API Endpoint Performansı</span></div>
+      <div id="endpoint-stats" class="table-wrap" style="border:none;">
+        <div class="loading">Sistem metrikleri toplanıyor…</div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🧠 LLM Sağlayıcı Durumu</span>
+        <button class="btn btn-ghost btn-sm" onclick="loadMonitoring()">↻</button>
+      </div>
+      <div id="llm-stats" style="padding:10px;">
+        <div class="loading">LLM sinyalleri bekleniyor…</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🛡️ Gölge Yedekler (Shadow Backups)</span>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="loadBackups()">↻</button>
+          <span class="badge" style="background:var(--green);">GÜVENLİ</span>
+        </div>
+      </div>
+      <div id="backup-list" class="table-wrap" style="border:none; max-height:300px; overflow-y:auto;">
+        <div class="loading">Yedek dizini taranıyor…</div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="card" style="margin-top:20px;">
+    <div class="card-header"><span class="card-title">🖥️ Donanım Kaynakları (Hologram)</span></div>
+    <div id="system-resources" style="padding:10px;">
+      <div class="loading">Donanım verileri okunuyor…</div>
+    </div>
+  </div>
+</div>

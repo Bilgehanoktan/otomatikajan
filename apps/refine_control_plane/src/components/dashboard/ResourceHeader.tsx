@@ -33,6 +33,7 @@ export function ResourceHeader({ title, subtitle, icon, badge, onBack, actions, 
         const response = await safeFetchJson<RuntimeDiagnosticsResponse>("/api/v1/health/runtime-diagnostics", {
           retries: 0,
           useOfflineFallback: false,
+          suppressConsoleError: true,
         });
         if (!cancelled) {
           setRuntimeDiagnostics(Array.isArray(response.diagnostics) ? response.diagnostics : []);

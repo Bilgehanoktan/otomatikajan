@@ -2,6 +2,7 @@ import asyncio
 import importlib
 import logging
 import os
+import sys
 import time
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
@@ -226,10 +227,13 @@ class BilgeAPIReleaseGate:
         is_production = settings.APP_ENV == "production"
 
         try:
-            cmd = "npx ecc-agentshield scan --path .agents --format json"
+            cmd = (
+                ["cmd", "/c", "npx", "ecc-agentshield", "scan", "--path", ".agents", "--format", "json"]
+                if sys.platform == "win32"
+                else ["npx", "ecc-agentshield", "scan", "--path", ".agents", "--format", "json"]
+            )
             result = subprocess.run(
                 cmd,
-                shell=True,
                 capture_output=True,
                 text=True,
                 check=False

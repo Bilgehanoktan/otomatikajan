@@ -107,6 +107,7 @@ const ProjectProfilePanel: React.FC = () => {
       <Modal
         title={t('modal.title')}
         open={isModalVisible}
+        forceRender={true}
         onCancel={() => setIsModalVisible(false)}
         onOk={() => form.submit()}
       >

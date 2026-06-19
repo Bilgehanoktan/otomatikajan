@@ -6,6 +6,7 @@ import { Skeleton } from "./Skeleton";
 import { buildWebSocketCandidates } from "@/lib/runtime";
 import { useTranslations } from "next-intl";
 import { safeFetchJson } from "@/lib/api";
+import { getStoredAccessToken } from "@/lib/auth";
 
 interface SystemEvent {
   seq: number;
@@ -81,7 +82,7 @@ export function LiveEventStream({ apiUrl, height }: { apiUrl: string, height?: s
 
       try {
         const wsUrl = wsCandidates[candidateIndex];
-        const token = typeof window !== "undefined" ? localStorage.getItem("sqv_access_token") : null;
+        const token = getStoredAccessToken();
         const finalWsUrl = token ? `${wsUrl}${wsUrl.includes("?") ? "&" : "?"}token=${token}` : wsUrl;
         
         console.debug(`[WS] Connecting to ${finalWsUrl}`);

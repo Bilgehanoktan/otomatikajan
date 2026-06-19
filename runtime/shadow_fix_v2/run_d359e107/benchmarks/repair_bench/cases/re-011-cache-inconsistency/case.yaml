@@ -1,0 +1,5 @@
+id: re-011-cache-inconsistency
+severity: high
+subsystem: orchestrator
+title: Distributed Cache Inconsistency
+type: incident_replay

@@ -1,0 +1,10 @@
+cost_class: medium
+description: Workflow executor consumes 10MB/hour due to signal listener leakage.
+incident_id: INC-2024-04-14-05
+module: libs.workflow.executor
+risk_class: medium
+target_behavior: heap_stability
+title: Slow Memory Leak in Long-Running Tasks
+verification_profile:
+  chaos: required
+  regression: intensive

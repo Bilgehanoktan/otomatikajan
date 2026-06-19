@@ -3965,6 +3965,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "type": "object",
                   "title": "Response Intake Finding V1 Watchdog Findings Intake Post"
                 }
@@ -4053,6 +4054,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "type": "object",
                   "title": "Response Get Release Metadata V1 System Release Get"
                 }
@@ -4084,8 +4086,87 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "type": "object",
                   "title": "Response Get Autonomy Mode Registry V1 System Autonomy Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/system/management-gate": {
+      "get": {
+        "tags": [
+          "System Runtime"
+        ],
+        "summary": "Get Management Gate",
+        "description": "Returns the operator-controlled gate for management actions.",
+        "operationId": "get_management_gate_v1_system_management_gate_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagementGateResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "System Runtime"
+        ],
+        "summary": "Update Management Gate",
+        "description": "Locks or unlocks management actions. Forbidden actions remain blocked by policy.",
+        "operationId": "update_management_gate_v1_system_management_gate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagementGateUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagementGateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -4165,6 +4246,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "type": "object",
                   "title": "Response Test Localization V1 System I18N Test Get"
                 }
@@ -4327,6 +4409,7 @@
           "context_summary": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -5070,6 +5153,7 @@
           "before_state": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -5081,6 +5165,7 @@
           "after_state": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -5090,6 +5175,7 @@
             "title": "After State"
           },
           "metadata": {
+            "additionalProperties": true,
             "type": "object",
             "title": "Metadata"
           },
@@ -5553,6 +5639,7 @@
           "evidence_summary": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -5668,6 +5755,7 @@
             "title": "Tags"
           },
           "metadata": {
+            "additionalProperties": true,
             "type": "object",
             "title": "Metadata"
           }
@@ -5745,6 +5833,7 @@
             "title": "Tags"
           },
           "metadata": {
+            "additionalProperties": true,
             "type": "object",
             "title": "Metadata"
           },
@@ -5771,6 +5860,92 @@
           "created_at"
         ],
         "title": "IncidentResponse"
+      },
+      "ManagementGateResponse": {
+        "properties": {
+          "unlocked": {
+            "type": "boolean",
+            "title": "Unlocked",
+            "description": "Whether operator management actions are currently unlocked"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "LOCKED or UNLOCKED"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason",
+            "description": "Operator reason for the latest transition"
+          },
+          "forbidden_actions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Forbidden Actions",
+            "description": "Actions that remain forbidden even when the gate is unlocked"
+          },
+          "human_gate_required": {
+            "type": "boolean",
+            "title": "Human Gate Required",
+            "description": "Whether human gate enforcement remains active"
+          },
+          "updated_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated By",
+            "description": "Identity that changed the gate in this response"
+          }
+        },
+        "type": "object",
+        "required": [
+          "unlocked",
+          "status",
+          "forbidden_actions",
+          "human_gate_required"
+        ],
+        "title": "ManagementGateResponse"
+      },
+      "ManagementGateUpdateRequest": {
+        "properties": {
+          "unlocked": {
+            "type": "boolean",
+            "title": "Unlocked",
+            "description": "Whether operator management actions are unlocked"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 240
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason",
+            "description": "Operator reason shown in audit/UI context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "unlocked"
+        ],
+        "title": "ManagementGateUpdateRequest"
       },
       "PatchRevisionRequest": {
         "properties": {
@@ -5828,6 +6003,7 @@
           "risk_analysis": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -6211,6 +6387,7 @@
           "risk_analysis": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -6408,6 +6585,7 @@
           },
           "smoke_trace": {
             "items": {
+              "additionalProperties": true,
               "type": "object"
             },
             "type": "array",
@@ -6521,6 +6699,7 @@
           "before_health": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -6532,6 +6711,7 @@
           "after_health": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -6565,6 +6745,7 @@
           "policy_decision": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -7054,6 +7235,7 @@
             "title": "Actor Id"
           },
           "payload": {
+            "additionalProperties": true,
             "type": "object",
             "title": "Payload",
             "default": {}
@@ -7148,6 +7330,7 @@
           "payload_summary": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -7236,6 +7419,7 @@
           },
           "issues": {
             "items": {
+              "additionalProperties": true,
               "type": "object"
             },
             "type": "array",
@@ -7466,6 +7650,7 @@
           "evidence_summary": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -7488,6 +7673,7 @@
           "human_gate_payload": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -7709,6 +7895,13 @@
           "type": {
             "type": "string",
             "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
           }
         },
         "type": "object",
@@ -7912,6 +8105,7 @@
           "payload": {
             "anyOf": [
               {
+                "additionalProperties": true,
                 "type": "object"
               },
               {

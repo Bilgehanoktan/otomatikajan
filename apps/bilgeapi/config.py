@@ -22,7 +22,10 @@ class Settings:
 
     @property
     def BILGEAPI_AUTH_MODE(self) -> str:
-        return os.getenv("BILGEAPI_AUTH_MODE", "disabled").lower()
+        explicit = os.getenv("BILGEAPI_AUTH_MODE")
+        if explicit:
+            return explicit.lower()
+        return "disabled" if self.APP_ENV == "test" else "api_key"
 
     @BILGEAPI_AUTH_MODE.setter
     def BILGEAPI_AUTH_MODE(self, value):
@@ -81,7 +84,9 @@ class Settings:
     def BILGEAPI_CORS_ALLOWLIST(self):
         raw_cors = os.getenv("BILGEAPI_CORS_ALLOWLIST", "")
         allowlist = [o.strip() for o in raw_cors.split(",") if o.strip()]
-        return allowlist if allowlist else ["*"]
+        if allowlist:
+            return allowlist
+        return ["http://127.0.0.1:3100", "http://localhost:3100"]
 
     @BILGEAPI_CORS_ALLOWLIST.setter
     def BILGEAPI_CORS_ALLOWLIST(self, value):
@@ -605,6 +610,15 @@ class Settings:
             os.environ["BILGEAPI_SELF_HEALING_ALLOWED_ACTIONS"] = ",".join(value)
         else:
             os.environ["BILGEAPI_SELF_HEALING_ALLOWED_ACTIONS"] = str(value)
+
+    @property
+    def BILGEAPI_MANAGEMENT_ACTIONS_UNLOCKED(self) -> bool:
+        raw = os.getenv("BILGEAPI_MANAGEMENT_ACTIONS_UNLOCKED", "false").lower()
+        return raw in ("1", "true", "yes", "on")
+
+    @BILGEAPI_MANAGEMENT_ACTIONS_UNLOCKED.setter
+    def BILGEAPI_MANAGEMENT_ACTIONS_UNLOCKED(self, value):
+        os.environ["BILGEAPI_MANAGEMENT_ACTIONS_UNLOCKED"] = str(value).lower()
 
     @property
     def BILGEAPI_EMERGENCY_RECOVERY_ENABLED(self) -> bool:

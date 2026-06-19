@@ -1,0 +1,10 @@
+
+{
+  "cluster_id": "eu-west-node-4",
+  "mesh_status": "DEGRADED",
+  "segment_partitions": ["eu-west-1a", "eu-west-1b"],
+  "heartbeat_missing_count": 8,
+  "recent_events": [
+    {"type": "MESH_PARTITION_DETECTED", "timestamp": "2024-04-15T10:00:00Z"}
+  ]
+}

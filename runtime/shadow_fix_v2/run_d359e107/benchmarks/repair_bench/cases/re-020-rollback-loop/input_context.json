@@ -1,0 +1,1 @@
+{"failure_logs": ["CRITICAL: Unstable Deployment Causing Infinite Rollback-Retry detected in deployment stack.", "Technology: canary"], "metrics": {"error_rate": 0.45, "latency_ms": 1200}, "environment": "production-cluster-01"}

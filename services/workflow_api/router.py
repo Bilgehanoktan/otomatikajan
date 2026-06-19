@@ -16,9 +16,13 @@ from pydantic import BaseModel
 
 from libs.db.session import AsyncSessionLocal, get_db
 from sqlalchemy.ext.asyncio import AsyncSession
-from services.auth.jwt_auth import require_permission
+from services.auth.jwt_auth import require_method_permission, require_permission
 
-router = APIRouter(tags=["Workflow Control Plane"])
+router = APIRouter(
+    prefix="/workflows",
+    tags=["Workflow Control Plane"],
+    dependencies=[Depends(require_method_permission("workflow.view", "workflow.approve"))],
+)
 logger = logging.getLogger("services.workflow_api.router")
 _EPHEMERAL_WORKFLOWS: dict[str, dict[str, Any]] = {}
 

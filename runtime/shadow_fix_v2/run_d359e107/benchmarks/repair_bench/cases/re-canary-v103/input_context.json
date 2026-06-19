@@ -1,0 +1,13 @@
+{
+  "logs": [
+    "01:20:05 INFO mesh.consensus.heartbeat OK",
+    "01:20:10 WARN mesh.consensus.latency_spike detected (450ms)",
+    "01:20:15 ERROR iam.core.auth_token_refresh failed for regional_cluster_west",
+    "01:20:16 INFO workflow.engine pausing low-priority tasks"
+  ],
+  "state": {
+    "active_nodes": 12,
+    "quorum_status": "degraded",
+    "economic_safe_mode": false
+  }
+}

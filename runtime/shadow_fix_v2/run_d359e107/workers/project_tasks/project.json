@@ -1,0 +1,16 @@
+{
+  "name": "worker-project-tasks",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "workers/project_tasks",
+  "tags": ["type:worker", "platform:python", "scope:execution"],
+  "implicitDependencies": ["lib-workflow", "lib-db"],
+  "targets": {
+    "start": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "python workers/project_tasks/worker.py"
+      }
+    }
+  }
+}

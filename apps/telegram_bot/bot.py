@@ -118,7 +118,14 @@ class TelegramNotifier:
                         json=payload,
                     )
                     if resp.status_code != 200:
-                        logger.warning(f"Telegram returned non-200 status code: {resp.status_code} - {resp.text}")
+                        logger.warning(f"Telegram returned non-200 status code: {resp.status_code} - {resp.text}. Retrying plain text.")
+                        payload.pop("parse_mode", None)
+                        retry_resp = await client.post(
+                            f"https://api.telegram.org/bot{self._bot_token}/sendMessage",
+                            json=payload,
+                        )
+                        if retry_resp.status_code != 200:
+                            logger.warning(f"Telegram retry plain text also failed: {retry_resp.status_code} - {retry_resp.text}")
                 except Exception as e:
                     logger.warning(f"Failed to send Telegram message to {chat_id}: {e}")
 
@@ -140,7 +147,16 @@ class TelegramNotifier:
                     f"https://api.telegram.org/bot{self._bot_token}/sendMessage",
                     json=payload,
                 )
-                return resp.status_code == 200
+                if resp.status_code == 200:
+                    return True
+                
+                logger.warning(f"Telegram send_to_chat returned non-200: {resp.status_code} - {resp.text}. Retrying plain text.")
+                payload.pop("parse_mode", None)
+                retry_resp = await client.post(
+                    f"https://api.telegram.org/bot{self._bot_token}/sendMessage",
+                    json=payload,
+                )
+                return retry_resp.status_code == 200
         except Exception as e:
             logger.warning(f"Telegram send_to_chat failed: {e}")
             return False
