@@ -85,9 +85,7 @@ exit /b 0
 :local_mode
 :: Backend Port Temizligi
 echo [*] Eski surecler temizleniyor...
-for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8000 ^| findstr LISTENING') do taskkill /f /pid %%a >nul 2>&1
-for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8100 ^| findstr LISTENING') do taskkill /f /pid %%a >nul 2>&1
-for /f "tokens=5" %%a in ('netstat -aon ^| findstr :3100 ^| findstr LISTENING') do taskkill /f /pid %%a >nul 2>&1
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%cleanup_ports.ps1"
 call :assert_port_free 8000 "Backend API"
 if errorlevel 1 (
     echo [HATA] 8000 portu hala kullanimda. Docker Desktop veya eski backend surecini kapatin.
@@ -140,10 +138,7 @@ setlocal enabledelayedexpansion
 
 :: Port Temizligi (Cakismalari onlemek icin)
 echo [*] Eski surecler temizleniyor...
-for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8000 ^| findstr LISTENING') do taskkill /f /pid %%a >nul 2>&1
-for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8100 ^| findstr LISTENING') do taskkill /f /pid %%a >nul 2>&1
-for /f "tokens=5" %%a in ('netstat -aon ^| findstr :3100 ^| findstr LISTENING') do taskkill /f /pid %%a >nul 2>&1
-
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%cleanup_ports.ps1"
 echo [*] Docker mod baslatiliyor...
 
 :: 1) Oncelikle pipe'i kontrol et

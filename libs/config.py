@@ -409,4 +409,25 @@ QUALITY_PASS_THRESHOLD            = float(os.getenv("QUALITY_PASS_THRESHOLD", "0
 ENABLE_AUTONOMOUS_IMPROVEMENT     = os.getenv("ENABLE_AUTONOMOUS_IMPROVEMENT", "true").lower() == "true"
 IMPROVEMENT_AUTO_APPLY_THRESHOLD  = float(os.getenv("IMPROVEMENT_AUTO_APPLY_THRESHOLD", "0.8"))
 
+def validate_bootstrap_config():
+    """
+    Safeguards against env collisions and profile configuration inconsistencies.
+    """
+    global REDIS_ENABLED, CELERY_ENABLED, QUEUE_BACKEND
+    
+    # 1. Production SQLite block
+    if is_prod and "sqlite" in DATABASE_URL.lower():
+        raise RuntimeError("[SAFEGUARD] Configuration Collision: Production mode cannot run on SQLite!")
+        
+    # 2. Celery / Redis sync validation
+    if QUEUE_BACKEND == "celery" and not REDIS_ENABLED:
+        print("[SAFEGUARD] Collision: Celery queue active but REDIS_ENABLED is False. Forcing REDIS_ENABLED=True.")
+        REDIS_ENABLED = True
+        
+    # 3. Local-dev resilience check
+    if RUNTIME_PROFILE == "local-dev" and (REDIS_ENABLED or CELERY_ENABLED):
+        # Allow override if explicitly configured, but print a notice
+        print("[SAFEGUARD] Notice: local-dev profile active with Celery/Redis enabled. Ensure services are running.")
+
+validate_bootstrap_config()
 validate_production_config()

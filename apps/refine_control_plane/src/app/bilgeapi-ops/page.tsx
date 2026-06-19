@@ -150,6 +150,14 @@ function statusTone(status?: string): string {
 export default function BilgeAPIOpsConsole() {
   const t = useTranslations("opsConsole");
   const { data: identity } = useGetIdentity<any>();
+  
+  const isMutateAllowed = React.useMemo(() => {
+    if (!identity) return false;
+    const rolesList = identity.roles || (identity.role ? [identity.role] : []);
+    const upperRoles = rolesList.map((r: string) => String(r).toUpperCase());
+    return upperRoles.includes("ADMIN") || upperRoles.includes("SOVEREIGN_PRIME") || upperRoles.includes("OPERATOR") || upperRoles.includes("OPS_COMMANDER");
+  }, [identity]);
+
   const [activeTab, setActiveTab] = React.useState<OpsTab>("dashboard");
   const [apiKey, setApiKey] = React.useState("");
   const [snapshot, setSnapshot] = React.useState<OpsSnapshot | null>(null);
@@ -241,7 +249,15 @@ export default function BilgeAPIOpsConsole() {
       if (!selectedDraftId && next.drafts[0]) setSelectedDraftId(next.drafts[0].id);
       record("snapshot", "OK", `${next.apiKeys.length} keys, ${next.proposals.length} proposals`);
     } catch (error) {
-      record("snapshot", "ERR", error instanceof Error ? error.message : String(error));
+      const msg = error instanceof Error ? error.message : String(error);
+      record("snapshot", "ERR", msg);
+      
+      const lowered = msg.toLowerCase();
+      if (lowered.includes("unauthorized") || lowered.includes("forbidden") || lowered.includes("invalid key") || lowered.includes("401") || lowered.includes("403") || lowered.includes("api key")) {
+        sessionStorage.removeItem("bilgeapi_ops_api_key");
+        setApiKey("");
+        console.warn("[Auth] Invalid X-API-Key detected. Cleared bilgeapi_ops_api_key from sessionStorage.");
+      }
     } finally {
       setLoading(false);
     }
@@ -466,7 +482,8 @@ export default function BilgeAPIOpsConsole() {
                     ),
                   )
                 }
-                className={`inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-xs font-black uppercase tracking-widest ${
+                disabled={!isMutateAllowed || loading}
+                className={`inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-xs font-black uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed ${
                   managementUnlocked
                     ? "border-amber-300/20 bg-amber-300/10 text-amber-100 hover:bg-amber-300/15"
                     : "border-emerald-300/20 bg-emerald-300/10 text-emerald-100 hover:bg-emerald-300/15"
@@ -500,7 +517,8 @@ export default function BilgeAPIOpsConsole() {
                 </div>
                 <button
                   onClick={() => void runAction("release_gate", runReleaseReadiness(apiKey))}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-xs font-black uppercase tracking-widest text-cyan-100"
+                  disabled={!isMutateAllowed || loading}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-xs font-black uppercase tracking-widest text-cyan-100 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <Play size={15} />
                   {t("runGate")}
@@ -951,6 +969,7 @@ export default function BilgeAPIOpsConsole() {
                 </p>
                 <button
                   onClick={() => void runAction("run_watchdog_scan", runWatchdogScan(apiKey))}
+                  disabled={!isMutateAllowed || loading}
                   className={primaryButtonClass}
                 >
                   <Play size={14} />
@@ -1030,6 +1049,7 @@ export default function BilgeAPIOpsConsole() {
             </Panel>
 
             <div className="space-y-6">
+              {/* Test Assertion Check: Forbidden Governor Actions */}
               <Panel title={t("panels.forbiddenActions")} icon={<Lock size={16} />}>
                 <p className="mb-4 text-xs text-gray-400">
                   {t("labels.forbiddenDesc")}
@@ -1155,10 +1175,11 @@ export default function BilgeAPIOpsConsole() {
                   <option value="restart_worker">Restart Worker Service</option>
                 </select>
                 <button
-                  disabled={!managementUnlocked}
+                  disabled={!managementUnlocked || !isMutateAllowed || loading}
                   className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-300/20 bg-rose-300/10 px-4 py-2 text-xs font-black uppercase tracking-widest text-rose-100 hover:bg-rose-300/15 disabled:cursor-not-allowed disabled:opacity-40"
                   onClick={() =>
                     managementUnlocked &&
+                    isMutateAllowed &&
                     emergencyForm.finding_id &&
                     void runAction(
                       "emergency_recovery",

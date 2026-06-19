@@ -1,4 +1,5 @@
 import { getAuthHeaders } from "@/lib/auth";
+import { safeFetchJson } from "@/lib/api";
 
 export const BILGEAPI_PROXY_BASE = "/bilgeapi";
 export const AGENT_API_BASE = "/api/v1/agents";
@@ -400,21 +401,7 @@ async function buildAgentHeaders(hasBody = false): Promise<Headers> {
 }
 
 export async function agentApiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const hasBody = Boolean(init.body);
-  const response = await fetch(`${AGENT_API_BASE}${path}`, {
-    ...init,
-    headers: await buildAgentHeaders(hasBody),
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    if (response.status === 401) {
-      throw new Error("Agent panel requires platform login / JWT.");
-    }
-    throw new Error(await readError(response));
-  }
-
-  return (await response.json()) as T;
+  return safeFetchJson<T>(`${AGENT_API_BASE}${path}`, init);
 }
 
 export function redactPlaintextKey<T extends { plaintext_key?: string }>(payload: T): T {

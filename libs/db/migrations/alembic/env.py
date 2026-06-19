@@ -29,9 +29,18 @@ if config.config_file_name is not None:
 
 target_metadata = Base.metadata
 
-# DATABASE_URL env'den al (alembic.ini override eder ama env öncelikli)
-db_url = os.getenv("DATABASE_URL", config.get_main_option("sqlalchemy.url"))
+# DATABASE_URL env'den/config'den al (alembic.ini override eder)
+try:
+    from libs.config import DATABASE_URL as db_url
+except ImportError:
+    db_url = os.getenv("DATABASE_URL", config.get_main_option("sqlalchemy.url"))
+
 if db_url:
+    # Ensure correct async prefix for alembic asyncpg engine
+    if db_url.startswith("postgresql://"):
+        db_url = db_url.replace("postgresql://", "postgresql+asyncpg://")
+    elif db_url.startswith("sqlite://"):
+        db_url = db_url.replace("sqlite://", "sqlite+aiosqlite://")
     config.set_main_option("sqlalchemy.url", db_url)
 
 

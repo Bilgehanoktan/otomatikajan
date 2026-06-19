@@ -32,6 +32,15 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("expired") === "true") {
+        setError("Oturumunuzun süresi doldu. Güvenliğiniz için lütfen tekrar giriş yapın.");
+      }
+    }
+  }, []);
+
   const onFinishLogin = (values: any) => {
     setError(null);
     setSuccess(null);

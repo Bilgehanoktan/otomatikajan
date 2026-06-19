@@ -107,7 +107,7 @@ export default function WorkflowList() {
       hasLoadedRef.current = true;
     } catch (err) {
       console.error("[Workflows] Load error:", err);
-      const msg = err instanceof Error ? err.message : "Bilinmeyen hata";
+      const msg = err instanceof Error ? err.message : t("unknownError");
       if (!hasLoadedRef.current) {
         setError(msg);
       }
@@ -141,7 +141,7 @@ export default function WorkflowList() {
         title={t("listTitle")}
         subtitle={t("listSubtitle")}
         icon={<Activity size={32} />}
-        badge="Engine Core v13"
+        badge={t("engineCore")}
         staleMeta={staleMeta as never}
         actions={
           <div className="flex items-center gap-8">
@@ -324,7 +324,7 @@ function WorkflowCard({
           </div>
           <div className="flex items-center gap-2 rounded-xl border border-white/5 bg-white/[0.015] px-4 py-2">
             <Fingerprint size={14} className="text-blue-400" />
-            <span className="text-[9px] font-black uppercase tracking-widest text-gray-600">SIGNED</span>
+            <span className="text-[9px] font-black uppercase tracking-widest text-gray-600">{t("signed")}</span>
           </div>
         </div>
 

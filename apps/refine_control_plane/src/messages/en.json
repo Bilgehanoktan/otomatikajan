@@ -196,7 +196,17 @@
       "sealedV3": "Sealed (v3)",
       "syncDesc": "All constitutional rules and limits are up-to-date.",
       "title": "GOVERNANCE & QUORUM",
-      "waitReason": "Wait Reason"
+      "waitReason": "Wait Reason",
+      "inboxTitle": "Governor Inbox",
+      "bulkAction": "Bulk Action: ",
+      "bulkSuccess": "{count} cases updated with '{action}'.",
+      "bulkError": "Error during bulk action: ",
+      "score": "Score",
+      "applied": "Applied",
+      "recommendation": "Recommendation",
+      "openIncidentExists": "Open Incident Exists",
+      "primeApprovalRequired": "PRIME Approval Required",
+      "veryStale": "Very Stale (>24h)"
     },
     "heroSubtitle": "AUTHORITATIVE REAL-TIME AGI ORCHESTRATION OVER THE SOVEREIGN CORE.",
     "infrastructure": {
@@ -1191,7 +1201,8 @@
       "permissionDenied": "You do not have permission for this workflow action.",
       "reassigned": "Task Reassigned",
       "reassignedDesc": "The cancelled/failed workflow was queued again.",
-      "workflowNotFound": "Could not fetch workflow context."
+      "workflowNotFound": "Could not fetch workflow context.",
+      "operatorRequired": "This action requires OPERATOR permission. AUDIT_OBSERVER accounts are read-only."
     },
     "off": "Off",
     "on": "On",
@@ -1236,13 +1247,50 @@
     "step": "Step",
     "streamTitle": "Neural Workflow Stream",
     "subtitle": "Autonomous Task Management",
-    "title": "Workflows"
+    "title": "Workflows",
+    "engineCore": "Engine Core v13",
+    "trustLevel": "TRUST",
+    "signed": "SIGNED",
+    "unknownError": "Unknown error"
   },
   "verifiers": {
     "activeLayers": "Search Active Layers..."
   },
   "workflow": {
-    "create": "Create New Workflow"
+    "create": "Create New Workflow",
+    "otonomOrchestration": "Autonomous Orchestration Core",
+    "createDesc": "Define a new autonomous task sequence for Sovereign AGI. The system will select the most suitable agents and strategies based on the parameters you define.",
+    "taskTitle": "Task Title",
+    "taskTitleRequired": "Please enter a title",
+    "taskTitlePlaceholder": "e.g., Data Analysis and Reporting",
+    "detailedDescription": "Detailed Description",
+    "detailedDescriptionPlaceholder": "Detail the scope and goals of the task...",
+    "workflowTemplate": "Workflow Template",
+    "templateOptions": {
+      "default": "General Purpose (Default)",
+      "research": "Deep Research",
+      "coding": "Software Development",
+      "analysis": "Data Analytics"
+    },
+    "priorityLevel": "Priority Level",
+    "priorityOptions": {
+      "LOW": "Low",
+      "MEDIUM": "Medium",
+      "HIGH": "High",
+      "CRITICAL": "Critical"
+    },
+    "qualityProfile": "Quality Profile",
+    "qualityOptions": {
+      "standard": "Standard",
+      "high_precision": "High Precision",
+      "fast_track": "Fast Track (Draft)"
+    },
+    "governanceActive": "Governance Control Active",
+    "governanceActiveDesc": "This task will be audited under the SIF-01 protocol and all decisions will be recorded in the lineage ledger.",
+    "createSuccess": "Workflow successfully created and queued.",
+    "createError": "Failed to create workflow: ",
+    "operatorRequired": "This action requires OPERATOR permission. AUDIT_OBSERVER accounts are read-only.",
+    "systemError": "System error: "
   },
   "opsConsole": {
     "phase27": "Phase 27",
@@ -1401,5 +1449,24 @@
   "resources_signoffs": "Signoffs",
   "resources_validations": "Validations",
   "resources_proofSnapshots": "Proof Snapshots",
-  "resources_proofEvents": "Proof Events"
+  "resources_proofEvents": "Proof Events",
+  "axiology": {
+    "title": "Cognitive Audit",
+    "subtitle": "Axiology Engine Audit Logs",
+    "statusActive": "Engine Status: Active",
+    "alignmentScore": "Alignment Score",
+    "riskyBlocks": "Risky Blocks",
+    "auditedPlans": "Audited Plans",
+    "autonomousFixes": "Autonomous Fixes",
+    "noJustification": "No justification registered.",
+    "noActionRequired": "No extra action required",
+    "columns": {
+      "decision": "Decision",
+      "context": "Context",
+      "justification": "Justification & Analysis",
+      "scores": "Scores",
+      "time": "Time",
+      "action": "Action"
+    }
+  }
 }

@@ -196,7 +196,17 @@
       "sealedV3": "Mühürlü (v3)",
       "syncDesc": "Tüm anayasal kurallar ve limitler güncel.",
       "title": "YÖNETİŞİM VE KUVORUM",
-      "waitReason": "Bekleme Nedeni"
+      "waitReason": "Bekleme Nedeni",
+      "inboxTitle": "Vali Gelen Kutusu",
+      "bulkAction": "Toplu işlem: ",
+      "bulkSuccess": "{count} case için '{action}' uygulandı.",
+      "bulkError": "Toplu işlem sırasında hata oluştu: ",
+      "score": "Skor",
+      "applied": "Uygulandı",
+      "recommendation": "Öneri",
+      "openIncidentExists": "Açık Olay Var",
+      "primeApprovalRequired": "PRIME Onayı Gerekli",
+      "veryStale": "Çok Eski (>24s)"
     },
     "heroSubtitle": "EGEMEN ÇEKİRDEK ÜZERİNDE YETKİLİ GERÇEK ZAMANLI AGI ORKESTRASYONU.",
     "infrastructure": {
@@ -1170,7 +1180,8 @@
       "permissionDenied": "Bu iş akışı eylemi için yetkiniz yok.",
       "reassigned": "Görev Tekrar Atandı",
       "reassignedDesc": "İptal/hata durumundaki iş akışı tekrar kuyruğa alındı.",
-      "workflowNotFound": "İş akışı bağlamı alınamadı."
+      "workflowNotFound": "İş akışı bağlamı alınamadı.",
+      "operatorRequired": "Bu işlem için OPERATOR yetkisi gerekir. AUDIT_OBSERVER hesapları salt okunurdur."
     },
     "off": "Kapalı",
     "on": "Açık",
@@ -1215,13 +1226,50 @@
     "step": "Adım",
     "streamTitle": "Nöral İş Akışı Akışı",
     "subtitle": "Otonom Görev Yönetimi",
-    "title": "İş Akışları"
+    "title": "İş Akışları",
+    "engineCore": "Motor Çekirdeği v13",
+    "trustLevel": "GÜVEN",
+    "signed": "İMZALANDI",
+    "unknownError": "Bilinmeyen hata"
   },
   "verifiers": {
     "activeLayers": "Doğrulayıcı Katmanlarda Ara..."
   },
   "workflow": {
-    "create": "Yeni İş Akışı Oluştur"
+    "create": "Yeni İş Akışı Oluştur",
+    "otonomOrchestration": "Otonom Orkestrasyon Çekirdeği",
+    "createDesc": "Sovereign AGI için yeni bir otonom görev sekansı tanımlayın. Sistem, tanımladığınız parametrelere göre en uygun ajanları ve stratejileri seçecektir.",
+    "taskTitle": "Görev Başlığı",
+    "taskTitleRequired": "Lütfen bir başlık girin",
+    "taskTitlePlaceholder": "Örn: Veri Analizi ve Raporlama",
+    "detailedDescription": "Detaylı Açıklama",
+    "detailedDescriptionPlaceholder": "Görevin kapsamını ve hedeflerini detaylandırın...",
+    "workflowTemplate": "İş Akışı Şablonu",
+    "templateOptions": {
+      "default": "Genel Amaçlı (Default)",
+      "research": "Derinlemesine Araştırma",
+      "coding": "Yazılım Geliştirme",
+      "analysis": "Veri Analitiği"
+    },
+    "priorityLevel": "Öncelik Seviyesi",
+    "priorityOptions": {
+      "LOW": "Düşük",
+      "MEDIUM": "Orta",
+      "HIGH": "Yüksek",
+      "CRITICAL": "Kritik"
+    },
+    "qualityProfile": "Kalite Profili",
+    "qualityOptions": {
+      "standard": "Standart",
+      "high_precision": "Yüksek Hassasiyet",
+      "fast_track": "Hızlı (Taslak)"
+    },
+    "governanceActive": "Yönetişim Kontrolü Aktif",
+    "governanceActiveDesc": "Bu görev SIF-01 protokolü altında denetlenecek ve tüm kararlar şecere defterine işlenecektir.",
+    "createSuccess": "İş akışı başarıyla oluşturuldu ve kuyruğa alındı.",
+    "createError": "İş akışı oluşturulamadı: ",
+    "operatorRequired": "Bu işlem için OPERATOR yetkisi gerekir. AUDIT_OBSERVER hesapları salt okunurdur.",
+    "systemError": "Sistem hatası: "
   },
   "learning": {
     "strategyMemory": {
@@ -1401,5 +1449,24 @@
   "resources_signoffs": "Devir Onayları",
   "resources_validations": "Lansman Doğrulamaları",
   "resources_proofSnapshots": "Kanıt Anlık Görüntüleri",
-  "resources_proofEvents": "Kanit Olayları"
+  "resources_proofEvents": "Kanit Olayları",
+  "axiology": {
+    "title": "Bilişsel Denetim",
+    "subtitle": "Axiology Engine Denetim Logları",
+    "statusActive": "Motor Durumu: Aktif",
+    "alignmentScore": "Hizalanma Puanı",
+    "riskyBlocks": "Riskli Engellemeler",
+    "auditedPlans": "Denetlenen Plan",
+    "autonomousFixes": "Otonom Düzeltmeler",
+    "noJustification": "Kayıtlı gerekçe yok.",
+    "noActionRequired": "Ek aksiyon gerekmiyor",
+    "columns": {
+      "decision": "Karar",
+      "context": "Bağlam",
+      "justification": "Gerekçe ve Analiz",
+      "scores": "Puanlar",
+      "time": "Zaman",
+      "action": "Aksiyon"
+    }
+  }
 }

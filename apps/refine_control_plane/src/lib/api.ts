@@ -240,6 +240,11 @@ export async function safeFetchJson<T = any>(url: string, options: SafeFetchOpti
                     const refreshed = await tryRefreshSession();
                     if (refreshed) {
                         return safeFetchJson<T>(url, { ...options, skipAuthRefresh: true });
+                    } else if (!url.includes("/auth/me") && !window.location.pathname.startsWith("/login")) {
+                        console.warn("[Auth] Session expired and refresh failed. Redirecting to /login.");
+                        storeAccessToken("");
+                        window.location.href = "/login?expired=true";
+                        return new Promise(() => {}); // prevent further execution by returning a pending promise
                     }
                 }
 
@@ -363,7 +368,14 @@ export async function safeFetchAdapter(url: string, options: SafeFetchOptions = 
         if (!res.ok) {
             if (res.status === 401 && !skipAuthRefresh && typeof window !== "undefined") {
                 const refreshed = await tryRefreshSession();
-                if (refreshed) return safeFetchAdapter(url, { ...options, skipAuthRefresh: true });
+                if (refreshed) {
+                    return safeFetchAdapter(url, { ...options, skipAuthRefresh: true });
+                } else if (!url.includes("/auth/me") && !window.location.pathname.startsWith("/login")) {
+                    console.warn("[Auth] Session expired and refresh failed in safeFetchAdapter. Redirecting to /login.");
+                    storeAccessToken("");
+                    window.location.href = "/login?expired=true";
+                    return new Promise(() => {}); // prevent further execution by returning a pending promise
+                }
             }
             const raw = await res.text();
             let detail = raw;

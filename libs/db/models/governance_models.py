@@ -207,6 +207,7 @@ class GovernorOutcomeRecord(Base):
     operator_agreed       = Column(Integer, default=1)
     resolution_latency_seconds = Column(Integer, default=0)
     reason_codes          = Column(SmartJSON(), default=list)
+    snapshot_payload      = Column(SmartJSON())
     created_at            = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
 
 class CalibrationStatus(str, enum.Enum):

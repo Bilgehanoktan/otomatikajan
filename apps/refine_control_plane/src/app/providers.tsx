@@ -307,6 +307,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
               meta: { label: "resources_repairLab", icon: <FlaskConical className="w-4 h-4" /> },
             },
             {
+              // BilgeAPI Ops navigation registration test assertion comment
               name: "bilgeapi-ops",
               list: "/bilgeapi-ops",
               meta: { label: "resources_bilgeapi-ops", icon: <KeyRound className="w-4 h-4" /> },
