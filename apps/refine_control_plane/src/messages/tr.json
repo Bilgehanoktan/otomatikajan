@@ -1305,7 +1305,9 @@
       "agentCapabilities": "Ajan Yetenekleri",
       "sandboxRuns": "Sandbox Çalışmaları",
       "promotions": "Terfiler",
-      "promotionSimulator": "Terfi Simülatörü"
+      "promotionSimulator": "Terfi Simülatörü",
+      "managementGate": "Yönetim Geçidi",
+      "watchdogStatus": "Watchdog Durumu"
     },
     "buttons": {
       "create": "Oluştur",
@@ -1319,7 +1321,9 @@
       "evaluate": "Yeniden Değerlendir",
       "remediate": "İyileştir",
       "simulate": "Simüle Et",
-      "promote": "Terfi Ettir"
+      "promote": "Terfi Ettir",
+      "acknowledge": "Onayla",
+      "dismiss": "Yoksay"
     },
     "labels": {
       "plaintextShownOnce": "Açık metin sadece bir kez gösterilir",
@@ -1331,7 +1335,46 @@
       "emptyAudit": "Yüklü denetim olayı bulunamadı",
       "emptyEvidence": "Kanıt bulunamadı",
       "noSessionResearch": "Oturum araştırması yok",
-      "latestResearch": "Son Araştırma"
+      "latestResearch": "Son Araştırma",
+      "unlocked": "AÇIK",
+      "locked": "KİLİTLİ",
+      "lockManagement": "Yönetimi Kilitle",
+      "unlockManagement": "Yönetimi Aç",
+      "chainVerified": "Zincir doğrulandı",
+      "chainBroken": "Zincir bozuldu",
+      "watchdogStatusLabel": "Watchdog Durumu",
+      "runScanNow": "Şimdi Tara",
+      "forbiddenDesc": "Aşağıdaki işlemler güvenlik politikası tarafından kısıtlanmıştır ve Governor tarafından otomatik olarak yürütülemez:",
+      "forbidden": "YASAKLI",
+      "watchdogEnabled": "Watchdog Etkin",
+      "riskThreshold": "Risk Eşiği",
+      "autoFindingCreation": "Otomatik Bulgu Oluşturma",
+      "humanGateRequired": "İnsan Geçidi Zorunlu",
+      "watchdogFooter": "Tüm watchdog bulguları inceleme defterinde bir kayıt tetikler. Güvenlik sınırlarını aşan eylemler insan operatör geçidine yönlendirilir.",
+      "noFindings": "Kayıtlı sistem bulgusu bulunamadı",
+      "managementGateWarning": "İyileştirme, acil kurtarma veya runbook etkinleştirme/devre dışı bırakma işlemlerini çalıştırmadan önce kontrol panelinin Yönetim Geçidini açın.",
+      "yes": "EVET",
+      "no": "HAYIR",
+      "enabled": "ETKİN",
+      "disabled": "DEVRE DIŞI",
+      "forbiddenActionsList": {
+        "auto_merge": "PR dallarının otomatik olarak master/main dalına birleştirilmesi",
+        "auto_deploy": "Yamalanmış derlemelerin üretime (production) otomatik dağıtımı",
+        "auto_revoke_key": "Operatör onayı olmadan API anahtarlarının otomatik olarak iptal edilmesi",
+        "production_migration_apply": "Üretim veritabanında şema geçişlerinin doğrudan yürütülmesi",
+        "branch_push": "Pull request'leri bypass eden doğrudan git push işlemleri",
+        "production_config_change": "Canlı ortam değişkenlerinin insan geçidi olmadan değiştirilmesi"
+      },
+      "managementActionsLocked": "Yönetim eylemleri kilitli"
+    },
+    "table": {
+      "findingId": "Bulgu ID",
+      "source": "Kaynak",
+      "title": "Başlık",
+      "severity": "Ciddiyet",
+      "riskScore": "Risk Skoru",
+      "status": "Durum",
+      "actions": "Eylemler"
     }
   },
   "bundles": {
@@ -1352,5 +1395,11 @@
       "validPacks": "Geçerli paketler",
       "integrity": "Bütünlük"
     }
-  }
+  },
+  "resources_governorStatus": "Vali Durumu",
+  "resources_governorCases": "Vali Vakaları",
+  "resources_signoffs": "Devir Onayları",
+  "resources_validations": "Lansman Doğrulamaları",
+  "resources_proofSnapshots": "Kanıt Anlık Görüntüleri",
+  "resources_proofEvents": "Kanit Olayları"
 }

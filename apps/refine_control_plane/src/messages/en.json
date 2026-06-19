@@ -1305,7 +1305,9 @@
       "agentCapabilities": "Agent Capabilities",
       "sandboxRuns": "Recent Sandbox Runs",
       "promotions": "Promotion Requests",
-      "promotionSimulator": "Promotion Detail & Review Gate"
+      "promotionSimulator": "Promotion Detail & Review Gate",
+      "managementGate": "Management Gate",
+      "watchdogStatus": "Watchdog Status"
     },
     "buttons": {
       "create": "Create",
@@ -1319,7 +1321,9 @@
       "evaluate": "Re-evaluate",
       "remediate": "Remediate",
       "simulate": "Simulate",
-      "promote": "Promote"
+      "promote": "Promote",
+      "acknowledge": "Acknowledge",
+      "dismiss": "Dismiss"
     },
     "labels": {
       "plaintextShownOnce": "Plaintext shown once",
@@ -1331,7 +1335,46 @@
       "emptyAudit": "No audit event loaded",
       "emptyEvidence": "No evidence loaded",
       "noSessionResearch": "No session research",
-      "latestResearch": "Latest Research"
+      "latestResearch": "Latest Research",
+      "unlocked": "UNLOCKED",
+      "locked": "LOCKED",
+      "lockManagement": "Lock Management",
+      "unlockManagement": "Unlock Management",
+      "chainVerified": "Chain verified",
+      "chainBroken": "Chain broken",
+      "watchdogStatusLabel": "Watchdog Status",
+      "runScanNow": "Run Scan Now",
+      "forbiddenDesc": "The following operations are restricted by security policy and cannot be executed automatically by the Governor:",
+      "forbidden": "FORBIDDEN",
+      "watchdogEnabled": "Watchdog Enabled",
+      "riskThreshold": "Risk Threshold",
+      "autoFindingCreation": "Auto Finding Creation",
+      "humanGateRequired": "Human Gate Required",
+      "watchdogFooter": "All watchdog findings trigger an entry in the review ledger. Actions that breach safety limits are routed to the human operator gate.",
+      "noFindings": "No system findings registered",
+      "managementGateWarning": "Open the dashboard Management Gate before running remediation, emergency recovery, or runbook enable/disable actions.",
+      "yes": "YES",
+      "no": "NO",
+      "enabled": "ENABLED",
+      "disabled": "DISABLED",
+      "forbiddenActionsList": {
+        "auto_merge": "Automatic merging of PR branches to master/main",
+        "auto_deploy": "Automatic deployment of patched builds to production",
+        "auto_revoke_key": "Automatic revocation of API keys without operator sign-off",
+        "production_migration_apply": "Direct execution of schema migrations on production DB",
+        "branch_push": "Direct git pushes bypassing pull requests",
+        "production_config_change": "Altering live environment variables without human gate"
+      },
+      "managementActionsLocked": "Management actions are locked"
+    },
+    "table": {
+      "findingId": "Finding ID",
+      "source": "Source",
+      "title": "Title",
+      "severity": "Severity",
+      "riskScore": "Risk Score",
+      "status": "Status",
+      "actions": "Actions"
     }
   },
   "bundles": {
@@ -1352,5 +1395,11 @@
       "validPacks": "Valid packs",
       "integrity": "Integrity"
     }
-  }
+  },
+  "resources_governorStatus": "Governor Status",
+  "resources_governorCases": "Governor Cases",
+  "resources_signoffs": "Signoffs",
+  "resources_validations": "Validations",
+  "resources_proofSnapshots": "Proof Snapshots",
+  "resources_proofEvents": "Proof Events"
 }

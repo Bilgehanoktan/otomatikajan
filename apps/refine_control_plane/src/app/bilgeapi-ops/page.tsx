@@ -442,11 +442,11 @@ export default function BilgeAPIOpsConsole() {
             <Metric label={t("metrics.agentPromotions")} value={agentPromotions.length} icon={<ClipboardCheck size={16} />} tone="violet" />
           </div>
 
-          <Panel title="Management Gate" icon={managementUnlocked ? <ShieldCheck size={16} /> : <Lock size={16} />}>
+          <Panel title={t("panels.managementGate")} icon={managementUnlocked ? <ShieldCheck size={16} /> : <Lock size={16} />}>
             <div className="grid gap-4 xl:grid-cols-[1fr_auto] xl:items-center">
               <div className="space-y-2">
                 <div className={`inline-flex rounded-lg border px-3 py-1 text-[10px] font-black uppercase tracking-widest ${managementGateTone}`}>
-                  {managementUnlocked ? "UNLOCKED" : "LOCKED"}
+                  {managementUnlocked ? t("labels.unlocked") : t("labels.locked")}
                 </div>
                 <p className="text-sm text-gray-300">
                   BilgeAPI remediation, emergency recovery, and runbook mutation stay blocked until an admin unlocks this gate.
@@ -473,7 +473,7 @@ export default function BilgeAPIOpsConsole() {
                 }`}
               >
                 {managementUnlocked ? <Lock size={15} /> : <ShieldCheck size={15} />}
-                {managementUnlocked ? "Lock Management" : "Unlock Management"}
+                {managementUnlocked ? t("labels.lockManagement") : t("labels.unlockManagement")}
               </button>
             </div>
           </Panel>
@@ -890,7 +890,7 @@ export default function BilgeAPIOpsConsole() {
             {ledgerVerification ? (
               <div className={`mt-4 rounded-lg border p-4 ${ledgerVerification.valid ? "border-emerald-300/20 bg-emerald-300/10" : "border-rose-300/20 bg-rose-300/10"}`}>
                 <div className="text-xs font-black uppercase tracking-widest text-white">
-                  {ledgerVerification.valid ? "Chain verified" : "Chain broken"}
+                  {ledgerVerification.valid ? t("labels.chainVerified") : t("labels.chainBroken")}
                 </div>
                 <div className="mt-2 text-xs text-gray-300">
                   {ledgerVerification.entry_count} entries / head {ledgerVerification.head_hash || "-"}
@@ -924,8 +924,8 @@ export default function BilgeAPIOpsConsole() {
         <div className="space-y-6">
           <div className="grid gap-4 md:grid-cols-3">
             <Metric
-              label="Watchdog Status"
-              value={watchdogStatus?.enabled ? "ENABLED / ACTIVE" : "DISABLED"}
+              label={t("labels.watchdogStatusLabel")}
+              value={watchdogStatus?.enabled ? `${t("labels.enabled")} / ACTIVE` : t("labels.disabled")}
               icon={<ShieldCheck size={20} />}
               tone={watchdogStatus?.enabled ? "green" : "rose"}
             />
@@ -954,7 +954,7 @@ export default function BilgeAPIOpsConsole() {
                   className={primaryButtonClass}
                 >
                   <Play size={14} />
-                  Run Scan Now
+                  {t("labels.runScanNow")}
                 </button>
               </div>
 
@@ -962,20 +962,20 @@ export default function BilgeAPIOpsConsole() {
                 <table className="w-full min-w-[640px] border-collapse text-left text-xs">
                   <thead className="bg-white/5 text-[10px] uppercase tracking-widest text-gray-500">
                     <tr>
-                      <th className="px-3 py-2 font-black">Finding ID</th>
-                      <th className="px-3 py-2 font-black">Source</th>
-                      <th className="px-3 py-2 font-black">Title</th>
-                      <th className="px-3 py-2 font-black">Severity</th>
-                      <th className="px-3 py-2 font-black">Risk Score</th>
-                      <th className="px-3 py-2 font-black">Status</th>
-                      <th className="px-3 py-2 font-black">Actions</th>
+                      <th className="px-3 py-2 font-black">{t("table.findingId")}</th>
+                      <th className="px-3 py-2 font-black">{t("table.source")}</th>
+                      <th className="px-3 py-2 font-black">{t("table.title")}</th>
+                      <th className="px-3 py-2 font-black">{t("table.severity")}</th>
+                      <th className="px-3 py-2 font-black">{t("table.riskScore")}</th>
+                      <th className="px-3 py-2 font-black">{t("table.status")}</th>
+                      <th className="px-3 py-2 font-black">{t("table.actions")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {systemFindings.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="px-3 py-4 text-center text-gray-500 font-bold uppercase tracking-widest">
-                          No system findings registered
+                          {t("labels.noFindings")}
                         </td>
                       </tr>
                     ) : (
@@ -1009,13 +1009,13 @@ export default function BilgeAPIOpsConsole() {
                                     onClick={() => void runAction(`ack_finding_${finding.id}`, acknowledgeFinding(apiKey, finding.id))}
                                     className="rounded border border-emerald-300/20 bg-emerald-300/10 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-100"
                                   >
-                                    Acknowledge
+                                    {t("buttons.acknowledge")}
                                   </button>
                                   <button
                                     onClick={() => void runAction(`dismiss_finding_${finding.id}`, dismissFinding(apiKey, finding.id))}
                                     className="rounded border border-rose-300/20 bg-rose-300/10 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-rose-100"
                                   >
-                                    Dismiss
+                                    {t("buttons.dismiss")}
                                   </button>
                                 </>
                               )}
@@ -1030,52 +1030,52 @@ export default function BilgeAPIOpsConsole() {
             </Panel>
 
             <div className="space-y-6">
-              <Panel title="Forbidden Governor Actions" icon={<Lock size={16} />}>
+              <Panel title={t("panels.forbiddenActions")} icon={<Lock size={16} />}>
                 <p className="mb-4 text-xs text-gray-400">
-                  The following operations are restricted by security policy and cannot be executed automatically by the Governor:
+                  {t("labels.forbiddenDesc")}
                 </p>
                 <div className="space-y-2 text-xs">
                   {[
-                    { action: "auto_merge", desc: "Automatic merging of PR branches to master/main" },
-                    { action: "auto_deploy", desc: "Automatic deployment of patched builds to production" },
-                    { action: "auto_revoke_key", desc: "Automatic revocation of API keys without operator sign-off" },
-                    { action: "production_migration_apply", desc: "Direct execution of schema migrations on production DB" },
-                    { action: "branch_push", desc: "Direct git pushes bypassing pull requests" },
-                    { action: "production_config_change", desc: "Altering live environment variables without human gate" },
-                  ].map(({ action, desc }) => (
+                    { action: "auto_merge" },
+                    { action: "auto_deploy" },
+                    { action: "auto_revoke_key" },
+                    { action: "production_migration_apply" },
+                    { action: "branch_push" },
+                    { action: "production_config_change" },
+                  ].map(({ action }) => (
                     <div key={action} className="flex items-center justify-between rounded border border-rose-400/10 bg-rose-400/5 p-2.5">
                       <div>
                         <span className="font-mono font-bold text-rose-300">{action}</span>
-                        <p className="mt-0.5 text-[10px] text-gray-500">{desc}</p>
+                        <p className="mt-0.5 text-[10px] text-gray-500">{t(`labels.forbiddenActionsList.${action}`)}</p>
                       </div>
                       <span className="rounded border border-rose-300/20 bg-rose-300/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-rose-100">
-                        FORBIDDEN
+                        {t("labels.forbidden")}
                       </span>
                     </div>
                   ))}
                 </div>
               </Panel>
 
-              <Panel title="Governance Audit Status" icon={<ShieldCheck size={16} />}>
+              <Panel title={t("panels.governanceAudit")} icon={<ShieldCheck size={16} />}>
                 <div className="space-y-4 text-xs text-gray-400">
                   <div className="flex justify-between border-b border-white/5 pb-2">
-                    <span>Watchdog Enabled</span>
-                    <span className="font-bold text-emerald-400">{watchdogStatus?.enabled ? "YES" : "NO"}</span>
+                    <span>{t("labels.watchdogEnabled")}</span>
+                    <span className="font-bold text-emerald-400">{watchdogStatus?.enabled ? t("labels.yes") : t("labels.no")}</span>
                   </div>
                   <div className="flex justify-between border-b border-white/5 pb-2">
-                    <span>Risk Threshold</span>
+                    <span>{t("labels.riskThreshold")}</span>
                     <span className="font-mono font-bold text-white">{watchdogStatus?.risk_threshold ?? 70}</span>
                   </div>
                   <div className="flex justify-between border-b border-white/5 pb-2">
-                    <span>Auto Finding Creation</span>
-                    <span className="font-bold text-emerald-400">{watchdogStatus?.auto_finding ? "ENABLED" : "DISABLED"}</span>
+                    <span>{t("labels.autoFindingCreation")}</span>
+                    <span className="font-bold text-emerald-400">{watchdogStatus?.auto_finding ? t("labels.enabled") : t("labels.disabled")}</span>
                   </div>
                   <div className="flex justify-between border-b border-white/5 pb-2">
-                    <span>Human Gate Required</span>
-                    <span className="font-bold text-amber-400">{watchdogStatus?.human_gate_required ? "YES" : "NO"}</span>
+                    <span>{t("labels.humanGateRequired")}</span>
+                    <span className="font-bold text-amber-400">{watchdogStatus?.human_gate_required ? t("labels.yes") : t("labels.no")}</span>
                   </div>
                   <p className="text-[10px] text-gray-500">
-                    All watchdog findings trigger an entry in the review ledger. Actions that breach safety limits are routed to the human operator gate.
+                    {t("labels.watchdogFooter")}
                   </p>
                 </div>
               </Panel>
@@ -1090,10 +1090,10 @@ export default function BilgeAPIOpsConsole() {
             <section className="rounded-lg border border-amber-300/20 bg-amber-300/10 p-4 text-amber-100">
               <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest">
                 <Lock size={15} />
-                Management actions are locked
+                {t("labels.managementActionsLocked")}
               </div>
               <p className="mt-2 text-xs text-amber-50">
-                Open the dashboard Management Gate before running remediation, emergency recovery, or runbook enable/disable actions.
+                {t("labels.managementGateWarning")}
               </p>
             </section>
           ) : null}

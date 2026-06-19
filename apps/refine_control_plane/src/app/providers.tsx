@@ -153,12 +153,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
             {
               name: "governance/governor/status",
               list: "/governor",
-              meta: { label: "Governor Status", icon: <Activity className="w-4 h-4" />, parent: "governance" },
+              meta: { label: "resources_governorStatus", icon: <Activity className="w-4 h-4" />, parent: "governance" },
             },
             {
               name: "governance/governor/cases",
               list: "/governor",
-              meta: { label: "Governor Cases", icon: <ShieldAlert className="w-4 h-4" />, parent: "governance" },
+              meta: { label: "resources_governorCases", icon: <ShieldAlert className="w-4 h-4" />, parent: "governance" },
             },
             {
               name: "governance/governor/escalations",
@@ -198,7 +198,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             {
               name: "governance/drills",
               list: "/governor/drills",
-              meta: { label: "Drills", hide: true },
+              meta: { label: "resources_drills", hide: true },
             },
             {
               name: "governance/approvals",
@@ -240,27 +240,27 @@ export function Providers({ children }: { children: React.ReactNode }) {
             {
               name: "governance/lineage",
               list: "/governance/lineage",
-              meta: { label: "Lineage", icon: <Search className="w-4 h-4" /> },
+              meta: { label: "resources_lineage", icon: <Search className="w-4 h-4" /> },
             },
             {
               name: "governance/signoffs",
               list: "/ops/handover-status",
-              meta: { label: "Signoffs", icon: <CheckCircle className="w-4 h-4" /> },
+              meta: { label: "resources_signoffs", icon: <CheckCircle className="w-4 h-4" /> },
             },
             {
               name: "governance/validations",
               list: "/ops/launch-gates",
-              meta: { label: "Validations", icon: <Target className="w-4 h-4" /> },
+              meta: { label: "resources_validations", icon: <Target className="w-4 h-4" /> },
             },
             {
               name: "governance/governor/proof/snapshots",
               list: "/proof/snapshots",
-              meta: { label: "Proof Snapshots", parent: "governance/audit" },
+              meta: { label: "resources_proofSnapshots", parent: "governance/audit" },
             },
             {
               name: "governance/governor/proof",
               list: "/governor/proof",
-              meta: { label: "Proof Fabric", parent: "governance/audit" },
+              meta: { label: "resources_proofFabric", parent: "governance/audit" },
             },
             {
               name: "learning",
@@ -269,7 +269,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             {
               name: "governance/governor/proof/events",
               list: "/proof/events",
-              meta: { label: "Proof Events", parent: "governance/audit" },
+              meta: { label: "resources_proofEvents", parent: "governance/audit" },
             },
             {
               name: "learning/fingerprints",
@@ -309,7 +309,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             {
               name: "bilgeapi-ops",
               list: "/bilgeapi-ops",
-              meta: { label: "BilgeAPI Ops", icon: <KeyRound className="w-4 h-4" /> },
+              meta: { label: "resources_bilgeapi-ops", icon: <KeyRound className="w-4 h-4" /> },
             },
             {
               name: "meeting-room",
