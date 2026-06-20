@@ -2,6 +2,14 @@ import os
 import secrets
 from typing import Optional
 from enum import Enum
+from dotenv import load_dotenv
+
+# Load .env first
+if os.path.exists(".env"):
+    load_dotenv(".env")
+# Load .env.local on top of it
+if os.path.exists(".env.local"):
+    load_dotenv(".env.local", override=True)
 
 class AutonomyMode(str, Enum):
     OFF = "OFF"

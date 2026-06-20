@@ -34,8 +34,8 @@ const GovernanceCenter: React.FC = () => {
   const [isPolicyModalVisible, setIsPolicyModalVisible] = useState(false);
   const [isOverrideModalVisible, setIsOverrideModalVisible] = useState(false);
   const [selectedEvaluation, setSelectedEvaluation] = useState<any>(null);
-  const [form] = Form.useForm();
-  const [overrideForm] = Form.useForm();
+  const [policyFormResetKey, setPolicyFormResetKey] = useState(0);
+  const [overrideFormResetKey, setOverrideFormResetKey] = useState(0);
 
   const fetchGovernanceData = async () => {
     setLoading(true);
@@ -71,7 +71,7 @@ const GovernanceCenter: React.FC = () => {
         })
       });
       setIsPolicyModalVisible(false);
-      form.resetFields();
+      setPolicyFormResetKey((current) => current + 1);
       fetchGovernanceData();
     } catch (error) {
       console.error('Failed to create policy', error);
@@ -93,7 +93,7 @@ const GovernanceCenter: React.FC = () => {
         })
       });
       setIsOverrideModalVisible(false);
-      overrideForm.resetFields();
+      setOverrideFormResetKey((current) => current + 1);
       fetchGovernanceData();
     } catch (error) {
       console.error('Failed to create override', error);
@@ -342,11 +342,14 @@ const GovernanceCenter: React.FC = () => {
         title="Create Policy Proposal"
         open={isPolicyModalVisible}
         forceRender={true}
-        onCancel={() => setIsPolicyModalVisible(false)}
-        onOk={() => form.submit()}
+        onCancel={() => {
+          setIsPolicyModalVisible(false);
+          setPolicyFormResetKey((current) => current + 1);
+        }}
+        okButtonProps={{ htmlType: "submit", form: "governance-policy-form" }}
         width={800}
       >
-        <Form form={form} layout="vertical" onFinish={handleCreatePolicy}>
+        <Form key={policyFormResetKey} id="governance-policy-form" layout="vertical" onFinish={handleCreatePolicy}>
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item name="policy_key" label="Policy Key" rules={[{ required: true }]}>
@@ -383,15 +386,26 @@ const GovernanceCenter: React.FC = () => {
         title="Authorized Policy Override"
         open={isOverrideModalVisible}
         forceRender={true}
-        onCancel={() => setIsOverrideModalVisible(false)}
+        onCancel={() => {
+          setIsOverrideModalVisible(false);
+          setOverrideFormResetKey((current) => current + 1);
+        }}
         footer={[
-          <Button key="back" onClick={() => setIsOverrideModalVisible(false)}>Cancel</Button>,
-          <Button key="submit" type="primary" danger icon={<UnlockOutlined />} onClick={() => overrideForm.submit()}>
+          <Button
+            key="back"
+            onClick={() => {
+              setIsOverrideModalVisible(false);
+              setOverrideFormResetKey((current) => current + 1);
+            }}
+          >
+            Cancel
+          </Button>,
+          <Button key="submit" type="primary" danger icon={<UnlockOutlined />} htmlType="submit" form="governance-override-form">
             Authorize & Execute
           </Button>
         ]}
       >
-        <Form form={overrideForm} onFinish={handleCreateOverride} layout="vertical">
+        <Form key={overrideFormResetKey} id="governance-override-form" onFinish={handleCreateOverride} layout="vertical">
           <Alert
             message="Sovereign Governance Bypass"
             description="Manually overriding a policy decision requires a cryptographic signature in the evidence chain. Rationale is non-repudiable."

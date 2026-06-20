@@ -21,7 +21,7 @@ export default function GovernorDrillsClient() {
   const { refetch } = tableQuery;
   const { mutate } = useCustomMutation();
   const [isModalOpen, setIsModalOpen] = React.useState(false);
-  const [form] = Form.useForm();
+  const [formResetKey, setFormResetKey] = React.useState(0);
 
   const handleStartDrill = async (values: any) => {
     mutate(
@@ -34,7 +34,7 @@ export default function GovernorDrillsClient() {
         onSuccess: () => {
           notification.success({ message: "Drill started successfully" });
           setIsModalOpen(false);
-          form.resetFields();
+          setFormResetKey((current) => current + 1);
           refetch();
         },
       },
@@ -119,12 +119,15 @@ export default function GovernorDrillsClient() {
       <Modal
         title="Execute Chaos Drill"
         open={isModalOpen}
-        onCancel={() => setIsModalOpen(false)}
-        onOk={() => form.submit()}
+        onCancel={() => {
+          setIsModalOpen(false);
+          setFormResetKey((current) => current + 1);
+        }}
+        okButtonProps={{ htmlType: "submit", form: "governor-drill-form" }}
         okText="Run Scenario"
         forceRender={true}
       >
-        <Form form={form} layout="vertical" onFinish={handleStartDrill}>
+        <Form key={formResetKey} id="governor-drill-form" layout="vertical" onFinish={handleStartDrill}>
           <Form.Item name="drill_type" label="Scenario Type" rules={[{ required: true }]} initialValue="DOMAIN_TIMEOUT">
             <Select
               options={[

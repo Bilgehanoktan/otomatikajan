@@ -9,8 +9,8 @@
     "alembic/"
   ],
   "high_risk_files": [
-    "config.py",
-    "main.py"
+    "main.py",
+    "config.py"
   ],
   "automation_thresholds": {
     "confidence_min": 61,

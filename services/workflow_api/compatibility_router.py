@@ -3,6 +3,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, Response
 from pydantic import BaseModel
 from services.auth.jwt_auth import require_permission
+from services.workflow_api.governance_router import AuditBundleCreate
 
 # Moved to local scope to prevent circular/hang issues
 # from services.workflow_api.governance_router import AuditBundleCreate
@@ -49,13 +50,11 @@ async def list_audit_bundles_compat(response: Response):
 @router.post("/compliance/audit-bundles")
 @router.post("/compliance/audit-bundles/")
 async def create_audit_bundle_compat(
-    req: Any, # Use Any instead of AuditBundleCreate
+    req: AuditBundleCreate,
     identity: dict[str, Any] = Depends(require_permission("audit.create"))
 ):
-    from services.workflow_api.governance_router import (
-        create_audit_bundle_endpoint,
-    )
-    # Cast to AuditBundleCreate if needed or just pass through
+    from services.workflow_api.governance_router import create_audit_bundle_endpoint
+
     return await create_audit_bundle_endpoint(req, identity)
 
 @router.get("/mesh")

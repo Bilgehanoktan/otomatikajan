@@ -24,8 +24,43 @@ export class ApiResponseError extends Error {
     }
 }
 
-const normalizeApiErrorDetail = (status: number, rawDetail: string): string => {
-    const detail = (rawDetail || "").trim();
+const coerceApiErrorDetail = (rawDetail: unknown): string => {
+    if (typeof rawDetail === "string") {
+        return rawDetail;
+    }
+
+    if (rawDetail == null) {
+        return "";
+    }
+
+    if (Array.isArray(rawDetail)) {
+        return rawDetail
+            .map((item) => coerceApiErrorDetail(item))
+            .filter(Boolean)
+            .join(" | ");
+    }
+
+    if (typeof rawDetail === "object") {
+        const record = rawDetail as Record<string, unknown>;
+        for (const key of ["detail", "message", "msg", "error", "reason", "title"]) {
+            const nested = coerceApiErrorDetail(record[key]);
+            if (nested) {
+                return nested;
+            }
+        }
+
+        try {
+            return JSON.stringify(rawDetail);
+        } catch {
+            return String(rawDetail);
+        }
+    }
+
+    return String(rawDetail);
+};
+
+const normalizeApiErrorDetail = (status: number, rawDetail: unknown): string => {
+    const detail = coerceApiErrorDetail(rawDetail).trim();
     const lowered = detail.toLowerCase();
 
     if (status === 401) {
@@ -251,7 +286,7 @@ export async function safeFetchJson<T = any>(url: string, options: SafeFetchOpti
                 let detail = "Bilinmeyen sunucu hatasÃ„Â±.";
                 try {
                     const jsonErr = JSON.parse(raw);
-                    detail = jsonErr.detail || jsonErr.msg || raw;
+                    detail = jsonErr.detail ?? jsonErr.msg ?? jsonErr.error ?? jsonErr.message ?? raw;
                 } catch { 
                     detail = raw ? raw.slice(0, 200) : `HTTP ${res.status}`; 
                 }
@@ -379,7 +414,10 @@ export async function safeFetchAdapter(url: string, options: SafeFetchOptions = 
             }
             const raw = await res.text();
             let detail = raw;
-            try { const jsonErr = JSON.parse(raw); detail = jsonErr.detail || jsonErr.msg || raw; } catch { }
+            try {
+                const jsonErr = JSON.parse(raw);
+                detail = jsonErr.detail ?? jsonErr.msg ?? jsonErr.error ?? jsonErr.message ?? raw;
+            } catch { }
             throw new ApiResponseError(res.status, normalizeApiErrorDetail(res.status, detail));
         }
 

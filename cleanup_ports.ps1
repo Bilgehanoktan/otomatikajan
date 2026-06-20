@@ -14,16 +14,5 @@ foreach ($port in $ports) {
         }
     }
     
-    # Second check (any state connection for complete cleanup)
-    $allConns = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue
-    if ($allConns) {
-        $pids = $allConns | Select-Object -ExpandProperty OwningProcess -Unique
-        foreach ($pid in $pids) {
-            if ($pid -gt 0) {
-                Write-Host "[!] Terminating related process $pid on port $port..."
-                Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
-            }
-        }
-    }
     Write-Host "[OK] Port $port is clean."
 }

@@ -114,21 +114,21 @@ if errorlevel 1 (
     if "%INTERACTIVE%"=="1" pause
     exit /b 1
 )
-start "BilgeAPI" cmd /k "set SOVEREIGN_DOTENV_OVERRIDE=false&& set PYTHONPATH=%PY_DEPS%;%PROJECT_ROOT%&& set APP_ENV=development&& set RUNTIME_PROFILE=local-dev&& set LOCAL_DEV_DB_STRATEGY=sqlite-fallback&& set DATABASE_URL=%SQLITE_DB_URL%&& set BILGEAPI_DATABASE_URL=%SQLITE_DB_URL%&& set BILGEAPI_AUTH_MODE=api_key&& set BILGEAPI_STATIC_KEYS=dev-test-key-001:ADMIN&& set BILGEAPI_PORT=8100&& %PY_CMD% -m uvicorn apps.bilgeapi.main:app --host 0.0.0.0 --port 8100 --log-level debug"
+start "BilgeAPI" cmd /k "set SOVEREIGN_DOTENV_OVERRIDE=false&& set PYTHONPATH=%PY_DEPS%;%PROJECT_ROOT%&& set APP_ENV=development&& set RUNTIME_PROFILE=local-dev&& set LOCAL_DEV_DB_STRATEGY=sqlite-fallback&& set DATABASE_URL=%SQLITE_DB_URL%&& set BILGEAPI_DATABASE_URL=%SQLITE_DB_URL%&& set BILGEAPI_AUTH_MODE=api_key&& set BILGEAPI_PORT=8100&& %PY_CMD% -m uvicorn apps.bilgeapi.main:app --host 0.0.0.0 --port 8100 --log-level debug"
 call :wait_http "BilgeAPI" "http://127.0.0.1:8100/health" 30
 if errorlevel 1 (
     echo [HATA] BilgeAPI hazir olmadi. BilgeAPI penceresindeki loglari kontrol edin.
     if "%INTERACTIVE%"=="1" pause
     exit /b 1
 )
-start "Frontend UI" /d "%PROJECT_ROOT%apps\refine_control_plane" cmd /k "set NEXT_PUBLIC_ENABLE_DEV_AUTO_LOGIN=true&& set NEXT_PUBLIC_DEV_OPERATOR_EMAIL=admin@sovereign.agi&& set NEXT_PUBLIC_DEV_OPERATOR_PASSWORD=admin1234&& npm.cmd run dev -- -p 3100"
+start "Frontend UI" /d "%PROJECT_ROOT%apps\refine_control_plane" cmd /k "npm.cmd run dev -- -p 3100"
 call :wait_http "Frontend UI" "http://127.0.0.1:3100" 24
 if errorlevel 1 (
     echo [HATA] Frontend UI hazir olmadi. Frontend UI penceresindeki loglari kontrol edin.
     if "%INTERACTIVE%"=="1" pause
     exit /b 1
 )
-if "%INTERACTIVE%"=="1" start "" "http://localhost:3100"
+if "%INTERACTIVE%"=="1" start "" "http://127.0.0.1:3100"
 echo [OK] Sistem acildi. Bu pencereyi kapatabilirsiniz.
 if "%INTERACTIVE%"=="1" pause
 exit /b 0
@@ -202,7 +202,7 @@ if errorlevel 1 (
     goto local_mode
 )
 echo [*] Uygulama servisleri baslatiliyor...
-docker compose -f docker-compose.yml --profile full-stack up -d --build app bilgeapi worker deerflow-worker beat telegram-bot
+docker compose -f docker-compose.yml --profile full-stack up -d --build app cms bilgeapi worker deerflow-worker beat telegram-bot
 if errorlevel 1 (
     echo [HATA] docker-compose baslatilamadi! Loglari kontrol edin.
     pause
@@ -220,15 +220,14 @@ if errorlevel 1 (
     pause
     goto local_mode
 )
-echo [*] Frontend UI lokal Next.js dev server olarak baslatiliyor...
-start "Frontend UI" /d "%PROJECT_ROOT%apps\refine_control_plane" cmd /k "set NEXT_PUBLIC_ENABLE_DEV_AUTO_LOGIN=true&& set NEXT_PUBLIC_DEV_OPERATOR_EMAIL=admin@sovereign.agi&& set NEXT_PUBLIC_DEV_OPERATOR_PASSWORD=admin1234&& npm.cmd run dev -- -p 3100"
-call :wait_http "Frontend UI" "http://127.0.0.1:3100" 24
+echo [*] Frontend UI Docker container olarak baslatiliyor...
+call :wait_http "Frontend UI (Docker)" "http://127.0.0.1:3100" 45
 if errorlevel 1 (
-    echo [HATA] Frontend UI hazir olmadi! Frontend UI penceresindeki loglari kontrol edin.
+    echo [HATA] Docker Frontend UI hazir olmadi!
     pause
     goto local_mode
 )
-if "%INTERACTIVE%"=="1" start "" "http://localhost:3100"
+if "%INTERACTIVE%"=="1" start "" "http://127.0.0.1:3100"
 if "%INTERACTIVE%"=="1" pause
 exit /b 0
 
@@ -239,7 +238,7 @@ set /a WAIT_MAX=%~3
 set /a WAIT_COUNT=0
 echo [*] %WAIT_NAME% hazirlik kontrolu: %WAIT_URL%
 :wait_http_loop
-powershell -NoProfile -ExecutionPolicy Bypass -Command "try { $r = Invoke-WebRequest -UseBasicParsing '%WAIT_URL%' -TimeoutSec 3; if ($r.StatusCode -ge 200 -and $r.StatusCode -lt 500) { exit 0 } } catch { exit 1 }; exit 1" >nul 2>&1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "try { $r = Invoke-WebRequest -UseBasicParsing '%WAIT_URL%' -TimeoutSec 3; if ($r.StatusCode -eq 200) { exit 0 } } catch { exit 1 }; exit 1" >nul 2>&1
 if not errorlevel 1 (
     echo [OK] %WAIT_NAME% hazir.
     exit /b 0
