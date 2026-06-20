@@ -1,6 +1,8 @@
 import pytest
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from apps.bilgeapi.models.database import ReviewLedgerEntryModel
 from apps.bilgeapi.repositories.memory import (
     InMemoryAuditRepository,
     InMemoryPatchRevisionRepository,
@@ -11,6 +13,7 @@ from apps.bilgeapi.repositories.memory import (
     InMemoryImprovementRepository,
     InMemoryReviewLedgerRepository,
 )
+from apps.bilgeapi.repositories.postgres import PostgresReviewLedgerRepository
 from apps.bilgeapi.services.audit import AuditService
 from apps.bilgeapi.services.patch_revision import PatchRevisionEngine, ReviewerFeedbackService
 from apps.bilgeapi.services.pr_verification import PrVerificationService
@@ -116,6 +119,73 @@ async def test_review_ledger_retries_on_sequence_conflict():
 
     assert entry["sequence_no"] == 1
     assert (await repo.list_by_chain("chain_retry"))[0]["id"] == entry["id"]
+
+
+@pytest.mark.asyncio
+async def test_postgres_review_ledger_repository_rolls_back_after_integrity_error():
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
+
+    async with engine.begin() as conn:
+        await conn.run_sync(ReviewLedgerEntryModel.__table__.create)
+
+    session_factory = async_sessionmaker(engine, expire_on_commit=False)
+
+    async with session_factory() as session:
+        repo = PostgresReviewLedgerRepository(session)
+
+        await repo.append_entry(
+            {
+                "id": "rle_first",
+                "chain_id": "chain_repo_retry",
+                "sequence_no": 1,
+                "event_type": "FIRST_EVENT",
+                "entity_type": "skill_registry",
+                "entity_id": "registry",
+                "actor_id": "system",
+                "previous_hash": None,
+                "payload_hash": "hash_1",
+                "event_hash": "event_hash_1",
+                "payload_summary": {"ok": True},
+            }
+        )
+
+        with pytest.raises(IntegrityError):
+            await repo.append_entry(
+                {
+                    "id": "rle_duplicate",
+                    "chain_id": "chain_repo_retry",
+                    "sequence_no": 1,
+                    "event_type": "DUPLICATE_EVENT",
+                    "entity_type": "skill_registry",
+                    "entity_id": "registry",
+                    "actor_id": "system",
+                    "previous_hash": None,
+                    "payload_hash": "hash_2",
+                    "event_hash": "event_hash_2",
+                    "payload_summary": {"duplicate": True},
+                }
+            )
+
+        appended = await repo.append_entry(
+            {
+                "id": "rle_second",
+                "chain_id": "chain_repo_retry",
+                "sequence_no": 2,
+                "event_type": "SECOND_EVENT",
+                "entity_type": "skill_registry",
+                "entity_id": "registry",
+                "actor_id": "system",
+                "previous_hash": "event_hash_1",
+                "payload_hash": "hash_3",
+                "event_hash": "event_hash_3",
+                "payload_summary": {"recovered": True},
+            }
+        )
+
+        assert appended["sequence_no"] == 2
+        assert appended["id"] == "rle_second"
+
+    await engine.dispose()
 
 
 @pytest.mark.asyncio

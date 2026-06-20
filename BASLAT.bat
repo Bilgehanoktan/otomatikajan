@@ -15,12 +15,22 @@ if not "%~1"=="" set "INTERACTIVE=0"
 :: Python Kontrolu
 echo [*] Python kontrol ediliyor...
 set "PY_CMD="
-where python >nul 2>&1
-if not errorlevel 1 (
-    set "PY_CMD=python"
-) else (
-    echo [!] Python bulunamadi! C:\Python314\python.exe deneniyor...
+if exist "C:\Python314\python.exe" (
     set "PY_CMD=C:\Python314\python.exe"
+) else (
+    where python >nul 2>&1
+    if not errorlevel 1 (
+        set "PY_CMD=python"
+    ) else (
+        py -3.13 --version >nul 2>&1
+        if not errorlevel 1 (
+            set "PY_CMD=py -3.13"
+        ) else (
+            echo [!] Python bulunamadi!
+            if "%INTERACTIVE%"=="1" pause
+            exit /b 1
+        )
+    )
 )
 
 set "mode=%~1"
@@ -83,9 +93,12 @@ if "%INTERACTIVE%"=="1" pause
 exit /b 0
 
 :local_mode
+echo [*] Local mod icin varsa Docker stack durduruluyor...
+call :try_stop_docker_stack
+
 :: Backend Port Temizligi
 echo [*] Eski surecler temizleniyor...
-powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%cleanup_ports.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%cleanup_ports.ps1" -Mode local
 call :assert_port_free 8000 "Backend API"
 if errorlevel 1 (
     echo [HATA] 8000 portu hala kullanimda. Docker Desktop veya eski backend surecini kapatin.
@@ -114,7 +127,7 @@ if errorlevel 1 (
     if "%INTERACTIVE%"=="1" pause
     exit /b 1
 )
-start "BilgeAPI" cmd /k "set SOVEREIGN_DOTENV_OVERRIDE=false&& set PYTHONPATH=%PY_DEPS%;%PROJECT_ROOT%&& set APP_ENV=development&& set RUNTIME_PROFILE=local-dev&& set LOCAL_DEV_DB_STRATEGY=sqlite-fallback&& set DATABASE_URL=%SQLITE_DB_URL%&& set BILGEAPI_DATABASE_URL=%SQLITE_DB_URL%&& set BILGEAPI_AUTH_MODE=api_key&& set BILGEAPI_PORT=8100&& %PY_CMD% -m uvicorn apps.bilgeapi.main:app --host 0.0.0.0 --port 8100 --log-level debug"
+start "BilgeAPI" cmd /k "set SOVEREIGN_DOTENV_OVERRIDE=false&& set PYTHONPATH=%PY_DEPS%;%PROJECT_ROOT%&& set APP_ENV=development&& set RUNTIME_PROFILE=local-dev&& set LOCAL_DEV_DB_STRATEGY=sqlite-fallback&& set DATABASE_URL=%SQLITE_DB_URL%&& set BILGEAPI_DATABASE_URL=%SQLITE_DB_URL%&& set BILGEAPI_AUTH_MODE=api_key&& set BILGEAPI_STATIC_KEYS=dev-test-key-001:ADMIN&& set BILGEAPI_PORT=8100&& %PY_CMD% -m uvicorn apps.bilgeapi.main:app --host 0.0.0.0 --port 8100 --log-level debug"
 call :wait_http "BilgeAPI" "http://127.0.0.1:8100/health" 30
 if errorlevel 1 (
     echo [HATA] BilgeAPI hazir olmadi. BilgeAPI penceresindeki loglari kontrol edin.
@@ -136,9 +149,6 @@ exit /b 0
 :docker_mode
 setlocal enabledelayedexpansion
 
-:: Port Temizligi (Cakismalari onlemek icin)
-echo [*] Eski surecler temizleniyor...
-powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%cleanup_ports.ps1"
 echo [*] Docker mod baslatiliyor...
 
 :: 1) Oncelikle pipe'i kontrol et
@@ -181,6 +191,16 @@ goto docker_wait
 
 :docker_ready
 echo [OK] Docker Engine hazir!
+echo [*] Docker stack sifirlaniyor...
+docker compose -f docker-compose.yml --profile full-stack down --remove-orphans >nul 2>&1
+echo [*] Docker mod icin yerel port sahipleri temizleniyor...
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%cleanup_ports.ps1" -Mode docker
+if errorlevel 1 (
+    echo [HATA] Docker mode oncesi gerekli portlar temizlenemedi.
+    endlocal
+    if "%INTERACTIVE%"=="1" pause
+    exit /b 1
+)
 endlocal
 set RUNTIME_PROFILE=full-stack-local
 set REDIS_ENABLED=true
@@ -250,6 +270,12 @@ if %WAIT_COUNT% GEQ %WAIT_MAX% (
 )
 timeout /t 2 >nul
 goto wait_http_loop
+
+:try_stop_docker_stack
+docker info >nul 2>&1
+if errorlevel 1 exit /b 0
+docker compose -f docker-compose.yml --profile full-stack down --remove-orphans >nul 2>&1
+exit /b 0
 
 :assert_port_free
 set "PORT_TO_CHECK=%~1"

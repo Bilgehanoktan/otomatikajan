@@ -74,6 +74,7 @@ services:
       PAYLOAD_PUBLIC_SERVER_URL: http://localhost:3100
       NEXT_PUBLIC_API_URL: http://app:8000
       BACKEND_ORIGIN: http://app:8000
+      BILGEAPI_ORIGIN: http://bilgeapi:8100
     ports:
       - "3100:3100"
 

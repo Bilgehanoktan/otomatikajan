@@ -1175,7 +1175,11 @@ class PostgresReviewLedgerRepository(ReviewLedgerRepository):
             created_at=entry_data.get("created_at") or datetime.now(timezone.utc),
         )
         self.db.add(model)
-        await self.db.commit()
+        try:
+            await self.db.commit()
+        except Exception:
+            await self.db.rollback()
+            raise
         await self.db.refresh(model)
         return self._entry_to_dict(model)
 
@@ -1673,5 +1677,4 @@ class PostgresAutonomyDecisionRepository(AutonomyDecisionRepository):
             .order_by(desc(AutonomyDecisionModel.created_at))
         )
         return [self._to_dict(m) for m in res.scalars().all()]
-
 
