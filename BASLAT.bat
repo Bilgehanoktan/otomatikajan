@@ -182,11 +182,11 @@ if !retries! GEQ 4 (
     echo          ve Docker Desktop'i yeniden baslatin.
     echo.
     endlocal
-    pause
-    goto local_mode
+    if "%INTERACTIVE%"=="1" pause
+    exit /b 1
 )
 echo [*] Bekleniyor... ^(!retries!/4^)
-timeout /t 5 >nul
+call :sleep_seconds 5
 goto docker_wait
 
 :docker_ready
@@ -218,63 +218,81 @@ echo [*] Docker altyapi servisleri baslatiliyor...
 docker compose -f docker-compose.yml --profile full-stack up -d --build --wait db redis deerflow-bridge
 if errorlevel 1 (
     echo [HATA] Docker altyapi servisleri hazirlanamadi! Loglari kontrol edin.
-    pause
-    goto local_mode
+    docker compose -f docker-compose.yml --profile full-stack down --remove-orphans >nul 2>&1
+    if "%INTERACTIVE%"=="1" pause
+    exit /b 1
+)
+echo [*] Uygulama servisleri oncesi portlar yeniden dogrulaniyor...
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%cleanup_ports.ps1" -Mode docker -Ports 8000 8100 3100
+if errorlevel 1 (
+    echo [HATA] Docker uygulama katmani oncesi gerekli portlar temizlenemedi.
+    docker compose -f docker-compose.yml --profile full-stack down --remove-orphans >nul 2>&1
+    if "%INTERACTIVE%"=="1" pause
+    exit /b 1
 )
 echo [*] Uygulama servisleri baslatiliyor...
 docker compose -f docker-compose.yml --profile full-stack up -d --build app cms bilgeapi worker deerflow-worker beat telegram-bot
 if errorlevel 1 (
     echo [HATA] docker-compose baslatilamadi! Loglari kontrol edin.
-    pause
-    goto local_mode
+    docker compose -f docker-compose.yml --profile full-stack down --remove-orphans >nul 2>&1
+    if "%INTERACTIVE%"=="1" pause
+    exit /b 1
 )
 call :wait_http "Backend API" "http://127.0.0.1:8000/health" 24
 if errorlevel 1 (
     echo [HATA] Docker Backend API hazir olmadi! Loglari kontrol edin.
-    pause
-    goto local_mode
+    docker compose -f docker-compose.yml --profile full-stack down --remove-orphans >nul 2>&1
+    if "%INTERACTIVE%"=="1" pause
+    exit /b 1
 )
 call :wait_http "BilgeAPI" "http://127.0.0.1:8100/health" 30
 if errorlevel 1 (
     echo [HATA] Docker BilgeAPI hazir olmadi! Loglari kontrol edin.
-    pause
-    goto local_mode
+    docker compose -f docker-compose.yml --profile full-stack down --remove-orphans >nul 2>&1
+    if "%INTERACTIVE%"=="1" pause
+    exit /b 1
 )
 echo [*] Frontend UI Docker container olarak baslatiliyor...
 call :wait_http "Frontend UI (Docker)" "http://127.0.0.1:3100" 45
 if errorlevel 1 (
     echo [HATA] Docker Frontend UI hazir olmadi!
-    pause
-    goto local_mode
+    docker compose -f docker-compose.yml --profile full-stack down --remove-orphans >nul 2>&1
+    if "%INTERACTIVE%"=="1" pause
+    exit /b 1
 )
 if "%INTERACTIVE%"=="1" start "" "http://127.0.0.1:3100"
 if "%INTERACTIVE%"=="1" pause
 exit /b 0
 
 :wait_http
+setlocal EnableDelayedExpansion
 set "WAIT_NAME=%~1"
 set "WAIT_URL=%~2"
 set /a WAIT_MAX=%~3
 set /a WAIT_COUNT=0
-echo [*] %WAIT_NAME% hazirlik kontrolu: %WAIT_URL%
+echo [*] !WAIT_NAME! hazirlik kontrolu: !WAIT_URL!
 :wait_http_loop
-powershell -NoProfile -ExecutionPolicy Bypass -Command "try { $r = Invoke-WebRequest -UseBasicParsing '%WAIT_URL%' -TimeoutSec 3; if ($r.StatusCode -eq 200) { exit 0 } } catch { exit 1 }; exit 1" >nul 2>&1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "try { $r = Invoke-WebRequest -UseBasicParsing '!WAIT_URL!' -TimeoutSec 3; if ($r.StatusCode -eq 200) { exit 0 } } catch { exit 1 }; exit 1" >nul 2>&1
 if not errorlevel 1 (
-    echo [OK] %WAIT_NAME% hazir.
-    exit /b 0
+    echo [OK] !WAIT_NAME! hazir.
+    endlocal & exit /b 0
 )
 set /a WAIT_COUNT+=1
-if %WAIT_COUNT% GEQ %WAIT_MAX% (
-    echo [HATA] %WAIT_NAME% zaman asimina ugradi.
-    exit /b 1
+if !WAIT_COUNT! GEQ !WAIT_MAX! (
+    echo [HATA] !WAIT_NAME! zaman asimina ugradi.
+    endlocal & exit /b 1
 )
-timeout /t 2 >nul
+call :sleep_seconds 2
 goto wait_http_loop
 
 :try_stop_docker_stack
 docker info >nul 2>&1
 if errorlevel 1 exit /b 0
 docker compose -f docker-compose.yml --profile full-stack down --remove-orphans >nul 2>&1
+exit /b 0
+
+:sleep_seconds
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Sleep -Seconds %~1" >nul 2>&1
 exit /b 0
 
 :assert_port_free
