@@ -198,8 +198,8 @@ class Settings:
         os.environ["BILGEAPI_GITHUB_ENABLED"] = str(value).lower()
 
     @property
-    def BILGEAPI_GITHUB_TOKEN(self) -> Optional[str]:
-        return os.getenv("BILGEAPI_GITHUB_TOKEN")
+    def BILGEAPI_GITHUB_TOKEN(self) -> str:
+        return os.getenv("BILGEAPI_GITHUB_TOKEN", "")
 
     @BILGEAPI_GITHUB_TOKEN.setter
     def BILGEAPI_GITHUB_TOKEN(self, value):
@@ -209,8 +209,8 @@ class Settings:
             os.environ["BILGEAPI_GITHUB_TOKEN"] = str(value)
 
     @property
-    def BILGEAPI_GITHUB_OWNER(self) -> Optional[str]:
-        return os.getenv("BILGEAPI_GITHUB_OWNER")
+    def BILGEAPI_GITHUB_OWNER(self) -> str:
+        return os.getenv("BILGEAPI_GITHUB_OWNER", "")
 
     @BILGEAPI_GITHUB_OWNER.setter
     def BILGEAPI_GITHUB_OWNER(self, value):
@@ -220,8 +220,8 @@ class Settings:
             os.environ["BILGEAPI_GITHUB_OWNER"] = str(value)
 
     @property
-    def BILGEAPI_GITHUB_REPO(self) -> Optional[str]:
-        return os.getenv("BILGEAPI_GITHUB_REPO")
+    def BILGEAPI_GITHUB_REPO(self) -> str:
+        return os.getenv("BILGEAPI_GITHUB_REPO", "")
 
     @BILGEAPI_GITHUB_REPO.setter
     def BILGEAPI_GITHUB_REPO(self, value):
@@ -446,29 +446,6 @@ class Settings:
     def BILGEAPI_PR_PROVIDER(self, value):
         os.environ["BILGEAPI_PR_PROVIDER"] = str(value)
 
-    @property
-    def BILGEAPI_GITHUB_TOKEN(self) -> str:
-        return os.getenv("BILGEAPI_GITHUB_TOKEN", "")
-
-    @BILGEAPI_GITHUB_TOKEN.setter
-    def BILGEAPI_GITHUB_TOKEN(self, value):
-        os.environ["BILGEAPI_GITHUB_TOKEN"] = str(value)
-
-    @property
-    def BILGEAPI_GITHUB_OWNER(self) -> str:
-        return os.getenv("BILGEAPI_GITHUB_OWNER", "")
-
-    @BILGEAPI_GITHUB_OWNER.setter
-    def BILGEAPI_GITHUB_OWNER(self, value):
-        os.environ["BILGEAPI_GITHUB_OWNER"] = str(value)
-
-    @property
-    def BILGEAPI_GITHUB_REPO(self) -> str:
-        return os.getenv("BILGEAPI_GITHUB_REPO", "")
-
-    @BILGEAPI_GITHUB_REPO.setter
-    def BILGEAPI_GITHUB_REPO(self, value):
-        os.environ["BILGEAPI_GITHUB_REPO"] = str(value)
 
     @property
     def BILGEAPI_GITHUB_BASE_BRANCH(self) -> str:

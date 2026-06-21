@@ -280,7 +280,15 @@ async def lifespan(app: FastAPI):
         
         # AgentOrchestrationQueue background consumer loop
         async def _run_agent_queue_consumer():
-            from services.orchestration.application.agent_queue import AgentOrchestrationQueue
+            try:
+                from services.orchestration.application.agent_queue import AgentOrchestrationQueue
+            except ImportError as e:
+                logger.error(
+                    f"[STARTUP] Could not import AgentOrchestrationQueue (durable queue requires "
+                    f"services.orchestration.application.agent_queue): {e}. "
+                    "Background queue consumer will NOT be started."
+                )
+                return
             queue = AgentOrchestrationQueue()
             logger.info("[STARTUP] BilgeAPI AgentOrchestrationQueue background consumer started.")
             while True:

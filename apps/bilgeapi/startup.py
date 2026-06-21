@@ -86,9 +86,8 @@ def validate_production_config() -> list[str]:
     # 5. CORS Allowlist
     cors_raw = os.getenv("BILGEAPI_CORS_ALLOWLIST", "")
     if is_production and (not cors_raw or cors_raw.strip() == "*"):
-        warnings.append(
-            "[PROD] BILGEAPI_CORS_ALLOWLIST is wildcard or empty. "
-            "Consider restricting to specific origins."
+        errors.append(
+            "BILGEAPI_CORS_ALLOWLIST cannot be empty or '*' in production."
         )
 
     # Log results
