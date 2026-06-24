@@ -99,11 +99,11 @@ async def test_review_ledger_retries_on_sequence_conflict():
             super().__init__()
             self.fail_once = True
 
-        async def append_entry(self, entry_data):
+        async def append_entry(self, entry_data, tenant_id: str = "default", *args, **kwargs):
             if self.fail_once:
                 self.fail_once = False
                 raise IntegrityError("insert", {}, Exception("duplicate sequence"))
-            return await super().append_entry(entry_data)
+            return await super().append_entry(entry_data, tenant_id, *args, **kwargs)
 
     repo = _RetryingRepo()
     service = ReviewLedgerService(repo)

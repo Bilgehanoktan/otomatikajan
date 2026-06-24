@@ -270,11 +270,13 @@ class SelfHealingExecutor:
         if self.skill_check_service:
             try:
                 action_type = runbook["action_type"]
+                tenant_id = (finding.get("tenant_id") if isinstance(finding, dict) else getattr(finding, "tenant_id", "default")) or "default"
                 check_res = await self.skill_check_service.check_patch(
                     target_type="self_healing_run",
                     target_id=finding_id,
                     skill_names=["bilgeapi-self-healing-policy"],
-                    patch_code=action_type
+                    patch_code=action_type,
+                    tenant_id=tenant_id
                 )
                 if check_res.status == "BLOCKED":
                     decision["allowed"] = False

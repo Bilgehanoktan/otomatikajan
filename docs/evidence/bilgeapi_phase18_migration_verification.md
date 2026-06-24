@@ -7,12 +7,12 @@
 
 ## alembic heads
 ```text
-3b517c6cb58a (head)
+e1f8a846b9c9 (head)
 ```
 
 ## alembic current
 ```text
-3b517c6cb58a (head)
+e1f8a846b9c9 (head)
 INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
 INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
 ```

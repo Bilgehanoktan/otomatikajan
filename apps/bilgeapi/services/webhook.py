@@ -51,6 +51,7 @@ class WebhookDeliveryService:
         repair_request_id: str,
         webhook_url: Optional[str],
         payload: dict,
+        tenant_id: str = "default",
         adapter: str = "webhook",
         dry_run: bool = False
     ) -> Dict[str, Any]:
@@ -60,9 +61,9 @@ class WebhookDeliveryService:
         # Enrichment: Load diagnostic and incident metadata to inject into payload
         try:
             if self.repair_repo and self.diagnostic_repo and self.incident_repo:
-                repair_req = await self.repair_repo.get(repair_request_id)
+                repair_req = await self.repair_repo.get(repair_request_id, tenant_id=tenant_id)
                 if repair_req:
-                    diag = await self.diagnostic_repo.get(repair_req.diagnostic_id)
+                    diag = await self.diagnostic_repo.get(repair_req.diagnostic_id, tenant_id=tenant_id)
                     if diag:
                         payload["diagnostic"] = {
                             "diagnostic_id": diag.diagnostic_id,
@@ -77,7 +78,7 @@ class WebhookDeliveryService:
                                 for r in (diag.recommendations or [])
                             ]
                         }
-                        inc = await self.incident_repo.get(diag.incident_id)
+                        inc = await self.incident_repo.get(diag.incident_id, tenant_id=tenant_id)
                         if inc:
                             payload["incident"] = {
                                 "id": inc.id,
@@ -105,7 +106,7 @@ class WebhookDeliveryService:
         }
 
         # Persist the initial delivery record
-        delivery = await self.webhook_repo.create_delivery(delivery_data)
+        delivery = await self.webhook_repo.create_delivery(delivery_data, tenant_id=tenant_id)
 
         # Trigger background delivery workflow
         if settings.BILGEAPI_DURABLE_QUEUE_ENABLED:
@@ -118,6 +119,7 @@ class WebhookDeliveryService:
                 webhook_url=webhook_url or f"adapter:{adapter}",
                 payload=payload,
                 attempt=1,
+                tenant_id=tenant_id,
                 adapter=adapter,
                 dry_run=dry_run
             )
@@ -129,6 +131,7 @@ class WebhookDeliveryService:
                     webhook_url=webhook_url or f"adapter:{adapter}",
                     payload=payload,
                     attempt=1,
+                    tenant_id=tenant_id,
                     adapter=adapter,
                     dry_run=dry_run
                 )
@@ -144,6 +147,7 @@ class WebhookDeliveryService:
         webhook_url: str,
         payload: dict,
         attempt: int,
+        tenant_id: str,
         adapter: str = "webhook",
         dry_run: bool = False
     ):
@@ -154,20 +158,20 @@ class WebhookDeliveryService:
         if not adapter_obj:
             err_msg = f"Adapter '{adapter}' is not registered."
             logger.error(err_msg)
-            await self._record_failure(delivery_id, repair_request_id, attempt, err_msg, adapter)
+            await self._record_failure(delivery_id, repair_request_id, attempt, err_msg, tenant_id, adapter)
             return
 
         if not adapter_obj.enabled:
             err_msg = f"Adapter '{adapter}' is disabled."
             logger.error(err_msg)
-            await self._record_failure(delivery_id, repair_request_id, attempt, err_msg, adapter)
+            await self._record_failure(delivery_id, repair_request_id, attempt, err_msg, tenant_id, adapter)
             return
 
         is_webhook_with_dynamic_url = (adapter == "webhook" and bool(webhook_url))
         if not adapter_obj.configured and not is_webhook_with_dynamic_url:
             err_msg = f"Adapter '{adapter}' is not configured."
             logger.error(err_msg)
-            await self._record_failure(delivery_id, repair_request_id, attempt, err_msg, adapter)
+            await self._record_failure(delivery_id, repair_request_id, attempt, err_msg, tenant_id, adapter)
             return
 
         max_retries = settings.BILGEAPI_WEBHOOK_MAX_RETRIES
@@ -201,13 +205,15 @@ class WebhookDeliveryService:
                     delivery_status="SENT",
                     status_code=200.0,
                     error_message=None,
-                    attempt_count=attempt
+                    attempt_count=attempt,
+                    tenant_id=tenant_id
                 )
 
                 await self.repair_repo.update(
                     repair_request_id=repair_request_id,
                     approval_status=ApprovalStatus.APPROVED,
                     dispatch_status=DispatchStatus.DISPATCHED,
+                    tenant_id=tenant_id,
                     external_reference=ext_ref
                 )
 
@@ -217,6 +223,7 @@ class WebhookDeliveryService:
                     actor_type="service",
                     entity_type="repair_request",
                     entity_id=repair_request_id,
+                    tenant_id=tenant_id,
                     metadata={"delivery_id": delivery_id, "adapter": adapter, "external_reference": ext_ref}
                 )
 
@@ -226,6 +233,7 @@ class WebhookDeliveryService:
                     actor_type="service",
                     entity_type="webhook_delivery",
                     entity_id=delivery_id,
+                    tenant_id=tenant_id,
                     metadata={"status_code": 200, "repair_request_id": repair_request_id, "adapter": adapter}
                 )
                 logger.info(f"Dispatch succeeded (id={delivery_id}, adapter={adapter})")
@@ -233,7 +241,7 @@ class WebhookDeliveryService:
             else:
                 # Adapter returned FAILED status (e.g. SSRF Guard, configuration error)
                 # We fail immediately without scheduling a retry
-                await self._record_failure(delivery_id, repair_request_id, attempt, err_msg or "Dispatch failed.", adapter)
+                await self._record_failure(delivery_id, repair_request_id, attempt, err_msg or "Dispatch failed.", tenant_id, adapter)
                 return
 
         except Exception as e:
@@ -247,7 +255,8 @@ class WebhookDeliveryService:
                     delivery_status="FAILED",
                     status_code=None,
                     error_message=err_msg,
-                    attempt_count=attempt
+                    attempt_count=attempt,
+                    tenant_id=tenant_id
                 )
 
                 await self.audit_service.log_event(
@@ -256,6 +265,7 @@ class WebhookDeliveryService:
                     actor_type="service",
                     entity_type="webhook_delivery",
                     entity_id=delivery_id,
+                    tenant_id=tenant_id,
                     metadata={"reason": err_msg, "attempt": attempt, "repair_request_id": repair_request_id, "adapter": adapter}
                 )
 
@@ -270,6 +280,7 @@ class WebhookDeliveryService:
                         webhook_url=webhook_url,
                         payload=payload,
                         next_attempt=attempt + 1,
+                        tenant_id=tenant_id,
                         adapter=adapter,
                         dry_run=dry_run
                     )
@@ -277,21 +288,23 @@ class WebhookDeliveryService:
                 _track_task(retry_task)
             else:
                 # Limit exceeded or non-webhook adapter -> Move directly to DEAD_LETTER
-                await self._record_failure(delivery_id, repair_request_id, attempt, err_msg, adapter)
+                await self._record_failure(delivery_id, repair_request_id, attempt, err_msg, tenant_id, adapter)
 
-    async def _record_failure(self, delivery_id: str, repair_request_id: str, attempt: int, err_msg: str, adapter: str = "webhook"):
+    async def _record_failure(self, delivery_id: str, repair_request_id: str, attempt: int, err_msg: str, tenant_id: str, adapter: str = "webhook"):
         await self.webhook_repo.update_delivery(
             delivery_id=delivery_id,
             delivery_status="DEAD_LETTER",
             status_code=None,
             error_message=err_msg,
-            attempt_count=attempt
+            attempt_count=attempt,
+            tenant_id=tenant_id
         )
 
         await self.repair_repo.update(
             repair_request_id=repair_request_id,
             approval_status=ApprovalStatus.APPROVED,
             dispatch_status=DispatchStatus.FAILED,
+            tenant_id=tenant_id,
             external_reference=None
         )
 
@@ -301,6 +314,7 @@ class WebhookDeliveryService:
             actor_type="service",
             entity_type="repair_request",
             entity_id=repair_request_id,
+            tenant_id=tenant_id,
             metadata={"reason": err_msg, "adapter": adapter}
         )
 
@@ -310,6 +324,7 @@ class WebhookDeliveryService:
             actor_type="service",
             entity_type="webhook_delivery",
             entity_id=delivery_id,
+            tenant_id=tenant_id,
             metadata={"reason": err_msg, "repair_request_id": repair_request_id, "adapter": adapter}
         )
         logger.error(f"Dispatch failed permanently (id={delivery_id}, attempts={attempt}, adapter={adapter})")
@@ -322,6 +337,7 @@ class WebhookDeliveryService:
         webhook_url: str,
         payload: dict,
         next_attempt: int,
+        tenant_id: str,
         adapter: str = "webhook",
         dry_run: bool = False
     ):
@@ -335,6 +351,7 @@ class WebhookDeliveryService:
                 webhook_url=webhook_url,
                 payload=payload,
                 attempt=next_attempt,
+                tenant_id=tenant_id,
                 adapter=adapter,
                 dry_run=dry_run
             )
@@ -345,6 +362,7 @@ class WebhookDeliveryService:
                 webhook_url=webhook_url,
                 payload=payload,
                 attempt=next_attempt,
+                tenant_id=tenant_id,
                 adapter=adapter,
                 dry_run=dry_run
             )
@@ -355,6 +373,7 @@ async def run_webhook_dispatch_job(
     webhook_url: str,
     payload: dict,
     attempt: int,
+    tenant_id: str,
     adapter: str,
     dry_run: bool
 ):
@@ -389,6 +408,7 @@ async def run_webhook_dispatch_job(
             webhook_url=webhook_url,
             payload=payload,
             attempt=attempt,
+            tenant_id=tenant_id,
             adapter=adapter,
             dry_run=dry_run
         )

@@ -27,3 +27,9 @@ celerybeat-schedule
 .env.*
 .nx/
 .playwright-browsers/
+
+# BilgeAPI Caches & Dynamic Assets
+.bilgeapi/logs/
+.bilgeapi/reports/
+.bilgeapi/quarantine/
+.bilgeapi/memory/

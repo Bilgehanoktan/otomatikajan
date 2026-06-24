@@ -14,7 +14,8 @@ async def trigger_diagnostic(
     diag_service: DiagnosticService = Depends(get_diagnostic_service),
     _identity: dict = Depends(require_permission("bilgeapi.diagnostic.run"))
 ):
-    run = await diag_service.start_diagnostic(incident_id)
+    tenant_id = _identity.get("tenant_id")
+    run = await diag_service.start_diagnostic(incident_id, tenant_id=tenant_id)
     if not run:
         raise HTTPException(status_code=404, detail="Incident not found")
         
@@ -29,7 +30,8 @@ async def list_diagnostics(
     diag_repo: DiagnosticRepository = Depends(get_diagnostic_repository),
     _identity: dict = Depends(require_permission("bilgeapi.incident.read"))
 ):
-    return await diag_repo.list_all()
+    tenant_id = _identity.get("tenant_id")
+    return await diag_repo.list_all(tenant_id=tenant_id)
 
 @router.get("/diagnostics/{diagnostic_id}", response_model=DiagnosticResult, tags=["Diagnostics"])
 async def get_diagnostic(
@@ -37,8 +39,10 @@ async def get_diagnostic(
     diag_repo: DiagnosticRepository = Depends(get_diagnostic_repository),
     _identity: dict = Depends(require_permission("bilgeapi.incident.read"))
 ):
-    diag = await diag_repo.get(diagnostic_id)
+    tenant_id = _identity.get("tenant_id")
+    diag = await diag_repo.get(diagnostic_id, tenant_id=tenant_id)
     if not diag:
         raise HTTPException(status_code=404, detail="Diagnostic run not found")
     return diag
+
 

@@ -93,10 +93,11 @@ class ReviewLedgerService:
         entity_id: str,
         actor_id: Optional[str],
         payload: Dict[str, Any],
+        tenant_id: str = "default",
     ) -> Dict[str, Any]:
         redacted_payload = self.redactor.redact(payload or {})
         for attempt in range(1, self.max_append_retries + 1):
-            latest = await self.repo.get_latest_entry(chain_id)
+            latest = await self.repo.get_latest_entry(chain_id, tenant_id=tenant_id)
             previous_hash = latest["event_hash"] if latest else None
             sequence_no = int(latest["sequence_no"]) + 1 if latest else 1
             created_at = datetime.now(timezone.utc)
@@ -126,7 +127,8 @@ class ReviewLedgerService:
                         "event_hash": event_hash,
                         "payload_summary": redacted_payload,
                         "created_at": created_at,
-                    }
+                    },
+                    tenant_id=tenant_id
                 )
             except IntegrityError:
                 if attempt == self.max_append_retries:
@@ -135,14 +137,14 @@ class ReviewLedgerService:
 
         raise RuntimeError(f"Failed to append review ledger event for chain {chain_id}")
 
-    async def list_chain(self, chain_id: str) -> List[Dict[str, Any]]:
-        return await self.repo.list_by_chain(chain_id)
+    async def list_chain(self, chain_id: str, tenant_id: str = "default") -> List[Dict[str, Any]]:
+        return await self.repo.list_by_chain(chain_id, tenant_id=tenant_id)
 
-    async def list_recent(self, limit: int = 50) -> List[Dict[str, Any]]:
-        return await self.repo.list_recent(limit=limit)
+    async def list_recent(self, tenant_id: str = "default", limit: int = 50) -> List[Dict[str, Any]]:
+        return await self.repo.list_recent(tenant_id=tenant_id, limit=limit)
 
-    async def export_chain_markdown(self, chain_id: str, verification: Dict[str, Any]) -> str:
-        entries = await self.list_chain(chain_id)
+    async def export_chain_markdown(self, chain_id: str, verification: Dict[str, Any], tenant_id: str = "default") -> str:
+        entries = await self.list_chain(chain_id, tenant_id=tenant_id)
         lines = [
             f"# Immutable Review Ledger Export: {chain_id}",
             "",
@@ -174,8 +176,8 @@ class ReviewLedgerVerifier:
         self.repo = repo
         self.hasher = CanonicalPayloadHasher()
 
-    async def verify_chain(self, chain_id: str) -> Dict[str, Any]:
-        entries = await self.repo.list_by_chain(chain_id)
+    async def verify_chain(self, chain_id: str, tenant_id: str = "default") -> Dict[str, Any]:
+        entries = await self.repo.list_by_chain(chain_id, tenant_id=tenant_id)
         issues: List[Dict[str, Any]] = []
         previous_hash: Optional[str] = None
 

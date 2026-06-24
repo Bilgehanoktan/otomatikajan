@@ -4263,6 +4263,125 @@
           }
         ]
       }
+    },
+    "/v1/system/profile": {
+      "get": {
+        "tags": [
+          "System Runtime"
+        ],
+        "summary": "Get System Profile",
+        "description": "Builds and returns the workspace system profile and health score.",
+        "operationId": "get_system_profile_v1_system_profile_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get System Profile V1 System Profile Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/workspace/approvals/{approval_id}/submit": {
+      "post": {
+        "tags": [
+          "Approvals"
+        ],
+        "summary": "Submit Approval Direct",
+        "description": "Directly submits an approval decision.\nValidates X-Telegram-Bot-Api-Secret-Token header if webhook secret is configured.",
+        "operationId": "submit_approval_direct_v1_workspace_approvals__approval_id__submit_post",
+        "parameters": [
+          {
+            "name": "approval_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Approval Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovalSubmitRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/telegram/webhook": {
+      "post": {
+        "tags": [
+          "Approvals"
+        ],
+        "summary": "Telegram Webhook",
+        "description": "Webhook endpoint for Telegram Updates.\nProcesses only callback_query type updates.",
+        "operationId": "telegram_webhook_v1_telegram_webhook_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -5079,6 +5198,39 @@
           "REJECTED"
         ],
         "title": "ApprovalStatus"
+      },
+      "ApprovalSubmitRequest": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "title": "Token"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "chat_id": {
+            "type": "string",
+            "title": "Chat Id"
+          },
+          "action_hash": {
+            "type": "string",
+            "title": "Action Hash"
+          },
+          "approved_by": {
+            "type": "string",
+            "title": "Approved By"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token",
+          "status",
+          "chat_id",
+          "action_hash",
+          "approved_by"
+        ],
+        "title": "ApprovalSubmitRequest"
       },
       "AuditEvent": {
         "properties": {

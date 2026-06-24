@@ -13,5 +13,6 @@ async def list_audit_events(
     audit_repo: AuditRepository = Depends(get_audit_repository),
     _identity: dict = Depends(require_permission("bilgeapi.audit.read"))
 ):
-    return await audit_repo.list_recent(limit=limit)
+    tenant_id = _identity.get("tenant_id") or "default"
+    return await audit_repo.list_recent(tenant_id=tenant_id, limit=limit)
 

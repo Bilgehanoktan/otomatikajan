@@ -11,6 +11,7 @@ class IncidentModel(Base):
     __tablename__ = "bilgeapi_incidents"
 
     id = Column(String(64), primary_key=True)
+    tenant_id = Column(String(64), nullable=True, index=True)
     project_key = Column(String(64), nullable=False, index=True)
     source_system = Column(String(64), nullable=False, index=True)
     environment = Column(String(64), nullable=False, index=True)
@@ -29,6 +30,7 @@ class DiagnosticRunModel(Base):
     __tablename__ = "bilgeapi_diagnostic_runs"
 
     diagnostic_id = Column(String(64), primary_key=True)
+    tenant_id = Column(String(64), nullable=True, index=True)
     incident_id = Column(String(64), nullable=False, index=True)
     status = Column(String(32), nullable=False, index=True)
     summary = Column(Text, nullable=True)
@@ -46,6 +48,7 @@ class FindingModel(Base):
     __tablename__ = "bilgeapi_findings"
 
     id = Column(String(64), primary_key=True)
+    tenant_id = Column(String(64), nullable=True, index=True)
     diagnostic_id = Column(String(64), ForeignKey("bilgeapi_diagnostic_runs.diagnostic_id"), nullable=False, index=True)
     description = Column(Text, nullable=False)
     metadata_fields = Column("metadata", SmartJSON(), nullable=True)
@@ -57,6 +60,7 @@ class RecommendationModel(Base):
     __tablename__ = "bilgeapi_recommendations"
 
     id = Column(String(64), primary_key=True)
+    tenant_id = Column(String(64), nullable=True, index=True)
     diagnostic_id = Column(String(64), ForeignKey("bilgeapi_diagnostic_runs.diagnostic_id"), nullable=False, index=True)
     description = Column(Text, nullable=False)
     metadata_fields = Column("metadata", SmartJSON(), nullable=True)
@@ -68,6 +72,7 @@ class RepairRequestModel(Base):
     __tablename__ = "bilgeapi_repair_requests"
 
     id = Column(String(64), primary_key=True)
+    tenant_id = Column(String(64), nullable=True, index=True)
     diagnostic_id = Column(String(64), nullable=False, index=True)
     requested_by = Column(String(64), nullable=False)
     approved_by = Column(String(64), nullable=True)
@@ -88,6 +93,7 @@ class AuditEventModel(Base):
     __tablename__ = "bilgeapi_audit_events"
 
     id = Column(String(64), primary_key=True)
+    tenant_id = Column(String(64), nullable=True, index=True)
     event_type = Column(String(64), nullable=False, index=True)
     actor_id = Column(String(64), nullable=False)
     actor_type = Column(String(64), nullable=False)
@@ -107,6 +113,7 @@ class WebhookDeliveryModel(Base):
     __tablename__ = "bilgeapi_webhook_deliveries"
 
     id = Column(String(64), primary_key=True)
+    tenant_id = Column(String(64), nullable=True, index=True)
     repair_request_id = Column(String(64), nullable=False, index=True)
     webhook_url = Column(String(256), nullable=False)
     status_code = Column(Float, nullable=True)
@@ -215,6 +222,7 @@ class PrDraftModel(Base):
     __tablename__ = "bilgeapi_pr_drafts"
 
     id = Column(String(64), primary_key=True)
+    tenant_id = Column(String(64), nullable=True, index=True)
     proposal_id = Column(String(64), ForeignKey("bilgeapi_improvement_proposals.id"), nullable=False, index=True)
     provider = Column(String(32), nullable=False)
     status = Column(String(32), default="PENDING", nullable=False, index=True) # PENDING, COMPLETED, FAILED, BLOCKED
@@ -236,6 +244,7 @@ class PrVerificationModel(Base):
     __tablename__ = "bilgeapi_pr_verifications"
 
     id = Column(String(64), primary_key=True)
+    tenant_id = Column(String(64), nullable=True, index=True)
     pr_draft_id = Column(String(64), ForeignKey("bilgeapi_pr_drafts.id"), nullable=False, index=True)
     proposal_id = Column(String(64), ForeignKey("bilgeapi_improvement_proposals.id"), nullable=False, index=True)
     revision_id = Column(String(64), ForeignKey("bilgeapi_patch_revisions.id"), nullable=True, index=True)
@@ -265,6 +274,7 @@ class PrReviewFeedbackModel(Base):
     __tablename__ = "bilgeapi_pr_review_feedbacks"
 
     id = Column(String(64), primary_key=True)
+    tenant_id = Column(String(64), nullable=True, index=True)
     pr_draft_id = Column(String(64), ForeignKey("bilgeapi_pr_drafts.id"), nullable=False, index=True)
     reviewer_id = Column(String(64), nullable=False)
     comment = Column(Text, nullable=False)
@@ -280,6 +290,7 @@ class PatchRevisionModel(Base):
     __table_args__ = (UniqueConstraint('pr_draft_id', 'revision_number', name='uq_pr_draft_revision'),)
 
     id = Column(String(64), primary_key=True)
+    tenant_id = Column(String(64), nullable=True, index=True)
     pr_draft_id = Column(String(64), ForeignKey("bilgeapi_pr_drafts.id"), nullable=False, index=True)
     feedback_id = Column(String(64), ForeignKey("bilgeapi_pr_review_feedbacks.id"), nullable=True, index=True)
     revision_number = Column(Integer, nullable=False)
@@ -300,6 +311,7 @@ class ReviewLedgerEntryModel(Base):
     __table_args__ = (UniqueConstraint("chain_id", "sequence_no", name="uq_review_ledger_chain_sequence"),)
 
     id = Column(String(64), primary_key=True)
+    tenant_id = Column(String(64), nullable=True, index=True)
     chain_id = Column(String(128), nullable=False, index=True)
     sequence_no = Column(Integer, nullable=False)
     event_type = Column(String(64), nullable=False, index=True)
@@ -317,6 +329,7 @@ class AIPatchSuggestionModel(Base):
     __tablename__ = "bilgeapi_ai_patch_suggestions"
 
     id = Column(String(64), primary_key=True)
+    tenant_id = Column(String(64), nullable=True, index=True)
     pr_draft_id = Column(String(64), ForeignKey("bilgeapi_pr_drafts.id"), nullable=False, index=True)
     feedback_id = Column(String(64), ForeignKey("bilgeapi_pr_review_feedbacks.id"), nullable=True, index=True)
     revision_id = Column(String(64), ForeignKey("bilgeapi_patch_revisions.id"), nullable=True, index=True)
@@ -383,6 +396,7 @@ class RemediationRunbookModel(Base):
     __tablename__ = "bilgeapi_remediation_runbooks"
 
     id = Column(String(64), primary_key=True)
+    tenant_id = Column(String(64), nullable=True, index=True)
     name = Column(String(128), nullable=False, unique=True)
     action_type = Column(String(64), nullable=False)
     severity_allowed = Column(String(32), nullable=False)
@@ -400,6 +414,7 @@ class RemediationAttemptModel(Base):
     __tablename__ = "bilgeapi_remediation_attempts"
 
     id = Column(String(64), primary_key=True)
+    tenant_id = Column(String(64), nullable=True, index=True)
     finding_id = Column(String(64), ForeignKey("bilgeapi_system_findings.id"), nullable=False, index=True)
     runbook_id = Column(String(64), ForeignKey("bilgeapi_remediation_runbooks.id"), nullable=True, index=True)
     action_type = Column(String(64), nullable=False)
@@ -443,6 +458,7 @@ class AutonomyDecisionModel(Base):
     __tablename__ = "bilgeapi_autonomy_decisions"
 
     id = Column(String(64), primary_key=True)
+    tenant_id = Column(String(64), nullable=True, index=True)
     incident_id = Column(String(64), ForeignKey("bilgeapi_incidents.id"), nullable=False, index=True)
     correlation_id = Column(String(64), nullable=False, index=True)
     classification = Column(String(64), nullable=False)

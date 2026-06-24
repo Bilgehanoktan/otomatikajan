@@ -1,0 +1,36 @@
+# BilgeAPI File Deletion & Quarantine Policy
+policy:
+  auto_delete:
+    - "**/__pycache__/*"
+    - "**/.pytest_cache/*"
+    - "**/.mypy_cache/*"
+    - "**/.ruff_cache/*"
+    - "**/node_modules/.cache/*"
+    - "**/dist/*"
+    - "**/build/*"
+    - "**/coverage/*"
+    - "**/*.tmp"
+    - "**/.DS_Store"
+  quarantine:
+    - "**/*.bak"
+    - "**/backup_*"
+    - "**/duplicate_*"
+  approval_required:
+    - "**/.env*"
+    - "**/config.yaml"
+    - "**/settings.py"
+    - "**/package.json"
+    - "**/pyproject.toml"
+    - "**/requirements.txt"
+    - "**/Dockerfile"
+    - "**/docker-compose.yml"
+    - "**/src/**/*"
+    - "**/app/**/*"
+    - "**/tests/**/*"
+    - "**/test_*.py"
+  forbidden:
+    - "**/.git/**/*"
+    - "**/.bilgeapi/**/*"
+    - "**/audit.log"
+    - "**/*.key"
+    - "**/*.pem"

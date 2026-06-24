@@ -65,7 +65,8 @@ async def test_skill_check_happy_path(mock_registry):
         target_type="pr_draft",
         target_id="pr_123",
         skill_names=["bilgeapi-repair-request-safety"],
-        patch_code=patch_code
+        patch_code=patch_code,
+        tenant_id="default"
     )
     
     assert response.passed is True
@@ -87,7 +88,8 @@ async def test_skill_check_blocked_pattern(mock_registry):
         target_type="pr_draft",
         target_id="pr_123",
         skill_names=["bilgeapi-repair-request-safety"],
-        patch_code=patch_code
+        patch_code=patch_code,
+        tenant_id="default"
     )
     
     assert response.passed is False
@@ -110,7 +112,8 @@ async def test_skill_check_review_required(mock_registry):
         target_type="pr_draft",
         target_id="pr_123",
         skill_names=["bilgeapi-pr-verification-gate"],
-        patch_code=patch_code
+        patch_code=patch_code,
+        tenant_id="default"
     )
     
     assert response.passed is False
@@ -129,7 +132,8 @@ async def test_skill_integrity_violation(mock_registry):
         target_type="pr_draft",
         target_id="pr_123",
         skill_names=["bilgeapi-skill-integrity"],
-        patch_code=patch_code
+        patch_code=patch_code,
+        tenant_id="default"
     )
     
     assert response.passed is False
@@ -148,7 +152,8 @@ async def test_self_healing_policy_violation(mock_registry):
         target_type="remediation",
         target_id="rem_456",
         skill_names=["bilgeapi-self-healing-policy"],
-        patch_code=patch_code
+        patch_code=patch_code,
+        tenant_id="default"
     )
     
     assert response.passed is False
@@ -167,7 +172,8 @@ async def test_unknown_skill_fails_closed(mock_registry):
             target_type="pr_draft",
             target_id="pr_123",
             skill_names=["unknown-rogue-skill"],
-            patch_code="print('hello')"
+            patch_code="print('hello')",
+            tenant_id="default"
         )
         
     # Verify ledger was notified of blocked action
@@ -186,7 +192,8 @@ async def test_uninitialized_registry_fails_closed(mock_registry):
             target_type="pr_draft",
             target_id="pr_123",
             skill_names=["bilgeapi-repair-request-safety"],
-            patch_code="print('hello')"
+            patch_code="print('hello')",
+            tenant_id="default"
         )
         
     assert len(ledger.events) == 1

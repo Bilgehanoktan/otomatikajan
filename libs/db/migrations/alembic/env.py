@@ -21,6 +21,18 @@ except ImportError:
 from libs.db.models.core_models import Base
 import libs.db.models
 
+from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+
+@compiles(JSONB, "sqlite")
+def compile_jsonb_sqlite(element, compiler, **kw):
+    return "JSON"
+
+@compiles(UUID, "sqlite")
+def compile_uuid_sqlite(element, compiler, **kw):
+    return "CHAR(36)"
+
+
 
 config = context.config
 

@@ -366,7 +366,7 @@ class BilgeAPIReleaseGate:
             })
 
             # Step 2: Trigger Diagnostic Run
-            diag_run = await diagnostic_service.start_diagnostic(incident.id)
+            diag_run = await diagnostic_service.start_diagnostic(incident.id, tenant_id="default")
             trace.append({
                 "step": 2,
                 "action": "DIAGNOSTIC_RUN_INITIATE",

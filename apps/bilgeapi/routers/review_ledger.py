@@ -26,7 +26,8 @@ async def list_recent_ledger_entries(
     _identity: dict = Depends(require_permission("bilgeapi.operator")),
     repo: ReviewLedgerRepository = Depends(get_review_ledger_repository),
 ):
-    return await repo.list_recent(limit=limit)
+    tenant_id = _identity.get("tenant_id")
+    return await repo.list_recent(tenant_id=tenant_id, limit=limit)
 
 
 @router.get("/chains/{chain_id}", response_model=ReviewLedgerChainResponse)
@@ -35,7 +36,8 @@ async def get_ledger_chain(
     _identity: dict = Depends(require_permission("bilgeapi.operator")),
     service: Any = Depends(get_review_ledger_service),
 ):
-    entries = await service.list_chain(chain_id)
+    tenant_id = _identity.get("tenant_id")
+    entries = await service.list_chain(chain_id, tenant_id=tenant_id)
     return {"chain_id": chain_id, "entries": entries}
 
 
@@ -45,7 +47,8 @@ async def verify_ledger_chain(
     _identity: dict = Depends(require_permission("bilgeapi.operator")),
     verifier: Any = Depends(get_review_ledger_verifier),
 ):
-    return await verifier.verify_chain(chain_id)
+    tenant_id = _identity.get("tenant_id")
+    return await verifier.verify_chain(chain_id, tenant_id=tenant_id)
 
 
 @router.get("/chains/{chain_id}/export", response_model=ReviewLedgerExportResponse)
@@ -55,8 +58,9 @@ async def export_ledger_chain(
     service: Any = Depends(get_review_ledger_service),
     verifier: Any = Depends(get_review_ledger_verifier),
 ):
-    verification = await verifier.verify_chain(chain_id)
-    content = await service.export_chain_markdown(chain_id, verification)
+    tenant_id = _identity.get("tenant_id")
+    verification = await verifier.verify_chain(chain_id, tenant_id=tenant_id)
+    content = await service.export_chain_markdown(chain_id, verification, tenant_id=tenant_id)
     return {
         "chain_id": chain_id,
         "format": "markdown",
@@ -73,6 +77,7 @@ async def append_ledger_event(
     service: Any = Depends(get_review_ledger_service),
 ):
     actor_id = body.actor_id or identity.get("id", "admin")
+    tenant_id = identity.get("tenant_id")
     if not body.chain_id.strip():
         raise HTTPException(status_code=400, detail="chain_id is required")
     return await service.append_event(
@@ -82,4 +87,5 @@ async def append_ledger_event(
         entity_id=body.entity_id,
         actor_id=actor_id,
         payload=body.payload,
+        tenant_id=tenant_id,
     )

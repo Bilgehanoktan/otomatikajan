@@ -72,7 +72,8 @@ async def get_current_identity(
             "id": "disabled-auth",
             "name": "Bypassed Client",
             "role": "ADMIN",
-            "type": "system"
+            "type": "system",
+            "tenant_id": "default"
         }
         request.state.identity = identity
         return identity
@@ -168,7 +169,7 @@ async def get_current_identity(
                 "type": "system",
                 "key_id": db_key["id"],
                 "key_fingerprint": db_key["key_fingerprint"],
-                "tenant_id": db_key.get("tenant_id")
+                "tenant_id": db_key.get("tenant_id") or "default"
             }
             request.state.identity = identity
             return identity
@@ -223,7 +224,8 @@ async def get_current_identity(
             "id": f"api_key_{api_key_hash[:12]}",
             "name": "Static API Key Client",
             "role": matched_role,
-            "type": "system"
+            "type": "system",
+            "tenant_id": "default"
         }
         request.state.identity = identity
         return identity
@@ -287,7 +289,7 @@ async def get_current_identity(
             "name": payload.get("name", payload.get("email", "Unknown")),
             "role": payload.get("role", "GUEST").upper(),
             "type": payload.get("identity_type", "operator"),
-            "tenant_id": payload.get("tenant_id")  # Store tenant_id if present
+            "tenant_id": payload.get("tenant_id") or "default"
         }
         request.state.identity = identity
         return identity

@@ -413,11 +413,13 @@ class PrVerificationService:
                 "security-and-hardening"
             ]
             try:
+                tenant_id = (pr_draft.get("tenant_id") if isinstance(pr_draft, dict) else getattr(pr_draft, "tenant_id", "default")) or "default"
                 skill_res = await self.skill_check_service.check_patch(
                     target_type="pr_draft",
                     target_id=pr_draft_id,
                     skill_names=skill_names,
-                    patch_code=patch_code
+                    patch_code=patch_code,
+                    tenant_id=tenant_id
                 )
                 skill_status = skill_res.status
                 skill_report_addition = "\n## Skill Check Results\n"
@@ -647,11 +649,13 @@ Risk Level: **{risk_level}**
                 "security-and-hardening"
             ]
             try:
+                tenant_id = (revision.get("tenant_id") if isinstance(revision, dict) else getattr(revision, "tenant_id", "default")) or "default"
                 skill_res = await self.skill_check_service.check_patch(
                     target_type="patch_revision",
                     target_id=revision_id,
                     skill_names=skill_names,
-                    patch_code=revised_patch_code
+                    patch_code=revised_patch_code,
+                    tenant_id=tenant_id
                 )
                 skill_status = skill_res.status
                 skill_report_addition = "\n## Skill Check Results\n"

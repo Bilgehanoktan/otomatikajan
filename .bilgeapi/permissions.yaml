@@ -1,0 +1,17 @@
+# BilgeAPI Action Permissions
+permissions:
+  allow:
+    - "Read"
+    - "Grep"
+    - "Glob"
+  ask:
+    - "Bash"
+    - "Write"
+    - "Edit"
+    - "MultiEdit"
+  deny:
+    - "sudo *"
+    - "rm -rf *"
+    - "chmod 777 *"
+    - "ssh *"
+    - "* > /dev/*"

@@ -181,3 +181,29 @@ async def test_localization(
         "not_found": i18n_service.translate("not_found", lang)
     }
 
+
+@router.get("/profile", response_model=Dict[str, Any])
+async def get_system_profile(
+    request: Request,
+    identity: dict = Depends(require_permission("bilgeapi.admin"))
+):
+    """
+    Builds and returns the workspace system profile and health score.
+    """
+    from apps.bilgeapi.core.workspace import WorkspaceManager
+    from apps.bilgeapi.core.system_profile import SystemProfiler
+    from apps.bilgeapi.core.health_score import HealthScorer
+
+    manager = WorkspaceManager()
+    profiler = SystemProfiler(manager.project_root, manager.workspace_dir)
+    profile = profiler.build_profile()
+
+    scorer = HealthScorer(manager.project_root, manager.workspace_dir)
+    health = scorer.calculate_score(profile)
+
+    return {
+        "profile": profile,
+        "health": health
+    }
+
+

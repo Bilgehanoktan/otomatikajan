@@ -35,13 +35,15 @@ class DiagnosticService:
         self.audit_service = audit_service
         self.mock_adapter = MockAgentAdapter()
 
-    async def start_diagnostic(self, incident_id: str) -> Optional[DiagnosticResult]:
-        incident = await self.incident_repo.get(incident_id)
+    async def start_diagnostic(self, incident_id: str, tenant_id: str) -> Optional[DiagnosticResult]:
+        if not tenant_id:
+            raise ValueError("tenant_id is required")
+        incident = await self.incident_repo.get(incident_id, tenant_id=tenant_id)
         if not incident:
             return None
 
         # Create diagnostic run in QUEUED state
-        diag_run = await self.diagnostic_repo.create(incident_id)
+        diag_run = await self.diagnostic_repo.create(incident_id, tenant_id=tenant_id)
         
         # Audit log the queue state
         await self.audit_service.log_event(
@@ -50,21 +52,22 @@ class DiagnosticService:
             actor_type="system",
             entity_type="diagnostic",
             entity_id=diag_run.diagnostic_id,
+            tenant_id=tenant_id,
             correlation_id=incident.correlation_id,
             after_state=diag_run.model_dump(mode="json")
         )
 
         # Trigger background processing task
-        task = asyncio.create_task(self._process_diagnostic(diag_run.diagnostic_id, incident_id))
+        task = asyncio.create_task(self._process_diagnostic(diag_run.diagnostic_id, incident_id, tenant_id))
         _track_task(task)
         
         return diag_run
 
-    async def _process_diagnostic(self, diagnostic_id: str, incident_id: str):
+    async def _process_diagnostic(self, diagnostic_id: str, incident_id: str, tenant_id: str):
         try:
             # 1. Transition status to RUNNING
-            diag_run = await self.diagnostic_repo.update(diagnostic_id, DiagnosticStatus.RUNNING)
-            incident = await self.incident_repo.get(incident_id)
+            diag_run = await self.diagnostic_repo.update(diagnostic_id, DiagnosticStatus.RUNNING, tenant_id=tenant_id)
+            incident = await self.incident_repo.get(incident_id, tenant_id=tenant_id)
             if not diag_run or not incident:
                 return
 
@@ -74,6 +77,7 @@ class DiagnosticService:
                 actor_type="system",
                 entity_type="diagnostic",
                 entity_id=diagnostic_id,
+                tenant_id=tenant_id,
                 correlation_id=incident.correlation_id,
                 before_state={"status": "QUEUED"},
                 after_state={"status": "RUNNING"}
@@ -88,18 +92,19 @@ class DiagnosticService:
             # 3. Save findings and recommendations
             saved_findings = []
             for f in results.get("findings", []):
-                saved_f = await self.finding_repo.create(diagnostic_id, f)
+                saved_f = await self.finding_repo.create(diagnostic_id, f, tenant_id=tenant_id)
                 saved_findings.append(saved_f)
 
             saved_recs = []
             for r in results.get("recommendations", []):
-                saved_r = await self.recommendation_repo.create(diagnostic_id, r)
+                saved_r = await self.recommendation_repo.create(diagnostic_id, r, tenant_id=tenant_id)
                 saved_recs.append(saved_r)
 
             # 4. Transition status to COMPLETED
             completed_diag = await self.diagnostic_repo.update(
                 diagnostic_id,
                 DiagnosticStatus.COMPLETED,
+                tenant_id=tenant_id,
                 summary=results.get("summary"),
                 root_cause_hypothesis=results.get("root_cause_hypothesis"),
                 confidence=results.get("confidence"),
@@ -114,6 +119,7 @@ class DiagnosticService:
                 actor_type="system",
                 entity_type="diagnostic",
                 entity_id=diagnostic_id,
+                tenant_id=tenant_id,
                 correlation_id=incident.correlation_id,
                 before_state={"status": "RUNNING"},
                 after_state=completed_diag.model_dump(mode="json")
@@ -121,12 +127,12 @@ class DiagnosticService:
 
         except Exception as e:
             logger.error(f"Error processing diagnostic {diagnostic_id}: {e}", exc_info=True)
-            failed_diag = await self.diagnostic_repo.update(diagnostic_id, DiagnosticStatus.FAILED)
+            failed_diag = await self.diagnostic_repo.update(diagnostic_id, DiagnosticStatus.FAILED, tenant_id=tenant_id)
             
             # Find correlation ID if possible
             correlation_id = None
             try:
-                incident = await self.incident_repo.get(incident_id)
+                incident = await self.incident_repo.get(incident_id, tenant_id=tenant_id)
                 if incident:
                     correlation_id = incident.correlation_id
             except Exception:
@@ -138,6 +144,7 @@ class DiagnosticService:
                 actor_type="system",
                 entity_type="diagnostic",
                 entity_id=diagnostic_id,
+                tenant_id=tenant_id,
                 correlation_id=correlation_id,
                 before_state={"status": "RUNNING"},
                 after_state={"status": "FAILED", "error": str(e)}

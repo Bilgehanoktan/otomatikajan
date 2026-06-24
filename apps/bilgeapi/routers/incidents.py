@@ -20,7 +20,8 @@ async def create_incident(
     if not incident.correlation_id:
         incident.correlation_id = f"req_{uuid.uuid4().hex[:8]}"
 
-    created_incident = await incident_repo.create(incident)
+    tenant_id = _identity.get("tenant_id")
+    created_incident = await incident_repo.create(incident, tenant_id=tenant_id)
     
     # Audit log the creation
     await audit_service.log_event(
@@ -29,6 +30,7 @@ async def create_incident(
         actor_type=_identity["type"],
         entity_type="incident",
         entity_id=created_incident.id,
+        tenant_id=tenant_id,
         correlation_id=created_incident.correlation_id,
         after_state=created_incident.model_dump(mode="json")
     )
@@ -41,7 +43,8 @@ async def list_incidents(
     incident_repo: IncidentRepository = Depends(get_incident_repository),
     _identity: dict = Depends(require_permission("bilgeapi.incident.read"))
 ):
-    return await incident_repo.list_all(project_key=project_key)
+    tenant_id = _identity.get("tenant_id")
+    return await incident_repo.list_all(tenant_id=tenant_id, project_key=project_key)
 
 @router.get("/incidents/{incident_id}", response_model=IncidentResponse, tags=["Incidents"])
 async def get_incident(
@@ -49,7 +52,8 @@ async def get_incident(
     incident_repo: IncidentRepository = Depends(get_incident_repository),
     _identity: dict = Depends(require_permission("bilgeapi.incident.read"))
 ):
-    incident = await incident_repo.get(incident_id)
+    tenant_id = _identity.get("tenant_id")
+    incident = await incident_repo.get(incident_id, tenant_id=tenant_id)
     if not incident:
         raise HTTPException(status_code=404, detail="Incident not found")
     return incident

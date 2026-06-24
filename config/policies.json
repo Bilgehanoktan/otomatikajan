@@ -1,8 +1,8 @@
 {
   "max_automation": 1,
   "blocked_modules": [
-    "jwt_auth",
-    "auth"
+    "auth",
+    "jwt_auth"
   ],
   "blocked_file_prefixes": [
     "auth/",
@@ -13,8 +13,8 @@
     "config.py"
   ],
   "automation_thresholds": {
-    "confidence_min": 61,
-    "max_files": 6
+    "confidence_min": 70,
+    "max_files": 4
   },
   "learned_policies": []
 }
