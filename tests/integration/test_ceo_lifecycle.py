@@ -19,8 +19,38 @@ from libs.db.models import (
     LLMCostLog, 
     SovereignModelPolicy,
     Project,
-    CEOSuggestedTask
+    CEOSuggestedTask,
+    CEODecision
 )
+
+import json
+import pytest
+from libs.llm.model_orchestrator import LLMResponse
+
+@pytest.fixture(autouse=True)
+def mock_model_orchestrator(monkeypatch):
+    async def mock_complete(*args, **kwargs):
+        return "EVET"
+    async def mock_complete_task(*args, **kwargs):
+        return LLMResponse(
+            content=json.dumps({
+                "title": "CEO Contract Test Goal",
+                "description": "Keep CEO strategy persistence schema-compatible.",
+                "priority": "high",
+                "kpis": {"latency_target": 250},
+                "mission_statement": "Keep CEO strategy persistence schema-compatible.",
+                "expected_outcome": "Outcome",
+                "suggested_agent": "architect"
+            }),
+            provider="mock",
+            model_name="mock-model",
+            latency_s=0.1,
+            input_tokens=10,
+            output_tokens=20,
+            cost_usd=0.01
+        )
+    monkeypatch.setattr(ModelOrchestrator, "complete", mock_complete)
+    monkeypatch.setattr(ModelOrchestrator, "complete_task", mock_complete_task)
 
 async def test_ceo_full_lifecycle():
     print("=== Sovereign CEO Lifecycle Integration Test (Hub Architecture) ===")
@@ -31,8 +61,10 @@ async def test_ceo_full_lifecycle():
         
         # Proper Cascade Cleanup
         from sqlalchemy import delete
+        await db.execute(delete(CEODecision))
         await db.execute(delete(CEOSuggestedTask))
         await db.execute(delete(SovereignGoal))
+        await db.execute(delete(ImprovementOpportunity))
         await db.commit()
 
         opp = ImprovementOpportunity(
@@ -52,6 +84,7 @@ async def test_ceo_full_lifecycle():
     print("[Step 2] Running CEO Engine Scan...")
     orch = ModelOrchestrator()
     engine = CEOEngine(model_orch=orch)
+    engine._throttle_auto_exec = True
     
     # run_scan backgrounds synthesis and optimization
     await engine.run_scan()

@@ -2,9 +2,9 @@ import { getApiBaseUrl } from "@/lib/runtime";
 import { safeFetchJson } from "@/lib/api";
 
 const TOKEN_KEY = "sqv_access_token";
-const DEV_AUTO_LOGIN_ENABLED = process.env.NEXT_PUBLIC_ENABLE_DEV_AUTO_LOGIN === "true";
-const DEV_OPERATOR_EMAIL = process.env.NEXT_PUBLIC_DEV_OPERATOR_EMAIL?.trim() || "";
-const DEV_OPERATOR_PASSWORD = process.env.NEXT_PUBLIC_DEV_OPERATOR_PASSWORD?.trim() || "";
+const DEV_AUTO_LOGIN_ENABLED = process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_ENABLE_DEV_AUTO_LOGIN === "true";
+const DEV_OPERATOR_EMAIL = process.env.NODE_ENV === "development" ? (process.env.NEXT_PUBLIC_DEV_OPERATOR_EMAIL?.trim() || "") : "";
+const DEV_OPERATOR_PASSWORD = process.env.NODE_ENV === "development" ? (process.env.NEXT_PUBLIC_DEV_OPERATOR_PASSWORD?.trim() || "") : "";
 
 type AuthFetchOptions = RequestInit & {
   retries?: number;
@@ -162,15 +162,12 @@ export interface AuthActionResult {
 }
 
 export async function performLogin(params: LoginParams): Promise<AuthActionResult> {
-  console.log("[Auth] Giriş denemesi:", params.email);
   try {
     const payload = await authFetch<{ access_token?: string | null }>("/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(params),
     });
-
-    console.log("[Auth] Giriş yanıtı:", payload);
 
     if (payload?.access_token) {
       storeAccessToken(payload.access_token);
@@ -194,15 +191,12 @@ export async function performLogin(params: LoginParams): Promise<AuthActionResul
 }
 
 export async function performRegister(params: RegisterParams): Promise<{ success: boolean; error?: Error }> {
-  console.log("[Auth] Kayıt denemesi:", params.email);
   try {
     const payload = await authFetch<AuthIdentity>("/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(params),
     });
-
-    console.log("[Auth] Kayıt yanıtı:", payload);
 
     if (payload && (payload.id || payload.email)) {
       return { success: true };

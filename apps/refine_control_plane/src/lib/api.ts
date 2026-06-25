@@ -89,15 +89,15 @@ const normalizeApiRequestUrl = (url: string): string => {
 };
 
 /**
- * Basic Data Sealing (Demonstration level obfuscation)
+ * Basic Data Sealing (Demonstration level obfuscation only, not cryptographic encryption)
  * Note: Since localStorage is not truly encrypted unless we use SubtleCrypto with a derived key,
  * this is officially termed as 'Sealed Offline Cache' rather than 'Encrypted' to maintain accurate security terminology.
  */
-const SQV_SECRET = "BASE-10.2-PROTECTED";
+const SQV_CACHE_OBFUSCATION_SALT = "BASE-10.2-PROTECTED";
 const TOKEN_KEY = "sqv_access_token";
-const DEV_AUTO_LOGIN_ENABLED = process.env.NEXT_PUBLIC_ENABLE_DEV_AUTO_LOGIN === "true";
-const DEV_OPERATOR_EMAIL = process.env.NEXT_PUBLIC_DEV_OPERATOR_EMAIL?.trim() || "";
-const DEV_OPERATOR_PASSWORD = process.env.NEXT_PUBLIC_DEV_OPERATOR_PASSWORD?.trim() || "";
+const DEV_AUTO_LOGIN_ENABLED = process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_ENABLE_DEV_AUTO_LOGIN === "true";
+const DEV_OPERATOR_EMAIL = process.env.NODE_ENV === "development" ? (process.env.NEXT_PUBLIC_DEV_OPERATOR_EMAIL?.trim() || "") : "";
+const DEV_OPERATOR_PASSWORD = process.env.NODE_ENV === "development" ? (process.env.NEXT_PUBLIC_DEV_OPERATOR_PASSWORD?.trim() || "") : "";
 
 const readAccessToken = (): string | null => {
     if (typeof window === "undefined") return null;
@@ -111,7 +111,7 @@ const storeAccessToken = (token: string): void => {
 };
 const seal = (data: string): string => {
     return btoa(data.split('').map((c, i) =>
-        String.fromCharCode(c.charCodeAt(0) ^ SQV_SECRET.charCodeAt(i % SQV_SECRET.length))
+        String.fromCharCode(c.charCodeAt(0) ^ SQV_CACHE_OBFUSCATION_SALT.charCodeAt(i % SQV_CACHE_OBFUSCATION_SALT.length))
     ).join(''));
 };
 
@@ -119,7 +119,7 @@ const unseal = (cipher: string): string => {
     try {
         const decoded = atob(cipher);
         return decoded.split('').map((c, i) =>
-            String.fromCharCode(c.charCodeAt(0) ^ SQV_SECRET.charCodeAt(i % SQV_SECRET.length))
+            String.fromCharCode(c.charCodeAt(0) ^ SQV_CACHE_OBFUSCATION_SALT.charCodeAt(i % SQV_CACHE_OBFUSCATION_SALT.length))
         ).join('');
     } catch { return ""; }
 };

@@ -292,7 +292,7 @@ export default function ProjectFactoryPortfolioClient() {
       setPolicyLoading(true);
       const headers = await getAuthHeaders();
       let endpoint = "";
-      let body: any = {
+      const body: any = {
         operator_id: "PORTFOLIO-ADMIN",
         rationale: `UI action: ${action}`
       };
@@ -327,7 +327,7 @@ export default function ProjectFactoryPortfolioClient() {
       setBoardLoading(true);
       const headers = await getAuthHeaders();
       let endpoint = "";
-      let body: any = {
+      const body: any = {
         operator_id: "BOARD-OPERATOR-ID",
         rationale: `Board action: ${action}`
       };
