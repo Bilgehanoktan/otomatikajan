@@ -221,7 +221,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%cleanup_ports
 if errorlevel 1 (
     echo [HATA] Docker mode oncesi gerekli portlar temizlenemedi.
     if defined DOCKER_HOST (
-        endlocal & set "DOCKER_HOST=%DOCKER_HOST%"
+        endlocal & set "DOCKER_HOST=!DOCKER_HOST!"
     ) else (
         endlocal
     )
@@ -229,7 +229,7 @@ if errorlevel 1 (
     exit /b 1
 )
 if defined DOCKER_HOST (
-    endlocal & set "DOCKER_HOST=%DOCKER_HOST%"
+    endlocal & set "DOCKER_HOST=!DOCKER_HOST!"
 ) else (
     endlocal
 )
