@@ -3,7 +3,8 @@ param(
     [string]$Mode = 'auto',
     [int[]]$Ports = @(8000, 8100, 3100),
     [int]$MaxAttempts = 5,
-    [int]$GraceMilliseconds = 400
+    [int]$GraceMilliseconds = 400,
+    [switch]$Prompt = $false
 )
 
 $protectedProcessNames = @(
@@ -24,6 +25,32 @@ function Get-ListeningEntries {
             Port = $Port
             Pid = $connection.OwningProcess
             ProcessName = if ($process) { $process.ProcessName } else { "unknown" }
+        }
+    }
+}
+
+# Scan target ports first to preview and ask for confirmation if $Prompt is true
+$busyListeners = @()
+foreach ($port in $Ports) {
+    $listeners = @(Get-ListeningEntries -Port $port)
+    foreach ($listener in $listeners) {
+        if ($protectedProcessNames -contains $listener.ProcessName) {
+            continue
+        }
+        $busyListeners += $listener
+    }
+}
+
+if ($busyListeners.Count -gt 0) {
+    Write-Host "`n[!] UYARI: Asagidaki portlar su surecler tarafindan kullaniliyor:" -ForegroundColor Yellow
+    foreach ($listener in $busyListeners) {
+        Write-Host "    Port $($listener.Port): PID $($listener.Pid) ($($listener.ProcessName))" -ForegroundColor Yellow
+    }
+    if ($Prompt) {
+        $confirmation = Read-Host "[?] Bu surecleri sonlandirarak portlari temizlemek istiyor musunuz? (E/H / Y/N)"
+        if ($confirmation -notmatch '^[eEyY]') {
+            Write-Host "[!] Port temizleme islemi kullanici tarafindan iptal edildi." -ForegroundColor Red
+            exit 1
         }
     }
 }

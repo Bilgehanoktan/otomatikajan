@@ -9,8 +9,17 @@ set "PY_DEPS=%PROJECT_ROOT%.pydeps314"
 set "PROJECT_ROOT_FWD=%PROJECT_ROOT:\=/%"
 set "SQLITE_DB_URL=sqlite+aiosqlite:///%PROJECT_ROOT_FWD%runtime/data/cortex_local_v2.db"
 
+set "DOCKER_BUILD_FLAG=--build"
+for %%a in (%*) do (
+    if /I "%%a"=="--no-build" set "DOCKER_BUILD_FLAG="
+    if /I "%%a"=="no-build" set "DOCKER_BUILD_FLAG="
+)
+
 set "INTERACTIVE=1"
 if not "%~1"=="" set "INTERACTIVE=0"
+
+set "PORT_CLEANUP_FLAG="
+if "%INTERACTIVE%"=="1" set "PORT_CLEANUP_FLAG=-Prompt"
 
 :: Python Kontrolu
 echo [*] Python kontrol ediliyor...
@@ -63,6 +72,15 @@ if "%mode%"=="3" (
     exit /b
 )
 if "%mode%"=="4" goto self_repair_demo
+
+if not "%mode%"=="2" goto skip_docker_prompt
+if not "%INTERACTIVE%"=="1" goto skip_docker_prompt
+set "rebuild=e"
+set /p rebuild="Docker imajlari yeniden derlensin mi? [E]vet / [H]ayir (Varsayilan: E): "
+if /I "%rebuild%"=="h" set "DOCKER_BUILD_FLAG="
+if /I "%rebuild%"=="n" set "DOCKER_BUILD_FLAG="
+:skip_docker_prompt
+
 if "%mode%"=="2" goto docker_mode
 if "%mode%"=="1" goto local_mode
 echo [!] Gecersiz secim. Lokal mod baslatiliyor.
@@ -98,7 +116,12 @@ call :try_stop_docker_stack
 
 :: Backend Port Temizligi
 echo [*] Eski surecler temizleniyor...
-powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%cleanup_ports.ps1" -Mode local
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%cleanup_ports.ps1" -Mode local %PORT_CLEANUP_FLAG%
+if errorlevel 1 (
+    echo [HATA] Port temizleme islemi iptal edildi veya basarisiz oldu.
+    if "%INTERACTIVE%"=="1" pause
+    exit /b 1
+)
 call :assert_port_free 8000 "Backend API"
 if errorlevel 1 (
     echo [HATA] 8000 portu hala kullanimda. Docker Desktop veya eski backend surecini kapatin.
@@ -194,14 +217,22 @@ echo [OK] Docker Engine hazir!
 echo [*] Docker stack sifirlaniyor...
 docker compose -f docker-compose.yml --profile full-stack down --remove-orphans >nul 2>&1
 echo [*] Docker mod icin yerel port sahipleri temizleniyor...
-powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%cleanup_ports.ps1" -Mode docker
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%cleanup_ports.ps1" -Mode docker %PORT_CLEANUP_FLAG%
 if errorlevel 1 (
     echo [HATA] Docker mode oncesi gerekli portlar temizlenemedi.
-    endlocal
+    if defined DOCKER_HOST (
+        endlocal & set "DOCKER_HOST=%DOCKER_HOST%"
+    ) else (
+        endlocal
+    )
     if "%INTERACTIVE%"=="1" pause
     exit /b 1
 )
-endlocal
+if defined DOCKER_HOST (
+    endlocal & set "DOCKER_HOST=%DOCKER_HOST%"
+) else (
+    endlocal
+)
 set RUNTIME_PROFILE=full-stack-local
 set REDIS_ENABLED=true
 set CELERY_ENABLED=true
@@ -215,7 +246,7 @@ set SIF_REGISTER_DEFAULT_ROLE=AUDIT_OBSERVER
 set SOVEREIGN_LIGHTWEIGHT_STARTUP=false
 set INPROCESS_JOB_WORKERS_ENABLED=false
 echo [*] Docker altyapi servisleri baslatiliyor...
-docker compose -f docker-compose.yml --profile full-stack up -d --build --wait db redis deerflow-bridge
+docker compose -f docker-compose.yml --profile full-stack up -d %DOCKER_BUILD_FLAG% --wait db redis deerflow-bridge
 if errorlevel 1 (
     echo [HATA] Docker altyapi servisleri hazirlanamadi! Loglari kontrol edin.
     docker compose -f docker-compose.yml --profile full-stack down --remove-orphans >nul 2>&1
@@ -223,7 +254,7 @@ if errorlevel 1 (
     exit /b 1
 )
 echo [*] Uygulama servisleri oncesi portlar yeniden dogrulaniyor...
-powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%cleanup_ports.ps1" -Mode docker -Ports 8000 8100 3100
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%cleanup_ports.ps1" -Mode docker -Ports 8000 8100 3100 %PORT_CLEANUP_FLAG%
 if errorlevel 1 (
     echo [HATA] Docker uygulama katmani oncesi gerekli portlar temizlenemedi.
     docker compose -f docker-compose.yml --profile full-stack down --remove-orphans >nul 2>&1
@@ -231,7 +262,7 @@ if errorlevel 1 (
     exit /b 1
 )
 echo [*] Uygulama servisleri baslatiliyor...
-docker compose -f docker-compose.yml --profile full-stack up -d --build app cms bilgeapi worker deerflow-worker beat telegram-bot
+docker compose -f docker-compose.yml --profile full-stack up -d %DOCKER_BUILD_FLAG% app cms bilgeapi worker deerflow-worker beat telegram-bot
 if errorlevel 1 (
     echo [HATA] docker-compose baslatilamadi! Loglari kontrol edin.
     docker compose -f docker-compose.yml --profile full-stack down --remove-orphans >nul 2>&1
