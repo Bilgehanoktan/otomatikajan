@@ -70,7 +70,12 @@ class ApprovalEngine:
         audit_repo = AuditLogRepository(session)
 
         # 1. Chat ID check
-        allowed_chat_id = os.getenv("BILGEAPI_TELEGRAM_CHAT_ID", "")
+        allowed_chat_id = (
+            os.getenv("BILGEAPI_TELEGRAM_CHAT_ID") or 
+            os.getenv("TELEGRAM_CHAT_ID") or 
+            os.getenv("TELEGRAM_ADMIN_IDS") or 
+            os.getenv("TELEGRAM_ALLOWED_IDS", "")
+        )
         allowed_ids = [cid.strip() for cid in allowed_chat_id.split(",") if cid.strip()]
         if not allowed_ids or str(chat_id) not in allowed_ids:
             # Audit unauthorized attempt

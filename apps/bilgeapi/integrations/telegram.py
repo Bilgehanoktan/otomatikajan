@@ -9,9 +9,18 @@ logger = logging.getLogger("bilgeapi.integrations.telegram")
 
 class TelegramBridge:
     def __init__(self, secret_scanner: Optional[SecretScanner] = None):
-        self.bot_token = os.getenv("BILGEAPI_TELEGRAM_BOT_TOKEN", "")
-        self.chat_id = os.getenv("BILGEAPI_TELEGRAM_CHAT_ID", "")
-        self.secret_token = os.getenv("BILGEAPI_TELEGRAM_WEBHOOK_SECRET", "")
+        self.bot_token = os.getenv("BILGEAPI_TELEGRAM_BOT_TOKEN") or os.getenv("TELEGRAM_BOT_TOKEN", "")
+        
+        # chat_id fallback chain: BILGEAPI_TELEGRAM_CHAT_ID -> TELEGRAM_CHAT_ID -> TELEGRAM_ADMIN_IDS -> TELEGRAM_ALLOWED_IDS
+        raw_chat_id = (
+            os.getenv("BILGEAPI_TELEGRAM_CHAT_ID") or 
+            os.getenv("TELEGRAM_CHAT_ID") or 
+            os.getenv("TELEGRAM_ADMIN_IDS") or 
+            os.getenv("TELEGRAM_ALLOWED_IDS", "")
+        )
+        self.chat_id = [cid.strip() for cid in raw_chat_id.split(",") if cid.strip()][0] if raw_chat_id else ""
+        
+        self.secret_token = os.getenv("BILGEAPI_TELEGRAM_WEBHOOK_SECRET") or os.getenv("TELEGRAM_WEBHOOK_SECRET", "")
         self.secret_scanner = secret_scanner or SecretScanner()
 
     def _is_configured(self) -> bool:

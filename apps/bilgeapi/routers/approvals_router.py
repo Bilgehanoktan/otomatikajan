@@ -29,7 +29,7 @@ async def submit_approval_direct(
     Directly submits an approval decision.
     Validates X-Telegram-Bot-Api-Secret-Token header if webhook secret is configured.
     """
-    secret_token = os.getenv("BILGEAPI_TELEGRAM_WEBHOOK_SECRET", "")
+    secret_token = os.getenv("BILGEAPI_TELEGRAM_WEBHOOK_SECRET") or os.getenv("TELEGRAM_WEBHOOK_SECRET", "")
     if secret_token:
         header_token = request.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
         if header_token != secret_token:
@@ -61,7 +61,7 @@ async def telegram_webhook(
     Webhook endpoint for Telegram Updates.
     Processes only callback_query type updates.
     """
-    secret_token = os.getenv("BILGEAPI_TELEGRAM_WEBHOOK_SECRET", "")
+    secret_token = os.getenv("BILGEAPI_TELEGRAM_WEBHOOK_SECRET") or os.getenv("TELEGRAM_WEBHOOK_SECRET", "")
     if secret_token:
         header_token = request.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
         if header_token != secret_token:
