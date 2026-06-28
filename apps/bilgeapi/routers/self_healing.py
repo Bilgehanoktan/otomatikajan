@@ -77,6 +77,21 @@ async def list_runbooks(
     return await repo.list_runbooks()
 
 
+@router.post("/runbooks/seed", status_code=status.HTTP_200_OK)
+async def seed_runbooks(
+    _identity: dict = Depends(require_permission("bilgeapi.admin")),
+    repo: RemediationRunbookRepository = Depends(get_remediation_runbook_repository),
+):
+    """
+    Seeds default runbooks in the database repository.
+    """
+    from apps.bilgeapi.services.self_healing import RemediationRunbookRegistry
+    registry = RemediationRunbookRegistry(repo)
+    await registry.seed_default_runbooks()
+    return {"status": "success", "message": "Default runbooks seeded successfully."}
+
+
+
 @router.post("/runbooks/{runbook_id}/enable", response_model=RemediationRunbookResponse)
 async def enable_runbook(
     runbook_id: str,

@@ -152,3 +152,45 @@ def test_self_healing_policy_allows_safe_action_when_management_gate_unlocked(mo
 
     assert decision["allowed"] is True
     assert decision["requires_human_gate"] is False
+
+
+def test_get_queue_status_unauthorized(monkeypatch):
+    monkeypatch.setattr(settings, "BILGEAPI_AUTH_MODE", "api_key")
+    client = TestClient(app)
+    response = client.get("/v1/system/queue/status")
+    assert response.status_code == 401
+
+
+def test_get_queue_status_authorized(monkeypatch):
+    monkeypatch.setattr(settings, "BILGEAPI_AUTH_MODE", "api_key")
+    from apps.bilgeapi.auth import get_current_identity
+    app.dependency_overrides[get_current_identity] = lambda: {"id": "admin-test", "role": "ADMIN", "type": "system"}
+
+    try:
+        client = TestClient(app)
+        response = client.get("/v1/system/queue/status")
+        assert response.status_code == 200
+        data = response.json()
+        assert "total_tasks" in data
+        assert "status_counts" in data
+        assert "active_leases" in data
+        assert "orchestration_runs" in data
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_seed_runbooks_endpoint(monkeypatch):
+    monkeypatch.setattr(settings, "BILGEAPI_AUTH_MODE", "api_key")
+    from apps.bilgeapi.auth import get_current_identity
+    app.dependency_overrides[get_current_identity] = lambda: {"id": "admin-test", "role": "ADMIN", "type": "system"}
+
+    try:
+        client = TestClient(app)
+        response = client.post("/v1/watchdog/runbooks/seed")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "success"
+        assert "Default runbooks seeded" in data["message"]
+    finally:
+        app.dependency_overrides.clear()
+

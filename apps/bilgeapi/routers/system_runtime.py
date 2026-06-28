@@ -95,11 +95,14 @@ async def get_autonomy_mode_registry(
     if current_mode in (AutonomyMode.SAFE_AUTONOMY, AutonomyMode.SUPERVISED_AUTONOMY, AutonomyMode.POLICY_BOUND_AUTONOMY):
         safe_actions = [
             "clear_local_cache",
-            "stuck_job_cancel",
-            "read-only_diagnostic",
-            "sandbox_retry",
             "health_recheck",
-            "evidence_regeneration"
+            "read-only_diagnostic",
+            "stuck_job_cancel",
+            "sandbox_retry",
+            "evidence_regeneration",
+            "generate_evidence",
+            "refresh_registry_cache",
+            "collect_logs"
         ]
         
     blocked_actions = [
@@ -119,6 +122,46 @@ async def get_autonomy_mode_registry(
         "human_gate_required_actions": blocked_actions,
         "auto_merge_policy": "auto_draft_pr_only"
     }
+
+
+@router.get("/queue/status", response_model=Dict[str, Any])
+async def get_queue_status(
+    identity: dict = Depends(require_permission("bilgeapi.admin"))
+):
+    """
+    Returns the current status of the AgentOrchestrationQueue.
+    """
+    from libs.db.session import session_scope
+    from apps.bilgeapi.models.database import AgentTaskQueueModel, AgentTaskLeaseModel, AgentOrchestrationRunModel
+    from sqlalchemy import select, func
+
+    async with session_scope() as db:
+        # Task counts by status
+        status_stmt = select(AgentTaskQueueModel.status, func.count(AgentTaskQueueModel.task_id)).group_by(AgentTaskQueueModel.status)
+        status_res = await db.execute(status_stmt)
+        status_counts = {status: count for status, count in status_res.all()}
+
+        # Total tasks
+        total_stmt = select(func.count(AgentTaskQueueModel.task_id))
+        total_res = await db.execute(total_stmt)
+        total_tasks = total_res.scalar() or 0
+
+        # Active leases
+        lease_stmt = select(func.count(AgentTaskLeaseModel.task_id))
+        lease_res = await db.execute(lease_stmt)
+        active_leases = lease_res.scalar() or 0
+
+        # Recent runs count
+        runs_stmt = select(AgentOrchestrationRunModel.status, func.count(AgentOrchestrationRunModel.task_id)).group_by(AgentOrchestrationRunModel.status)
+        runs_res = await db.execute(runs_stmt)
+        runs_counts = {status: count for status, count in runs_res.all()}
+
+        return {
+            "total_tasks": total_tasks,
+            "status_counts": status_counts,
+            "active_leases": active_leases,
+            "orchestration_runs": runs_counts
+        }
 
 
 @router.get("/management-gate", response_model=ManagementGateResponse)

@@ -53,10 +53,13 @@ SAFE_ACTIONS = [
     "health_recheck",
     "read-only_diagnostic",
     "stuck_job_cancel",
+    "sandbox_retry",
+    "evidence_regeneration",
+    "generate_evidence",
     "refresh_registry_cache",
-    "collect_logs",
-    "generate_evidence"
+    "collect_logs"
 ]
+
 
 @dataclass
 class QueueTask:

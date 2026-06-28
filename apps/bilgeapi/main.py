@@ -250,6 +250,17 @@ async def lifespan(app: FastAPI):
             app.state.skill_registry = registry
             app.state.skill_registry_status = "HEALTHY"
             logger.info("[STARTUP] Skill Registry initialized successfully.")
+
+            # Seed default remediation runbooks on startup
+            try:
+                from apps.bilgeapi.repositories.postgres import PostgresRemediationRunbookRepository
+                from apps.bilgeapi.services.self_healing import RemediationRunbookRegistry
+                runbook_repo = PostgresRemediationRunbookRepository(db)
+                runbook_registry = RemediationRunbookRegistry(runbook_repo)
+                await runbook_registry.seed_default_runbooks()
+                logger.info("[STARTUP] Default remediation runbooks seeded successfully.")
+            except Exception as re_e:
+                logger.error(f"[STARTUP] Seeding default runbooks failed: {re_e}")
     except Exception as e:
         logger.error(f"[STARTUP] Skill Registry initialization failed: {e}")
         app.state.skill_registry_status = "DEGRADED"
