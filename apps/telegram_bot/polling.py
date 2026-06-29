@@ -20,6 +20,13 @@ TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 ALLOWED_IDS = os.getenv("TELEGRAM_ALLOWED_IDS", "").split(",")
 ADMIN_IDS = os.getenv("TELEGRAM_ADMIN_IDS", "").split(",")
 
+def get_backend_url() -> str:
+    url = os.getenv("BACKEND_API_URL")
+    if not url:
+        url = "http://app:8000" if os.getenv("DOCKER_CONTAINER") == "true" else "http://localhost:8000"
+    return url
+
+
 async def check_auth(update: Update):
     user_id = str(update.effective_user.id)
     has_allowed = any(uid.strip() for uid in ALLOWED_IDS if uid)
@@ -54,7 +61,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     try:
         import httpx
-        backend_url = os.getenv("BACKEND_API_URL", "http://localhost:8000")
+        backend_url = get_backend_url()
         async with httpx.AsyncClient() as client:
             resp = await client.post(
                 f"{backend_url}/api/v1/orchestration/planner/analyze",
@@ -84,7 +91,7 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await check_auth(update): return
     try:
         import httpx
-        backend_url = os.getenv("BACKEND_API_URL", "http://localhost:8000")
+        backend_url = get_backend_url()
         async with httpx.AsyncClient() as client:
             resp = await client.get(f"{backend_url}/health", timeout=5.0)
             if resp.status_code == 200:

@@ -316,6 +316,7 @@ services:
       PYTHONPATH: /app
       PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
       DOCKER_CONTAINER: "true"
+      BACKEND_API_URL: http://app:8000
     command: ["python", "-m", "apps.telegram_bot.polling"]
     depends_on:
       db:
