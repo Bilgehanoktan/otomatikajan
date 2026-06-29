@@ -6,7 +6,8 @@ logger = get_logger("repair.bilgeapi_human_gate_context")
 
 class BilgeAPIHumanGateVerifier:
     def __init__(self, base_url: Optional[str] = None, api_key: Optional[str] = None):
-        self.base_url = (base_url or "http://localhost:8100").rstrip("/")
+        default_url = "http://bilgeapi:8100" if os.getenv("DOCKER_CONTAINER") == "true" else "http://localhost:8100"
+        self.base_url = (base_url or default_url).rstrip("/")
         self.api_key = api_key or "dev-test-key-001"
 
     async def verify_ledger_integrity(self, chain_id: str) -> Dict[str, Any]:

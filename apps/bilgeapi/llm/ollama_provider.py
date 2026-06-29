@@ -53,10 +53,11 @@ class OllamaProvider(BaseLLMProvider):
         except Exception as e:
             logger.debug(f"Could not load workspace system config for Ollama: {e}")
 
+        default_url = "http://host.docker.internal:11434" if os.getenv("DOCKER_CONTAINER") == "true" else "http://localhost:11434"
         self.base_url = (
             base_url
             or system_cfg.get("ollama_base_url")
-            or os.getenv("BILGEAPI_OLLAMA_BASE_URL", "http://localhost:11434")
+            or os.getenv("BILGEAPI_OLLAMA_BASE_URL", default_url)
         )
         validate_ollama_url(self.base_url)
         
