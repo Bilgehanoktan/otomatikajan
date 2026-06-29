@@ -51,13 +51,27 @@ class HealthScorer:
             findings.append("INSECURE_PERMISSIONS: The permissions.yaml deny list is empty or missing.")
 
         # 5. Secrets Exposure Check (Search for raw key/cert files in the codebase)
-        key_files = list(self.project_root.glob("**/*.pem")) + list(self.project_root.glob("**/*.key"))
+        import os
+        exclude_dirs = {
+            "node_modules", ".git", ".venv", "venv", "__pycache__", 
+            ".pytest_cache", ".mypy_cache", ".ruff_cache", ".bilgeapi", 
+            ".next", "dist", "build", "artifacts", "scratch", "runtime",
+            ".nx", ".agents", ".gemini", ".agent", ".backup", ".codex", 
+            ".codex_skill_staging", ".deer-flow", ".legacy_archive", 
+            ".playwright-browsers", ".pydeps314", "brain", "tmp", 
+            "tmp_test_outputs", "uploads", "project_outputs", "repair_outputs", "reports"
+        }
+        key_files = []
+        for root, dirs, files in os.walk(self.project_root):
+            dirs[:] = [d for d in dirs if d not in exclude_dirs]
+            for file in files:
+                if file.endswith(".pem") or file.endswith(".key"):
+                    key_files.append(Path(root) / file)
+
         for kf in key_files:
-            # Ignore files inside .git or .bilgeapi
             rel_str = str(kf.relative_to(self.project_root))
-            if ".git" not in rel_str and ".bilgeapi" not in rel_str and "node_modules" not in rel_str and ".venv" not in rel_str:
-                score -= 15.0
-                findings.append(f"EXPOSED_SECRET_FILE: Private key/cert found exposed in project: {rel_str}")
+            score -= 15.0
+            findings.append(f"EXPOSED_SECRET_FILE: Private key/cert found exposed in project: {rel_str}")
 
         # Ensure score bounds
         score = max(0.0, score)

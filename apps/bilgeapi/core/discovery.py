@@ -10,7 +10,11 @@ class SystemDiscovery:
     EXCLUDE_DIRS = {
         "node_modules", ".git", ".venv", "venv", "__pycache__", 
         ".pytest_cache", ".mypy_cache", ".ruff_cache", ".bilgeapi", 
-        ".next", "dist", "build", "artifacts", "scratch", "runtime"
+        ".next", "dist", "build", "artifacts", "scratch", "runtime",
+        ".nx", ".agents", ".gemini", ".agent", ".backup", ".codex", 
+        ".codex_skill_staging", ".deer-flow", ".legacy_archive", 
+        ".playwright-browsers", ".pydeps314", "brain", "tmp", 
+        "tmp_test_outputs", "uploads", "project_outputs", "repair_outputs", "reports"
     }
 
     def __init__(self, project_root: Path):
