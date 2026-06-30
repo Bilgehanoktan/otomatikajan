@@ -15,6 +15,14 @@ ALLOWED_IDS = set(filter(None, os.getenv("TELEGRAM_ALLOWED_IDS", "").split(","))
 ADMIN_IDS = set(filter(None, os.getenv("TELEGRAM_ADMIN_IDS", "").split(",")))
 RECIPIENTS = list(ALLOWED_IDS | ADMIN_IDS)
 
+
+def sanitize_telegram_log_text(value: object) -> str:
+    text = str(value)
+    if BOT_TOKEN:
+        text = text.replace(BOT_TOKEN, "<telegram-token-redacted>")
+    return text
+
+
 class TelegramNotifier:
     """
     Sistem olaylarında yetkili kullanıcılara bildirim gönderir.
@@ -87,15 +95,19 @@ class TelegramNotifier:
         reply_markup = None
         
         # Add approval buttons if needed
-        request_id = payload.get("request_id") or payload.get("pr_id")
+        request_id = payload.get("approval_id") or payload.get("request_id") or payload.get("pr_id")
+        approval_token = payload.get("token") or payload.get("approval_token")
         if event_type in ("approval.needed", "packages.repair_engine.proposal_ready") and request_id:
-            reply_markup = {
-                "inline_keyboard": [[
-                    {"text": "✅ Onayla", "callback_data": f"approve:{request_id}"},
-                    {"text": "❌ Reddet", "callback_data": f"reject:{request_id}"}
-                ]]
-            }
-
+            if approval_token:
+                short_token = str(approval_token)[:8]
+                reply_markup = {
+                    "inline_keyboard": [[
+                        {"text": "Onayla", "callback_data": f"approve:{request_id}:{short_token}"},
+                        {"text": "Reddet", "callback_data": f"reject:{request_id}:{short_token}"}
+                    ]]
+                }
+            else:
+                logger.warning("Approval notification missing token; inline approval buttons were not added.")
         await self._send_to_all(msg, reply_markup=reply_markup)
 
     async def _send_to_all(self, text: str, reply_markup: Optional[dict] = None):
@@ -120,16 +132,16 @@ class TelegramNotifier:
                         json=payload,
                     )
                     if resp.status_code != 200:
-                        logger.warning(f"Telegram returned non-200 status code: {resp.status_code} - {resp.text}. Retrying plain text.")
+                        logger.warning(f"Telegram returned non-200 status code: {resp.status_code} - {sanitize_telegram_log_text(resp.text)}. Retrying plain text.")
                         payload.pop("parse_mode", None)
                         retry_resp = await client.post(
                             f"https://api.telegram.org/bot{self._bot_token}/sendMessage",
                             json=payload,
                         )
                         if retry_resp.status_code != 200:
-                            logger.warning(f"Telegram retry plain text also failed: {retry_resp.status_code} - {retry_resp.text}")
+                            logger.warning(f"Telegram retry plain text also failed: {retry_resp.status_code} - {sanitize_telegram_log_text(retry_resp.text)}")
                 except Exception as e:
-                    logger.warning(f"Failed to send Telegram message to {chat_id}: {e}")
+                    logger.warning(f"Failed to send Telegram message to {chat_id}: {sanitize_telegram_log_text(e)}")
 
     async def send_to_chat(self, chat_id: int, text: str, reply_markup: Optional[dict] = None) -> bool:
         if not self._bot_token:
@@ -152,7 +164,7 @@ class TelegramNotifier:
                 if resp.status_code == 200:
                     return True
                 
-                logger.warning(f"Telegram send_to_chat returned non-200: {resp.status_code} - {resp.text}. Retrying plain text.")
+                logger.warning(f"Telegram send_to_chat returned non-200: {resp.status_code} - {sanitize_telegram_log_text(resp.text)}. Retrying plain text.")
                 payload.pop("parse_mode", None)
                 retry_resp = await client.post(
                     f"https://api.telegram.org/bot{self._bot_token}/sendMessage",
@@ -160,7 +172,7 @@ class TelegramNotifier:
                 )
                 return retry_resp.status_code == 200
         except Exception as e:
-            logger.warning(f"Telegram send_to_chat failed: {e}")
+            logger.warning(f"Telegram send_to_chat failed: {sanitize_telegram_log_text(e)}")
             return False
 
 telegram_notifier = TelegramNotifier()

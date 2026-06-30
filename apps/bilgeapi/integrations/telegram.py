@@ -6,6 +6,15 @@ from typing import List, Optional
 from apps.bilgeapi.security.secret_scanner import SecretScanner
 
 logger = logging.getLogger("bilgeapi.integrations.telegram")
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+
+
+def sanitize_telegram_log_text(value: object, bot_token: str) -> str:
+    text = str(value)
+    if bot_token:
+        text = text.replace(bot_token, "<telegram-token-redacted>")
+    return text
 
 class TelegramBridge:
     def __init__(self, secret_scanner: Optional[SecretScanner] = None):
@@ -50,7 +59,7 @@ class TelegramBridge:
                 res.raise_for_status()
                 return True
         except Exception as e:
-            logger.error(f"Failed to send Telegram notification: {e}")
+            logger.error(f"Failed to send Telegram notification: {sanitize_telegram_log_text(e, self.bot_token)}")
             return False
 
     async def send_approval_request(
@@ -120,5 +129,5 @@ class TelegramBridge:
                 res.raise_for_status()
                 return True
         except Exception as e:
-            logger.error(f"Failed to send Telegram approval request: {e}")
+            logger.error(f"Failed to send Telegram approval request: {sanitize_telegram_log_text(e, self.bot_token)}")
             return False
