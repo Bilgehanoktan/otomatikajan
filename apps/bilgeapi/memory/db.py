@@ -1,7 +1,9 @@
 import os
+import asyncio
 from pathlib import Path
 from contextlib import asynccontextmanager
 from sqlalchemy import event
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from apps.bilgeapi.memory.models import WorkspaceBase
 
@@ -41,8 +43,15 @@ async def init_workspace_db(workspace_dir: Path):
     Initializes the database schema (DDL) inside the designated workspace directory.
     """
     engine = get_workspace_engine(workspace_dir)
-    async with engine.begin() as conn:
-        await conn.run_sync(WorkspaceBase.metadata.create_all)
+    for attempt in range(3):
+        try:
+            async with engine.begin() as conn:
+                await conn.run_sync(WorkspaceBase.metadata.create_all)
+            return
+        except OperationalError as exc:
+            if "already exists" not in str(exc).lower() or attempt == 2:
+                raise
+            await asyncio.sleep(0.1 * (attempt + 1))
 
 @asynccontextmanager
 async def get_workspace_db_session(workspace_dir: Path):
