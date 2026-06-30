@@ -13,6 +13,8 @@ from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from apps.bilgeapi.config import settings
+from apps.bilgeapi.core.workspace import WorkspaceManager
+from apps.bilgeapi.memory.db import init_workspace_db
 from apps.bilgeapi.routers import health, catalog, incidents, audit, diagnostics, repairs, release, adapters, admin_api_keys, improvements, review_ledger, system_watchdog, self_healing, system_runtime, approvals_router
 from apps.bilgeapi.routers import metrics as metrics_router
 from apps.bilgeapi.startup import validate_production_config
@@ -203,6 +205,13 @@ def sanitize_path(path: str) -> str:
     return path
 
 
+async def initialize_workspace_state() -> None:
+    """Initialize workspace files and the portable memory database schema."""
+    workspace_manager = WorkspaceManager()
+    workspace_manager.initialize_workspace()
+    await init_workspace_db(workspace_manager.workspace_dir)
+
+
 # ── Lifespan ──────────────────────────────────────────────────────────────────
 
 @asynccontextmanager
@@ -221,9 +230,8 @@ async def lifespan(app: FastAPI):
 
     # Initialize Workspace
     try:
-        from apps.bilgeapi.core.workspace import WorkspaceManager
-        WorkspaceManager().initialize_workspace()
-        logger.info("[STARTUP] Workspace initialized successfully.")
+        await initialize_workspace_state()
+        logger.info("[STARTUP] Workspace and memory database initialized successfully.")
     except Exception as e:
         logger.error(f"[STARTUP] Workspace initialization failed: {e}")
 
