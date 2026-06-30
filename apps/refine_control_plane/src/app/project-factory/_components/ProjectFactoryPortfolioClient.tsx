@@ -8,6 +8,7 @@ import {
   FolderArchive, Activity, ShieldAlert, CheckCircle, Clock, Search, Lock, ShieldCheck, ChevronRight, Brain, AlertTriangle, FileCode, Users, FileSignature, Zap, Check, X, Pause, RefreshCw
 } from "lucide-react";
 import Link from "next/link";
+import { getAuthHeaders as getStoredAuthHeaders } from "@/lib/auth";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -32,7 +33,9 @@ async function safeFetchJson(url: string, options?: RequestInit) {
 }
 
 async function getAuthHeaders() {
+  const authHeaders = await getStoredAuthHeaders();
   return {
+    ...authHeaders,
     "X-Agent-Identity": JSON.stringify({
       agent_id: "human-operator",
       roles: ["governor.view", "governor.override"],

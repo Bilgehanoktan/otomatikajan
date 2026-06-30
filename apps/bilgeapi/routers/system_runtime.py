@@ -40,6 +40,72 @@ def _management_gate_payload(
     }
 
 
+def get_git_metadata() -> Dict[str, str]:
+    """
+    Resolves the active Git commit SHA and tag.
+    1. Reads environment variables (which are populated from .env).
+    2. Runs git CLI if .git exists.
+    3. Reads local fallback files .git_commit and .git_tag.
+    """
+    git_sha = os.getenv("BILGEAPI_GIT_SHA") or os.getenv("GIT_SHA")
+    git_tag = os.getenv("BILGEAPI_GIT_TAG") or os.getenv("GIT_TAG")
+    
+    if not git_sha or not git_tag or git_sha == "unknown" or git_tag == "unknown":
+        try:
+            import subprocess
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            repo_root = current_dir
+            for _ in range(5):
+                if os.path.exists(os.path.join(repo_root, ".git")):
+                    break
+                repo_root = os.path.dirname(repo_root)
+            
+            if not git_sha or git_sha == "unknown":
+                res_sha = subprocess.run(
+                    ["git", "rev-parse", "HEAD"],
+                    capture_output=True,
+                    text=True,
+                    cwd=repo_root,
+                    check=True
+                )
+                git_sha = res_sha.stdout.strip()
+                
+            if not git_tag or git_tag == "unknown":
+                res_tag = subprocess.run(
+                    ["git", "describe", "--tags", "--always", "--dirty"],
+                    capture_output=True,
+                    text=True,
+                    cwd=repo_root,
+                    check=True
+                )
+                git_tag = res_tag.stdout.strip()
+        except Exception:
+            pass
+
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    commit_file = os.path.join(current_dir, ".git_commit")
+    tag_file = os.path.join(current_dir, ".git_tag")
+    
+    if (not git_sha or git_sha == "unknown") and os.path.exists(commit_file):
+        try:
+            with open(commit_file, "r", encoding="utf-8") as f:
+                git_sha = f.read().strip()
+        except Exception:
+            pass
+            
+    if (not git_tag or git_tag == "unknown") and os.path.exists(tag_file):
+        try:
+            with open(tag_file, "r", encoding="utf-8") as f:
+                git_tag = f.read().strip()
+        except Exception:
+            pass
+
+    return {
+        "git_commit": git_sha or "unknown",
+        "git_tag": git_tag or "unknown"
+    }
+
+
 @router.get("/release", response_model=Dict[str, Any])
 async def get_release_metadata(
     request: Request,
@@ -48,8 +114,9 @@ async def get_release_metadata(
     """
     Returns release metadata, including active git commit hash, environment, tag, and versions.
     """
-    git_sha = os.getenv("BILGEAPI_GIT_SHA", os.getenv("GIT_SHA", "unknown"))
-    git_tag = os.getenv("BILGEAPI_GIT_TAG", os.getenv("GIT_TAG", "unknown"))
+    git_meta = get_git_metadata()
+    git_sha = git_meta["git_commit"]
+    git_tag = git_meta["git_tag"]
     
     # Simple dependency package extraction
     packages = {

@@ -3793,6 +3793,34 @@
         ]
       }
     },
+    "/v1/watchdog/runbooks/seed": {
+      "post": {
+        "tags": [
+          "System Watchdog Self-Healing"
+        ],
+        "summary": "Seed Runbooks",
+        "description": "Seeds default runbooks in the database repository.",
+        "operationId": "seed_runbooks_v1_watchdog_runbooks_seed_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
     "/v1/watchdog/runbooks/{runbook_id}/enable": {
       "post": {
         "tags": [
@@ -4089,6 +4117,38 @@
                   "additionalProperties": true,
                   "type": "object",
                   "title": "Response Get Autonomy Mode Registry V1 System Autonomy Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyHeader": []
+          },
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/system/queue/status": {
+      "get": {
+        "tags": [
+          "System Runtime"
+        ],
+        "summary": "Get Queue Status",
+        "description": "Returns the current status of the AgentOrchestrationQueue.",
+        "operationId": "get_queue_status_v1_system_queue_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get Queue Status V1 System Queue Status Get"
                 }
               }
             }

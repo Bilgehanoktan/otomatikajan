@@ -4,6 +4,8 @@ import httpx
 from typing import Optional
 
 logger = logging.getLogger("telegram.bot")
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 # Load configuration from environment
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
