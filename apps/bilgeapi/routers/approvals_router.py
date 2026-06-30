@@ -109,6 +109,8 @@ async def telegram_webhook(
         
         action_hash = db_approval.action_hash
 
+        user_id = str(from_user.get("id", ""))
+
         try:
             result = await ApprovalEngine.validate_and_submit_approval(
                 approval_id=approval_id,
@@ -117,7 +119,8 @@ async def telegram_webhook(
                 chat_id=chat_id,
                 action_hash=action_hash,
                 approved_by=approved_by,
-                session=session
+                session=session,
+                user_id=user_id
             )
             return {"status": "success", "approval_id": approval_id, "verdict": status}
         except ValueError as e:

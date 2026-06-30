@@ -59,7 +59,8 @@ class ApprovalEngine:
         chat_id: str,
         action_hash: str,
         approved_by: str,
-        session: AsyncSession
+        session: AsyncSession,
+        user_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Validates the incoming approval request parameters and records the decision.
@@ -69,7 +70,7 @@ class ApprovalEngine:
         dec_repo = DecisionRepository(session)
         audit_repo = AuditLogRepository(session)
 
-        # 1. Chat ID check
+        # 1. Chat ID / User ID check
         allowed_chat_id = (
             os.getenv("BILGEAPI_TELEGRAM_CHAT_ID") or 
             os.getenv("TELEGRAM_CHAT_ID") or 
@@ -77,22 +78,24 @@ class ApprovalEngine:
             os.getenv("TELEGRAM_ALLOWED_IDS", "")
         )
         allowed_ids = [cid.strip() for cid in allowed_chat_id.split(",") if cid.strip()]
-        if not allowed_ids or str(chat_id) not in allowed_ids:
+        is_chat_ok = str(chat_id) in allowed_ids
+        is_user_ok = user_id is not None and str(user_id) in allowed_ids
+        if not allowed_ids or not (is_chat_ok or is_user_ok):
             # Audit unauthorized attempt
             await audit_repo.log_audit(
                 "default",
                 event_type="UNAUTHORIZED_APPROVAL_ATTEMPT",
-                actor_id=str(chat_id),
+                actor_id=str(user_id or chat_id),
                 actor_type="UNKNOWN",
                 action="SUBMIT",
                 target=f"approval:{approval_id}",
                 status="DENIED",
                 risk_level="CRITICAL",
-                before_state={"chat_id": chat_id},
+                before_state={"chat_id": chat_id, "user_id": user_id},
                 after_state=None
             )
             await session.commit()
-            raise ValueError("Unauthorized chat_id")
+            raise ValueError("Unauthorized chat_id or user_id")
 
         # 2. SQLite approval_id match
         # Fetch approval record. If missing, raise ValueError.
