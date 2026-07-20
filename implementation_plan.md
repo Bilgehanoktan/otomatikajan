@@ -96,3 +96,33 @@ py -3.13 scripts/verify_bilgeapi_migrations.py
 - External agent router import edilir.
 - Tag son Faz 32B kapanış commit’i üzerinde durur.
 - `implementation_plan.md`, `task.md`, `walkthrough.md` Faz 32B’ye özel içerik taşır.
+
+---
+
+## Ek Uygulama Planı — BilgeAPI Ops stale API key onarımı
+
+### Amaç
+
+`/bilgeapi-ops` sayfasının `sessionStorage` içinde kalmış geçersiz bir API key nedeniyle tüm dashboard verilerini `Unauthorized: Invalid API key` olarak göstermesini düzeltmek ve yetki hatasını gerçek kısmi-veri hatalarından ayırmak.
+
+### Kök neden ve güvenlik sınırı
+
+- `loadBilgeApiOpsSnapshot()` alt isteklerdeki tüm hataları `settle()` ile yutuyor; bu nedenle üst seviye `refresh()` içindeki stale-key temizleme yolu çalışmıyor.
+- Düzeltme, snapshot yüklemesinden önce düşük yetkili bir BilgeAPI erişim probu çalıştıracak ve `401/403` durumlarını tipli hata olarak üst katmana taşıyacak.
+- API key loglanmayacak, hata metnine eklenmeyecek ve yeni bir plaintext secret repoya yazılmayacak.
+- Var olan kısmi-veri davranışı auth dışındaki endpoint arızaları için korunacak.
+
+### TDD akışı
+
+1. `tests/unit/bilgeapi/test_phase27_ops_console_static.py` içinde auth probu, tipli HTTP hata sınıfı ve stale-key temizleme sözleşmesini doğrulayan regresyon testlerini ekle.
+2. Testleri çalıştırıp mevcut kodda kırmızı sonucu kaydet.
+3. `bilgeapiOpsClient.ts` ve `page.tsx` içinde minimum düzeltmeyi uygula.
+4. Unit test, TypeScript, ESLint, production build ve canlı browser doğrulamasını çalıştır.
+
+### Kabul kriterleri
+
+- Geçersiz API key snapshot içindeki altı kısmi hata olarak kalmaz; tek bir auth hatası olarak ele alınır.
+- Stale key `sessionStorage` üzerinden temizlenir ve yerel geliştirme fallback’i en fazla bir kez denenir.
+- Auth dışındaki endpoint arızaları `partialData` görünümünde kalmaya devam eder.
+- Geçerli anahtarla `/v1/admin/api-keys` ve `/bilgeapi-ops` canlı doğrulaması geçer.
+- Browser console/page error sonucu ve screenshot kanıtı üretilir.

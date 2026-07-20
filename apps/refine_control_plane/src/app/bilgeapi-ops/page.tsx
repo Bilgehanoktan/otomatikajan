@@ -78,6 +78,7 @@ import {
   dismissFinding,
   runWatchdogScan,
   getAgentPromotion,
+  isBilgeApiAuthError,
   approveAgentPromotion,
   rejectAgentPromotion,
   executeAgentPromotion,
@@ -99,6 +100,8 @@ type ActionLog = {
   status: "OK" | "ERR";
   detail: string;
 };
+
+const AUTH_RECOVERY_MARKER = "bilgeapi_ops_auth_recovery_attempted";
 
 const roles = ["ADMIN", "OPERATOR", "AUDIT_OBSERVER", "SOVEREIGN_PRIME"];
 const tabs: Array<{ id: OpsTab; label: string; icon: LucideIcon }> = [
@@ -244,6 +247,7 @@ export default function BilgeAPIOpsConsole() {
     try {
       sessionStorage.setItem("bilgeapi_ops_api_key", apiKey.trim());
       const next = await loadBilgeApiOpsSnapshot(apiKey);
+      sessionStorage.removeItem(AUTH_RECOVERY_MARKER);
       setSnapshot(next);
       if (!selectedProposalId && next.proposals[0]) setSelectedProposalId(next.proposals[0].id);
       if (!selectedDraftId && next.drafts[0]) setSelectedDraftId(next.drafts[0].id);
@@ -251,12 +255,19 @@ export default function BilgeAPIOpsConsole() {
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       record("snapshot", "ERR", msg);
-      
-      const lowered = msg.toLowerCase();
-      if (lowered.includes("unauthorized") || lowered.includes("forbidden") || lowered.includes("invalid key") || lowered.includes("401") || lowered.includes("403") || lowered.includes("api key")) {
+
+      if (isBilgeApiAuthError(error)) {
         sessionStorage.removeItem("bilgeapi_ops_api_key");
         setApiKey("");
-        console.warn("[Auth] Invalid X-API-Key detected. Cleared bilgeapi_ops_api_key from sessionStorage.");
+        setSnapshot(null);
+
+        if (sessionStorage.getItem(AUTH_RECOVERY_MARKER) !== "1") {
+          sessionStorage.setItem(AUTH_RECOVERY_MARKER, "1");
+          window.location.reload();
+          return;
+        }
+
+        console.warn("[Auth] BilgeAPI rejected the stored credential. Cleared the stale session key.");
       }
     } finally {
       setLoading(false);

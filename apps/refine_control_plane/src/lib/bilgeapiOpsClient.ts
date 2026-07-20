@@ -331,6 +331,22 @@ export type OpsSnapshot = {
 
 type JsonValue = Record<string, unknown> | Array<unknown>;
 
+export class BilgeApiResponseError extends Error {
+  readonly status: number;
+  readonly detail: string;
+
+  constructor(status: number, detail: string) {
+    super(detail);
+    this.name = "BilgeApiResponseError";
+    this.status = status;
+    this.detail = detail;
+  }
+}
+
+export function isBilgeApiAuthError(error: unknown): error is BilgeApiResponseError {
+  return error instanceof BilgeApiResponseError && (error.status === 401 || error.status === 403);
+}
+
 function buildHeaders(apiKey: string, hasBody = false): Headers {
   const headers = new Headers();
   if (apiKey.trim()) {
@@ -366,7 +382,7 @@ export async function bilgeApiFetch<T>(
   });
 
   if (!response.ok) {
-    throw new Error(await readError(response));
+    throw new BilgeApiResponseError(response.status, await readError(response));
   }
 
   return (await response.json()) as T;
@@ -385,7 +401,7 @@ export async function bilgeApiText(
   });
 
   if (!response.ok) {
-    throw new Error(await readError(response));
+    throw new BilgeApiResponseError(response.status, await readError(response));
   }
 
   return response.text();
@@ -417,6 +433,10 @@ async function settle<T>(label: string, task: Promise<T>, errors: string[]): Pro
     errors.push(`${label}: ${message}`);
     return null;
   }
+}
+
+async function verifyBilgeApiAccess(apiKey: string): Promise<JsonValue> {
+  return bilgeApiFetch<JsonValue>(apiKey, "/v1/catalog");
 }
 
 export async function listBilgeApiKeys(apiKey: string): Promise<ApiKeyRecord[]> {
@@ -707,6 +727,7 @@ export async function runWatchdogScan(apiKey: string): Promise<any> {
 }
 
 export async function loadBilgeApiOpsSnapshot(apiKey: string): Promise<OpsSnapshot> {
+  await verifyBilgeApiAccess(apiKey);
   const errors: string[] = [];
 
   const apiKeys = (await settle("api_keys", listBilgeApiKeys(apiKey), errors)) || [];
