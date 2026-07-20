@@ -1,3 +1,4 @@
+import os
 import httpx
 from typing import Dict, Any, Optional
 from services.observability.logging import get_logger

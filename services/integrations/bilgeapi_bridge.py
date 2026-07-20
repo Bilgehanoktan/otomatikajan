@@ -1,3 +1,4 @@
+import os
 import uuid
 import httpx
 from typing import Dict, Any, Optional

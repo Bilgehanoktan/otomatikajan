@@ -6,10 +6,42 @@ import pytest
 from pathlib import Path
 from httpx import AsyncClient, ASGITransport
 
+from bilgeapi.libs.db.session import get_db
+from services.auth import jwt_auth
 from services.workflow_api.main import app
 
 WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
 REPAIR_OUTPUTS = WORKSPACE_ROOT / "repair_outputs"
+
+
+class _ScalarNoneResult:
+    def scalar_one_or_none(self):
+        return None
+
+
+class _FakeDb:
+    async def execute(self, *args, **kwargs):
+        return _ScalarNoneResult()
+
+
+@pytest.fixture(autouse=True)
+def _authorized_operator(monkeypatch):
+    async def _identity_from_token(db, token):
+        return {
+            "id": "operator-test",
+            "type": "operator",
+            "role": "OPERATOR",
+            "email": "operator@test.local",
+            "name": "Repair Lab Operator",
+        }
+
+    async def _db():
+        yield _FakeDb()
+
+    app.dependency_overrides[get_db] = _db
+    monkeypatch.setattr(jwt_auth.auth_service, "get_identity_from_token", _identity_from_token)
+    yield
+    app.dependency_overrides.clear()
 
 @pytest.fixture
 def setup_mock_artifacts():
@@ -65,7 +97,11 @@ def setup_mock_artifacts():
 async def test_get_run_memory_score_success(setup_mock_artifacts):
     run_id = setup_mock_artifacts["run_id"]
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    async with AsyncClient(
+        transport=transport,
+        base_url="http://test",
+        headers={"Authorization": "Bearer test-token"}
+    ) as ac:
         response = await ac.get(f"/api/v1/repair-lab/runs/{run_id}/memory-score")
         assert response.status_code == 200
         data = response.json()
@@ -77,7 +113,11 @@ async def test_get_run_memory_score_success(setup_mock_artifacts):
 @pytest.mark.asyncio
 async def test_get_run_memory_score_not_found():
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    async with AsyncClient(
+        transport=transport,
+        base_url="http://test",
+        headers={"Authorization": "Bearer test-token"}
+    ) as ac:
         response = await ac.get("/api/v1/repair-lab/runs/nonexistent-run-id/memory-score")
         assert response.status_code == 404
 
@@ -85,7 +125,11 @@ async def test_get_run_memory_score_not_found():
 @pytest.mark.asyncio
 async def test_get_run_memory_score_path_traversal():
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    async with AsyncClient(
+        transport=transport,
+        base_url="http://test",
+        headers={"Authorization": "Bearer test-token"}
+    ) as ac:
         # Starlette normalizes raw /.. so we use the URL-encoded backslash sequence
         response = await ac.get("/api/v1/repair-lab/runs/..%5Chack/memory-score")
         assert response.status_code == 400
@@ -95,7 +139,11 @@ async def test_get_run_memory_score_path_traversal():
 @pytest.mark.asyncio
 async def test_get_learning_memory_profile_success(setup_mock_artifacts):
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    async with AsyncClient(
+        transport=transport,
+        base_url="http://test",
+        headers={"Authorization": "Bearer test-token"}
+    ) as ac:
         response = await ac.get("/api/v1/repair-lab/learning-memory/profiles/expert_agent/conservative")
         assert response.status_code == 200
         data = response.json()
@@ -107,7 +155,11 @@ async def test_get_learning_memory_profile_success(setup_mock_artifacts):
 @pytest.mark.asyncio
 async def test_get_learning_memory_profile_not_found():
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    async with AsyncClient(
+        transport=transport,
+        base_url="http://test",
+        headers={"Authorization": "Bearer test-token"}
+    ) as ac:
         response = await ac.get("/api/v1/repair-lab/learning-memory/profiles/no_agent/no_strategy")
         assert response.status_code == 404
 
@@ -115,7 +167,11 @@ async def test_get_learning_memory_profile_not_found():
 @pytest.mark.asyncio
 async def test_get_learning_memory_profile_path_traversal():
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    async with AsyncClient(
+        transport=transport,
+        base_url="http://test",
+        headers={"Authorization": "Bearer test-token"}
+    ) as ac:
         response1 = await ac.get("/api/v1/repair-lab/learning-memory/profiles/..%5Chack/conservative")
         assert response1.status_code == 400
         assert "Path traversal detected" in response1.json()["detail"]
