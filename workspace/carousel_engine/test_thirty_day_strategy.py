@@ -44,11 +44,11 @@ class TestThirtyDayStrategy(unittest.TestCase):
         self.assertEqual(brief["status"], "BLOCKED_UNGROUNDED_CLAIM")
 
     def test_profile_repair_checklist(self):
-        """Ensures Profile Repair Checklist contains required name, bio, 3 pinned posts, and 5 highlights."""
+        """Ensures Profile Repair Checklist contains required name, bio, 3 pinned posts, and 6 highlights."""
         checklist = verify_profile_repair_status()
-        self.assertEqual(checklist["searchable_name"], "Bilgehan | Yapay Zekâ Rehberleri")
+        self.assertEqual(checklist["searchable_name"], "Bilgehan | Yapay Zekâ ve Otomasyon")
         self.assertEqual(len(checklist["pinned_posts"]), 3)
-        self.assertEqual(len(checklist["highlights"]), 5)
+        self.assertEqual(len(checklist["highlights"]), 6)
 
     def test_30_day_scheduler_rhythm(self):
         """Ensures 30-day calendar generates 30 daily slots alternating 12:30 and 20:30 TSI."""
