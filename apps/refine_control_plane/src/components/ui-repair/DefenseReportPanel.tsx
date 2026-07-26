@@ -125,16 +125,7 @@ const DefenseReportPanel: React.FC = () => {
                   <FileText size={18} className="text-blue-400" /> Executive Summary
                 </Title>
                 <div className="mt-4 prose prose-invert max-w-none prose-sm">
-                  <div className="space-y-2">
-                    {String(report.executive_summary || "")
-                      .split("\n")
-                      .filter((line: string) => line.trim().length > 0)
-                      .map((line: string, index: number) => (
-                        <p key={`${index}-${line.slice(0, 16)}`} className="mb-0">
-                          {line}
-                        </p>
-                      ))}
-                  </div>
+                  <div dangerouslySetInnerHTML={{ __html: report.executive_summary.replace(/\n/g, '<br/>') }} />
                 </div>
               </div>
               <div>

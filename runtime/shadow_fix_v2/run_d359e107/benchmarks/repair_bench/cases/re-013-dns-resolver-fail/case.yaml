@@ -1,5 +1,0 @@
-id: re-013-dns-resolver-fail
-severity: high
-subsystem: ingress
-title: Intermittent DNS Resolution Failures
-type: incident_replay

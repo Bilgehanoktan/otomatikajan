@@ -35,7 +35,6 @@ class AuditService:
         actor_type: str,
         entity_type: str,
         entity_id: str,
-        tenant_id: str = "default",
         request_id: Optional[str] = None,
         correlation_id: Optional[str] = None,
         ip_address: Optional[str] = None,
@@ -61,14 +60,9 @@ class AuditService:
             metadata=redact_sensitive_data(metadata or {}),
             created_at=now
         )
-        object.__setattr__(event, 'tenant_id', tenant_id)
         
-        # Repository write is best-effort. Audit persistence degradation must not
-        # turn request auth / business flows into 500s.
-        try:
-            await self.audit_repo.write(event, tenant_id)
-        except Exception as e:
-            logger.error(f"Failed to persist audit event to repository: {e}")
+        # Write to repository
+        await self.audit_repo.write(event)
         
         # Write to local JSONL log file
         try:

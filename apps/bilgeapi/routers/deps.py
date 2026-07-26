@@ -9,7 +9,7 @@ from apps.bilgeapi.repositories.interface import (
     ReleaseCheckRepository, ApiKeyRepository, ResearchRepository, ImprovementRepository,
     PrDraftRepository, PrVerificationRepository, PrReviewFeedbackRepository, PatchRevisionRepository,
     ReviewLedgerRepository, AIPatchSuggestionRepository, SystemFindingRepository,
-    RemediationRunbookRepository, RemediationAttemptRepository, AutonomyDecisionRepository
+    RemediationRunbookRepository, RemediationAttemptRepository
 )
 from apps.bilgeapi.repositories.postgres import (
     PostgresIncidentRepository, PostgresDiagnosticRepository, PostgresFindingRepository,
@@ -17,7 +17,7 @@ from apps.bilgeapi.repositories.postgres import (
     PostgresReleaseCheckRepository, PostgresApiKeyRepository, PostgresResearchRepository, PostgresImprovementRepository,
     PostgresPrDraftRepository, PostgresPrVerificationRepository, PostgresPrReviewFeedbackRepository, PostgresPatchRevisionRepository,
     PostgresReviewLedgerRepository, PostgresAIPatchSuggestionRepository, PostgresSystemFindingRepository,
-    PostgresRemediationRunbookRepository, PostgresRemediationAttemptRepository, PostgresAutonomyDecisionRepository
+    PostgresRemediationRunbookRepository, PostgresRemediationAttemptRepository
 )
 from apps.bilgeapi.services.audit import AuditService
 from apps.bilgeapi.services.diagnostic import DiagnosticService
@@ -416,19 +416,6 @@ def get_emergency_recovery_service(
 ) -> Any:
     from apps.bilgeapi.services.self_healing import EmergencyRecoveryService
     return EmergencyRecoveryService(executor=executor, ledger_service=ledger_service)
-
-
-async def get_autonomy_decision_repository(db: AsyncSession = Depends(get_db)) -> AutonomyDecisionRepository:
-    return PostgresAutonomyDecisionRepository(db)
-
-
-def get_autonomy_decision_service(
-    decision_repo: AutonomyDecisionRepository = Depends(get_autonomy_decision_repository),
-    incident_repo: IncidentRepository = Depends(get_incident_repository)
-) -> Any:
-    from apps.bilgeapi.services.autonomy_decision import AutonomyDecisionEngine
-    return AutonomyDecisionEngine(decision_repo=decision_repo, incident_repo=incident_repo)
-
 
 
 

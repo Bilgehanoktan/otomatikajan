@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional, Dict, Any
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class ReviewerFeedbackRequest(BaseModel):
@@ -9,6 +9,8 @@ class ReviewerFeedbackRequest(BaseModel):
 
 
 class ReviewerFeedbackResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     pr_draft_id: str
     reviewer_id: str
@@ -17,14 +19,6 @@ class ReviewerFeedbackResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    model_config = {
-
-
-        "from_attributes": True
-
-
-    }
-
 
 class PatchRevisionRequest(BaseModel):
     feedback_id: Optional[str] = None
@@ -32,6 +26,8 @@ class PatchRevisionRequest(BaseModel):
 
 
 class PatchRevisionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     pr_draft_id: str
     feedback_id: Optional[str] = None
@@ -44,10 +40,3 @@ class PatchRevisionResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    model_config = {
-
-
-        "from_attributes": True
-
-
-    }

@@ -1,444 +1,301 @@
-# 🏢 Otonom Yazılım Geliştirme Şirketi
+# OtomatikAjan
 
-> **8 AI Ajan | Çoklu LLM (OpenAI + Claude + Gemini) | Öz-İyileştirme | Kalite Kontrol | İnsan Onayı Kapısı**
+> 8 AI ajan, çoklu LLM, kalite kontrol, self-healing, GitHub issue-to-PR otomasyonu ve insan onay kapısı ile kontrollü otonom yazılım geliştirme platformu.
 
-[![CI](https://github.com/your-org/ai-yazilim-sirketi/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/ai-yazilim-sirketi/actions)
+[![CI](https://github.com/Bilgehanoktan/otomatikajan/actions/workflows/ci.yml/badge.svg?branch=codex/project-factory-policy-governance)](https://github.com/Bilgehanoktan/otomatikajan/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://python.org)
 
----
+## Ana Repo ve Branch
 
-## 📋 İçindekiler
+```text
+Repository: Bilgehanoktan/otomatikajan
+Primary working branch: codex/project-factory-policy-governance
+Target autonomy level: L4.5 — staging'e kadar otonom, production'da insan onaylı
+```
 
-1. [Mimari](#mimari)
-2. [Hızlı Başlangıç](#hızlı-başlangıç)
-3. [Kurulum (Manuel)](#kurulum-manuel)
-4. [Docker ile Başlatma](#docker-ile-başlatma)
-5. [Ortam Değişkenleri](#ortam-değişkenleri)
-6. [API Kullanımı](#api-kullanımı)
-7. [Celery Görev Kuyruğu](#celery-görev-kuyruğu)
-8. [Test](#test)
-9. [Güvenlik](#güvenlik)
-10. [Dağıtım (Üretim)](#dağıtım-üretim)
-
----
+Bu branch, OtomatikAjan sisteminin tam otonom dönüşüm çalışmaları için ana çalışma zemini olarak kabul edilir.
 
 ## Mimari
 
-```
-POST /api/v1/tasks
+```text
+POST /api/v1/tasks veya GitHub issue
      │
      ▼
-JobQueue (async)
+Task intake / JobQueue
      │
      ▼
 Orchestrator.run_project()
      │
-     ├─► ContextBuilder  ← Memory (pgvector / in-memory)
+     ├─► ContextBuilder ← Memory / pgvector / sqlite fallback
      │
-     ├─► 8 × SubTask (paralel)
-     │        │
-     │        ├─► ModelOrchestrator (OpenAI → Claude → Gemini)
-     │        ├─► AgentOutputParser  (JSON şema)
-     │        ├─► QualityScorer      (5 boyut, 0.0–1.0)
-     │        └─► ReviewerAgent      (skor < 0.60 ise revize)
+     ├─► 8 × SubTask / Agent
+     │      ├─► ModelOrchestrator
+     │      ├─► AgentOutputParser
+     │      ├─► QualityScorer
+     │      └─► ReviewerAgent
      │
-     ├─► SelfHealEngine (5sn döngü, FSM)
+     ├─► SelfHealEngine
      │
-     └─► EventBus → WS broadcast + DB audit + Webhook
+     └─► EventBus → WebSocket → DB audit → Webhook
 ```
 
-### 8 Uzman Ajan
+## Ajan Rolleri
 
-| Ajan | Rol | Uzmanlık |
-|------|-----|----------|
-| 🏛️ architect | Yazılım Mimarı | Sistem tasarımı, mimari desenler |
-| ⚙️ backend_dev | Backend Geliştirici | Python, FastAPI, asyncio |
-| 🎨 frontend_dev | Frontend Geliştirici | React, TypeScript, Next.js |
-| 🧪 qa_engineer | QA Mühendisi | Test stratejisi, Playwright |
-| 🚀 devops | DevOps Mühendisi | Docker, K8s, CI/CD |
-| 🔒 security | Güvenlik Uzmanı | OWASP, pentest, güvenli kod |
-| 🗄️ data_eng | Veri Mühendisi | PostgreSQL, Redis, pipeline |
-| 📝 tech_writer | Teknik Yazar | API docs, ADR, README |
-| 🦌 deerflow | DeerFlow Bridge | Ağır mantıksal akışlar, LangGraph entegrasyonu |
-
-### 🦌 DeerFlow Köprüsü (Bridge)
-
-Sistem, karmaşık ve uzun süreli ajan görevlerini yönetmek için **DeerFlow** harness'ını bir mikro-servis olarak kullanır:
-- **Konum:** `deerflow-bridge` (Port 8010)
-- **Kuyruk:** `deerflow_run` (Celery)
-- **LLM:** Groq / Llama-3.3 (Düşük gecikme, yüksek kapasite)
-- **Akış:** FastAPI üzerinden SSE (Server-Sent Events) ile worker'a gerçek zamanlı veri aktarımı.
-- **Verifikasyon:** Faz 1 entegrasyonu `tests/test_deerflow_routing_contract.py` ve `tests/test_deerflow_task_contract.py` ile doğrulanmıştır.
-
----
+| Ajan | Rol | Ana Sorumluluk |
+|---|---|---|
+| architect | Yazılım mimarı | Mimari kararlar, tasarım, sınırlar |
+| backend_dev | Backend geliştirici | FastAPI, servisler, API akışları |
+| frontend_dev | Frontend geliştirici | Control plane UI, React/Next.js |
+| qa_engineer | QA mühendisi | Test, smoke, E2E, kabul kriterleri |
+| devops | DevOps mühendisi | Docker, CI/CD, deployment |
+| security | Güvenlik uzmanı | Auth, secret, OWASP, risk |
+| data_eng | Veri mühendisi | DB, migration, pgvector, memory |
+| tech_writer | Teknik yazar | README, runbook, ADR, docs |
+| deerflow | DeerFlow bridge | Uzun ve karmaşık ajan akışları |
 
 ## Hızlı Başlangıç
 
 ```bash
-# Repoyu klonla
-git clone https://github.com/your-org/ai-yazilim-sirketi.git
-cd ai-yazilim-sirketi
-
-# .env.local oluştur (Gerçek secret'lar repository içine commit edilmemelidir)
-cp .env.example .env.local
-
-# JWT_SECRET üret (OWASP min 64 karakter)
+git clone https://github.com/Bilgehanoktan/otomatikajan.git
+cd otomatikajan
+git checkout codex/project-factory-policy-governance
+cp .env.example .env
 make secret
-# Çıktıyı .env dosyasına JWT_SECRET=... olarak yapıştır
+make install
+make dev
+```
 
-# Docker ile başlat
-make docker-up
+Doğrulama:
 
-# API'yi test et
+```bash
 curl http://localhost:8000/health
-# API docs: http://localhost:8000/docs
+curl http://localhost:8000/docs
 ```
 
-### Local Dev Topology
+## Docker ile Çalıştırma
 
-Local geliştirmede kanonik çalışma modeli şöyledir:
+Minimal local topology:
 
-- `3100` -> Next.js control plane UI
-- `8000` -> API + WebSocket backend
-
-Beklenen davranış:
-
-- frontend yalnızca relative `/api/v1/...` ve `/ws/...` yollarını kullanır
-- `8000` local dev'de varsayılan olarak `APP_UI_MODE=api-only` modunda çalışır
-- Postgres yoksa local dev'de `LOCAL_DEV_DB_STRATEGY=sqlite-fallback` ile sistem ayakta kalır
-- Redis yoksa ve kuyruk `inprocess` moddaysa bu local degraded mode olarak kabul edilir
-
-Resmi runtime profilleri:
-
-- `local-dev` -> minimal local topology, `inprocess` queue, Redis/DeerFlow kapalı
-- `full-stack-local` -> Docker ile Redis + Celery + DeerFlow açık yerel stack
-- `production` -> static UI + primary DB + Redis/Celery scheduler
-
-Başlatma kısayolları:
-
-```bat
-BASLAT.bat
-BASLAT.bat minimal
-BASLAT.bat fullstack
+```bash
+docker compose up --build
 ```
 
-Eğer Windows üzerinde `127.0.0.1:8000` farklı/stale bir listener tarafından gölgeleniyorsa, frontend proxy hedefini açıkça yerel ağ arayüzüne taşıyabilirsiniz:
+Full-stack local topology:
 
-```env
-BACKEND_ORIGIN=http://192.168.1.61:8000
-NEXT_PUBLIC_BACKEND_ORIGIN=http://192.168.1.61:8000
+```bash
+docker compose --profile full-stack up --build
 ```
 
-Bu ayar, `3100` UI'nin HTTP proxy ve WebSocket fallback için aynı backend origin'i kullanmasını sağlar.
+Full-stack modda şu servisler beklenir:
 
-Hızlı smoke:
+| Servis | Port | Açıklama |
+|---|---:|---|
+| API | 8000 | FastAPI backend |
+| UI | 3100 | Control plane frontend |
+| Postgres/pgvector | 5433 | Local DB |
+| Redis | 6380 | Celery / rate limit |
+| DeerFlow bridge | 8010 | Uzun ajan akışları |
+| BilgeAPI | 8100 | Incident & repair orchestration API |
+
+## Smoke Test
+
+Windows PowerShell:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_local_dev.ps1
 ```
 
-Not: smoke, local dev'de root (`/`) yerine daha stabil bir uygulama yüzeyi olan `"/audit/"` üstünden frontend erişimini doğrular. Gerekirse şu şekilde override edebilirsiniz:
+Full-stack için:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\smoke_local_dev.ps1 -FrontendStablePath /workflows/
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_local_dev.ps1 -Mode full-stack-local
 ```
 
-Sadece entegrasyon/erişim smoke'i için, workflow dispatch adımını atlayarak:
+Workflow dispatch adımı olmadan sadece erişim kontrolü:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_local_dev.ps1 -SkipWorkflowDispatch
 ```
 
----
+## BilgeAPI
 
-## Kurulum (Manuel)
-
-**Gereksinimler:** Python 3.12+, PostgreSQL 15+ (pgvector), Redis 7+
+BilgeAPI, ana uygulamadan ayrı çalışan incident intake, diagnostic lifecycle ve repair request governance API'sidir. Varsayılan portu `8100`'dür.
 
 ```bash
-# Sanal ortam
-python -m venv .venv && source .venv/bin/activate
-
-# Bağımlılıklar
-make install
-
-# .env hazırla
-cp .env.example .env.local   # değerleri doldur (Repository'ye commit etmeyin!)
-
-# Veritabanı migrasyonu
-make migrate
-
-# Geliştirme sunucusu
-make dev
-```
-
----
-
-## Docker ile Başlatma
-
-```bash
-docker compose up --build                        # minimal local topology
-docker compose --profile full-stack up --build   # full-stack local topology
-make docker-logs    # logları izle
-make docker-down    # durdur
-```
-
-Minimal topology: **API** -> http://localhost:8000 | **UI** -> http://localhost:3100
-
-Full-stack local topology ek olarak şunları açar:
-
-- Redis -> `127.0.0.1:6380`
-- Postgres -> `127.0.0.1:5433`
-- DeerFlow bridge -> `http://localhost:8010`
-
----
-
-## Ortam Değişkenleri
-
-| Değişken | Zorunlu | Açıklama |
-|----------|---------|----------|
-| `OPENAI_API_KEY` | \* | OpenAI API anahtarı |
-| `ANTHROPIC_API_KEY` | \* | Anthropic Claude API anahtarı |
-| `GEMINI_API_KEY` | \* | Google Gemini API anahtarı |
-| `DATABASE_URL` | Evet | `postgresql+asyncpg://...` |
-| `REDIS_URL` | Hayır | Redis URL (Celery + dağıtık rate limit) |
-| `JWT_SECRET` | Evet | **Min 64 karakter** — `make secret` ile üret |
-| `ADMIN_SECRET` | Evet (prod) | Admin endpoint koruması |
-| `ALLOWED_ORIGINS` | Hayır | Virgülle ayrılmış CORS origin'leri |
-| `ENVIRONMENT` | Hayır | `development` / `production` |
-| `LLM_TIMEOUT_S` | Hayır | LLM zaman aşımı saniyesi (varsayılan: 30) |
-| `JWT_ACCESS_MINUTES` | Hayır | Access token ömrü (varsayılan: 15) |
-| `JWT_REFRESH_DAYS` | Hayır | Refresh token ömrü (varsayılan: 7) |
-
-> \* En az bir LLM API anahtarı gereklidir.
-
-```bash
-# JWT_SECRET üret
-make secret
-# veya: python -c "import secrets; print(secrets.token_hex(64))"
-```
-
----
-
-## API Kullanımı
-
-### Kimlik Doğrulama
-
-```bash
-# Kayıt
-curl -X POST http://localhost:8000/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email": "you@example.com", "password": "guclu-parola-123"}'
-
-# Giriş
-curl -X POST http://localhost:8000/api/v1/auth/login \
-  -d '{"email": "you@example.com", "password": "guclu-parola-123"}'
-# → {"access_token": "...", "refresh_token": "...", "token_type": "bearer"}
-
-# Token yenile (rotasyon — eski token geçersiz olur)
-curl -X POST http://localhost:8000/api/v1/auth/refresh \
-  -d '{"refresh_token": "..."}'
-
-# Tüm oturumları kapat
-curl -X POST http://localhost:8000/api/v1/auth/logout \
-  -H "Authorization: Bearer <access_token>"
-```
-
-### Proje Oluşturma
-
-```bash
-# Async (hemen job_id döner)
-curl -X POST http://localhost:8000/api/v1/tasks \
-  -H "Authorization: Bearer <token>" \
-  -d '{"title": "E-ticaret Platformu", "description": "React + FastAPI", "async_mode": true}'
-# → {"job_id": "abc123", "status": "queued"}
-
-# Durum sorgula
-curl http://localhost:8000/api/v1/tasks/abc123 \
-  -H "Authorization: Bearer <token>"
-```
-
-### Kalite & Onay
-
-```bash
-curl http://localhost:8000/api/v1/quality/summary       # proje kalite özeti
-curl http://localhost:8000/api/v1/quality/agents        # ajan bazlı dağılım
-curl http://localhost:8000/api/v1/approvals/pending     # bekleyen onaylar
-curl -X POST http://localhost:8000/api/v1/approvals/{id}/decide \
-  -d '{"approve": true, "decided_by": "lead"}'
-```
-
-### Gözlemlenebilirlik
-
-```bash
-curl http://localhost:8000/api/v1/heal/report    # ajan sağlık raporu
-curl http://localhost:8000/metrics               # p50/p95/p99 metrikler
-wscat -c "ws://localhost:8000/ws?token=<token>"  # canlı olaylar (WebSocket)
-```
-
----
-
-## Celery Görev Kuyruğu
-
-```bash
-make celery           # worker başlat
-make celery-beat      # zamanlanmış görevler
-make celery-monitor   # olayları izle
-
-# Kuyruk öncelikleri
-# critical  → heal engine kontrolleri
-# default   → proje görevleri
-# background→ webhook, bellek temizliği
-```
-
----
-
-## Test
-
-```bash
-make test               # tüm testler
-make test-cov           # kapsam raporu (htmlcov/index.html)
-
-pytest tests/test_review_fixes.py -v    # inceleme düzeltme testleri
-pytest tests/test_dashboard_api.py -v   # mevcut sözleşme / dashboard testleri
-pytest tests/test_heal_system.py -v     # öz-iyileştirme testleri
-```
-
-**Test kategorileri:**
-
-| Dosya | Kapsam |
-|-------|--------|
-| `test_suite.py` | MMR, orchestrator, job queue, rate limiter |
-| `test_heal_system.py` | FSM, recovery stratejileri, root cause |
-| `test_dashboard_api.py` | Dashboard API sözleşmeleri |
-| `test_review_fixes.py` | Auth negatif senaryolar, 429, webhook HMAC, deque |
-
----
-
-## Güvenlik
-
-### JWT
-- Access token: **15 dk** | Refresh token: **7 gün** (rotasyon, revocation)
-- Secret: **min 64 karakter** (OWASP HS256 — `make secret`)
-- Zamanlama saldırısı koruması: kullanıcı bulunamasa da bcrypt çalışır
-
-### CORS
-`allow_credentials=True` ile wildcard **kullanılmaz** — spesifik metodlar/başlıklar zorunlu:
-```env
-ALLOWED_METHODS=GET,POST,PUT,PATCH,DELETE,OPTIONS
-ALLOWED_HEADERS=Authorization,Content-Type,X-Trace-ID
-```
-
-### Rate Limiting
-- Redis varsa → dağıtık sliding window (çok-worker)
-- Redis yoksa → in-memory fallback
-- Global: 200/dk | Proje oluşturma: 10/dk | Giriş: 5/dk
-
-### Webhook
-HMAC-SHA256 imzası + `hmac.compare_digest()` (timing-safe)
-
-```bash
-make security   # Bandit + pip-audit CVE taraması
-```
-
----
-
-## Dağıtım (Üretim)
-
-**Kontrol listesi:**
-- [ ] `ENVIRONMENT=production`
-- [ ] `JWT_SECRET` ≥ 64 karakter
-- [ ] `ALLOWED_ORIGINS` üretim domain'i
-- [ ] HTTPS aktif (Nginx / Caddy)
-- [ ] `make migrate` çalıştırıldı
-- [ ] `REDIS_URL` ayarlı (dağıtık rate limiter)
-
-```bash
-# Gunicorn + Uvicorn (CPU*2+1 worker önerilir)
-gunicorn main:app \
-  --worker-class uvicorn.workers.UvicornWorker \
-  --workers 9 \
-  --bind 0.0.0.0:8000 \
-  --timeout 120
-```
-
----
-
-## BilgeAPI — Incident & Repair Orchestration
-
-BilgeAPI, bağımsız bir incident intake, diagnostic lifecycle ve repair request governance API'sidir. Ana uygulamadan (`8000`) ayrı olarak `8100` portunda çalışır.
-
-### Hızlı Başlatma
-
-```bash
-# Local dev (port 8100, hot-reload)
 make bilgeapi-dev
-
-# Docker build (slim image, Playwright yok)
 make bilgeapi-build
-
-# Docker ile (full-stack profile)
-docker compose --profile full-stack up bilgeapi db --build
-
-# Smoke test
+make bilgeapi-test
 make bilgeapi-smoke
+make bilgeapi-openapi
+make bilgeapi-release
 ```
 
-### Ortam Değişkenleri (BilgeAPI)
-
-| Değişken | Zorunlu | Varsayılan | Açıklama |
-|----------|---------|------------|----------|
-| `BILGEAPI_PORT` | Hayır | `8100` | API port |
-| `BILGEAPI_DATABASE_URL` | Evet | `postgresql+asyncpg://...` | DB bağlantısı |
-| `BILGEAPI_AUTH_MODE` | Hayır | `disabled` | `disabled`, `api_key`, `jwt` |
-| `BILGEAPI_STATIC_KEYS` | auth=api_key | - | Virgülle ayrılmış API key'ler |
-| `BILGEAPI_JWT_SECRET` | auth=jwt | (auto) | JWT imza secret (prod: zorunlu) |
-| `BILGEAPI_WEBHOOK_SECRET` | Evet (prod) | - | Webhook HMAC secret |
-| `BILGEAPI_CORS_ALLOWLIST` | Hayır | `*` | Virgülle ayrılmış origin'ler |
-| `BILGEAPI_RATE_LIMIT_RPS` | Hayır | `10` | İstek/saniye limiti |
-| `BILGEAPI_WEBHOOK_URL` | Hayır | - | Varsayılan webhook URL |
-| `BILGEAPI_ALLOW_PRIVATE_WEBHOOKS` | Hayır | `false` | Özel ağ webhook'ları (prod: kapalı) |
-| `BILGEAPI_METRICS_PUBLIC` | Hayır | `true` | Prometheus metrikleri public mi (prod: false olmalı) |
-| `BILGEAPI_RELEASE_MIN_COVERAGE` | Hayır | `80.0` | Minimum test coverage yüzdesi |
-
-### Operasyonel Komutlar
+Docker full-stack:
 
 ```bash
-make bilgeapi-dev       # Local geliştirme (hot-reload, port 8100)
-make bilgeapi-build     # Docker image oluştur
-make bilgeapi-test      # Unit + integration testler
-make bilgeapi-smoke     # Smoke test (sağlık, auth, endpoint doğrulaması)
-make bilgeapi-openapi   # OpenAPI spec export
-make bilgeapi-release   # Sürüm kabul denetimi (release gate) çalıştır
+docker compose --profile full-stack up bilgeapi db --build
 ```
 
-### Production Dağıtım
-
-- BilgeAPI production'da `bilgeapi.${APP_DOMAIN}` subdomain'i ile Traefik arkasında çalışır.
-- `docker-compose.prod.yml` içinde `restart: unless-stopped` ile yapılandırılmıştır.
-- Startup validation: eksik veya default secret'lar production'da servis başlamasını engeller.
-- **Sürüm Kabul Kapısı (Release Gate):** Sürümlerden önce `make bilgeapi-release` (veya `python scripts/run_release_gate.py --env production`) çalıştırılarak test coverage, DB migrasyon güncelliği ve güvenlik/secret kuralları otomatik doğrulanmalıdır. Blocker bulunursa exit code 1 dönülerek sürüm engellenir.
-
-> **Multi-replica notu:** Tek instance deployment'ta startup migration (`alembic upgrade head`) kabul edilebilir. Multi-replica production'da migration ayrı bir one-off job olarak çalıştırılmalıdır (ör. `docker compose run --rm bilgeapi alembic -c alembic.ini upgrade head`).
-
-### Smoke Test
+Smoke:
 
 ```bash
-# Varsayılan (localhost:8100)
 python scripts/smoke_bilgeapi.py
-
-# Özel URL ve API key ile
 python scripts/smoke_bilgeapi.py --base-url http://localhost:8100 --api-key dev-test-key-001
 ```
 
----
-
-## Geliştirici Araçları
+## Test ve Kalite Kapıları
 
 ```bash
-make lint       # Ruff kod analizi
-make format     # Ruff otomatik biçimlendirme
-make security   # Bandit + pip-audit
-make secret     # JWT_SECRET üret
-make clean      # __pycache__ temizle
+make test
+make test-cov
+make lint
+make security
+make docker-build
 ```
+
+GitHub Actions kalite kapıları:
+
+- Ruff lint
+- Ruff format check
+- Bandit security scan
+- pip-audit
+- Backend pytest
+- Backend import smoke
+- Production import smoke
+- UI E2E Playwright
+- Frontend lint/build
+- Docker build gate
+
+## Otonomi ve Governance
+
+Bu proje için hedef kontrolsüz tam otonomi değildir. Hedef:
+
+```text
+L4.5 — staging'e kadar otonom, production'da insan onaylı.
+```
+
+Temel kural:
+
+- Ajan issue açabilir.
+- Ajan branch ve PR hazırlayabilir.
+- Ajan test/smoke/evidence üretebilir.
+- Ajan staging'e kadar kontrollü akış tetikleyebilir.
+- Production deploy, rollback, secret değişimi, migration ve PR merge insan onayı olmadan yapılamaz.
+
+İlgili dokümanlar:
+
+- `docs/ops/autonomous_phase_plan.md`
+- `docs/ops/governance_policy.md`
+- `docs/architecture/agent_output_contract.md`
+- `docs/ops/deployment_runbook.md`
+- `docs/ops/rollback_playbook.md`
+- `docs/ops/incident_response.md`
+- `docs/evidence/README.md`
+
+## Agent Output Contract
+
+Her ajan çıktısı şu temel alanları taşımalıdır:
+
+```json
+{
+  "agent": "backend_dev",
+  "task_id": "issue-123",
+  "summary": "Değişiklik özeti",
+  "intent": "code_change",
+  "risk": "low",
+  "needs_human_approval": false,
+  "files_to_change": [],
+  "proposed_changes": [],
+  "tests": [],
+  "rollback_plan": "Geri alma yaklaşımı",
+  "evidence": [],
+  "blocked_by": []
+}
+```
+
+Detaylı sözleşme: `docs/architecture/agent_output_contract.md`
+
+## Environment ve Secret Yönetimi
+
+```bash
+cp .env.example .env
+make secret
+```
+
+Gerçek secret'lar repository içine yazılmaz. `.gitignore` içinde `.env`, `.env.local`, `.env.production`, `.env.*` ve lokal runtime dosyaları ignore edilir.
+
+Otonomi modu için ana değişkenler:
+
+```env
+AUTONOMY_MODE=supervised
+AUTONOMY_SAFE_MODE=false
+AUTONOMY_REQUIRE_HUMAN_APPROVAL_FOR_PRODUCTION=true
+AUTONOMY_ALLOW_PRODUCTION_DEPLOY=false
+AUTONOMY_ALLOW_SECRET_MUTATION=false
+AUTONOMY_ALLOW_DB_MIGRATION=false
+```
+
+Kill-switch için:
+
+```env
+AUTONOMY_MODE=read_only
+```
+
+## Release ve Deployment
+
+Release tag standardı:
+
+```text
+otomatikajan-vX.Y.Z
+```
+
+Release check:
+
+```text
+GitHub Actions → Release Check — Controlled Deployment
+```
+
+Production için minimum şartlar:
+
+- CI başarılı.
+- Security scan kabul edilebilir.
+- Docker build başarılı.
+- Staging smoke test başarılı.
+- Rollback planı mevcut.
+- Evidence kaydı mevcut.
+- İnsan onayı verilmiş.
+
+## Operasyonel Dokümanlar
+
+| Doküman | Amaç |
+|---|---|
+| `docs/ops/autonomous_phase_plan.md` | Faz planı |
+| `docs/ops/project_identity.md` | Proje kimliği |
+| `docs/ops/branch_strategy.md` | Branch ve release stratejisi |
+| `docs/ops/secret_handling.md` | Secret yönetimi |
+| `docs/ops/local_full_stack_validation.md` | Local/full-stack doğrulama |
+| `docs/ops/governance_policy.md` | Yetki ve risk sınırları |
+| `docs/ops/deployment_runbook.md` | Deployment akışı |
+| `docs/ops/rollback_playbook.md` | Rollback akışı |
+| `docs/ops/incident_response.md` | Incident akışı |
+| `docs/evidence/README.md` | Kanıt standardı |
+
+## Geliştirici Komutları
+
+```bash
+make install
+make dev
+make test
+make lint
+make security
+make docker-build
+make docker-up
+make docker-down
+make migrate
+make celery
+make secret
+```
+
+## Güvenlik Notu
+
+Production etkili her aksiyon için insan onayı şarttır. Bu proje için L5, yani tamamen onaysız production otonomisi, hedeflenmez.

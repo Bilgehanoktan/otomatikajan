@@ -1,7 +1,0 @@
-{
-  "drift_detected": true,
-  "affected_region": "us-west-1",
-  "missing_roles": [
-    "admin_override"
-  ]
-}

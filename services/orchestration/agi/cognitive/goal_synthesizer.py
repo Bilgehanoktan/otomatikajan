@@ -112,7 +112,6 @@ class GoalSynthesizer:
                     
                     # [PHASE 80] North Star Alignment
                     from libs.db.models import SovereignGoal
-                    from sqlalchemy import update
                     # Mevcut North Star'ı güncelle veya yeni birini aktif yap if mission is big enough
                     if mission_data['priority'] == 'high':
                         # Eski hedefleri 'pivoted' yap

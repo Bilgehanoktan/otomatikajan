@@ -36,12 +36,7 @@ from services.repair.external_agents.router import router as agents_router
 
 from contextlib import asynccontextmanager
 
-if (
-    sys.platform == "win32"
-    and hasattr(asyncio, "WindowsProactorEventLoopPolicy")
-    and "pytest" not in sys.modules
-    and os.getenv("PYTEST_CURRENT_TEST") is None
-):
+if sys.platform == "win32" and hasattr(asyncio, "WindowsProactorEventLoopPolicy"):
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 if sys.platform == "win32":
@@ -141,7 +136,7 @@ app.add_middleware(
 )
 
 # Include Routers
-app.include_router(workflow_router, prefix="/api/v1")
+app.include_router(workflow_router, prefix="/api/v1/workflows")
 app.include_router(governance_router, prefix="/api/v1/governance")
 app.include_router(repair_lab_router, prefix="/api/v1/repair-lab")
 app.include_router(metrics_router, prefix="/api/v1/metrics")

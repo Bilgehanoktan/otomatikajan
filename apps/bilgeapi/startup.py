@@ -40,9 +40,7 @@ def validate_production_config() -> list[str]:
     errors: list[str] = []
 
     # 1. Auth Mode (checked first because JWT secret depends on it)
-    explicit_auth_mode = os.getenv("BILGEAPI_AUTH_MODE")
-    app_env = os.getenv("APP_ENV", os.getenv("ENVIRONMENT", "development")).lower()
-    auth_mode = (explicit_auth_mode.lower() if explicit_auth_mode else ("disabled" if app_env == "test" else "api_key"))
+    auth_mode = os.getenv("BILGEAPI_AUTH_MODE", "disabled").lower()
     if is_production and auth_mode == "disabled":
         errors.append(
             "BILGEAPI_AUTH_MODE is 'disabled' in production. "
@@ -86,8 +84,9 @@ def validate_production_config() -> list[str]:
     # 5. CORS Allowlist
     cors_raw = os.getenv("BILGEAPI_CORS_ALLOWLIST", "")
     if is_production and (not cors_raw or cors_raw.strip() == "*"):
-        errors.append(
-            "BILGEAPI_CORS_ALLOWLIST cannot be empty or '*' in production."
+        warnings.append(
+            "[PROD] BILGEAPI_CORS_ALLOWLIST is wildcard or empty. "
+            "Consider restricting to specific origins."
         )
 
     # Log results

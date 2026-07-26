@@ -3,13 +3,13 @@
 # Port: 8100 (default)
 
 # ─── Stage 1: Builder ────────────────────────────────────
-FROM python:3.12-slim AS builder
+FROM python:3.12-slim-bookworm AS builder
 
 WORKDIR /app
 
 # Build dependencies for psycopg/asyncpg
-RUN apt-get -o Acquire::Retries=3 update \
-    && apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
+RUN apt-get -o Acquire::Retries=5 update \
+    && apt-get -o Acquire::Retries=5 install -y --no-install-recommends --fix-missing \
        gcc g++ libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
@@ -18,7 +18,7 @@ RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 
 # ─── Stage 2: Runtime ────────────────────────────────────
-FROM python:3.12-slim AS runtime
+FROM python:3.12-slim-bookworm AS runtime
 
 # Security: non-root user
 RUN groupadd --gid 1001 appgroup \
@@ -27,8 +27,8 @@ RUN groupadd --gid 1001 appgroup \
 WORKDIR /app
 
 # Minimal runtime dependencies (PostgreSQL client + curl for healthcheck)
-RUN apt-get -o Acquire::Retries=3 update \
-    && DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
+RUN apt-get -o Acquire::Retries=5 update \
+    && DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=5 install -y --no-install-recommends --fix-missing \
        libpq5 curl \
     && rm -rf /var/lib/apt/lists/*
 

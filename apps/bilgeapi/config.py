@@ -1,23 +1,6 @@
 import os
 import secrets
 from typing import Optional
-from enum import Enum
-from dotenv import load_dotenv
-
-# Load .env first
-if os.path.exists(".env"):
-    load_dotenv(".env")
-# Load .env.local on top of it
-if os.path.exists(".env.local"):
-    load_dotenv(".env.local", override=True)
-
-class AutonomyMode(str, Enum):
-    OFF = "OFF"
-    OBSERVE_ONLY = "OBSERVE_ONLY"
-    DIAGNOSE_ONLY = "DIAGNOSE_ONLY"
-    SAFE_AUTONOMY = "SAFE_AUTONOMY"
-    SUPERVISED_AUTONOMY = "SUPERVISED_AUTONOMY"
-    POLICY_BOUND_AUTONOMY = "POLICY_BOUND_AUTONOMY"
 
 class Settings:
     @property
@@ -30,10 +13,7 @@ class Settings:
 
     @property
     def BILGEAPI_AUTH_MODE(self) -> str:
-        explicit = os.getenv("BILGEAPI_AUTH_MODE")
-        if explicit:
-            return explicit.lower()
-        return "disabled" if self.APP_ENV == "test" else "api_key"
+        return os.getenv("BILGEAPI_AUTH_MODE", "disabled").lower()
 
     @BILGEAPI_AUTH_MODE.setter
     def BILGEAPI_AUTH_MODE(self, value):
@@ -92,9 +72,7 @@ class Settings:
     def BILGEAPI_CORS_ALLOWLIST(self):
         raw_cors = os.getenv("BILGEAPI_CORS_ALLOWLIST", "")
         allowlist = [o.strip() for o in raw_cors.split(",") if o.strip()]
-        if allowlist:
-            return allowlist
-        return ["http://127.0.0.1:3100", "http://localhost:3100"]
+        return allowlist if allowlist else ["*"]
 
     @BILGEAPI_CORS_ALLOWLIST.setter
     def BILGEAPI_CORS_ALLOWLIST(self, value):
@@ -114,20 +92,6 @@ class Settings:
     @BILGEAPI_VERSION.setter
     def BILGEAPI_VERSION(self, value):
         os.environ["BILGEAPI_VERSION"] = str(value)
-
-    @property
-    def BILGEAPI_AUTONOMY_MODE(self) -> str:
-        mode = os.getenv("BILGEAPI_AUTONOMY_MODE", "").upper()
-        if not mode:
-            return "OBSERVE_ONLY" if self.APP_ENV == "production" else "SAFE_AUTONOMY"
-        try:
-            return AutonomyMode(mode).value
-        except ValueError:
-            return "OBSERVE_ONLY" if self.APP_ENV == "production" else "SAFE_AUTONOMY"
-
-    @BILGEAPI_AUTONOMY_MODE.setter
-    def BILGEAPI_AUTONOMY_MODE(self, value):
-        os.environ["BILGEAPI_AUTONOMY_MODE"] = str(value).upper()
 
     @property
     def BILGEAPI_WEBHOOK_SECRET(self) -> str:
@@ -198,8 +162,8 @@ class Settings:
         os.environ["BILGEAPI_GITHUB_ENABLED"] = str(value).lower()
 
     @property
-    def BILGEAPI_GITHUB_TOKEN(self) -> str:
-        return os.getenv("BILGEAPI_GITHUB_TOKEN", "")
+    def BILGEAPI_GITHUB_TOKEN(self) -> Optional[str]:
+        return os.getenv("BILGEAPI_GITHUB_TOKEN")
 
     @BILGEAPI_GITHUB_TOKEN.setter
     def BILGEAPI_GITHUB_TOKEN(self, value):
@@ -209,8 +173,8 @@ class Settings:
             os.environ["BILGEAPI_GITHUB_TOKEN"] = str(value)
 
     @property
-    def BILGEAPI_GITHUB_OWNER(self) -> str:
-        return os.getenv("BILGEAPI_GITHUB_OWNER", "")
+    def BILGEAPI_GITHUB_OWNER(self) -> Optional[str]:
+        return os.getenv("BILGEAPI_GITHUB_OWNER")
 
     @BILGEAPI_GITHUB_OWNER.setter
     def BILGEAPI_GITHUB_OWNER(self, value):
@@ -220,8 +184,8 @@ class Settings:
             os.environ["BILGEAPI_GITHUB_OWNER"] = str(value)
 
     @property
-    def BILGEAPI_GITHUB_REPO(self) -> str:
-        return os.getenv("BILGEAPI_GITHUB_REPO", "")
+    def BILGEAPI_GITHUB_REPO(self) -> Optional[str]:
+        return os.getenv("BILGEAPI_GITHUB_REPO")
 
     @BILGEAPI_GITHUB_REPO.setter
     def BILGEAPI_GITHUB_REPO(self, value):
@@ -446,6 +410,29 @@ class Settings:
     def BILGEAPI_PR_PROVIDER(self, value):
         os.environ["BILGEAPI_PR_PROVIDER"] = str(value)
 
+    @property
+    def BILGEAPI_GITHUB_TOKEN(self) -> str:
+        return os.getenv("BILGEAPI_GITHUB_TOKEN", "")
+
+    @BILGEAPI_GITHUB_TOKEN.setter
+    def BILGEAPI_GITHUB_TOKEN(self, value):
+        os.environ["BILGEAPI_GITHUB_TOKEN"] = str(value)
+
+    @property
+    def BILGEAPI_GITHUB_OWNER(self) -> str:
+        return os.getenv("BILGEAPI_GITHUB_OWNER", "")
+
+    @BILGEAPI_GITHUB_OWNER.setter
+    def BILGEAPI_GITHUB_OWNER(self, value):
+        os.environ["BILGEAPI_GITHUB_OWNER"] = str(value)
+
+    @property
+    def BILGEAPI_GITHUB_REPO(self) -> str:
+        return os.getenv("BILGEAPI_GITHUB_REPO", "")
+
+    @BILGEAPI_GITHUB_REPO.setter
+    def BILGEAPI_GITHUB_REPO(self, value):
+        os.environ["BILGEAPI_GITHUB_REPO"] = str(value)
 
     @property
     def BILGEAPI_GITHUB_BASE_BRANCH(self) -> str:
@@ -595,15 +582,6 @@ class Settings:
             os.environ["BILGEAPI_SELF_HEALING_ALLOWED_ACTIONS"] = ",".join(value)
         else:
             os.environ["BILGEAPI_SELF_HEALING_ALLOWED_ACTIONS"] = str(value)
-
-    @property
-    def BILGEAPI_MANAGEMENT_ACTIONS_UNLOCKED(self) -> bool:
-        raw = os.getenv("BILGEAPI_MANAGEMENT_ACTIONS_UNLOCKED", "false").lower()
-        return raw in ("1", "true", "yes", "on")
-
-    @BILGEAPI_MANAGEMENT_ACTIONS_UNLOCKED.setter
-    def BILGEAPI_MANAGEMENT_ACTIONS_UNLOCKED(self, value):
-        os.environ["BILGEAPI_MANAGEMENT_ACTIONS_UNLOCKED"] = str(value).lower()
 
     @property
     def BILGEAPI_EMERGENCY_RECOVERY_ENABLED(self) -> bool:

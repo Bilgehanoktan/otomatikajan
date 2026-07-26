@@ -1,0 +1,34 @@
+[
+  {
+    "planned_at": "2026-07-24 00:48:04",
+    "target_account": "@therundownai",
+    "topic": "AI News & Tools",
+    "comment_text": "DeepSeek R1 için ayrıntılı Türkçe inceleme taslağı.",
+    "status": "BLOCKED_POLICY",
+    "reason": "Otomatik tanıtım yorumu gönderilmez; insan incelemesi gerekli"
+  },
+  {
+    "planned_at": "2026-07-24 00:48:04",
+    "target_account": "@superhuman.ai",
+    "topic": "Productivity Hacks",
+    "comment_text": "Bolt.new ile uygulama üretimi için kodlama ipuçları taslağı.",
+    "status": "BLOCKED_POLICY",
+    "reason": "Otomatik tanıtım yorumu gönderilmez; insan incelemesi gerekli"
+  },
+  {
+    "planned_at": "2026-07-24 00:48:04",
+    "target_account": "@futurepedia",
+    "topic": "AI Directory",
+    "comment_text": "Flux görsel üretimi için örnek prompt taslağı.",
+    "status": "BLOCKED_POLICY",
+    "reason": "Otomatik tanıtım yorumu gönderilmez; insan incelemesi gerekli"
+  },
+  {
+    "planned_at": "2026-07-24 00:48:04",
+    "target_account": "@yapayzekarehberi",
+    "topic": "Türkçe Yapay Zeka",
+    "comment_text": "Yapay zeka ses üretimi için Türkçe rehber taslağı.",
+    "status": "BLOCKED_POLICY",
+    "reason": "Otomatik tanıtım yorumu gönderilmez; insan incelemesi gerekli"
+  }
+]

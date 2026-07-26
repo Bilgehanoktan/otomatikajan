@@ -1,0 +1,17 @@
+{
+  "TARGET_ENV": "local",
+  "AUDIT_MODE": "verification-only",
+  "START_MODE": "existing-stack",
+  "ALLOW_STACK_START": "false",
+  "ALLOW_DB_WRITES": "true",
+  "ALLOW_MIGRATION_EXECUTION": "true",
+  "ALLOW_EXTERNAL_SENDS": "false",
+  "ALLOW_SAFE_CHAOS": "false",
+  "ALLOW_PARALLEL_AGENTS": "false",
+  "PUBLIC_API_BASE_URL": "http://127.0.0.1:8000",
+  "CONTROL_PLANE_BASE_URL": "http://127.0.0.1:3100",
+  "BILGEAPI_BASE_URL": "http://127.0.0.1:8100",
+  "DEERFLOW_BASE_URL": "http://127.0.0.1:8010",
+  "EVIDENCE_ROOT": "runtime/validation-artifacts",
+  "DATABASE_URL": "sqlite+aiosqlite:///E:/ai_company_faz12.1/apps/bilgeapi/runtime/data/cortex_local_v2.db"
+}

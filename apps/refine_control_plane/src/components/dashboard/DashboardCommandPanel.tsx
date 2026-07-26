@@ -56,7 +56,7 @@ export function DashboardCommandPanel({ apiBase }: { apiBase: string }) {
       
       notification.success({
         message: t("success"),
-        description: data.message || data.details?.summary || data.status || t("successDesc"),
+        description: data.message || t("successDesc"),
         placement: "bottomRight"
       });
     } catch (err: any) {
@@ -87,7 +87,7 @@ export function DashboardCommandPanel({ apiBase }: { apiBase: string }) {
           icon={<ShieldAlert size={18} />}
           color="text-amber-400"
           loading={loadingAction === "drill"}
-          onClick={() => handleAction("drill", "/governance/drills/trigger", "POST", { scenario: "RESILIENCE_DRILL_01" })}
+          onClick={() => handleAction("drill", "/governance/drills/trigger?scenario=RESILIENCE_DRILL_01")}
         />
 
         <CommandButton
@@ -105,12 +105,7 @@ export function DashboardCommandPanel({ apiBase }: { apiBase: string }) {
           icon={<FileSearch size={18} />}
           color="text-gray-400"
           loading={loadingAction === "audit"}
-          onClick={() =>
-            handleAction("audit", "/compliance/audit-bundles", "POST", {
-              name: `Audit_${new Date().toISOString().split('T')[0]}`,
-              purpose: "AUDIT",
-            })
-          }
+          onClick={() => handleAction("audit", "/compliance/audit-bundles", "POST", { name: `Audit_${new Date().toISOString().split('T')[0]}` })}
         />
 
         <CommandButton

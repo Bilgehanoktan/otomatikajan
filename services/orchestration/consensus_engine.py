@@ -31,33 +31,30 @@ class ConsensusEngine:
             await asyncio.sleep(5)
 
     async def _refresh_consensus(self):
-        import time
-        # 1. Update our regional status in the fabric with a heartbeat timestamp
+        # 1. Update our regional status in the fabric
         status = {
             "role": self.current_role,
             "status": "healthy",
             "priority": self._priority_score,
-            "tasks_handled": 0, # Replace with real metric
-            "last_seen": time.time()
+            "tasks_handled": 0 # Replace with real metric
         }
         await state_fabric.put_region_state(self.region_id, status)
         
         # 2. Check for Global Leader
         mesh_view = await state_fabric.get_mesh_view()
         primary_exists = False
-        active_primary_region = None
         for rid, data in mesh_view.items():
             if data.get("role") == "primary":
                 # Check if leader is stale (heartbeat > 15s)
+                import time
                 if time.time() - data.get("last_seen", 0) < 15:
                     primary_exists = True
-                    active_primary_region = rid
                     break
         
-        # 3. Attempt Leadership if no primary, or refresh if we are already Primary
+        # 3. Attempt Leadership if no primary
         if not primary_exists:
             logger.warning(f"ConsensusEngine: No primary detected in mesh. Region {self.region_id} attempting leadership...")
-            if await state_fabric.acquire_global_lock("mesh_primary_election", owner_id=self.region_id, timeout=20):
+            if await state_fabric.acquire_global_lock("mesh_primary_election", timeout=20):
                 self.current_role = "primary"
                 logger.info(f"ConsensusEngine: REGION {self.region_id} IS NOW PRIMARY.")
                 # Update status immediately
@@ -65,13 +62,8 @@ class ConsensusEngine:
                 await state_fabric.put_region_state(self.region_id, status)
             else:
                 self.current_role = "standby"
-        else:
-            if active_primary_region == self.region_id:
-                self.current_role = "primary"
-                # Keep our lock refreshed
-                await state_fabric.acquire_global_lock("mesh_primary_election", owner_id=self.region_id, timeout=20)
-            else:
-                self.current_role = "standby"
+        
+        # 4. If we are Primary, ensure we keep the lock refreshed (implicit by lock timeout > sleep)
         
     def set_priority(self, score: int):
         self._priority_score = score

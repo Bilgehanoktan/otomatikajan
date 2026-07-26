@@ -37,9 +37,8 @@ async def test_simulate_blocked_requires_test_mode(client: AsyncClient, db_sessi
     await db_session.commit()
     await db_session.refresh(case)
 
-    # 1. Test simulation fails in production (BILGEAPI_UI_REPAIR_TEST_MODE is unset or false)
-    if "BILGEAPI_UI_REPAIR_TEST_MODE" in os.environ:
-        del os.environ["BILGEAPI_UI_REPAIR_TEST_MODE"]
+    # 1. Test simulation fails in production (BILGEAPI_UI_REPAIR_TEST_MODE is false)
+    os.environ["BILGEAPI_UI_REPAIR_TEST_MODE"] = "false"
 
     response = await client.post(
         f"/api/v1/ui-repair/cases/{case.id}/repair",

@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  bilgeapi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8100:8100"
+    environment:
+      - BILGEAPI_DATABASE_URL=postgresql+asyncpg://postgres:${DB_PASSWORD:?required}@postgres:5432/bilgeapi
+      - REDIS_URL=redis://redis:6379/0
+      - APP_ENV=production
+      - BILGEAPI_ENV=production
+      - BILGEAPI_AUTH_MODE=API_KEY
+      - BILGEAPI_JWT_SECRET=${BILGEAPI_JWT_SECRET:?required}
+      - BILGEAPI_TELEGRAM_WEBHOOK_SECRET=${BILGEAPI_TELEGRAM_WEBHOOK_SECRET:?required}
+      - BILGEAPI_WEBHOOK_SECRET=${BILGEAPI_WEBHOOK_SECRET:?required}
+      - BILGEAPI_STATIC_KEY_HASHES=${BILGEAPI_STATIC_KEY_HASHES:?required}
+      - BILGEAPI_METRICS_PUBLIC=false
+      - BILGEAPI_CORS_ALLOWLIST=${BILGEAPI_CORS_ALLOWLIST:-https://sovereign.agi}
+      - BILGEAPI_INITIAL_ADMIN_PASSWORD=${BILGEAPI_INITIAL_ADMIN_PASSWORD:?required}
+    depends_on:
+      - postgres
+      - redis
+    restart: always
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${DB_PASSWORD:?required}
+      - POSTGRES_DB=bilgeapi
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: always
+
+volumes:
+  postgres_data:
+  redis_data:

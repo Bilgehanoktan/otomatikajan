@@ -90,10 +90,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
         if (session && session.kind === "authenticated") {
           return {
             id: session.identity.id,
-            name: session.identity.name || session.identity.email,
+            name: session.identity.email,
             email: session.identity.email,
-            role: session.identity.role,
-            roles: session.identity.roles,
             avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${session.identity.email}`,
           };
         }
@@ -153,12 +151,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
             {
               name: "governance/governor/status",
               list: "/governor",
-              meta: { label: "resources_governorStatus", icon: <Activity className="w-4 h-4" />, parent: "governance" },
+              meta: { label: "Governor Status", icon: <Activity className="w-4 h-4" />, parent: "governance" },
             },
             {
               name: "governance/governor/cases",
               list: "/governor",
-              meta: { label: "resources_governorCases", icon: <ShieldAlert className="w-4 h-4" />, parent: "governance" },
+              meta: { label: "Governor Cases", icon: <ShieldAlert className="w-4 h-4" />, parent: "governance" },
             },
             {
               name: "governance/governor/escalations",
@@ -198,7 +196,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             {
               name: "governance/drills",
               list: "/governor/drills",
-              meta: { label: "resources_drills", hide: true },
+              meta: { label: "Drills", hide: true },
             },
             {
               name: "governance/approvals",
@@ -240,27 +238,27 @@ export function Providers({ children }: { children: React.ReactNode }) {
             {
               name: "governance/lineage",
               list: "/governance/lineage",
-              meta: { label: "resources_lineage", icon: <Search className="w-4 h-4" /> },
+              meta: { label: "Lineage", icon: <Search className="w-4 h-4" /> },
             },
             {
               name: "governance/signoffs",
               list: "/ops/handover-status",
-              meta: { label: "resources_signoffs", icon: <CheckCircle className="w-4 h-4" /> },
+              meta: { label: "Signoffs", icon: <CheckCircle className="w-4 h-4" /> },
             },
             {
               name: "governance/validations",
               list: "/ops/launch-gates",
-              meta: { label: "resources_validations", icon: <Target className="w-4 h-4" /> },
+              meta: { label: "Validations", icon: <Target className="w-4 h-4" /> },
             },
             {
               name: "governance/governor/proof/snapshots",
               list: "/proof/snapshots",
-              meta: { label: "resources_proofSnapshots", parent: "governance/audit" },
+              meta: { label: "Proof Snapshots", parent: "governance/audit" },
             },
             {
               name: "governance/governor/proof",
               list: "/governor/proof",
-              meta: { label: "resources_proofFabric", parent: "governance/audit" },
+              meta: { label: "Proof Fabric", parent: "governance/audit" },
             },
             {
               name: "learning",
@@ -269,7 +267,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             {
               name: "governance/governor/proof/events",
               list: "/proof/events",
-              meta: { label: "resources_proofEvents", parent: "governance/audit" },
+              meta: { label: "Proof Events", parent: "governance/audit" },
             },
             {
               name: "learning/fingerprints",
@@ -307,10 +305,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
               meta: { label: "resources_repairLab", icon: <FlaskConical className="w-4 h-4" /> },
             },
             {
-              // BilgeAPI Ops navigation registration test assertion comment
               name: "bilgeapi-ops",
               list: "/bilgeapi-ops",
-              meta: { label: "resources_bilgeapi-ops", icon: <KeyRound className="w-4 h-4" /> },
+              meta: { label: "BilgeAPI Ops", icon: <KeyRound className="w-4 h-4" /> },
             },
             {
               name: "meeting-room",

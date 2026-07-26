@@ -1,5 +1,0 @@
-id: re-012-zombie-process
-severity: high
-subsystem: sidecar
-title: Orphaned Processes in Sidecar Container
-type: incident_replay

@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class PrDraftRiskSummary(BaseModel):
@@ -9,6 +9,8 @@ class PrDraftRiskSummary(BaseModel):
 
 
 class PrDraftResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     proposal_id: str
     provider: str
@@ -24,10 +26,3 @@ class PrDraftResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    model_config = {
-
-
-        "from_attributes": True
-
-
-    }

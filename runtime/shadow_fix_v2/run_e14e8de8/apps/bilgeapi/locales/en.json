@@ -1,8 +1,0 @@
-{
-  "welcome_message": "Welcome to BilgeAPI Sovereign Control Plane",
-  "status_healthy": "System is healthy and operating normally",
-  "auth_required": "Authentication credentials were not provided or are invalid",
-  "forbidden": "You do not have permission to access this resource",
-  "not_found": "Requested resource was not found",
-  "validation_error": "Input validation failed"
-}

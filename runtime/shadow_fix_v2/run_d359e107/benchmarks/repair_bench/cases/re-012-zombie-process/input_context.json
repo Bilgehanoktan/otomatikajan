@@ -1,1 +1,0 @@
-{"failure_logs": ["CRITICAL: Orphaned Processes in Sidecar Container detected in sidecar stack.", "Technology: worker"], "metrics": {"error_rate": 0.45, "latency_ms": 1200}, "environment": "production-cluster-01"}

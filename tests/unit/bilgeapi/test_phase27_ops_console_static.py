@@ -100,30 +100,3 @@ def test_phase27_bilgeapi_ops_console_is_registered_in_navigation():
 
     assert '"bilgeapi-ops"' in sidebar
     assert "KeyRound" in sidebar
-
-
-def test_phase27_snapshot_rejects_invalid_auth_before_partial_data_collection():
-    client_text = read(UI_ROOT / "src" / "lib" / "bilgeapiOpsClient.ts")
-
-    assert "export class BilgeApiResponseError extends Error" in client_text
-    assert "export function isBilgeApiAuthError" in client_text
-    assert "async function verifyBilgeApiAccess" in client_text
-    assert 'return bilgeApiFetch<JsonValue>(apiKey, "/v1/catalog")' in client_text
-
-    snapshot_body = client_text.split(
-        "export async function loadBilgeApiOpsSnapshot", 1
-    )[1]
-    probe_index = snapshot_body.index("await verifyBilgeApiAccess(apiKey)")
-    partial_data_index = snapshot_body.index("const errors: string[] = []")
-    assert probe_index < partial_data_index
-    assert 'settle("proposals"' in snapshot_body
-
-
-def test_phase27_console_clears_stale_key_using_typed_auth_error():
-    page_text = read(UI_ROOT / "src" / "app" / "bilgeapi-ops" / "page.tsx")
-
-    assert "isBilgeApiAuthError" in page_text
-    assert "if (isBilgeApiAuthError(error))" in page_text
-    assert 'sessionStorage.removeItem("bilgeapi_ops_api_key")' in page_text
-    assert "setSnapshot(null)" in page_text
-    assert 'lowered.includes("unauthorized")' not in page_text

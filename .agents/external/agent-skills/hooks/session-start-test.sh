@@ -4,10 +4,10 @@
 set -euo pipefail
 
 tmp_payload="$(mktemp)"
-trap '[ -f "$tmp_payload" ] && rm "$tmp_payload"' EXIT
+trap 'rm -f "$tmp_payload"' EXIT
 
 has_jq=0
-if command -v jq >/dev/null; then
+if command -v jq >/dev/null 2>&1; then
   has_jq=1
 fi
 

@@ -39,6 +39,10 @@ import {
   ReviewLedgerExportRecord,
   ReviewLedgerVerifyRecord,
   ReviewerFeedbackRecord,
+  RemediationRunbookRecord,
+  RemediationAttemptRecord,
+  AgentCapabilityRecord,
+  AgentRunRecord,
   AgentPromotionRecord,
   AgentPolicySimulationResponse,
   acceptAiPatchSuggestionForReview,
@@ -73,22 +77,20 @@ import {
   disableRemediationRunbook,
   triggerRemediation,
   runEmergencyRecovery,
-  setManagementGate,
   acknowledgeFinding,
   dismissFinding,
   runWatchdogScan,
+  listAgentCapabilities,
+  listAgentRuns,
+  listAgentPromotions,
   getAgentPromotion,
-  isBilgeApiAuthError,
   approveAgentPromotion,
   rejectAgentPromotion,
   executeAgentPromotion,
   simulateAgentPromotion,
-  retryAgentRun,
   enableAgent,
   disableAgent,
 } from "@/lib/bilgeapiOpsClient";
-import { useTranslations } from "next-intl";
-import { useGetIdentity } from "@refinedev/core";
 
 
 
@@ -100,8 +102,6 @@ type ActionLog = {
   status: "OK" | "ERR";
   detail: string;
 };
-
-const AUTH_RECOVERY_MARKER = "bilgeapi_ops_auth_recovery_attempted";
 
 const roles = ["ADMIN", "OPERATOR", "AUDIT_OBSERVER", "SOVEREIGN_PRIME"];
 const tabs: Array<{ id: OpsTab; label: string; icon: LucideIcon }> = [
@@ -151,16 +151,6 @@ function statusTone(status?: string): string {
 }
 
 export default function BilgeAPIOpsConsole() {
-  const t = useTranslations("opsConsole");
-  const { data: identity } = useGetIdentity<any>();
-  
-  const isMutateAllowed = React.useMemo(() => {
-    if (!identity) return false;
-    const rolesList = identity.roles || (identity.role ? [identity.role] : []);
-    const upperRoles = rolesList.map((r: string) => String(r).toUpperCase());
-    return upperRoles.includes("ADMIN") || upperRoles.includes("SOVEREIGN_PRIME") || upperRoles.includes("OPERATOR") || upperRoles.includes("OPS_COMMANDER");
-  }, [identity]);
-
   const [activeTab, setActiveTab] = React.useState<OpsTab>("dashboard");
   const [apiKey, setApiKey] = React.useState("");
   const [snapshot, setSnapshot] = React.useState<OpsSnapshot | null>(null);
@@ -222,17 +212,8 @@ export default function BilgeAPIOpsConsole() {
 
   React.useEffect(() => {
     const saved = sessionStorage.getItem("bilgeapi_ops_api_key");
-    if (saved) {
-      setApiKey(saved);
-    } else if (identity) {
-      const roles = identity.roles || (identity.role ? [identity.role] : []);
-      const upperRoles = roles.map((r: string) => r.toUpperCase());
-      const isUserAdmin = upperRoles.includes("ADMIN") || upperRoles.includes("SOVEREIGN_PRIME");
-      if (isUserAdmin) {
-        setApiKey("dev-test-key-001");
-      }
-    }
-  }, [identity]);
+    if (saved) setApiKey(saved);
+  }, []);
 
   const record = React.useCallback((label: string, status: "OK" | "ERR", detail: string) => {
     setActionLog((current) => [{ id: `${Date.now()}-${label}`, label, status, detail }, ...current].slice(0, 8));
@@ -247,28 +228,12 @@ export default function BilgeAPIOpsConsole() {
     try {
       sessionStorage.setItem("bilgeapi_ops_api_key", apiKey.trim());
       const next = await loadBilgeApiOpsSnapshot(apiKey);
-      sessionStorage.removeItem(AUTH_RECOVERY_MARKER);
       setSnapshot(next);
       if (!selectedProposalId && next.proposals[0]) setSelectedProposalId(next.proposals[0].id);
       if (!selectedDraftId && next.drafts[0]) setSelectedDraftId(next.drafts[0].id);
       record("snapshot", "OK", `${next.apiKeys.length} keys, ${next.proposals.length} proposals`);
     } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      record("snapshot", "ERR", msg);
-
-      if (isBilgeApiAuthError(error)) {
-        sessionStorage.removeItem("bilgeapi_ops_api_key");
-        setApiKey("");
-        setSnapshot(null);
-
-        if (sessionStorage.getItem(AUTH_RECOVERY_MARKER) !== "1") {
-          sessionStorage.setItem(AUTH_RECOVERY_MARKER, "1");
-          window.location.reload();
-          return;
-        }
-
-        console.warn("[Auth] BilgeAPI rejected the stored credential. Cleared the stale session key.");
-      }
+      record("snapshot", "ERR", error instanceof Error ? error.message : String(error));
     } finally {
       setLoading(false);
     }
@@ -293,16 +258,9 @@ export default function BilgeAPIOpsConsole() {
   const remediationAttempts = snapshot?.remediationAttempts ?? [];
   const systemFindings = snapshot?.systemFindings ?? [];
   const watchdogStatus = snapshot?.watchdogStatus ?? null;
-  const managementGate = snapshot?.managementGate ?? null;
-  const managementUnlocked = Boolean(managementGate?.unlocked);
-  // listAgentPromotions are retrieved via snapshot load
   const agentPromotions = snapshot?.agentPromotions ?? [];
   const agentRuns = snapshot?.agentRuns ?? [];
   const agentCapabilities = snapshot?.agentCapabilities ?? [];
-  const agentAuthRequired = (snapshot?.errors ?? []).some((error) =>
-    error.startsWith("agent_") && error.toLowerCase().includes("platform login"),
-  );
-  const agentDataNotice = "Agent data requires platform session. BilgeAPI panels remain available.";
 
 
   const quotaRows = apiKeys.map((key) => ({
@@ -318,9 +276,6 @@ export default function BilgeAPIOpsConsole() {
   }).length;
   const cautionCount = verifications.filter((item) => item.review_decision === "NEEDS_HUMAN_CAUTION").length;
   const pendingDraftCount = drafts.filter((item) => ["PENDING", "COMPLETED"].includes(item.status)).length;
-  const managementGateTone = managementUnlocked
-    ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100"
-    : "border-amber-300/20 bg-amber-300/10 text-amber-100";
 
   async function runAction<T>(label: string, task: Promise<T>, after?: (value: T) => void | Promise<void>) {
     try {
@@ -371,11 +326,12 @@ export default function BilgeAPIOpsConsole() {
         <div>
           <div className="mb-3 inline-flex items-center gap-2 rounded-lg border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-cyan-100">
             <ShieldCheck size={14} />
-            {t("phase27")}
+            Faz 27
           </div>
-          <h1 className="text-3xl font-black text-white">{t("title")}</h1>
+          <h1 className="text-3xl font-black text-white">BilgeAPI Ops Console</h1>
           <p className="mt-2 max-w-3xl text-sm text-gray-400">
-            {t("subtitle")}
+            API keys, quotas, research, proposals, draft PRs, sandbox verifications, reviewer feedback,
+            patch revisions, release gate and audit trail in one operator surface.
           </p>
         </div>
         <div className="flex flex-col gap-3 rounded-lg border border-white/10 bg-black/30 p-3 md:flex-row md:items-center">
@@ -385,7 +341,7 @@ export default function BilgeAPIOpsConsole() {
               value={apiKey}
               onChange={(event) => setApiKey(event.target.value)}
               type="password"
-              placeholder={t("apiKeyPlaceholder")}
+              placeholder="BilgeAPI admin/operator X-API-Key"
               className="w-full rounded-lg border border-white/10 bg-black/40 py-2 pl-9 pr-3 text-sm text-white outline-none focus:border-cyan-300/30"
             />
           </div>
@@ -394,7 +350,7 @@ export default function BilgeAPIOpsConsole() {
             className="inline-flex items-center justify-center gap-2 rounded-lg border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-xs font-black uppercase tracking-widest text-cyan-100 hover:bg-cyan-300/15"
           >
             <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
-            {t("refresh")}
+            Refresh
           </button>
           <button
             onClick={() => {
@@ -405,13 +361,13 @@ export default function BilgeAPIOpsConsole() {
             className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-xs font-black uppercase tracking-widest text-gray-300 hover:bg-white/10"
           >
             <ShieldOff size={15} />
-            {t("clear")}
+            Clear
           </button>
         </div>
       </div>
 
       <nav className="mb-6 flex flex-wrap gap-2">
-        {tabs.map(({ id, icon: Icon }) => (
+        {tabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             onClick={() => setActiveTab(id)}
@@ -422,7 +378,7 @@ export default function BilgeAPIOpsConsole() {
             }`}
           >
             <Icon size={15} />
-            {t(`tabs.${id}`)}
+            {label}
           </button>
         ))}
       </nav>
@@ -431,7 +387,7 @@ export default function BilgeAPIOpsConsole() {
         <section className="rounded-lg border border-amber-300/20 bg-amber-300/10 p-6 text-amber-100">
           <div className="flex items-center gap-3">
             <AlertTriangle size={20} />
-            <span className="text-sm font-bold">{t("apiKeyRequired")}</span>
+            <span className="text-sm font-bold">BilgeAPI operator key is required before live data can load.</span>
           </div>
         </section>
       ) : null}
@@ -440,7 +396,7 @@ export default function BilgeAPIOpsConsole() {
         <section className="mb-6 rounded-lg border border-amber-300/20 bg-amber-300/10 p-4">
           <div className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-amber-100">
             <AlertTriangle size={15} />
-            {t("partialData")}
+            Partial data
           </div>
           <div className="grid gap-2 text-xs text-amber-50 md:grid-cols-2">
             {snapshot.errors.slice(0, 6).map((error) => (
@@ -455,59 +411,22 @@ export default function BilgeAPIOpsConsole() {
       {activeTab === "dashboard" ? (
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <Metric label={t("metrics.totalApiKeys")} value={apiKeys.length} icon={<KeyRound size={16} />} tone="cyan" />
-            <Metric label={t("metrics.activeRevoked")} value={`${activeKeyCount} / ${revokedKeyCount}`} icon={<ShieldCheck size={16} />} tone="green" />
-            <Metric label={t("metrics.quotaExceeded")} value={exceededCount} icon={<AlertTriangle size={16} />} tone={exceededCount ? "rose" : "gray"} />
-            <Metric label={t("metrics.releaseGate")} value={releaseLatest ? `${releaseLatest.score.toFixed(0)} ${releaseLatest.status}` : "-"} icon={<ListChecks size={16} />} tone="cyan" />
-            <Metric label={t("metrics.pendingResearch")} value={research?.status === "PENDING" ? 1 : 0} icon={<Search size={16} />} tone="amber" />
-            <Metric label={t("metrics.prDraftReview")} value={pendingDraftCount} icon={<GitPullRequestDraft size={16} />} tone="violet" />
-            <Metric label={t("metrics.needsCaution")} value={cautionCount} icon={<AlertTriangle size={16} />} tone={cautionCount ? "amber" : "gray"} />
-            <Metric label={t("metrics.auditEvents")} value={auditEvents.length} icon={<ClipboardCheck size={16} />} tone="green" />
-            <Metric label={t("metrics.ledgerEntries")} value={ledgerRecent.length} icon={<ClipboardCheck size={16} />} tone="violet" />
-            <Metric label={t("metrics.agentCapabilities")} value={agentCapabilities.length} icon={<Terminal size={16} />} tone="cyan" />
-            <Metric label={t("metrics.agentSandboxRuns")} value={agentRuns.length} icon={<Activity size={16} />} tone="green" />
-            <Metric label={t("metrics.agentPromotions")} value={agentPromotions.length} icon={<ClipboardCheck size={16} />} tone="violet" />
+            <Metric label="Total API Keys" value={apiKeys.length} icon={<KeyRound size={16} />} tone="cyan" />
+            <Metric label="Active / Revoked" value={`${activeKeyCount} / ${revokedKeyCount}`} icon={<ShieldCheck size={16} />} tone="green" />
+            <Metric label="Quota Exceeded" value={exceededCount} icon={<AlertTriangle size={16} />} tone={exceededCount ? "rose" : "gray"} />
+            <Metric label="Release Gate" value={releaseLatest ? `${releaseLatest.score.toFixed(0)} ${releaseLatest.status}` : "-"} icon={<ListChecks size={16} />} tone="cyan" />
+            <Metric label="Pending Research" value={research?.status === "PENDING" ? 1 : 0} icon={<Search size={16} />} tone="amber" />
+            <Metric label="PR Draft Review" value={pendingDraftCount} icon={<GitPullRequestDraft size={16} />} tone="violet" />
+            <Metric label="Needs Caution" value={cautionCount} icon={<AlertTriangle size={16} />} tone={cautionCount ? "amber" : "gray"} />
+            <Metric label="Audit Events" value={auditEvents.length} icon={<ClipboardCheck size={16} />} tone="green" />
+            <Metric label="Ledger Entries" value={ledgerRecent.length} icon={<ClipboardCheck size={16} />} tone="violet" />
+            <Metric label="Agent Capabilities" value={agentCapabilities.length} icon={<Terminal size={16} />} tone="cyan" />
+            <Metric label="Agent Sandbox Runs" value={agentRuns.length} icon={<Activity size={16} />} tone="green" />
+            <Metric label="Agent Promotions" value={agentPromotions.length} icon={<ClipboardCheck size={16} />} tone="violet" />
           </div>
 
-          <Panel title={t("panels.managementGate")} icon={managementUnlocked ? <ShieldCheck size={16} /> : <Lock size={16} />}>
-            <div className="grid gap-4 xl:grid-cols-[1fr_auto] xl:items-center">
-              <div className="space-y-2">
-                <div className={`inline-flex rounded-lg border px-3 py-1 text-[10px] font-black uppercase tracking-widest ${managementGateTone}`}>
-                  {managementUnlocked ? t("labels.unlocked") : t("labels.locked")}
-                </div>
-                <p className="text-sm text-gray-300">
-                  BilgeAPI remediation, emergency recovery, and runbook mutation stay blocked until an admin unlocks this gate.
-                </p>
-                <p className="text-xs text-gray-500">
-                  Forbidden actions remain blocked by backend policy even when this gate is unlocked.
-                </p>
-              </div>
-              <button
-                onClick={() =>
-                  void runAction(
-                    managementUnlocked ? "lock_management_gate" : "unlock_management_gate",
-                    setManagementGate(
-                      apiKey,
-                      !managementUnlocked,
-                      managementUnlocked ? "operator_dashboard_lock" : "operator_dashboard_unlock",
-                    ),
-                  )
-                }
-                disabled={!isMutateAllowed || loading}
-                className={`inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-xs font-black uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed ${
-                  managementUnlocked
-                    ? "border-amber-300/20 bg-amber-300/10 text-amber-100 hover:bg-amber-300/15"
-                    : "border-emerald-300/20 bg-emerald-300/10 text-emerald-100 hover:bg-emerald-300/15"
-                }`}
-              >
-                {managementUnlocked ? <Lock size={15} /> : <ShieldCheck size={15} />}
-                {managementUnlocked ? t("labels.lockManagement") : t("labels.unlockManagement")}
-              </button>
-            </div>
-          </Panel>
-
           <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-            <Panel title={t("panels.recentAuditTrail")} icon={<ClipboardCheck size={16} />}>
+            <Panel title="Recent Audit Trail" icon={<ClipboardCheck size={16} />}>
               <CompactTable
                 headers={["Event", "Entity", "Actor", "Created"]}
                 rows={auditEvents.slice(0, 10).map((event) => [
@@ -516,23 +435,22 @@ export default function BilgeAPIOpsConsole() {
                   event.actor_id,
                   compactDate(event.created_at),
                 ])}
-                empty={t("labels.emptyAudit")}
+                empty="No audit event loaded"
               />
             </Panel>
-            <Panel title={t("panels.releaseGateStatus")} icon={<ListChecks size={16} />}>
+            <Panel title="Release Gate Status" icon={<ListChecks size={16} />}>
               <div className="space-y-4">
                 <div className={`rounded-lg border p-4 ${statusTone(releaseLatest?.status)}`}>
-                  <div className="text-xs font-black uppercase tracking-widest">{t("latest")}</div>
+                  <div className="text-xs font-black uppercase tracking-widest">Latest</div>
                   <div className="mt-2 text-3xl font-black">{releaseLatest ? releaseLatest.score.toFixed(2) : "-"}</div>
-                  <div className="mt-1 text-xs">{releaseLatest ? `${releaseLatest.status} / ${releaseLatest.id}` : t("noReleaseCheck")}</div>
+                  <div className="mt-1 text-xs">{releaseLatest ? `${releaseLatest.status} / ${releaseLatest.id}` : "No release check loaded"}</div>
                 </div>
                 <button
                   onClick={() => void runAction("release_gate", runReleaseReadiness(apiKey))}
-                  disabled={!isMutateAllowed || loading}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-xs font-black uppercase tracking-widest text-cyan-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-xs font-black uppercase tracking-widest text-cyan-100"
                 >
                   <Play size={15} />
-                  {t("runGate")}
+                  Run Gate
                 </button>
               </div>
             </Panel>
@@ -542,7 +460,7 @@ export default function BilgeAPIOpsConsole() {
 
       {activeTab === "keys" ? (
         <div className="grid gap-4 xl:grid-cols-[0.8fr_1.2fr]">
-          <Panel title={t("panels.createApiKey")} icon={<KeyRound size={16} />}>
+          <Panel title="Create API Key" icon={<KeyRound size={16} />}>
             <FormGrid>
               <select value={keyForm.role} onChange={(event) => setKeyForm({ ...keyForm, role: event.target.value })} className={inputClass}>
                 {roles.map((role) => (
@@ -551,10 +469,10 @@ export default function BilgeAPIOpsConsole() {
                   </option>
                 ))}
               </select>
-              <input className={inputClass} value={keyForm.tenant_id} onChange={(event) => setKeyForm({ ...keyForm, tenant_id: event.target.value })} placeholder={t("labels.tenantId")} />
-              <input className={inputClass} value={keyForm.description} onChange={(event) => setKeyForm({ ...keyForm, description: event.target.value })} placeholder={t("labels.description")} />
-              <input className={inputClass} value={keyForm.quota_daily} onChange={(event) => setKeyForm({ ...keyForm, quota_daily: event.target.value })} placeholder={t("labels.dailyQuota")} />
-              <input className={inputClass} value={keyForm.quota_monthly} onChange={(event) => setKeyForm({ ...keyForm, quota_monthly: event.target.value })} placeholder={t("labels.monthlyQuota")} />
+              <input className={inputClass} value={keyForm.tenant_id} onChange={(event) => setKeyForm({ ...keyForm, tenant_id: event.target.value })} placeholder="tenant_id" />
+              <input className={inputClass} value={keyForm.description} onChange={(event) => setKeyForm({ ...keyForm, description: event.target.value })} placeholder="description" />
+              <input className={inputClass} value={keyForm.quota_daily} onChange={(event) => setKeyForm({ ...keyForm, quota_daily: event.target.value })} placeholder="daily quota" />
+              <input className={inputClass} value={keyForm.quota_monthly} onChange={(event) => setKeyForm({ ...keyForm, quota_monthly: event.target.value })} placeholder="monthly quota" />
               <button
                 onClick={() =>
                   void runAction(
@@ -575,22 +493,22 @@ export default function BilgeAPIOpsConsole() {
                 className={primaryButtonClass}
               >
                 <Save size={15} />
-                {t("buttons.create")}
+                Create
               </button>
             </FormGrid>
             {createdKey ? (
               <div className="mt-4 rounded-lg border border-emerald-300/20 bg-emerald-300/10 p-4">
-                <div className="mb-2 text-xs font-black uppercase tracking-widest text-emerald-100">{t("labels.plaintextShownOnce")}</div>
+                <div className="mb-2 text-xs font-black uppercase tracking-widest text-emerald-100">Plaintext shown once</div>
                 <code className="block break-all rounded bg-black/40 p-3 text-xs text-white">{createdKey.plaintext_key}</code>
               </div>
             ) : null}
           </Panel>
 
-          <Panel title={t("panels.apiKeysAndQuotas")} icon={<Terminal size={16} />}>
+          <Panel title="API Keys & Quotas" icon={<Terminal size={16} />}>
             <div className="mb-4 grid gap-2 md:grid-cols-[1fr_0.7fr_0.7fr_auto]">
-              <input className={inputClass} value={quotaForm.key_id} onChange={(event) => setQuotaForm({ ...quotaForm, key_id: event.target.value })} placeholder={t("labels.keyId")} />
-              <input className={inputClass} value={quotaForm.quota_daily} onChange={(event) => setQuotaForm({ ...quotaForm, quota_daily: event.target.value })} placeholder={t("labels.dailyQuota")} />
-              <input className={inputClass} value={quotaForm.quota_monthly} onChange={(event) => setQuotaForm({ ...quotaForm, quota_monthly: event.target.value })} placeholder={t("labels.monthlyQuota")} />
+              <input className={inputClass} value={quotaForm.key_id} onChange={(event) => setQuotaForm({ ...quotaForm, key_id: event.target.value })} placeholder="key_id" />
+              <input className={inputClass} value={quotaForm.quota_daily} onChange={(event) => setQuotaForm({ ...quotaForm, quota_daily: event.target.value })} placeholder="daily" />
+              <input className={inputClass} value={quotaForm.quota_monthly} onChange={(event) => setQuotaForm({ ...quotaForm, quota_monthly: event.target.value })} placeholder="monthly" />
               <button
                 onClick={() =>
                   void runAction(
@@ -601,7 +519,7 @@ export default function BilgeAPIOpsConsole() {
                 className={secondaryButtonClass}
               >
                 <Save size={15} />
-                {t("buttons.set")}
+                Set
               </button>
             </div>
             <div className="space-y-3">
@@ -621,7 +539,7 @@ export default function BilgeAPIOpsConsole() {
 
       {activeTab === "research" ? (
         <div className="grid gap-4 xl:grid-cols-[0.8fr_1.2fr]">
-          <Panel title={t("panels.researchActions")} icon={<Search size={16} />}>
+          <Panel title="Research & Proposal Actions" icon={<Search size={16} />}>
             <FormGrid>
               <input className={inputClass} value={researchForm.incident_id} onChange={(event) => setResearchForm({ ...researchForm, incident_id: event.target.value })} placeholder="incident_id" />
               <input className={inputClass} value={researchForm.query} onChange={(event) => setResearchForm({ ...researchForm, query: event.target.value })} placeholder="research query" />
@@ -635,7 +553,7 @@ export default function BilgeAPIOpsConsole() {
                 }
               >
                 <Search size={15} />
-                {t("buttons.start")}
+                Start
               </button>
               <button
                 className={secondaryButtonClass}
@@ -643,33 +561,33 @@ export default function BilgeAPIOpsConsole() {
                 onClick={() => research && void runAction("proposal", createProposal(apiKey, research.id))}
               >
                 <FileText size={15} />
-                {t("buttons.proposal")}
+                Proposal
               </button>
             </FormGrid>
             <div className="mt-4 rounded-lg border border-white/10 bg-black/20 p-4 text-xs text-gray-300">
-              <div className="font-black uppercase tracking-widest text-white">{t("labels.latestResearch")}</div>
-              <div className="mt-2">{research ? `${research.id} / ${research.status}` : t("labels.noSessionResearch")}</div>
+              <div className="font-black uppercase tracking-widest text-white">Latest Research</div>
+              <div className="mt-2">{research ? `${research.id} / ${research.status}` : "No session research"}</div>
             </div>
             <CompactTable
               headers={["Domain", "Trust", "Title"]}
               rows={evidences.map((evidence) => [evidence.source_domain, evidence.trust_score.toFixed(0), evidence.title || evidence.source_url])}
-              empty={t("labels.emptyEvidence")}
+              empty="No evidence loaded"
             />
           </Panel>
-          <Panel title={t("panels.proposals")} icon={<FileText size={16} />}>
+          <Panel title="Improvement Proposals" icon={<FileText size={16} />}>
             <div className="mb-3 flex flex-wrap gap-2">
               <input className={inputClass} value={selectedProposalId} onChange={(event) => setSelectedProposalId(event.target.value)} placeholder="proposal_id" />
               <button className={secondaryButtonClass} onClick={() => selectedProposalId && void runAction("approve_proposal", approveProposal(apiKey, selectedProposalId))}>
                 <CheckCircle2 size={15} />
-                {t("buttons.approve")}
+                Approve
               </button>
               <button className={secondaryButtonClass} onClick={() => selectedProposalId && void runAction("run_gate", runProposalGate(apiKey, selectedProposalId))}>
                 <Play size={15} />
-                {t("buttons.gate")}
+                Gate
               </button>
               <button className={secondaryButtonClass} onClick={() => selectedProposalId && void runAction("draft_pr", createDraftPr(apiKey, selectedProposalId))}>
                 <GitPullRequestDraft size={15} />
-                {t("buttons.draft")}
+                Draft
               </button>
               <button
                 className={secondaryButtonClass}
@@ -679,7 +597,7 @@ export default function BilgeAPIOpsConsole() {
                 }
               >
                 <Eye size={15} />
-                {t("buttons.view")}
+                Report
               </button>
             </div>
             <ProposalList proposals={proposals} onSelect={setSelectedProposalId} />
@@ -919,7 +837,7 @@ export default function BilgeAPIOpsConsole() {
             {ledgerVerification ? (
               <div className={`mt-4 rounded-lg border p-4 ${ledgerVerification.valid ? "border-emerald-300/20 bg-emerald-300/10" : "border-rose-300/20 bg-rose-300/10"}`}>
                 <div className="text-xs font-black uppercase tracking-widest text-white">
-                  {ledgerVerification.valid ? t("labels.chainVerified") : t("labels.chainBroken")}
+                  {ledgerVerification.valid ? "Chain verified" : "Chain broken"}
                 </div>
                 <div className="mt-2 text-xs text-gray-300">
                   {ledgerVerification.entry_count} entries / head {ledgerVerification.head_hash || "-"}
@@ -953,8 +871,8 @@ export default function BilgeAPIOpsConsole() {
         <div className="space-y-6">
           <div className="grid gap-4 md:grid-cols-3">
             <Metric
-              label={t("labels.watchdogStatusLabel")}
-              value={watchdogStatus?.enabled ? `${t("labels.enabled")} / ACTIVE` : t("labels.disabled")}
+              label="Watchdog Status"
+              value={watchdogStatus?.enabled ? "ENABLED / ACTIVE" : "DISABLED"}
               icon={<ShieldCheck size={20} />}
               tone={watchdogStatus?.enabled ? "green" : "rose"}
             />
@@ -980,11 +898,10 @@ export default function BilgeAPIOpsConsole() {
                 </p>
                 <button
                   onClick={() => void runAction("run_watchdog_scan", runWatchdogScan(apiKey))}
-                  disabled={!isMutateAllowed || loading}
                   className={primaryButtonClass}
                 >
                   <Play size={14} />
-                  {t("labels.runScanNow")}
+                  Run Scan Now
                 </button>
               </div>
 
@@ -992,20 +909,20 @@ export default function BilgeAPIOpsConsole() {
                 <table className="w-full min-w-[640px] border-collapse text-left text-xs">
                   <thead className="bg-white/5 text-[10px] uppercase tracking-widest text-gray-500">
                     <tr>
-                      <th className="px-3 py-2 font-black">{t("table.findingId")}</th>
-                      <th className="px-3 py-2 font-black">{t("table.source")}</th>
-                      <th className="px-3 py-2 font-black">{t("table.title")}</th>
-                      <th className="px-3 py-2 font-black">{t("table.severity")}</th>
-                      <th className="px-3 py-2 font-black">{t("table.riskScore")}</th>
-                      <th className="px-3 py-2 font-black">{t("table.status")}</th>
-                      <th className="px-3 py-2 font-black">{t("table.actions")}</th>
+                      <th className="px-3 py-2 font-black">Finding ID</th>
+                      <th className="px-3 py-2 font-black">Source</th>
+                      <th className="px-3 py-2 font-black">Title</th>
+                      <th className="px-3 py-2 font-black">Severity</th>
+                      <th className="px-3 py-2 font-black">Risk Score</th>
+                      <th className="px-3 py-2 font-black">Status</th>
+                      <th className="px-3 py-2 font-black">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {systemFindings.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="px-3 py-4 text-center text-gray-500 font-bold uppercase tracking-widest">
-                          {t("labels.noFindings")}
+                          No system findings registered
                         </td>
                       </tr>
                     ) : (
@@ -1039,13 +956,13 @@ export default function BilgeAPIOpsConsole() {
                                     onClick={() => void runAction(`ack_finding_${finding.id}`, acknowledgeFinding(apiKey, finding.id))}
                                     className="rounded border border-emerald-300/20 bg-emerald-300/10 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-100"
                                   >
-                                    {t("buttons.acknowledge")}
+                                    Acknowledge
                                   </button>
                                   <button
                                     onClick={() => void runAction(`dismiss_finding_${finding.id}`, dismissFinding(apiKey, finding.id))}
                                     className="rounded border border-rose-300/20 bg-rose-300/10 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-rose-100"
                                   >
-                                    {t("buttons.dismiss")}
+                                    Dismiss
                                   </button>
                                 </>
                               )}
@@ -1060,53 +977,52 @@ export default function BilgeAPIOpsConsole() {
             </Panel>
 
             <div className="space-y-6">
-              {/* Test Assertion Check: Forbidden Governor Actions */}
-              <Panel title={t("panels.forbiddenActions")} icon={<Lock size={16} />}>
+              <Panel title="Forbidden Governor Actions" icon={<Lock size={16} />}>
                 <p className="mb-4 text-xs text-gray-400">
-                  {t("labels.forbiddenDesc")}
+                  The following operations are restricted by security policy and cannot be executed automatically by the Governor:
                 </p>
                 <div className="space-y-2 text-xs">
                   {[
-                    { action: "auto_merge" },
-                    { action: "auto_deploy" },
-                    { action: "auto_revoke_key" },
-                    { action: "production_migration_apply" },
-                    { action: "branch_push" },
-                    { action: "production_config_change" },
-                  ].map(({ action }) => (
+                    { action: "auto_merge", desc: "Automatic merging of PR branches to master/main" },
+                    { action: "auto_deploy", desc: "Automatic deployment of patched builds to production" },
+                    { action: "auto_revoke_key", desc: "Automatic revocation of API keys without operator sign-off" },
+                    { action: "production_migration_apply", desc: "Direct execution of schema migrations on production DB" },
+                    { action: "branch_push", desc: "Direct git pushes bypassing pull requests" },
+                    { action: "production_config_change", desc: "Altering live environment variables without human gate" },
+                  ].map(({ action, desc }) => (
                     <div key={action} className="flex items-center justify-between rounded border border-rose-400/10 bg-rose-400/5 p-2.5">
                       <div>
                         <span className="font-mono font-bold text-rose-300">{action}</span>
-                        <p className="mt-0.5 text-[10px] text-gray-500">{t(`labels.forbiddenActionsList.${action}`)}</p>
+                        <p className="mt-0.5 text-[10px] text-gray-500">{desc}</p>
                       </div>
                       <span className="rounded border border-rose-300/20 bg-rose-300/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-rose-100">
-                        {t("labels.forbidden")}
+                        FORBIDDEN
                       </span>
                     </div>
                   ))}
                 </div>
               </Panel>
 
-              <Panel title={t("panels.governanceAudit")} icon={<ShieldCheck size={16} />}>
+              <Panel title="Governance Audit Status" icon={<ShieldCheck size={16} />}>
                 <div className="space-y-4 text-xs text-gray-400">
                   <div className="flex justify-between border-b border-white/5 pb-2">
-                    <span>{t("labels.watchdogEnabled")}</span>
-                    <span className="font-bold text-emerald-400">{watchdogStatus?.enabled ? t("labels.yes") : t("labels.no")}</span>
+                    <span>Watchdog Enabled</span>
+                    <span className="font-bold text-emerald-400">{watchdogStatus?.enabled ? "YES" : "NO"}</span>
                   </div>
                   <div className="flex justify-between border-b border-white/5 pb-2">
-                    <span>{t("labels.riskThreshold")}</span>
+                    <span>Risk Threshold</span>
                     <span className="font-mono font-bold text-white">{watchdogStatus?.risk_threshold ?? 70}</span>
                   </div>
                   <div className="flex justify-between border-b border-white/5 pb-2">
-                    <span>{t("labels.autoFindingCreation")}</span>
-                    <span className="font-bold text-emerald-400">{watchdogStatus?.auto_finding ? t("labels.enabled") : t("labels.disabled")}</span>
+                    <span>Auto Finding Creation</span>
+                    <span className="font-bold text-emerald-400">{watchdogStatus?.auto_finding ? "ENABLED" : "DISABLED"}</span>
                   </div>
                   <div className="flex justify-between border-b border-white/5 pb-2">
-                    <span>{t("labels.humanGateRequired")}</span>
-                    <span className="font-bold text-amber-400">{watchdogStatus?.human_gate_required ? t("labels.yes") : t("labels.no")}</span>
+                    <span>Human Gate Required</span>
+                    <span className="font-bold text-amber-400">{watchdogStatus?.human_gate_required ? "YES" : "NO"}</span>
                   </div>
                   <p className="text-[10px] text-gray-500">
-                    {t("labels.watchdogFooter")}
+                    All watchdog findings trigger an entry in the review ledger. Actions that breach safety limits are routed to the human operator gate.
                   </p>
                 </div>
               </Panel>
@@ -1117,18 +1033,6 @@ export default function BilgeAPIOpsConsole() {
 
       {activeTab === "remediation" ? (
         <div className="space-y-6">
-          {!managementUnlocked ? (
-            <section className="rounded-lg border border-amber-300/20 bg-amber-300/10 p-4 text-amber-100">
-              <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest">
-                <Lock size={15} />
-                {t("labels.managementActionsLocked")}
-              </div>
-              <p className="mt-2 text-xs text-amber-50">
-                {t("labels.managementGateWarning")}
-              </p>
-            </section>
-          ) : null}
-
           <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
             <Panel title="Trigger Remediation" icon={<ShieldCheck size={16} />}>
               <FormGrid>
@@ -1151,10 +1055,8 @@ export default function BilgeAPIOpsConsole() {
                   ))}
                 </select>
                 <button
-                  disabled={!managementUnlocked}
-                  className={`${primaryButtonClass} disabled:cursor-not-allowed disabled:opacity-40`}
+                  className={primaryButtonClass}
                   onClick={() =>
-                    managementUnlocked &&
                     remediationForm.finding_id &&
                     remediationForm.runbook_id &&
                     void runAction(
@@ -1186,11 +1088,8 @@ export default function BilgeAPIOpsConsole() {
                   <option value="restart_worker">Restart Worker Service</option>
                 </select>
                 <button
-                  disabled={!managementUnlocked || !isMutateAllowed || loading}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-300/20 bg-rose-300/10 px-4 py-2 text-xs font-black uppercase tracking-widest text-rose-100 hover:bg-rose-300/15 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-300/20 bg-rose-300/10 px-4 py-2 text-xs font-black uppercase tracking-widest text-rose-100 hover:bg-rose-300/15"
                   onClick={() =>
-                    managementUnlocked &&
-                    isMutateAllowed &&
                     emergencyForm.finding_id &&
                     void runAction(
                       "emergency_recovery",
@@ -1246,17 +1145,15 @@ export default function BilgeAPIOpsConsole() {
                         <td className="px-3 py-2">
                           {rb.enabled ? (
                             <button
-                              disabled={!managementUnlocked}
-                              onClick={() => managementUnlocked && void runAction(`disable_runbook_${rb.id}`, disableRemediationRunbook(apiKey, rb.id))}
-                              className="rounded border border-rose-300/20 bg-rose-300/10 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-rose-100 disabled:cursor-not-allowed disabled:opacity-40"
+                              onClick={() => void runAction(`disable_runbook_${rb.id}`, disableRemediationRunbook(apiKey, rb.id))}
+                              className="rounded border border-rose-300/20 bg-rose-300/10 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-rose-100"
                             >
                               Disable
                             </button>
                           ) : (
                             <button
-                              disabled={!managementUnlocked}
-                              onClick={() => managementUnlocked && void runAction(`enable_runbook_${rb.id}`, enableRemediationRunbook(apiKey, rb.id))}
-                              className="rounded border border-emerald-300/20 bg-emerald-300/10 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-100 disabled:cursor-not-allowed disabled:opacity-40"
+                              onClick={() => void runAction(`enable_runbook_${rb.id}`, enableRemediationRunbook(apiKey, rb.id))}
+                              className="rounded border border-emerald-300/20 bg-emerald-300/10 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-100"
                             >
                               Enable
                             </button>
@@ -1349,14 +1246,6 @@ export default function BilgeAPIOpsConsole() {
 
       {activeTab === "agents" ? (
         <div className="space-y-6">
-          {agentAuthRequired ? (
-            <section className="rounded-lg border border-amber-300/20 bg-amber-300/10 p-4">
-              <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-amber-100">
-                <AlertTriangle size={15} />
-                <span>{agentDataNotice}</span>
-              </div>
-            </section>
-          ) : null}
           <div className="grid gap-4 xl:grid-cols-[1fr_1.4fr]">
             
             {/* Left side: Capabilities list and Runs list */}
@@ -1365,7 +1254,7 @@ export default function BilgeAPIOpsConsole() {
               <Panel title="Agent Capabilities" icon={<Terminal size={16} />}>
                 <div className="space-y-3">
                   {agentCapabilities.length === 0 ? (
-                    <EmptyState text={agentAuthRequired ? agentDataNotice : "No agent capability loaded"} />
+                    <EmptyState text="No agent capability loaded" />
                   ) : (
                     agentCapabilities.map((cap) => (
                       <div key={cap.agent_key} className="rounded-lg border border-white/10 bg-black/20 p-4">
@@ -1410,26 +1299,15 @@ export default function BilgeAPIOpsConsole() {
               <Panel title="Recent Sandbox Runs" icon={<Activity size={16} />}>
                 <div className="space-y-3">
                   {agentRuns.length === 0 ? (
-                    <EmptyState text={agentAuthRequired ? agentDataNotice : "No agent run loaded"} />
+                    <EmptyState text="No agent run loaded" />
                   ) : (
                     agentRuns.slice(0, 15).map((run) => (
                       <div key={run.run_id} className="rounded-lg border border-white/10 bg-black/20 p-4 text-xs">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <span className="font-mono font-black text-white">{run.run_id}</span>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className={`rounded border px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${statusTone(run.status)}`}>
-                              {run.status}
-                            </span>
-                            {["FAILED", "BLOCKED"].includes(String(run.status).toUpperCase()) ? (
-                              <button
-                                onClick={() => void runAction(`retry_agent_run_${run.run_id}`, retryAgentRun(apiKey, run.run_id))}
-                                className="inline-flex items-center gap-1 rounded border border-amber-300/20 bg-amber-300/10 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-amber-100 hover:bg-amber-300/15"
-                              >
-                                <RefreshCw size={12} />
-                                Retry Failed
-                              </button>
-                            ) : null}
-                          </div>
+                          <span className={`rounded border px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${statusTone(run.status)}`}>
+                            {run.status}
+                          </span>
                         </div>
                         <div className="mt-2 grid grid-cols-2 gap-2 text-gray-400">
                           <div>Agent: <span className="text-gray-200">{run.agent_key}</span></div>
@@ -1454,7 +1332,7 @@ export default function BilgeAPIOpsConsole() {
               <Panel title="Promotion Requests" icon={<ClipboardCheck size={16} />}>
                 <div className="space-y-3">
                   {agentPromotions.length === 0 ? (
-                    <EmptyState text={agentAuthRequired ? agentDataNotice : "No promotion request registered"} />
+                    <EmptyState text="No promotion request registered" />
                   ) : (
                     agentPromotions.map((promo) => (
                       <button

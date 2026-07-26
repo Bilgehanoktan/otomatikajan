@@ -1,0 +1,204 @@
+{
+  "account": "@ai_gucum_",
+  "status": "LIVE_IN_PROGRESS",
+  "created_on": "2026-07-24",
+  "design": {
+    "background": "#070A11",
+    "panel": "#101827",
+    "text": "#F8FAFC",
+    "muted": "#A8B3C7",
+    "cyan": "#23D5FF",
+    "violet": "#9B6CFF",
+    "lime": "#C9FF45"
+  },
+  "posts": [
+    {
+      "id": "01_account_promise",
+      "format": "carousel",
+      "dimensions": [1080, 1350],
+      "slides": [
+        {
+          "eyebrow": "AI GÜCÜM • BAŞLANGIÇ",
+          "title": "AI gündemini takip etmek yetmez.",
+          "subtitle": "Burada öğrendiğin şeyi aynı gün uygularsın.",
+          "accent": "cyan",
+          "footer": "Kaydır → hesabın vaadi"
+        },
+        {
+          "eyebrow": "NE BULACAKSIN?",
+          "title": "Bilgi değil, uygulanabilir iş akışı.",
+          "items": [
+            "Güncel araçlar • resmî kaynaklarıyla",
+            "Tekrarlanabilir promptlar • net adımlarla",
+            "Gerçek proje denetimleri • kanıtlarıyla"
+          ],
+          "accent": "violet",
+          "footer": "2 / 6"
+        },
+        {
+          "eyebrow": "İÇERİK İLKESİ",
+          "title": "Daha az gürültü. Daha güçlü kanıt.",
+          "items": [
+            "Daha az ve düzenli gönderi",
+            "Özgün demo ve gerçek ekran",
+            "Her içerikte tek, ölçülebilir CTA"
+          ],
+          "accent": "lime",
+          "footer": "3 / 6"
+        },
+        {
+          "eyebrow": "KİMLER İÇİN?",
+          "title": "AI ile daha iyi iş çıkarmak isteyenler.",
+          "items": [
+            "Yazılımcılar ve solo geliştiriciler",
+            "Freelancerlar ve içerik üreticileri",
+            "Küçük işletme sahipleri"
+          ],
+          "accent": "cyan",
+          "footer": "4 / 6"
+        },
+        {
+          "eyebrow": "HER HAFTA",
+          "title": "Üç ana içerik, tek öğrenme döngüsü.",
+          "items": [
+            "2 kısa, özgün demo Reel",
+            "1 kaydetmelik carousel",
+            "Story anketleriyle konu seçimi"
+          ],
+          "accent": "violet",
+          "footer": "5 / 6"
+        },
+        {
+          "eyebrow": "ŞİMDİ BAŞLIYORUZ",
+          "title": "İlk rehberi kaçırma.",
+          "subtitle": "Takip et; hangi konuyu test edeceğimize birlikte karar verelim.",
+          "accent": "lime",
+          "footer": "@ai_gucum_"
+        }
+      ]
+    },
+    {
+      "id": "02_claude_opus_5_copilot",
+      "format": "reel_storyboard",
+      "dimensions": [1080, 1920],
+      "seconds_per_frame": 5,
+      "slides": [
+        {
+          "eyebrow": "25 SANİYEDE GÜNCELLEME",
+          "title": "Copilot'a bugün gelen model uzun görevlerde neyi değiştiriyor?",
+          "subtitle": "Claude Opus 5 • GitHub Copilot",
+          "accent": "cyan",
+          "footer": "Kaynak: GitHub Changelog"
+        },
+        {
+          "eyebrow": "24 TEMMUZ 2026",
+          "title": "Claude Opus 5 artık GitHub Copilot'ta.",
+          "subtitle": "GitHub duyurdu; dağıtım kademeli ilerliyor.",
+          "accent": "violet",
+          "footer": "2 / 5"
+        },
+        {
+          "eyebrow": "NEREDEN FARKLI?",
+          "title": "Karmaşık, uzun süren ve çok adımlı kod görevleri.",
+          "items": [
+            "Dikkatli akıl yürütme",
+            "Etkili araç kullanımı",
+            "Birden fazla adımda güvenilir yürütme"
+          ],
+          "accent": "lime",
+          "footer": "GitHub'ın ürün konumlandırması"
+        },
+        {
+          "eyebrow": "NASIL SEÇİLİR?",
+          "title": "Copilot model picker → Claude Opus 5",
+          "subtitle": "Business ve Enterprise hesaplarında yönetici politikası gerekebilir.",
+          "accent": "cyan",
+          "footer": "Hesabında hemen görünmeyebilir"
+        },
+        {
+          "eyebrow": "GERÇEK TEST SÖZLEŞMESİ",
+          "title": "Hedefli değişiklik. Regression kontrolü. Kanıt.",
+          "subtitle": "Bir repo göreviyle test etmemi istiyorsan yorumlara TEST yaz.",
+          "accent": "violet",
+          "footer": "@ai_gucum_"
+        }
+      ]
+    },
+    {
+      "id": "03_gpt_5_6_models",
+      "format": "carousel",
+      "dimensions": [1080, 1350],
+      "slides": [
+        {
+          "eyebrow": "GPT-5.6 MODEL SEÇİMİ",
+          "title": "En güçlü modeli her işte kullanmak neden hata?",
+          "subtitle": "Sol, Terra ve Luna'yı göreve göre seç.",
+          "accent": "violet",
+          "footer": "Kaydır → 30 saniyelik seçim kuralı"
+        },
+        {
+          "eyebrow": "TEK AİLE • ÜÇ KATMAN",
+          "title": "Görev büyüdükçe doğru katmanı seç.",
+          "items": [
+            "Sol • en zor işler",
+            "Terra • dengeli günlük iş",
+            "Luna • hız ve uygun maliyet"
+          ],
+          "accent": "cyan",
+          "footer": "Kaynak: OpenAI • 9 Temmuz 2026"
+        },
+        {
+          "eyebrow": "SOL",
+          "title": "Kritik kalite ve derin akıl yürütme.",
+          "items": [
+            "Zor kodlama ve mimari kararlar",
+            "Uzun, araç kullanan iş akışları",
+            "Hata maliyeti yüksek teslimler"
+          ],
+          "accent": "lime",
+          "footer": "En zor görevler için"
+        },
+        {
+          "eyebrow": "TERRA",
+          "title": "Günlük işlerde dengeli varsayılan.",
+          "items": [
+            "Kod, analiz ve belge işleri",
+            "Kalite ile maliyet dengesi",
+            "Sık tekrarlanan ekip akışları"
+          ],
+          "accent": "cyan",
+          "footer": "Dengeli model"
+        },
+        {
+          "eyebrow": "LUNA",
+          "title": "Hız ve ölçek öncelikliyse.",
+          "items": [
+            "Sınıflandırma ve ilk taslak",
+            "Daha hafif görevler",
+            "Yüksek hacimli otomasyon"
+          ],
+          "accent": "violet",
+          "footer": "En hızlı ve en uygun maliyetli katman"
+        },
+        {
+          "eyebrow": "30 SANİYELİK KURAL",
+          "title": "Önce görevi, sonra modeli seç.",
+          "items": [
+            "Kritik ve karmaşık → Sol",
+            "Günlük ve dengeli → Terra",
+            "Hızlı ve yüksek hacimli → Luna"
+          ],
+          "accent": "lime",
+          "footer": "Kendi kalite • gecikme • maliyet verinle doğrula"
+        },
+        {
+          "eyebrow": "SENİN SEÇİMİN?",
+          "title": "Sol, Terra veya Luna?",
+          "subtitle": "En çok kullandığın modeli yorumlara yaz.",
+          "accent": "cyan",
+          "footer": "@ai_gucum_ • Kaynak: openai.com/index/gpt-5-6/"
+        }
+      ]
+    }
+  ]
+}

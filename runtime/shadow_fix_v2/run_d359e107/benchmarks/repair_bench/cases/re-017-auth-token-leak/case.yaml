@@ -1,5 +1,0 @@
-id: re-017-auth-token-leak
-severity: high
-subsystem: security
-title: Potential Auth Token Exposure in Verbose Logs
-type: incident_replay

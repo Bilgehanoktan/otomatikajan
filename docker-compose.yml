@@ -74,7 +74,6 @@ services:
       PAYLOAD_PUBLIC_SERVER_URL: http://localhost:3100
       NEXT_PUBLIC_API_URL: http://app:8000
       BACKEND_ORIGIN: http://app:8000
-      BILGEAPI_ORIGIN: http://bilgeapi:8100
     ports:
       - "3100:3100"
 
@@ -278,7 +277,6 @@ services:
       - ./libs/vendor/deer-flow/skills:/app/skills:ro
       - ./libs:/app/backend/packages/harness/deerflow/hub_cortex:ro
       - ./services:/app/backend/packages/harness/deerflow/hub_guardian:ro
-      - ./services:/app/backend/packages/harness/deerflow/hub_guardian:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8010/health"]
       interval: 30s
@@ -316,7 +314,6 @@ services:
       PYTHONPATH: /app
       PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
       DOCKER_CONTAINER: "true"
-      BACKEND_API_URL: http://app:8000
     command: ["python", "-m", "apps.telegram_bot.polling"]
     depends_on:
       db:

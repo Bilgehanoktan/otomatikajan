@@ -126,3 +126,102 @@ py -3.13 scripts/verify_bilgeapi_migrations.py
 - Auth dışındaki endpoint arızaları `partialData` görünümünde kalmaya devam eder.
 - Geçerli anahtarla `/v1/admin/api-keys` ve `/bilgeapi-ops` canlı doğrulaması geçer.
 - Browser console/page error sonucu ve screenshot kanıtı üretilir.
+
+---
+
+# Implementation Plan — ContentOrchestrator MVP
+
+## Amaç
+
+Instagram içerik araştırmasından çıkan tekrar edilebilir büyüme kalıplarını,
+canlı yayın veya ücretli sağlayıcı çağrısı yapmadan güvenli bir kampanya planına
+dönüştüren `ContentOrchestrator` çekirdeğini oluşturmak.
+
+## Kapsam
+
+- İçerik amaçları: `reach`, `lead`, `save`, `authority`.
+- Formatlar: `reel`, `carousel`, `hybrid`.
+- Üç MVP şablonu: araç listesi carousel'i, tek-prompt demo Reels'i ve duygusal
+  mini hikâye Reels'i.
+- CTA modları: `save_share` ve benzersiz anahtar kelimeye bağlı `keyword_dm`.
+- Sağlayıcı yönlendirme modları: `auto`, `compare`, `pipeline`.
+- Sağlayıcı adayları: `veo`, `seedance`, `kling`, `hailuo`; profil ve yetenekler
+  yapılandırılabilir olacak, dış API çağrısı yapılmayacak.
+- Kaynaksız doğrulanabilir iddialar için fail-closed claim gate.
+- İzlenecek metrikler: üç saniye tutma, tamamlanma, kaydetme, paylaşma, yorum,
+  DM dönüşümü ve satış dönüşümü.
+- Her plan `OperationEvidence` üzerinden `EpisodeRecord` / `ActionRecord`
+  kanıt hattına yazılabilecek.
+- FastAPI üzerinde yalnız plan üreten, dış etkisiz `POST /content/plans` sözleşmesi.
+
+## TDD ve Doğrulama
+
+1. Önce unit ve API contract testleri yazılacak ve eksik uygulama nedeniyle
+   başarısız oldukları doğrulanacak.
+2. Minimum uygulama ile testler geçirilecek; dış sağlayıcı ve Meta publish
+   işlemleri kapsam dışında kalacak.
+3. Hedefli coverage en az `%80`, Ruff ve import/type smoke çalıştırılacak.
+4. Diff yalnız `services/social_growth`, `tests/social_growth` ve bu planın yeni
+   bölümü için gözden geçirilecek.
+
+## Kabul Kriterleri
+
+- Geçersiz `keyword_dm`, tekrarlanan sağlayıcı veya kaynaksız claim fail-closed
+  davranır.
+- `auto`, `compare` ve `pipeline` deterministik ve test edilebilir rota üretir.
+- Her plan hook, içerik parçaları, CTA, provider route, kalite geçitleri ve ölçüm
+  sözleşmesi içerir.
+- Plan üretimi `DRY_RUN` evidence oluşturur ve canlı paylaşım iddiasında bulunmaz.
+
+---
+
+# Implementation Plan — Governed Multi-Provider Creative Agent ve 90 Günlük Büyüme
+
+## Amaç
+
+Mevcut `ContentOrchestrator` planını OpenAI Structured Outputs ile üretim taslağına
+dönüştürmek, Veo/Hailuo için doğrulanmış API sözleşmelerini adaptör katmanına almak,
+Seedance/Kling'i doğrulanmış operator konfigürasyonu yokken fail-closed tutmak ve
+`@ai_gucum_` için ölçülebilir 90 günlük hesap büyüme planı üretmek.
+
+## Yönetişim Sınırları
+
+- GPT yalnızca verilen brief, claim ve kaynaklardan yapılandırılmış taslak üretir.
+- LLM tarafından eklenen kaynak URL veya kaynak dışı doğrulanabilir iddia engellenir.
+- Video üretimi maliyetli bir dış etkidir; planla eşleşen `HumanApproval` olmadan
+  hiçbir provider çağrısı yapılmaz.
+- Veo ve Hailuo endpoint/model sözleşmeleri resmi dokümana dayanır.
+- Seedance ve Kling için doğrulanmamış endpoint veya payload şeması uydurulmaz;
+  operator tarafından yapılandırılana kadar `BLOCKED_PROVIDER_NOT_CONFIGURED` döner.
+- API key, access token ve authorization header evidence/log/response içine yazılmaz.
+- Instagram publish, yorum ve DM otomasyonu bu fazda kapsam dışıdır.
+
+## TDD Uygulama Sırası
+
+1. `OpenAICreativePlanner` yapılandırılmış çıktı, grounding ve güvenli hata testleri.
+2. `HumanApproval` fail-closed kararı ile provider registry testleri.
+3. Veo ve Hailuo submit/poll sözleşme testleri; gizli header'ların çıktıdan
+   sızmadığının testi.
+4. Seedance/Kling yapılandırılmamış durum testleri.
+5. 12 haftalık `AccountGrowthPlanBuilder`, içerik dağılımı ve KPI checkpoint testleri.
+6. Korumalı HTTP contract testleri ve mevcut endpoint regresyon testleri.
+
+## 90 Günlük Operasyon Modeli
+
+- Haftalık ritim: 2 Reel + 1 carousel, 4-6 gün Story.
+- 36 ana içerik: 11 güncel AI, 11 uygulamalı iş akışı, 7 karşılaştırma,
+  4 AI Company perde arkası ve 3 güvenlik/mit içeriği.
+- Hafta 1-2: profil onarımı ve ilk dört kaliteli gönderiden baseline.
+- Hafta 3-6: hook, format ve yayın penceresi deneyleri.
+- Hafta 7-10: doğrulanmış lead magnet ve keyword-DM dönüşüm deneyi.
+- Hafta 11-12: yalnız provider metriğiyle kazanan sütunları ölçekleme.
+- 24h/72h/7d snapshot; garanti takipçi hedefi veya uydurma benchmark yok.
+
+## Kabul Kriterleri
+
+- GPT çıktısı Pydantic şemasına uyar; çıktı yoksa veya yeni kaynak eklerse fail-closed.
+- Onaysız ya da yanlış `plan_id` onaylı video işi provider transport'una ulaşmaz.
+- Veo/Hailuo görev kimlikleri normalize edilmiş `VideoJob` olarak döner.
+- Seedance/Kling varsayılan durumda açık bir blocker kodu verir.
+- 90 günlük plan tam 12 hafta, 36 ana gönderi ve 24h/72h/7d checkpoint içerir.
+- Hedefli test coverage en az `%80`; Ruff, mypy ve Bandit geçer.

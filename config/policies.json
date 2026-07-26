@@ -13,8 +13,8 @@
     "main.py"
   ],
   "automation_thresholds": {
-    "confidence_min": 70,
-    "max_files": 4
+    "confidence_min": 65,
+    "max_files": 6
   },
   "learned_policies": []
 }

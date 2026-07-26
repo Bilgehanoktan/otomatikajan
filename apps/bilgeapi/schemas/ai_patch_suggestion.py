@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class AIPatchSuggestionRequest(BaseModel):
@@ -11,6 +11,8 @@ class AIPatchSuggestionRequest(BaseModel):
 
 
 class AIPatchSuggestionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     pr_draft_id: str
     feedback_id: Optional[str] = None
@@ -29,13 +31,6 @@ class AIPatchSuggestionResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    model_config = {
-
-
-        "from_attributes": True
-
-
-    }
 
 
 class AIPatchSuggestionDecisionRequest(BaseModel):

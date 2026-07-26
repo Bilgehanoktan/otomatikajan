@@ -1,86 +1,5 @@
-
-import inspect
-import asyncio
-from functools import wraps
-from datetime import datetime
-
-def tenant_compatibility_bridge(func):
-    sig = inspect.signature(func)
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        params = list(sig.parameters.values())
-        has_tenant = 'tenant_id' in sig.parameters
-        new_args = list(args)
-        
-        tenant_idx = -1
-        bypass_idx = -1
-        day_idx = -1
-        for idx, param in enumerate(params):
-            if param.name == 'tenant_id':
-                tenant_idx = idx
-            elif param.name == 'bypass_tenant':
-                bypass_idx = idx
-            elif param.name == 'day':
-                day_idx = idx
-                
-        if tenant_idx != -1 and len(new_args) > tenant_idx:
-            val = new_args[tenant_idx]
-            if isinstance(val, bool) and bypass_idx != -1:
-                if len(new_args) > bypass_idx:
-                    new_args[bypass_idx] = val
-                else:
-                    kwargs['bypass_tenant'] = val
-                new_args[tenant_idx] = "default"
-            elif isinstance(val, datetime) and day_idx != -1:
-                if len(new_args) > day_idx:
-                    new_args[day_idx] = val
-                else:
-                    kwargs['day'] = val
-                new_args[tenant_idx] = "default"
-            elif val is None:
-                new_args[tenant_idx] = "default"
-            elif val == "":
-                raise ValueError("tenant_id is required")
-                
-        if 'tenant_id' in kwargs:
-            val = kwargs['tenant_id']
-            if isinstance(val, bool) and bypass_idx != -1:
-                kwargs['bypass_tenant'] = val
-                kwargs['tenant_id'] = "default"
-            elif isinstance(val, datetime) and day_idx != -1:
-                kwargs['day'] = val
-                kwargs['tenant_id'] = "default"
-            elif val is None:
-                kwargs['tenant_id'] = "default"
-            elif val == "":
-                raise ValueError("tenant_id is required")
-                
-        if has_tenant:
-            if len(new_args) <= tenant_idx and 'tenant_id' not in kwargs:
-                kwargs['tenant_id'] = "default"
-                
-        try:
-            bound = sig.bind(*new_args, **kwargs)
-            bound.apply_defaults()
-        except TypeError as err:
-            raise err
-            
-        t_val = bound.arguments.get('tenant_id')
-        if t_val == "":
-            raise ValueError("tenant_id is required")
-            
-        return await func(*bound.args, **bound.kwargs)
-    return wrapper
-
-def compatibility_class_decorator(cls):
-    for name, method in list(cls.__dict__.items()):
-        if asyncio.iscoroutinefunction(method) or inspect.iscoroutinefunction(method):
-            setattr(cls, name, tenant_compatibility_bridge(method))
-    return cls
-
 from datetime import datetime, timezone
 import uuid
-import logging
 from typing import List, Optional, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, func
@@ -91,8 +10,7 @@ from apps.bilgeapi.repositories.interface import (
     PrDraftRepository, PrVerificationRepository, PrReviewFeedbackRepository, PatchRevisionRepository,
     ReviewLedgerRepository,
     AIPatchSuggestionRepository, SystemFindingRepository,
-    RemediationRunbookRepository, RemediationAttemptRepository,
-    AutonomyDecisionRepository
+    RemediationRunbookRepository, RemediationAttemptRepository
 )
 from apps.bilgeapi.schemas.incident import IncidentCreate, IncidentResponse
 from apps.bilgeapi.schemas.diagnostic import DiagnosticResult, DiagnosticStatus
@@ -104,68 +22,17 @@ from apps.bilgeapi.models.database import (
     ApiKeyModel, ResearchRequestModel, ResearchEvidenceModel, ImprovementProposalModel,
     PrDraftModel, PrVerificationModel, PrReviewFeedbackModel, PatchRevisionModel,
     ReviewLedgerEntryModel, AIPatchSuggestionModel, SystemFindingModel,
-    RemediationRunbookModel, RemediationAttemptModel, AutonomyDecisionModel
+    RemediationRunbookModel, RemediationAttemptModel
 )
 
-logger = logging.getLogger(__name__)
-
-async def _log_postgres_security_event(
-    db: AsyncSession,
-    tenant_id: str,
-    action: str,
-    target: str,
-    actual_tenant: Optional[str]
-):
-    model = AuditEventModel(
-        id=f"evt_{uuid.uuid4().hex[:8]}",
-        event_type="CROSS_TENANT_ACCESS_DENIED",
-        actor_id="anonymous",
-        actor_type="system",
-        entity_type="security_gate",
-        entity_id=target,
-        before_state={"requested_tenant": tenant_id},
-        after_state={"actual_tenant": actual_tenant},
-        metadata_fields={"action": action},
-        tenant_id=tenant_id,
-        created_at=datetime.utcnow()
-    )
-    db.add(model)
-    await db.commit()
-
-async def _check_postgres_tenant(
-    db: AsyncSession,
-    model_instance: Any,
-    tenant_id: str,
-    bypass_tenant: bool,
-    action: str,
-    target: str
-) -> bool:
-    if bypass_tenant:
-        return True
-    if not tenant_id:
-        raise ValueError("tenant_id is required (missing tenant context fails closed)")
-    
-    obj_tenant = getattr(model_instance, "tenant_id", None)
-    if obj_tenant is None:
-        obj_tenant = "default"
-    if obj_tenant != tenant_id:
-        await _log_postgres_security_event(db, tenant_id, action, target, obj_tenant)
-        return False
-    return True
-
-
-@compatibility_class_decorator
 class PostgresIncidentRepository(IncidentRepository):
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def create(self, incident: IncidentCreate, tenant_id: str) -> IncidentResponse:
-        if not tenant_id:
-            raise ValueError("tenant_id is required")
+    async def create(self, incident: IncidentCreate) -> IncidentResponse:
         inc_id = f"inc_{uuid.uuid4().hex[:8]}"
         model = IncidentModel(
             id=inc_id,
-            tenant_id=tenant_id,
             project_key=incident.project_key,
             source_system=incident.source_system,
             environment=incident.environment,
@@ -197,12 +64,10 @@ class PostgresIncidentRepository(IncidentRepository):
             metadata=model.metadata_fields or {}
         )
 
-    async def get(self, incident_id: str, tenant_id: str, bypass_tenant: bool = False) -> Optional[IncidentResponse]:
+    async def get(self, incident_id: str) -> Optional[IncidentResponse]:
         res = await self.db.execute(select(IncidentModel).where(IncidentModel.id == incident_id))
         model = res.scalar_one_or_none()
         if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "get", f"incident:{incident_id}"):
             return None
         return IncidentResponse(
             id=model.id,
@@ -220,15 +85,10 @@ class PostgresIncidentRepository(IncidentRepository):
             metadata=model.metadata_fields or {}
         )
 
-    async def list_all(self, tenant_id: str, project_key: Optional[str] = None, bypass_tenant: bool = False) -> List[IncidentResponse]:
-        if not bypass_tenant and not tenant_id:
-            raise ValueError("tenant_id is required")
-        query = select(IncidentModel)
-        if not bypass_tenant:
-            query = query.where(IncidentModel.tenant_id == tenant_id)
+    async def list_all(self, project_key: Optional[str] = None) -> List[IncidentResponse]:
+        query = select(IncidentModel).order_by(desc(IncidentModel.created_at))
         if project_key:
             query = query.where(IncidentModel.project_key == project_key)
-        query = query.order_by(desc(IncidentModel.created_at))
         res = await self.db.execute(query)
         models = res.scalars().all()
         return [
@@ -251,18 +111,14 @@ class PostgresIncidentRepository(IncidentRepository):
         ]
 
 
-@compatibility_class_decorator
 class PostgresDiagnosticRepository(DiagnosticRepository):
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def create(self, incident_id: str, tenant_id: str) -> DiagnosticResult:
-        if not tenant_id:
-            raise ValueError("tenant_id is required")
+    async def create(self, incident_id: str) -> DiagnosticResult:
         diag_id = f"diag_{uuid.uuid4().hex[:8]}"
         model = DiagnosticRunModel(
             diagnostic_id=diag_id,
-            tenant_id=tenant_id,
             incident_id=incident_id,
             status=DiagnosticStatus.QUEUED.value
         )
@@ -283,12 +139,10 @@ class PostgresDiagnosticRepository(DiagnosticRepository):
             completed_at=model.completed_at
         )
 
-    async def get(self, diagnostic_id: str, tenant_id: str, bypass_tenant: bool = False) -> Optional[DiagnosticResult]:
+    async def get(self, diagnostic_id: str) -> Optional[DiagnosticResult]:
         res = await self.db.execute(select(DiagnosticRunModel).where(DiagnosticRunModel.diagnostic_id == diagnostic_id))
         model = res.scalar_one_or_none()
         if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "get", f"diagnostic:{diagnostic_id}"):
             return None
         return DiagnosticResult(
             diagnostic_id=model.diagnostic_id,
@@ -304,12 +158,10 @@ class PostgresDiagnosticRepository(DiagnosticRepository):
             completed_at=model.completed_at
         )
 
-    async def update(self, diagnostic_id: str, status: DiagnosticStatus, tenant_id: str, bypass_tenant: bool = False, **kwargs) -> Optional[DiagnosticResult]:
+    async def update(self, diagnostic_id: str, status: DiagnosticStatus, **kwargs) -> Optional[DiagnosticResult]:
         res = await self.db.execute(select(DiagnosticRunModel).where(DiagnosticRunModel.diagnostic_id == diagnostic_id))
         model = res.scalar_one_or_none()
         if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "update", f"diagnostic:{diagnostic_id}"):
             return None
         model.status = status.value if hasattr(status, "value") else status
         for k, v in kwargs.items():
@@ -321,16 +173,10 @@ class PostgresDiagnosticRepository(DiagnosticRepository):
         self.db.add(model)
         await self.db.commit()
         await self.db.refresh(model)
-        return await self.get(diagnostic_id, tenant_id, bypass_tenant)
+        return await self.get(diagnostic_id)
 
-    async def list_all(self, tenant_id: str, bypass_tenant: bool = False) -> List[DiagnosticResult]:
-        if not bypass_tenant and not tenant_id:
-            raise ValueError("tenant_id is required")
-        query = select(DiagnosticRunModel)
-        if not bypass_tenant:
-            query = query.where(DiagnosticRunModel.tenant_id == tenant_id)
-        query = query.order_by(desc(DiagnosticRunModel.created_at))
-        res = await self.db.execute(query)
+    async def list_all(self) -> List[DiagnosticResult]:
+        res = await self.db.execute(select(DiagnosticRunModel).order_by(desc(DiagnosticRunModel.created_at)))
         models = res.scalars().all()
         results = []
         for model in models:
@@ -352,18 +198,14 @@ class PostgresDiagnosticRepository(DiagnosticRepository):
         return results
 
 
-@compatibility_class_decorator
 class PostgresFindingRepository(FindingRepository):
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def create(self, diagnostic_id: str, finding_data: Dict[str, Any], tenant_id: str) -> Dict[str, Any]:
-        if not tenant_id:
-            raise ValueError("tenant_id is required")
+    async def create(self, diagnostic_id: str, finding_data: Dict[str, Any]) -> Dict[str, Any]:
         f_id = f"find_{uuid.uuid4().hex[:8]}"
         model = FindingModel(
             id=f_id,
-            tenant_id=tenant_id,
             diagnostic_id=diagnostic_id,
             description=finding_data.get("description", ""),
             metadata_fields={k: v for k, v in finding_data.items() if k != "description"}
@@ -373,29 +215,20 @@ class PostgresFindingRepository(FindingRepository):
         await self.db.refresh(model)
         return {"id": model.id, "diagnostic_id": model.diagnostic_id, "description": model.description, "metadata": model.metadata_fields}
 
-    async def list_by_diagnostic(self, diagnostic_id: str, tenant_id: str, bypass_tenant: bool = False) -> List[Dict[str, Any]]:
-        if not bypass_tenant and not tenant_id:
-            raise ValueError("tenant_id is required")
-        query = select(FindingModel).where(FindingModel.diagnostic_id == diagnostic_id)
-        if not bypass_tenant:
-            query = query.where(FindingModel.tenant_id == tenant_id)
-        res = await self.db.execute(query)
+    async def list_by_diagnostic(self, diagnostic_id: str) -> List[Dict[str, Any]]:
+        res = await self.db.execute(select(FindingModel).where(FindingModel.diagnostic_id == diagnostic_id))
         models = res.scalars().all()
         return [{"id": m.id, "diagnostic_id": m.diagnostic_id, "description": m.description, "metadata": m.metadata_fields} for m in models]
 
 
-@compatibility_class_decorator
 class PostgresRecommendationRepository(RecommendationRepository):
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def create(self, diagnostic_id: str, recommendation_data: Dict[str, Any], tenant_id: str) -> Dict[str, Any]:
-        if not tenant_id:
-            raise ValueError("tenant_id is required")
+    async def create(self, diagnostic_id: str, recommendation_data: Dict[str, Any]) -> Dict[str, Any]:
         r_id = f"rec_{uuid.uuid4().hex[:8]}"
         model = RecommendationModel(
             id=r_id,
-            tenant_id=tenant_id,
             diagnostic_id=diagnostic_id,
             description=recommendation_data.get("description", ""),
             metadata_fields={k: v for k, v in recommendation_data.items() if k != "description"}
@@ -405,30 +238,21 @@ class PostgresRecommendationRepository(RecommendationRepository):
         await self.db.refresh(model)
         return {"id": model.id, "diagnostic_id": model.diagnostic_id, "description": model.description, "metadata": model.metadata_fields}
 
-    async def list_by_diagnostic(self, diagnostic_id: str, tenant_id: str, bypass_tenant: bool = False) -> List[Dict[str, Any]]:
-        if not bypass_tenant and not tenant_id:
-            raise ValueError("tenant_id is required")
-        query = select(RecommendationModel).where(RecommendationModel.diagnostic_id == diagnostic_id)
-        if not bypass_tenant:
-            query = query.where(RecommendationModel.tenant_id == tenant_id)
-        res = await self.db.execute(query)
+    async def list_by_diagnostic(self, diagnostic_id: str) -> List[Dict[str, Any]]:
+        res = await self.db.execute(select(RecommendationModel).where(RecommendationModel.diagnostic_id == diagnostic_id))
         models = res.scalars().all()
         return [{"id": m.id, "diagnostic_id": m.diagnostic_id, "description": m.description, "metadata": m.metadata_fields} for m in models]
 
 
-@compatibility_class_decorator
 class PostgresRepairRequestRepository(RepairRequestRepository):
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def create(self, diagnostic_id: str, request: RepairRequestCreate, tenant_id: str) -> RepairRequestResponse:
-        if not tenant_id:
-            raise ValueError("tenant_id is required")
+    async def create(self, diagnostic_id: str, request: RepairRequestCreate) -> RepairRequestResponse:
         rep_id = f"rep_{uuid.uuid4().hex[:8]}"
         now = datetime.now(timezone.utc)
         model = RepairRequestModel(
             id=rep_id,
-            tenant_id=tenant_id,
             diagnostic_id=diagnostic_id,
             requested_by=request.requested_by,
             approval_status=request.approval_status.value if hasattr(request.approval_status, "value") else request.approval_status,
@@ -464,12 +288,10 @@ class PostgresRepairRequestRepository(RepairRequestRepository):
             updated_at=model.updated_at
         )
 
-    async def get(self, repair_request_id: str, tenant_id: str, bypass_tenant: bool = False) -> Optional[RepairRequestResponse]:
+    async def get(self, repair_request_id: str) -> Optional[RepairRequestResponse]:
         res = await self.db.execute(select(RepairRequestModel).where(RepairRequestModel.id == repair_request_id))
         model = res.scalar_one_or_none()
         if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "get", f"repair_request:{repair_request_id}"):
             return None
         return RepairRequestResponse(
             id=model.id,
@@ -489,12 +311,10 @@ class PostgresRepairRequestRepository(RepairRequestRepository):
             updated_at=model.updated_at
         )
 
-    async def update(self, repair_request_id: str, approval_status: ApprovalStatus, dispatch_status: DispatchStatus, tenant_id: str, bypass_tenant: bool = False, **kwargs) -> Optional[RepairRequestResponse]:
+    async def update(self, repair_request_id: str, approval_status: ApprovalStatus, dispatch_status: DispatchStatus, **kwargs) -> Optional[RepairRequestResponse]:
         res = await self.db.execute(select(RepairRequestModel).where(RepairRequestModel.id == repair_request_id))
         model = res.scalar_one_or_none()
         if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "update", f"repair_request:{repair_request_id}"):
             return None
         model.approval_status = approval_status.value if hasattr(approval_status, "value") else approval_status
         model.dispatch_status = dispatch_status.value if hasattr(dispatch_status, "value") else dispatch_status
@@ -504,16 +324,10 @@ class PostgresRepairRequestRepository(RepairRequestRepository):
         self.db.add(model)
         await self.db.commit()
         await self.db.refresh(model)
-        return await self.get(repair_request_id, tenant_id, bypass_tenant)
+        return await self.get(repair_request_id)
 
-    async def list_all(self, tenant_id: str, bypass_tenant: bool = False) -> List[RepairRequestResponse]:
-        if not bypass_tenant and not tenant_id:
-            raise ValueError("tenant_id is required")
-        query = select(RepairRequestModel)
-        if not bypass_tenant:
-            query = query.where(RepairRequestModel.tenant_id == tenant_id)
-        query = query.order_by(desc(RepairRequestModel.created_at))
-        res = await self.db.execute(query)
+    async def list_all(self) -> List[RepairRequestResponse]:
+        res = await self.db.execute(select(RepairRequestModel).order_by(desc(RepairRequestModel.created_at)))
         models = res.scalars().all()
         return [
             RepairRequestResponse(
@@ -537,17 +351,13 @@ class PostgresRepairRequestRepository(RepairRequestRepository):
         ]
 
 
-@compatibility_class_decorator
 class PostgresAuditRepository(AuditRepository):
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def write(self, event: AuditEvent, tenant_id: str) -> None:
-        if not tenant_id:
-            raise ValueError("tenant_id is required")
+    async def write(self, event: AuditEvent) -> None:
         model = AuditEventModel(
             id=event.id,
-            tenant_id=tenant_id,
             event_type=event.event_type,
             actor_id=event.actor_id,
             actor_type=event.actor_type,
@@ -565,19 +375,8 @@ class PostgresAuditRepository(AuditRepository):
         self.db.add(model)
         await self.db.commit()
 
-    async def list_recent(self, tenant_id: str = "default", limit: int = 100, bypass_tenant: bool = False) -> List[AuditEvent]:
-        if isinstance(tenant_id, int):
-            limit = tenant_id
-            tenant_id = "default"
-        if not tenant_id:
-            tenant_id = "default"
-        if not bypass_tenant and not tenant_id:
-            raise ValueError("tenant_id is required")
-        query = select(AuditEventModel)
-        if not bypass_tenant:
-            query = query.where(AuditEventModel.tenant_id == tenant_id)
-        query = query.order_by(desc(AuditEventModel.created_at)).limit(limit)
-        res = await self.db.execute(query)
+    async def list_recent(self, limit: int = 100) -> List[AuditEvent]:
+        res = await self.db.execute(select(AuditEventModel).order_by(desc(AuditEventModel.created_at)).limit(limit))
         models = res.scalars().all()
         return [
             AuditEvent(
@@ -600,17 +399,13 @@ class PostgresAuditRepository(AuditRepository):
         ]
 
 
-@compatibility_class_decorator
 class PostgresWebhookDeliveryRepository(WebhookDeliveryRepository):
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def log_delivery(self, delivery_data: Dict[str, Any], tenant_id: str) -> None:
-        if not tenant_id:
-            raise ValueError("tenant_id is required")
+    async def log_delivery(self, delivery_data: Dict[str, Any]) -> None:
         model = WebhookDeliveryModel(
             id=f"web_{uuid.uuid4().hex[:8]}",
-            tenant_id=tenant_id,
             repair_request_id=delivery_data.get("repair_request_id", ""),
             webhook_url=delivery_data.get("webhook_url", ""),
             status_code=delivery_data.get("status_code"),
@@ -622,13 +417,10 @@ class PostgresWebhookDeliveryRepository(WebhookDeliveryRepository):
         self.db.add(model)
         await self.db.commit()
 
-    async def create_delivery(self, delivery_data: Dict[str, Any], tenant_id: str) -> Dict[str, Any]:
-        if not tenant_id:
-            raise ValueError("tenant_id is required")
+    async def create_delivery(self, delivery_data: Dict[str, Any]) -> Dict[str, Any]:
         del_id = f"web_{uuid.uuid4().hex[:8]}"
         model = WebhookDeliveryModel(
             id=del_id,
-            tenant_id=tenant_id,
             repair_request_id=delivery_data.get("repair_request_id", ""),
             webhook_url=delivery_data.get("webhook_url", ""),
             status_code=delivery_data.get("status_code"),
@@ -652,12 +444,10 @@ class PostgresWebhookDeliveryRepository(WebhookDeliveryRepository):
             "created_at": model.created_at
         }
 
-    async def update_delivery(self, delivery_id: str, delivery_status: str, status_code: Optional[float], error_message: Optional[str], attempt_count: float, tenant_id: str, bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def update_delivery(self, delivery_id: str, delivery_status: str, status_code: Optional[float], error_message: Optional[str], attempt_count: float) -> Optional[Dict[str, Any]]:
         res = await self.db.execute(select(WebhookDeliveryModel).where(WebhookDeliveryModel.id == delivery_id))
         model = res.scalar_one_or_none()
         if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "update_delivery", f"webhook_delivery:{delivery_id}"):
             return None
         model.delivery_status = delivery_status
         model.status_code = status_code
@@ -678,16 +468,10 @@ class PostgresWebhookDeliveryRepository(WebhookDeliveryRepository):
             "created_at": model.created_at
         }
 
-    async def get_delivery(self, delivery_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
-        if tenant_id is None or isinstance(tenant_id, bool):
-            actual_bypass = tenant_id if isinstance(tenant_id, bool) else bypass_tenant
-            tenant_id = "default"
-            bypass_tenant = actual_bypass
+    async def get_delivery(self, delivery_id: str) -> Optional[Dict[str, Any]]:
         res = await self.db.execute(select(WebhookDeliveryModel).where(WebhookDeliveryModel.id == delivery_id))
         model = res.scalar_one_or_none()
         if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "get_delivery", f"webhook_delivery:{delivery_id}"):
             return None
         return {
             "id": model.id,
@@ -701,16 +485,8 @@ class PostgresWebhookDeliveryRepository(WebhookDeliveryRepository):
             "created_at": model.created_at
         }
 
-    async def list_deliveries(self, tenant_id: str = "default", bypass_tenant: bool = False) -> List[Dict[str, Any]]:
-        if not tenant_id:
-            tenant_id = "default"
-        if not bypass_tenant and not tenant_id:
-            raise ValueError("tenant_id is required")
-        query = select(WebhookDeliveryModel)
-        if not bypass_tenant:
-            query = query.where(WebhookDeliveryModel.tenant_id == tenant_id)
-        query = query.order_by(desc(WebhookDeliveryModel.created_at))
-        res = await self.db.execute(query)
+    async def list_deliveries(self) -> List[Dict[str, Any]]:
+        res = await self.db.execute(select(WebhookDeliveryModel).order_by(desc(WebhookDeliveryModel.created_at)))
         models = res.scalars().all()
         return [
             {
@@ -728,7 +504,6 @@ class PostgresWebhookDeliveryRepository(WebhookDeliveryRepository):
         ]
 
 
-@compatibility_class_decorator
 class PostgresReleaseCheckRepository(ReleaseCheckRepository):
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -789,7 +564,6 @@ class PostgresReleaseCheckRepository(ReleaseCheckRepository):
         return [self._to_dict(m) for m in models]
 
 
-@compatibility_class_decorator
 class PostgresApiKeyRepository(ApiKeyRepository):
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -844,6 +618,7 @@ class PostgresApiKeyRepository(ApiKeyRepository):
         return self._to_dict(model)
 
     async def get_by_hash(self, key_hash: str) -> Optional[Dict[str, Any]]:
+        # High efficiency indexed lookup
         res = await self.db.execute(select(ApiKeyModel).where(ApiKeyModel.key_hash == key_hash))
         model = res.scalar_one_or_none()
         if not model:
@@ -887,7 +662,6 @@ class PostgresApiKeyRepository(ApiKeyRepository):
         return self._to_dict(model)
 
 
-@compatibility_class_decorator
 class PostgresResearchRepository(ResearchRepository):
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -918,38 +692,30 @@ class PostgresResearchRepository(ResearchRepository):
             "retrieved_at": model.retrieved_at,
         }
 
-    async def create_request(self, request_data: Dict[str, Any], tenant_id: str) -> Dict[str, Any]:
-        if not tenant_id:
-            raise ValueError("tenant_id is required")
+    async def create_request(self, request_data: Dict[str, Any]) -> Dict[str, Any]:
         req_id = f"res_{uuid.uuid4().hex[:8]}"
         model = ResearchRequestModel(
             id=req_id,
-            tenant_id=tenant_id,
             incident_id=request_data["incident_id"],
             query=request_data["query"],
             status=request_data.get("status", "PENDING"),
             error_message=request_data.get("error_message"),
+            tenant_id=request_data.get("tenant_id"),
         )
         self.db.add(model)
         await self.db.commit()
         await self.db.refresh(model)
         return self._request_to_dict(model)
 
-    async def get_request(self, request_id: str, tenant_id: str, bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def get_request(self, request_id: str) -> Optional[Dict[str, Any]]:
         res = await self.db.execute(select(ResearchRequestModel).where(ResearchRequestModel.id == request_id))
         model = res.scalar_one_or_none()
-        if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "get_request", f"research_request:{request_id}"):
-            return None
-        return self._request_to_dict(model)
+        return self._request_to_dict(model) if model else None
 
-    async def update_request_status(self, request_id: str, status: str, tenant_id: str, error_message: Optional[str] = None, bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def update_request_status(self, request_id: str, status: str, error_message: Optional[str] = None) -> Optional[Dict[str, Any]]:
         res = await self.db.execute(select(ResearchRequestModel).where(ResearchRequestModel.id == request_id))
         model = res.scalar_one_or_none()
         if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "update_request_status", f"research_request:{request_id}"):
             return None
         model.status = status
         if error_message is not None:
@@ -958,16 +724,11 @@ class PostgresResearchRepository(ResearchRepository):
         await self.db.refresh(model)
         return self._request_to_dict(model)
 
-    async def create_evidence(self, evidence_data: Dict[str, Any], tenant_id: str) -> Dict[str, Any]:
-        if not tenant_id:
-            raise ValueError("tenant_id is required")
-        # Validate parent research request belongs to tenant
-        research_id = evidence_data["research_id"]
-        await self.get_request(research_id, tenant_id) # OLA
+    async def create_evidence(self, evidence_data: Dict[str, Any]) -> Dict[str, Any]:
         ev_id = f"evd_{uuid.uuid4().hex[:8]}"
         model = ResearchEvidenceModel(
             id=ev_id,
-            research_id=research_id,
+            research_id=evidence_data["research_id"],
             source_url=evidence_data["source_url"],
             source_domain=evidence_data["source_domain"],
             title=evidence_data.get("title"),
@@ -981,8 +742,7 @@ class PostgresResearchRepository(ResearchRepository):
         await self.db.refresh(model)
         return self._evidence_to_dict(model)
 
-    async def list_evidences(self, research_id: str, tenant_id: str, bypass_tenant: bool = False) -> List[Dict[str, Any]]:
-        await self.get_request(research_id, tenant_id, bypass_tenant) # OLA
+    async def list_evidences(self, research_id: str) -> List[Dict[str, Any]]:
         res = await self.db.execute(
             select(ResearchEvidenceModel)
             .where(ResearchEvidenceModel.research_id == research_id)
@@ -991,15 +751,7 @@ class PostgresResearchRepository(ResearchRepository):
         models = res.scalars().all()
         return [self._evidence_to_dict(m) for m in models]
 
-    async def get_tenant_daily_research_count(self, tenant_id: str = "default", day: Optional[datetime] = None) -> int:
-        from datetime import datetime
-        if isinstance(tenant_id, datetime):
-            day = tenant_id
-            tenant_id = "default"
-        if not tenant_id:
-            tenant_id = "default"
-        if not day:
-            day = datetime.now(timezone.utc)
+    async def get_tenant_daily_research_count(self, tenant_id: str, day: datetime) -> int:
         start_of_day = datetime(day.year, day.month, day.day, 0, 0, 0, tzinfo=timezone.utc)
         end_of_day = datetime(day.year, day.month, day.day, 23, 59, 59, tzinfo=timezone.utc)
         res = await self.db.execute(
@@ -1011,7 +763,6 @@ class PostgresResearchRepository(ResearchRepository):
         return len(res.scalars().all())
 
 
-@compatibility_class_decorator
 class PostgresImprovementRepository(ImprovementRepository):
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -1034,19 +785,11 @@ class PostgresImprovementRepository(ImprovementRepository):
             "updated_at": model.updated_at,
         }
 
-    async def create_proposal(self, proposal_data: Dict[str, Any], tenant_id: str) -> Dict[str, Any]:
-        if not tenant_id:
-            raise ValueError("tenant_id is required")
-        research_id = proposal_data["research_id"]
-        res = await self.db.execute(select(ResearchRequestModel).where(ResearchRequestModel.id == research_id))
-        research = res.scalar_one_or_none()
-        if not research or research.tenant_id != tenant_id:
-            raise ValueError("Parent research request not found or tenant mismatch")
-            
+    async def create_proposal(self, proposal_data: Dict[str, Any]) -> Dict[str, Any]:
         prop_id = f"prp_{uuid.uuid4().hex[:8]}"
         model = ImprovementProposalModel(
             id=prop_id,
-            research_id=research_id,
+            research_id=proposal_data["research_id"],
             title=proposal_data["title"],
             rationale=proposal_data["rationale"],
             patch_code=proposal_data["patch_code"],
@@ -1061,31 +804,16 @@ class PostgresImprovementRepository(ImprovementRepository):
         await self.db.refresh(model)
         return self._proposal_to_dict(model)
 
-    async def get_proposal(self, proposal_id: str, tenant_id: str, bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
-        res = await self.db.execute(
-            select(ImprovementProposalModel)
-            .join(ResearchRequestModel, ImprovementProposalModel.research_id == ResearchRequestModel.id)
-            .where(ImprovementProposalModel.id == proposal_id)
-        )
+    async def get_proposal(self, proposal_id: str) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(select(ImprovementProposalModel).where(ImprovementProposalModel.id == proposal_id))
         model = res.scalar_one_or_none()
-        if not model:
-            return None
-        res_req = await self.db.execute(select(ResearchRequestModel).where(ResearchRequestModel.id == model.research_id))
-        research = res_req.scalar_one_or_none()
-        if not await _check_postgres_tenant(self.db, research, tenant_id, bypass_tenant, "get_proposal", f"proposal:{proposal_id}"):
-            return None
-        return self._proposal_to_dict(model)
+        return self._proposal_to_dict(model) if model else None
 
-    async def update_proposal_gate(self, proposal_id: str, gate_status: str, tenant_id: str, gate_score: Optional[float] = None, risk_analysis: Optional[Dict[str, Any]] = None, approval_status: Optional[str] = None, bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def update_proposal_gate(self, proposal_id: str, gate_status: str, gate_score: Optional[float] = None, risk_analysis: Optional[Dict[str, Any]] = None, approval_status: Optional[str] = None) -> Optional[Dict[str, Any]]:
         res = await self.db.execute(select(ImprovementProposalModel).where(ImprovementProposalModel.id == proposal_id))
         model = res.scalar_one_or_none()
         if not model:
             return None
-        res_req = await self.db.execute(select(ResearchRequestModel).where(ResearchRequestModel.id == model.research_id))
-        research = res_req.scalar_one_or_none()
-        if not await _check_postgres_tenant(self.db, research, tenant_id, bypass_tenant, "update_proposal_gate", f"proposal:{proposal_id}"):
-            return None
-            
         model.gate_status = gate_status
         if gate_score is not None:
             model.gate_score = gate_score
@@ -1097,16 +825,11 @@ class PostgresImprovementRepository(ImprovementRepository):
         await self.db.refresh(model)
         return self._proposal_to_dict(model)
 
-    async def approve_proposal(self, proposal_id: str, approved_by: str, approved_at: datetime, tenant_id: str, bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def approve_proposal(self, proposal_id: str, approved_by: str, approved_at: datetime) -> Optional[Dict[str, Any]]:
         res = await self.db.execute(select(ImprovementProposalModel).where(ImprovementProposalModel.id == proposal_id))
         model = res.scalar_one_or_none()
         if not model:
             return None
-        res_req = await self.db.execute(select(ResearchRequestModel).where(ResearchRequestModel.id == model.research_id))
-        research = res_req.scalar_one_or_none()
-        if not await _check_postgres_tenant(self.db, research, tenant_id, bypass_tenant, "approve_proposal", f"proposal:{proposal_id}"):
-            return None
-            
         model.approval_status = "APPROVED"
         model.approved_by = approved_by
         model.approved_at = approved_at
@@ -1115,19 +838,12 @@ class PostgresImprovementRepository(ImprovementRepository):
         await self.db.refresh(model)
         return self._proposal_to_dict(model)
 
-    async def list_proposals(self, tenant_id: str, bypass_tenant: bool = False) -> List[Dict[str, Any]]:
-        if not bypass_tenant and not tenant_id:
-            raise ValueError("tenant_id is required")
-        query = select(ImprovementProposalModel).join(ResearchRequestModel, ImprovementProposalModel.research_id == ResearchRequestModel.id)
-        if not bypass_tenant:
-            query = query.where(ResearchRequestModel.tenant_id == tenant_id)
-        query = query.order_by(desc(ImprovementProposalModel.created_at))
-        res = await self.db.execute(query)
+    async def list_proposals(self) -> List[Dict[str, Any]]:
+        res = await self.db.execute(select(ImprovementProposalModel).order_by(desc(ImprovementProposalModel.created_at)))
         models = res.scalars().all()
         return [self._proposal_to_dict(m) for m in models]
 
 
-@compatibility_class_decorator
 class PostgresPrDraftRepository(PrDraftRepository):
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -1150,13 +866,10 @@ class PostgresPrDraftRepository(PrDraftRepository):
             "updated_at": model.updated_at,
         }
 
-    async def create_pr_draft(self, draft_data: Dict[str, Any], tenant_id: str) -> Dict[str, Any]:
-        if not tenant_id:
-            raise ValueError("tenant_id is required")
+    async def create_pr_draft(self, draft_data: Dict[str, Any]) -> Dict[str, Any]:
         draft_id = f"prd_{uuid.uuid4().hex[:8]}"
         model = PrDraftModel(
             id=draft_id,
-            tenant_id=tenant_id,
             proposal_id=draft_data["proposal_id"],
             provider=draft_data["provider"],
             status=draft_data.get("status", "PENDING"),
@@ -1174,32 +887,24 @@ class PostgresPrDraftRepository(PrDraftRepository):
         await self.db.refresh(model)
         return self._draft_to_dict(model)
 
-    async def get_pr_draft(self, draft_id: str, tenant_id: str, bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def get_pr_draft(self, draft_id: str) -> Optional[Dict[str, Any]]:
         res = await self.db.execute(select(PrDraftModel).where(PrDraftModel.id == draft_id))
         model = res.scalar_one_or_none()
-        if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "get", f"pr_draft:{draft_id}"):
-            return None
-        return self._draft_to_dict(model)
+        return self._draft_to_dict(model) if model else None
 
-    async def list_pr_drafts_by_proposal(self, proposal_id: str, tenant_id: str, bypass_tenant: bool = False) -> List[Dict[str, Any]]:
-        if not bypass_tenant and not tenant_id:
-            raise ValueError("tenant_id is required")
-        query = select(PrDraftModel).where(PrDraftModel.proposal_id == proposal_id)
-        if not bypass_tenant:
-            query = query.where(PrDraftModel.tenant_id == tenant_id)
-        query = query.order_by(desc(PrDraftModel.created_at))
-        res = await self.db.execute(query)
+    async def list_pr_drafts_by_proposal(self, proposal_id: str) -> List[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(PrDraftModel)
+            .where(PrDraftModel.proposal_id == proposal_id)
+            .order_by(desc(PrDraftModel.created_at))
+        )
         models = res.scalars().all()
         return [self._draft_to_dict(m) for m in models]
 
-    async def update_pr_draft_status(self, draft_id: str, status: str, tenant_id: str, github_pr_url: Optional[str] = None, error_message: Optional[str] = None, bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def update_pr_draft_status(self, draft_id: str, status: str, github_pr_url: Optional[str] = None, error_message: Optional[str] = None) -> Optional[Dict[str, Any]]:
         res = await self.db.execute(select(PrDraftModel).where(PrDraftModel.id == draft_id))
         model = res.scalar_one_or_none()
         if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "update", f"pr_draft:{draft_id}"):
             return None
         model.status = status
         if github_pr_url is not None:
@@ -1209,7 +914,6 @@ class PostgresPrDraftRepository(PrDraftRepository):
         return self._draft_to_dict(model)
 
 
-@compatibility_class_decorator
 class PostgresPrVerificationRepository(PrVerificationRepository):
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -1237,13 +941,10 @@ class PostgresPrVerificationRepository(PrVerificationRepository):
             "updated_at": model.updated_at,
         }
 
-    async def create_verification(self, verification_data: Dict[str, Any], tenant_id: str) -> Dict[str, Any]:
-        if not tenant_id:
-            raise ValueError("tenant_id is required")
+    async def create_verification(self, verification_data: Dict[str, Any]) -> Dict[str, Any]:
         ver_id = f"prv_{uuid.uuid4().hex[:8]}"
         model = PrVerificationModel(
             id=ver_id,
-            tenant_id=tenant_id,
             pr_draft_id=verification_data["pr_draft_id"],
             proposal_id=verification_data["proposal_id"],
             revision_id=verification_data.get("revision_id"),
@@ -1266,7 +967,7 @@ class PostgresPrVerificationRepository(PrVerificationRepository):
         await self.db.refresh(model)
         return self._verification_to_dict(model)
 
-    async def get_verification_by_pr_draft(self, pr_draft_id: str, tenant_id: str, bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def get_verification_by_pr_draft(self, pr_draft_id: str) -> Optional[Dict[str, Any]]:
         res = await self.db.execute(
             select(PrVerificationModel)
             .where(PrVerificationModel.pr_draft_id == pr_draft_id)
@@ -1274,24 +975,18 @@ class PostgresPrVerificationRepository(PrVerificationRepository):
             .limit(1)
         )
         model = res.scalar_one_or_none()
-        if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "get_verification", f"pr_draft:{pr_draft_id}"):
-            return None
-        return self._verification_to_dict(model)
+        return self._verification_to_dict(model) if model else None
 
-    async def list_verifications_by_proposal(self, proposal_id: str, tenant_id: str, bypass_tenant: bool = False) -> List[Dict[str, Any]]:
-        if not bypass_tenant and not tenant_id:
-            raise ValueError("tenant_id is required")
-        query = select(PrVerificationModel).where(PrVerificationModel.proposal_id == proposal_id)
-        if not bypass_tenant:
-            query = query.where(PrVerificationModel.tenant_id == tenant_id)
-        query = query.order_by(desc(PrVerificationModel.created_at))
-        res = await self.db.execute(query)
+    async def list_verifications_by_proposal(self, proposal_id: str) -> List[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(PrVerificationModel)
+            .where(PrVerificationModel.proposal_id == proposal_id)
+            .order_by(desc(PrVerificationModel.created_at))
+        )
         models = res.scalars().all()
         return [self._verification_to_dict(m) for m in models]
 
-    async def get_verification_by_revision(self, revision_id: str, tenant_id: str, bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def get_verification_by_revision(self, revision_id: str) -> Optional[Dict[str, Any]]:
         res = await self.db.execute(
             select(PrVerificationModel)
             .where(PrVerificationModel.revision_id == revision_id)
@@ -1299,13 +994,9 @@ class PostgresPrVerificationRepository(PrVerificationRepository):
             .limit(1)
         )
         model = res.scalar_one_or_none()
-        if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "get_verification", f"revision:{revision_id}"):
-            return None
-        return self._verification_to_dict(model)
+        return self._verification_to_dict(model) if model else None
 
-    async def get_verification_by_ai_suggestion(self, suggestion_id: str, tenant_id: str, bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def get_verification_by_ai_suggestion(self, suggestion_id: str) -> Optional[Dict[str, Any]]:
         res = await self.db.execute(
             select(PrVerificationModel)
             .where(PrVerificationModel.ai_suggestion_id == suggestion_id)
@@ -1313,14 +1004,9 @@ class PostgresPrVerificationRepository(PrVerificationRepository):
             .limit(1)
         )
         model = res.scalar_one_or_none()
-        if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "get_verification", f"suggestion:{suggestion_id}"):
-            return None
-        return self._verification_to_dict(model)
+        return self._verification_to_dict(model) if model else None
 
 
-@compatibility_class_decorator
 class PostgresPrReviewFeedbackRepository(PrReviewFeedbackRepository):
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -1336,13 +1022,10 @@ class PostgresPrReviewFeedbackRepository(PrReviewFeedbackRepository):
             "updated_at": model.updated_at,
         }
 
-    async def create_feedback(self, feedback_data: Dict[str, Any], tenant_id: str) -> Dict[str, Any]:
-        if not tenant_id:
-            raise ValueError("tenant_id is required")
+    async def create_feedback(self, feedback_data: Dict[str, Any]) -> Dict[str, Any]:
         fb_id = f"pfb_{uuid.uuid4().hex[:8]}"
         model = PrReviewFeedbackModel(
             id=fb_id,
-            tenant_id=tenant_id,
             pr_draft_id=feedback_data["pr_draft_id"],
             reviewer_id=feedback_data["reviewer_id"],
             comment=feedback_data["comment"],
@@ -1353,36 +1036,28 @@ class PostgresPrReviewFeedbackRepository(PrReviewFeedbackRepository):
         await self.db.refresh(model)
         return self._feedback_to_dict(model)
 
-    async def get_feedback(self, feedback_id: str, tenant_id: str, bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def get_feedback(self, feedback_id: str) -> Optional[Dict[str, Any]]:
         res = await self.db.execute(
             select(PrReviewFeedbackModel).where(PrReviewFeedbackModel.id == feedback_id)
         )
         model = res.scalar_one_or_none()
-        if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "get_feedback", f"feedback:{feedback_id}"):
-            return None
-        return self._feedback_to_dict(model)
+        return self._feedback_to_dict(model) if model else None
 
-    async def list_feedback_by_pr_draft(self, pr_draft_id: str, tenant_id: str, bypass_tenant: bool = False) -> List[Dict[str, Any]]:
-        if not bypass_tenant and not tenant_id:
-            raise ValueError("tenant_id is required")
-        query = select(PrReviewFeedbackModel).where(PrReviewFeedbackModel.pr_draft_id == pr_draft_id)
-        if not bypass_tenant:
-            query = query.where(PrReviewFeedbackModel.tenant_id == tenant_id)
-        query = query.order_by(desc(PrReviewFeedbackModel.created_at))
-        res = await self.db.execute(query)
+    async def list_feedback_by_pr_draft(self, pr_draft_id: str) -> List[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(PrReviewFeedbackModel)
+            .where(PrReviewFeedbackModel.pr_draft_id == pr_draft_id)
+            .order_by(desc(PrReviewFeedbackModel.created_at))
+        )
         models = res.scalars().all()
         return [self._feedback_to_dict(m) for m in models]
 
-    async def update_feedback_status(self, feedback_id: str, status: str, tenant_id: str, bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def update_feedback_status(self, feedback_id: str, status: str) -> Optional[Dict[str, Any]]:
         res = await self.db.execute(
             select(PrReviewFeedbackModel).where(PrReviewFeedbackModel.id == feedback_id)
         )
         model = res.scalar_one_or_none()
         if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "update_feedback", f"feedback:{feedback_id}"):
             return None
         model.status = status
         await self.db.commit()
@@ -1390,7 +1065,6 @@ class PostgresPrReviewFeedbackRepository(PrReviewFeedbackRepository):
         return self._feedback_to_dict(model)
 
 
-@compatibility_class_decorator
 class PostgresPatchRevisionRepository(PatchRevisionRepository):
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -1410,13 +1084,10 @@ class PostgresPatchRevisionRepository(PatchRevisionRepository):
             "updated_at": model.updated_at,
         }
 
-    async def create_revision(self, revision_data: Dict[str, Any], tenant_id: str) -> Dict[str, Any]:
-        if not tenant_id:
-            raise ValueError("tenant_id is required")
+    async def create_revision(self, revision_data: Dict[str, Any]) -> Dict[str, Any]:
         rev_id = f"prev_{uuid.uuid4().hex[:8]}"
         model = PatchRevisionModel(
             id=rev_id,
-            tenant_id=tenant_id,
             pr_draft_id=revision_data["pr_draft_id"],
             feedback_id=revision_data.get("feedback_id"),
             revision_number=revision_data["revision_number"],
@@ -1431,45 +1102,35 @@ class PostgresPatchRevisionRepository(PatchRevisionRepository):
         await self.db.refresh(model)
         return self._revision_to_dict(model)
 
-    async def get_revision(self, revision_id: str, tenant_id: str, bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def get_revision(self, revision_id: str) -> Optional[Dict[str, Any]]:
         res = await self.db.execute(
             select(PatchRevisionModel).where(PatchRevisionModel.id == revision_id)
         )
         model = res.scalar_one_or_none()
-        if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "get_revision", f"revision:{revision_id}"):
-            return None
-        return self._revision_to_dict(model)
+        return self._revision_to_dict(model) if model else None
 
-    async def get_latest_revision_number(self, pr_draft_id: str, tenant_id: str, bypass_tenant: bool = False) -> int:
-        if not bypass_tenant and not tenant_id:
-            raise ValueError("tenant_id is required")
-        query = select(func.coalesce(func.max(PatchRevisionModel.revision_number), 0)).where(PatchRevisionModel.pr_draft_id == pr_draft_id)
-        if not bypass_tenant:
-            query = query.where(PatchRevisionModel.tenant_id == tenant_id)
-        res = await self.db.execute(query)
+    async def get_latest_revision_number(self, pr_draft_id: str) -> int:
+        res = await self.db.execute(
+            select(func.coalesce(func.max(PatchRevisionModel.revision_number), 0))
+            .where(PatchRevisionModel.pr_draft_id == pr_draft_id)
+        )
         return res.scalar_one()
 
-    async def list_revisions_by_pr_draft(self, pr_draft_id: str, tenant_id: str, bypass_tenant: bool = False) -> List[Dict[str, Any]]:
-        if not bypass_tenant and not tenant_id:
-            raise ValueError("tenant_id is required")
-        query = select(PatchRevisionModel).where(PatchRevisionModel.pr_draft_id == pr_draft_id)
-        if not bypass_tenant:
-            query = query.where(PatchRevisionModel.tenant_id == tenant_id)
-        query = query.order_by(desc(PatchRevisionModel.revision_number))
-        res = await self.db.execute(query)
+    async def list_revisions_by_pr_draft(self, pr_draft_id: str) -> List[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(PatchRevisionModel)
+            .where(PatchRevisionModel.pr_draft_id == pr_draft_id)
+            .order_by(desc(PatchRevisionModel.revision_number))
+        )
         models = res.scalars().all()
         return [self._revision_to_dict(m) for m in models]
 
-    async def update_verification_status(self, revision_id: str, status: str, tenant_id: str, bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def update_verification_status(self, revision_id: str, status: str) -> Optional[Dict[str, Any]]:
         res = await self.db.execute(
             select(PatchRevisionModel).where(PatchRevisionModel.id == revision_id)
         )
         model = res.scalar_one_or_none()
         if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "update_revision", f"revision:{revision_id}"):
             return None
         model.verification_status = status
         await self.db.commit()
@@ -1477,7 +1138,6 @@ class PostgresPatchRevisionRepository(PatchRevisionRepository):
         return self._revision_to_dict(model)
 
 
-@compatibility_class_decorator
 class PostgresReviewLedgerRepository(ReviewLedgerRepository):
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -1498,12 +1158,9 @@ class PostgresReviewLedgerRepository(ReviewLedgerRepository):
             "created_at": model.created_at,
         }
 
-    async def append_entry(self, entry_data: Dict[str, Any], tenant_id: str = "default") -> Dict[str, Any]:
-        if not tenant_id:
-            tenant_id = "default"
+    async def append_entry(self, entry_data: Dict[str, Any]) -> Dict[str, Any]:
         model = ReviewLedgerEntryModel(
             id=entry_data.get("id", f"rle_{uuid.uuid4().hex[:8]}"),
-            tenant_id=tenant_id,
             chain_id=entry_data["chain_id"],
             sequence_no=entry_data["sequence_no"],
             event_type=entry_data["event_type"],
@@ -1517,85 +1174,44 @@ class PostgresReviewLedgerRepository(ReviewLedgerRepository):
             created_at=entry_data.get("created_at") or datetime.now(timezone.utc),
         )
         self.db.add(model)
-        try:
-            await self.db.commit()
-        except Exception:
-            await self.db.rollback()
-            raise
+        await self.db.commit()
         await self.db.refresh(model)
         return self._entry_to_dict(model)
 
-    async def get_entry(self, entry_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
-        if isinstance(tenant_id, bool):
-            bypass_tenant = tenant_id
-            tenant_id = "default"
-        if not tenant_id:
-            tenant_id = "default"
+    async def get_entry(self, entry_id: str) -> Optional[Dict[str, Any]]:
         res = await self.db.execute(select(ReviewLedgerEntryModel).where(ReviewLedgerEntryModel.id == entry_id))
-        model = res.scalar_one_or_none()
-        if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "get", f"ledger_entry:{entry_id}"):
-            return None
-        return self._entry_to_dict(model)
-
-    async def get_latest_entry(self, chain_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
-        if isinstance(tenant_id, bool):
-            bypass_tenant = tenant_id
-            tenant_id = "default"
-        if not tenant_id:
-            tenant_id = "default"
-        if not bypass_tenant and not tenant_id:
-            raise ValueError("tenant_id is required")
-        query = select(ReviewLedgerEntryModel).where(ReviewLedgerEntryModel.chain_id == chain_id)
-        if not bypass_tenant:
-            query = query.where(ReviewLedgerEntryModel.tenant_id == tenant_id)
-        query = query.order_by(desc(ReviewLedgerEntryModel.sequence_no)).limit(1)
-        res = await self.db.execute(query)
         model = res.scalar_one_or_none()
         return self._entry_to_dict(model) if model else None
 
-    async def list_by_chain(self, chain_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> List[Dict[str, Any]]:
-        if isinstance(tenant_id, bool):
-            bypass_tenant = tenant_id
-            tenant_id = "default"
-        if not tenant_id:
-            tenant_id = "default"
-        if not bypass_tenant and not tenant_id:
-            raise ValueError("tenant_id is required")
-        query = select(ReviewLedgerEntryModel).where(ReviewLedgerEntryModel.chain_id == chain_id)
-        if not bypass_tenant:
-            query = query.where(ReviewLedgerEntryModel.tenant_id == tenant_id)
-        query = query.order_by(ReviewLedgerEntryModel.sequence_no)
-        res = await self.db.execute(query)
+    async def get_latest_entry(self, chain_id: str) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(ReviewLedgerEntryModel)
+            .where(ReviewLedgerEntryModel.chain_id == chain_id)
+            .order_by(desc(ReviewLedgerEntryModel.sequence_no))
+            .limit(1)
+        )
+        model = res.scalar_one_or_none()
+        return self._entry_to_dict(model) if model else None
+
+    async def list_by_chain(self, chain_id: str) -> List[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(ReviewLedgerEntryModel)
+            .where(ReviewLedgerEntryModel.chain_id == chain_id)
+            .order_by(ReviewLedgerEntryModel.sequence_no)
+        )
         models = res.scalars().all()
         return [self._entry_to_dict(model) for model in models]
 
-    async def list_recent(self, tenant_id: str = "default", limit: int = 50, bypass_tenant: bool = False) -> List[Dict[str, Any]]:
-        if isinstance(tenant_id, bool):
-            bypass_tenant = tenant_id
-            tenant_id = "default"
-        elif isinstance(tenant_id, int):
-            if isinstance(limit, bool):
-                bypass_tenant = limit
-                limit = tenant_id
-            else:
-                limit = tenant_id
-            tenant_id = "default"
-        if not tenant_id:
-            tenant_id = "default"
-        if not bypass_tenant and not tenant_id:
-            raise ValueError("tenant_id is required")
-        query = select(ReviewLedgerEntryModel)
-        if not bypass_tenant:
-            query = query.where(ReviewLedgerEntryModel.tenant_id == tenant_id)
-        query = query.order_by(desc(ReviewLedgerEntryModel.created_at)).limit(limit)
-        res = await self.db.execute(query)
+    async def list_recent(self, limit: int = 50) -> List[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(ReviewLedgerEntryModel)
+            .order_by(desc(ReviewLedgerEntryModel.created_at))
+            .limit(limit)
+        )
         models = res.scalars().all()
         return [self._entry_to_dict(model) for model in models]
 
 
-@compatibility_class_decorator
 class PostgresAIPatchSuggestionRepository(AIPatchSuggestionRepository):
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -1621,12 +1237,9 @@ class PostgresAIPatchSuggestionRepository(AIPatchSuggestionRepository):
             "updated_at": model.updated_at,
         }
 
-    async def create_suggestion(self, data: Dict[str, Any], tenant_id: str = "default") -> Dict[str, Any]:
-        if not tenant_id:
-            tenant_id = "default"
+    async def create_suggestion(self, data: Dict[str, Any]) -> Dict[str, Any]:
         model = AIPatchSuggestionModel(
             id=data.get("id", f"ais_{uuid.uuid4().hex[:8]}"),
-            tenant_id=tenant_id,
             pr_draft_id=data["pr_draft_id"],
             feedback_id=data.get("feedback_id"),
             revision_id=data.get("revision_id"),
@@ -1647,73 +1260,7 @@ class PostgresAIPatchSuggestionRepository(AIPatchSuggestionRepository):
         await self.db.refresh(model)
         return self._suggestion_to_dict(model)
 
-    async def get_suggestion(self, suggestion_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
-        if isinstance(tenant_id, bool):
-            bypass_tenant = tenant_id
-            tenant_id = "default"
-        if not tenant_id:
-            tenant_id = "default"
-        res = await self.db.execute(select(AIPatchSuggestionModel).where(AIPatchSuggestionModel.id == suggestion_id))
-        model = res.scalar_one_or_none()
-        if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "get", f"suggestion:{suggestion_id}"):
-            return None
-        return self._suggestion_to_dict(model)
 
-    async def list_suggestions_by_pr_draft(self, pr_draft_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> List[Dict[str, Any]]:
-        if isinstance(tenant_id, bool):
-            bypass_tenant = tenant_id
-            tenant_id = "default"
-        if not tenant_id:
-            tenant_id = "default"
-        if not bypass_tenant and not tenant_id:
-            raise ValueError("tenant_id is required")
-        query = select(AIPatchSuggestionModel).where(AIPatchSuggestionModel.pr_draft_id == pr_draft_id)
-        if not bypass_tenant:
-            query = query.where(AIPatchSuggestionModel.tenant_id == tenant_id)
-        query = query.order_by(desc(AIPatchSuggestionModel.created_at))
-        res = await self.db.execute(query)
-        return [self._suggestion_to_dict(model) for model in res.scalars().all()]
-
-    async def update_suggestion_status(self, suggestion_id: str, status: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
-        if isinstance(tenant_id, bool):
-            bypass_tenant = tenant_id
-            tenant_id = "default"
-        if not tenant_id:
-            tenant_id = "default"
-        res = await self.db.execute(select(AIPatchSuggestionModel).where(AIPatchSuggestionModel.id == suggestion_id))
-        model = res.scalar_one_or_none()
-        if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "update", f"suggestion:{suggestion_id}"):
-            return None
-        model.status = status
-        await self.db.commit()
-        await self.db.refresh(model)
-        return self._suggestion_to_dict(model)
-
-    async def attach_verification(self, suggestion_id: str, verification_id: str, risk_level: str, status: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
-        if isinstance(tenant_id, bool):
-            bypass_tenant = tenant_id
-            tenant_id = "default"
-        if not tenant_id:
-            tenant_id = "default"
-        res = await self.db.execute(select(AIPatchSuggestionModel).where(AIPatchSuggestionModel.id == suggestion_id))
-        model = res.scalar_one_or_none()
-        if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "attach_verification", f"suggestion:{suggestion_id}"):
-            return None
-        model.verification_id = verification_id
-        model.risk_level = risk_level
-        model.status = status
-        await self.db.commit()
-        await self.db.refresh(model)
-        return self._suggestion_to_dict(model)
-
-
-@compatibility_class_decorator
 class PostgresSystemFindingRepository(SystemFindingRepository):
     TERMINAL_STATUSES = {"DISMISSED", "RESOLVED"}
 
@@ -1755,13 +1302,11 @@ class PostgresSystemFindingRepository(SystemFindingRepository):
             "updated_at": model.updated_at,
         }
 
-    async def create_finding(self, finding_data: Dict[str, Any], tenant_id: str = "default") -> Dict[str, Any]:
-        if not tenant_id:
-            tenant_id = "default"
+    async def create_finding(self, finding_data: Dict[str, Any]) -> Dict[str, Any]:
         now = datetime.now(timezone.utc)
         model = SystemFindingModel(
             id=finding_data.get("id", f"sf_{uuid.uuid4().hex[:8]}"),
-            tenant_id=tenant_id,
+            tenant_id=finding_data.get("tenant_id"),
             source_type=finding_data["source_type"],
             source_id=finding_data["source_id"],
             source_hash=finding_data["source_hash"],
@@ -1789,28 +1334,12 @@ class PostgresSystemFindingRepository(SystemFindingRepository):
         await self.db.refresh(model)
         return self._finding_to_dict(model)
 
-    async def get_finding(self, finding_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
-        if isinstance(tenant_id, bool):
-            bypass_tenant = tenant_id
-            tenant_id = "default"
-        if not tenant_id:
-            tenant_id = "default"
+    async def get_finding(self, finding_id: str) -> Optional[Dict[str, Any]]:
         res = await self.db.execute(select(SystemFindingModel).where(SystemFindingModel.id == finding_id))
         model = res.scalar_one_or_none()
-        if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "get", f"system_finding:{finding_id}"):
-            return None
-        return self._finding_to_dict(model)
+        return self._finding_to_dict(model) if model else None
 
-    async def get_open_by_source_hash(self, source_hash: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
-        if isinstance(tenant_id, bool):
-            bypass_tenant = tenant_id
-            tenant_id = "default"
-        if not tenant_id:
-            tenant_id = "default"
-        if not bypass_tenant and not tenant_id:
-            raise ValueError("tenant_id is required")
+    async def get_open_by_source_hash(self, source_hash: str) -> Optional[Dict[str, Any]]:
         res = await self.db.execute(
             select(SystemFindingModel)
             .where(SystemFindingModel.source_hash == source_hash)
@@ -1819,20 +1348,9 @@ class PostgresSystemFindingRepository(SystemFindingRepository):
             .limit(1)
         )
         model = res.scalar_one_or_none()
-        if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "get_open_by_source_hash", f"finding_hash:{source_hash}"):
-            return None
-        return self._finding_to_dict(model)
+        return self._finding_to_dict(model) if model else None
 
-    async def get_by_source_hash(self, source_hash: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
-        if isinstance(tenant_id, bool):
-            bypass_tenant = tenant_id
-            tenant_id = "default"
-        if not tenant_id:
-            tenant_id = "default"
-        if not bypass_tenant and not tenant_id:
-            raise ValueError("tenant_id is required")
+    async def get_by_source_hash(self, source_hash: str) -> Optional[Dict[str, Any]]:
         res = await self.db.execute(
             select(SystemFindingModel)
             .where(SystemFindingModel.source_hash == source_hash)
@@ -1840,33 +1358,15 @@ class PostgresSystemFindingRepository(SystemFindingRepository):
             .limit(1)
         )
         model = res.scalar_one_or_none()
-        if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "get_by_source_hash", f"finding_hash:{source_hash}"):
-            return None
-        return self._finding_to_dict(model)
+        return self._finding_to_dict(model) if model else None
 
     async def list_findings(
         self,
-        tenant_id: str = "default",
         status: Optional[str] = None,
         severity: Optional[str] = None,
         limit: int = 50,
-        bypass_tenant: bool = False
     ) -> List[Dict[str, Any]]:
-        if isinstance(tenant_id, bool):
-            bypass_tenant = tenant_id
-            tenant_id = "default"
-        elif isinstance(tenant_id, int):
-            limit = tenant_id
-            tenant_id = "default"
-        if not tenant_id:
-            tenant_id = "default"
-        if not bypass_tenant and not tenant_id:
-            raise ValueError("tenant_id is required")
         stmt = select(SystemFindingModel)
-        if not bypass_tenant:
-            stmt = stmt.where(SystemFindingModel.tenant_id == tenant_id)
         if status:
             stmt = stmt.where(SystemFindingModel.status == status)
         if severity:
@@ -1878,23 +1378,11 @@ class PostgresSystemFindingRepository(SystemFindingRepository):
     async def increment_occurrence(
         self,
         finding_id: str,
-        tenant_id: str = "default",
         evidence_summary: Optional[Dict[str, Any]] = None,
-        bypass_tenant: bool = False
     ) -> Optional[Dict[str, Any]]:
-        if isinstance(tenant_id, dict):
-            evidence_summary = tenant_id
-            tenant_id = "default"
-        elif isinstance(tenant_id, bool):
-            bypass_tenant = tenant_id
-            tenant_id = "default"
-        if not tenant_id:
-            tenant_id = "default"
         res = await self.db.execute(select(SystemFindingModel).where(SystemFindingModel.id == finding_id))
         model = res.scalar_one_or_none()
         if not model or model.status in self.TERMINAL_STATUSES:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "increment_occurrence", f"system_finding:{finding_id}"):
             return None
         model.occurrence_count += 1
         model.last_seen_at = datetime.now(timezone.utc)
@@ -1909,19 +1397,10 @@ class PostgresSystemFindingRepository(SystemFindingRepository):
         finding_id: str,
         status: str,
         actor_id: str,
-        tenant_id: str = "default",
-        bypass_tenant: bool = False
     ) -> Optional[Dict[str, Any]]:
-        if isinstance(tenant_id, bool):
-            bypass_tenant = tenant_id
-            tenant_id = "default"
-        if not tenant_id:
-            tenant_id = "default"
         res = await self.db.execute(select(SystemFindingModel).where(SystemFindingModel.id == finding_id))
         model = res.scalar_one_or_none()
         if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "update_status", f"system_finding:{finding_id}"):
             return None
         now = datetime.now(timezone.utc)
         model.status = status
@@ -1938,8 +1417,48 @@ class PostgresSystemFindingRepository(SystemFindingRepository):
         await self.db.refresh(model)
         return self._finding_to_dict(model)
 
+    async def get_suggestion(self, suggestion_id: str) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(select(AIPatchSuggestionModel).where(AIPatchSuggestionModel.id == suggestion_id))
+        model = res.scalar_one_or_none()
+        return self._suggestion_to_dict(model) if model else None
 
-@compatibility_class_decorator
+    async def list_suggestions_by_pr_draft(self, pr_draft_id: str) -> List[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(AIPatchSuggestionModel)
+            .where(AIPatchSuggestionModel.pr_draft_id == pr_draft_id)
+            .order_by(desc(AIPatchSuggestionModel.created_at))
+        )
+        return [self._suggestion_to_dict(model) for model in res.scalars().all()]
+
+    async def update_suggestion_status(self, suggestion_id: str, status: str) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(select(AIPatchSuggestionModel).where(AIPatchSuggestionModel.id == suggestion_id))
+        model = res.scalar_one_or_none()
+        if not model:
+            return None
+        model.status = status
+        await self.db.commit()
+        await self.db.refresh(model)
+        return self._suggestion_to_dict(model)
+
+    async def attach_verification(
+        self,
+        suggestion_id: str,
+        verification_id: str,
+        risk_level: str,
+        status: str,
+    ) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(select(AIPatchSuggestionModel).where(AIPatchSuggestionModel.id == suggestion_id))
+        model = res.scalar_one_or_none()
+        if not model:
+            return None
+        model.verification_id = verification_id
+        model.risk_level = risk_level
+        model.status = status
+        await self.db.commit()
+        await self.db.refresh(model)
+        return self._suggestion_to_dict(model)
+
+
 class PostgresRemediationRunbookRepository(RemediationRunbookRepository):
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -1960,13 +1479,10 @@ class PostgresRemediationRunbookRepository(RemediationRunbookRepository):
             "updated_at": model.updated_at,
         }
 
-    async def create_runbook(self, runbook_data: Dict[str, Any], tenant_id: str = "default") -> Dict[str, Any]:
-        if not tenant_id:
-            tenant_id = "default"
+    async def create_runbook(self, runbook_data: Dict[str, Any]) -> Dict[str, Any]:
         rb_id = f"rbk_{uuid.uuid4().hex[:8]}"
         model = RemediationRunbookModel(
             id=rb_id,
-            tenant_id=tenant_id,
             name=runbook_data["name"],
             action_type=runbook_data["action_type"],
             severity_allowed=runbook_data["severity_allowed"],
@@ -1982,62 +1498,24 @@ class PostgresRemediationRunbookRepository(RemediationRunbookRepository):
         await self.db.refresh(model)
         return self._to_dict(model)
 
-    async def get_runbook(self, runbook_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
-        if isinstance(tenant_id, bool):
-            bypass_tenant = tenant_id
-            tenant_id = "default"
-        if not tenant_id:
-            tenant_id = "default"
+    async def get_runbook(self, runbook_id: str) -> Optional[Dict[str, Any]]:
         res = await self.db.execute(select(RemediationRunbookModel).where(RemediationRunbookModel.id == runbook_id))
         model = res.scalar_one_or_none()
-        if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "get", f"remediation_runbook:{runbook_id}"):
-            return None
-        return self._to_dict(model)
+        return self._to_dict(model) if model else None
 
-    async def get_runbook_by_name(self, name: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
-        if isinstance(tenant_id, bool):
-            bypass_tenant = tenant_id
-            tenant_id = "default"
-        if not tenant_id:
-            tenant_id = "default"
-        if not bypass_tenant and not tenant_id:
-            raise ValueError("tenant_id is required")
+    async def get_runbook_by_name(self, name: str) -> Optional[Dict[str, Any]]:
         res = await self.db.execute(select(RemediationRunbookModel).where(RemediationRunbookModel.name == name))
         model = res.scalar_one_or_none()
-        if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "get_by_name", f"runbook_name:{name}"):
-            return None
-        return self._to_dict(model)
+        return self._to_dict(model) if model else None
 
-    async def list_runbooks(self, tenant_id: str = "default", bypass_tenant: bool = False) -> List[Dict[str, Any]]:
-        if isinstance(tenant_id, bool):
-            bypass_tenant = tenant_id
-            tenant_id = "default"
-        if not tenant_id:
-            tenant_id = "default"
-        if not bypass_tenant and not tenant_id:
-            raise ValueError("tenant_id is required")
-        query = select(RemediationRunbookModel)
-        if not bypass_tenant:
-            query = query.where(RemediationRunbookModel.tenant_id == tenant_id)
-        query = query.order_by(RemediationRunbookModel.name)
-        res = await self.db.execute(query)
+    async def list_runbooks(self) -> List[Dict[str, Any]]:
+        res = await self.db.execute(select(RemediationRunbookModel).order_by(RemediationRunbookModel.name))
         return [self._to_dict(m) for m in res.scalars().all()]
 
-    async def update_runbook_enabled(self, runbook_id: str, enabled: bool, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
-        if isinstance(tenant_id, bool):
-            bypass_tenant = tenant_id
-            tenant_id = "default"
-        if not tenant_id:
-            tenant_id = "default"
+    async def update_runbook_enabled(self, runbook_id: str, enabled: bool) -> Optional[Dict[str, Any]]:
         res = await self.db.execute(select(RemediationRunbookModel).where(RemediationRunbookModel.id == runbook_id))
         model = res.scalar_one_or_none()
         if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "update_runbook_enabled", f"runbook:{runbook_id}"):
             return None
         model.enabled = enabled
         await self.db.commit()
@@ -2045,7 +1523,6 @@ class PostgresRemediationRunbookRepository(RemediationRunbookRepository):
         return self._to_dict(model)
 
 
-@compatibility_class_decorator
 class PostgresRemediationAttemptRepository(RemediationAttemptRepository):
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -2072,13 +1549,10 @@ class PostgresRemediationAttemptRepository(RemediationAttemptRepository):
             "updated_at": model.updated_at,
         }
 
-    async def create_attempt(self, attempt_data: Dict[str, Any], tenant_id: str = "default") -> Dict[str, Any]:
-        if not tenant_id:
-            tenant_id = "default"
+    async def create_attempt(self, attempt_data: Dict[str, Any]) -> Dict[str, Any]:
         att_id = f"att_{uuid.uuid4().hex[:8]}"
         model = RemediationAttemptModel(
             id=att_id,
-            tenant_id=tenant_id,
             finding_id=attempt_data["finding_id"],
             runbook_id=attempt_data.get("runbook_id"),
             action_type=attempt_data["action_type"],
@@ -2100,84 +1574,41 @@ class PostgresRemediationAttemptRepository(RemediationAttemptRepository):
         await self.db.refresh(model)
         return self._to_dict(model)
 
-    async def get_attempt(self, attempt_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
-        if isinstance(tenant_id, bool):
-            bypass_tenant = tenant_id
-            tenant_id = "default"
-        if not tenant_id:
-            tenant_id = "default"
+    async def get_attempt(self, attempt_id: str) -> Optional[Dict[str, Any]]:
         res = await self.db.execute(select(RemediationAttemptModel).where(RemediationAttemptModel.id == attempt_id))
-        model = res.scalar_one_or_none()
-        if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "get", f"remediation_attempt:{attempt_id}"):
-            return None
-        return self._to_dict(model)
-
-    async def list_attempts_by_finding(self, finding_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> List[Dict[str, Any]]:
-        if isinstance(tenant_id, bool):
-            bypass_tenant = tenant_id
-            tenant_id = "default"
-        if not tenant_id:
-            tenant_id = "default"
-        if not bypass_tenant and not tenant_id:
-            raise ValueError("tenant_id is required")
-        query = select(RemediationAttemptModel).where(RemediationAttemptModel.finding_id == finding_id)
-        if not bypass_tenant:
-            query = query.where(RemediationAttemptModel.tenant_id == tenant_id)
-        query = query.order_by(desc(RemediationAttemptModel.created_at))
-        res = await self.db.execute(query)
-        return [self._to_dict(m) for m in res.scalars().all()]
-
-    async def get_latest_attempt_for_finding(self, finding_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
-        if isinstance(tenant_id, bool):
-            bypass_tenant = tenant_id
-            tenant_id = "default"
-        if not tenant_id:
-            tenant_id = "default"
-        if not bypass_tenant and not tenant_id:
-            raise ValueError("tenant_id is required")
-        query = select(RemediationAttemptModel).where(RemediationAttemptModel.finding_id == finding_id)
-        if not bypass_tenant:
-            query = query.where(RemediationAttemptModel.tenant_id == tenant_id)
-        query = query.order_by(desc(RemediationAttemptModel.created_at)).limit(1)
-        res = await self.db.execute(query)
         model = res.scalar_one_or_none()
         return self._to_dict(model) if model else None
 
-    async def list_attempts(self, tenant_id: str = "default", limit: int = 50, bypass_tenant: bool = False) -> List[Dict[str, Any]]:
-        if isinstance(tenant_id, bool):
-            bypass_tenant = tenant_id
-            tenant_id = "default"
-        elif isinstance(tenant_id, int):
-            if isinstance(limit, bool):
-                bypass_tenant = limit
-                limit = tenant_id
-            else:
-                limit = tenant_id
-            tenant_id = "default"
-        if not tenant_id:
-            tenant_id = "default"
-        if not bypass_tenant and not tenant_id:
-            raise ValueError("tenant_id is required")
-        query = select(RemediationAttemptModel)
-        if not bypass_tenant:
-            query = query.where(RemediationAttemptModel.tenant_id == tenant_id)
-        query = query.order_by(desc(RemediationAttemptModel.created_at)).limit(limit)
-        res = await self.db.execute(query)
+    async def list_attempts_by_finding(self, finding_id: str) -> List[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(RemediationAttemptModel)
+            .where(RemediationAttemptModel.finding_id == finding_id)
+            .order_by(desc(RemediationAttemptModel.created_at))
+        )
         return [self._to_dict(m) for m in res.scalars().all()]
 
-    async def update_attempt(self, attempt_id: str, updates: Dict[str, Any], tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
-        if isinstance(tenant_id, bool):
-            bypass_tenant = tenant_id
-            tenant_id = "default"
-        if not tenant_id:
-            tenant_id = "default"
+    async def get_latest_attempt_for_finding(self, finding_id: str) -> Optional[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(RemediationAttemptModel)
+            .where(RemediationAttemptModel.finding_id == finding_id)
+            .order_by(desc(RemediationAttemptModel.created_at))
+            .limit(1)
+        )
+        model = res.scalar_one_or_none()
+        return self._to_dict(model) if model else None
+
+    async def list_attempts(self, limit: int = 50) -> List[Dict[str, Any]]:
+        res = await self.db.execute(
+            select(RemediationAttemptModel)
+            .order_by(desc(RemediationAttemptModel.created_at))
+            .limit(limit)
+        )
+        return [self._to_dict(m) for m in res.scalars().all()]
+
+    async def update_attempt(self, attempt_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         res = await self.db.execute(select(RemediationAttemptModel).where(RemediationAttemptModel.id == attempt_id))
         model = res.scalar_one_or_none()
         if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "update_attempt", f"remediation_attempt:{attempt_id}"):
             return None
         for k, v in updates.items():
             if hasattr(model, k):
@@ -2186,78 +1617,3 @@ class PostgresRemediationAttemptRepository(RemediationAttemptRepository):
         await self.db.refresh(model)
         return self._to_dict(model)
 
-
-@compatibility_class_decorator
-class PostgresAutonomyDecisionRepository(AutonomyDecisionRepository):
-    def __init__(self, db: AsyncSession):
-        self.db = db
-
-    def _to_dict(self, model: AutonomyDecisionModel) -> Dict[str, Any]:
-        return {
-            "decision_id": model.id,
-            "incident_id": model.incident_id,
-            "correlation_id": model.correlation_id,
-            "classification": model.classification,
-            "risk_score": model.risk_score,
-            "risk_level": model.risk_level,
-            "active_autonomy_mode": model.active_autonomy_mode,
-            "eligibility": model.eligibility,
-            "action_type": model.action_type,
-            "decision_reason": model.decision_reason,
-            "requires_human_gate": model.requires_human_gate,
-            "human_gate_type": model.human_gate_type,
-            "created_at": model.created_at
-        }
-
-    async def create(self, decision: Dict[str, Any], tenant_id: str = "default") -> Dict[str, Any]:
-        if not tenant_id:
-            tenant_id = "default"
-        dec_id = f"dec_{uuid.uuid4().hex[:8]}"
-        model = AutonomyDecisionModel(
-            id=dec_id,
-            tenant_id=tenant_id,
-            incident_id=decision["incident_id"],
-            correlation_id=decision["correlation_id"],
-            classification=decision["classification"],
-            risk_score=decision["risk_score"],
-            risk_level=decision["risk_level"],
-            active_autonomy_mode=decision["active_autonomy_mode"],
-            eligibility=decision["eligibility"],
-            action_type=decision.get("action_type"),
-            decision_reason=decision["decision_reason"],
-            requires_human_gate=decision["requires_human_gate"],
-            human_gate_type=decision.get("human_gate_type")
-        )
-        self.db.add(model)
-        await self.db.commit()
-        await self.db.refresh(model)
-        return self._to_dict(model)
-
-    async def get(self, decision_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
-        if isinstance(tenant_id, bool):
-            bypass_tenant = tenant_id
-            tenant_id = "default"
-        if not tenant_id:
-            tenant_id = "default"
-        res = await self.db.execute(select(AutonomyDecisionModel).where(AutonomyDecisionModel.id == decision_id))
-        model = res.scalar_one_or_none()
-        if not model:
-            return None
-        if not await _check_postgres_tenant(self.db, model, tenant_id, bypass_tenant, "get", f"autonomy_decision:{decision_id}"):
-            return None
-        return self._to_dict(model)
-
-    async def list_by_incident(self, incident_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> List[Dict[str, Any]]:
-        if isinstance(tenant_id, bool):
-            bypass_tenant = tenant_id
-            tenant_id = "default"
-        if not tenant_id:
-            tenant_id = "default"
-        if not bypass_tenant and not tenant_id:
-            raise ValueError("tenant_id is required")
-        query = select(AutonomyDecisionModel).where(AutonomyDecisionModel.incident_id == incident_id)
-        if not bypass_tenant:
-            query = query.where(AutonomyDecisionModel.tenant_id == tenant_id)
-        query = query.order_by(desc(AutonomyDecisionModel.created_at))
-        res = await self.db.execute(query)
-        return [self._to_dict(m) for m in res.scalars().all()]

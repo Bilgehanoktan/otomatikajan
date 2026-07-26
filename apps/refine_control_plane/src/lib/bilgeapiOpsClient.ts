@@ -1,8 +1,4 @@
-import { getAuthHeaders } from "@/lib/auth";
-import { safeFetchJson } from "@/lib/api";
-
 export const BILGEAPI_PROXY_BASE = "/bilgeapi";
-export const AGENT_API_BASE = "/api/v1/agents";
 
 export type ApiKeyRecord = {
   id: string;
@@ -298,15 +294,6 @@ export type WatchdogStatusRecord = {
   last_scan_correlation_id?: string | null;
 };
 
-export type ManagementGateRecord = {
-  unlocked: boolean;
-  status: string;
-  reason?: string | null;
-  forbidden_actions: string[];
-  human_gate_required: boolean;
-  updated_by?: string | null;
-};
-
 export type OpsSnapshot = {
   apiKeys: ApiKeyRecord[];
   quotaUsage: QuotaUsage[];
@@ -321,7 +308,6 @@ export type OpsSnapshot = {
   remediationAttempts: RemediationAttemptRecord[];
   systemFindings: SystemFindingRecord[];
   watchdogStatus: WatchdogStatusRecord | null;
-  managementGate: ManagementGateRecord | null;
   agentPromotions: AgentPromotionRecord[];
   agentRuns: AgentRunRecord[];
   agentCapabilities: AgentCapabilityRecord[];
@@ -330,22 +316,6 @@ export type OpsSnapshot = {
 
 
 type JsonValue = Record<string, unknown> | Array<unknown>;
-
-export class BilgeApiResponseError extends Error {
-  readonly status: number;
-  readonly detail: string;
-
-  constructor(status: number, detail: string) {
-    super(detail);
-    this.name = "BilgeApiResponseError";
-    this.status = status;
-    this.detail = detail;
-  }
-}
-
-export function isBilgeApiAuthError(error: unknown): error is BilgeApiResponseError {
-  return error instanceof BilgeApiResponseError && (error.status === 401 || error.status === 403);
-}
 
 function buildHeaders(apiKey: string, hasBody = false): Headers {
   const headers = new Headers();
@@ -382,7 +352,7 @@ export async function bilgeApiFetch<T>(
   });
 
   if (!response.ok) {
-    throw new BilgeApiResponseError(response.status, await readError(response));
+    throw new Error(await readError(response));
   }
 
   return (await response.json()) as T;
@@ -401,23 +371,10 @@ export async function bilgeApiText(
   });
 
   if (!response.ok) {
-    throw new BilgeApiResponseError(response.status, await readError(response));
+    throw new Error(await readError(response));
   }
 
   return response.text();
-}
-
-async function buildAgentHeaders(hasBody = false): Promise<Headers> {
-  const headers = new Headers(await getAuthHeaders());
-  headers.delete("X-API-Key");
-  if (hasBody) {
-    headers.set("Content-Type", "application/json");
-  }
-  return headers;
-}
-
-export async function agentApiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-  return safeFetchJson<T>(`${AGENT_API_BASE}${path}`, init);
 }
 
 export function redactPlaintextKey<T extends { plaintext_key?: string }>(payload: T): T {
@@ -433,10 +390,6 @@ async function settle<T>(label: string, task: Promise<T>, errors: string[]): Pro
     errors.push(`${label}: ${message}`);
     return null;
   }
-}
-
-async function verifyBilgeApiAccess(apiKey: string): Promise<JsonValue> {
-  return bilgeApiFetch<JsonValue>(apiKey, "/v1/catalog");
 }
 
 export async function listBilgeApiKeys(apiKey: string): Promise<ApiKeyRecord[]> {
@@ -709,17 +662,6 @@ export async function getWatchdogStatus(apiKey: string): Promise<WatchdogStatusR
   return bilgeApiFetch<WatchdogStatusRecord>(apiKey, "/v1/watchdog/status");
 }
 
-export async function getManagementGate(apiKey: string): Promise<ManagementGateRecord> {
-  return bilgeApiFetch<ManagementGateRecord>(apiKey, "/v1/system/management-gate");
-}
-
-export async function setManagementGate(apiKey: string, unlocked: boolean, reason?: string): Promise<ManagementGateRecord> {
-  return bilgeApiFetch<ManagementGateRecord>(apiKey, "/v1/system/management-gate", {
-    method: "POST",
-    body: JSON.stringify({ unlocked, reason: reason || null }),
-  });
-}
-
 export async function runWatchdogScan(apiKey: string): Promise<any> {
   return bilgeApiFetch<any>(apiKey, "/v1/watchdog/run", {
     method: "POST",
@@ -727,7 +669,6 @@ export async function runWatchdogScan(apiKey: string): Promise<any> {
 }
 
 export async function loadBilgeApiOpsSnapshot(apiKey: string): Promise<OpsSnapshot> {
-  await verifyBilgeApiAccess(apiKey);
   const errors: string[] = [];
 
   const apiKeys = (await settle("api_keys", listBilgeApiKeys(apiKey), errors)) || [];
@@ -759,7 +700,6 @@ export async function loadBilgeApiOpsSnapshot(apiKey: string): Promise<OpsSnapsh
   const remediationAttempts = (await settle("remediation_attempts", listRemediationAttempts(apiKey), errors)) || [];
   const systemFindings = (await settle("system_findings", listWatchdogFindings(apiKey), errors)) || [];
   const watchdogStatus = await settle("watchdog_status", getWatchdogStatus(apiKey), errors);
-  const managementGate = await settle("management_gate", getManagementGate(apiKey), errors);
 
   const agentPromotions = (await settle("agent_promotions", listAgentPromotions(apiKey), errors)) || [];
   const agentRuns = (await settle("agent_runs", listAgentRuns(apiKey), errors)) || [];
@@ -779,7 +719,6 @@ export async function loadBilgeApiOpsSnapshot(apiKey: string): Promise<OpsSnapsh
     remediationAttempts,
     systemFindings,
     watchdogStatus,
-    managementGate,
     agentPromotions,
     agentRuns,
     agentCapabilities,
@@ -851,63 +790,53 @@ export type AgentPolicySimulationResponse = {
   simulation_result_hash?: string | null;
 };
 
-export async function listAgentCapabilities(_apiKey: string): Promise<AgentCapabilityRecord[]> {
-  return agentApiFetch<AgentCapabilityRecord[]>("/capabilities");
+export async function listAgentCapabilities(apiKey: string): Promise<AgentCapabilityRecord[]> {
+  return bilgeApiFetch<AgentCapabilityRecord[]>(apiKey, "/v1/agents/capabilities");
 }
 
-export async function listAgentRuns(_apiKey: string): Promise<AgentRunRecord[]> {
-  return agentApiFetch<AgentRunRecord[]>("/runs");
+export async function listAgentRuns(apiKey: string): Promise<AgentRunRecord[]> {
+  return bilgeApiFetch<AgentRunRecord[]>(apiKey, "/v1/agents/runs");
 }
 
-export async function getAgentRun(_apiKey: string, runId: string): Promise<AgentRunRecord> {
-  return agentApiFetch<AgentRunRecord>(`/runs/${encodeURIComponent(runId)}`);
+export async function getAgentRun(apiKey: string, runId: string): Promise<AgentRunRecord> {
+  return bilgeApiFetch<AgentRunRecord>(apiKey, `/v1/agents/runs/${encodeURIComponent(runId)}`);
 }
 
-export async function retryAgentRun(
-  _apiKey: string,
-  runId: string,
-): Promise<{ run_id: string; retried_from_run_id: string; success: boolean; output: string; workspace_path?: string | null }> {
-  return agentApiFetch<{ run_id: string; retried_from_run_id: string; success: boolean; output: string; workspace_path?: string | null }>(
-    `/runs/${encodeURIComponent(runId)}/retry`,
-    { method: "POST" },
-  );
+export async function listAgentPromotions(apiKey: string): Promise<AgentPromotionRecord[]> {
+  return bilgeApiFetch<AgentPromotionRecord[]>(apiKey, "/v1/agents/promotions");
 }
 
-export async function listAgentPromotions(_apiKey: string): Promise<AgentPromotionRecord[]> {
-  return agentApiFetch<AgentPromotionRecord[]>("/promotions");
+export async function getAgentPromotion(apiKey: string, promotionId: string): Promise<AgentPromotionRecord> {
+  return bilgeApiFetch<AgentPromotionRecord>(apiKey, `/v1/agents/promotions/${encodeURIComponent(promotionId)}`);
 }
 
-export async function getAgentPromotion(_apiKey: string, promotionId: string): Promise<AgentPromotionRecord> {
-  return agentApiFetch<AgentPromotionRecord>(`/promotions/${encodeURIComponent(promotionId)}`);
-}
-
-export async function approveAgentPromotion(_apiKey: string, promotionId: string): Promise<{ status: string; message: string }> {
-  return agentApiFetch<{ status: string; message: string }>(`/promotions/${encodeURIComponent(promotionId)}/approve`, {
+export async function approveAgentPromotion(apiKey: string, promotionId: string): Promise<{ status: string; message: string }> {
+  return bilgeApiFetch<{ status: string; message: string }>(apiKey, `/v1/agents/promotions/${encodeURIComponent(promotionId)}/approve`, {
     method: "POST"
   });
 }
 
-export async function rejectAgentPromotion(_apiKey: string, promotionId: string): Promise<{ status: string; message: string }> {
-  return agentApiFetch<{ status: string; message: string }>(`/promotions/${encodeURIComponent(promotionId)}/reject`, {
+export async function rejectAgentPromotion(apiKey: string, promotionId: string): Promise<{ status: string; message: string }> {
+  return bilgeApiFetch<{ status: string; message: string }>(apiKey, `/v1/agents/promotions/${encodeURIComponent(promotionId)}/reject`, {
     method: "POST"
   });
 }
 
-export async function executeAgentPromotion(_apiKey: string, promotionId: string): Promise<{ status: string; message: string }> {
-  return agentApiFetch<{ status: string; message: string }>(`/promotions/${encodeURIComponent(promotionId)}/execute`, {
+export async function executeAgentPromotion(apiKey: string, promotionId: string): Promise<{ status: string; message: string }> {
+  return bilgeApiFetch<{ status: string; message: string }>(apiKey, `/v1/agents/promotions/${encodeURIComponent(promotionId)}/execute`, {
     method: "POST"
   });
 }
 
-export async function simulateAgentPromotion(_apiKey: string, promotionId: string): Promise<AgentPolicySimulationResponse> {
-  return agentApiFetch<AgentPolicySimulationResponse>("/policy/simulate-promotion", {
+export async function simulateAgentPromotion(apiKey: string, promotionId: string): Promise<AgentPolicySimulationResponse> {
+  return bilgeApiFetch<AgentPolicySimulationResponse>(apiKey, `/v1/agents/policy/simulate-promotion`, {
     method: "POST",
     body: JSON.stringify({ promotion_id: promotionId })
   });
 }
 
 export async function simulateAgentRun(
-  _apiKey: string,
+  apiKey: string,
   body: {
     agent_key: string;
     action_type: string;
@@ -916,20 +845,22 @@ export async function simulateAgentRun(
     network_request: boolean;
   }
 ): Promise<AgentPolicySimulationResponse> {
-  return agentApiFetch<AgentPolicySimulationResponse>("/policy/simulate-run", {
+  return bilgeApiFetch<AgentPolicySimulationResponse>(apiKey, `/v1/agents/policy/simulate-run`, {
     method: "POST",
     body: JSON.stringify(body)
   });
 }
 
-export async function enableAgent(_apiKey: string, agentKey: string): Promise<{ status: string; message: string }> {
-  return agentApiFetch<{ status: string; message: string }>(`/capabilities/${encodeURIComponent(agentKey)}/enable`, {
+export async function enableAgent(apiKey: string, agentKey: string): Promise<{ status: string; message: string }> {
+  return bilgeApiFetch<{ status: string; message: string }>(apiKey, `/v1/agents/capabilities/${encodeURIComponent(agentKey)}/enable`, {
     method: "POST"
   });
 }
 
-export async function disableAgent(_apiKey: string, agentKey: string): Promise<{ status: string; message: string }> {
-  return agentApiFetch<{ status: string; message: string }>(`/capabilities/${encodeURIComponent(agentKey)}/disable`, {
+export async function disableAgent(apiKey: string, agentKey: string): Promise<{ status: string; message: string }> {
+  return bilgeApiFetch<{ status: string; message: string }>(apiKey, `/v1/agents/capabilities/${encodeURIComponent(agentKey)}/disable`, {
     method: "POST"
   });
 }
+
+

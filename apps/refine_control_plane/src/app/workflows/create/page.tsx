@@ -55,23 +55,23 @@ export default function CreateWorkflowPage() {
         {
           onSuccess: (data) => {
             console.log("[CreateWorkflow] Mutation Success:", data);
-            message.success(t("createSuccess"));
+            message.success("İş akışı başarıyla oluşturuldu ve kuyruğa alındı.");
             list("workflows");
           },
           onError: (error: any) => {
             console.error("[CreateWorkflow] Mutation Error:", error);
-            const rawDetail = error?.response?.data?.detail || error?.message || t("systemError");
+            const rawDetail = error?.response?.data?.detail || error?.message || "Bilinmeyen hata";
             const status = error?.statusCode || error?.status || error?.response?.status;
             const detail = status === 403
-              ? t("operatorRequired")
+              ? "Bu işlem için OPERATOR yetkisi gerekir. AUDIT_OBSERVER hesapları salt okunurdur."
               : rawDetail;
-            message.error(t("createError") + detail);
+            message.error("İş akışı oluşturulamadı: " + detail);
           },
         }
       );
     } catch (err: any) {
       console.error("[CreateWorkflow] Catch Error:", err);
-      message.error(t("systemError") + err.message);
+      message.error("Sistem hatası: " + err.message);
     }
   };
 
@@ -97,13 +97,14 @@ export default function CreateWorkflowPage() {
             <div className="relative z-10">
               <Space direction="vertical" size={0}>
                 <Text className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--primary)]">
-                  {t("otonomOrchestration")}
+                  Otonom Orkestrasyon Çekirdeği
                 </Text>
                 <Title level={1} className="m-0 mt-2 text-5xl font-black italic tracking-tighter text-white">
                   {t("create")}
                 </Title>
                 <Paragraph className="mt-4 max-w-md text-gray-400">
-                  {t("createDesc")}
+                  Sovereign AGI için yeni bir otonom görev sekansı tanımlayın. 
+                  Sistem, tanımladığınız parametrelere göre en uygun ajanları ve stratejileri seçecektir.
                 </Paragraph>
               </Space>
             </div>
@@ -120,22 +121,22 @@ export default function CreateWorkflowPage() {
                 <div className="space-y-6">
                   <Form.Item
                     name="title"
-                    label={<span className="text-[10px] font-black uppercase tracking-widest text-gray-500">{t("taskTitle")}</span>}
-                    rules={[{ required: true, message: t("taskTitleRequired") }]}
+                    label={<span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Görev Başlığı</span>}
+                    rules={[{ required: true, message: "Lütfen bir başlık girin" }]}
                   >
                     <Input 
-                      placeholder={t("taskTitlePlaceholder")} 
+                      placeholder="Örn: Veri Analizi ve Raporlama" 
                       className="rounded-xl border-white/10 bg-white/5 py-3 text-white hover:border-[var(--primary)]/50 focus:border-[var(--primary)]"
                     />
                   </Form.Item>
 
                   <Form.Item
                     name="description"
-                    label={<span className="text-[10px] font-black uppercase tracking-widest text-gray-500">{t("detailedDescription")}</span>}
+                    label={<span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Detaylı Açıklama</span>}
                   >
                     <Input.TextArea 
                       rows={6} 
-                      placeholder={t("detailedDescriptionPlaceholder")} 
+                      placeholder="Görevin kapsamını ve hedeflerini detaylandırın..." 
                       className="rounded-xl border-white/10 bg-white/5 text-white hover:border-[var(--primary)]/50 focus:border-[var(--primary)]"
                     />
                   </Form.Item>
@@ -144,37 +145,37 @@ export default function CreateWorkflowPage() {
                 <div className="space-y-6">
                   <Form.Item
                     name="template"
-                    label={<span className="text-[10px] font-black uppercase tracking-widest text-gray-500">{t("workflowTemplate")}</span>}
+                    label={<span className="text-[10px] font-black uppercase tracking-widest text-gray-500">İş Akışı Şablonu</span>}
                   >
                     <Select className="premium-select">
-                      <Select.Option value="default">{t("templateOptions.default")}</Select.Option>
-                      <Select.Option value="research">{t("templateOptions.research")}</Select.Option>
-                      <Select.Option value="coding">{t("templateOptions.coding")}</Select.Option>
-                      <Select.Option value="analysis">{t("templateOptions.analysis")}</Select.Option>
+                      <Select.Option value="default">Genel Amaçlı (Default)</Select.Option>
+                      <Select.Option value="research">Derinlemesine Araştırma</Select.Option>
+                      <Select.Option value="coding">Yazılım Geliştirme</Select.Option>
+                      <Select.Option value="analysis">Veri Analitiği</Select.Option>
                     </Select>
                   </Form.Item>
 
                   <div className="grid grid-cols-2 gap-4">
                     <Form.Item
                       name="priority"
-                      label={<span className="text-[10px] font-black uppercase tracking-widest text-gray-500">{t("priorityLevel")}</span>}
+                      label={<span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Öncelik Seviyesi</span>}
                     >
                       <Select className="premium-select">
-                        <Select.Option value="LOW">{t("priorityOptions.LOW")}</Select.Option>
-                        <Select.Option value="MEDIUM">{t("priorityOptions.MEDIUM")}</Select.Option>
-                        <Select.Option value="HIGH">{t("priorityOptions.HIGH")}</Select.Option>
-                        <Select.Option value="CRITICAL">{t("priorityOptions.CRITICAL")}</Select.Option>
+                        <Select.Option value="LOW">Düşük</Select.Option>
+                        <Select.Option value="MEDIUM">Orta</Select.Option>
+                        <Select.Option value="HIGH">Yüksek</Select.Option>
+                        <Select.Option value="CRITICAL">Kritik</Select.Option>
                       </Select>
                     </Form.Item>
 
                     <Form.Item
                       name="quality"
-                      label={<span className="text-[10px] font-black uppercase tracking-widest text-gray-500">{t("qualityProfile")}</span>}
+                      label={<span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Kalite Profili</span>}
                     >
                       <Select className="premium-select">
-                        <Select.Option value="standard">{t("qualityOptions.standard")}</Select.Option>
-                        <Select.Option value="high_precision">{t("qualityOptions.high_precision")}</Select.Option>
-                        <Select.Option value="fast_track">{t("qualityOptions.fast_track")}</Select.Option>
+                        <Select.Option value="standard">Standart</Select.Option>
+                        <Select.Option value="high_precision">Yüksek Hassasiyet</Select.Option>
+                        <Select.Option value="fast_track">Hızlı (Taslak)</Select.Option>
                       </Select>
                     </Form.Item>
                   </div>
@@ -183,9 +184,9 @@ export default function CreateWorkflowPage() {
                     <div className="flex items-center gap-4">
                       <SafetyOutlined className="text-2xl text-[var(--primary)]" />
                       <div>
-                        <Text className="block text-xs font-bold text-white">{t("governanceActive")}</Text>
+                        <Text className="block text-xs font-bold text-white">Yönetişim Kontrolü Aktif</Text>
                         <Text className="text-[10px] text-gray-500">
-                          {t("governanceActiveDesc")}
+                          Bu görev SIF-01 protokolü altında denetlenecek ve tüm kararlar şecere defterine işlenecektir.
                         </Text>
                       </div>
                     </div>

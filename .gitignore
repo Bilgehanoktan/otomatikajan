@@ -3,7 +3,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 .pytest_cache/
-.pydeps314/
 project_outputs/
 apps/refine_control_plane/.next/
 apps/refine_control_plane/.playwright-browsers/
@@ -28,8 +27,3 @@ celerybeat-schedule
 .nx/
 .playwright-browsers/
 
-# BilgeAPI Caches & Dynamic Assets
-.bilgeapi/logs/
-.bilgeapi/reports/
-.bilgeapi/quarantine/
-.bilgeapi/memory/

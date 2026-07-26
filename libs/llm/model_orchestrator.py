@@ -478,7 +478,7 @@ class ModelOrchestrator:
                     
                     # Faz 13.04: Add randomized delay to reduce thundering herd pressure
                     jitter_delay = random.uniform(1.0, 5.0) * (provider.penalty_multiplier / 2)
-                    await asyncio.sleep(min(jitter_delay, 2.0))
+                    await asyncio.sleep(min(jitter_delay, 15.0))
                 else:
                     logger.warning(f"Sağlayıcı Hatası ({provider.name}): {str(e)}. Fallback modele geçiliyor.")
                     err_summary = str(e)[:50]
@@ -616,7 +616,6 @@ class ModelOrchestrator:
 
     def _estimate_output_tokens(self, text: str) -> int:
         """Üretilen metnin yaklaşık token sayısını tahmin et."""
-        if not text: return 0
         return len(text) // 4
 
     def _estimate_cost(self, provider_name: str, input_tokens: int, output_tokens: int) -> float:
@@ -741,15 +740,6 @@ class ModelOrchestrator:
                 )
         except Exception:
             pass  # Routing hatası -> normal akış devam eder
-
-        if force_provider:
-            provider = self.providers.get(force_provider)
-            if provider and provider.api_key and provider.is_available():
-                try:
-                    result = await self._call(provider, messages, max_tokens)
-                    return result.content
-                except Exception as e:
-                    logger.warning(f"Routed provider {force_provider} failed: {e}. Falling back to normal chain.")
 
         # Mesajlardan system/user prompt'ları ayıkla
         system_prompt = ""

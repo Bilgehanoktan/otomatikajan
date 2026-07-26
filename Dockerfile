@@ -1,10 +1,10 @@
 # ─── Aşama 1: Bağımlılık builder ─────────────────────────
-FROM python:3.12-slim AS builder
+FROM python:3.12-slim-bookworm AS builder
 
 WORKDIR /app
 
 # Sistem bağımlılıkları (derleme için)
-RUN apt-get -o Acquire::Retries=3 update && apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
+RUN apt-get -o Acquire::Retries=5 update && apt-get -o Acquire::Retries=5 install -y --no-install-recommends --fix-missing \
     gcc g++ libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
@@ -15,7 +15,7 @@ RUN uv pip install --no-cache --system --prefix=/install -r requirements.txt
 
 
 # ─── Aşama 2: Temel Çalışma Zamanı (Base Runtime) ────────
-FROM python:3.12-slim AS base-runtime
+FROM python:3.12-slim-bookworm AS base-runtime
 
 # Güvenlik: root olmayan kullanıcı
 RUN groupadd --gid 1001 appgroup \
@@ -25,8 +25,8 @@ WORKDIR /app
 RUN chown appuser:appgroup /app
 
 # Temel sistem kütüphaneleri (PostgreSQL istemcisi, Curl ve Playwright/Browser bağımlılıkları)
-RUN apt-get -o Acquire::Retries=3 update && \
-    DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
+RUN apt-get -o Acquire::Retries=5 update && \
+    DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=5 install -y --no-install-recommends --fix-missing \
     libpq5 curl git \
     libglib2.0-0 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
     libxkbcommon0 libxcomposite1 libxdamage1 libxext6 libxfixes3 libxrandr2 \

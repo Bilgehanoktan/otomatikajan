@@ -1,16 +1,12 @@
 import { getApiBaseUrl } from "@/lib/runtime";
 import { safeFetchJson } from "@/lib/api";
 
-const TOKEN_KEY = "sqv_access_token";
-const DEV_AUTO_LOGIN_ENABLED = process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_ENABLE_DEV_AUTO_LOGIN === "true";
-const DEV_OPERATOR_EMAIL = process.env.NODE_ENV === "development" ? (process.env.NEXT_PUBLIC_DEV_OPERATOR_EMAIL?.trim() || "") : "";
-const DEV_OPERATOR_PASSWORD = process.env.NODE_ENV === "development" ? (process.env.NEXT_PUBLIC_DEV_OPERATOR_PASSWORD?.trim() || "") : "";
-
-type AuthFetchOptions = RequestInit & {
-  retries?: number;
-  skipAuthRefresh?: boolean;
-  suppressConsoleError?: boolean;
+const DEV_OPERATOR = {
+  email: "admin@sovereign.agi",
+  password: "admin1234",
 };
+
+const TOKEN_KEY = "sqv_access_token";
 
 import { 
   AuthIdentity, 
@@ -23,15 +19,13 @@ function storeAccessToken(token?: string | null) {
   if (!token || typeof window === "undefined") {
     return;
   }
-  window.sessionStorage.setItem(TOKEN_KEY, token);
-  window.localStorage.removeItem(TOKEN_KEY);
+  window.localStorage.setItem(TOKEN_KEY, token);
 }
 
 export function clearStoredAccessToken() {
   if (typeof window === "undefined") {
     return;
   }
-  window.sessionStorage.removeItem(TOKEN_KEY);
   window.localStorage.removeItem(TOKEN_KEY);
 }
 
@@ -39,34 +33,20 @@ export function getStoredAccessToken(): string | null {
   if (typeof window === "undefined") {
     return null;
   }
-  return window.sessionStorage.getItem(TOKEN_KEY) || window.localStorage.getItem(TOKEN_KEY);
-}
-
-function getDevOperatorCredentials(): { email: string; password: string } | null {
-  if (!DEV_AUTO_LOGIN_ENABLED || !DEV_OPERATOR_EMAIL || !DEV_OPERATOR_PASSWORD) {
-    return null;
-  }
-  return {
-    email: DEV_OPERATOR_EMAIL,
-    password: DEV_OPERATOR_PASSWORD,
-  };
+  return window.localStorage.getItem(TOKEN_KEY);
 }
 
 /**
  * Standardized fetch wrapper for auth-related operations.
  */
-async function authFetch<T = unknown>(path: string, init: AuthFetchOptions = {}): Promise<T> {
+async function authFetch<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
   const url = `${getApiBaseUrl()}${path}`;
   return safeFetchJson<T>(url, init);
 }
 
 export async function fetchCurrentOperator(): Promise<SessionState> {
   try {
-    const payload = await authFetch<AuthIdentity>("/auth/me", {
-      retries: 0,
-      skipAuthRefresh: true,
-      suppressConsoleError: true,
-    });
+    const payload = await authFetch<AuthIdentity>("/auth/me");
     if (payload && (payload.id || payload.email)) {
       if (typeof window !== "undefined") {
         if (payload.role) window.localStorage.setItem("auth", JSON.stringify({ role: payload.role }));
@@ -79,10 +59,10 @@ export async function fetchCurrentOperator(): Promise<SessionState> {
     }
     return { kind: "error", status: 500, detail: "Sunucudan geçersiz kimlik verisi alındı." };
   } catch (error: unknown) {
+    console.warn("[Auth] fetchCurrentOperator hatası:", error);
     if (error && typeof error === "object" && "status" in error && error.status === 401) {
       return { kind: "unauthorized", status: 401 };
     }
-    console.warn("[Auth] fetchCurrentOperator hatası:", error);
     return {
       kind: "network-error",
       error: error instanceof Error ? error : new Error("Kimlik ağına ulaşılamadı."),
@@ -92,7 +72,6 @@ export async function fetchCurrentOperator(): Promise<SessionState> {
 
 let lastAutoLoginTime = 0;
 const AUTO_LOGIN_COOLDOWN = 10000; // 10 seconds
-let autoLoginInFlight: Promise<SessionState> | null = null;
 
 export async function ensureSession(): Promise<SessionState> {
   const current = await fetchCurrentOperator();
@@ -104,57 +83,40 @@ export async function ensureSession(): Promise<SessionState> {
     return current;
   }
 
-  const devCredentials = getDevOperatorCredentials();
-  if (!devCredentials) {
-    return current;
-  }
-
-  if (autoLoginInFlight) {
-    return autoLoginInFlight;
-  }
-
-  // Prevent rapid-fire automatic login attempts that cause loops.
+  // Prevent rapid-fire automatic login attempts that cause loops
   const now = Date.now();
   if (now - lastAutoLoginTime < AUTO_LOGIN_COOLDOWN) {
-    const cached = getStoredAccessToken();
-    if (cached) {
-      return fetchCurrentOperator();
-    }
-    console.warn("[Auth] Otomatik giris beklemede (cooldown active).");
+    console.warn("[Auth] Otomatik giriş beklemede (cooldown active).");
     return current;
   }
   lastAutoLoginTime = now;
 
-  console.warn("[Auth] Oturum bulunamadi, otomatik giris deneniyor...");
+  console.warn("[Auth] Oturum bulunamadı, otomatik giriş deneniyor...");
 
-  autoLoginInFlight = (async () => {
+  try {
     const payload = await authFetch<{ access_token?: string | null }>("/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(devCredentials),
+      body: JSON.stringify(DEV_OPERATOR),
     });
 
     if (payload?.access_token) {
-      storeAccessToken(payload.access_token);
-      console.info("[Auth] Otomatik giris basarili.");
-      return fetchCurrentOperator();
+        storeAccessToken(payload.access_token);
+        console.info("[Auth] Otomatik giriş başarılı.");
+        // We call fetchCurrentOperator one more time to verify the new token
+        return fetchCurrentOperator();
     }
-
-    return current;
-  })();
-
-  try {
-    return await autoLoginInFlight;
   } catch (error) {
-    console.error("[Auth] Otomatik giris basarisiz:", error);
+    console.error("[Auth] Otomatik giriş başarısız:", error);
     return {
       kind: "network-error",
-      error: error instanceof Error ? error : new Error("Otomatik giris basarisiz oldu."),
+      error: error instanceof Error ? error : new Error("Otomatik giriş başarısız oldu."),
     };
-  } finally {
-    autoLoginInFlight = null;
   }
+
+  return current;
 }
+
 export interface AuthActionResult {
   success: boolean;
   redirectTo?: string;
@@ -162,12 +124,15 @@ export interface AuthActionResult {
 }
 
 export async function performLogin(params: LoginParams): Promise<AuthActionResult> {
+  console.log("[Auth] Giriş denemesi:", params.email);
   try {
     const payload = await authFetch<{ access_token?: string | null }>("/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(params),
     });
+
+    console.log("[Auth] Giriş yanıtı:", payload);
 
     if (payload?.access_token) {
       storeAccessToken(payload.access_token);
@@ -191,12 +156,15 @@ export async function performLogin(params: LoginParams): Promise<AuthActionResul
 }
 
 export async function performRegister(params: RegisterParams): Promise<{ success: boolean; error?: Error }> {
+  console.log("[Auth] Kayıt denemesi:", params.email);
   try {
     const payload = await authFetch<AuthIdentity>("/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(params),
     });
+
+    console.log("[Auth] Kayıt yanıtı:", payload);
 
     if (payload && (payload.id || payload.email)) {
       return { success: true };

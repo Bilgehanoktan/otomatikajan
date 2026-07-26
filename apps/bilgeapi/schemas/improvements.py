@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional, Dict, Any, List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class ResearchCreate(BaseModel):
@@ -9,6 +9,8 @@ class ResearchCreate(BaseModel):
 
 
 class ResearchResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     incident_id: str
     query: str
@@ -18,16 +20,10 @@ class ResearchResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    model_config = {
-
-
-        "from_attributes": True
-
-
-    }
-
 
 class EvidenceResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     research_id: str
     source_url: str
@@ -39,16 +35,10 @@ class EvidenceResponse(BaseModel):
     trust_score: float
     retrieved_at: datetime
 
-    model_config = {
-
-
-        "from_attributes": True
-
-
-    }
-
 
 class ProposalResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     research_id: str
     title: str
@@ -64,13 +54,6 @@ class ProposalResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    model_config = {
-
-
-        "from_attributes": True
-
-
-    }
 
 
 class DraftPrResponse(BaseModel):

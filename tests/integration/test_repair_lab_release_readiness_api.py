@@ -7,42 +7,10 @@ import pytest
 from pathlib import Path
 from httpx import AsyncClient, ASGITransport
 
-from libs.db.session import get_db
-from services.auth import jwt_auth
 from services.workflow_api.main import app
 
 WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
 REPAIR_OUTPUTS = WORKSPACE_ROOT / "repair_outputs"
-
-
-class _ScalarNoneResult:
-    def scalar_one_or_none(self):
-        return None
-
-
-class _FakeDb:
-    async def execute(self, *args, **kwargs):
-        return _ScalarNoneResult()
-
-
-@pytest.fixture(autouse=True)
-def _authorized_operator(monkeypatch):
-    async def _identity_from_token(db, token):
-        return {
-            "id": "operator-test",
-            "type": "operator",
-            "role": "OPERATOR",
-            "email": "operator@test.local",
-            "name": "Repair Lab Operator",
-        }
-
-    async def _db():
-        yield _FakeDb()
-
-    app.dependency_overrides[get_db] = _db
-    monkeypatch.setattr(jwt_auth.auth_service, "get_identity_from_token", _identity_from_token)
-    yield
-    app.dependency_overrides.clear()
 
 @pytest.fixture
 def setup_mock_run():
@@ -78,11 +46,7 @@ def setup_mock_run():
 @pytest.mark.asyncio
 async def test_get_release_readiness_contracts_returns_matrix():
     transport = ASGITransport(app=app)
-    async with AsyncClient(
-        transport=transport,
-        base_url="http://test",
-        headers={"Authorization": "Bearer test-token"},
-    ) as ac:
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
         response = await ac.get("/api/v1/repair-lab/release-readiness/contracts")
         assert response.status_code == 200
         data = response.json()
@@ -95,11 +59,7 @@ async def test_get_release_readiness_contracts_returns_matrix():
 async def test_post_release_readiness_check_writes_latest_report(setup_mock_run):
     run_id = setup_mock_run["run_id"]
     transport = ASGITransport(app=app)
-    async with AsyncClient(
-        transport=transport,
-        base_url="http://test",
-        headers={"Authorization": "Bearer test-token"},
-    ) as ac:
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
         response = await ac.post(
             "/api/v1/repair-lab/release-readiness/check",
             json={"run_id": run_id}
@@ -126,11 +86,7 @@ async def test_release_readiness_api_is_read_only(setup_mock_run):
     # or start executions, just report on the state of files and routing)
     run_id = setup_mock_run["run_id"]
     transport = ASGITransport(app=app)
-    async with AsyncClient(
-        transport=transport,
-        base_url="http://test",
-        headers={"Authorization": "Bearer test-token"},
-    ) as ac:
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
         response_get = await ac.get(f"/api/v1/repair-lab/release-readiness?run_id={run_id}")
         assert response_get.status_code == 200
         
@@ -148,11 +104,7 @@ async def test_release_readiness_api_is_read_only(setup_mock_run):
 async def test_release_readiness_reports_blocking_missing_artifact(setup_mock_run):
     run_id = setup_mock_run["run_id"]
     transport = ASGITransport(app=app)
-    async with AsyncClient(
-        transport=transport,
-        base_url="http://test",
-        headers={"Authorization": "Bearer test-token"},
-    ) as ac:
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
         response = await ac.post(
             "/api/v1/repair-lab/release-readiness/check",
             json={"run_id": run_id}

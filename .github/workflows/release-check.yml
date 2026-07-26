@@ -1,0 +1,72 @@
+name: Release Check — Controlled Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag, for example otomatikajan-v1.0.0"
+        required: true
+        type: string
+      environment_name:
+        description: "Target environment"
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  release-check:
+    name: Release Readiness Gate
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment_name }}
+
+    env:
+      PYTHON_VERSION: "3.12"
+
+    steps:
+      - name: Checkout selected release
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_tag }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio pytest-mock pytest-cov ruff "bandit[toml]" pip-audit
+
+      - name: Lint gate
+        run: ruff check . --output-format=github
+
+      - name: Test gate
+        env:
+          JWT_SECRET: release-check-secret-min64chars-padding-padding-padding-padding
+          ADMIN_SECRET: release-check-admin-secret
+          ENVIRONMENT: test
+        run: pytest tests/ --tb=short -q
+
+      - name: Security gate
+        run: |
+          bandit -r apps libs services core infra scripts -x tests,alembic,libs/vendor,.legacy_archive -ll
+          pip-audit -r requirements.txt
+
+      - name: Docker build gate
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          target: production-slim
+          push: false
+          tags: otomatikajan:${{ inputs.release_tag }}
+
+      - name: Release evidence reminder
+        run: |
+          echo "Release check completed for ${{ inputs.release_tag }} on ${{ inputs.environment_name }}."
+          echo "Create evidence under docs/evidence/ with CI, security, Docker, smoke and migration results."

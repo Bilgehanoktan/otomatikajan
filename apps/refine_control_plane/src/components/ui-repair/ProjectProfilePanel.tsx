@@ -11,7 +11,7 @@ const ProjectProfilePanel: React.FC = () => {
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [formResetKey, setFormResetKey] = useState(0);
+  const [form] = Form.useForm();
 
   useEffect(() => {
     fetchProjects();
@@ -38,7 +38,7 @@ const ProjectProfilePanel: React.FC = () => {
       });
       message.success('Project created successfully');
       setIsModalVisible(false);
-      setFormResetKey((current) => current + 1);
+      form.resetFields();
       fetchProjects();
     } catch (err) {
       message.error('Failed to create project');
@@ -107,14 +107,10 @@ const ProjectProfilePanel: React.FC = () => {
       <Modal
         title={t('modal.title')}
         open={isModalVisible}
-        forceRender={true}
-        onCancel={() => {
-          setIsModalVisible(false);
-          setFormResetKey((current) => current + 1);
-        }}
-        okButtonProps={{ htmlType: 'submit', form: 'project-profile-form' }}
+        onCancel={() => setIsModalVisible(false)}
+        onOk={() => form.submit()}
       >
-        <Form key={formResetKey} id="project-profile-form" layout="vertical" onFinish={handleCreate}>
+        <Form form={form} layout="vertical" onFinish={handleCreate}>
           <Form.Item name="project_name" label={t('modal.name')} rules={[{ required: true }]}>
             <Input />
           </Form.Item>

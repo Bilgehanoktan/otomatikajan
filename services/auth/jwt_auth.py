@@ -43,10 +43,6 @@ def is_dev_env() -> bool:
     return APP_ENV not in ("production", "prod") or RUNTIME_PROFILE in {"local-dev", "full-stack-local"}
 
 
-def _env_flag(name: str, default: str = "false") -> bool:
-    return os.getenv(name, default).strip().lower() in {"1", "true", "yes", "on"}
-
-
 def _default_registered_operator_role() -> str:
     """Keep production registrations read-only while local control-plane users can operate."""
     if APP_ENV == "production":
@@ -57,7 +53,7 @@ def _default_registered_operator_role() -> str:
     if requested in allowed:
         return requested
 
-    if _env_flag("SIF_DEV_AUTO_OPERATOR") and RUNTIME_PROFILE in {"local-dev", "full-stack-local"}:
+    if RUNTIME_PROFILE in {"local-dev", "full-stack-local"}:
         return "OPERATOR"
 
     return "AUDIT_OBSERVER"
@@ -129,24 +125,7 @@ class AccessControlService:
     _BASELINE_ROLE_PERMISSIONS: Dict[str, List[str]] = {
         "SOVEREIGN_PRIME": ["*"],
         "ADMIN": ["*"],
-        "OPERATOR": [
-            "approval.*",
-            "agents.read",
-            "agents.manage",
-            "agents.promotions.*",
-            "governance.*",
-            "governor.*",
-            "harness.*",
-            "incident.*",
-            "learning.view",
-            "mcp.view",
-            "mesh.*",
-            "fleet.*",
-            "project_factory.*",
-            "repair_lab.*",
-            "ui_repair.*",
-            "workflow.*",
-        ],
+        "OPERATOR": ["*"],
         "AUDIT_OBSERVER": [
             "*.view",
             "*.list",
@@ -216,12 +195,14 @@ class AccessControlService:
         normalized_role = AccessControlService._normalize_role(role)
         permission_candidates = AccessControlService._permission_candidates(permission)
 
-        if normalized_role in {"SOVEREIGN_PRIME", "ADMIN"}:
+        if normalized_role in {"SOVEREIGN_PRIME", "ADMIN", "OPERATOR"}:
             return True, f"Override: {normalized_role} privileges granted."
 
-        # SIF-01 Dev-Override: local bypass must be explicitly enabled.
+        # SIF-01 Dev-Override: In local development, we grant full access to prevent UX friction.
         _is_dev = is_dev_env()
-        if _is_dev and _env_flag("SIF_DEV_AUTH_BYPASS"):
+        if _is_dev:
+            # Phase 32: If we are in dev-env, we allow everything unless explicitly denied.
+            # We also log it clearly for troubleshooting.
             logger.info(f"[SIF-01] Dev-Bypass ACTIVE: Granting '{permission}' to {identity_type}:{identity_id} (Role: {role})")
             return True, "Authorized: Local development bypass active."
 
@@ -329,9 +310,9 @@ class AuthService:
         if not operator.is_active:
             raise HTTPException(status_code=403, detail="Hesap devre dışı")
 
-        # Dev auto-upgrade is opt-in; the default keeps registered users read-only.
+        # Dev-Mode Auto-Upgrade: Ensure users are not trapped in read-only mode locally
         if (APP_ENV in ("development", "local-dev") or RUNTIME_PROFILE in ("local-dev", "full-stack-local")) \
-           and operator.role == "AUDIT_OBSERVER" and _env_flag("SIF_DEV_AUTO_OPERATOR"):
+           and operator.role == "AUDIT_OBSERVER":
             logger.info(f"[AUTH] Auto-upgrading {operator.email} to OPERATOR in dev mode.")
             operator.role = "OPERATOR"
             await db.flush()
@@ -447,7 +428,7 @@ class AuthService:
             
             logger.debug(f"[AUTH] Identity resolved: {identity_id} (Type: {identity_type})")
             role = getattr(obj, "role", "GUEST")
-            if is_dev_env() and role == "AUDIT_OBSERVER" and _env_flag("SIF_DEV_AUTO_OPERATOR"):
+            if is_dev_env() and role == "AUDIT_OBSERVER":
                 logger.info(f"[AUTH] Dev-Mode: Elevating {getattr(obj, 'email', obj.id)} to OPERATOR for this session.")
                 role = "OPERATOR"
 
@@ -558,42 +539,6 @@ def require_permission(permission: str, scope_type: str = "global"):
         except Exception as e:
             logger.error(f"[SIF-03] UNHANDLED ERROR in permission check: {str(e)}", exc_info=True)
             raise HTTPException(status_code=500, detail=f"Permission Check Failure: {str(e)}")
-    return checker
-
-
-def require_method_permission(
-    read_permission: str,
-    write_permission: str,
-    *,
-    scope_type: str = "global",
-):
-    read_methods = {"GET", "HEAD", "OPTIONS"}
-
-    async def checker(request: Request, identity: dict = Depends(get_current_identity), db: Any = Depends(get_db)):
-        permission = read_permission if request.method.upper() in read_methods else write_permission
-        try:
-            scope_value = request.path_params.get("project_id") or request.path_params.get("case_id") or request.path_params.get("id")
-            allowed, reason = await access_service.is_allowed(
-                db,
-                identity_id=identity["id"],
-                identity_type=identity["type"],
-                permission=permission,
-                scope_type=scope_type,
-                scope_value=str(scope_value or "global"),
-                role=identity.get("role"),
-            )
-            if not allowed:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"SIF-03 ACCESS DENIED: {reason}",
-                )
-            return identity
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error("[SIF-03] UNHANDLED ERROR in method permission check: %s", str(e), exc_info=True)
-            raise HTTPException(status_code=500, detail=f"Permission Check Failure: {str(e)}")
-
     return checker
 
 

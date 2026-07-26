@@ -44,7 +44,8 @@ class NeuralCoreOrchestrator:
             from services.orchestration.agi.monitoring.nervous_system import nervous_system
             health = await nervous_system.audit_health(db_session)
             global_workspace.broadcast("NervousSystem", health, importance=0.8)
-        except Exception: pass
+        except Exception as exc:
+            _log.warning(f"NervousSystem audit failure: {exc}")
 
         # 2. Etik ve Değer Denetimi (Axiology Engine)
         try:
@@ -52,7 +53,8 @@ class NeuralCoreOrchestrator:
             from services.orchestration.agi.cognitive.axiology_engine import axiology_engine
             report = await value_auditor.audit_system_drift(db_session)
             global_workspace.broadcast("Axiology", report, importance=0.9)
-        except Exception: pass
+        except Exception as exc:
+            _log.warning(f"Axiology audit failure: {exc}")
 
         reflection = {}
         # 3. Öz-Farkındalık, Teşhis ve Strateji (Metacognitive & Diagnostic)

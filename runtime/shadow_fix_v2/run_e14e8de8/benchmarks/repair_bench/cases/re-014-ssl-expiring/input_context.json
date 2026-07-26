@@ -1,1 +1,0 @@
-{"failure_logs": ["CRITICAL: Unnoticed SSL Certificate Expiry detected in security stack.", "Technology: vault"], "metrics": {"error_rate": 0.45, "latency_ms": 1200}, "environment": "production-cluster-01"}

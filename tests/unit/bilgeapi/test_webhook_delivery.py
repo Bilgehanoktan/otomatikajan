@@ -176,10 +176,13 @@ async def test_webhook_delivery_service_workflow(monkeypatch):
         payload={"repair_id": repair_req2.id}
     )
     
-    # Wait for the async task and its retries to execute
-    await asyncio.sleep(0.1)
-    
-    updated_delivery2 = await webhook_repo.get_delivery(delivery2["id"])
+    # Wait for the async task and its retries to execute completely
+    updated_delivery2 = None
+    for _ in range(50):
+        updated_delivery2 = await webhook_repo.get_delivery(delivery2["id"])
+        if updated_delivery2 and updated_delivery2["delivery_status"] == "DEAD_LETTER":
+            break
+        await asyncio.sleep(0.02)
     assert updated_delivery2 is not None
     assert updated_delivery2["delivery_status"] == "DEAD_LETTER"
     assert updated_delivery2["attempt_count"] == 3.0

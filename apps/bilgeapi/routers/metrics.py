@@ -16,30 +16,6 @@ from apps.bilgeapi.models.database import ApiKeyModel
 
 logger = logging.getLogger("bilgeapi.metrics")
 
-try:
-    from prometheus_client import Gauge
-    autonomy_gauge = Gauge(
-        "bilgeapi_autonomy_mode_info",
-        "Active autonomy mode represented as numeric value (0=OFF, 1=OBSERVE_ONLY, 2=DIAGNOSE_ONLY, 3=SAFE_AUTONOMY, 4=SUPERVISED_AUTONOMY, 5=POLICY_BOUND_AUTONOMY)",
-        ["mode"]
-    )
-    system_health_gauge = Gauge(
-        "bilgeapi_system_health_status",
-        "System health status (1=OK/HEALTHY, 0=DEGRADED/ERROR)"
-    )
-except Exception:
-    autonomy_gauge = None
-    system_health_gauge = None
-
-AUTONOMY_MODE_MAP = {
-    "OFF": 0,
-    "OBSERVE_ONLY": 1,
-    "DIAGNOSE_ONLY": 2,
-    "SAFE_AUTONOMY": 3,
-    "SUPERVISED_AUTONOMY": 4,
-    "POLICY_BOUND_AUTONOMY": 5
-}
-
 router = APIRouter()
 
 
@@ -105,21 +81,6 @@ async def _metrics_guard(request: Request):
 async def prometheus_metrics(request: Request):
     """Expose Prometheus-format metrics for scraping."""
     await _metrics_guard(request)
-    if autonomy_gauge:
-        try:
-            mode = settings.BILGEAPI_AUTONOMY_MODE
-            val = AUTONOMY_MODE_MAP.get(mode, 1)
-            autonomy_gauge.labels(mode=mode).set(val)
-        except Exception as exc:
-            logger.warning(f"Failed to set autonomy metric: {exc}")
-
-    if system_health_gauge:
-        try:
-            skill_status = getattr(request.app.state, "skill_registry_status", "UNKNOWN")
-            system_health_gauge.set(1.0 if skill_status == "HEALTHY" else 0.0)
-        except Exception as exc:
-            logger.warning(f"Failed to set system health metric: {exc}")
-
     try:
         from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
         return PlainTextResponse(

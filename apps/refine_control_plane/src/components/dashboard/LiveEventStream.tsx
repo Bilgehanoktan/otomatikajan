@@ -6,7 +6,6 @@ import { Skeleton } from "./Skeleton";
 import { buildWebSocketCandidates } from "@/lib/runtime";
 import { useTranslations } from "next-intl";
 import { safeFetchJson } from "@/lib/api";
-import { getStoredAccessToken } from "@/lib/auth";
 
 interface SystemEvent {
   seq: number;
@@ -82,7 +81,7 @@ export function LiveEventStream({ apiUrl, height }: { apiUrl: string, height?: s
 
       try {
         const wsUrl = wsCandidates[candidateIndex];
-        const token = getStoredAccessToken();
+        const token = typeof window !== "undefined" ? localStorage.getItem("sqv_access_token") : null;
         const finalWsUrl = token ? `${wsUrl}${wsUrl.includes("?") ? "&" : "?"}token=${token}` : wsUrl;
         
         console.debug(`[WS] Connecting to ${finalWsUrl}`);
@@ -192,7 +191,7 @@ export function LiveEventStream({ apiUrl, height }: { apiUrl: string, height?: s
           ))}
         </div>
 
-        <div className={`ml-auto px-2.5 py-1 rounded-lg border text-[8px] font-black tracking-[0.1em] font-mono transition-colors duration-500 ${
+        <div data-testid="telemetry-status-badge" className={`ml-auto px-2.5 py-1 rounded-lg border text-[8px] font-black tracking-[0.1em] font-mono transition-colors duration-500 ${
           wsStatus === "connected" ? "bg-green-500/[0.08] text-green-400 border-green-500/15" :
           wsStatus === "offline"   ? "bg-red-500/[0.08] text-red-100 border-red-500/20" :
                                      "bg-amber-500/[0.08] text-amber-300 border-amber-500/15"

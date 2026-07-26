@@ -45,7 +45,7 @@ class CognitivePlanner:
             _log.info(f"[PLANNER] Simülasyon Skoru: {sim_result.get('strategic_alignment_score', 0.0)}")
             
             # Risk uyarısını ilk subtask'e enjekte et
-            if sim_result.get("predicted_risks") and subtasks:
+            if sim_result.get("predicted_risks"):
                 risks = "\n".join([f"- {r['failure_mode']} ({r['severity']})" for r in sim_result["predicted_risks"]])
                 subtasks[0].prompt += f"\n\n### 🛡️ ÖNGÖRÜ UYARISI:\n{risks}"
 

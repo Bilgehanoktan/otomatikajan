@@ -7,6 +7,7 @@ import Sidebar from "./Sidebar";
 import { SystemHeader } from "./SystemHeader";
 import { CommandPalette } from "./dashboard/CommandPalette";
 import { RuntimeDiagnosticsHUD } from "./dashboard/RuntimeDiagnosticsHUD";
+
 import { useTranslations } from "next-intl";
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
@@ -36,14 +37,14 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
 
     if (!mounted) {
         return (
-            <div className="h-screen overflow-hidden flex bg-[#0b0c10] text-[#c5c6c7]">
+            <div className="min-h-screen flex bg-[#0b0c10] text-[#c5c6c7]">
                 {isLoginPage ? children : (
                     <>
                         {/* SSR Skeleton Shell */}
                         <aside className="w-64 h-full shrink-0 glass border-r border-white/5 flex flex-col" />
-                        <div className="flex-1 min-w-0 flex flex-col relative h-screen overflow-hidden">
+                        <div className="flex-1 min-w-0 flex flex-col relative overflow-x-hidden">
                             <header className="h-16 border-b border-white/5 px-8 flex items-center justify-between glass" />
-                            <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden relative">
+                            <main className="flex-1 min-w-0 relative overflow-x-hidden">
                                 <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#66fcf1]/5 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/2" />
                                 <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[#45a29e]/5 blur-[120px] rounded-full translate-y-1/2 -translate-x-1/2" />
                                 <div className="relative z-10">
@@ -62,11 +63,11 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
     }
 
     return (
-        <div className={`h-screen overflow-hidden flex bg-[#0b0c10] text-[#c5c6c7] transition-all duration-700 ${isCrisis ? 'ring-inset ring-[12px] ring-red-900/40 shadow-[inset_0_0_100px_rgba(153,27,27,0.4)]' : ''}`}>
+        <div className={`min-h-screen flex bg-[#0b0c10] text-[#c5c6c7] transition-all duration-700 ${isCrisis ? 'ring-inset ring-[12px] ring-red-900/40 shadow-[inset_0_0_100px_rgba(153,27,27,0.4)]' : ''}`}>
             <Sidebar />
-            <div className="flex-1 min-w-0 flex flex-col relative h-screen overflow-hidden">
+            <div className="flex-1 min-w-0 flex flex-col relative min-h-screen overflow-x-hidden">
                 <SystemHeader />
-                <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden relative">
+                <main className="flex-1 min-w-0 relative overflow-x-hidden">
                     {/* CRISIS OVERLAY HUD */}
                     {isCrisis && (
                         <div className="sticky top-0 z-[100] w-full bg-red-600/90 text-white py-1 px-4 flex items-center justify-between backdrop-blur-md animate-in slide-in-from-top duration-500 shadow-lg">

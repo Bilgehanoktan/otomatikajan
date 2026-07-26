@@ -3,7 +3,7 @@ from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from libs.db.session import get_db
 from libs.db.models.repair_models import AgentCapabilityModel, AgentRunModel, AgentArtifactPromotionModel
@@ -32,16 +32,15 @@ class CapabilityResponse(BaseModel):
     allowed_commands: List[str]
     blocked_commands: List[str]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class RunCreateRequest(BaseModel):
-    agent_key: str = Field(..., example="swe_agent")
-    command_handler: str = Field(..., example="run_tests")
-    arguments: Dict[str, Any] = Field(default_factory=dict, example={"test_path": "tests/ui_repair"})
-    target_paths: List[str] = Field(default_factory=list, example=["tests/ui_repair"])
-    cost: float = Field(0.01, example=0.05)
-    network_domains: Optional[List[str]] = Field(default_factory=list, example=["localhost"])
+    agent_key: str = Field(..., json_schema_extra={"example": "swe_agent"})
+    command_handler: str = Field(..., json_schema_extra={"example": "run_tests"})
+    arguments: Dict[str, Any] = Field(default_factory=dict, json_schema_extra={"example": {"test_path": "tests/ui_repair"}})
+    target_paths: List[str] = Field(default_factory=list, json_schema_extra={"example": ["tests/ui_repair"]})
+    cost: float = Field(0.01, json_schema_extra={"example": 0.05})
+    network_domains: Optional[List[str]] = Field(default_factory=list, json_schema_extra={"example": ["localhost"]})
 
 class RunResponse(BaseModel):
     run_id: str
@@ -56,8 +55,7 @@ class RunResponse(BaseModel):
     network_policy: str
     ledger_chain_id: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 @router.get("/capabilities", response_model=List[CapabilityResponse], summary="List all agent capabilities")
 async def list_capabilities(
@@ -174,63 +172,16 @@ async def get_run(
     return run
 
 
-@router.post("/runs/{run_id}/retry", response_model=Dict[str, Any], summary="Retry a failed or blocked agent run")
-async def retry_run(
-    run_id: str,
-    db: AsyncSession = Depends(get_db),
-    identity: Dict[str, Any] = Depends(require_permission("agents.manage"))
-):
-    stmt = select(AgentRunModel).where(AgentRunModel.run_id == run_id)
-    res = await db.execute(stmt)
-    previous_run = res.scalars().first()
-    if not previous_run:
-        raise HTTPException(status_code=404, detail=f"Agent run record '{run_id}' not found.")
-
-    if previous_run.status not in {"FAILED", "BLOCKED"}:
-        raise HTTPException(status_code=400, detail="Only FAILED or BLOCKED agent runs can be retried.")
-
-    input_parameters = previous_run.input_parameters or {}
-    command_handler = input_parameters.get("handler")
-    if not command_handler:
-        raise HTTPException(status_code=400, detail="Original agent run does not contain a command handler for retry.")
-
-    arguments = input_parameters.get("arguments") or {}
-    target_paths = input_parameters.get("target_paths") or []
-    if not isinstance(arguments, dict) or not isinstance(target_paths, list):
-        raise HTTPException(status_code=400, detail="Original agent run input parameters are invalid for retry.")
-
-    retry_run_id = f"run-{uuid.uuid4().hex[:12]}"
-    actor_email = identity.get("email") or identity.get("name") or "operator"
-
-    success, output, workspace_path = await AgentSandboxExecutor.execute_run(
-        db=db,
-        run_id=retry_run_id,
-        agent_key=previous_run.agent_key,
-        command_handler=command_handler,
-        arguments=arguments,
-        target_paths=target_paths,
-        cost=previous_run.cost or 0.01,
-        network_domains=[],
-        created_by=actor_email
-    )
-
-    return {
-        "run_id": retry_run_id,
-        "retried_from_run_id": run_id,
-        "success": success,
-        "output": output,
-        "workspace_path": workspace_path
-    }
-
-
 # Promotion Pydantic Schemas
 class PromotionCreateRequest(BaseModel):
-    run_id: str = Field(..., example="run-12345")
-    artifact_type: str = Field(..., example="patch")
-    sandbox_artifact_path: str = Field(..., example="/tmp/agent-sandbox/workspace/patch.diff")
-    target_repo_path: str = Field(..., example="apps/refine_control_plane/src/App.tsx")
+    run_id: str = Field(..., json_schema_extra={"example": "run-12345"})
+    artifact_type: str = Field(..., json_schema_extra={"example": "patch"})
+    sandbox_artifact_path: str = Field(..., json_schema_extra={"example": "/tmp/agent-sandbox/workspace/patch.diff"})
+    target_repo_path: str = Field(..., json_schema_extra={"example": "apps/refine_control_plane/src/App.tsx"})
 
 class PromotionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     promotion_id: str
     run_id: str
     artifact_type: str
@@ -250,9 +201,6 @@ class PromotionResponse(BaseModel):
     promoted_at: Optional[Any] = None
     ledger_event_hash: Optional[str] = None
     created_at: Any
-
-    class Config:
-        from_attributes = True
 
 # Promotion Router Endpoints
 @router.post("/promotions", response_model=PromotionResponse, status_code=status.HTTP_201_CREATED, summary="Create a promotion request for an agent sandbox artifact")
@@ -423,3 +371,4 @@ async def get_policy_rules(
         "allowlist_patterns": AgentPromotionGate.ALLOWLIST_PATTERNS,
         "blocklist_patterns": AgentPromotionGate.BLOCKLIST_PATTERNS
     }
+

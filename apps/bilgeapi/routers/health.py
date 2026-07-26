@@ -19,18 +19,12 @@ async def health_check(request: Request):
     """Public health check — returns minimal status for load balancers and uptime monitors."""
     skill_registry_status = getattr(request.app.state, "skill_registry_status", "UNKNOWN")
     overall_status = "ok" if skill_registry_status == "HEALTHY" else "degraded"
-    
-    from apps.bilgeapi.routers.system_runtime import get_git_metadata
-    git_meta = get_git_metadata()
-    
     return {
         "status": overall_status,
         "service": "bilgeapi",
         "version": settings.BILGEAPI_VERSION,
         "auth_mode": settings.BILGEAPI_AUTH_MODE,
         "skill_registry": skill_registry_status,
-        "git_commit": git_meta["git_commit"],
-        "git_tag": git_meta["git_tag"],
     }
 
 

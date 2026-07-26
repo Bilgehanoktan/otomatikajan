@@ -25,7 +25,6 @@ import {
   Eye,
   Scale,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
 
 const { Text, Title } = Typography;
 
@@ -44,7 +43,6 @@ type AxiologyRecord = {
 };
 
 export default function AxiologyListPage() {
-  const t = useTranslations("axiology");
   const { tableProps } = useTable<AxiologyRecord>({
     resource: "governance/axiology",
     syncWithLocation: true,
@@ -59,10 +57,10 @@ export default function AxiologyListPage() {
           </div>
           <div>
             <Title level={4} className="!m-0 !text-white tracking-tighter uppercase">
-              {t("title")}
+              Bilişsel Denetim
             </Title>
             <Text className="text-[10px] text-[#45a29e] font-black uppercase tracking-[0.2em]">
-              {t("subtitle")}
+              Axiology Engine Denetim Logları
             </Text>
           </div>
         </div>
@@ -70,7 +68,7 @@ export default function AxiologyListPage() {
         <div className="px-6 py-3 glass rounded-2xl border border-white/5 flex items-center gap-4">
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_#48bb78]" />
           <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
-            {t("statusActive")}
+            Motor Durumu: Aktif
           </span>
         </div>
       </div>
@@ -79,7 +77,7 @@ export default function AxiologyListPage() {
         <Col span={6}>
           <Card className="glass-card !bg-[#0e1320]/40 border-none">
             <Statistic
-              title={<span className="label-tech text-gray-400">{t("alignmentScore")}</span>}
+              title={<span className="label-tech text-gray-400">Hizalanma Puani</span>}
               value={98.4}
               precision={1}
               suffix="%"
@@ -92,7 +90,7 @@ export default function AxiologyListPage() {
         <Col span={6}>
           <Card className="glass-card !bg-[#0e1320]/40 border-none">
             <Statistic
-              title={<span className="label-tech text-gray-400">{t("riskyBlocks")}</span>}
+              title={<span className="label-tech text-gray-400">Riskli Engellemeler</span>}
               value={12}
               valueStyle={{ color: "#f56565", fontWeight: 900, fontSize: "28px" }}
               prefix={<ShieldAlert className="inline-block mr-2 text-red-500" size={24} />}
@@ -103,7 +101,7 @@ export default function AxiologyListPage() {
         <Col span={6}>
           <Card className="glass-card !bg-[#0e1320]/40 border-none">
             <Statistic
-              title={<span className="label-tech text-gray-400">{t("auditedPlans")}</span>}
+              title={<span className="label-tech text-gray-400">Denetlenen Plan</span>}
               value={842}
               valueStyle={{ color: "#e2e8f0", fontWeight: 900, fontSize: "28px" }}
               prefix={<Activity className="inline-block mr-2 text-gray-400" size={24} />}
@@ -114,7 +112,7 @@ export default function AxiologyListPage() {
         <Col span={6}>
           <Card className="glass-card !bg-[#0e1320]/40 border-none">
             <Statistic
-              title={<span className="label-tech text-gray-400">{t("autonomousFixes")}</span>}
+              title={<span className="label-tech text-gray-400">Otonom Düzeltmeler</span>}
               value={45}
               valueStyle={{ color: "#45a29e", fontWeight: 900, fontSize: "28px" }}
               prefix={<Fingerprint className="inline-block mr-2 text-[#45a29e]" size={24} />}
@@ -137,7 +135,7 @@ export default function AxiologyListPage() {
         >
           <Table.Column<AxiologyRecord>
             dataIndex="decision"
-            title={<span className="label-tech">{t("columns.decision")}</span>}
+            title={<span className="label-tech">Karar</span>}
             width={120}
             render={(value: AxiologyRecord["decision"]) => {
               let color = "default";
@@ -164,7 +162,7 @@ export default function AxiologyListPage() {
 
           <Table.Column<AxiologyRecord>
             dataIndex="context"
-            title={<span className="label-tech">{t("columns.context")}</span>}
+            title={<span className="label-tech">Baglam</span>}
             width={150}
             render={(value: string) => (
               <Text className="font-mono text-[10px] text-[var(--primary)] uppercase tracking-wider">
@@ -175,11 +173,11 @@ export default function AxiologyListPage() {
 
           <Table.Column<AxiologyRecord>
             dataIndex="justification"
-            title={<span className="label-tech">{t("columns.justification")}</span>}
+            title={<span className="label-tech">Gerekce ve Analiz</span>}
             render={(value: string) => (
               <div className="max-w-md">
                 <Text className="text-gray-300 text-xs block leading-relaxed">
-                  {value || t("noJustification")}
+                  {value || "Kayitli gerekce yok."}
                 </Text>
               </div>
             )}
@@ -187,7 +185,7 @@ export default function AxiologyListPage() {
 
           <Table.Column<AxiologyRecord>
             dataIndex="scores"
-            title={<span className="label-tech">{t("columns.scores")}</span>}
+            title={<span className="label-tech">Puanlar</span>}
             width={220}
             render={(value: AxiologyRecord["scores"]) => {
               const scores = value || {};
@@ -216,7 +214,7 @@ export default function AxiologyListPage() {
 
           <Table.Column<AxiologyRecord>
             dataIndex="created_at"
-            title={<span className="label-tech">{t("columns.time")}</span>}
+            title={<span className="label-tech">Zaman</span>}
             width={140}
             render={(value: string) => (
               <Text className="text-gray-500 text-[10px] font-mono">
@@ -226,11 +224,11 @@ export default function AxiologyListPage() {
           />
 
           <Table.Column<AxiologyRecord>
-            title={<span className="label-tech">{t("columns.action")}</span>}
+            title={<span className="label-tech">Aksiyon</span>}
             width={120}
             render={(_, record) => (
               <Space>
-                <Tooltip title={record.corrective_action || t("noActionRequired")}>
+                <Tooltip title={record.corrective_action || "Ek aksiyon gerekmiyor"}>
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
                       record.corrective_action

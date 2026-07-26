@@ -1,10 +1,7 @@
 ---
 description: Conduct a five-axis code review — correctness, readability, architecture, security, performance
-version: 1.0.0
-rollback: "git checkout ."
-observe: "echo 'observe'"
-feedback: "echo 'feedback'"
 ---
+
 Invoke the agent-skills:code-review-and-quality skill.
 
 Review the current changes (staged or recent commits) across all five axes:

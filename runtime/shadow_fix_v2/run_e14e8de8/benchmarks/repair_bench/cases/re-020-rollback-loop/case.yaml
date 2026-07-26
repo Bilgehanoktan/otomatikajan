@@ -1,5 +1,0 @@
-id: re-020-rollback-loop
-severity: high
-subsystem: deployment
-title: Unstable Deployment Causing Infinite Rollback-Retry
-type: incident_replay

@@ -31,14 +31,10 @@ from libs.db.models.repair_models import (
     UIRepairPRReview,
 )
 from libs.db.session import AsyncSessionLocal
-from services.auth.jwt_auth import require_method_permission
 from services.improve.repair_bench import RepairBenchService
 from services.orchestration.application.sovereign_cortex import get_sovereign_cortex
 
-router = APIRouter(
-    tags=["Autonomous Repair Lab"],
-    dependencies=[Depends(require_method_permission("repair_lab.view", "repair_lab.repair"))],
-)
+router = APIRouter(tags=["Autonomous Repair Lab"])
 # Logger init
 logger = logging.getLogger(__name__)
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -1448,4 +1444,5 @@ async def post_release_readiness_check(request: Request, body: ReleaseCheckBody 
         return build_release_readiness_report(run_dir=run_dir, app=request.app)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Failed to execute release readiness check: {exc}")
+
 

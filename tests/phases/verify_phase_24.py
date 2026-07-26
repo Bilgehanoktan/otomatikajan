@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime, timezone, timedelta
 from services.orchestration.agi.monitoring.token_budgeter import token_budgeter
 from services.orchestration.agi.monitoring.nervous_system import nervous_system
-from libs.llm.model_orchestrator import ModelOrchestrator
+from llm.model_orchestrator import ModelOrchestrator
 from libs.db.session import session_scope
 from libs.db.models import LLMCostLog
 

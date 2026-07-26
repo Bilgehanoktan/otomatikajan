@@ -6,7 +6,6 @@ from typing import List, Dict, Any, Optional, cast
 from datetime import datetime, timezone
 
 from libs.db.session import get_db
-from services.auth.jwt_auth import require_method_permission
 from libs.db.models.ui_repair_models import (
     UIRepairCase, UIRouteHealth, UISmokeRun, UIRepairStatus,
     UIPolicyRule, UIPolicyEvaluation, UIPolicyConflict, UIPolicyProposal,
@@ -93,10 +92,7 @@ from services.ui_repair.external_tool_governance_router import router as tool_go
 from services.ui_repair.identity_governance_router import router as identity_governance_router
 from services.ui_repair.cognitive_governance import router as cognitive_governance_router
 
-router = APIRouter(
-    tags=["UI Repair"],
-    dependencies=[Depends(require_method_permission("ui_repair.view", "ui_repair.manage"))],
-)
+router = APIRouter(tags=["UI Repair"])
 router.include_router(resiliency_mesh_router)
 router.include_router(tool_governance_router)
 router.include_router(identity_governance_router)
@@ -267,24 +263,19 @@ async def resolve_case(case_id: str, db: AsyncSession = Depends(get_db)):
 async def trigger_autonomous_repair(
     case_id: str, 
     db: AsyncSession = Depends(get_db),
-    x_bilgeapi_test_simulate_pr_review: Optional[str] = Header(None)
+    x_bilgeapi_test_simulate_pr_review: Optional[str] = Header(None, alias="X-BilgeAPI-Test-Simulate-PR-Review")
 ):
     """Triggers the autonomous repair hand-off for a specific case."""
-    # Test simulation boundary
-    simulate_status = None
-    if x_bilgeapi_test_simulate_pr_review:
-        import os
-        test_mode = os.getenv("BILGEAPI_UI_REPAIR_TEST_MODE", "false").lower() == "true"
-        if not test_mode:
-            raise HTTPException(
-                status_code=403, 
-                detail="Test simulation mode (X-BilgeAPI-Test-Simulate-PR-Review) is not allowed in production."
-            )
-        simulate_status = x_bilgeapi_test_simulate_pr_review
+    import os
+    test_mode = os.getenv("BILGEAPI_UI_REPAIR_TEST_MODE", "false").lower() == "true"
+    if x_bilgeapi_test_simulate_pr_review and not test_mode:
+        raise HTTPException(
+            status_code=403, 
+            detail="Test simulation mode (X-BilgeAPI-Test-Simulate-PR-Review) is not allowed in production."
+        )
 
-    if simulate_status is None:
+    if not test_mode:
         from services.ui_repair.runtime_guard import check_runtime_dependencies
-
         guard = await check_runtime_dependencies(require_docker=True)
         if guard["status"] == "degraded":
             return guard

@@ -320,10 +320,14 @@ DB_POOL_SIZE   = int(os.getenv("DB_POOL_SIZE", "10"))
 DB_MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", "20"))
 DB_POOL_TIMEOUT = int(os.getenv("DB_POOL_TIMEOUT", "30"))
 REDIS_URL      = os.getenv("REDIS_URL", "") if REDIS_ENABLED else ""
-JWT_SECRET     = os.getenv("JWT_SECRET", "sovereign-agi-control-plane-local-secret-stable-v1")
-ADMIN_SECRET   = os.getenv("ADMIN_SECRET", "agi-admin-fallback-secret-2026")
+import secrets as _secrets
+_default_jwt = _secrets.token_hex(32)
+_default_admin = _secrets.token_hex(32)
+JWT_SECRET     = os.getenv("JWT_SECRET") or _default_jwt
+ADMIN_SECRET   = os.getenv("ADMIN_SECRET") or _default_admin
 MONTHLY_BUDGET = float(os.getenv("MONTHLY_BUDGET_USD", "50.0"))
 os.environ["REDIS_URL"] = REDIS_URL
+
 
 ALLOWED_ORIGINS = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3100,http://127.0.0.1:3100,http://192.168.1.61:3100,http://localhost:8000").split(",") if o.strip()]
 ALLOWED_METHODS = os.getenv("ALLOWED_METHODS", "GET,POST,PUT,PATCH,DELETE,OPTIONS").split(",")
@@ -409,25 +413,4 @@ QUALITY_PASS_THRESHOLD            = float(os.getenv("QUALITY_PASS_THRESHOLD", "0
 ENABLE_AUTONOMOUS_IMPROVEMENT     = os.getenv("ENABLE_AUTONOMOUS_IMPROVEMENT", "true").lower() == "true"
 IMPROVEMENT_AUTO_APPLY_THRESHOLD  = float(os.getenv("IMPROVEMENT_AUTO_APPLY_THRESHOLD", "0.8"))
 
-def validate_bootstrap_config():
-    """
-    Safeguards against env collisions and profile configuration inconsistencies.
-    """
-    global REDIS_ENABLED, CELERY_ENABLED, QUEUE_BACKEND
-    
-    # 1. Production SQLite block
-    if is_prod and "sqlite" in DATABASE_URL.lower():
-        raise RuntimeError("[SAFEGUARD] Configuration Collision: Production mode cannot run on SQLite!")
-        
-    # 2. Celery / Redis sync validation
-    if QUEUE_BACKEND == "celery" and not REDIS_ENABLED:
-        print("[SAFEGUARD] Collision: Celery queue active but REDIS_ENABLED is False. Forcing REDIS_ENABLED=True.")
-        REDIS_ENABLED = True
-        
-    # 3. Local-dev resilience check
-    if RUNTIME_PROFILE == "local-dev" and (REDIS_ENABLED or CELERY_ENABLED):
-        # Allow override if explicitly configured, but print a notice
-        print("[SAFEGUARD] Notice: local-dev profile active with Celery/Redis enabled. Ensure services are running.")
-
-validate_bootstrap_config()
 validate_production_config()

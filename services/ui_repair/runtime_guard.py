@@ -60,7 +60,6 @@ def _launch_chromium_probe_in_proactor_loop(async_playwright: Any) -> None:
         asyncio.set_event_loop(loop)
         loop.run_until_complete(_launch_chromium_probe(async_playwright))
     finally:
-        asyncio.set_event_loop(None)
         loop.close()
 
 async def _launch_chromium_probe_for_runtime(async_playwright: Any) -> None:

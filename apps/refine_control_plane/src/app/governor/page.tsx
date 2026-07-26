@@ -35,7 +35,7 @@ export default function GovernorInbox() {
           {
             url: `/governance/governor/cases/${String(id)}/override`,
             method: "post",
-            values: { action, reason: t("governance.bulkAction") + action },
+            values: { action, reason: "Toplu işlem: " + action },
           },
           { onSuccess: resolve, onError: reject }
         );
@@ -43,11 +43,11 @@ export default function GovernorInbox() {
     );
 
     Promise.all(promises).then(() => {
-      message.success(t("governance.bulkSuccess", { count: selectedRowKeys.length, action }));
+      message.success(`${selectedRowKeys.length} case için '${action}' uygulandı.`);
       setSelectedRowKeys([]);
       tableQuery.refetch();
     }).catch((err) => {
-      message.error(t("governance.bulkError") + (err as any).message);
+      message.error("Toplu işlem sırasında hata oluştu: " + (err as any).message);
     });
   };
 
@@ -85,7 +85,7 @@ export default function GovernorInbox() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <Title level={2} style={{ margin: 0 }}>
           <SafetyOutlined style={{ marginRight: 12, color: "#66fcf1" }} />
-          {t("governance.inboxTitle")}
+          Governor Inbox
         </Title>
         <Space>
           <Button 
@@ -187,7 +187,7 @@ export default function GovernorInbox() {
             render={(value, record: any) => (
               <Space direction="vertical" size={0}>
                 <Tag color={getRiskColor(value)}>{value}</Tag>
-                <Text type="secondary" style={{ fontSize: 12 }}>{t("governance.score")}: {record.risk_score}</Text>
+                <Text type="secondary" style={{ fontSize: 12 }}>Skor: {record.risk_score}</Text>
               </Space>
             )}
           />
@@ -204,9 +204,9 @@ export default function GovernorInbox() {
                 <Space>
                   <Tag color={getActionColor(value)}>{value}</Tag>
                   {isExecuted(value) ? (
-                    <Tag color="success">{t("governance.applied")}</Tag>
+                    <Tag color="success">Uygulandı</Tag>
                   ) : (
-                    <Tag color="processing">{t("governance.recommendation")}</Tag>
+                    <Tag color="processing">Öneri</Tag>
                   )}
                 </Space>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: 4 }}>
@@ -227,17 +227,17 @@ export default function GovernorInbox() {
             render={(_, record: any) => (
               <Space>
                 {record.has_open_incident && (
-                  <Tooltip title={t("governance.openIncidentExists")}>
+                  <Tooltip title="Açık Olay Var">
                     <ExclamationCircleOutlined style={{ color: "#faad14" }} />
                   </Tooltip>
                 )}
                 {record.requires_prime && (
-                  <Tooltip title={t("governance.primeApprovalRequired")}>
+                  <Tooltip title="PRIME Onayı Gerekli">
                     <SafetyOutlined style={{ color: "#f5222d" }} />
                   </Tooltip>
                 )}
                 {record.stale_seconds > 86400 && (
-                  <Tooltip title={t("governance.veryStale")}>
+                  <Tooltip title="Çok Eski (>24s)">
                     <ClockCircleOutlined style={{ color: "#d4b895" }} />
                   </Tooltip>
                 )}

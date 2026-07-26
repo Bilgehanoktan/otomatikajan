@@ -1,5 +1,0 @@
-id: re-019-noisy-neighbor
-severity: high
-subsystem: compute
-title: Shared CPU Core Performance Degradation
-type: incident_replay

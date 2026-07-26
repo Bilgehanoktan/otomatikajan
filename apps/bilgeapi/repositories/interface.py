@@ -8,103 +8,103 @@ from apps.bilgeapi.schemas.audit import AuditEvent
 
 class IncidentRepository(ABC):
     @abstractmethod
-    async def create(self, incident: IncidentCreate, tenant_id: str = "default") -> IncidentResponse:
+    async def create(self, incident: IncidentCreate) -> IncidentResponse:
         pass
 
     @abstractmethod
-    async def get(self, incident_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[IncidentResponse]:
+    async def get(self, incident_id: str) -> Optional[IncidentResponse]:
         pass
 
     @abstractmethod
-    async def list_all(self, tenant_id: str = "default", project_key: Optional[str] = None, bypass_tenant: bool = False) -> List[IncidentResponse]:
+    async def list_all(self, project_key: Optional[str] = None) -> List[IncidentResponse]:
         pass
 
 
 class DiagnosticRepository(ABC):
     @abstractmethod
-    async def create(self, incident_id: str, tenant_id: str = "default") -> DiagnosticResult:
+    async def create(self, incident_id: str) -> DiagnosticResult:
         pass
 
     @abstractmethod
-    async def get(self, diagnostic_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[DiagnosticResult]:
+    async def get(self, diagnostic_id: str) -> Optional[DiagnosticResult]:
         pass
 
     @abstractmethod
-    async def update(self, diagnostic_id: str, status: DiagnosticStatus, tenant_id: str = "default", bypass_tenant: bool = False, **kwargs) -> Optional[DiagnosticResult]:
+    async def update(self, diagnostic_id: str, status: DiagnosticStatus, **kwargs) -> Optional[DiagnosticResult]:
         pass
 
     @abstractmethod
-    async def list_all(self, tenant_id: str = "default", bypass_tenant: bool = False) -> List[DiagnosticResult]:
+    async def list_all(self) -> List[DiagnosticResult]:
         pass
 
 
 class FindingRepository(ABC):
     @abstractmethod
-    async def create(self, diagnostic_id: str, finding_data: Dict[str, Any], tenant_id: str = "default") -> Dict[str, Any]:
+    async def create(self, diagnostic_id: str, finding_data: Dict[str, Any]) -> Dict[str, Any]:
         pass
 
     @abstractmethod
-    async def list_by_diagnostic(self, diagnostic_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> List[Dict[str, Any]]:
+    async def list_by_diagnostic(self, diagnostic_id: str) -> List[Dict[str, Any]]:
         pass
 
 
 class RecommendationRepository(ABC):
     @abstractmethod
-    async def create(self, diagnostic_id: str, recommendation_data: Dict[str, Any], tenant_id: str = "default") -> Dict[str, Any]:
+    async def create(self, diagnostic_id: str, recommendation_data: Dict[str, Any]) -> Dict[str, Any]:
         pass
 
     @abstractmethod
-    async def list_by_diagnostic(self, diagnostic_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> List[Dict[str, Any]]:
+    async def list_by_diagnostic(self, diagnostic_id: str) -> List[Dict[str, Any]]:
         pass
 
 
 class RepairRequestRepository(ABC):
     @abstractmethod
-    async def create(self, diagnostic_id: str, request: RepairRequestCreate, tenant_id: str = "default") -> RepairRequestResponse:
+    async def create(self, diagnostic_id: str, request: RepairRequestCreate) -> RepairRequestResponse:
         pass
 
     @abstractmethod
-    async def get(self, repair_request_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[RepairRequestResponse]:
+    async def get(self, repair_request_id: str) -> Optional[RepairRequestResponse]:
         pass
 
     @abstractmethod
-    async def update(self, repair_request_id: str, approval_status: ApprovalStatus, dispatch_status: DispatchStatus, tenant_id: str = "default", bypass_tenant: bool = False, **kwargs) -> Optional[RepairRequestResponse]:
+    async def update(self, repair_request_id: str, approval_status: ApprovalStatus, dispatch_status: DispatchStatus, **kwargs) -> Optional[RepairRequestResponse]:
         pass
 
     @abstractmethod
-    async def list_all(self, tenant_id: str = "default", bypass_tenant: bool = False) -> List[RepairRequestResponse]:
+    async def list_all(self) -> List[RepairRequestResponse]:
         pass
 
 
 class AuditRepository(ABC):
     @abstractmethod
-    async def write(self, event: AuditEvent, tenant_id: str = "default") -> None:
+    async def write(self, event: AuditEvent) -> None:
         pass
 
     @abstractmethod
-    async def list_recent(self, tenant_id: str = "default", limit: int = 100, bypass_tenant: bool = False) -> List[AuditEvent]:
+    async def list_recent(self, limit: int = 100) -> List[AuditEvent]:
         pass
 
 
 class WebhookDeliveryRepository(ABC):
     @abstractmethod
-    async def log_delivery(self, delivery_data: Dict[str, Any], tenant_id: str = "default") -> None:
+    async def log_delivery(self, delivery_data: Dict[str, Any]) -> None:
         pass
 
     @abstractmethod
-    async def create_delivery(self, delivery_data: Dict[str, Any], tenant_id: str = "default") -> Dict[str, Any]:
+    async def create_delivery(self, delivery_data: Dict[str, Any]) -> Dict[str, Any]:
         pass
 
     @abstractmethod
-    async def update_delivery(self, delivery_id: str, delivery_status: str, status_code: Optional[float], error_message: Optional[str], attempt_count: float, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def update_delivery(self, delivery_id: str, delivery_status: str, status_code: Optional[float], error_message: Optional[str], attempt_count: float) -> Optional[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def get_delivery(self, delivery_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def get_delivery(self, delivery_id: str) -> Optional[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def list_deliveries(self, tenant_id: str = "default", bypass_tenant: bool = False) -> List[Dict[str, Any]]:
+    async def list_deliveries(self) -> List[Dict[str, Any]]:
         pass
 
 
@@ -154,169 +154,169 @@ class ApiKeyRepository(ABC):
 
 class ResearchRepository(ABC):
     @abstractmethod
-    async def create_request(self, request_data: Dict[str, Any], tenant_id: str = "default") -> Dict[str, Any]:
+    async def create_request(self, request_data: Dict[str, Any]) -> Dict[str, Any]:
         pass
 
     @abstractmethod
-    async def get_request(self, request_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def get_request(self, request_id: str) -> Optional[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def update_request_status(self, request_id: str, status: str, tenant_id: str = "default", error_message: Optional[str] = None, bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def update_request_status(self, request_id: str, status: str, error_message: Optional[str] = None) -> Optional[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def create_evidence(self, evidence_data: Dict[str, Any], tenant_id: str = "default") -> Dict[str, Any]:
+    async def create_evidence(self, evidence_data: Dict[str, Any]) -> Dict[str, Any]:
         pass
 
     @abstractmethod
-    async def list_evidences(self, research_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> List[Dict[str, Any]]:
+    async def list_evidences(self, research_id: str) -> List[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def get_tenant_daily_research_count(self, tenant_id: str = "default", day: Optional[datetime] = None) -> int:
+    async def get_tenant_daily_research_count(self, tenant_id: str, day: datetime) -> int:
         pass
 
 
 class ImprovementRepository(ABC):
     @abstractmethod
-    async def create_proposal(self, proposal_data: Dict[str, Any], tenant_id: str = "default") -> Dict[str, Any]:
+    async def create_proposal(self, proposal_data: Dict[str, Any]) -> Dict[str, Any]:
         pass
 
     @abstractmethod
-    async def get_proposal(self, proposal_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def get_proposal(self, proposal_id: str) -> Optional[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def update_proposal_gate(self, proposal_id: str, gate_status: str, tenant_id: str = "default", gate_score: Optional[float] = None, risk_analysis: Optional[Dict[str, Any]] = None, approval_status: Optional[str] = None, bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def update_proposal_gate(self, proposal_id: str, gate_status: str, gate_score: Optional[float] = None, risk_analysis: Optional[Dict[str, Any]] = None, approval_status: Optional[str] = None) -> Optional[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def approve_proposal(self, proposal_id: str, approved_by: str, approved_at: datetime, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def approve_proposal(self, proposal_id: str, approved_by: str, approved_at: datetime) -> Optional[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def list_proposals(self, tenant_id: str = "default", bypass_tenant: bool = False) -> List[Dict[str, Any]]:
+    async def list_proposals(self) -> List[Dict[str, Any]]:
         pass
 
 
 class PrDraftRepository(ABC):
     @abstractmethod
-    async def create_pr_draft(self, draft_data: Dict[str, Any], tenant_id: str = "default") -> Dict[str, Any]:
+    async def create_pr_draft(self, draft_data: Dict[str, Any]) -> Dict[str, Any]:
         pass
 
     @abstractmethod
-    async def get_pr_draft(self, draft_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def get_pr_draft(self, draft_id: str) -> Optional[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def list_pr_drafts_by_proposal(self, proposal_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> List[Dict[str, Any]]:
+    async def list_pr_drafts_by_proposal(self, proposal_id: str) -> List[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def update_pr_draft_status(self, draft_id: str, status: str, tenant_id: str = "default", github_pr_url: Optional[str] = None, error_message: Optional[str] = None, bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def update_pr_draft_status(self, draft_id: str, status: str, github_pr_url: Optional[str] = None, error_message: Optional[str] = None) -> Optional[Dict[str, Any]]:
         pass
 
 
 class PrVerificationRepository(ABC):
     @abstractmethod
-    async def create_verification(self, verification_data: Dict[str, Any], tenant_id: str = "default") -> Dict[str, Any]:
+    async def create_verification(self, verification_data: Dict[str, Any]) -> Dict[str, Any]:
         pass
 
     @abstractmethod
-    async def get_verification_by_pr_draft(self, pr_draft_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def get_verification_by_pr_draft(self, pr_draft_id: str) -> Optional[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def list_verifications_by_proposal(self, proposal_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> List[Dict[str, Any]]:
+    async def list_verifications_by_proposal(self, proposal_id: str) -> List[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def get_verification_by_revision(self, revision_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def get_verification_by_revision(self, revision_id: str) -> Optional[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def get_verification_by_ai_suggestion(self, suggestion_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def get_verification_by_ai_suggestion(self, suggestion_id: str) -> Optional[Dict[str, Any]]:
         pass
 
 
 class PrReviewFeedbackRepository(ABC):
     @abstractmethod
-    async def create_feedback(self, feedback_data: Dict[str, Any], tenant_id: str = "default") -> Dict[str, Any]:
+    async def create_feedback(self, feedback_data: Dict[str, Any]) -> Dict[str, Any]:
         pass
 
     @abstractmethod
-    async def get_feedback(self, feedback_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def get_feedback(self, feedback_id: str) -> Optional[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def list_feedback_by_pr_draft(self, pr_draft_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> List[Dict[str, Any]]:
+    async def list_feedback_by_pr_draft(self, pr_draft_id: str) -> List[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def update_feedback_status(self, feedback_id: str, status: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def update_feedback_status(self, feedback_id: str, status: str) -> Optional[Dict[str, Any]]:
         pass
 
 
 class PatchRevisionRepository(ABC):
     @abstractmethod
-    async def create_revision(self, revision_data: Dict[str, Any], tenant_id: str = "default") -> Dict[str, Any]:
+    async def create_revision(self, revision_data: Dict[str, Any]) -> Dict[str, Any]:
         pass
 
     @abstractmethod
-    async def get_revision(self, revision_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def get_revision(self, revision_id: str) -> Optional[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def get_latest_revision_number(self, pr_draft_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> int:
+    async def get_latest_revision_number(self, pr_draft_id: str) -> int:
         pass
 
     @abstractmethod
-    async def list_revisions_by_pr_draft(self, pr_draft_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> List[Dict[str, Any]]:
+    async def list_revisions_by_pr_draft(self, pr_draft_id: str) -> List[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def update_verification_status(self, revision_id: str, status: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def update_verification_status(self, revision_id: str, status: str) -> Optional[Dict[str, Any]]:
         pass
 
 
 class ReviewLedgerRepository(ABC):
     @abstractmethod
-    async def append_entry(self, entry_data: Dict[str, Any], tenant_id: str = "default") -> Dict[str, Any]:
+    async def append_entry(self, entry_data: Dict[str, Any]) -> Dict[str, Any]:
         pass
 
     @abstractmethod
-    async def get_entry(self, entry_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def get_entry(self, entry_id: str) -> Optional[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def get_latest_entry(self, chain_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def get_latest_entry(self, chain_id: str) -> Optional[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def list_by_chain(self, chain_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> List[Dict[str, Any]]:
+    async def list_by_chain(self, chain_id: str) -> List[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def list_recent(self, tenant_id: str = "default", limit: int = 50, bypass_tenant: bool = False) -> List[Dict[str, Any]]:
+    async def list_recent(self, limit: int = 50) -> List[Dict[str, Any]]:
         pass
 
 
 class AIPatchSuggestionRepository(ABC):
     @abstractmethod
-    async def create_suggestion(self, data: Dict[str, Any], tenant_id: str = "default") -> Dict[str, Any]:
+    async def create_suggestion(self, data: Dict[str, Any]) -> Dict[str, Any]:
         pass
 
     @abstractmethod
-    async def get_suggestion(self, suggestion_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def get_suggestion(self, suggestion_id: str) -> Optional[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def list_suggestions_by_pr_draft(self, pr_draft_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> List[Dict[str, Any]]:
+    async def list_suggestions_by_pr_draft(self, pr_draft_id: str) -> List[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def update_suggestion_status(self, suggestion_id: str, status: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def update_suggestion_status(self, suggestion_id: str, status: str) -> Optional[Dict[str, Any]]:
         pass
 
     @abstractmethod
@@ -326,37 +326,33 @@ class AIPatchSuggestionRepository(ABC):
         verification_id: str,
         risk_level: str,
         status: str,
-        tenant_id: str = "default",
-        bypass_tenant: bool = False
     ) -> Optional[Dict[str, Any]]:
         pass
 
 
 class SystemFindingRepository(ABC):
     @abstractmethod
-    async def create_finding(self, finding_data: Dict[str, Any], tenant_id: str = "default") -> Dict[str, Any]:
+    async def create_finding(self, finding_data: Dict[str, Any]) -> Dict[str, Any]:
         pass
 
     @abstractmethod
-    async def get_finding(self, finding_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def get_finding(self, finding_id: str) -> Optional[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def get_open_by_source_hash(self, source_hash: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def get_open_by_source_hash(self, source_hash: str) -> Optional[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def get_by_source_hash(self, source_hash: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def get_by_source_hash(self, source_hash: str) -> Optional[Dict[str, Any]]:
         pass
 
     @abstractmethod
     async def list_findings(
         self,
-        tenant_id: str = "default",
         status: Optional[str] = None,
         severity: Optional[str] = None,
         limit: int = 50,
-        bypass_tenant: bool = False
     ) -> List[Dict[str, Any]]:
         pass
 
@@ -364,9 +360,7 @@ class SystemFindingRepository(ABC):
     async def increment_occurrence(
         self,
         finding_id: str,
-        tenant_id: str = "default",
         evidence_summary: Optional[Dict[str, Any]] = None,
-        bypass_tenant: bool = False
     ) -> Optional[Dict[str, Any]]:
         pass
 
@@ -376,69 +370,54 @@ class SystemFindingRepository(ABC):
         finding_id: str,
         status: str,
         actor_id: str,
-        tenant_id: str = "default",
-        bypass_tenant: bool = False
     ) -> Optional[Dict[str, Any]]:
         pass
 
 
 class RemediationRunbookRepository(ABC):
     @abstractmethod
-    async def create_runbook(self, runbook_data: Dict[str, Any], tenant_id: str = "default") -> Dict[str, Any]:
+    async def create_runbook(self, runbook_data: Dict[str, Any]) -> Dict[str, Any]:
         pass
 
     @abstractmethod
-    async def get_runbook(self, runbook_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def get_runbook(self, runbook_id: str) -> Optional[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def get_runbook_by_name(self, name: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def get_runbook_by_name(self, name: str) -> Optional[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def list_runbooks(self, tenant_id: str = "default", bypass_tenant: bool = False) -> List[Dict[str, Any]]:
+    async def list_runbooks(self) -> List[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def update_runbook_enabled(self, runbook_id: str, enabled: bool, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def update_runbook_enabled(self, runbook_id: str, enabled: bool) -> Optional[Dict[str, Any]]:
         pass
 
 
 class RemediationAttemptRepository(ABC):
     @abstractmethod
-    async def create_attempt(self, attempt_data: Dict[str, Any], tenant_id: str = "default") -> Dict[str, Any]:
+    async def create_attempt(self, attempt_data: Dict[str, Any]) -> Dict[str, Any]:
         pass
 
     @abstractmethod
-    async def get_attempt(self, attempt_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def get_attempt(self, attempt_id: str) -> Optional[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def list_attempts_by_finding(self, finding_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> List[Dict[str, Any]]:
+    async def list_attempts_by_finding(self, finding_id: str) -> List[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def get_latest_attempt_for_finding(self, finding_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def get_latest_attempt_for_finding(self, finding_id: str) -> Optional[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def list_attempts(self, tenant_id: str = "default", limit: int = 50, bypass_tenant: bool = False) -> List[Dict[str, Any]]:
+    async def list_attempts(self, limit: int = 50) -> List[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    async def update_attempt(self, attempt_id: str, updates: Dict[str, Any], tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
+    async def update_attempt(self, attempt_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         pass
 
-
-class AutonomyDecisionRepository(ABC):
-    @abstractmethod
-    async def create(self, decision: Dict[str, Any], tenant_id: str = "default") -> Dict[str, Any]:
-        pass
-
-    @abstractmethod
-    async def get(self, decision_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> Optional[Dict[str, Any]]:
-        pass
-
-    @abstractmethod
-    async def list_by_incident(self, incident_id: str, tenant_id: str = "default", bypass_tenant: bool = False) -> List[Dict[str, Any]]:
-        pass

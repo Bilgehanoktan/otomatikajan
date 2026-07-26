@@ -1,0 +1,11 @@
+[
+  {
+    "processed_at": "2026-07-24 06:55:07",
+    "target_user": "example",
+    "user_comment": "PROMPT lütfen",
+    "matched_trigger": "PROMPT",
+    "proposed_dm_link": "https://aigucum.notion.site/50-Ucretsiz-Yapay-Zeka-Hilesi",
+    "status": "DRY_RUN",
+    "reason": "Official Meta webhook ve provider evidence gerekli"
+  }
+]

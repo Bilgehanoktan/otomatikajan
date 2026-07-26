@@ -7,8 +7,6 @@ import pytest
 from pathlib import Path
 from httpx import AsyncClient, ASGITransport
 
-from libs.db.session import get_db
-from services.auth import jwt_auth
 from services.workflow_api.main import app
 from services.repair.taskflow_artifacts import artifact_dir_for_run
 from services.repair.github_pr_adapter import prepare_draft_pr
@@ -16,36 +14,6 @@ from services.repair.github_pr_adapter import prepare_draft_pr
 # Workspace Root
 WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
 REPAIR_OUTPUTS = WORKSPACE_ROOT / "repair_outputs"
-
-
-class _ScalarNoneResult:
-    def scalar_one_or_none(self):
-        return None
-
-
-class _FakeDb:
-    async def execute(self, *args, **kwargs):
-        return _ScalarNoneResult()
-
-
-@pytest.fixture(autouse=True)
-def _authorized_operator(monkeypatch):
-    async def _identity_from_token(db, token):
-        return {
-            "id": "operator-test",
-            "type": "operator",
-            "role": "OPERATOR",
-            "email": "operator@test.local",
-            "name": "Repair Lab Operator",
-        }
-
-    async def _db():
-        yield _FakeDb()
-
-    app.dependency_overrides[get_db] = _db
-    monkeypatch.setattr(jwt_auth.auth_service, "get_identity_from_token", _identity_from_token)
-    yield
-    app.dependency_overrides.clear()
 
 @pytest.fixture
 def api_test_env():
@@ -113,11 +81,7 @@ def api_test_env():
 async def test_get_human_gate_returns_waiting_status(api_test_env):
     incident_id, run_id, run_dir = api_test_env
     transport = ASGITransport(app=app)
-    async with AsyncClient(
-        transport=transport,
-        base_url="http://test",
-        headers={"Authorization": "Bearer test-token"},
-    ) as ac:
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
         response = await ac.get(f"/api/v1/repair-lab/runs/{run_id}/human-gate")
         assert response.status_code == 200
         data = response.json()
@@ -130,11 +94,7 @@ async def test_get_human_gate_returns_waiting_status(api_test_env):
 async def test_post_human_gate_decision_records_operator_choice(api_test_env):
     incident_id, run_id, run_dir = api_test_env
     transport = ASGITransport(app=app)
-    async with AsyncClient(
-        transport=transport,
-        base_url="http://test",
-        headers={"Authorization": "Bearer test-token"},
-    ) as ac:
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
         payload = {
             "operator_id": "operator-001",
             "decision": "open_draft_pr_only",
@@ -154,11 +114,7 @@ async def test_post_human_gate_decision_records_operator_choice(api_test_env):
 async def test_post_human_gate_decision_rejects_missing_rationale(api_test_env):
     incident_id, run_id, run_dir = api_test_env
     transport = ASGITransport(app=app)
-    async with AsyncClient(
-        transport=transport,
-        base_url="http://test",
-        headers={"Authorization": "Bearer test-token"},
-    ) as ac:
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
         payload = {
             "operator_id": "operator-001",
             "decision": "open_draft_pr_only",
@@ -175,11 +131,7 @@ async def test_post_human_gate_decision_rejects_missing_rationale(api_test_env):
 async def test_post_human_gate_decision_rejects_invalid_candidate(api_test_env):
     incident_id, run_id, run_dir = api_test_env
     transport = ASGITransport(app=app)
-    async with AsyncClient(
-        transport=transport,
-        base_url="http://test",
-        headers={"Authorization": "Bearer test-token"},
-    ) as ac:
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
         payload = {
             "operator_id": "operator-001",
             "decision": "open_draft_pr_only",
@@ -231,5 +183,5 @@ async def test_prepare_draft_pr_blocked_without_human_gate_decision(api_test_env
     }
     
     # Since status inside human_gate_decision.json is WAITING_FOR_OPERATOR, it must block prepare_draft_pr
-    with pytest.raises(ValueError, match="Human Gate Decision artifact is missing|blocks draft PR preparation"):
+    with pytest.raises(ValueError, match="blocks draft PR preparation"):
         prepare_draft_pr(context)

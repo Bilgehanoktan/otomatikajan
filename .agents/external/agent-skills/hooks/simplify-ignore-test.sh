@@ -8,17 +8,10 @@ set -euo pipefail
 
 PASS=0 FAIL=0
 TMPDIR=$(mktemp -d)
-trap 'find "$TMPDIR" -type f -exec rm {} + && find "$TMPDIR" -depth -type d -exec rmdir {} +' EXIT
+trap 'rm -rf "$TMPDIR"' EXIT
 
 export CACHE="$TMPDIR/cache"
 mkdir -p "$CACHE"
-
-clean_cache() {
-  for f in "$CACHE"/*; do
-    [ -f "$f" ] && rm "$f" || true
-  done
-  return 0
-}
 
 # Extract function definitions we need
 hash_cmd() {
@@ -55,7 +48,7 @@ assert_eq() {
 
 # ── Test 1: Single-line block produces exactly one placeholder ────────────
 printf 'Test 1: Single-line block (start+end on same line)\n'
-clean_cache
+rm -f "$CACHE"/*
 
 SRC="$TMPDIR/single-line.js"
 DEST="$TMPDIR/single-line-filtered.js"
@@ -83,7 +76,7 @@ assert_eq "block content matches" \
 
 # ── Test 2: Multi-line block ─────────────────────────────────────────────
 printf '\nTest 2: Multi-line block\n'
-clean_cache
+rm -f "$CACHE"/*
 
 SRC="$TMPDIR/multi-line.js"
 DEST="$TMPDIR/multi-line-filtered.js"
@@ -107,7 +100,7 @@ assert_eq "output has 3 lines (before + placeholder + after)" "3" "$output_lines
 
 # ── Test 3: Multiple blocks in one file ──────────────────────────────────
 printf '\nTest 3: Multiple blocks in one file\n'
-clean_cache
+rm -f "$CACHE"/*
 
 SRC="$TMPDIR/multi-block.js"
 DEST="$TMPDIR/multi-block-filtered.js"
@@ -134,7 +127,7 @@ assert_eq "two block files in cache" "2" "$block_files"
 
 # ── Test 4: Reason string preserved ──────────────────────────────────────
 printf '\nTest 4: Reason string in placeholder\n'
-clean_cache
+rm -f "$CACHE"/*
 
 SRC="$TMPDIR/reason.js"
 DEST="$TMPDIR/reason-filtered.js"
@@ -155,7 +148,7 @@ assert_eq "reason content" "perf-critical" "$(cat "$CACHE/${FID}".reason.*)"
 
 # ── Test 5: Trailing newline preservation ────────────────────────────────
 printf '\nTest 5: Trailing newline preservation\n'
-clean_cache
+rm -f "$CACHE"/*
 
 SRC="$TMPDIR/no-trailing-nl.js"
 DEST="$TMPDIR/no-trailing-nl-filtered.js"
@@ -171,7 +164,7 @@ assert_eq "dest preserves no-trailing-newline from source" "$src_has_nl" "$dest_
 
 # ── Test 6: No blocks → return 1 ────────────────────────────────────────
 printf '\nTest 6: No blocks returns 1\n'
-clean_cache
+rm -f "$CACHE"/*
 
 SRC="$TMPDIR/no-blocks.js"
 DEST="$TMPDIR/no-blocks-filtered.js"
@@ -185,9 +178,9 @@ rc=0
 filter_file "$SRC" "$DEST" "$FID" || rc=$?
 assert_eq "returns 1 when no blocks found" "1" "$rc"
 
-# ── Test 7: Unclosed block ─────────────────────────────────────────────
+# ── Test 7: Unclosed block emits warning and flushes ─────────────────────
 printf '\nTest 7: Unclosed block\n'
-clean_cache
+rm -f "$CACHE"/*
 
 SRC="$TMPDIR/unclosed.js"
 DEST="$TMPDIR/unclosed-filtered.js"
@@ -204,7 +197,7 @@ assert_eq "orphan code flushed to output" "1" "$(grep -c 'orphan code' "$DEST")"
 
 # ── Test 8: Single-line block with reason ────────────────────────────────
 printf '\nTest 8: Single-line block with reason\n'
-clean_cache
+rm -f "$CACHE"/*
 
 SRC="$TMPDIR/single-reason.js"
 DEST="$TMPDIR/single-reason-filtered.js"
@@ -223,7 +216,7 @@ assert_eq "reason in placeholder" "1" "$(grep -c 'hot-path' "$DEST")"
 
 # ── Test 9: HTML comment syntax ──────────────────────────────────────────
 printf '\nTest 9: HTML comment syntax\n'
-clean_cache
+rm -f "$CACHE"/*
 
 SRC="$TMPDIR/html.html"
 DEST="$TMPDIR/html-filtered.html"
@@ -245,15 +238,7 @@ assert_eq "HTML suffix preserved" "1" "$(grep -c '\-\->' "$DEST")"
 # ── Test 10: JSON parsing error warning ──────────────────────────────────
 printf '\nTest 10: Malformed JSON input produces warning\n'
 
-mkdir -p "$TMPDIR/bin"
-cat > "$TMPDIR/bin/jq" <<'EOF'
-#!/bin/sh
-exit 4
-EOF
-chmod +x "$TMPDIR/bin/jq"
-
-warning_out=$(echo 'NOT_JSON{{{' | PATH="$TMPDIR/bin:$PATH" bash hooks/simplify-ignore.sh 2>&1) || true
-
+warning_out=$(echo 'NOT_JSON{{{' | bash hooks/simplify-ignore.sh 2>&1) || true
 assert_eq "warning on bad JSON" "1" "$(printf '%s' "$warning_out" | grep -c 'Warning.*failed to parse')"
 
 # ── Summary ──────────────────────────────────────────────────────────────

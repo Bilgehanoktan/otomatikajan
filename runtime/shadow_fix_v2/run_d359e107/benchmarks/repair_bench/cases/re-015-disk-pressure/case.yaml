@@ -1,5 +1,0 @@
-id: re-015-disk-pressure
-severity: high
-subsystem: storage
-title: High Disk Pressure causing IO Throttling
-type: incident_replay

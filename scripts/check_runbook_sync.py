@@ -39,8 +39,6 @@ def check_runbook_sync():
         matches = re.findall(r"`([A-Z][A-Z0-9_]+)`", content)
         for match in matches:
             if match.startswith(("ERR_", "INCIDENT_", "ALERT_", "MESH_", "BUDGET_", "EMERGENCY_", "PULSE_", "SAFETY_")):
-                if match == "BUDGET_USD":
-                    continue
                 found_ids.add(match)
         
         if not found_ids:

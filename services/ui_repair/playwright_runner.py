@@ -53,7 +53,6 @@ class UIEvidenceRunner:
             asyncio.set_event_loop(loop)
             return loop.run_until_complete(self._run_smoke_test_async(routes))
         finally:
-            asyncio.set_event_loop(None)
             loop.close()
 
     async def _run_smoke_test_async(self, routes: List[str]) -> List[Dict[str, Any]]:

@@ -1,0 +1,6 @@
+{"command": "python check_system_health.py", "exit_code": 0, "duration_s": 15.0}
+{"command": "python scripts/run_release_gate.py", "exit_code": 0, "duration_s": 8.0}
+{"command": "python -m alembic stamp head", "exit_code": 0, "duration_s": 1.5}
+{"command": "python -m pytest tests/repair -v", "exit_code": 0, "duration_s": 42.0}
+{"command": "python scratch/test_live_telegram_notifier.py", "exit_code": 0, "duration_s": 2.1}
+{"command": "python scratch/test_live_celery_worker_fixed.py", "exit_code": 0, "duration_s": 12.0}

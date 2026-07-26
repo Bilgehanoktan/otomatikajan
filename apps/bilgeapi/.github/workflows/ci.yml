@@ -1,0 +1,65 @@
+name: BilgeAPI Standalone Package CI
+
+on:
+  push:
+    branches: [ main, master, dev ]
+  pull_request:
+    branches: [ main, master, dev ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12"]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+        pip install -e .
+
+    - name: Run Ruff Linter
+      run: |
+        python -m ruff check .
+
+    - name: Run Bandit Security Scanner
+      run: |
+        python -m bandit -r . \
+          -x ./bilgeapi/tests,./bilgeapi/build,./bilgeapi/dist,./tests,./build,./dist \
+          --severity-level medium \
+          --confidence-level medium
+
+    - name: Run pytest with Coverage
+      run: |
+        python -m pytest tests/ --cov=bilgeapi --cov-report=term-missing --cov-report=xml --cov-fail-under=80
+
+    - name: Clean cache files before build
+      run: |
+        find . -type f -name "*.pyc" -delete
+        find . -type d -name "__pycache__" -exec rm -rf {} + || true
+        find . -type d -name ".pytest_cache" -exec rm -rf {} + || true
+        rm -rf build/ dist/ *.egg-info/ || true
+
+    - name: Build Wheel Package
+      run: |
+        python -m pip install build
+        python -m build
+
+    - name: Test Wheel Package Installation and Smoke Test
+      run: |
+        WHEEL_FILE=$(ls dist/*.whl)
+        python -m pip install "$WHEEL_FILE"
+        cd ..
+        python -c "from bilgeapi.libs.db.models.auth_models import Operator"
+        python -c "from bilgeapi.libs.db.repositories.repository import Repository"

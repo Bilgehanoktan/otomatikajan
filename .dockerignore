@@ -7,7 +7,10 @@
 *.pyo
 *.pyd
 .db
-.pytest_cache
+**/.pytest_cache/
+**/.pytest_cache
+**/.mypy_cache/
+**/.ruff_cache/
 .vscode
 tmp
 *.zip
@@ -40,10 +43,35 @@ external/
 .env.*
 !.env.example
 
-# BilgeAPI slim image exclusions
-.playwright-browsers/
-playwright_*.log
-cortex_local_v2.db
-governance_test.db
-*.db
-celerybeat-schedule
+# Additional exclusions for build context optimization
+**/node_modules
+**/node_modules/**
+**/.next
+**/.next/**
+**/.pnpm-store
+**/.pnpm-store/**
+**/.pytest_cache
+**/.pytest_cache/**
+**/.mypy_cache
+**/.mypy_cache/**
+**/.ruff_cache
+**/.ruff_cache/**
+**/.nx
+**/.nx/**
+project_outputs
+repair_outputs
+artifacts
+benchmarks
+outputs
+scratch
+tmp
+.legacy_archive
+.pydeps314
+.deer-flow
+.codex
+.codex_skill_staging
+.bilgeapi
+.agent
+.agents
+e
+

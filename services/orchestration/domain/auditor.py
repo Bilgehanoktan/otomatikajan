@@ -431,10 +431,6 @@ Respond in JSON format:
         else:
             async with session_scope() as new_db: await self._perform_analysis(new_db)
 
-    async def run_diagnostic_cycle(self, db: Optional[AsyncSession] = None):
-        """Alias for backward compatibility with older verification cycles."""
-        await self.run_reflection_cycle(db)
-
     async def _perform_analysis(self, db: AsyncSession):
         stats = await self._get_agent_stats(db)
         bottlenecks = [s for s in stats if s["failure_rate"] > 0.3]

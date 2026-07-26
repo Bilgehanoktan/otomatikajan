@@ -5,40 +5,23 @@ echo [*] Baslatiliyor... Lutfen bekleyin.
 set PYTHONIOENCODING=utf-8
 set "PROJECT_ROOT=%~dp0"
 cd /d "%PROJECT_ROOT%"
-set "PY_DEPS=%PROJECT_ROOT%.pydeps314"
-set "PROJECT_ROOT_FWD=%PROJECT_ROOT:\=/%"
-set "SQLITE_DB_URL=sqlite+aiosqlite:///%PROJECT_ROOT_FWD%runtime/data/cortex_local_v2.db"
-
-set "DOCKER_BUILD_FLAG=--build"
-for %%a in (%*) do (
-    if /I "%%a"=="--no-build" set "DOCKER_BUILD_FLAG="
-    if /I "%%a"=="no-build" set "DOCKER_BUILD_FLAG="
-)
 
 set "INTERACTIVE=1"
 if not "%~1"=="" set "INTERACTIVE=0"
 
-set "PORT_CLEANUP_FLAG="
-if "%INTERACTIVE%"=="1" set "PORT_CLEANUP_FLAG=-Prompt"
-
 :: Python Kontrolu
 echo [*] Python kontrol ediliyor...
-set "PY_CMD="
-if exist "C:\Python314\python.exe" (
-    set "PY_CMD=C:\Python314\python.exe"
+set "PY_CMD=python"
+where python >nul 2>&1
+if not errorlevel 1 (
+    set "PY_CMD=python"
 ) else (
-    where python >nul 2>&1
+    py -3.13 --version >nul 2>&1
     if not errorlevel 1 (
-        set "PY_CMD=python"
+        set "PY_CMD=py -3.13"
     ) else (
-        py -3.13 --version >nul 2>&1
-        if not errorlevel 1 (
-            set "PY_CMD=py -3.13"
-        ) else (
-            echo [!] Python bulunamadi!
-            if "%INTERACTIVE%"=="1" pause
-            exit /b 1
-        )
+        echo [!] Python bulunamadi! C:\Python314\python.exe deneniyor...
+        set "PY_CMD=C:\Python314\python.exe"
     )
 )
 
@@ -72,15 +55,6 @@ if "%mode%"=="3" (
     exit /b
 )
 if "%mode%"=="4" goto self_repair_demo
-
-if not "%mode%"=="2" goto skip_docker_prompt
-if not "%INTERACTIVE%"=="1" goto skip_docker_prompt
-set "rebuild=e"
-set /p rebuild="Docker imajlari yeniden derlensin mi? [E]vet / [H]ayir (Varsayilan: E): "
-if /I "%rebuild%"=="h" set "DOCKER_BUILD_FLAG="
-if /I "%rebuild%"=="n" set "DOCKER_BUILD_FLAG="
-:skip_docker_prompt
-
 if "%mode%"=="2" goto docker_mode
 if "%mode%"=="1" goto local_mode
 echo [!] Gecersiz secim. Lokal mod baslatiliyor.
@@ -111,17 +85,10 @@ if "%INTERACTIVE%"=="1" pause
 exit /b 0
 
 :local_mode
-echo [*] Local mod icin varsa Docker stack durduruluyor...
-call :try_stop_docker_stack
-
 :: Backend Port Temizligi
 echo [*] Eski surecler temizleniyor...
-powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%cleanup_ports.ps1" -Mode local %PORT_CLEANUP_FLAG%
-if errorlevel 1 (
-    echo [HATA] Port temizleme islemi iptal edildi veya basarisiz oldu.
-    if "%INTERACTIVE%"=="1" pause
-    exit /b 1
-)
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8000 ^| findstr LISTENING') do taskkill /f /pid %%a >nul 2>&1
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr :3100 ^| findstr LISTENING') do taskkill /f /pid %%a >nul 2>&1
 call :assert_port_free 8000 "Backend API"
 if errorlevel 1 (
     echo [HATA] 8000 portu hala kullanimda. Docker Desktop veya eski backend surecini kapatin.
@@ -135,25 +102,12 @@ if errorlevel 1 (
     if "%INTERACTIVE%"=="1" pause
     exit /b 1
 )
-call :assert_port_free 8100 "BilgeAPI"
-if errorlevel 1 (
-    echo [HATA] 8100 portu hala kullanimda. Eski BilgeAPI surecini kapatin.
-    if "%INTERACTIVE%"=="1" pause
-    exit /b 1
-)
 
 echo [*] Lokal mod baslatiliyor...
-start "Backend API" cmd /k "set SOVEREIGN_DOTENV_OVERRIDE=false&& set PYTHONPATH=%PY_DEPS%;%PROJECT_ROOT%&& set RUNTIME_PROFILE=local-dev&& set LOCAL_DEV_DB_STRATEGY=sqlite-fallback&& set DATABASE_URL=%SQLITE_DB_URL%&& set REDIS_ENABLED=false&& set CELERY_ENABLED=false&& set QUEUE_BACKEND=inprocess&& set INPROCESS_JOB_WORKERS_ENABLED=true&& set WORKFLOW_API_RELOAD=false&& set PLAYWRIGHT_BROWSERS_PATH=%USERPROFILE%\.gemini\antigravity\.playwright-browsers&& %PY_CMD% -m services.workflow_api.main"
+start "Backend API" cmd /c "set SOVEREIGN_DOTENV_OVERRIDE=false&& set RUNTIME_PROFILE=local-dev&& set REDIS_ENABLED=false&& set CELERY_ENABLED=false&& set QUEUE_BACKEND=inprocess&& set INPROCESS_JOB_WORKERS_ENABLED=true&& set WORKFLOW_API_RELOAD=false&& set PLAYWRIGHT_BROWSERS_PATH=%USERPROFILE%\.gemini\antigravity\.playwright-browsers&& %PY_CMD% -m services.workflow_api.main"
 call :wait_http "Backend API" "http://127.0.0.1:8000/health" 24
 if errorlevel 1 (
     echo [HATA] Backend API hazir olmadi. Backend API penceresindeki loglari kontrol edin.
-    if "%INTERACTIVE%"=="1" pause
-    exit /b 1
-)
-start "BilgeAPI" cmd /k "set SOVEREIGN_DOTENV_OVERRIDE=false&& set PYTHONPATH=%PY_DEPS%;%PROJECT_ROOT%&& set APP_ENV=development&& set RUNTIME_PROFILE=local-dev&& set LOCAL_DEV_DB_STRATEGY=sqlite-fallback&& set DATABASE_URL=%SQLITE_DB_URL%&& set BILGEAPI_DATABASE_URL=%SQLITE_DB_URL%&& set BILGEAPI_AUTH_MODE=api_key&& set BILGEAPI_STATIC_KEYS=dev-test-key-001:ADMIN&& set BILGEAPI_PORT=8100&& %PY_CMD% -m uvicorn apps.bilgeapi.main:app --host 0.0.0.0 --port 8100 --log-level debug"
-call :wait_http "BilgeAPI" "http://127.0.0.1:8100/health" 30
-if errorlevel 1 (
-    echo [HATA] BilgeAPI hazir olmadi. BilgeAPI penceresindeki loglari kontrol edin.
     if "%INTERACTIVE%"=="1" pause
     exit /b 1
 )
@@ -164,13 +118,18 @@ if errorlevel 1 (
     if "%INTERACTIVE%"=="1" pause
     exit /b 1
 )
-if "%INTERACTIVE%"=="1" start "" "http://127.0.0.1:3100"
+if "%INTERACTIVE%"=="1" start "" "http://localhost:3100"
 echo [OK] Sistem acildi. Bu pencereyi kapatabilirsiniz.
 if "%INTERACTIVE%"=="1" pause
 exit /b 0
 
 :docker_mode
 setlocal enabledelayedexpansion
+
+:: Port Temizligi (Cakismalari onlemek icin)
+echo [*] Eski surecler temizleniyor...
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8000 ^| findstr LISTENING') do taskkill /f /pid %%a >nul 2>&1
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr :3100 ^| findstr LISTENING') do taskkill /f /pid %%a >nul 2>&1
 
 echo [*] Docker mod baslatiliyor...
 
@@ -205,34 +164,16 @@ if !retries! GEQ 4 (
     echo          ve Docker Desktop'i yeniden baslatin.
     echo.
     endlocal
-    if "%INTERACTIVE%"=="1" pause
-    exit /b 1
+    pause
+    goto local_mode
 )
 echo [*] Bekleniyor... ^(!retries!/4^)
-call :sleep_seconds 5
+timeout /t 5 >nul
 goto docker_wait
 
 :docker_ready
 echo [OK] Docker Engine hazir!
-echo [*] Docker stack sifirlaniyor...
-docker compose -f docker-compose.yml --profile full-stack down --remove-orphans >nul 2>&1
-echo [*] Docker mod icin yerel port sahipleri temizleniyor...
-powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%cleanup_ports.ps1" -Mode docker %PORT_CLEANUP_FLAG%
-if errorlevel 1 (
-    echo [HATA] Docker mode oncesi gerekli portlar temizlenemedi.
-    if defined DOCKER_HOST (
-        endlocal & set "DOCKER_HOST=!DOCKER_HOST!"
-    ) else (
-        endlocal
-    )
-    if "%INTERACTIVE%"=="1" pause
-    exit /b 1
-)
-if defined DOCKER_HOST (
-    endlocal & set "DOCKER_HOST=!DOCKER_HOST!"
-) else (
-    endlocal
-)
+endlocal
 set RUNTIME_PROFILE=full-stack-local
 set REDIS_ENABLED=true
 set CELERY_ENABLED=true
@@ -242,89 +183,58 @@ set SCHEDULER_ENABLED=true
 set QUEUE_BACKEND=celery
 set APP_UI_MODE=api-only
 set LOCAL_DEV_DB_STRATEGY=primary
-set SIF_REGISTER_DEFAULT_ROLE=AUDIT_OBSERVER
+set SIF_REGISTER_DEFAULT_ROLE=OPERATOR
 set SOVEREIGN_LIGHTWEIGHT_STARTUP=false
 set INPROCESS_JOB_WORKERS_ENABLED=false
 echo [*] Docker altyapi servisleri baslatiliyor...
-docker compose -f docker-compose.yml --profile full-stack up -d %DOCKER_BUILD_FLAG% --wait db redis deerflow-bridge
+docker compose -f docker-compose.yml --profile full-stack up -d --build --wait db redis deerflow-bridge
 if errorlevel 1 (
     echo [HATA] Docker altyapi servisleri hazirlanamadi! Loglari kontrol edin.
-    docker compose -f docker-compose.yml --profile full-stack down --remove-orphans >nul 2>&1
-    if "%INTERACTIVE%"=="1" pause
-    exit /b 1
-)
-echo [*] Uygulama servisleri oncesi portlar yeniden dogrulaniyor...
-powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%cleanup_ports.ps1" -Mode docker -Ports 8000 8100 3100 %PORT_CLEANUP_FLAG%
-if errorlevel 1 (
-    echo [HATA] Docker uygulama katmani oncesi gerekli portlar temizlenemedi.
-    docker compose -f docker-compose.yml --profile full-stack down --remove-orphans >nul 2>&1
-    if "%INTERACTIVE%"=="1" pause
-    exit /b 1
+    pause
+    goto local_mode
 )
 echo [*] Uygulama servisleri baslatiliyor...
-docker compose -f docker-compose.yml --profile full-stack up -d %DOCKER_BUILD_FLAG% app cms bilgeapi worker deerflow-worker beat telegram-bot
+docker compose -f docker-compose.yml --profile full-stack up -d --build app cms worker deerflow-worker beat telegram-bot
 if errorlevel 1 (
     echo [HATA] docker-compose baslatilamadi! Loglari kontrol edin.
-    docker compose -f docker-compose.yml --profile full-stack down --remove-orphans >nul 2>&1
-    if "%INTERACTIVE%"=="1" pause
-    exit /b 1
+    pause
+    goto local_mode
 )
 call :wait_http "Backend API" "http://127.0.0.1:8000/health" 24
 if errorlevel 1 (
     echo [HATA] Docker Backend API hazir olmadi! Loglari kontrol edin.
-    docker compose -f docker-compose.yml --profile full-stack down --remove-orphans >nul 2>&1
-    if "%INTERACTIVE%"=="1" pause
-    exit /b 1
+    pause
+    goto local_mode
 )
-call :wait_http "BilgeAPI" "http://127.0.0.1:8100/health" 30
+call :wait_http "Frontend UI" "http://127.0.0.1:3100" 24
 if errorlevel 1 (
-    echo [HATA] Docker BilgeAPI hazir olmadi! Loglari kontrol edin.
-    docker compose -f docker-compose.yml --profile full-stack down --remove-orphans >nul 2>&1
-    if "%INTERACTIVE%"=="1" pause
-    exit /b 1
+    echo [HATA] Docker Frontend UI hazir olmadi! Loglari kontrol edin.
+    pause
+    goto local_mode
 )
-echo [*] Frontend UI Docker container olarak baslatiliyor...
-call :wait_http "Frontend UI (Docker)" "http://127.0.0.1:3100" 45
-if errorlevel 1 (
-    echo [HATA] Docker Frontend UI hazir olmadi!
-    docker compose -f docker-compose.yml --profile full-stack down --remove-orphans >nul 2>&1
-    if "%INTERACTIVE%"=="1" pause
-    exit /b 1
-)
-if "%INTERACTIVE%"=="1" start "" "http://127.0.0.1:3100"
+if "%INTERACTIVE%"=="1" start "" "http://localhost:3100"
 if "%INTERACTIVE%"=="1" pause
 exit /b 0
 
 :wait_http
-setlocal EnableDelayedExpansion
 set "WAIT_NAME=%~1"
 set "WAIT_URL=%~2"
 set /a WAIT_MAX=%~3
 set /a WAIT_COUNT=0
-echo [*] !WAIT_NAME! hazirlik kontrolu: !WAIT_URL!
+echo [*] %WAIT_NAME% hazirlik kontrolu: %WAIT_URL%
 :wait_http_loop
-powershell -NoProfile -ExecutionPolicy Bypass -Command "try { $r = Invoke-WebRequest -UseBasicParsing '!WAIT_URL!' -TimeoutSec 3; if ($r.StatusCode -eq 200) { exit 0 } } catch { exit 1 }; exit 1" >nul 2>&1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "try { $r = Invoke-WebRequest -UseBasicParsing '%WAIT_URL%' -TimeoutSec 3; if ($r.StatusCode -ge 200 -and $r.StatusCode -lt 500) { exit 0 } } catch { exit 1 }; exit 1" >nul 2>&1
 if not errorlevel 1 (
-    echo [OK] !WAIT_NAME! hazir.
-    endlocal & exit /b 0
+    echo [OK] %WAIT_NAME% hazir.
+    exit /b 0
 )
 set /a WAIT_COUNT+=1
-if !WAIT_COUNT! GEQ !WAIT_MAX! (
-    echo [HATA] !WAIT_NAME! zaman asimina ugradi.
-    endlocal & exit /b 1
+if %WAIT_COUNT% GEQ %WAIT_MAX% (
+    echo [HATA] %WAIT_NAME% zaman asimina ugradi.
+    exit /b 1
 )
-call :sleep_seconds 2
+timeout /t 2 >nul
 goto wait_http_loop
-
-:try_stop_docker_stack
-docker info >nul 2>&1
-if errorlevel 1 exit /b 0
-docker compose -f docker-compose.yml --profile full-stack down --remove-orphans >nul 2>&1
-exit /b 0
-
-:sleep_seconds
-powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Sleep -Seconds %~1" >nul 2>&1
-exit /b 0
 
 :assert_port_free
 set "PORT_TO_CHECK=%~1"

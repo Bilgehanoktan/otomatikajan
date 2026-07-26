@@ -1,4 +1,0 @@
-{
-  "api_error": "400 Bad Request",
-  "missing_field": "x-trace-id"
-}

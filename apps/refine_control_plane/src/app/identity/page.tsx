@@ -14,7 +14,7 @@ import {
   Cpu,
   Lock
 } from "lucide-react";
-import { useCustomMutation, useGetIdentity, useList } from "@refinedev/core";
+import { useCustomMutation, useList, useTranslate } from "@refinedev/core";
 import { useTranslations } from "next-intl";
 import { ResourceHeader } from "@/components/dashboard/ResourceHeader";
 
@@ -22,20 +22,15 @@ export default function IdentityManagerPage() {
   const [isClient, setIsClient] = useState(false);
   const [newKey, setNewKey] = useState<any>(null);
   const [copied, setCopied] = useState(false);
-  const { data: identity } = useGetIdentity<any>();
 
   useEffect(() => setIsClient(true), []);
 
   const t = useTranslations("identity");
-  const identityRoles = React.useMemo(() => {
-    const roles = Array.isArray(identity?.roles) ? identity.roles : identity?.role ? [identity.role] : [];
-    return roles.map((role: unknown) => String(role).toUpperCase());
-  }, [identity]);
-  const canManageIdentities = identityRoles.some((role: string) => role === "SOVEREIGN_PRIME" || role === "ADMIN");
+  const commonT = useTranslations("common");
 
   const { query: { data: identities, isLoading } } = useList({
     resource: "auth/identities",
-    queryOptions: { enabled: isClient && Boolean(identity) && canManageIdentities }
+    queryOptions: { enabled: isClient }
   });
 
   const { mutate } = useCustomMutation();
@@ -82,30 +77,13 @@ export default function IdentityManagerPage() {
                 <Cpu size={20} className="text-[var(--primary)]" />
                 <h2 className="text-xs font-black text-white uppercase tracking-[0.3em]">{t("authorizedIdentities")}</h2>
              </div>
-             <button
-               disabled={!canManageIdentities}
-               className="flex items-center gap-2 px-6 py-2 bg-white/5 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-white/10 transition-all text-gray-400 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-             >
+             <button className="flex items-center gap-2 px-6 py-2 bg-white/5 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-white/10 transition-all text-gray-400 hover:text-white">
                 <Plus size={14} /> {t("newIdentity")}
              </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {!identity ? (
-              <div className="p-8 rounded-[2rem] border border-white/5 bg-black/40 text-[10px] font-black uppercase tracking-widest text-gray-500">
-                Loading identity context
-              </div>
-            ) : !canManageIdentities ? (
-              <div className="p-8 rounded-[2rem] border border-amber-500/20 bg-amber-500/5 text-amber-400">
-                <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest">
-                  <AlertTriangle size={16} /> ADMIN OR SOVEREIGN_PRIME REQUIRED
-                </div>
-              </div>
-            ) : isLoading ? (
-              <div className="p-8 rounded-[2rem] border border-white/5 bg-black/40 text-[10px] font-black uppercase tracking-widest text-gray-500">
-                Loading identities
-              </div>
-            ) : identities?.data?.map((id: any) => (
+            {identities?.data?.map((id: any) => (
               <div key={id.id} className="p-8 rounded-[2rem] border border-white/5 bg-black/40 group hover:border-[var(--primary)]/30 transition-all relative overflow-hidden">
                 <div className="flex justify-between items-start mb-6">
                   <div className="p-3 bg-white/5 rounded-xl text-gray-500 group-hover:text-[var(--primary)] transition-colors">

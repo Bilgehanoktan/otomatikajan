@@ -142,11 +142,6 @@ class GlobalStateFabric:
         redis = await self._init_redis()
         if redis:
             try:
-                # 1. Check if we already own the lock to allow refresh
-                current_owner = await redis.get(f"mesh:lock:{lock_id}")
-                if current_owner == owner_id:
-                    await redis.expire(f"mesh:lock:{lock_id}", timeout)
-                    return True
                 # Redis-NX: Atomic lock acquisition
                 acquired = await redis.set(f"mesh:lock:{lock_id}", owner_id, ex=timeout, nx=True)
                 return bool(acquired)
@@ -157,27 +152,12 @@ class GlobalStateFabric:
         try:
             await self._ensure_db_table()
             async with get_db_ctx() as session:
-                # 1. Check if we already own it to allow refresh
-                result = await session.execute(text("""
-                    SELECT value FROM mesh_fabric WHERE key = :lock_key
-                """), {"lock_key": f"lock:{lock_id}"})
-                row = result.fetchone()
-                if row and row[0] == owner_id:
-                    expiry_time = datetime.now(timezone.utc).timestamp() + timeout
-                    await session.execute(text("""
-                        UPDATE mesh_fabric 
-                        SET updated_at = :updated_at 
-                        WHERE key = :lock_key
-                    """), {"lock_key": f"lock:{lock_id}", "updated_at": datetime.fromtimestamp(expiry_time)})
-                    await session.commit()
-                    return True
-
-                # 2. Clear expired locks
+                # 1. Clear expired locks
                 await session.execute(text("""
                     DELETE FROM mesh_fabric WHERE key = :lock_key AND updated_at < :expiry
                 """), {"lock_key": f"lock:{lock_id}", "expiry": datetime.now(timezone.utc)})
                 
-                # 3. Try to insert lock
+                # 2. Try to insert lock
                 try:
                     expiry_time = datetime.now(timezone.utc).timestamp() + timeout
                     await session.execute(text("""

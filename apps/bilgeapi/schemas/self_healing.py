@@ -1,9 +1,11 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class RemediationRunbookResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     name: str
     action_type: str
@@ -17,16 +19,10 @@ class RemediationRunbookResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    model_config = {
-
-
-        "from_attributes": True
-
-
-    }
-
 
 class RemediationAttemptResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     finding_id: str
     runbook_id: Optional[str] = None
@@ -46,13 +42,6 @@ class RemediationAttemptResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    model_config = {
-
-
-        "from_attributes": True
-
-
-    }
 
 
 class RunbookEnableDisableRequest(BaseModel):

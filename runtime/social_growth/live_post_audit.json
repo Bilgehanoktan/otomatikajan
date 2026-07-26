@@ -1,0 +1,158 @@
+{
+  "audit": {
+    "posts_checked": 3,
+    "score": 1,
+    "input_fingerprint": "b35fbae06cae7f06375a36aac6e9162fcde68f55edf9b8a29ebfdd34ade0ad72",
+    "posts": [
+      {
+        "media_id": "DbJmQZfjsh9",
+        "permalink": "https://www.instagram.com/ai_gucum_/p/DbJmQZfjsh9/",
+        "timestamp": "2026-07-23T21:09:47+00:00",
+        "media_type": "IMAGE",
+        "caption": null,
+        "comment_count": 0,
+        "alt_text": "OpenIoiTahtoo Kayn Kaynaklı OpenAlol Tahtından İndiren fArac DeepSeekR Arac DeepSeek Fiyat Fiyat Ücretsiz Açık Kaynak"
+      },
+      {
+        "media_id": "DbJdcT5jv7i",
+        "permalink": "https://www.instagram.com/ai_gucum_/p/DbJdcT5jv7i/",
+        "timestamp": "2026-07-23T19:52:46+00:00",
+        "media_type": "IMAGE",
+        "caption": null,
+        "comment_count": 0,
+        "alt_text": "Görsel, Twitter ekran görüntüsü olabilir"
+      },
+      {
+        "media_id": "DbJcqv0DhTr",
+        "permalink": "https://www.instagram.com/ai_gucum_/p/DbJcqv0DhTr/",
+        "timestamp": "2026-07-23T19:46:00+00:00",
+        "media_type": "IMAGE",
+        "caption": null,
+        "comment_count": 0,
+        "alt_text": "Görsel, yazı içeren bir grafik olabilir"
+      }
+    ],
+    "findings": [
+      {
+        "code": "MISSING_CAPTION",
+        "severity": "HIGH",
+        "post_ids": [
+          "DbJmQZfjsh9"
+        ],
+        "evidence": "caption alanı boş veya gözlenemedi",
+        "recommendation": "Hook, değer önerisi ve tek CTA içeren caption taslağı üret."
+      },
+      {
+        "code": "NO_COMMENT_SIGNAL",
+        "severity": "MEDIUM",
+        "post_ids": [
+          "DbJmQZfjsh9"
+        ],
+        "evidence": "comment_count=0",
+        "recommendation": "Caption içinde cevaplanabilir tek bir soru veya CTA kullan."
+      },
+      {
+        "code": "VISUAL_TEXT_RISK",
+        "severity": "HIGH",
+        "post_ids": [
+          "DbJmQZfjsh9"
+        ],
+        "evidence": "alt_text tekrar veya bozuk karma-büyük/küçük harf sinyali içeriyor",
+        "recommendation": "Yayın öncesi OCR ve insan gözü kalite geçidi çalıştır."
+      },
+      {
+        "code": "MISSING_CAPTION",
+        "severity": "HIGH",
+        "post_ids": [
+          "DbJdcT5jv7i"
+        ],
+        "evidence": "caption alanı boş veya gözlenemedi",
+        "recommendation": "Hook, değer önerisi ve tek CTA içeren caption taslağı üret."
+      },
+      {
+        "code": "NO_COMMENT_SIGNAL",
+        "severity": "MEDIUM",
+        "post_ids": [
+          "DbJdcT5jv7i"
+        ],
+        "evidence": "comment_count=0",
+        "recommendation": "Caption içinde cevaplanabilir tek bir soru veya CTA kullan."
+      },
+      {
+        "code": "MISSING_CAPTION",
+        "severity": "HIGH",
+        "post_ids": [
+          "DbJcqv0DhTr"
+        ],
+        "evidence": "caption alanı boş veya gözlenemedi",
+        "recommendation": "Hook, değer önerisi ve tek CTA içeren caption taslağı üret."
+      },
+      {
+        "code": "NO_COMMENT_SIGNAL",
+        "severity": "MEDIUM",
+        "post_ids": [
+          "DbJcqv0DhTr"
+        ],
+        "evidence": "comment_count=0",
+        "recommendation": "Caption içinde cevaplanabilir tek bir soru veya CTA kullan."
+      },
+      {
+        "code": "POSTING_BURST_RISK",
+        "severity": "HIGH",
+        "post_ids": [
+          "DbJcqv0DhTr",
+          "DbJdcT5jv7i",
+          "DbJmQZfjsh9"
+        ],
+        "evidence": "3 gönderi 90 dakika içinde yayınlandı",
+        "recommendation": "Gönderileri ayrı test pencerelerine yay ve sonucu ölç."
+      }
+    ]
+  },
+  "ai_review": {
+    "status": "REVIEWED",
+    "summary": "AI Gücüm post audit sonucu",
+    "priorities": [
+      {
+        "post_id": "DbJmQZfjsh9",
+        "issue_code": "MISSING_CAPTION",
+        "action": "Caption taslağı üret"
+      },
+      {
+        "post_id": "DbJdcT5jv7i",
+        "issue_code": "MISSING_CAPTION",
+        "action": "Caption taslağı üret"
+      },
+      {
+        "post_id": "DbJcqv0DhTr",
+        "issue_code": "MISSING_CAPTION",
+        "action": "Caption taslağı üret"
+      }
+    ],
+    "draft_ideas": [
+      {
+        "hook": "AI güçünüzü keşfedin",
+        "format": "Soru-Cevap",
+        "cta": "Öğrenin ve tartışın"
+      },
+      {
+        "hook": "Derin öğrenme ile güçlendirin",
+        "format": "Örnek-Çözüm",
+        "cta": "Uygulamaya başlayın"
+      },
+      {
+        "hook": "Veri bilimine adım atın",
+        "format": "İstatistik-Örnek",
+        "cta": "Keşfedin ve geliştirin"
+      }
+    ],
+    "blocked_reason": null,
+    "agent_role": "reviewer",
+    "provider": "groq",
+    "model_name": "llama-3.3-70b-versatile"
+  },
+  "governance": {
+    "live_actions": "BLOCKED",
+    "allowed_output": "audit_and_drafts_only"
+  }
+}

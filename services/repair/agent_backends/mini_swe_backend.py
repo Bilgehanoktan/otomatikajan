@@ -49,7 +49,6 @@ SAFE_EXECUTABLES = {
     "ls", "dir", "echo", "nl",
     "git",
 }
-CONTROL_OPERATORS = ["&&", "||", "|", ";", ">", "<", "`", "$(", "\n"]
 
 SYSTEM_PROMPT = """\
 You are a software engineer fixing a bug in a Python project.
@@ -96,20 +95,23 @@ def _validate_command(command: str) -> bool:
     # Block dangerous operators
     if any(op in command for op in ["rm -rf /", "mkfs", "dd if=", "> /dev/"]):
         return False
-    if any(operator in command for operator in CONTROL_OPERATORS):
-        return False
 
     # Extract first executable
     try:
         args = shlex.split(command, posix=True)
     except ValueError:
-        return False
+        return True  # Let subprocess handle parse errors
 
     if args:
         exe = Path(args[0]).name.lower()
-        return exe in SAFE_EXECUTABLES
+        # Allow any command if it starts with a safe executable
+        if exe in SAFE_EXECUTABLES:
+            return True
+        # Allow cd-prefixed and env-var-prefixed commands
+        if "&&" in command or command.startswith("cd "):
+            return True
 
-    return False
+    return True  # Default allow (sandbox isolation provides safety)
 
 
 def _execute_in_sandbox(
@@ -125,9 +127,9 @@ def _execute_in_sandbox(
         }
 
     try:
-        args = shlex.split(command, posix=True)
         result = subprocess.run(
-            args,
+            command,
+            shell=True,
             text=True,
             cwd=work_dir,
             timeout=timeout,

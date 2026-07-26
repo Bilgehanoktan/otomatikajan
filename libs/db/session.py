@@ -80,7 +80,7 @@ def _primary_db_target() -> tuple[str, int] | None:
 
     return (host, port)
 
-def check_connectivity(timeout=0.5):
+def check_connectivity(timeout=0.2):
     global _DB_DEGRADED, _DB_CHECKED, _DB_ERROR
 
     # SIF-01 Enhancement: Quick exit if already checked to prevent blocking loops
@@ -97,7 +97,7 @@ def check_connectivity(timeout=0.5):
 
     host, port = target
     try:
-        # Phase 32: Use a much tighter timeout for local connectivity check
+        # Non-blocking tight timeout for local connectivity check
         with socket.create_connection((host, port), timeout=timeout):
             _DB_DEGRADED = False
             _DB_ERROR = ""
@@ -107,6 +107,12 @@ def check_connectivity(timeout=0.5):
 
     _DB_CHECKED = True
     return not _DB_DEGRADED
+
+
+async def check_connectivity_async(timeout=0.2) -> bool:
+    """Non-blocking async variant for event loops."""
+    return await asyncio.to_thread(check_connectivity, timeout)
+
 
 def is_db_degraded() -> bool:
     global _DB_DEGRADED, _DB_CHECKED
@@ -137,7 +143,7 @@ async def is_db_available() -> bool:
 def get_engine():
     from sqlalchemy import event
     from sqlalchemy.ext.asyncio import create_async_engine
-    global _engine, _last_loop, _DB_DEGRADED, _DB_CHECKED, _DB_ERROR
+    global _engine, _last_loop, _DB_DEGRADED, _DB_CHECKED
     try:
         curr_active_loop = asyncio.get_running_loop()
     except RuntimeError:

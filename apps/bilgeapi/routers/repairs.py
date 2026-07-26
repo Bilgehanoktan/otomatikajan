@@ -36,8 +36,7 @@ async def create_repair_request(
     """
     Creates a pending repair request for a diagnostic run.
     """
-    tenant_id = _identity.get("tenant_id")
-    created_request = await repair_repo.create(diagnostic_id, request, tenant_id=tenant_id)
+    created_request = await repair_repo.create(diagnostic_id, request)
     return created_request
 
 @router.post("/repair-requests/json", response_model=RepairRequestResponse, status_code=201, tags=["Repairs"])
@@ -50,8 +49,7 @@ async def create_repair_request_json(
     """
     Creates a pending repair request using JSON body.
     """
-    tenant_id = _identity.get("tenant_id")
-    created_request = await repair_repo.create(diagnostic_id, request, tenant_id=tenant_id)
+    created_request = await repair_repo.create(diagnostic_id, request)
     return created_request
 
 @router.post("/diagnostics/{diagnostic_id}/repair-requests", response_model=RepairRequestResponse, status_code=201, tags=["Repairs"])
@@ -68,9 +66,8 @@ async def create_repair_request_from_diagnostic(
     """
     Creates a repair request by evaluating the diagnostic run results and calculating deterministic risk.
     """
-    tenant_id = _identity.get("tenant_id")
     # 1. Fetch diagnostic run
-    diagnostic_run = await diagnostic_repo.get(diagnostic_id, tenant_id=tenant_id)
+    diagnostic_run = await diagnostic_repo.get(diagnostic_id)
     if not diagnostic_run:
         raise HTTPException(status_code=404, detail="Diagnostic run not found")
 
@@ -78,7 +75,7 @@ async def create_repair_request_from_diagnostic(
         raise HTTPException(status_code=400, detail="Only completed diagnostics can trigger repair requests")
 
     # 2. Fetch associated incident
-    incident = await incident_repo.get(diagnostic_run.incident_id, tenant_id=tenant_id)
+    incident = await incident_repo.get(diagnostic_run.incident_id)
     if not incident:
         raise HTTPException(status_code=404, detail="Incident not found for this diagnostic run")
 
@@ -115,7 +112,7 @@ async def create_repair_request_from_diagnostic(
         approved_at=approved_at
     )
 
-    created_req = await repair_repo.create(diagnostic_id, create_schema, tenant_id=tenant_id)
+    created_req = await repair_repo.create(diagnostic_id, create_schema)
 
     # 6. Audit Logging
     await audit_service.log_event(
@@ -124,9 +121,8 @@ async def create_repair_request_from_diagnostic(
         actor_type=_identity["type"],
         entity_type="repair_request",
         entity_id=created_req.id,
-        tenant_id=tenant_id,
         correlation_id=incident.correlation_id,
-        after_state=created_req.model_dump(mode="json")
+        after_state=created_req.model_dump()
     )
 
     await audit_service.log_event(
@@ -135,7 +131,6 @@ async def create_repair_request_from_diagnostic(
         actor_type="service",
         entity_type="repair_request",
         entity_id=created_req.id,
-        tenant_id=tenant_id,
         correlation_id=incident.correlation_id,
         metadata={"risk_score": risk_score, "risk_reason": risk_reason}
     )
@@ -147,7 +142,6 @@ async def create_repair_request_from_diagnostic(
             actor_type="service",
             entity_type="repair_request",
             entity_id=created_req.id,
-            tenant_id=tenant_id,
             correlation_id=incident.correlation_id,
             metadata={"reason": "Auto-approved low risk change"}
         )
@@ -162,8 +156,7 @@ async def list_repair_requests(
     """
     Lists all repair requests.
     """
-    tenant_id = _identity.get("tenant_id")
-    return await repair_repo.list_all(tenant_id=tenant_id)
+    return await repair_repo.list_all()
 
 @router.get("/repair-requests/{id}", response_model=RepairRequestResponse, tags=["Repairs"])
 async def get_repair_request(
@@ -174,8 +167,7 @@ async def get_repair_request(
     """
     Retrieves a single repair request by ID.
     """
-    tenant_id = _identity.get("tenant_id")
-    repair_req = await repair_repo.get(id, tenant_id=tenant_id)
+    repair_req = await repair_repo.get(id)
     if not repair_req:
         raise HTTPException(status_code=404, detail="Repair request not found")
     return repair_req
@@ -190,8 +182,7 @@ async def approve_repair_request(
     """
     Approves a repair request. Does not dispatch webhook.
     """
-    tenant_id = _identity.get("tenant_id")
-    repair_req = await repair_repo.get(id, tenant_id=tenant_id)
+    repair_req = await repair_repo.get(id)
     if not repair_req:
         raise HTTPException(status_code=404, detail="Repair request not found")
 
@@ -202,7 +193,6 @@ async def approve_repair_request(
         repair_request_id=id,
         approval_status=ApprovalStatus.APPROVED,
         dispatch_status=repair_req.dispatch_status,
-        tenant_id=tenant_id,
         approved_by=_identity["id"],
         approved_at=datetime.now(timezone.utc)
     )
@@ -213,7 +203,6 @@ async def approve_repair_request(
         actor_type=_identity["type"],
         entity_type="repair_request",
         entity_id=id,
-        tenant_id=tenant_id,
         metadata={"approved_by": _identity["id"]}
     )
 
@@ -230,8 +219,7 @@ async def reject_repair_request(
     """
     Rejects a repair request with a reason.
     """
-    tenant_id = _identity.get("tenant_id")
-    repair_req = await repair_repo.get(id, tenant_id=tenant_id)
+    repair_req = await repair_repo.get(id)
     if not repair_req:
         raise HTTPException(status_code=404, detail="Repair request not found")
 
@@ -242,7 +230,6 @@ async def reject_repair_request(
         repair_request_id=id,
         approval_status=ApprovalStatus.REJECTED,
         dispatch_status=repair_req.dispatch_status,
-        tenant_id=tenant_id,
         rejection_reason=rejection.rejection_reason,
         rejected_at=datetime.now(timezone.utc)
     )
@@ -253,7 +240,6 @@ async def reject_repair_request(
         actor_type=_identity["type"],
         entity_type="repair_request",
         entity_id=id,
-        tenant_id=tenant_id,
         metadata={"rejection_reason": rejection.rejection_reason}
     )
 
@@ -271,8 +257,7 @@ async def dispatch_repair_request(
     """
     Dispatches the approved (or auto-approved) repair request to the target webhook.
     """
-    tenant_id = _identity.get("tenant_id")
-    repair_req = await repair_repo.get(id, tenant_id=tenant_id)
+    repair_req = await repair_repo.get(id)
     if not repair_req:
         raise HTTPException(status_code=404, detail="Repair request not found")
 
@@ -338,7 +323,6 @@ async def dispatch_repair_request(
         actor_type=_identity["type"],
         entity_type="repair_request",
         entity_id=id,
-        tenant_id=tenant_id,
         metadata={"webhook_url": webhook_url, "adapter": adapter, "dry_run": dry_run}
     )
 
@@ -347,13 +331,12 @@ async def dispatch_repair_request(
         repair_request_id=id,
         webhook_url=webhook_url,
         payload=payload,
-        tenant_id=tenant_id,
         adapter=adapter,
         dry_run=dry_run
     )
 
     # Reload the latest state from repository
-    return await repair_repo.get(id, tenant_id=tenant_id)
+    return await repair_repo.get(id)
 
 @router.get("/webhook-deliveries", response_model=List[WebhookDeliveryResponse], tags=["Webhooks"])
 async def list_webhook_deliveries(
@@ -363,8 +346,7 @@ async def list_webhook_deliveries(
     """
     Retrieves all webhook delivery attempt logs.
     """
-    tenant_id = _identity.get("tenant_id")
-    deliveries = await webhook_repo.list_deliveries(tenant_id=tenant_id)
+    deliveries = await webhook_repo.list_deliveries()
     mapped = []
     for d in deliveries:
         mapped.append(

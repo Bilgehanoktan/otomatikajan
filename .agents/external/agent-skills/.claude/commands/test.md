@@ -1,10 +1,7 @@
 ---
 description: Run TDD workflow — write failing tests, implement, verify. For bugs, use the Prove-It pattern.
-version: 1.0.0
-rollback: "git checkout ."
-observe: "echo 'observe'"
-feedback: "echo 'feedback'"
 ---
+
 Invoke the agent-skills:test-driven-development skill.
 
 For new features:

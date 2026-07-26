@@ -13,8 +13,6 @@ def setup_test_env():
     os.environ["BILGEAPI_STATIC_KEYS"] = "test_key_1,test_key_2"
     os.environ["BILGEAPI_PORT"] = "8100"
     os.environ["BILGEAPI_RATE_LIMIT_RPS"] = "10000"
-    os.environ["BILGEAPI_DURABLE_QUEUE_ENABLED"] = "false"
-    os.environ["BILGEAPI_MANAGEMENT_ACTIONS_UNLOCKED"] = "true"
     yield
     # Cleanup
     if "BILGEAPI_AUTH_MODE" in os.environ:
@@ -25,10 +23,6 @@ def setup_test_env():
         del os.environ["BILGEAPI_PORT"]
     if "BILGEAPI_RATE_LIMIT_RPS" in os.environ:
         del os.environ["BILGEAPI_RATE_LIMIT_RPS"]
-    if "BILGEAPI_DURABLE_QUEUE_ENABLED" in os.environ:
-        del os.environ["BILGEAPI_DURABLE_QUEUE_ENABLED"]
-    if "BILGEAPI_MANAGEMENT_ACTIONS_UNLOCKED" in os.environ:
-        del os.environ["BILGEAPI_MANAGEMENT_ACTIONS_UNLOCKED"]
 
 @pytest.fixture
 def test_client():
@@ -56,8 +50,7 @@ def test_client():
         get_ai_patch_provider,
         get_system_finding_repository,
         get_remediation_runbook_repository,
-        get_remediation_attempt_repository,
-        get_autonomy_decision_repository
+        get_remediation_attempt_repository
     )
     from apps.bilgeapi.repositories.memory import (
         InMemoryIncidentRepository,
@@ -80,7 +73,6 @@ def test_client():
         InMemorySystemFindingRepository,
         InMemoryRemediationRunbookRepository,
         InMemoryRemediationAttemptRepository,
-        InMemoryAutonomyDecisionRepository,
         memory_repositories
     )
     
@@ -108,7 +100,6 @@ def test_client():
     app.dependency_overrides[get_system_finding_repository] = lambda: InMemorySystemFindingRepository()
     app.dependency_overrides[get_remediation_runbook_repository] = lambda: InMemoryRemediationRunbookRepository()
     app.dependency_overrides[get_remediation_attempt_repository] = lambda: InMemoryRemediationAttemptRepository()
-    app.dependency_overrides[get_autonomy_decision_repository] = lambda: InMemoryAutonomyDecisionRepository()
     app.dependency_overrides[get_ai_patch_provider] = lambda: __import__(
         "apps.bilgeapi.adapters.ai_patch_provider",
         fromlist=["MockAIPatchProvider"]
@@ -155,8 +146,7 @@ def test_client_real_auth():
         get_ai_patch_provider,
         get_system_finding_repository,
         get_remediation_runbook_repository,
-        get_remediation_attempt_repository,
-        get_autonomy_decision_repository
+        get_remediation_attempt_repository
     )
     from apps.bilgeapi.repositories.memory import (
         InMemoryIncidentRepository,
@@ -179,7 +169,6 @@ def test_client_real_auth():
         InMemorySystemFindingRepository,
         InMemoryRemediationRunbookRepository,
         InMemoryRemediationAttemptRepository,
-        InMemoryAutonomyDecisionRepository,
         memory_repositories
     )
     
@@ -206,7 +195,6 @@ def test_client_real_auth():
     app.dependency_overrides[get_system_finding_repository] = lambda: InMemorySystemFindingRepository()
     app.dependency_overrides[get_remediation_runbook_repository] = lambda: InMemoryRemediationRunbookRepository()
     app.dependency_overrides[get_remediation_attempt_repository] = lambda: InMemoryRemediationAttemptRepository()
-    app.dependency_overrides[get_autonomy_decision_repository] = lambda: InMemoryAutonomyDecisionRepository()
     app.dependency_overrides[get_ai_patch_provider] = lambda: __import__(
         "apps.bilgeapi.adapters.ai_patch_provider",
         fromlist=["MockAIPatchProvider"]

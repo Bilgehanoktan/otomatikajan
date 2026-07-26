@@ -1,10 +1,7 @@
 ---
 description: Start spec-driven development — write a structured specification before writing code
-version: 1.0.0
-rollback: "git checkout ."
-observe: "echo 'observe'"
-feedback: "echo 'feedback'"
 ---
+
 Invoke the agent-skills:spec-driven-development skill.
 
 Begin by understanding what the user wants to build. Ask clarifying questions about:

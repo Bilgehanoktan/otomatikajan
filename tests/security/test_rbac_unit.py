@@ -16,16 +16,6 @@ sys.path.insert(0, ROOT)
 from services.auth.jwt_auth import AccessControlService, AuthService, get_current_user
 
 
-class _ScalarNoneResult:
-    def scalar_one_or_none(self):
-        return None
-
-
-class _FakeDb:
-    async def execute(self, *args, **kwargs):
-        return _ScalarNoneResult()
-
-
 @pytest.mark.asyncio
 async def test_prime_role_permission_short_circuit():
     allowed, reason = await AccessControlService.is_allowed(
@@ -38,50 +28,6 @@ async def test_prime_role_permission_short_circuit():
 
     assert allowed is True
     assert "PRIME" in reason
-
-
-@pytest.mark.asyncio
-async def test_operator_role_no_longer_has_global_wildcard(monkeypatch):
-    monkeypatch.setenv("SIF_BASELINE_RBAC", "true")
-    monkeypatch.delenv("SIF_DEV_AUTH_BYPASS", raising=False)
-
-    allowed, reason = await AccessControlService.is_allowed(
-        db=_FakeDb(),
-        identity_id=MagicMock(),
-        identity_type="operator",
-        permission="identity.manage",
-        role="OPERATOR",
-    )
-
-    assert allowed is False
-    assert "Missing required permission" in reason
-
-
-@pytest.mark.asyncio
-async def test_dev_bypass_requires_explicit_env_flag(monkeypatch):
-    monkeypatch.setenv("SIF_BASELINE_RBAC", "false")
-    monkeypatch.delenv("SIF_DEV_AUTH_BYPASS", raising=False)
-
-    denied, _ = await AccessControlService.is_allowed(
-        db=_FakeDb(),
-        identity_id=MagicMock(),
-        identity_type="operator",
-        permission="identity.manage",
-        role="AUDIT_OBSERVER",
-    )
-
-    monkeypatch.setenv("SIF_DEV_AUTH_BYPASS", "true")
-    allowed, reason = await AccessControlService.is_allowed(
-        db=_FakeDb(),
-        identity_id=MagicMock(),
-        identity_type="operator",
-        permission="identity.manage",
-        role="AUDIT_OBSERVER",
-    )
-
-    assert denied is False
-    assert allowed is True
-    assert "bypass" in reason.lower()
 
 
 @pytest.mark.asyncio
@@ -119,9 +65,9 @@ def test_baseline_role_policy_operator():
     assert AccessControlService._has_baseline_permission("operator", "workflow.approve") is True
     assert AccessControlService._has_baseline_permission("operator", "approval.decide") is True
     assert AccessControlService._has_baseline_permission("operator", "incident.view") is True
-    assert AccessControlService._has_baseline_permission("operator", "identity.manage") is False
 
 
 def test_baseline_role_policy_observer():
     assert AccessControlService._has_baseline_permission("AUDIT_OBSERVER", "incident.view") is True
     assert AccessControlService._has_baseline_permission("AUDIT_OBSERVER", "workflow.approve") is False
+

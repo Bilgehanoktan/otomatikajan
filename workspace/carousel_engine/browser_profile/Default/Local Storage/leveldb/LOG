@@ -1,6 +1,15 @@
-2026/07/25-22:57:44.062 6d20 Reusing MANIFEST E:\ai_company_faz12.1\workspace\carousel_engine\browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
-2026/07/25-22:57:44.075 6d20 Recovering log #18
-2026/07/25-22:57:44.077 6d20 Reusing old log E:\ai_company_faz12.1\workspace\carousel_engine\browser_profile\Default\Local Storage\leveldb/000018.log 
-2026/07/25-22:58:44.084 abb0 Level-0 table #22: started
-2026/07/25-22:58:44.095 abb0 Level-0 table #22: 16360 bytes OK
-2026/07/25-22:58:44.100 abb0 Delete type=0 #18
+2026/07/25-23:39:28.093 9e0c Reusing MANIFEST E:\ai_company_faz12.1\workspace\carousel_engine\browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
+2026/07/25-23:39:28.110 9e0c Recovering log #21
+2026/07/25-23:39:28.112 9e0c Reusing old log E:\ai_company_faz12.1\workspace\carousel_engine\browser_profile\Default\Local Storage\leveldb/000021.log 
+2026/07/25-23:41:23.368 bb90 Level-0 table #25: started
+2026/07/25-23:41:23.379 bb90 Level-0 table #25: 16599 bytes OK
+2026/07/25-23:41:23.385 bb90 Delete type=0 #21
+2026/07/25-23:41:23.386 bb90 Compacting 4@0 + 1@1 files
+2026/07/25-23:41:23.407 bb90 Generated table #26@0: 61 keys, 13915 bytes
+2026/07/25-23:41:23.407 bb90 Compacted 4@0 + 1@1 files => 13915 bytes
+2026/07/25-23:41:23.410 bb90 compacted to: files[ 0 1 0 0 0 0 0 ]
+2026/07/25-23:41:23.411 bb90 Delete type=2 #13
+2026/07/25-23:41:23.412 bb90 Delete type=2 #16
+2026/07/25-23:41:23.412 bb90 Delete type=2 #19
+2026/07/25-23:41:23.412 bb90 Delete type=2 #22
+2026/07/25-23:41:23.412 bb90 Delete type=2 #25

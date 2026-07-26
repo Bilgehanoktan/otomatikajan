@@ -2,10 +2,10 @@ import os
 import pytest
 from libs.llm.model_orchestrator import ModelOrchestrator, PROVIDERS
 
-def test_anthropic_config_override(monkeypatch):
+def test_anthropic_config_override():
     # Setup environment
-    monkeypatch.setenv("ANTHROPIC_BASE_URL", "https://test.proxy/v1")
-    monkeypatch.setenv("ANTHROPIC_MODEL", "test-model-123")
+    os.environ["ANTHROPIC_BASE_URL"] = "https://test.proxy/v1"
+    os.environ["ANTHROPIC_MODEL"] = "test-model-123"
     
     orchestrator = ModelOrchestrator()
     anthropic = orchestrator.providers.get("anthropic")
@@ -16,9 +16,9 @@ def test_anthropic_config_override(monkeypatch):
     assert anthropic.base_url == "https://test.proxy/v1"
     assert anthropic.model == "test-model-123"
 
-def test_openrouter_prefix_validation(monkeypatch):
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-or-v1-testkey123-long-enough-for-validation")
-    monkeypatch.setenv("ANTHROPIC_BASE_URL", "https://openrouter.ai/api")
+def test_openrouter_prefix_validation():
+    os.environ["ANTHROPIC_API_KEY"] = "sk-or-v1-testkey123-long-enough-for-validation"
+    os.environ["ANTHROPIC_BASE_URL"] = "https://openrouter.ai/api"
     
     orchestrator = ModelOrchestrator()
     anthropic = orchestrator.providers.get("anthropic")

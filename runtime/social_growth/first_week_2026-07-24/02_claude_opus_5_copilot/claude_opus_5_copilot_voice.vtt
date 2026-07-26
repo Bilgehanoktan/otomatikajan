@@ -1,0 +1,20 @@
+1
+00:00:00,100 --> 00:00:03,971
+GitHub Copilot'a bugün Claude Opus 5 geldi.
+
+2
+00:00:03,921 --> 00:00:10,328
+GitHub bu modeli karmaşık, uzun süren ve çok adımlı kodlama görevleri için konumlandırıyor.
+
+3
+00:00:10,328 --> 00:00:14,842
+Model picker'dan seçebilirsin; dağıtım kademeli olabilir.
+
+4
+00:00:14,842 --> 00:00:20,197
+Ben bunu hedefli değişiklik, regresyon kontrolü ve kanıtla test edeceğim.
+
+5
+00:00:20,197 --> 00:00:24,013
+Gerçek bir repo testi istiyorsan TEST yaz.
+

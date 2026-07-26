@@ -1,3 +1,6 @@
-2026/07/25-22:40:04.256 6dd4 Reusing MANIFEST E:\ai_company_faz12.1\workspace\carousel_engine\browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
-2026/07/25-22:40:04.264 6dd4 Recovering log #18
-2026/07/25-22:40:04.266 6dd4 Reusing old log E:\ai_company_faz12.1\workspace\carousel_engine\browser_profile\Default\Local Storage\leveldb/000018.log 
+2026/07/25-22:57:44.062 6d20 Reusing MANIFEST E:\ai_company_faz12.1\workspace\carousel_engine\browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
+2026/07/25-22:57:44.075 6d20 Recovering log #18
+2026/07/25-22:57:44.077 6d20 Reusing old log E:\ai_company_faz12.1\workspace\carousel_engine\browser_profile\Default\Local Storage\leveldb/000018.log 
+2026/07/25-22:58:44.084 abb0 Level-0 table #22: started
+2026/07/25-22:58:44.095 abb0 Level-0 table #22: 16360 bytes OK
+2026/07/25-22:58:44.100 abb0 Delete type=0 #18

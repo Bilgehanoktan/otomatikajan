@@ -8,7 +8,6 @@ import {
   FolderArchive, Activity, ShieldAlert, CheckCircle, Clock, Search, Lock, ShieldCheck, ChevronRight, Brain, AlertTriangle, FileCode, Users, FileSignature, Zap, Check, X, Pause, RefreshCw
 } from "lucide-react";
 import Link from "next/link";
-import { getAuthHeaders as getStoredAuthHeaders } from "@/lib/auth";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -33,9 +32,7 @@ async function safeFetchJson(url: string, options?: RequestInit) {
 }
 
 async function getAuthHeaders() {
-  const authHeaders = await getStoredAuthHeaders();
   return {
-    ...authHeaders,
     "X-Agent-Identity": JSON.stringify({
       agent_id: "human-operator",
       roles: ["governor.view", "governor.override"],
@@ -295,7 +292,7 @@ export default function ProjectFactoryPortfolioClient() {
       setPolicyLoading(true);
       const headers = await getAuthHeaders();
       let endpoint = "";
-      const body: any = {
+      let body: any = {
         operator_id: "PORTFOLIO-ADMIN",
         rationale: `UI action: ${action}`
       };
@@ -330,7 +327,7 @@ export default function ProjectFactoryPortfolioClient() {
       setBoardLoading(true);
       const headers = await getAuthHeaders();
       let endpoint = "";
-      const body: any = {
+      let body: any = {
         operator_id: "BOARD-OPERATOR-ID",
         rationale: `Board action: ${action}`
       };

@@ -1,0 +1,13 @@
+{
+  "timestamp": "2026-07-21T06:41:23+03:00",
+  "audit_mode": "verification-only",
+  "target_env": "local",
+  "files": [
+    "manifest.json",
+    "environment-sanitized.json",
+    "inventory.json",
+    "command-results.jsonl",
+    "test-summary.json",
+    "final-report.md"
+  ]
+}

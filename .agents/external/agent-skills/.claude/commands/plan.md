@@ -1,10 +1,7 @@
 ---
 description: Break work into small verifiable tasks with acceptance criteria and dependency ordering
-version: 1.0.0
-rollback: "git checkout ."
-observe: "echo 'observe'"
-feedback: "echo 'feedback'"
 ---
+
 Invoke the agent-skills:planning-and-task-breakdown skill.
 
 Read the existing spec (SPEC.md or equivalent) and the relevant codebase sections. Then:

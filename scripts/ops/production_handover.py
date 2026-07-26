@@ -34,7 +34,7 @@ async def run_production_handover(project_id: str, dry_run: bool):
     
     if not passed:
         print("\nHANDOVER ABORTED: System does not meet production criteria.")
-        raise RuntimeError("HANDOVER_ABORTED: System does not meet production criteria.")
+        sys.exit(1)
     
     print("\nStep 1: Pre-flight Checks Passed.")
 
@@ -51,8 +51,7 @@ async def run_production_handover(project_id: str, dry_run: bool):
         print(f"   Bundle generated: {path}")
     except Exception as e:
         print(f"   Failed to generate launch bundle: {e}")
-        if not dry_run:
-            raise RuntimeError(f"HANDOVER_BUNDLE_FAILED: {e}") from e
+        if not dry_run: sys.exit(1)
 
     # 3. Final Handover Event
     if dry_run:
@@ -75,7 +74,7 @@ async def run_production_handover(project_id: str, dry_run: bool):
             print("\nPRODUCTION HANDOVER COMPLETE. System is now officially LIVE.")
         except Exception as e:
             print(f"\nError updating project status: {e}")
-            raise RuntimeError(f"HANDOVER_STATUS_UPDATE_FAILED: {e}") from e
+            sys.exit(1)
             
     print("==========================================================")
 
@@ -86,8 +85,4 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
-    try:
-        asyncio.run(run_production_handover(args.project, args.dry_run))
-    except RuntimeError as exc:
-        print(str(exc))
-        sys.exit(1)
+    asyncio.run(run_production_handover(args.project, args.dry_run))

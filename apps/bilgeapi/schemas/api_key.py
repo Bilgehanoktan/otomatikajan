@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Literal, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 ApiKeyRole = Literal["ADMIN", "OPERATOR", "AUDIT_OBSERVER", "SOVEREIGN_PRIME"]
 
@@ -13,6 +13,8 @@ class ApiKeyCreate(BaseModel):
     quota_monthly: Optional[int] = Field(None, description="Monthly usage quota (None/null = unlimited, 0 = blocked, >0 = limit)")
 
 class ApiKeyResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     key_prefix: str
     key_fingerprint: str
@@ -30,13 +32,6 @@ class ApiKeyResponse(BaseModel):
     quota_daily: Optional[int] = None
     quota_monthly: Optional[int] = None
 
-    model_config = {
-
-
-        "from_attributes": True
-
-
-    }
 
 class ApiKeyCreateResponse(ApiKeyResponse):
     plaintext_key: str = Field(..., description="Plaintext API key. Only returned once upon creation.")

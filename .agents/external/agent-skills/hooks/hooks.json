@@ -1,15 +1,4 @@
 {
-  "permissions": {
-    "allow": ["Read", "Grep", "Glob"],
-    "ask": ["Bash", "Write", "Edit", "MultiEdit"],
-    "deny": [
-      "Bash(rm -rf *)",
-      "Bash(sudo *)",
-      "Bash(chmod 777 *)",
-      "Bash(ssh *)",
-      "Bash(* > /dev/*)"
-    ]
-  },
   "hooks": {
     "SessionStart": [
       {
@@ -17,17 +6,6 @@
           {
             "type": "command",
             "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/session-stop.sh"
           }
         ]
       }

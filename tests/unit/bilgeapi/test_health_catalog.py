@@ -1,15 +1,5 @@
 import pytest
 
-def test_root_index(test_client):
-    response = test_client.get("/")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["service"] == "bilgeapi"
-    assert data["status"] == "ok"
-    assert data["health_url"] == "/health"
-    assert data["docs_url"] == "/docs"
-    assert data["openapi_url"] == "/openapi.json"
-
 def test_health_check(test_client):
     response = test_client.get("/health")
     assert response.status_code == 200

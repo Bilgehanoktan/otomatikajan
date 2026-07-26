@@ -1,9 +1,11 @@
 from datetime import datetime
 from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class PrVerificationResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     pr_draft_id: str
     proposal_id: str
@@ -24,13 +26,6 @@ class PrVerificationResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    model_config = {
-
-
-        "from_attributes": True
-
-
-    }
 
 
 class PrReviewReportResponse(BaseModel):

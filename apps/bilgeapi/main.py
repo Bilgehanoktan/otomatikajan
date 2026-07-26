@@ -13,9 +13,7 @@ from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from apps.bilgeapi.config import settings
-from apps.bilgeapi.core.workspace import WorkspaceManager
-from apps.bilgeapi.memory.db import init_workspace_db
-from apps.bilgeapi.routers import health, catalog, incidents, audit, diagnostics, repairs, release, adapters, admin_api_keys, improvements, review_ledger, system_watchdog, self_healing, system_runtime, approvals_router
+from apps.bilgeapi.routers import health, catalog, incidents, audit, diagnostics, repairs, release, adapters, admin_api_keys, improvements, review_ledger, system_watchdog, self_healing
 from apps.bilgeapi.routers import metrics as metrics_router
 from apps.bilgeapi.startup import validate_production_config
 
@@ -205,19 +203,11 @@ def sanitize_path(path: str) -> str:
     return path
 
 
-async def initialize_workspace_state() -> None:
-    """Initialize workspace files and the portable memory database schema."""
-    workspace_manager = WorkspaceManager()
-    workspace_manager.initialize_workspace()
-    await init_workspace_db(workspace_manager.workspace_dir)
-
-
 # ── Lifespan ──────────────────────────────────────────────────────────────────
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan: validate config on startup, drain tasks on shutdown."""
-    agent_queue_task = None
     # Startup
     try:
         from services.observability.logging import configure_logging
@@ -227,13 +217,6 @@ async def lifespan(app: FastAPI):
         logger.warning("[LIFECYCLE] services.observability.logging not available, using defaults")
 
     validate_production_config()
-
-    # Initialize Workspace
-    try:
-        await initialize_workspace_state()
-        logger.info("[STARTUP] Workspace and memory database initialized successfully.")
-    except Exception as e:
-        logger.error(f"[STARTUP] Workspace initialization failed: {e}")
 
     # Initialize Skill Registry
     app.state.skill_registry_status = "INITIALIZING"
@@ -258,17 +241,6 @@ async def lifespan(app: FastAPI):
             app.state.skill_registry = registry
             app.state.skill_registry_status = "HEALTHY"
             logger.info("[STARTUP] Skill Registry initialized successfully.")
-
-            # Seed default remediation runbooks on startup
-            try:
-                from apps.bilgeapi.repositories.postgres import PostgresRemediationRunbookRepository
-                from apps.bilgeapi.services.self_healing import RemediationRunbookRegistry
-                runbook_repo = PostgresRemediationRunbookRepository(db)
-                runbook_registry = RemediationRunbookRegistry(runbook_repo)
-                await runbook_registry.seed_default_runbooks()
-                logger.info("[STARTUP] Default remediation runbooks seeded successfully.")
-            except Exception as re_e:
-                logger.error(f"[STARTUP] Seeding default runbooks failed: {re_e}")
     except Exception as e:
         logger.error(f"[STARTUP] Skill Registry initialization failed: {e}")
         app.state.skill_registry_status = "DEGRADED"
@@ -305,48 +277,11 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(job_queue.start(num_workers=2))
         logger.info("[STARTUP] BilgeAPI JobQueue workers started.")
         
-        # AgentOrchestrationQueue background consumer loop
-        async def _run_agent_queue_consumer():
-            try:
-                from services.orchestration.application.agent_queue import AgentOrchestrationQueue
-            except ImportError as e:
-                logger.error(
-                    f"[STARTUP] Could not import AgentOrchestrationQueue (durable queue requires "
-                    f"services.orchestration.application.agent_queue): {e}. "
-                    "Background queue consumer will NOT be started."
-                )
-                return
-            queue = AgentOrchestrationQueue()
-            logger.info("[STARTUP] BilgeAPI AgentOrchestrationQueue background consumer started.")
-            while True:
-                try:
-                    result = await queue.process_next(context="bilgeapi_background_worker")
-                    if result:
-                        logger.info(f"[AGENT-QUEUE] Processed task: {result['task_id']} with status {result['status']}")
-                        await asyncio.sleep(0.5)
-                    else:
-                        await asyncio.sleep(5.0)
-                except asyncio.CancelledError:
-                    break
-                except Exception as e:
-                    logger.error(f"[AGENT-QUEUE] Error in background consumer: {e}", exc_info=True)
-                    await asyncio.sleep(5.0)
-        
-        agent_queue_task = asyncio.create_task(_run_agent_queue_consumer())
-        
     logger.info("BilgeAPI started successfully.")
     yield
 
     # Shutdown — drain BilgeAPI-managed background tasks
     logger.info("BilgeAPI shutting down — draining background tasks...")
-    if agent_queue_task:
-        logger.info("Stopping BilgeAPI AgentOrchestrationQueue background consumer...")
-        agent_queue_task.cancel()
-        try:
-            await agent_queue_task
-        except asyncio.CancelledError:
-            pass
-
     if settings.BILGEAPI_DURABLE_QUEUE_ENABLED:
         try:
             from libs.queue_abstractions.job_queue import job_queue
@@ -383,18 +318,6 @@ app = FastAPI(
 )
 
 # ── CORS Middleware ───────────────────────────────────────────────────────────
-@app.get("/", include_in_schema=False)
-async def root_index():
-    return {
-        "service": "bilgeapi",
-        "status": "ok",
-        "version": settings.BILGEAPI_VERSION,
-        "health_url": "/health",
-        "docs_url": "/docs",
-        "openapi_url": "/openapi.json",
-    }
-
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.BILGEAPI_CORS_ALLOWLIST,
@@ -747,8 +670,6 @@ app.include_router(improvements.router)
 app.include_router(review_ledger.router)
 app.include_router(system_watchdog.router)
 app.include_router(self_healing.router)
-app.include_router(system_runtime.router)
-app.include_router(approvals_router.router)
 
 
 # ── Custom OpenAPI Generator ──────────────────────────────────────────────────

@@ -1,10 +1,7 @@
 ---
 description: Implement tasks incrementally — build, test, verify, commit. Add "auto" to run the whole plan in one approved pass.
-version: 1.0.0
-rollback: "git checkout ."
-observe: "echo 'observe'"
-feedback: "echo 'feedback'"
 ---
+
 Invoke the agent-skills:incremental-implementation skill alongside agent-skills:test-driven-development.
 
 ## Modes

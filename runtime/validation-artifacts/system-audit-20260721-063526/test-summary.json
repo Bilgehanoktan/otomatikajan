@@ -1,0 +1,38 @@
+{
+  "total_tests_collected": 567,
+  "passed": 564,
+  "failed": 2,
+  "skipped": 1,
+  "suites": {
+    "bilgeapi_pytest": {
+      "total": 359,
+      "passed": 358,
+      "failed": 0,
+      "skipped": 1
+    },
+    "governance": {
+      "total": 21,
+      "passed": 21,
+      "failed": 0,
+      "skipped": 0
+    },
+    "resilience": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    "ops": {
+      "total": 19,
+      "passed": 19,
+      "failed": 0,
+      "skipped": 0
+    },
+    "repair": {
+      "total": 144,
+      "passed": 142,
+      "failed": 2,
+      "skipped": 0
+    }
+  }
+}

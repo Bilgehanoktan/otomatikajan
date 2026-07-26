@@ -1,3 +1,9 @@
+import sys
+if __name__ == "apps.bilgeapi.models.database":
+    sys.modules["bilgeapi.models.database"] = sys.modules[__name__]
+elif __name__ == "bilgeapi.models.database":
+    sys.modules["apps.bilgeapi.models.database"] = sys.modules[__name__]
+
 import uuid
 from datetime import datetime, timezone
 from sqlalchemy import Column, String, Text, DateTime, Float, ForeignKey, Boolean, Integer, UniqueConstraint
@@ -9,9 +15,9 @@ def utcnow():
 
 class IncidentModel(Base):
     __tablename__ = "bilgeapi_incidents"
+    __table_args__ = {"extend_existing": True}
 
     id = Column(String(64), primary_key=True)
-    tenant_id = Column(String(64), nullable=True, index=True)
     project_key = Column(String(64), nullable=False, index=True)
     source_system = Column(String(64), nullable=False, index=True)
     environment = Column(String(64), nullable=False, index=True)
@@ -28,9 +34,9 @@ class IncidentModel(Base):
 
 class DiagnosticRunModel(Base):
     __tablename__ = "bilgeapi_diagnostic_runs"
+    __table_args__ = {"extend_existing": True}
 
     diagnostic_id = Column(String(64), primary_key=True)
-    tenant_id = Column(String(64), nullable=True, index=True)
     incident_id = Column(String(64), nullable=False, index=True)
     status = Column(String(32), nullable=False, index=True)
     summary = Column(Text, nullable=True)
@@ -40,39 +46,39 @@ class DiagnosticRunModel(Base):
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
     completed_at = Column(DateTime(timezone=True), nullable=True)
 
-    findings = relationship("FindingModel", back_populates="diagnostic", cascade="all, delete-orphan", lazy="selectin")
-    recommendations = relationship("RecommendationModel", back_populates="diagnostic", cascade="all, delete-orphan", lazy="selectin")
+    findings = relationship(lambda: FindingModel, back_populates="diagnostic", cascade="all, delete-orphan", lazy="selectin")
+    recommendations = relationship(lambda: RecommendationModel, back_populates="diagnostic", cascade="all, delete-orphan", lazy="selectin")
 
 
 class FindingModel(Base):
     __tablename__ = "bilgeapi_findings"
+    __table_args__ = {"extend_existing": True}
 
     id = Column(String(64), primary_key=True)
-    tenant_id = Column(String(64), nullable=True, index=True)
     diagnostic_id = Column(String(64), ForeignKey("bilgeapi_diagnostic_runs.diagnostic_id"), nullable=False, index=True)
     description = Column(Text, nullable=False)
     metadata_fields = Column("metadata", SmartJSON(), nullable=True)
 
-    diagnostic = relationship("DiagnosticRunModel", back_populates="findings")
+    diagnostic = relationship(DiagnosticRunModel, back_populates="findings")
 
 
 class RecommendationModel(Base):
     __tablename__ = "bilgeapi_recommendations"
+    __table_args__ = {"extend_existing": True}
 
     id = Column(String(64), primary_key=True)
-    tenant_id = Column(String(64), nullable=True, index=True)
     diagnostic_id = Column(String(64), ForeignKey("bilgeapi_diagnostic_runs.diagnostic_id"), nullable=False, index=True)
     description = Column(Text, nullable=False)
     metadata_fields = Column("metadata", SmartJSON(), nullable=True)
 
-    diagnostic = relationship("DiagnosticRunModel", back_populates="recommendations")
+    diagnostic = relationship(DiagnosticRunModel, back_populates="recommendations")
 
 
 class RepairRequestModel(Base):
     __tablename__ = "bilgeapi_repair_requests"
+    __table_args__ = {"extend_existing": True}
 
     id = Column(String(64), primary_key=True)
-    tenant_id = Column(String(64), nullable=True, index=True)
     diagnostic_id = Column(String(64), nullable=False, index=True)
     requested_by = Column(String(64), nullable=False)
     approved_by = Column(String(64), nullable=True)
@@ -91,9 +97,9 @@ class RepairRequestModel(Base):
 
 class AuditEventModel(Base):
     __tablename__ = "bilgeapi_audit_events"
+    __table_args__ = {"extend_existing": True}
 
     id = Column(String(64), primary_key=True)
-    tenant_id = Column(String(64), nullable=True, index=True)
     event_type = Column(String(64), nullable=False, index=True)
     actor_id = Column(String(64), nullable=False)
     actor_type = Column(String(64), nullable=False)
@@ -111,9 +117,9 @@ class AuditEventModel(Base):
 
 class WebhookDeliveryModel(Base):
     __tablename__ = "bilgeapi_webhook_deliveries"
+    __table_args__ = {"extend_existing": True}
 
     id = Column(String(64), primary_key=True)
-    tenant_id = Column(String(64), nullable=True, index=True)
     repair_request_id = Column(String(64), nullable=False, index=True)
     webhook_url = Column(String(256), nullable=False)
     status_code = Column(Float, nullable=True)
@@ -126,6 +132,7 @@ class WebhookDeliveryModel(Base):
 
 class ReleaseCheckModel(Base):
     __tablename__ = "bilgeapi_release_checks"
+    __table_args__ = {"extend_existing": True}
 
     id = Column(String(64), primary_key=True)
     status = Column(String(32), nullable=False, index=True)  # PASSED, WARNING, BLOCKED
@@ -144,6 +151,7 @@ class ReleaseCheckModel(Base):
 
 class ApiKeyModel(Base):
     __tablename__ = "bilgeapi_api_keys"
+    __table_args__ = {"extend_existing": True}
 
     id = Column(String(64), primary_key=True)
     key_hash = Column(String(64), nullable=False, unique=True, index=True)
@@ -164,24 +172,9 @@ class ApiKeyModel(Base):
     quota_monthly = Column(Integer, nullable=True)
 
 
-class ResearchRequestModel(Base):
-    __tablename__ = "bilgeapi_research_requests"
-
-    id = Column(String(64), primary_key=True)
-    incident_id = Column(String(64), nullable=False, index=True)
-    query = Column(String(256), nullable=False)
-    status = Column(String(32), default="PENDING", nullable=False, index=True) # PENDING, RUNNING, COMPLETED, FAILED
-    error_message = Column(Text, nullable=True)
-    tenant_id = Column(String(64), nullable=True, index=True)
-    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
-    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
-
-    evidences = relationship("ResearchEvidenceModel", back_populates="research", cascade="all, delete-orphan", lazy="selectin")
-    proposals = relationship("ImprovementProposalModel", back_populates="research", cascade="all, delete-orphan", lazy="selectin")
-
-
 class ResearchEvidenceModel(Base):
     __tablename__ = "bilgeapi_research_evidences"
+    __table_args__ = {"extend_existing": True}
 
     id = Column(String(64), primary_key=True)
     research_id = Column(String(64), ForeignKey("bilgeapi_research_requests.id"), nullable=False, index=True)
@@ -194,11 +187,12 @@ class ResearchEvidenceModel(Base):
     trust_score = Column(Float, nullable=False)
     retrieved_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
 
-    research = relationship("ResearchRequestModel", back_populates="evidences")
+    research = relationship(lambda: ResearchRequestModel, back_populates="evidences")
 
 
 class ImprovementProposalModel(Base):
     __tablename__ = "bilgeapi_improvement_proposals"
+    __table_args__ = {"extend_existing": True}
 
     id = Column(String(64), primary_key=True)
     research_id = Column(String(64), ForeignKey("bilgeapi_research_requests.id"), nullable=False, index=True)
@@ -215,14 +209,31 @@ class ImprovementProposalModel(Base):
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
 
-    research = relationship("ResearchRequestModel", back_populates="proposals")
+    research = relationship(lambda: ResearchRequestModel, back_populates="proposals")
+
+
+class ResearchRequestModel(Base):
+    __tablename__ = "bilgeapi_research_requests"
+    __table_args__ = {"extend_existing": True}
+
+    id = Column(String(64), primary_key=True)
+    incident_id = Column(String(64), nullable=False, index=True)
+    query = Column(String(256), nullable=False)
+    status = Column(String(32), default="PENDING", nullable=False, index=True) # PENDING, RUNNING, COMPLETED, FAILED
+    error_message = Column(Text, nullable=True)
+    tenant_id = Column(String(64), nullable=True, index=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
+
+    evidences = relationship(lambda: ResearchEvidenceModel, back_populates="research", cascade="all, delete-orphan", lazy="selectin")
+    proposals = relationship(lambda: ImprovementProposalModel, back_populates="research", cascade="all, delete-orphan", lazy="selectin")
 
 
 class PrDraftModel(Base):
     __tablename__ = "bilgeapi_pr_drafts"
+    __table_args__ = {"extend_existing": True}
 
     id = Column(String(64), primary_key=True)
-    tenant_id = Column(String(64), nullable=True, index=True)
     proposal_id = Column(String(64), ForeignKey("bilgeapi_improvement_proposals.id"), nullable=False, index=True)
     provider = Column(String(32), nullable=False)
     status = Column(String(32), default="PENDING", nullable=False, index=True) # PENDING, COMPLETED, FAILED, BLOCKED
@@ -237,14 +248,14 @@ class PrDraftModel(Base):
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
 
-    proposal = relationship("ImprovementProposalModel")
+    proposal = relationship(lambda: ImprovementProposalModel)
 
 
 class PrVerificationModel(Base):
     __tablename__ = "bilgeapi_pr_verifications"
+    __table_args__ = {"extend_existing": True}
 
     id = Column(String(64), primary_key=True)
-    tenant_id = Column(String(64), nullable=True, index=True)
     pr_draft_id = Column(String(64), ForeignKey("bilgeapi_pr_drafts.id"), nullable=False, index=True)
     proposal_id = Column(String(64), ForeignKey("bilgeapi_improvement_proposals.id"), nullable=False, index=True)
     revision_id = Column(String(64), ForeignKey("bilgeapi_patch_revisions.id"), nullable=True, index=True)
@@ -264,17 +275,17 @@ class PrVerificationModel(Base):
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
 
-    pr_draft = relationship("PrDraftModel")
-    proposal = relationship("ImprovementProposalModel")
-    revision = relationship("PatchRevisionModel")
-    ai_suggestion = relationship("AIPatchSuggestionModel", foreign_keys=[ai_suggestion_id])
+    pr_draft = relationship(lambda: PrDraftModel)
+    proposal = relationship(lambda: ImprovementProposalModel)
+    revision = relationship(lambda: PatchRevisionModel)
+    ai_suggestion = relationship(lambda: AIPatchSuggestionModel, foreign_keys=lambda: [PrVerificationModel.ai_suggestion_id])
 
 
 class PrReviewFeedbackModel(Base):
     __tablename__ = "bilgeapi_pr_review_feedbacks"
+    __table_args__ = {"extend_existing": True}
 
     id = Column(String(64), primary_key=True)
-    tenant_id = Column(String(64), nullable=True, index=True)
     pr_draft_id = Column(String(64), ForeignKey("bilgeapi_pr_drafts.id"), nullable=False, index=True)
     reviewer_id = Column(String(64), nullable=False)
     comment = Column(Text, nullable=False)
@@ -282,15 +293,14 @@ class PrReviewFeedbackModel(Base):
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
 
-    pr_draft = relationship("PrDraftModel")
+    pr_draft = relationship(lambda: PrDraftModel)
 
 
 class PatchRevisionModel(Base):
     __tablename__ = "bilgeapi_patch_revisions"
-    __table_args__ = (UniqueConstraint('pr_draft_id', 'revision_number', name='uq_pr_draft_revision'),)
+    __table_args__ = (UniqueConstraint('pr_draft_id', 'revision_number', name='uq_pr_draft_revision'), {"extend_existing": True})
 
     id = Column(String(64), primary_key=True)
-    tenant_id = Column(String(64), nullable=True, index=True)
     pr_draft_id = Column(String(64), ForeignKey("bilgeapi_pr_drafts.id"), nullable=False, index=True)
     feedback_id = Column(String(64), ForeignKey("bilgeapi_pr_review_feedbacks.id"), nullable=True, index=True)
     revision_number = Column(Integer, nullable=False)
@@ -302,16 +312,15 @@ class PatchRevisionModel(Base):
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
 
-    pr_draft = relationship("PrDraftModel")
-    feedback = relationship("PrReviewFeedbackModel")
+    pr_draft = relationship(lambda: PrDraftModel)
+    feedback = relationship(lambda: PrReviewFeedbackModel)
 
 
 class ReviewLedgerEntryModel(Base):
     __tablename__ = "bilgeapi_review_ledger_entries"
-    __table_args__ = (UniqueConstraint("chain_id", "sequence_no", name="uq_review_ledger_chain_sequence"),)
+    __table_args__ = (UniqueConstraint("chain_id", "sequence_no", name="uq_review_ledger_chain_sequence"), {"extend_existing": True})
 
     id = Column(String(64), primary_key=True)
-    tenant_id = Column(String(64), nullable=True, index=True)
     chain_id = Column(String(128), nullable=False, index=True)
     sequence_no = Column(Integer, nullable=False)
     event_type = Column(String(64), nullable=False, index=True)
@@ -327,9 +336,9 @@ class ReviewLedgerEntryModel(Base):
 
 class AIPatchSuggestionModel(Base):
     __tablename__ = "bilgeapi_ai_patch_suggestions"
+    __table_args__ = {"extend_existing": True}
 
     id = Column(String(64), primary_key=True)
-    tenant_id = Column(String(64), nullable=True, index=True)
     pr_draft_id = Column(String(64), ForeignKey("bilgeapi_pr_drafts.id"), nullable=False, index=True)
     feedback_id = Column(String(64), ForeignKey("bilgeapi_pr_review_feedbacks.id"), nullable=True, index=True)
     revision_id = Column(String(64), ForeignKey("bilgeapi_patch_revisions.id"), nullable=True, index=True)
@@ -347,16 +356,17 @@ class AIPatchSuggestionModel(Base):
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
 
-    pr_draft = relationship("PrDraftModel")
-    feedback = relationship("PrReviewFeedbackModel")
-    revision = relationship("PatchRevisionModel")
-    verification = relationship("PrVerificationModel", foreign_keys=[verification_id])
+    pr_draft = relationship(lambda: PrDraftModel)
+    feedback = relationship(lambda: PrReviewFeedbackModel)
+    revision = relationship(lambda: PatchRevisionModel)
+    verification = relationship(lambda: PrVerificationModel, foreign_keys=lambda: [AIPatchSuggestionModel.verification_id])
 
 
 class SystemFindingModel(Base):
     __tablename__ = "bilgeapi_system_findings"
     __table_args__ = (
         UniqueConstraint("source_hash", name="uq_bilgeapi_system_findings_source_hash"),
+        {"extend_existing": True}
     )
 
     id = Column(String(64), primary_key=True)
@@ -394,9 +404,9 @@ class SystemFindingModel(Base):
 
 class RemediationRunbookModel(Base):
     __tablename__ = "bilgeapi_remediation_runbooks"
+    __table_args__ = {"extend_existing": True}
 
     id = Column(String(64), primary_key=True)
-    tenant_id = Column(String(64), nullable=True, index=True)
     name = Column(String(128), nullable=False, unique=True)
     action_type = Column(String(64), nullable=False)
     severity_allowed = Column(String(32), nullable=False)
@@ -412,9 +422,9 @@ class RemediationRunbookModel(Base):
 
 class RemediationAttemptModel(Base):
     __tablename__ = "bilgeapi_remediation_attempts"
+    __table_args__ = {"extend_existing": True}
 
     id = Column(String(64), primary_key=True)
-    tenant_id = Column(String(64), nullable=True, index=True)
     finding_id = Column(String(64), ForeignKey("bilgeapi_system_findings.id"), nullable=False, index=True)
     runbook_id = Column(String(64), ForeignKey("bilgeapi_remediation_runbooks.id"), nullable=True, index=True)
     action_type = Column(String(64), nullable=False)
@@ -438,6 +448,7 @@ class BilgeAPIBridgeMappingModel(Base):
     __tablename__ = "bilgeapi_bridge_mappings"
     __table_args__ = (
         UniqueConstraint("source_type", "source_id", name="uq_bilgeapi_bridge_source"),
+        {"extend_existing": True}
     )
 
     id = Column(String(64), primary_key=True)
@@ -450,76 +461,50 @@ class BilgeAPIBridgeMappingModel(Base):
     bilgeapi_verification_id = Column(String(64), nullable=True, index=True)
     bilgeapi_ledger_chain_id = Column(String(128), nullable=True, index=True)
     status = Column(String(32), default="INIT", nullable=False, index=True)
-    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
-    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
-
-
-class AutonomyDecisionModel(Base):
-    __tablename__ = "bilgeapi_autonomy_decisions"
-
-    id = Column(String(64), primary_key=True)
-    tenant_id = Column(String(64), nullable=True, index=True)
-    incident_id = Column(String(64), ForeignKey("bilgeapi_incidents.id"), nullable=False, index=True)
-    correlation_id = Column(String(64), nullable=False, index=True)
-    classification = Column(String(64), nullable=False)
-    risk_score = Column(Float, nullable=False)
-    risk_level = Column(String(32), nullable=False, index=True)
-    active_autonomy_mode = Column(String(64), nullable=False)
-    eligibility = Column(String(32), nullable=False, index=True)
-    action_type = Column(String(64), nullable=True)
-    decision_reason = Column(Text, nullable=False)
-    requires_human_gate = Column(Boolean, default=False, nullable=False)
-    human_gate_type = Column(String(64), nullable=True)
-    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
 
 
 class AgentTaskQueueModel(Base):
-    __tablename__ = "bilgeapi_agent_tasks"
+    __tablename__ = "bilgeapi_agent_task_queue"
+    __table_args__ = {"extend_existing": True}
 
     task_id = Column(String(64), primary_key=True)
-    source = Column(String(64), nullable=False)
-    agent_role = Column(String(64), nullable=False)
+    source = Column(String(64), nullable=True)
+    agent_role = Column(String(64), nullable=False, index=True)
     action_type = Column(String(64), nullable=False)
     payload = Column(SmartJSON(), nullable=True)
-    risk_level = Column(String(32), default="low", nullable=False)
-    priority_score = Column(Float, default=0.0, nullable=False)
+    risk_level = Column(String(32), default="low")
+    priority_score = Column(Float, default=0.0, index=True)
     status = Column(String(32), default="PENDING", nullable=False, index=True)
-    idempotency_key = Column(String(128), unique=True, nullable=True, index=True)
+    idempotency_key = Column(String(128), nullable=True, unique=True, index=True)
     attempt_count = Column(Integer, default=0, nullable=False)
     max_attempts = Column(Integer, default=3, nullable=False)
-    decision_id = Column(String(64), ForeignKey("bilgeapi_autonomy_decisions.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
-
-    lease = relationship("AgentTaskLeaseModel", back_populates="task", uselist=False, cascade="all, delete-orphan")
-    runs = relationship("AgentOrchestrationRunModel", back_populates="task", cascade="all, delete-orphan")
 
 
 class AgentTaskLeaseModel(Base):
     __tablename__ = "bilgeapi_agent_task_leases"
+    __table_args__ = {"extend_existing": True}
 
-    id = Column(String(64), primary_key=True, default=lambda: str(uuid.uuid4()))
-    task_id = Column(String(64), ForeignKey("bilgeapi_agent_tasks.task_id"), nullable=False, unique=True, index=True)
-    lease_owner = Column(String(128), nullable=False)
-    lease_expires_at = Column(DateTime(timezone=True), nullable=False)
+    task_id = Column(String(64), ForeignKey("bilgeapi_agent_task_queue.task_id"), primary_key=True)
+    lease_owner = Column(String(128), nullable=False, index=True)
+    lease_expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
     acquired_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
-
-    task = relationship("AgentTaskQueueModel", back_populates="lease")
 
 
 class AgentOrchestrationRunModel(Base):
     __tablename__ = "bilgeapi_agent_orchestration_runs"
+    __table_args__ = {"extend_existing": True}
 
-    run_id = Column(String(64), primary_key=True, default=lambda: str(uuid.uuid4()))
-    task_id = Column(String(64), ForeignKey("bilgeapi_agent_tasks.task_id"), nullable=False, index=True)
-    status = Column(String(32), nullable=False)
+    run_id = Column(String(64), primary_key=True)
+    task_id = Column(String(64), nullable=False, index=True)
+    status = Column(String(32), nullable=False, index=True)
     execution_summary = Column(Text, nullable=True)
     evidence_ledger_hash = Column(String(128), nullable=True)
     started_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
     completed_at = Column(DateTime(timezone=True), nullable=True)
 
-    task = relationship("AgentTaskQueueModel", back_populates="runs")
-
-
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
 
 

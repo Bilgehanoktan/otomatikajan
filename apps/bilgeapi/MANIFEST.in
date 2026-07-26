@@ -1,0 +1,26 @@
+recursive-include docs *
+recursive-include locales *
+recursive-include migrations *
+include alembic.ini
+include pytest.ini
+
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude *.pyd
+global-exclude __pycache__
+global-exclude *__pycache__*
+global-exclude .pytest_cache
+global-exclude .pytest_cache/*
+global-exclude .pytest_cache/**/*
+global-exclude *.db
+global-exclude *.log
+global-exclude .coverage
+global-exclude .coverage.*
+prune **/temp_test_outputs
+prune **/.pytest_cache
+prune **/runtime
+prune **/.bilgeapi/audit
+prune **/.bilgeapi/logs
+prune **/.bilgeapi/memory
+prune **/.bilgeapi/reports
+prune **/.bilgeapi/quarantine

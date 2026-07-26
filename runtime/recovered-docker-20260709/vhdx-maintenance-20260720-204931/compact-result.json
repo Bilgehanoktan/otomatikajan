@@ -1,0 +1,11 @@
+﻿{
+    "status":  "success",
+    "is_admin":  true,
+    "path":  "C:\\Users\\BİLGEHAN\\AppData\\Local\\Docker\\wsl\\disk\\docker_data.vhdx",
+    "mode":  "Full",
+    "before_bytes":  62502469632,
+    "after_bytes":  31944867840,
+    "reclaimed_bytes":  30557601792,
+    "started_at":  "2026-07-20T21:55:37.3254322+03:00",
+    "completed_at":  "2026-07-20T21:56:34.2166334+03:00"
+}

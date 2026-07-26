@@ -259,7 +259,7 @@ export default function WorkflowDetailClient({ id }: WorkflowDetailClientProps) 
             if (err instanceof ApiResponseError && err.status === 403) {
                 notification.error({
                     message: t("notifications.networkError"),
-                    description: t("notifications.operatorRequired"),
+                    description: "Bu işlem için OPERATOR yetkisi gerekir. AUDIT_OBSERVER hesapları salt okunurdur.",
                 });
                 return;
             }

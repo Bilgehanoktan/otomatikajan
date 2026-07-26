@@ -1,8 +1,0 @@
-{
-  "welcome_message": "Sovereign Control Plane BilgeAPI'ye Hoş Geldiniz",
-  "status_healthy": "Sistem sağlıklı ve normal şekilde çalışıyor",
-  "auth_required": "Kimlik doğrulama bilgileri sağlanmadı veya geçersiz",
-  "forbidden": "Bu kaynağa erişim izniniz bulunmuyor",
-  "not_found": "Talep edilen kaynak bulunamadı",
-  "validation_error": "Girdi doğrulama hatası"
-}

@@ -40,12 +40,9 @@ def build_contract_matrix(app: Optional[FastAPI] = None) -> list[dict[str, Any]]
     registered_routes = {}
     if app:
         for r in app.routes:
-            path = getattr(r, "path", None)
-            if not path:
-                continue
             methods = getattr(r, "methods", set())
             for m in methods:
-                registered_routes[(normalize_path(path), m.upper())] = True
+                registered_routes[(normalize_path(r.path), m.upper())] = True
 
     matrix = []
     for route_info in api_routes:
@@ -108,9 +105,7 @@ def validate_frontend_backend_parity(app: Optional[FastAPI] = None, src_dir: Opt
     registered_routes = set()
     if app:
         for r in app.routes:
-            path = getattr(r, "path", None)
-            if path:
-                registered_routes.add(normalize_path(path))
+            registered_routes.add(normalize_path(r.path))
 
     parity_results = []
     is_blocked = False

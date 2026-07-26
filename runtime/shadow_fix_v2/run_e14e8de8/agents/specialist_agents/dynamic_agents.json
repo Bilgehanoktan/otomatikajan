@@ -1,9 +1,0 @@
-[
-    {
-        "id": "test_specialist",
-        "name": "Test Specialist",
-        "emoji": "🧪",
-        "role": "Testing dynamic loading",
-        "system_prompt": "You are a test specialist."
-    }
-]

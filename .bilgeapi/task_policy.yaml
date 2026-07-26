@@ -1,6 +1,0 @@
-# BilgeAPI Task Execution Policy
-policy:
-  max_concurrency: 4
-  retry_limit: 3
-  timeout_seconds: 600
-  low_risk_auto_execute: true

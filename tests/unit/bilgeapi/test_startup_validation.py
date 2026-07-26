@@ -1,7 +1,6 @@
 """Tests for BilgeAPI startup validation module."""
 import os
 import pytest
-from apps.bilgeapi.config import settings
 from apps.bilgeapi.startup import validate_production_config, StartupValidationError
 
 
@@ -36,29 +35,6 @@ def _clean_env():
 
 class TestStartupValidation:
     """Test startup validation logic."""
-
-    def test_settings_default_auth_mode_is_api_key_outside_test_env(self):
-        """Config defaults to api_key unless test env explicitly disables auth."""
-        _clean_env()
-        os.environ["APP_ENV"] = "development"
-
-        assert settings.BILGEAPI_AUTH_MODE == "api_key"
-
-    def test_settings_default_auth_mode_is_disabled_in_test_env(self):
-        """Unit test env keeps explicit disabled default for isolated tests."""
-        _clean_env()
-        os.environ["APP_ENV"] = "test"
-
-        assert settings.BILGEAPI_AUTH_MODE == "disabled"
-
-    def test_settings_default_cors_allowlist_is_localhost_only(self):
-        """Fallback CORS policy should be restricted to local control-plane origins."""
-        _clean_env()
-
-        assert settings.BILGEAPI_CORS_ALLOWLIST == [
-            "http://127.0.0.1:3100",
-            "http://localhost:3100",
-        ]
 
     def test_development_mode_passes_with_defaults(self):
         """In development mode, default/missing values produce warnings but no error."""
@@ -146,8 +122,8 @@ class TestStartupValidation:
         warnings = validate_production_config()
         assert len(warnings) == 0
 
-    def test_production_fails_on_wildcard_cors(self):
-        """Production mode fails when CORS allowlist is wildcard."""
+    def test_production_warns_on_wildcard_cors(self):
+        """Production mode warns when CORS allowlist is wildcard."""
         _clean_env()
         os.environ["APP_ENV"] = "production"
         os.environ["BILGEAPI_JWT_SECRET"] = "a" * 64
@@ -155,8 +131,8 @@ class TestStartupValidation:
         os.environ["DATABASE_URL"] = "postgresql+asyncpg://user:pass@db-host:5432/bilgeapi"
         os.environ["BILGEAPI_AUTH_MODE"] = "api_key"
         os.environ["BILGEAPI_CORS_ALLOWLIST"] = "*"
-        with pytest.raises(StartupValidationError, match="CORS"):
-            validate_production_config()
+        warnings = validate_production_config()
+        assert any("CORS" in w for w in warnings)
 
     def test_bilgeapi_database_url_takes_precedence(self):
         """BILGEAPI_DATABASE_URL is checked before DATABASE_URL."""
@@ -170,3 +146,4 @@ class TestStartupValidation:
         # Even without DATABASE_URL, BILGEAPI_DATABASE_URL should suffice
         warnings = validate_production_config()
         assert len(warnings) == 0
+

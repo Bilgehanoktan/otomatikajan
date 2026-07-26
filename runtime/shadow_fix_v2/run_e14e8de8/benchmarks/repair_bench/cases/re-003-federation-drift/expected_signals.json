@@ -1,6 +1,0 @@
-
-{
-  "event_type": "trust_policy_override",
-  "reason": "network_partition_detected",
-  "duration_seconds": 3600
-}

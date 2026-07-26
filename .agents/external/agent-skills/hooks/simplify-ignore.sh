@@ -13,7 +13,7 @@
 
 set -euo pipefail
 
-if ! command -v jq >/dev/null; then
+if ! command -v jq >/dev/null 2>&1; then
   printf '%s\n' "error: missing jq" >&2; exit 1
 fi
 
@@ -36,8 +36,8 @@ if [ -n "$parse_error" ]; then
 fi
 
 hash_cmd() {
-  if command -v shasum >/dev/null; then shasum
-  elif command -v sha1sum >/dev/null; then sha1sum
+  if command -v shasum >/dev/null 2>&1; then shasum
+  elif command -v sha1sum >/dev/null 2>&1; then sha1sum
   else printf '%s\n' "error: missing shasum or sha1sum" >&2; exit 1; fi
 }
 file_id() { printf '%s' "$1" | hash_cmd | cut -c1-16; }
@@ -59,9 +59,7 @@ escape_glob() {
 filter_file() {
   local src="$1" dest="$2" fid="$3"
   : > "$dest"
-  for f in "$CACHE/${fid}".block.* "$CACHE/${fid}".reason.* "$CACHE/${fid}".prefix.* "$CACHE/${fid}".suffix.*; do
-    [ -f "$f" ] && rm "$f"
-  done
+  rm -f "$CACHE/${fid}".block.* "$CACHE/${fid}".reason.* "$CACHE/${fid}".prefix.* "$CACHE/${fid}".suffix.*
 
   local count=0 in_block=0 buf="" reason="" prefix="" suffix=""
 
@@ -136,8 +134,8 @@ ${line}"
 
   # Preserve trailing newline status of source
   if [ -s "$dest" ] && [ -s "$src" ] && [ -n "$(tail -c 1 "$src")" ]; then
-      perl -pe 'chomp if eof' "$dest" > "${dest}.nnl" && \
-      cat "${dest}.nnl" > "$dest" && rm "${dest}.nnl"
+    perl -pe 'chomp if eof' "$dest" > "${dest}.nnl" && \
+      cat "${dest}.nnl" > "$dest" && rm -f "${dest}.nnl"
   fi
 
   [ $count -gt 0 ] && return 0 || return 1
@@ -150,24 +148,17 @@ if [ -z "$TOOL_NAME" ]; then
     [ -f "$bak" ] || continue
     fid="${bak##*/}"; fid="${fid%.bak}"
     pathfile="$CACHE/${fid}.path"
-    [ -f "$pathfile" ] || { [ -f "$bak" ] && rm "$bak"; continue; }
+    [ -f "$pathfile" ] || { rm -f "$bak"; continue; }
     orig=$(cat "$pathfile")
     if [ -f "$orig" ]; then
       cat "$bak" > "$orig"
-      [ -f "$bak" ] && rm "$bak"
-      [ -f "$pathfile" ] && rm "$pathfile"
-      for f in "$CACHE/${fid}".block.* "$CACHE/${fid}".reason.* "$CACHE/${fid}".prefix.* "$CACHE/${fid}".suffix.*; do
-        [ -f "$f" ] && rm "$f"
-      done
+      rm -f "$bak" "$pathfile" "$CACHE/${fid}".block.* "$CACHE/${fid}".reason.* "$CACHE/${fid}".prefix.* "$CACHE/${fid}".suffix.*
       rmdir "$CACHE/${fid}.lock" 2>/dev/null
     else
       # File was moved/deleted — save backup as .recovered, don't destroy it
       mkdir -p "$(dirname "${orig}.recovered")"
       mv "$bak" "${orig}.recovered"
-      [ -f "$pathfile" ] && rm "$pathfile"
-      for f in "$CACHE/${fid}".block.* "$CACHE/${fid}".reason.* "$CACHE/${fid}".prefix.* "$CACHE/${fid}".suffix.*; do
-        [ -f "$f" ] && rm "$f"
-      done
+      rm -f "$pathfile" "$CACHE/${fid}".block.* "$CACHE/${fid}".reason.* "$CACHE/${fid}".prefix.* "$CACHE/${fid}".suffix.*
       rmdir "$CACHE/${fid}.lock" 2>/dev/null
       printf 'Warning: %s was moved/deleted. Recovered original to %s.recovered\n' "$orig" "$orig" >&2
     fi
@@ -213,14 +204,12 @@ if [ "$TOOL_NAME" = "Read" ]; then
 
   # Filter in-place (cat > preserves inode and permissions)
   FILTERED="$CACHE/${ID}.$$.tmp"
-  [ -f "$FILTERED" ] && rm "$FILTERED"
+  rm -f "$FILTERED"
   if filter_file "$FILE_PATH" "$FILTERED" "$ID"; then
     cat "$FILTERED" > "$FILE_PATH"
-    [ -f "$FILTERED" ] && rm "$FILTERED"
+    rm -f "$FILTERED"
   else
-    [ -f "$FILTERED" ] && rm "$FILTERED"
-    [ -f "$CACHE/${ID}.bak" ] && rm "$CACHE/${ID}.bak"
-    [ -f "$CACHE/${ID}.path" ] && rm "$CACHE/${ID}.path"
+    rm -f "$FILTERED" "$CACHE/${ID}.bak" "$CACHE/${ID}.path"
     rmdir "$CACHE/${ID}.lock" 2>/dev/null
   fi
   exit 0
@@ -230,15 +219,11 @@ fi
 if [ "$TOOL_NAME" = "Edit" ] || [ "$TOOL_NAME" = "Write" ]; then
   ID=$(file_id "$FILE_PATH")
   [ -f "$CACHE/${ID}.bak" ] || exit 0
-  has_blocks=0
-  for f in "$CACHE/${ID}".block.*; do
-    [ -f "$f" ] && has_blocks=1 && break
-  done
-  [ $has_blocks -eq 0 ] && exit 0
+  ls "$CACHE/${ID}".block.* >/dev/null 2>&1 || exit 0
 
   # Expand placeholders, preserving any inline code the model added around them
   EXPANDED="$CACHE/${ID}.$$.expanded"
-  [ -f "$EXPANDED" ] && rm "$EXPANDED"
+  rm -f "$EXPANDED"
   while IFS= read -r line || [ -n "$line" ]; do
     case "$line" in *BLOCK_*)
       # Expand all placeholders on this line (supports multiple per line)
@@ -282,7 +267,7 @@ if [ "$TOOL_NAME" = "Edit" ] || [ "$TOOL_NAME" = "Write" ]; then
   # Preserve trailing newline status
   if [ -s "$EXPANDED" ] && [ -s "$FILE_PATH" ] && [ -n "$(tail -c 1 "$FILE_PATH")" ]; then
     perl -pe 'chomp if eof' "$EXPANDED" > "${EXPANDED}.nnl" && \
-      cat "${EXPANDED}.nnl" > "$EXPANDED" && rm "${EXPANDED}.nnl"
+      cat "${EXPANDED}.nnl" > "$EXPANDED" && rm -f "${EXPANDED}.nnl"
   fi
   # Warn if model deleted a protected block entirely
   for bf in "$CACHE/${ID}".block.*; do
@@ -300,17 +285,17 @@ if [ "$TOOL_NAME" = "Edit" ] || [ "$TOOL_NAME" = "Write" ]; then
   done
   # Preserve inode and permissions
   cat "$EXPANDED" > "$FILE_PATH"
-  [ -f "$EXPANDED" ] && rm "$EXPANDED"
+  rm -f "$EXPANDED"
 
   # Save expanded version as new backup (this is the "real" file with model's changes)
   cp "$FILE_PATH" "$CACHE/${ID}.bak"
 
   # Re-filter in-place so the file on disk stays with placeholders
   FILTERED="$CACHE/${ID}.$$.tmp"
-  [ -f "$FILTERED" ] && rm "$FILTERED"
+  rm -f "$FILTERED"
   if filter_file "$FILE_PATH" "$FILTERED" "$ID"; then
     cat "$FILTERED" > "$FILE_PATH"
-    [ -f "$FILTERED" ] && rm "$FILTERED"
+    rm -f "$FILTERED"
   fi
 
   exit 0

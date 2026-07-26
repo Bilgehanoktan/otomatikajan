@@ -1,6 +1,0 @@
-# BilgeAPI Audit and Decision Logging Policy
-policy:
-  log_level: "INFO"
-  retention_days: 90
-  include_args: true
-  hash_before_after: true

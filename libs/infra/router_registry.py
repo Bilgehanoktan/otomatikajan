@@ -48,7 +48,7 @@ def register_routers(app: FastAPI):
     api_v1.include_router(auth_router, prefix="/auth", tags=["Auth"])
 
     # 2. Workflow API
-    api_v1.include_router(workflow_router)
+    api_v1.include_router(workflow_router, prefix="/workflows")
 
     # 3. Phase 17 Metrics API (Now mapped to /api/v1/metrics/phase17)
     api_v1.include_router(metrics_router)

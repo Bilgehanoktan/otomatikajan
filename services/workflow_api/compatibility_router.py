@@ -1,9 +1,9 @@
 from typing import Any
 
 from fastapi import APIRouter, Depends, Response
-from pydantic import BaseModel
+
+# from pydantic import BaseModel # Not used directly in this file
 from services.auth.jwt_auth import require_permission
-from services.workflow_api.governance_router import AuditBundleCreate
 
 # Moved to local scope to prevent circular/hang issues
 # from services.workflow_api.governance_router import AuditBundleCreate
@@ -50,11 +50,13 @@ async def list_audit_bundles_compat(response: Response):
 @router.post("/compliance/audit-bundles")
 @router.post("/compliance/audit-bundles/")
 async def create_audit_bundle_compat(
-    req: AuditBundleCreate,
+    req: Any, # Use Any instead of AuditBundleCreate
     identity: dict[str, Any] = Depends(require_permission("audit.create"))
 ):
-    from services.workflow_api.governance_router import create_audit_bundle_endpoint
-
+    from services.workflow_api.governance_router import (
+        create_audit_bundle_endpoint,
+    )
+    # Cast to AuditBundleCreate if needed or just pass through
     return await create_audit_bundle_endpoint(req, identity)
 
 @router.get("/mesh")
@@ -93,48 +95,3 @@ async def legacy_cost_summary_stub():
         "usage_pct": 0.0,
         "top_projects": [],
     }
-
-class AnalyzeRequest(BaseModel):
-    query: str
-    user_id: str | None = None
-
-@router.post("/orchestration/planner/analyze")
-async def analyze_query(req: AnalyzeRequest):
-    query = req.query.strip().lower()
-    
-    # 1. Check if user wants a CEO strategic scan
-    if any(keyword in query for keyword in ["tara", "scan", "analiz", "suggestion", "bulgu"]):
-        try:
-            from services.orchestration.ceo.router import get_ceo_engine
-            ceo = get_ceo_engine()
-            findings = await ceo.run_scan()
-            findings_count = len(findings) if findings else 0
-            
-            response = f"📊 **Stratejik Tarama Başlatıldı ve Tamamlandı.**\n" \
-                       f"🔍 Bulunan yeni fırsat/bulgu sayısı: **{findings_count}**\n\n"
-            
-            if findings_count > 0:
-                response += "**Son Bulgular:**\n"
-                for idx, f in enumerate(findings[:5], 1):
-                    title = getattr(f, "title", str(f))
-                    response += f"{idx}. {title}\n"
-            else:
-                response += "✅ Kritik bir açık veya iyileştirme fırsatı saptanmadı."
-                
-            return {"response": response}
-        except Exception as e:
-            return {"response": f"❌ Stratejik tarama başarısız oldu: {str(e)}"}
-            
-    # 2. General LLM Assistant response
-    try:
-        from libs.llm.model_orchestrator import model_orchestrator
-        system_prompt = (
-            "Sen Sovereign AGI (Faz 12.1) sisteminin otonom stratejik asistanısın. "
-            "Kullanıcıya sistem yönetimi, otonom denetleyici (BilgeAPI), hata giderme (self-repair) "
-            "ve otonom ajanlar konularında yardımcı oluyorsun. Yanıtlarında Markdown formatı kullan, "
-            "profesyonel ve Türkçe yanıt ver. Kısa ve öz ol."
-        )
-        llm_response = await model_orchestrator.generate(prompt=req.query, system_prompt=system_prompt)
-        return {"response": llm_response}
-    except Exception as e:
-        return {"response": f"🔄 İstek alındı ancak AGI çekirdeği yanıt veremedi: {str(e)}"}

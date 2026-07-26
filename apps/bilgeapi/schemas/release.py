@@ -1,11 +1,13 @@
 from datetime import datetime
 from typing import List, Dict, Any, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 class ReleaseCheckCreate(BaseModel):
     triggered_by: Optional[str] = Field(None, max_length=64)
 
 class ReleaseCheckResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     status: str
     score: float
@@ -20,10 +22,3 @@ class ReleaseCheckResponse(BaseModel):
     triggered_by: Optional[str] = None
     created_at: datetime
 
-    model_config = {
-
-
-        "from_attributes": True
-
-
-    }

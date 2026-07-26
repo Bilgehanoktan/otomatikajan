@@ -1,0 +1,231 @@
+{
+  "audited_at": "2026-07-24T19:24:09.689Z",
+  "status": "PASS",
+  "publish_status": "DRAFT_REVIEW_REQUIRED",
+  "checks": {
+    "asset_count": {
+      "expected": 18,
+      "actual": 18,
+      "status": "PASS"
+    },
+    "dimensions_and_integrity": {
+      "status": "PASS"
+    },
+    "official_product_sources_only": {
+      "urls": [
+        "https://github.blog/changelog/2026-07-24-claude-opus-5-is-now-available-in-github-copilot/",
+        "https://openai.com/index/gpt-5-6/"
+      ],
+      "status": "PASS"
+    },
+    "forbidden_claims_and_secrets": {
+      "hits": [],
+      "status": "PASS"
+    },
+    "reel_review_video": {
+      "file": "02_claude_opus_5_copilot\\claude_opus_5_copilot_review.webm",
+      "bytes": 2334053,
+      "container_signature": "1a45dfa3",
+      "duration_seconds": 25,
+      "width": 1080,
+      "height": 1920,
+      "fps": 30,
+      "status": "PASS"
+    },
+    "visual_review": {
+      "artifact": "quality_contact_sheet.png",
+      "sampled_all_assets": true,
+      "status": "PASS"
+    }
+  },
+  "assets": [
+    {
+      "file": "01_account_promise\\assets\\slide_01.png",
+      "width": 1080,
+      "height": 1350,
+      "bytes": 111216,
+      "sha256": "26c3000a3c670c52cdff26e9a9850173dbcc3cc53da21f7b10595380162c9a3c",
+      "status": "PASS"
+    },
+    {
+      "file": "01_account_promise\\assets\\slide_02.png",
+      "width": 1080,
+      "height": 1350,
+      "bytes": 113169,
+      "sha256": "1bccc252f365311fef15f9cb1fc8756d7a89bf09ba1756010356ae89a015cb25",
+      "status": "PASS"
+    },
+    {
+      "file": "01_account_promise\\assets\\slide_03.png",
+      "width": 1080,
+      "height": 1350,
+      "bytes": 109666,
+      "sha256": "cd5e60ae30c2c915f79845315b8a2193c733cc8a344d2f7c45712dcb9fb7bd6e",
+      "status": "PASS"
+    },
+    {
+      "file": "01_account_promise\\assets\\slide_04.png",
+      "width": 1080,
+      "height": 1350,
+      "bytes": 109300,
+      "sha256": "bb40b46959aef6b9ae5c081574a1c97ffebb7f406e50529ad02f842f1fc3a771",
+      "status": "PASS"
+    },
+    {
+      "file": "01_account_promise\\assets\\slide_05.png",
+      "width": 1080,
+      "height": 1350,
+      "bytes": 109635,
+      "sha256": "0409bb1e5677e0e418582d6801bb81f6eacf69a8255c1bf1ef19806379c3e702",
+      "status": "PASS"
+    },
+    {
+      "file": "01_account_promise\\assets\\slide_06.png",
+      "width": 1080,
+      "height": 1350,
+      "bytes": 100521,
+      "sha256": "811af7948c96f6ffc93ea605f9eb8a86d3445b38969921aa57d3f3e09d5c063d",
+      "status": "PASS"
+    },
+    {
+      "file": "02_claude_opus_5_copilot\\assets\\slide_01.png",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 144045,
+      "sha256": "1b384090ec3fd9aafa1e22f72b84fbb69b8e4a3595e2f9270a317e61bcc0240c",
+      "status": "PASS"
+    },
+    {
+      "file": "02_claude_opus_5_copilot\\assets\\slide_02.png",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 121299,
+      "sha256": "dda7cccfec29bbe95257c363ad351f291ce5aa1857867f5c6b4803ebc5f59f40",
+      "status": "PASS"
+    },
+    {
+      "file": "02_claude_opus_5_copilot\\assets\\slide_03.png",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 136499,
+      "sha256": "97e226849c97a7e7da30c56bc8dafdc85b5af73eb3eaafbdd456a7685d2e49d6",
+      "status": "PASS"
+    },
+    {
+      "file": "02_claude_opus_5_copilot\\assets\\slide_04.png",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 134046,
+      "sha256": "ea146918baeb1c9d90e80f90dced30063a4d048d13618b87f4f9a9fe087f1349",
+      "status": "PASS"
+    },
+    {
+      "file": "02_claude_opus_5_copilot\\assets\\slide_05.png",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 134235,
+      "sha256": "8dfb23d0cf11f311ee687cc1d5bd08800d9757dc9de7bc2ba2dbd5a18c3cccfc",
+      "status": "PASS"
+    },
+    {
+      "file": "03_gpt_5_6_models\\assets\\slide_01.png",
+      "width": 1080,
+      "height": 1350,
+      "bytes": 115709,
+      "sha256": "d75a8ef728697d978a0a74c1cff0685996919cf960c2bfc887efeb9db99d5147",
+      "status": "PASS"
+    },
+    {
+      "file": "03_gpt_5_6_models\\assets\\slide_02.png",
+      "width": 1080,
+      "height": 1350,
+      "bytes": 113750,
+      "sha256": "cb7b0bb37af6e9853c1fd5a93f250706e3c8df579844f8365a29a27a77647d87",
+      "status": "PASS"
+    },
+    {
+      "file": "03_gpt_5_6_models\\assets\\slide_03.png",
+      "width": 1080,
+      "height": 1350,
+      "bytes": 108363,
+      "sha256": "9fa1eb83bc005d3f3f067756b605b3030c8e86643fa51ed5bf8ab58178c17a29",
+      "status": "PASS"
+    },
+    {
+      "file": "03_gpt_5_6_models\\assets\\slide_04.png",
+      "width": 1080,
+      "height": 1350,
+      "bytes": 107866,
+      "sha256": "260e954afee903ac47a107a35d2002aadb559b9ca8c6630091d431da8cf1f177",
+      "status": "PASS"
+    },
+    {
+      "file": "03_gpt_5_6_models\\assets\\slide_05.png",
+      "width": 1080,
+      "height": 1350,
+      "bytes": 105297,
+      "sha256": "423c8c68843c969ba9876425e6980bda6f52a6a87ead61bdd8d04a0a9e85b54d",
+      "status": "PASS"
+    },
+    {
+      "file": "03_gpt_5_6_models\\assets\\slide_06.png",
+      "width": 1080,
+      "height": 1350,
+      "bytes": 114278,
+      "sha256": "fa45b0e42310d325670e2997bf2f572cdb4a62f4e40ebc8e6ea7aefca8cfa45f",
+      "status": "PASS"
+    },
+    {
+      "file": "03_gpt_5_6_models\\assets\\slide_07.png",
+      "width": 1080,
+      "height": 1350,
+      "bytes": 102790,
+      "sha256": "46c1bd915566ae64bc5bd9e54fc6a3f04536eaa26c9e270bb4bcbf1a2ea51ce4",
+      "status": "PASS"
+    }
+  ],
+  "text_files": [
+    {
+      "file": "01_account_promise\\caption.md",
+      "chars": 508,
+      "hashtag_count": 5,
+      "url_count": 0
+    },
+    {
+      "file": "01_account_promise\\sources.md",
+      "chars": 255,
+      "hashtag_count": 0,
+      "url_count": 0
+    },
+    {
+      "file": "02_claude_opus_5_copilot\\caption.md",
+      "chars": 617,
+      "hashtag_count": 5,
+      "url_count": 0
+    },
+    {
+      "file": "02_claude_opus_5_copilot\\sources.md",
+      "chars": 557,
+      "hashtag_count": 0,
+      "url_count": 1
+    },
+    {
+      "file": "02_claude_opus_5_copilot\\storyboard.md",
+      "chars": 998,
+      "hashtag_count": 0,
+      "url_count": 0
+    },
+    {
+      "file": "03_gpt_5_6_models\\caption.md",
+      "chars": 753,
+      "hashtag_count": 5,
+      "url_count": 0
+    },
+    {
+      "file": "03_gpt_5_6_models\\sources.md",
+      "chars": 454,
+      "hashtag_count": 0,
+      "url_count": 1
+    }
+  ]
+}

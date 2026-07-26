@@ -1,9 +1,0 @@
-
-{
-  "workflow_id": "wf-test-001",
-  "history_length": 45,
-  "pending_signals": ["CANCEL_REQUEST"],
-  "current_state": "replaying",
-  "engine_version": "v1.2.4-stable",
-  "stack_trace_snippet": "TimeoutError: Replay lock held by thread 0x45..."
-}

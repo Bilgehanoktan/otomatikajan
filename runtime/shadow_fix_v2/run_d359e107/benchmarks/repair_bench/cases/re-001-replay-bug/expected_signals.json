@@ -1,7 +1,0 @@
-
-{
-  "event_type": "state_change",
-  "expected_field": "status",
-  "expected_value": "cancelled",
-  "timeout": 10.0
-}

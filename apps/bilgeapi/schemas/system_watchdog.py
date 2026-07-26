@@ -1,10 +1,12 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class SystemFindingResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     tenant_id: Optional[str] = None
     source_type: str
@@ -37,13 +39,6 @@ class SystemFindingResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    model_config = {
-
-
-        "from_attributes": True
-
-
-    }
 
 
 class WatchdogStatusResponse(BaseModel):

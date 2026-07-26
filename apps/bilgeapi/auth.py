@@ -72,8 +72,7 @@ async def get_current_identity(
             "id": "disabled-auth",
             "name": "Bypassed Client",
             "role": "ADMIN",
-            "type": "system",
-            "tenant_id": "default"
+            "type": "system"
         }
         request.state.identity = identity
         return identity
@@ -101,22 +100,13 @@ async def get_current_identity(
         user_agent = request.headers.get("user-agent")
 
         # 1. DB-backed key validation (highest priority)
-        db_key = None
-        try:
-            db_key = await api_key_service.validate_key_and_record_use(
-                plaintext_key=api_key,
-                path=request.url.path,
-                method=request.method,
-                ip_address=client_ip,
-                user_agent=user_agent
-            )
-        except Exception as exc:
-            logger.error(
-                "DB-backed API key validation failed on %s %s: %s",
-                request.method,
-                request.url.path,
-                exc,
-            )
+        db_key = await api_key_service.validate_key_and_record_use(
+            plaintext_key=api_key,
+            path=request.url.path,
+            method=request.method,
+            ip_address=client_ip,
+            user_agent=user_agent
+        )
         if db_key:
             # ── Quota Enforcement (post-auth) ──
             quota_daily = db_key.get("quota_daily")
@@ -169,7 +159,7 @@ async def get_current_identity(
                 "type": "system",
                 "key_id": db_key["id"],
                 "key_fingerprint": db_key["key_fingerprint"],
-                "tenant_id": db_key.get("tenant_id") or "default"
+                "tenant_id": db_key.get("tenant_id")
             }
             request.state.identity = identity
             return identity
@@ -224,8 +214,7 @@ async def get_current_identity(
             "id": f"api_key_{api_key_hash[:12]}",
             "name": "Static API Key Client",
             "role": matched_role,
-            "type": "system",
-            "tenant_id": "default"
+            "type": "system"
         }
         request.state.identity = identity
         return identity
@@ -289,7 +278,7 @@ async def get_current_identity(
             "name": payload.get("name", payload.get("email", "Unknown")),
             "role": payload.get("role", "GUEST").upper(),
             "type": payload.get("identity_type", "operator"),
-            "tenant_id": payload.get("tenant_id") or "default"
+            "tenant_id": payload.get("tenant_id")  # Store tenant_id if present
         }
         request.state.identity = identity
         return identity
